@@ -41,58 +41,125 @@ CABECERA = r'''/* Generado por el compilador de Tcode. No editar a mano. */
    que le sirva a nadie. */
 #if defined(__GNUC__) || defined(__clang__)
 #  define SS_LANG_QUIZA_SIN_USAR __attribute__((unused))
+/* Un desbordamiento detiene el programa: el camino no vuelve y casi nunca se
+   toma. Decirselo al compilador saca ese codigo del bucle caliente. */
+#  define SS_LANG_NO_VUELVE  __attribute__((noreturn, cold, noinline))
+#  define SS_LANG_RARO(c)    __builtin_expect(!!(c), 0)
+#  define SS_LANG_SIEMPRE    __attribute__((always_inline)) inline
 #else
 #  define SS_LANG_QUIZA_SIN_USAR
+#  define SS_LANG_NO_VUELVE
+#  define SS_LANG_RARO(c)    (c)
+#  define SS_LANG_SIEMPRE
 #endif
 
 /* Aritmetica comprobada: en Tcode el desbordamiento no es silencioso.
    Aborta diciendo donde, en vez de seguir con un valor equivocado. */
-SS_LANG_QUIZA_SIN_USAR static void ss_lang_desborde_(const char* op, const char* archivo, int linea)
+SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
+static void ss_lang_desborde_(const char* op, const char* archivo, int linea)
 {
     fprintf(stderr, "%s:%d: desbordamiento en `%s`\n", archivo, linea, op);
     abort();
 }
 
-SS_LANG_QUIZA_SIN_USAR static void ss_lang_division_cero_(const char* archivo, int linea)
+SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
+static void ss_lang_division_cero_(const char* archivo, int linea)
 {
     fprintf(stderr, "%s:%d: division por cero\n", archivo, linea);
     abort();
 }
 
-#define SS_LANG_SUMA_U(a, b, arch, ln) \
-    (((a) > SIZE_MAX - (b)) ? (ss_lang_desborde_("+", arch, ln), (size_t) 0) \
-                            : (size_t)((a) + (b)))
+/* Cada operacion se comprueba antes de confiar en ella.
+ *
+ * Donde el compilador ofrece los builtins de desbordamiento se usan: salen
+ * como la instruccion aritmetica de siempre mas un salto condicional que
+ * casi nunca se toma. La version portable que va debajo es correcta pero
+ * cuesta: la de multiplicar necesita una division, que son decenas de
+ * ciclos, y se nota en un bucle cerrado. */
+#if defined(__GNUC__) || defined(__clang__)
+#  define SS_LANG_HAY_BUILTINS 1
+#endif
 
-#define SS_LANG_RESTA_U(a, b, arch, ln) \
-    (((a) < (b)) ? (ss_lang_desborde_("-", arch, ln), (size_t) 0) \
-                 : (size_t)((a) - (b)))
-
-#define SS_LANG_MUL_U(a, b, arch, ln) \
-    (((a) != 0 && (b) > SIZE_MAX / (a)) \
-        ? (ss_lang_desborde_("*", arch, ln), (size_t) 0) \
-        : (size_t)((a) * (b)))
-
-#define SS_LANG_SUMA_I(a, b, arch, ln) \
-    ((((b) > 0 && (a) > INT64_MAX - (b)) || ((b) < 0 && (a) < INT64_MIN - (b))) \
-        ? (ss_lang_desborde_("+", arch, ln), (int64_t) 0) \
-        : (int64_t)((a) + (b)))
-
-#define SS_LANG_RESTA_I(a, b, arch, ln) \
-    ((((b) < 0 && (a) > INT64_MAX + (b)) || ((b) > 0 && (a) < INT64_MIN + (b))) \
-        ? (ss_lang_desborde_("-", arch, ln), (int64_t) 0) \
-        : (int64_t)((a) - (b)))
-
-#define SS_LANG_MUL_I(a, b, arch, ln) \
-    (ss_lang_mul_i_((a), (b), arch, ln))
-
-SS_LANG_QUIZA_SIN_USAR static int64_t ss_lang_mul_i_(int64_t a, int64_t b, const char* arch, int ln)
-{
-    if (a == 0 || b == 0) return 0;
-    if (a > 0 ? (b > 0 ? a > INT64_MAX / b : b < INT64_MIN / a)
-              : (b > 0 ? a < INT64_MIN / b : a < INT64_MAX / b))
-        ss_lang_desborde_("*", arch, ln);
-    return a * b;
+#define SS_LANG_DEFINIR_ARIT(sufijo, tipo, tmax, tmin)                        \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_suma_##sufijo(tipo a, tipo b, const char* ar, int ln)     \
+{                                                                             \
+    tipo r;                                                                   \
+    if (ss_lang_suma_desborda_##sufijo(a, b, &r))                             \
+        ss_lang_desborde_("+", ar, ln);                                       \
+    return r;                                                                 \
+}                                                                             \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_resta_##sufijo(tipo a, tipo b, const char* ar, int ln)    \
+{                                                                             \
+    tipo r;                                                                   \
+    if (ss_lang_resta_desborda_##sufijo(a, b, &r))                            \
+        ss_lang_desborde_("-", ar, ln);                                       \
+    return r;                                                                 \
+}                                                                             \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_mul_##sufijo(tipo a, tipo b, const char* ar, int ln)      \
+{                                                                             \
+    tipo r;                                                                   \
+    if (ss_lang_mul_desborda_##sufijo(a, b, &r))                              \
+        ss_lang_desborde_("*", ar, ln);                                       \
+    return r;                                                                 \
 }
+
+#ifdef SS_LANG_HAY_BUILTINS
+
+#  define ss_lang_suma_desborda_u(a, b, r)  __builtin_add_overflow((a), (b), (r))
+#  define ss_lang_resta_desborda_u(a, b, r) __builtin_sub_overflow((a), (b), (r))
+#  define ss_lang_mul_desborda_u(a, b, r)   __builtin_mul_overflow((a), (b), (r))
+#  define ss_lang_suma_desborda_i(a, b, r)  __builtin_add_overflow((a), (b), (r))
+#  define ss_lang_resta_desborda_i(a, b, r) __builtin_sub_overflow((a), (b), (r))
+#  define ss_lang_mul_desborda_i(a, b, r)   __builtin_mul_overflow((a), (b), (r))
+
+#else   /* portable: mas caro, sobre todo al multiplicar */
+
+static int ss_lang_suma_desborda_u(size_t a, size_t b, size_t* r)
+{ *r = a + b; return a > SIZE_MAX - b; }
+
+static int ss_lang_resta_desborda_u(size_t a, size_t b, size_t* r)
+{ *r = a - b; return a < b; }
+
+static int ss_lang_mul_desborda_u(size_t a, size_t b, size_t* r)
+{ *r = a * b; return a != 0 && b > SIZE_MAX / a; }
+
+static int ss_lang_suma_desborda_i(int64_t a, int64_t b, int64_t* r)
+{
+    if ((b > 0 && a > INT64_MAX - b) || (b < 0 && a < INT64_MIN - b)) return 1;
+    *r = a + b; return 0;
+}
+
+static int ss_lang_resta_desborda_i(int64_t a, int64_t b, int64_t* r)
+{
+    if ((b < 0 && a > INT64_MAX + b) || (b > 0 && a < INT64_MIN + b)) return 1;
+    *r = a - b; return 0;
+}
+
+static int ss_lang_mul_desborda_i(int64_t a, int64_t b, int64_t* r)
+{
+    if (a != 0 && b != 0)
+    {
+        if (a > 0 ? (b > 0 ? a > INT64_MAX / b : b < INT64_MIN / a)
+                  : (b > 0 ? a < INT64_MIN / b : a < INT64_MAX / b))
+            return 1;
+    }
+    *r = a * b; return 0;
+}
+
+#endif
+
+SS_LANG_DEFINIR_ARIT(u, size_t, SIZE_MAX, 0)
+SS_LANG_DEFINIR_ARIT(i, int64_t, INT64_MAX, INT64_MIN)
+
+#define SS_LANG_SUMA_U(a, b, ar, ln)  ss_lang_suma_u((a), (b), ar, ln)
+#define SS_LANG_RESTA_U(a, b, ar, ln) ss_lang_resta_u((a), (b), ar, ln)
+#define SS_LANG_MUL_U(a, b, ar, ln)   ss_lang_mul_u((a), (b), ar, ln)
+#define SS_LANG_SUMA_I(a, b, ar, ln)  ss_lang_suma_i((a), (b), ar, ln)
+#define SS_LANG_RESTA_I(a, b, ar, ln) ss_lang_resta_i((a), (b), ar, ln)
+#define SS_LANG_MUL_I(a, b, ar, ln)   ss_lang_mul_i((a), (b), ar, ln)
 
 #define SS_LANG_DIV(a, b, arch, ln) \
     (((b) == 0) ? (ss_lang_division_cero_(arch, ln), 0) : ((a) / (b)))
@@ -101,10 +168,10 @@ SS_LANG_QUIZA_SIN_USAR static int64_t ss_lang_mul_i_(int64_t a, int64_t b, const
     (((b) == 0) ? (ss_lang_division_cero_(arch, ln), 0) : ((a) % (b)))
 
 /* Indexar fuera de rango no lee memoria ajena: detiene el programa. */
-SS_LANG_QUIZA_SIN_USAR
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE
 static size_t ss_lang_indice_(size_t i, size_t n, const char* arch, int ln)
 {
-    if (i >= n)
+    if (SS_LANG_RARO(i >= n))
     {
         fprintf(stderr, "%s:%d: indice %zu fuera de rango (el arreglo tiene "
                         "%zu elemento%s)\n", arch, ln, i, n, n == 1 ? "" : "s");

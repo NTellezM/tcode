@@ -2,8 +2,10 @@
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 
 from tcode.lexer import ErrorLexico
 from tcode.parser import parsear, ErrorSintactico
@@ -13,6 +15,28 @@ from tcode.generador import generar
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNTIME = os.path.join(RAIZ, "runtime")
+
+MARCA = "/* Generado por el compilador de Tcode. No editar a mano. */"
+
+
+def _lo_generamos_nosotros(ruta):
+    """True si ese .c lo escribio tcode: entonces se puede pisar."""
+    try:
+        with open(ruta, encoding="utf-8") as f:
+            return MARCA in f.read(200)
+    except OSError:
+        return False
+
+MARCA = "/* Generado por el compilador de Tcode. No editar a mano. */"
+
+
+def _lo_generamos_nosotros(ruta):
+    """True si ese .c lo escribio tcode: entonces se puede pisar."""
+    try:
+        with open(ruta, encoding="utf-8") as f:
+            return MARCA in f.read(200)
+    except OSError:
+        return False
 
 
 def compilar_a_c(fuente, archivo):
@@ -43,6 +67,11 @@ def main(argv=None):
     ap.add_argument("--emitir-c", action="store_true",
                     help="escribe el C generado y no invoca al compilador")
     ap.add_argument("--cc", default=os.environ.get("CC", "cc"))
+    ap.add_argument("-O", "--optimizacion", default="2", choices=["0", "1", "2", "3", "s"],
+                    help="nivel que se le pasa al compilador de C (por defecto 2). "
+                         "Con aritmetica comprobada en bucles cerrados, 3 suele "
+                         "recuperar lo que cuesta comprobar: los cuerpos crecen y "
+                         "en -O2 dejan de integrarse")
     ap.add_argument("--solo-comprobar", action="store_true",
                     help="analiza y reporta errores, sin generar nada")
     args = ap.parse_args(argv)
@@ -73,13 +102,44 @@ def main(argv=None):
         return 0
 
     base = args.salida or os.path.splitext(args.fuente)[0]
-    ruta_c = base + ".c"
-    with open(ruta_c, "w", encoding="utf-8") as f:
-        f.write(codigo)
 
+    # Con --emitir-c el C es el producto y va junto al fuente. Sin la opcion
+    # es un intermedio y va a un temporal: escribirlo junto al fuente pisaria
+    # un `<base>.c` del usuario, y borrarlo despues lo destruiria.
     if args.emitir_c:
+        ruta_c = base + ".c"
+        if os.path.exists(ruta_c) and not _lo_generamos_nosotros(ruta_c):
+            print(f"tcode: {ruta_c} ya existe y no lo genero tcode, asi que "
+                  f"no lo piso. Usa -o para elegir otro nombre.",
+                  file=sys.stderr)
+            return 2
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
         print(ruta_c)
         return 0
+
+    tmp = tempfile.mkdtemp(prefix="tcode-")
+    try:
+        ruta_c = os.path.join(tmp, os.path.basename(base) + ".c")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+
+        orden = [args.cc, "-std=c17", f"-O{args.optimizacion}", "-Wall", "-Wextra",
+                 f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+                 "-o", base]
+        r = subprocess.run(orden, capture_output=True, text=True)
+        if r.returncode != 0:
+            print("tcode: el C generado no compilo. Es un fallo del "
+                  "compilador, no de tu programa.", file=sys.stderr)
+            print(r.stderr, file=sys.stderr)
+            return 1
+        if r.stderr.strip():
+            print(r.stderr, file=sys.stderr)
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+    print(base)
+    return 0
 
     orden = [args.cc, "-std=c17", "-O2", "-Wall", "-Wextra",
              f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
