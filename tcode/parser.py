@@ -129,6 +129,14 @@ class Parser:
             self.i += 1
             return t.valor
 
+        # Coleccion dinamica y duenia. El tipo del elemento forma parte del
+        # tipo concreto: no hay borrado de tipos ni casts escondidos.
+        if self.acepta("palabra", "lista"):
+            self.espera("simbolo", "<")
+            elem = self.tipo()
+            self.espera("simbolo", ">")
+            return f"lista<{elem}>"
+
         # arreglo de tamaño fijo: [usize; 5]
         if self.acepta("simbolo", "["):
             elem = self.tipo()
@@ -140,7 +148,7 @@ class Parser:
             return f"[{elem}; {n}]"
 
         self.error("se esperaba un tipo (str, view, usize, i64, bool, "
-                   "un struct, o [tipo; N])")
+                   "lista<tipo>, un struct, o [tipo; N])")
 
     def bloque(self) -> list:
         self.espera("simbolo", "{")

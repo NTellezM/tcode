@@ -29,8 +29,10 @@ ejemplos:
 	@$(PY) -m tcode ejemplos/inventario.t >/dev/null && ./ejemplos/inventario
 	@echo
 	@$(PY) -m tcode ejemplos/informe/informe.t >/dev/null && ./ejemplos/informe/informe
+	@echo
+	@$(PY) -m tcode ejemplos/contar.t >/dev/null && ./ejemplos/contar
 
 limpiar:
-	@rm -f ejemplos/hola ejemplos/texto ejemplos/inventario ejemplos/*.c
+	@rm -f ejemplos/hola ejemplos/texto ejemplos/inventario ejemplos/contar ejemplos/*.c
 	@rm -f ejemplos/informe/informe ejemplos/informe/*.c
 	@rm -rf tcode/__pycache__ tests/__pycache__

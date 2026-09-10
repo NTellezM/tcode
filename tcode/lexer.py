@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 PALABRAS = {
     "fn", "let", "var", "mut", "if", "else", "while", "return",
-    "true", "false", "str", "view", "usize", "i64", "bool", "struct",
+    "true", "false", "str", "view", "usize", "i64", "bool", "lista", "struct",
     "usar", "try", "sino", "falla",
 }
 

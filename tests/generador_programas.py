@@ -128,6 +128,36 @@ class Generador:
             lineas.append(f"{s}{v}[{idx}] = {self.expr_usize(vars_usize)};")
             vars_usize.append(f"{v}[{idx}]")
 
+        # Coleccion de largo decidido en ejecucion. Esto hace que P2 recorra
+        # de forma habitual los caminos de realloc, indexacion y liberacion.
+        if self.r.random() < 0.7:
+            v = nombre("l")
+            cuantos = self.r.randint(1, 8)
+            lineas.append(f"{s}var {v}: lista<usize> = [];")
+            for _ in range(cuantos):
+                lineas.append(
+                    f"{s}anadir({v}, {self.expr_usize(vars_usize)});")
+            idx = self.r.randrange(cuantos)
+            lineas.append(f"{s}{v}[{idx}] = {self.expr_usize(vars_usize)};")
+            vars_usize.append(f"{v}[{idx}]")
+
+        # Lista de valores DUENIOS: cada elemento hay que liberarlo, y al
+        # crecer la lista los mueve de sitio. Es el caso que mas facil se
+        # rompe y el que menos se escribe a mano.
+        if self.r.random() < 0.5:
+            v = nombre("ls")
+            cuantos = self.r.randint(1, 5)
+            lineas.append(f"{s}var {v}: lista<str> = [];")
+            for _ in range(cuantos):
+                if self.r.random() < 0.5:
+                    lineas.append(f'{s}anadir({v}, nuevo("{self.palabra()}"));')
+                else:
+                    lineas.append(f"{s}anadir({v}, texto("
+                                  f"{self.expr_usize(vars_usize)}));")
+            idx = self.r.randrange(cuantos)
+            lineas.append(f"{s}imprimir(largo(vista({v}[{idx}])));")
+            vars_usize.append(f"largo({v})")
+
         # --- fase 2: mutar ---
         for vs in vars_str:
             for _ in range(self.r.randint(0, 3)):
@@ -180,6 +210,33 @@ class Generador:
                 libres.append(vs)
         for v in vars_usize[:2]:
             lineas.append(f"{s}imprimir({v});")
+
+        # `texto` de un escalar: un `str` recien creado que hay que liberar.
+        if vars_usize and self.r.random() < 0.5:
+            t = nombre("t")
+            lineas.append(f"{s}let {t}: str = texto("
+                          f"{self.r.choice(vars_usize)});")
+            lineas.append(f"{s}imprimir({t});")
+
+        # `byte` con indice acotado por el largo: nunca se sale.
+        if vars_str and self.r.random() < 0.5:
+            vs = self.r.choice(vars_str)
+            lineas.append(f"{s}if largo(vista({vs})) > 0 {{")
+            lineas.append(f"{s}    imprimir(byte(vista({vs}), 0));")
+            lineas.append(f"{s}}}")
+
+        # `sino` con una alternativa DUENIA. La alternativa se consume solo si
+        # la llamada falla, asi que en el otro camino sigue siendo nuestra.
+        # Aqui se genera con las dos ramas, a proposito.
+        if self.r.random() < 0.6:
+            for falla_ahora in (0, self.r.randint(1, 9)):
+                res = nombre("r")
+                alt = nombre("alt")
+                lineas.append(f'{s}let {alt}: str = nuevo("{self.palabra()}");')
+                lineas.append(f"{s}let {res}: str = "
+                              f"puede_fallar({falla_ahora}) sino {alt};")
+                lineas.append(f"{s}imprimir(largo(vista({res})));")
+
         lineas.append(f'{s}imprimir("\\n");')
 
         return lineas, (libres[-1] if libres else None)
@@ -206,6 +263,21 @@ class Generador:
             "    return n / 2;\n"
             "}")
 
+        # Devuelve un `str` o falla. Sirve para ejercitar los dos caminos de
+        # `sino` cuando la alternativa es duenia de su memoria.
+        partes.append(
+            "fn puede_fallar(n: usize) -> str ! {\n"
+            "    if n != 0 { falla \"pedido\"; }\n"
+            "    return nuevo(\"logrado\");\n"
+            "}")
+
+        # Lee un archivo que no existe: el camino de fallo de la E/S, con una
+        # alternativa que tambien hay que liberar.
+        partes.append(
+            "fn leer_o(alterno: str) -> str {\n"
+            "    return leer_archivo(\"/no/existe/tampoco\") sino alterno;\n"
+            "}")
+
         auxiliares = []
         for k in range(self.r.randint(0, 2)):
             lineas, _ = self.cuerpo()
@@ -220,6 +292,9 @@ class Generador:
             lineas.append(f"    imprimir(consumir({str_vivo}));")
         lineas.append(f"    imprimir(mitad({self.r.randint(1, 50)}) sino 0);")
         lineas.append(f"    imprimir(mitad(0) sino 7);")
+        lineas.append(f'    let respaldo: str = nuevo("respaldo");')
+        lineas.append(f"    let leido: str = leer_o(respaldo);")
+        lineas.append(f"    imprimir(largo(vista(leido)));")
         lineas.append('    imprimir("\\n");')
         lineas.append("    return 0;")
         partes.append("fn main() -> usize {\n" + "\n".join(lineas) + "\n}")

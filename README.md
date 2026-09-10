@@ -67,9 +67,39 @@ error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 7. **Un archivo es un módulo.** `usar "lib/texto.t";`, rutas relativas,
    carga única y detección de ciclos.
 8. **Propiedad recursiva y límites comprobados.** Un `struct` posee lo que
-   poseen sus campos; un arreglo, lo que poseen sus elementos, y la
+   poseen sus campos; un arreglo o `lista<T>`, lo que poseen sus elementos, y la
    liberación se genera sola a cualquier hondura. Todo índice se comprueba:
    salirse detiene el programa en vez de leer memoria ajena.
+
+## Programas que consumen datos
+
+Tcode ya puede leer entrada externa y no necesita conocer de antemano cuántos
+elementos va a guardar:
+
+```tcode
+fn main() -> usize ! {
+    let datos: str = try leer_archivo("entrada.txt");
+    var saltos: lista<usize> = [];
+    var i: usize = 0;
+    while i < largo(vista(datos)) {
+        if byte(vista(datos), i) == 10 { anadir(saltos, i); }
+        i = i + 1;
+    }
+    imprimir(largo(saltos));
+    return 0;
+}
+```
+
+`lista<T>` crece de forma amortizada, comprueba cada índice y posee tanto su
+buffer como los elementos que tengan memoria propia. `leer_archivo` es
+falible: no se puede ignorar un error de apertura o lectura. `texto(x)`
+convierte enteros y booleanos a `str`, y `byte(texto, i)` permite hacer
+procesamiento binario sin introducir un tipo carácter implícito.
+
+[`ejemplos/contar.t`](ejemplos/contar.t) es una utilidad completa que lee este
+README y calcula líneas, palabras y bytes. Es deliberadamente pequeña, pero a
+diferencia de los ejemplos de validación consume un archivo real cuyo tamaño y
+contenido no controla el programa.
 
 La especificación completa está en [`docs/ESPECIFICACION.md`](docs/ESPECIFICACION.md).
 
@@ -196,20 +226,21 @@ falta casi todo lo que un lenguaje necesita para ser usable en producción.
 
 Hay: funciones, `let`/`var`, `if`/`else`, `while`, `return`, aritmética
 comprobada, `str`/`view`/`usize`/`i64`/`bool`, préstamos con ámbito léxico,
-liberación automática, y ocho funciones internas sobre la librería de C.
+liberación automática, lectura completa de archivos y conversión básica a
+texto.
 
 Hay también: `struct`, arreglos de tamaño fijo con índices comprobados,
 structs anidados, arreglos de structs, propiedad recursiva, préstamos de
-structs (`&T` y `mut T`), módulos y fallos como valores.
+structs (`&T` y `mut T`), `lista<T>` dinámica, módulos y fallos como valores.
 
-No hay: genéricos, espacios de nombres, arreglos de tamaño variable, ni el
-propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
+No hay: genéricos definidos por el usuario, espacios de nombres, diccionarios,
+E/S incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
 struct (el muro real: exige la vida útil en el tipo), movimientos parciales
 de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-84 casos, 0 fallas
+100 casos, 0 fallas
 368 comprobaciones sobre 60 programas, 0 fallas
 ```
 
@@ -230,16 +261,19 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 | **P7** | todo aviso nombra un archivo y una línea que existen, y ningún aviso impide compilar |
 
 `tests/generador_programas.py` produce programas válidos por construcción
-—con cadenas propias, structs, arreglos, préstamos, movimientos y fallos— y
+—con `lista<usize>` y `lista<str>`, `texto`, `byte`, y las **dos** ramas de
+un `sino` cuya alternativa es dueña de su memoria—
+—con cadenas propias, structs, arreglos, listas dinámicas, préstamos,
+movimientos y fallos— y
 acotados para que no aborten ni se cuelguen. Para insistir más:
 
 ```
 TCODE_PROGRAMAS=1000 make propiedades
 ```
 
-Los 48 casos de rechazo comprueban que los programas malos no compilan; los
-18 de aceptación corren bajo AddressSanitizer y UndefinedBehaviorSanitizer y
-comparan la salida exacta; 4 comprueban que la aritmética y los índices
-comprobados detienen el programa en vez de seguir con basura; y 5 arman un
-programa de varios archivos en un directorio temporal para probar la carga de
-módulos, los ciclos y los nombres repetidos.
+Los casos de rechazo comprueban que los programas malos no compilan; los de
+aceptación corren bajo AddressSanitizer y UndefinedBehaviorSanitizer y comparan
+la salida exacta, incluida una lectura binaria real. Otros comprueban que la
+aritmética y los índices detienen el programa en vez de seguir con basura, y
+arman programas de varios archivos para probar módulos, ciclos y nombres
+repetidos.

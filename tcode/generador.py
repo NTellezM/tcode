@@ -9,6 +9,8 @@ mano, que son justo donde se equivoca:
   - envolver `+`, `-` y `*` en comprobaciones de desbordamiento.
 """
 
+import contextlib
+
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
@@ -17,6 +19,7 @@ from tcode.nodos import (
 )
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
+    es_lista, elem_lista,
 )
 
 TIPOS_C = {
@@ -35,6 +38,7 @@ CABECERA = r'''/* Generado por el compilador de Tcode. No editar a mano. */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "safestr.h"
 
 /* Este archivo lo escribe el compilador, no una persona. Un aviso sobre una
@@ -190,6 +194,37 @@ static size_t ss_lang_indice_(size_t i, size_t n, const char* arch, int ln)
     return i;
 }
 
+SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
+static void ss_lang_sin_memoria_(const char* archivo, int linea)
+{
+    fprintf(stderr, "%s:%d: no hay memoria suficiente\n", archivo, linea);
+    abort();
+}
+
+SS_LANG_QUIZA_SIN_USAR
+static SafeString ss_lang_texto_usize_(size_t valor, const char* ar, int ln)
+{
+    SafeString s = ss_new();
+    if (!ss_appendf(&s, "%zu", valor)) ss_lang_sin_memoria_(ar, ln);
+    return s;
+}
+
+SS_LANG_QUIZA_SIN_USAR
+static SafeString ss_lang_texto_i64_(int64_t valor, const char* ar, int ln)
+{
+    SafeString s = ss_new();
+    if (!ss_appendf(&s, "%lld", (long long) valor)) ss_lang_sin_memoria_(ar, ln);
+    return s;
+}
+
+SS_LANG_QUIZA_SIN_USAR
+static SafeString ss_lang_texto_view_(SafeView valor, const char* ar, int ln)
+{
+    SafeString s = ss_from_view(valor);
+    if (!ss_ok(&s)) ss_lang_sin_memoria_(ar, ln);
+    return s;
+}
+
 '''
 
 
@@ -198,6 +233,8 @@ def mangle(t):
     if es_arreglo(t):
         elem, n = partes_arreglo(t)
         return f"arr_{mangle(elem)}_{n}"
+    if es_lista(t):
+        return f"lista_{mangle(elem_lista(t))}"
     return t
 
 
@@ -214,7 +251,9 @@ class Generador:
         # se cerraron cuando llegamos aqui.
         self.vars = []
         self.arreglos = {}     # tipo Tcode -> nombre del typedef en C
+        self.listas = {}       # tipo Tcode -> nombre del typedef en C
         self.resultados = {}   # tipo Tcode -> nombre del typedef de resultado
+        self.usa_leer_archivo = False
         self.bucle = 0         # contador para variables de bucle de liberacion
         self.func = None       # funcion que se esta generando
         # Variables que se mueven en algun punto: llevan una bandera en
@@ -236,6 +275,8 @@ class Generador:
         """
         if es_arreglo(t):
             return self.registrar_arreglo(t)
+        if es_lista(t):
+            return self.registrar_lista(t)
         return TIPOS_C.get(t, t)
 
     def tipo_resultado(self, t):
@@ -255,11 +296,21 @@ class Generador:
             self.arreglos[t] = f"ss_{mangle(t)}"
         return self.arreglos[t]
 
+    def registrar_lista(self, t):
+        if t not in self.listas:
+            elem = elem_lista(t)
+            if es_lista(elem):
+                self.registrar_lista(elem)
+            self.listas[t] = f"ss_{mangle(t)}"
+        return self.listas[t]
+
     def recolectar_tipos(self, decls):
         """Registra todos los tipos de arreglo que aparecen en el programa."""
         def mirar(t):
             if t and es_arreglo(t):
                 self.registrar_arreglo(t)
+            elif t and es_lista(t):
+                self.registrar_lista(t)
 
         for d in decls:
             if isinstance(d, Struct):
@@ -274,6 +325,24 @@ class Generador:
                 for p in d.params:
                     mirar(p.tipo)
                 self._mirar_cuerpo(d.cuerpo, mirar)
+
+        # Las llamadas falibles internas necesitan que exista su tipo de
+        # resultado. Recorrer el AST evita meter soporte de archivos en el C
+        # de programas que no lo usan.
+        from dataclasses import fields, is_dataclass
+
+        def recorrer(x):
+            if isinstance(x, Llamada) and x.nombre == "leer_archivo":
+                self.usa_leer_archivo = True
+                self.tipo_resultado("str")
+            if isinstance(x, (list, tuple)):
+                for y in x:
+                    recorrer(y)
+            elif is_dataclass(x):
+                for campo in fields(x):
+                    recorrer(getattr(x, campo.name))
+
+        recorrer(decls)
 
     def _mirar_cuerpo(self, sentencias, mirar):
         for s in sentencias:
@@ -353,13 +422,30 @@ class Generador:
         self.lineas.append(CABECERA)
         self.recolectar_tipos(decls)
 
+        # Las listas solo guardan un puntero a sus elementos. Declarar antes
+        # los nombres de struct permite `lista<Nodo>` incluso dentro de Nodo.
+        for st in structs:
+            self.lineas.append(f"typedef struct {st.nombre} {st.nombre};")
+        if structs:
+            self.lineas.append("")
+
+        # Tipos de lista, de dentro hacia fuera. El elemento puede estar aun
+        # incompleto porque aqui solo aparece detras de un puntero.
+        for t in sorted(self.listas, key=lambda x: x.count("lista<")):
+            elem = elem_lista(t)
+            self.lineas.append(
+                f"typedef struct {{ {self.tipo_c(elem)}* e; size_t length; "
+                f"size_t capacity; }} {self.listas[t]};")
+        if self.listas:
+            self.lineas.append("")
+
         # structs, en orden de dependencia
         for st in self.orden_structs(structs):
-            self.lineas.append(f"typedef struct {st.nombre}")
+            self.lineas.append(f"struct {st.nombre}")
             self.lineas.append("{")
             for c in st.campos:
                 self.lineas.append(f"    {self.tipo_c(c.tipo)} {c.nombre};")
-            self.lineas.append(f"}} {st.nombre};")
+            self.lineas.append("};")
             self.lineas.append("")
 
         # envoltorios de arreglo, de dentro hacia fuera
@@ -380,6 +466,88 @@ class Generador:
                     f"typedef struct {{ const char* motivo; "
                     f"{self.tipo_c(t)} valor; }} {nombre};")
         if self.resultados:
+            self.lineas.append("")
+
+        if self.usa_leer_archivo:
+            res = self.tipo_resultado("str")
+            self.lineas.extend([
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static {res} ss_lang_leer_archivo_(SafeView ruta)",
+                "{",
+                "    if (ruta.len != 0 && memchr(ruta.ptr, 0, ruta.len) != NULL)",
+                f'        return ({res}){{ .motivo = "la ruta contiene un byte cero" }};',
+                "    SafeString nombre = ss_from_view(ruta);",
+                "    if (!ss_ok(&nombre))",
+                "    {",
+                "        ss_free(&nombre);",
+                f'        return ({res}){{ .motivo = "sin memoria para la ruta" }};',
+                "    }",
+                "    FILE* f = fopen(ss_cstr(&nombre), \"rb\");",
+                "    ss_free(&nombre);",
+                "    if (f == NULL)",
+                f'        return ({res}){{ .motivo = "no se pudo abrir el archivo" }};',
+                "    SafeString contenido = ss_new();",
+                "    unsigned char bloque[8192];",
+                "    size_t n;",
+                "    while ((n = fread(bloque, 1, sizeof(bloque), f)) != 0)",
+                "    {",
+                "        if (!ss_append_len(&contenido, (const char*) bloque, n))",
+                "        {",
+                "            fclose(f);",
+                "            ss_free(&contenido);",
+                f'            return ({res}){{ .motivo = "sin memoria al leer el archivo" }};',
+                "        }",
+                "    }",
+                "    bool fallo_lectura = ferror(f) != 0;",
+                "    if (fclose(f) != 0) fallo_lectura = true;",
+                "    if (fallo_lectura)",
+                "    {",
+                "        ss_free(&contenido);",
+                f'        return ({res}){{ .motivo = "fallo al leer el archivo" }};',
+                "    }",
+                f"    return ({res}){{ .motivo = NULL, .valor = contenido }};",
+                "}",
+                "",
+            ])
+
+        # Una funcion de crecimiento por cada T concreto. No hay `void*` en
+        # la interfaz generada: el compilador de C tambien comprueba el tipo.
+        for t, nombre in self.listas.items():
+            elem = elem_lista(t)
+            tc_elem = self.tipo_c(elem)
+            self.lineas.extend([
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static void ss_push_{mangle(t)}({nombre}* p, {tc_elem} valor,",
+                "        const char* archivo, int linea)",
+                "{",
+                "    if (p->length == p->capacity)",
+                "    {",
+                "        if (p->length == SIZE_MAX)",
+                "            ss_lang_sin_memoria_(archivo, linea);",
+                "        size_t nueva = p->capacity == 0 ? 8 : p->capacity;",
+                "        if (nueva < p->length + 1)",
+                "        {",
+                "            nueva = nueva > SIZE_MAX / 2 ? SIZE_MAX : nueva * 2;",
+                "            if (nueva < p->length + 1) nueva = p->length + 1;",
+                "        }",
+                "        if (nueva > SIZE_MAX / sizeof(*p->e))",
+                "            ss_lang_sin_memoria_(archivo, linea);",
+                "        void* memoria = realloc(p->e, nueva * sizeof(*p->e));",
+                "        if (memoria == NULL) ss_lang_sin_memoria_(archivo, linea);",
+                f"        p->e = ({tc_elem}*) memoria;",
+                "        p->capacity = nueva;",
+                "    }",
+                "    p->e[p->length++] = valor;",
+                "}",
+                "",
+            ])
+
+        # Prototipos primero: dos structs pueden referirse de forma finita a
+        # traves de listas (A contiene lista<B>, B contiene lista<A>).
+        for st in self.orden_structs(structs):
+            if self.c.posee(st.nombre):
+                self.lineas.append(f"static void ss_drop_{st.nombre}({st.nombre}* p);")
+        if any(self.c.posee(st.nombre) for st in structs):
             self.lineas.append("")
 
         # liberadores de los structs que poseen memoria
@@ -495,6 +663,23 @@ class Generador:
             self.emitir(f"ss_free(&{expr_c});")
             return
 
+        if es_lista(tipo):
+            elem = elem_lista(tipo)
+            if self.c.posee(elem):
+                self.bucle += 1
+                i = f"ss_i{self.bucle}"
+                self.emitir(f"for (size_t {i} = 0; {i} < {expr_c}.length; {i}++)")
+                self.emitir("{")
+                self.sangria += 1
+                self.liberacion(f"{expr_c}.e[{i}]", elem)
+                self.sangria -= 1
+                self.emitir("}")
+            self.emitir(f"free({expr_c}.e);")
+            self.emitir(f"{expr_c}.e = NULL;")
+            self.emitir(f"{expr_c}.length = 0;")
+            self.emitir(f"{expr_c}.capacity = 0;")
+            return
+
         if es_arreglo(tipo):
             elem, n = partes_arreglo(tipo)
             if not self.c.posee(elem):
@@ -513,8 +698,9 @@ class Generador:
             self.emitir(f"ss_drop_{tipo}(&{expr_c});")
 
     def liberar_bloque(self, nombres, excepto=None):
+        excepciones = excepto if isinstance(excepto, set) else {excepto}
         for n in reversed(nombres):
-            if n == excepto:
+            if n in excepciones:
                 continue
             if n in self.con_bandera:
                 # se movio en algun camino: lo decide la bandera
@@ -532,6 +718,25 @@ class Generador:
     def liberar_todo(self, excepto=None):
         for marco in reversed(self.pila):
             self.liberar_bloque(marco, excepto)
+
+    @staticmethod
+    def movidas_en(nodo):
+        """Variables cuya propiedad entrega esta expresion."""
+        from dataclasses import fields, is_dataclass
+        nombres = set()
+
+        def recorrer(x):
+            if isinstance(x, Variable) and getattr(x, "mueve", False):
+                nombres.add(x.nombre)
+            if isinstance(x, (list, tuple)):
+                for y in x:
+                    recorrer(y)
+            elif is_dataclass(x):
+                for campo in fields(x):
+                    recorrer(getattr(x, campo.name))
+
+        recorrer(nodo)
+        return nombres
 
     # ---------- sentencias ----------
 
@@ -553,13 +758,50 @@ class Generador:
     def _termina_en_retorno(sentencias):
         return bool(sentencias) and isinstance(sentencias[-1], Retorno)
 
-    def sentencia(self, s):
+    # ---------- propiedad que depende del camino ----------
+    #
+    # Un valor puede entregarse en unos caminos y no en otros: la alternativa
+    # de un `sino`, o una variable que se mueve despues de un `falla`. Para
+    # esos casos el generador lleva una bandera en tiempo de ejecucion y la
+    # liberacion pregunta por ella.
+    #
+    # El invariante es uno solo:
+    #
+    #     generar el uso que entrega una variable con bandera OBLIGA a apagar
+    #     esa bandera en el mismo camino, antes de salir de el.
+    #
+    # `expr` lo anota al generar el uso (no sabe donde esta); quien abre un
+    # camino lo vacia antes de cerrarlo. Si aparece una construccion nueva que
+    # abre caminos y no vacia, `revisar_banderas` lo dice en vez de dejar una
+    # fuga silenciosa.
+
+    def _apagar_ahora(self):
+        """Apaga ya lo pendiente. Lo usa `return`, que no vuelve."""
+        for n in dict.fromkeys(self.pendientes):
+            self.emitir(f"ss_vivo_{n} = false;")
+        self.pendientes = []
+
+    @contextlib.contextmanager
+    def camino(self):
+        """Abre un camino de ejecucion.
+
+        Lo que se entregue dentro se apaga aqui dentro, antes de cerrarlo. Se
+        hace con un `with` a proposito: una construccion nueva que abra
+        caminos no puede olvidarse del vaciado, porque no hay nada que
+        recordar. Es la diferencia entre una regla y una costumbre.
+        """
         anteriores = self.pendientes
         self.pendientes = []
-        self._sentencia(s)
-        for n in self.pendientes:
-            self.emitir(f"ss_vivo_{n} = false;")
-        self.pendientes = anteriores
+        try:
+            yield
+        finally:
+            for n in dict.fromkeys(self.pendientes):
+                self.emitir(f"ss_vivo_{n} = false;")
+            self.pendientes = anteriores
+
+    def sentencia(self, s):
+        with self.camino():
+            self._sentencia(s)
 
     def _sentencia(self, s):
         if isinstance(s, Declaracion):
@@ -618,17 +860,30 @@ class Generador:
                 return
             # Si se devuelve una variable duenia, esa NO se libera: se entrega.
             devuelta = s.valor.nombre if isinstance(s.valor, Variable) else None
+            entregadas = self.movidas_en(s.valor)
+            # Una variable con bandera se entrega solo en algunos caminos
+            # (la alternativa de un `sino`, por ejemplo). Excluirla aqui la
+            # dejaria sin liberar en los demas: quien decide es la bandera.
+            entregadas -= self.con_bandera
+            if devuelta is not None:
+                entregadas.add(devuelta)
             valor = self.expr(s.valor, self.func.retorno if self.func else None)
             envolver = (lambda v: f"({self.tipo_resultado(self.func.retorno)})"
                                   f"{{ .motivo = NULL, .valor = {v} }}") \
                        if falible else (lambda v: v)
             if devuelta is not None:
-                self.liberar_todo(excepto=devuelta)
+                self._apagar_ahora()
+                self.liberar_todo(excepto=entregadas)
                 self.emitir(f"return {envolver(devuelta)};")
             else:
                 tmp = self.nuevo_tmp()
-                self.emitir(f"{self.tipo_c(self._tipo_de(s.valor))} {tmp} = {valor};")
-                self.liberar_todo()
+                tipo_devuelto = self.func.retorno if self.func else self._tipo_de(s.valor)
+                self.emitir(f"{self.tipo_c(tipo_devuelto)} {tmp} = {valor};")
+                # Antes de liberar y de salir: lo que se apague despues de un
+                # `return` no se ejecuta nunca, y la liberacion veria la
+                # bandera todavia encendida.
+                self._apagar_ahora()
+                self.liberar_todo(excepto=entregadas)
                 self.emitir(f"return {envolver(tmp)};")
             return
 
@@ -668,7 +923,11 @@ class Generador:
             return "usize"
         if isinstance(e, Indice):
             base = self._tipo_de(e.arreglo)
-            return elem_de(base) if es_arreglo(base) else "usize"
+            if es_arreglo(base):
+                return elem_de(base)
+            if es_lista(base):
+                return elem_lista(base)
+            return "usize"
         if isinstance(e, LiteralStruct):
             return e.tipo
         if isinstance(e, LiteralArreglo):
@@ -698,6 +957,8 @@ class Generador:
             return "true" if e.valor else "false"
 
         if isinstance(e, Variable):
+            if getattr(e, "mueve", False) and e.nombre in self.con_bandera:
+                self.pendientes.append(e.nombre)
             # un parametro `mut str` llega como puntero
             if self.es_puntero(e.nombre):
                 return f"(*{e.nombre})"
@@ -730,8 +991,26 @@ class Generador:
             self.emitir(f"{self.tipo_resultado(t)} {tmp} = {llamada};")
             if t in (None, UNIDAD):
                 return ""
-            alt = self.expr(e.alternativa, t)
-            return f"({tmp}.motivo != NULL ? ({alt}) : {tmp}.valor)"
+            elegido = self.nuevo_tmp()
+            self.emitir(f"{self.tipo_c(t)} {elegido};")
+            self.emitir(f"if ({tmp}.motivo != NULL)")
+            self.emitir("{")
+            self.sangria += 1
+            # Si la alternativa entrega una variable con bandera, `expr` ya
+            # lo anoto al generarla; lo unico propio de `sino` es que el
+            # apagado va DENTRO de esta rama, no al final de la sentencia.
+            with self.camino():
+                alt = self.expr(e.alternativa, t)
+                self.emitir(f"{elegido} = {alt};")
+            self.sangria -= 1
+            self.emitir("}")
+            self.emitir("else")
+            self.emitir("{")
+            self.sangria += 1
+            self.emitir(f"{elegido} = {tmp}.valor;")
+            self.sangria -= 1
+            self.emitir("}")
+            return elegido
 
         if isinstance(e, (Campo, Indice)):
             return self.lugar(e)
@@ -744,6 +1023,16 @@ class Generador:
             return f"({e.tipo}){{ {partes} }}"
 
         if isinstance(e, LiteralArreglo):
+            if esperado and es_lista(esperado):
+                elem = elem_lista(esperado)
+                tmp = self.nuevo_tmp()
+                self.emitir(f"{self.tipo_c(esperado)} {tmp} = "
+                            "{ .e = NULL, .length = 0, .capacity = 0 };")
+                for x in e.elementos:
+                    valor = self.expr(x, elem)
+                    self.emitir(f"ss_push_{mangle(esperado)}(&{tmp}, {valor}, "
+                                f"{self.arch(e)}, {e.linea});")
+                return tmp
             t = esperado if (esperado and es_arreglo(esperado)) else self._tipo_de(e)
             elem = elem_de(t)
             partes = ", ".join(self.expr(x, elem) for x in e.elementos)
@@ -765,8 +1054,12 @@ class Generador:
             return f"{self.lugar(e.objeto)}.{e.nombre}"
         if isinstance(e, Indice):
             base = self._tipo_de(e.arreglo)
-            n = largo_arreglo(base) if es_arreglo(base) else 0
             idx = self.expr(e.indice, "usize")
+            if es_lista(base):
+                lista = self.lugar(e.arreglo)
+                return (f"{lista}.e[ss_lang_indice_({idx}, {lista}.length, "
+                        f"{self.arch(e)}, {e.linea})]")
+            n = largo_arreglo(base) if es_arreglo(base) else 0
             return (f"{self.lugar(e.arreglo)}.e"
                     f"[ss_lang_indice_({idx}, {n}, {self.arch(e)}, {e.linea})]")
         return self.expr(e, None)
@@ -804,6 +1097,11 @@ class Generador:
         if n == "vista":
             return f"ss_view({self.dir_de(e.args[0])})"
         if n == "largo":
+            t = self._tipo_de(e.args[0])
+            if es_lista(t):
+                return f"({self.lugar(e.args[0])}.length)"
+            if es_arreglo(t):
+                return f"((size_t){largo_arreglo(t)})"
             return f"sv_len_of({self.como_vista(e.args[0])})"
         if n == "igual":
             return (f"sv_equals({self.como_vista(e.args[0])}, "
@@ -817,6 +1115,36 @@ class Generador:
                     f"{self.como_vista(e.args[1])})")
         if n == "imprimir":
             return self.imprimir(e.args[0])
+        if n == "anadir":
+            lista = e.args[0]
+            tipo_lista = self._tipo_de(lista)
+            elem = elem_lista(tipo_lista)
+            valor = self.expr(e.args[1], elem)
+            return (f"ss_push_{mangle(tipo_lista)}({self.dir_de(lista)}, {valor}, "
+                    f"{self.arch(e)}, {e.linea})")
+        if n == "texto":
+            a = e.args[0]
+            t = self._tipo_de(a)
+            pos = f"{self.arch(e)}, {e.linea}"
+            if t == "usize":
+                return f"ss_lang_texto_usize_({self.expr(a, t)}, {pos})"
+            if t == "i64":
+                return f"ss_lang_texto_i64_({self.expr(a, t)}, {pos})"
+            if t == "bool":
+                v = self.expr(a, t)
+                return f"ss_lang_texto_view_(({v}) ? sv(\"true\") : sv(\"false\"), {pos})"
+            if t == "str":
+                return f"ss_lang_texto_view_(ss_view({self.dir_de(a)}), {pos})"
+            return f"ss_lang_texto_view_({self.como_vista(a)}, {pos})"
+        if n == "byte":
+            vista = self.como_vista(e.args[0])
+            idx = self.expr(e.args[1], "usize")
+            tmp = self.nuevo_tmp()
+            self.emitir(f"SafeView {tmp} = {vista};")
+            return (f"((size_t)(unsigned char){tmp}.ptr[ss_lang_indice_("
+                    f"{idx}, {tmp}.len, {self.arch(e)}, {e.linea})])")
+        if n == "leer_archivo":
+            return f"ss_lang_leer_archivo_({self.como_vista(e.args[0])})"
 
         # funcion del usuario
         f = self.c.funciones.get(n)
@@ -826,10 +1154,6 @@ class Generador:
             if p is not None and p.prestado:
                 args.append(self.dir_de(a))
             else:
-                if (p is not None and isinstance(a, Variable)
-                        and a.nombre in self.con_bandera
-                        and self.c.posee(p.tipo)):
-                    self.pendientes.append(a.nombre)
                 args.append(self.expr(a, p.tipo if p else None))
         destino = "ss_main_" if n == "main" else n
         return f"{destino}({', '.join(args)})"
