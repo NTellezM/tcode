@@ -8,7 +8,7 @@ auditando la libreria en C.
 
 from safestrc.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
-    Campo, Indice, LiteralStruct, LiteralArreglo,
+    Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct,
 )
@@ -98,13 +98,17 @@ class Comprobador:
         self.structs = {}
         self.funciones = {}
         self.retorno_actual = None
+        self.falible_actual = False
         self.en_condicional = 0
+        self.en_condicion_bucle = 0
+        self.en_retorno = 0
         self.errores = []
 
     # ---------- errores ----------
 
     def error(self, nodo, mensaje):
-        self.errores.append(f"{self.archivo}:{nodo.linea}: {mensaje}")
+        archivo = getattr(nodo, "archivo", "") or self.archivo
+        self.errores.append(f"{archivo}:{nodo.linea}: {mensaje}")
 
     # ---------- ambitos ----------
 
@@ -152,6 +156,12 @@ class Comprobador:
         if sim.prestamos:
             self.error(nodo, f"no se puede mover `{sim.nombre}`: esta prestada "
                              f"por {self._lista(sim.prestamos)}")
+            return
+        # Un `return` es lo ultimo de su camino: la variable sigue viva en
+        # todo lo que hay ANTES, incluida una salida temprana por `falla` o
+        # `try`. Marcarla como movida para toda la funcion hacia que esas
+        # salidas no la liberaran. El propio `return` ya la excluye.
+        if self.en_retorno:
             return
         sim.movida = True
         sim.movida_en = nodo.linea
@@ -226,8 +236,10 @@ class Comprobador:
 
     def comprobar_structs(self, structs):
         for st in structs:
-            if st.nombre in self.structs:
-                self.error(st, f"el struct `{st.nombre}` esta definido dos veces")
+            previo = self.structs.get(st.nombre)
+            if previo is not None:
+                self.error(st, f"el struct `{st.nombre}` ya esta definido en "
+                               f"{previo.archivo or '<entrada>'}:{previo.linea}")
             self.structs[st.nombre] = st
 
         for st in structs:
@@ -259,8 +271,10 @@ class Comprobador:
         self.comprobar_structs(structs)
 
         for f in funciones:
-            if f.nombre in self.funciones:
-                self.error(f, f"la funcion `{f.nombre}` esta definida dos veces")
+            previa = self.funciones.get(f.nombre)
+            if previa is not None:
+                self.error(f, f"la funcion `{f.nombre}` ya esta definida en "
+                              f"{previa.archivo or '<entrada>'}:{previa.linea}")
             self.funciones[f.nombre] = f
 
         for f in funciones:
@@ -270,6 +284,7 @@ class Comprobador:
 
     def comprobar_funcion(self, f: Funcion):
         self.retorno_actual = f.retorno
+        self.falible_actual = f.falible
         self.abrir()
         for p in f.params:
             if p.mutable and p.tipo != "str":
@@ -281,6 +296,7 @@ class Comprobador:
         self.bloque(f.cuerpo)
         self.cerrar()
         self.retorno_actual = None
+        self.falible_actual = False
 
     def bloque(self, sentencias):
         self.abrir()
@@ -343,7 +359,9 @@ class Comprobador:
             return
 
         if isinstance(s, Mientras):
+            self.en_condicion_bucle += 1
             t = self.expresion(s.cond)
+            self.en_condicion_bucle -= 1
             if t is not None and t != "bool":
                 self.error(s, f"la condicion de `while` debe ser `bool`, es `{t}`")
             self.en_condicional += 1
@@ -364,12 +382,21 @@ class Comprobador:
 
             # devolver una variable duenia la mueve fuera de la funcion (str,
             # struct con campos duenios, arreglo de duenios...)
+            self.en_retorno += 1
             tipo = self.expresion(s.valor, mover_variables=True)
+            self.en_retorno -= 1
             if self.retorno_actual is None:
                 self.error(s, "esta funcion no declara tipo de retorno")
             elif tipo is not None and not encaja(self.retorno_actual, tipo):
                 self.error(s, f"esta funcion devuelve `{self.retorno_actual}` "
                               f"y aqui se devuelve `{tipo}`")
+            return
+
+        if isinstance(s, Falla):
+            if not self.falible_actual:
+                self.error(s, "esta funcion no esta declarada con `!`, asi que "
+                              "no puede fallar; ponle `!` despues del tipo de "
+                              "retorno")
             return
 
         if isinstance(s, ExprSentencia):
@@ -508,6 +535,26 @@ class Comprobador:
                 self.error(e, "`usize` no tiene signo: no se puede negar")
             return t
 
+        if isinstance(e, Try):
+            if not self.falible_actual:
+                self.error(e, "`try` deja subir la falla al que llamo, pero "
+                              "esta funcion no esta declarada con `!`")
+            if self.en_condicion_bucle:
+                self.error(e, "`try` no puede ir en la condicion de un "
+                              "`while`: se evaluaria una sola vez")
+            return self.desenvolver(e, e.expr, "try")
+
+        if isinstance(e, Sino):
+            if self.en_condicion_bucle:
+                self.error(e, "`sino` no puede ir en la condicion de un "
+                              "`while`: se evaluaria una sola vez")
+            t = self.desenvolver(e, e.expr, "sino")
+            alt = self.expresion(e.alternativa, mover_variables=True)
+            if t is not None and alt is not None and not encaja(t, alt):
+                self.error(e, f"la llamada da `{t}` y el valor de despues de "
+                              f"`sino` es `{alt}`")
+            return t
+
         if isinstance(e, Campo):
             return self.campo(e, mover_variables)
 
@@ -527,6 +574,17 @@ class Comprobador:
             return self.llamada(e)
 
         raise AssertionError(f"expresion desconocida: {type(e).__name__}")
+
+    def desenvolver(self, nodo, interna, palabra):
+        """Comprueba que lo que sigue a `try`/`sino` sea algo que pueda fallar."""
+        if not (isinstance(interna, Llamada)
+                and self.funciones.get(interna.nombre) is not None
+                and self.funciones[interna.nombre].falible):
+            self.error(nodo, f"`{palabra}` va delante de una llamada a una "
+                             f"funcion declarada con `!`")
+            self.expresion(interna)
+            return None
+        return self.llamada(interna, desenvuelta=True)
 
     def campo(self, e: Campo, mover_variables=False):
         base = self.expresion(e.objeto)
@@ -674,7 +732,7 @@ class Comprobador:
 
     # ---------- internas ----------
 
-    def llamada(self, e: Llamada):
+    def llamada(self, e: Llamada, desenvuelta=False):
         nombre = e.nombre
 
         if nombre in INTERNAS:
@@ -686,6 +744,11 @@ class Comprobador:
             for a in e.args:
                 self.expresion(a)
             return None
+
+        if f.falible and not desenvuelta:
+            self.error(e, f"`{nombre}` puede fallar: la llamada tiene que ir "
+                          f"detras de `try`, o con `sino <valor>` para dar un "
+                          f"valor cuando falle")
 
         if len(e.args) != len(f.params):
             self.error(e, f"`{nombre}` espera {len(f.params)} argumento(s) y "

@@ -19,7 +19,10 @@ ejemplos:
 	@$(PY) -m safestrc ejemplos/texto.sfs >/dev/null && ./ejemplos/texto
 	@echo
 	@$(PY) -m safestrc ejemplos/inventario.sfs >/dev/null && ./ejemplos/inventario
+	@echo
+	@$(PY) -m safestrc ejemplos/informe/informe.sfs >/dev/null && ./ejemplos/informe/informe
 
 limpiar:
 	@rm -f ejemplos/hola ejemplos/texto ejemplos/inventario ejemplos/*.c
+	@rm -f ejemplos/informe/informe ejemplos/informe/*.c
 	@rm -rf safestrc/__pycache__ tests/__pycache__

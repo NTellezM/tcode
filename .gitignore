@@ -9,3 +9,7 @@ ejemplos/*.c
 # Python
 __pycache__/
 *.pyc
+
+# ejemplo de varios modulos
+ejemplos/informe/informe
+ejemplos/informe/*.c

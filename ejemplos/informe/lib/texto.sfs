@@ -1,0 +1,21 @@
+// lib/texto.sfs — utilidades de texto. No sabe nada del informe.
+
+fn repetir(patron: view, veces: usize) -> str {
+    var s: str = vacio();
+    var i: usize = 0;
+    while i < veces {
+        empujar(s, patron);
+        i = i + 1;
+    }
+    return s;
+}
+
+fn rellenar(v: view, ancho: usize) -> str {
+    var s: str = nuevo(v);
+    let n: usize = largo(v);
+    if n < ancho {
+        let hueco: str = repetir(" ", ancho - n);
+        empujar(s, vista(hueco));
+    }
+    return s;
+}

@@ -11,7 +11,7 @@ mano, que son justo donde se equivoca:
 
 from safestrc.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
-    Campo, Indice, LiteralStruct, LiteralArreglo,
+    Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct,
 )
@@ -137,7 +137,14 @@ class Generador:
         # se cerraron cuando llegamos aqui.
         self.vars = []
         self.arreglos = {}     # tipo safestr -> nombre del typedef en C
+        self.resultados = {}   # tipo safestr -> nombre del typedef de resultado
         self.bucle = 0         # contador para variables de bucle de liberacion
+        self.func = None       # funcion que se esta generando
+        # Variables que se mueven en algun punto: llevan una bandera en
+        # tiempo de ejecucion, porque el punto donde se liberan depende del
+        # camino que tome el programa.
+        self.con_bandera = set()
+        self.pendientes = []
 
     # ---------- utilidades ----------
 
@@ -153,6 +160,15 @@ class Generador:
         if es_arreglo(t):
             return self.registrar_arreglo(t)
         return TIPOS_C.get(t, t)
+
+    def tipo_resultado(self, t):
+        """El `T !` de safestr es un struct: motivo == NULL significa que fue
+        bien. Un solo puntero en vez de un booleano mas el valor."""
+        clave = t if t not in (None, UNIDAD) else UNIDAD
+        if clave not in self.resultados:
+            sufijo = "unidad" if clave is UNIDAD else mangle(clave)
+            self.resultados[clave] = f"ss_res_{sufijo}"
+        return self.resultados[clave]
 
     def registrar_arreglo(self, t):
         if t not in self.arreglos:
@@ -174,6 +190,10 @@ class Generador:
                     mirar(c.tipo)
             elif isinstance(d, Funcion):
                 mirar(d.retorno)
+                if d.falible:
+                    if d.retorno not in (None, UNIDAD):
+                        mirar(d.retorno)
+                    self.tipo_resultado(d.retorno)
                 for p in d.params:
                     mirar(p.tipo)
                 self._mirar_cuerpo(d.cuerpo, mirar)
@@ -243,8 +263,9 @@ class Generador:
         self.tmp += 1
         return f"ss_tmp{self.tmp}"
 
-    def arch(self):
-        return '"' + self.archivo.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    def arch(self, nodo=None):
+        a = (getattr(nodo, "archivo", "") or self.archivo) if nodo else self.archivo
+        return '"' + a.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
     # ---------- programa ----------
 
@@ -271,6 +292,17 @@ class Generador:
                 f"typedef struct {{ {self.tipo_c(elem)} e[{n}]; }} "
                 f"{self.arreglos[t]};")
         if self.arreglos:
+            self.lineas.append("")
+
+        for t, nombre in self.resultados.items():
+            if t is UNIDAD or t == UNIDAD:
+                self.lineas.append(
+                    f"typedef struct {{ const char* motivo; }} {nombre};")
+            else:
+                self.lineas.append(
+                    f"typedef struct {{ const char* motivo; "
+                    f"{self.tipo_c(t)} valor; }} {nombre};")
+        if self.resultados:
             self.lineas.append("")
 
         # liberadores de los structs que poseen memoria
@@ -300,16 +332,23 @@ class Generador:
         return "\n".join(self.lineas)
 
     def prototipo(self, f: Funcion):
-        if f.nombre == "main":
+        if f.nombre == "main" and not f.falible:
             return "int main(void)"
         params = []
         for p in f.params:
             tc = self.tipo_c(p.tipo)
             params.append(f"{tc}* {p.nombre}" if p.mutable else f"{tc} {p.nombre}")
-        ret = "void" if f.retorno in (None, UNIDAD) else self.tipo_c(f.retorno)
-        return f"{ret} {f.nombre}({', '.join(params) or 'void'})"
+        if f.falible:
+            ret = self.tipo_resultado(f.retorno)
+        elif f.retorno in (None, UNIDAD):
+            ret = "void"
+        else:
+            ret = self.tipo_c(f.retorno)
+        nombre = "ss_main_" if f.nombre == "main" else f.nombre
+        return f"{ret} {nombre}({', '.join(params) or 'void'})"
 
     def funcion(self, f: Funcion):
+        self.func = f
         self.emitir(self.prototipo(f))
         self.emitir("{")
         self.sangria += 1
@@ -318,8 +357,13 @@ class Generador:
                    if self.c.posee(p.tipo) and not p.mutable]
         self.pila.append(list(propios))
         self.vars.append({})
+        self.con_bandera = set()
         for p in f.params:
             self.declarar(p.nombre, p.tipo, p.mutable, decl=p)
+        for p in f.params:
+            if p.movida and self.c.posee(p.tipo) and not p.mutable:
+                self.con_bandera.add(p.nombre)
+                self.emitir(f"bool ss_vivo_{p.nombre} = true;")
 
         for s in f.cuerpo:
             self.sentencia(s)
@@ -328,12 +372,36 @@ class Generador:
         # muerto: el `return` se encargo de liberar.
         if not self._termina_en_retorno(f.cuerpo):
             self.liberar_bloque(self.pila[-1])
-            if f.nombre == "main":
+            if f.falible:
+                self.emitir(f"return ({self.tipo_resultado(f.retorno)})"
+                            f"{{ .motivo = NULL }};")
+            elif f.nombre == "main":
                 self.emitir("return 0;")
         self.pila.pop()
         self.vars.pop()
         self.sangria -= 1
         self.emitir("}")
+
+        # `main` falible: un envoltorio que informa y devuelve codigo distinto
+        # de cero, para que el fallo no se pierda al salir del programa.
+        if f.nombre == "main" and f.falible:
+            self.emitir("")
+            self.emitir("int main(void)")
+            self.emitir("{")
+            self.sangria += 1
+            self.emitir(f"{self.tipo_resultado(f.retorno)} r = ss_main_();")
+            self.emitir("if (r.motivo != NULL)")
+            self.emitir("{")
+            self.sangria += 1
+            self.emitir(r'fprintf(stderr, "error: %s\n", r.motivo);')
+            self.emitir("return 1;")
+            self.sangria -= 1
+            self.emitir("}")
+            self.emitir("return (int) r.valor;"
+                        if f.retorno not in (None, UNIDAD) else "return 0;")
+            self.sangria -= 1
+            self.emitir("}")
+        self.func = None
 
     # ---------- liberacion automatica ----------
 
@@ -362,7 +430,18 @@ class Generador:
 
     def liberar_bloque(self, nombres, excepto=None):
         for n in reversed(nombres):
-            if n == excepto or self.fue_movida(n):
+            if n == excepto:
+                continue
+            if n in self.con_bandera:
+                # se movio en algun camino: lo decide la bandera
+                self.emitir(f"if (ss_vivo_{n})")
+                self.emitir("{")
+                self.sangria += 1
+                self.liberacion(n, self.tipo_var(n))
+                self.sangria -= 1
+                self.emitir("}")
+                continue
+            if self.fue_movida(n):
                 continue
             self.liberacion(n, self.tipo_var(n))
 
@@ -391,12 +470,23 @@ class Generador:
         return bool(sentencias) and isinstance(sentencias[-1], Retorno)
 
     def sentencia(self, s):
+        anteriores = self.pendientes
+        self.pendientes = []
+        self._sentencia(s)
+        for n in self.pendientes:
+            self.emitir(f"ss_vivo_{n} = false;")
+        self.pendientes = anteriores
+
+    def _sentencia(self, s):
         if isinstance(s, Declaracion):
             tc = self.tipo_c(s.tipo)
             self.emitir(f"{tc} {s.nombre} = {self.expr(s.valor, s.tipo)};")
             self.declarar(s.nombre, s.tipo, decl=s)
             if self.c.posee(s.tipo):
                 self.pila[-1].append(s.nombre)
+                if s.movida:
+                    self.con_bandera.add(s.nombre)
+                    self.emitir(f"bool ss_vivo_{s.nombre} = true;")
             return
 
         if isinstance(s, Asignacion):
@@ -421,26 +511,44 @@ class Generador:
             self.bloque(s.cuerpo)
             return
 
+        if isinstance(s, Falla):
+            lit = s.motivo.replace("\\", "\\\\").replace('"', '\\"') \
+                          .replace("\n", "\\n").replace("\t", "\\t")
+            self.liberar_todo()
+            self.emitir(f"return ({self.tipo_resultado(self.func.retorno)})"
+                        f'{{ .motivo = "{lit}" }};')
+            return
+
         if isinstance(s, Retorno):
+            falible = self.func is not None and self.func.falible
             if s.valor is None:
                 self.liberar_todo()
-                self.emitir("return;")
+                if falible:
+                    self.emitir(f"return ({self.tipo_resultado(self.func.retorno)})"
+                                f"{{ .motivo = NULL }};")
+                else:
+                    self.emitir("return;")
                 return
             # Si se devuelve una variable duenia, esa NO se libera: se entrega.
             devuelta = s.valor.nombre if isinstance(s.valor, Variable) else None
-            valor = self.expr(s.valor, None)
+            valor = self.expr(s.valor, self.func.retorno if self.func else None)
+            envolver = (lambda v: f"({self.tipo_resultado(self.func.retorno)})"
+                                  f"{{ .motivo = NULL, .valor = {v} }}") \
+                       if falible else (lambda v: v)
             if devuelta is not None:
                 self.liberar_todo(excepto=devuelta)
-                self.emitir(f"return {devuelta};")
+                self.emitir(f"return {envolver(devuelta)};")
             else:
                 tmp = self.nuevo_tmp()
                 self.emitir(f"{self.tipo_c(self._tipo_de(s.valor))} {tmp} = {valor};")
                 self.liberar_todo()
-                self.emitir(f"return {tmp};")
+                self.emitir(f"return {envolver(tmp)};")
             return
 
         if isinstance(s, ExprSentencia):
-            self.emitir(self.expr(s.expr, None) + ";")
+            c = self.expr(s.expr, None)
+            if c:
+                self.emitir(c + ";")
             return
 
         raise AssertionError(type(s).__name__)
@@ -459,6 +567,10 @@ class Generador:
                 return INTERNAS[e.nombre]["retorno"]
             f = self.c.funciones.get(e.nombre)
             return f.retorno if f else "usize"
+        if isinstance(e, Try):
+            return self._tipo_de(e.expr)
+        if isinstance(e, Sino):
+            return self._tipo_de(e.expr)
         if isinstance(e, Campo):
             base = self._tipo_de(e.objeto)
             st = self.c.structs.get(base)
@@ -507,6 +619,33 @@ class Generador:
         if isinstance(e, Unaria):
             return f"({e.op}{self.expr(e.valor, esperado)})"
 
+        if isinstance(e, Try):
+            interna = e.expr
+            t = self._tipo_de(interna)
+            tmp = self.nuevo_tmp()
+            llamada = self.llamada(interna)
+            self.emitir(f"{self.tipo_resultado(t)} {tmp} = {llamada};")
+            self.emitir(f"if ({tmp}.motivo != NULL)")
+            self.emitir("{")
+            self.sangria += 1
+            self.liberar_todo()
+            self.emitir(f"return ({self.tipo_resultado(self.func.retorno)})"
+                        f"{{ .motivo = {tmp}.motivo }};")
+            self.sangria -= 1
+            self.emitir("}")
+            return "" if t in (None, UNIDAD) else f"{tmp}.valor"
+
+        if isinstance(e, Sino):
+            interna = e.expr
+            t = self._tipo_de(interna)
+            tmp = self.nuevo_tmp()
+            llamada = self.llamada(interna)
+            self.emitir(f"{self.tipo_resultado(t)} {tmp} = {llamada};")
+            if t in (None, UNIDAD):
+                return ""
+            alt = self.expr(e.alternativa, t)
+            return f"({tmp}.motivo != NULL ? ({alt}) : {tmp}.valor)"
+
         if isinstance(e, (Campo, Indice)):
             return self.lugar(e)
 
@@ -542,7 +681,7 @@ class Generador:
             n = largo_arreglo(base) if es_arreglo(base) else 0
             idx = self.expr(e.indice, "usize")
             return (f"{self.lugar(e.arreglo)}.e"
-                    f"[ss_lang_indice_({idx}, {n}, {self.arch()}, {e.linea})]")
+                    f"[ss_lang_indice_({idx}, {n}, {self.arch(e)}, {e.linea})]")
         return self.expr(e, None)
 
     def binaria(self, e: Binaria, esperado):
@@ -552,7 +691,7 @@ class Generador:
         sufijo = "I" if t == "i64" else "U"
         izq = self.expr(e.izq, t)
         der = self.expr(e.der, t)
-        pos = f"{self.arch()}, {e.linea}"
+        pos = f"{self.arch(e)}, {e.linea}"
 
         if e.op in {"+", "-", "*"}:
             macro = {"+": "SUMA", "-": "RESTA", "*": "MUL"}[e.op]
@@ -600,8 +739,13 @@ class Generador:
             if p is not None and p.mutable:
                 args.append(self.ref(a.nombre))
             else:
+                if (p is not None and isinstance(a, Variable)
+                        and a.nombre in self.con_bandera
+                        and self.c.posee(p.tipo)):
+                    self.pendientes.append(a.nombre)
                 args.append(self.expr(a, p.tipo if p else None))
-        return f"{n}({', '.join(args)})"
+        destino = "ss_main_" if n == "main" else n
+        return f"{destino}({', '.join(args)})"
 
     def dir_de(self, a):
         """La direccion de un sitio con nombre: `&x`, `&p.campo`, `&v.e[i]`."""

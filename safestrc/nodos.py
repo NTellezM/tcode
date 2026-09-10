@@ -7,6 +7,8 @@ from typing import Optional
 @dataclass
 class Nodo:
     linea: int = field(default=0, kw_only=True)
+    # De que archivo salio, para que el error lo diga con varios modulos
+    archivo: str = field(default="", kw_only=True)
 
 
 # ---------- expresiones ----------
@@ -54,6 +56,17 @@ class LiteralArreglo(Nodo):
     elementos: list
 
 @dataclass
+class Try(Nodo):
+    """`try f(..)`: si falla, la falla sube al que llamo."""
+    expr: Nodo
+
+@dataclass
+class Sino(Nodo):
+    """`f(..) sino valor`: si falla, se usa `valor`."""
+    expr: Nodo
+    alternativa: Nodo
+
+@dataclass
 class Binaria(Nodo):
     op: str
     izq: Nodo
@@ -99,6 +112,11 @@ class Retorno(Nodo):
     valor: Optional[Nodo]
 
 @dataclass
+class Falla(Nodo):
+    """`falla "motivo";` sale de la funcion con una falla."""
+    motivo: str
+
+@dataclass
 class ExprSentencia(Nodo):
     expr: Nodo
 
@@ -111,6 +129,10 @@ class Parametro:
     tipo: str
     mutable: bool
     movida: bool = False
+
+@dataclass
+class Usar(Nodo):
+    ruta: str
 
 @dataclass
 class CampoDef:
@@ -129,3 +151,5 @@ class Funcion(Nodo):
     params: list
     retorno: Optional[str]
     cuerpo: list
+    # declarada con `!`: puede fallar
+    falible: bool = False

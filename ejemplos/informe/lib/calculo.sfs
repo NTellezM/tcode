@@ -1,0 +1,20 @@
+// lib/calculo.sfs — aritmetica que puede fallar, y lo declara.
+
+fn dividir(a: usize, b: usize) -> usize ! {
+    if b == 0 {
+        falla "division por cero";
+    }
+    return a / b;
+}
+
+// El porcentaje de `parte` sobre `total`, redondeado hacia abajo.
+fn porcentaje(parte: usize, total: usize) -> usize ! {
+    if total == 0 {
+        falla "no hay total sobre el que calcular un porcentaje";
+    }
+    return try dividir(parte * 100, total);
+}
+
+fn media(suma: usize, cuantos: usize) -> usize ! {
+    return try dividir(suma, cuantos);
+}

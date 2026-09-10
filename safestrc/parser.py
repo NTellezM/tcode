@@ -3,9 +3,9 @@
 from safestrc.lexer import tokenizar, Token
 from safestrc.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
-    Campo, Indice, LiteralStruct, LiteralArreglo,
+    Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
-    Parametro, Funcion, CampoDef, Struct,
+    Parametro, Funcion, CampoDef, Struct, Usar,
 )
 
 TIPOS = {"str", "view", "usize", "i64", "bool"}
@@ -61,7 +61,16 @@ class Parser:
 
     def programa(self) -> list:
         decls = []
+        while self.es("palabra", "usar"):
+            tok = self.actual
+            self.i += 1
+            ruta = self.espera("cadena").valor
+            self.espera("simbolo", ";")
+            decls.append(Usar(ruta, linea=tok.linea))
+
         while not self.es("fin"):
+            if self.es("palabra", "usar"):
+                self.error("los `usar` van todos al principio del archivo")
             if self.es("palabra", "struct"):
                 decls.append(self.struct())
             else:
@@ -102,7 +111,9 @@ class Parser:
         self.espera("simbolo", ")")
 
         retorno = self.tipo() if self.acepta("simbolo", "->") else None
-        return Funcion(nombre, params, retorno, self.bloque(), linea=tok.linea)
+        falible = self.acepta("simbolo", "!") is not None
+        return Funcion(nombre, params, retorno, self.bloque(), falible,
+                       linea=tok.linea)
 
     def tipo(self) -> str:
         t = self.actual
@@ -169,6 +180,12 @@ class Parser:
             cond = self.expr()
             return Mientras(cond, self.bloque(), linea=t.linea)
 
+        if self.es("palabra", "falla"):
+            self.i += 1
+            motivo = self.espera("cadena").valor
+            self.espera("simbolo", ";")
+            return Falla(motivo, linea=t.linea)
+
         if self.es("palabra", "return"):
             self.i += 1
             valor = None if self.es("simbolo", ";") else self.expr()
@@ -201,7 +218,12 @@ class Parser:
         return izq
 
     def expr(self):
-        return self.o()
+        e = self.o()
+        if self.es("palabra", "sino"):
+            tok = self.actual
+            self.i += 1
+            return Sino(e, self.o(), linea=tok.linea)
+        return e
 
     def o(self):
         return self._binaria_izq(self.y, {"||"})
@@ -222,6 +244,10 @@ class Parser:
         return self._binaria_izq(self.unario, {"*", "/", "%", "*?"})
 
     def unario(self):
+        if self.es("palabra", "try"):
+            tok = self.actual
+            self.i += 1
+            return Try(self.unario(), linea=tok.linea)
         if self.actual.tipo == "simbolo" and self.actual.valor in {"!", "-"}:
             op = self.actual
             self.i += 1
@@ -302,5 +328,26 @@ class Parser:
         self.error("se esperaba una expresion")
 
 
+def _marcar(nodo, archivo, vistos=None):
+    """Deja el archivo de origen en cada nodo, para los mensajes de error."""
+    from dataclasses import fields, is_dataclass
+    vistos = vistos if vistos is not None else set()
+    if id(nodo) in vistos:
+        return
+    vistos.add(id(nodo))
+    if isinstance(nodo, (list, tuple)):
+        for x in nodo:
+            _marcar(x, archivo, vistos)
+        return
+    if not is_dataclass(nodo):
+        return
+    if hasattr(nodo, "archivo") and not nodo.archivo:
+        nodo.archivo = archivo
+    for f in fields(nodo):
+        _marcar(getattr(nodo, f.name), archivo, vistos)
+
+
 def parsear(fuente: str, archivo="<entrada>") -> list:
-    return Parser(tokenizar(fuente, archivo), archivo).programa()
+    decls = Parser(tokenizar(fuente, archivo), archivo).programa()
+    _marcar(decls, archivo)
+    return decls

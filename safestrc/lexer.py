@@ -5,6 +5,7 @@ from dataclasses import dataclass
 PALABRAS = {
     "fn", "let", "var", "mut", "if", "else", "while", "return",
     "true", "false", "str", "view", "usize", "i64", "bool", "struct",
+    "usar", "try", "sino", "falla",
 }
 
 # Los de mas caracteres primero: "+?" tiene que ganarle a "+".
