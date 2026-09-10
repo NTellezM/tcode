@@ -142,6 +142,29 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 ```
 $ make check
 74 casos, 0 fallas
+248 comprobaciones sobre 60 programas, 0 fallas
+```
+
+La suite tiene dos mitades. La primera son **casos por ejemplo**: este
+programa da esta salida, este otro no compila y el error dice esto.
+
+La segunda son **propiedades sobre programas generados al azar**, que es lo
+que encuentra lo que a nadie se le ocurrió escribir a mano:
+
+| | invariante |
+|---|---|
+| **P1** | todo programa aceptado genera C que `cc` acepta con `-Wall -Wextra -Werror` |
+| **P2** | todo programa aceptado corre limpio bajo ASan y UBSan: ni fugas, ni doble free, ni uso tras liberar |
+| **P3** | compilar dos veces da C byte a byte idéntico |
+| **P4** | todo error nombra un archivo y una línea que existen |
+| **P5** | el compilador nunca revienta, con entrada válida o inválida |
+
+`tests/generador_programas.py` produce programas válidos por construcción
+—con cadenas propias, structs, arreglos, préstamos, movimientos y fallos— y
+acotados para que no aborten ni se cuelguen. Para insistir más:
+
+```
+TCODE_PROGRAMAS=1000 make propiedades
 ```
 
 Los 48 casos de rechazo comprueban que los programas malos no compilan; los

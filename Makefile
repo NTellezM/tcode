@@ -6,7 +6,7 @@
 
 PY ?= python3
 
-.PHONY: all check bench ejemplos limpiar
+.PHONY: all check propiedades bench ejemplos limpiar
 
 all: check
 
@@ -15,6 +15,11 @@ bench:
 
 check:
 	@$(PY) tests/test_lenguaje.py
+	@$(PY) tests/test_propiedades.py
+
+# Mas programas generados. TCODE_PROGRAMAS=1000 make propiedades
+propiedades:
+	@$(PY) tests/test_propiedades.py
 
 ejemplos:
 	@$(PY) -m tcode ejemplos/hola.t  >/dev/null && ./ejemplos/hola
