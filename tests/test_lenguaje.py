@@ -1,0 +1,449 @@
+#!/usr/bin/env python3
+"""
+Suite del lenguaje safestr.
+
+RECHAZO   -> el programa NO debe compilar, y el error debe explicar por que.
+ACEPTA    -> compila, corre bajo ASan+UBSan y da exactamente esta salida.
+
+Los cuatro primeros casos de RECHAZO son las cuatro clases de fallo que
+encontramos auditando la libreria en C. Que aqui sean errores de compilacion
+es la unica razon por la que este lenguaje existe.
+"""
+
+import os
+import subprocess
+import sys
+import tempfile
+
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, RAIZ)
+
+from safestrc.cli import compilar_a_c
+from safestrc.lexer import ErrorLexico
+from safestrc.parser import ErrorSintactico
+
+RUNTIME = os.path.join(RAIZ, "runtime")
+
+
+RECHAZO = [
+    # ---- las cuatro clases de la auditoria de safestr.c ----
+    ("fallo 2: use-after-free por aliasing a traves de realloc",
+     'fn f() { var s: str = nuevo("hola"); empujar(s, vista(s)); }',
+     "se presta y se modifica"),
+
+    ("fallo 2 bis: el contrato de vida util de SafeView",
+     'fn f() { var s: str = nuevo("hola"); let v: view = vista(s);'
+     ' empujar(s, "mas"); imprimir(v); }',
+     "esta prestada por `v`"),
+
+    ("fallo 1 y 4: los enteros no se mezclan en silencio",
+     'fn f() { let a: usize = 1; let b: i64 = 2; let c: usize = a + b; }',
+     "no se mezclan"),
+
+    ("fallo 4: usize no tiene signo",
+     'fn f() { let a: usize = 1; let b: usize = -a; }',
+     "no tiene signo"),
+
+    # ---- vidas utiles: una vista no puede sobrevivir a lo que presta ----
+    ("devolver una vista de un local",
+     'fn f() -> view { var s: str = nuevo("hola"); return vista(s); }',
+     "no se puede devolver una vista de `s`"),
+
+    ("lo mismo a traves de una variable intermedia",
+     'fn f() -> view { var s: str = nuevo("h"); let v: view = vista(s);'
+     ' return v; }',
+     "no se puede devolver una vista"),
+
+    ("lo mismo a traves de una rebanada",
+     'fn f() -> view { var s: str = nuevo("hola");'
+     ' return rebanar(vista(s), 0, 2); }',
+     "no se puede devolver una vista"),
+
+    ("lo mismo a traves de otra funcion",
+     'fn a(v: view) -> view { return v; }'
+     ' fn b() -> view { var s: str = nuevo("x"); return a(vista(s)); }',
+     "no se puede devolver una vista"),
+
+    ("el prestamo atraviesa la llamada",
+     'fn primero(v: view) -> view { return rebanar(v, 0, 1); }'
+     ' fn main() -> usize { var s: str = nuevo("hola");'
+     ' let p: view = primero(vista(s)); empujar(s, "x"); return 0; }',
+     "esta prestada por `p`"),
+
+    # ---- propiedad ----
+    ("uso despues de mover",
+     'fn g(x: str) {} fn f() { var s: str = nuevo("a"); g(s); empujar(s, "b"); }',
+     "ya se movio"),
+
+    ("mover algo prestado",
+     'fn g(x: str) {} fn f() { var s: str = nuevo("a");'
+     ' let v: view = vista(s); g(s); }',
+     "no se puede mover"),
+
+    ("devolver algo prestado",
+     'fn f() -> str { var s: str = nuevo("a"); let v: view = vista(s);'
+     ' return s; }',
+     "no se puede mover"),
+
+    # ---- mutabilidad ----
+    ("modificar un let",
+     'fn f() { let s: str = nuevo("a"); empujar(s, "b"); }',
+     "no se puede modificar"),
+
+    ("reasignar un let",
+     'fn f() { let n: usize = 1; n = 2; }',
+     "no se puede modificar"),
+
+    # ---- structs y arreglos ----
+    ("un campo `view` necesita vidas utiles en el tipo",
+     'struct P { v: view }',
+     "no puede tener un campo `view`"),
+
+    ("struct que se contiene a si mismo",
+     'struct P { hijo: P }',
+     "se contiene a si mismo"),
+
+    ("sacar un `str` de un struct dejaria un hueco",
+     'struct P { n: str } fn f() { var p: P = P { n: nuevo("a") };'
+     ' let s: str = p.n; }',
+     "no se puede sacar `n` de un struct"),
+
+    ("sacar un `str` de un arreglo dejaria un hueco",
+     'fn f() { var a: [str; 2] = [nuevo("x"), nuevo("y")]; let s: str = a[0]; }',
+     "no se puede sacar un elemento"),
+
+    ("prestar un campo bloquea el struct entero",
+     'struct P { n: str } fn f() { var p: P = P { n: nuevo("a") };'
+     ' let v: view = vista(p.n); empujar(p.n, "b"); }',
+     "esta prestada por `v`"),
+
+    ("usar un struct despues de moverlo",
+     'struct P { n: str } fn g(p: P) {} fn f() { var p: P = P { n: nuevo("a") };'
+     ' g(p); imprimir(p.n); }',
+     "ya se movio"),
+
+    ("campo que no existe",
+     'struct P { x: usize } fn f() { let p: P = P { x: 1 }; imprimir(p.y); }',
+     "no tiene un campo `y`"),
+
+    ("falta un campo al construir",
+     'struct P { x: usize, y: usize } fn f() { let p: P = P { x: 1 }; }',
+     "le faltan campos"),
+
+    ("el largo del literal no calza con el tipo",
+     'fn f() { let a: [usize; 5] = [1,2]; }',
+     "el tipo dice 5"),
+
+    ("elementos de tipos distintos",
+     'fn f() { let a: [usize; 2] = [1, true]; }',
+     "deberia ser `usize`"),
+
+    ("indexar con algo que no es usize",
+     'fn f() { let a: [usize; 2] = [1,2]; let b: bool = true; imprimir(a[b]); }',
+     "tiene que ser `usize`"),
+
+    ("indexar algo que no es un arreglo",
+     'fn f() { let n: usize = 1; imprimir(n[0]); }',
+     "no es un arreglo"),
+
+    # ---- tipos ----
+    ("tipo declarado que no calza",
+     'fn f() { let n: usize = "no soy un numero"; }',
+     "el valor es `view`"),
+
+    ("comparar str con ==",
+     'fn f() { let a: str = nuevo("x"); let b: str = nuevo("y");'
+     ' let c: bool = a == b; }',
+     "usa `igual("),
+
+    ("condicion que no es bool",
+     'fn f() { let n: usize = 1; if n { } }',
+     "debe ser `bool`"),
+
+    ("variable no declarada",
+     'fn f() { imprimir(x); }',
+     "no esta declarada"),
+
+    ("funcion desconocida",
+     'fn f() { desconocida(1); }',
+     "no es una funcion conocida"),
+
+    ("numero de argumentos",
+     'fn g(a: usize, b: usize) {} fn f() { g(1); }',
+     "espera 2 argumento"),
+
+    ("declarar dos veces en el mismo bloque",
+     'fn f() { let a: usize = 1; let a: usize = 2; }',
+     "ya esta declarada"),
+
+    ("mut solo sobre str",
+     'fn g(a: mut usize) {} fn f() { }',
+     "`mut` solo tiene sentido sobre `str`"),
+]
+
+
+ACEPTA = [
+    ("aritmetica y control",
+     '''fn f(n: usize) -> usize {
+            var acc: usize = 0;
+            var i: usize = 1;
+            while i <= n { acc = acc + i; i = i + 1; }
+            return acc;
+        }
+        fn main() -> usize { imprimir(f(10)); imprimir("\\n"); return 0; }''',
+     "55\n"),
+
+    ("prestamo que termina al cerrar el bloque",
+     '''fn main() -> usize {
+            var s: str = nuevo("hola");
+            if true { let v: view = vista(s); imprimir(largo(v)); }
+            empujar(s, " mundo");
+            imprimir("\\n");
+            imprimir(s);
+            imprimir("\\n");
+            return 0;
+        }''',
+     "4\nhola mundo\n"),
+
+    ("prestamo mutable, sin tomar posesion",
+     '''fn agregar(s: mut str) { empujar(s, "!"); }
+        fn main() -> usize {
+            var s: str = nuevo("hey");
+            agregar(s); agregar(s);
+            imprimir(s); imprimir("\\n");
+            return 0;
+        }''',
+     "hey!!\n"),
+
+    ("mover a una funcion y devolverlo",
+     '''fn adornar(s: str) -> str { return s; }
+        fn main() -> usize {
+            let a: str = nuevo("dato");
+            let b: str = adornar(a);
+            imprimir(b); imprimir("\\n");
+            return 0;
+        }''',
+     "dato\n"),
+
+    ("aritmetica envolvente cuando se pide a proposito",
+     '''fn main() -> usize {
+            let a: i64 = 2;
+            let b: i64 = a *? 3;
+            imprimir(b); imprimir("\\n");
+            return 0;
+        }''',
+     "6\n"),
+
+    ("devolver vistas atadas a un parametro",
+     '''fn primero(v: view) -> view { return rebanar(v, 0, 1); }
+        fn cola(v: view) -> view { return rebanar(v, 1, largo(v)); }
+        fn estatica() -> view { return "constante"; }
+        fn main() -> usize {
+            let s: str = nuevo("safestr");
+            imprimir(primero(vista(s)));
+            imprimir(cola(vista(s)));
+            imprimir("\\n");
+            imprimir(estatica());
+            imprimir("\\n");
+            return 0;
+        }''',
+     "safestr\nconstante\n"),
+
+    ("un prestamo que muere libera al duenio",
+     '''fn primero(v: view) -> view { return rebanar(v, 0, 1); }
+        fn main() -> usize {
+            var s: str = nuevo("hola");
+            if true { imprimir(primero(vista(s))); }
+            empujar(s, " mundo");
+            imprimir(s); imprimir("\\n");
+            return 0;
+        }''',
+     "hhola mundo\n"),
+
+    ("structs: campos, construccion y mutacion",
+     '''struct Punto { x: usize, y: usize }
+        struct Persona { nombre: str, edad: usize }
+        fn main() -> usize {
+            let a: Punto = Punto { x: 3, y: 4 };
+            imprimir(a.x * a.x + a.y * a.y); imprimir("\\n");
+            var p: Persona = Persona { nombre: nuevo("Nel"), edad: 40 };
+            empujar(p.nombre, "son");
+            p.edad = p.edad + 1;
+            imprimir(p.nombre); imprimir(" "); imprimir(p.edad);
+            imprimir("\\n");
+            return 0;
+        }''',
+     "25\nNelson 41\n"),
+
+    ("arreglos: indexar, escribir y recorrer",
+     '''fn main() -> usize {
+            var v: [usize; 5] = [10, 20, 30, 40, 50];
+            v[2] = 99;
+            var suma: usize = 0;
+            var i: usize = 0;
+            while i < 5 { suma = suma + v[i]; i = i + 1; }
+            imprimir(suma); imprimir("\\n");
+            return 0;
+        }''',
+     "219\n"),
+
+    ("un arreglo de `str` se libera elemento por elemento",
+     '''fn main() -> usize {
+            var eq: [str; 3] = [nuevo("uno"), nuevo("dos"), nuevo("tres")];
+            empujar(eq[1], "!");
+            var i: usize = 0;
+            while i < 3 { imprimir(eq[i]); imprimir(" "); i = i + 1; }
+            imprimir("\\n");
+            return 0;
+        }''',
+     "uno dos! tres \n"),
+
+    ("structs anidados y arreglos de struct",
+     '''struct Punto { x: usize, y: usize }
+        struct Caja { esquina: Punto, ancho: usize }
+        fn main() -> usize {
+            var cajas: [Caja; 2] = [
+                Caja { esquina: Punto { x: 1, y: 2 }, ancho: 10 },
+                Caja { esquina: Punto { x: 3, y: 4 }, ancho: 20 }
+            ];
+            cajas[1].esquina.x = 99;
+            imprimir(cajas[0].esquina.y); imprimir(" ");
+            imprimir(cajas[1].esquina.x); imprimir(" ");
+            imprimir(cajas[1].ancho); imprimir("\\n");
+            return 0;
+        }''',
+     "2 99 20\n"),
+
+    ("un struct devuelto se mueve, no se libera dos veces",
+     '''struct Persona { nombre: str, edad: usize }
+        fn crear(n: view) -> Persona { return Persona { nombre: nuevo(n), edad: 1 }; }
+        fn main() -> usize {
+            let p: Persona = crear("Ana");
+            imprimir(p.nombre); imprimir("\\n");
+            return 0;
+        }''',
+     "Ana\n"),
+
+    ("rebanadas de vista",
+     '''fn main() -> usize {
+            let s: str = nuevo("abcdefgh");
+            imprimir(rebanar(vista(s), 2, 5));
+            imprimir("\\n");
+            return 0;
+        }''',
+     "cde\n"),
+]
+
+
+# Programas que compilan pero deben ABORTAR en tiempo de ejecucion.
+ABORTA = [
+    ("desbordamiento al multiplicar",
+     '''fn main() -> usize {
+            var a: usize = 1;
+            var i: usize = 0;
+            while i < 40 { a = a * 100000; i = i + 1; }
+            imprimir(a);
+            return 0;
+        }''',
+     "desbordamiento en `*`"),
+
+    ("resta que se va bajo cero en usize",
+     'fn main() -> usize { let a: usize = 1; let b: usize = a - 2;'
+     ' imprimir(b); return 0; }',
+     "desbordamiento en `-`"),
+
+    ("indice fuera de rango",
+     '''fn main() -> usize {
+            let v: [usize; 3] = [1, 2, 3];
+            var i: usize = 0;
+            while i < 10 { imprimir(v[i]); i = i + 1; }
+            return 0;
+        }''',
+     "indice 3 fuera de rango"),
+
+    ("division por cero",
+     'fn main() -> usize { let a: usize = 1; let b: usize = 0;'
+     ' imprimir(a / b); return 0; }',
+     "division por cero"),
+]
+
+
+fallos = 0
+total = 0
+
+
+def falla(nombre, detalle):
+    global fallos
+    fallos += 1
+    print(f"  FALLA: {nombre}\n         {detalle}")
+
+
+def compilar_y_correr(fuente, tmp, con_sanitizers=True):
+    """Devuelve (codigo_de_salida, stdout, stderr) o lanza AssertionError."""
+    codigo, errores = compilar_a_c(fuente, "<test>")
+    assert not errores, "errores inesperados: " + "; ".join(errores)
+
+    ruta_c = os.path.join(tmp, "p.c")
+    binario = os.path.join(tmp, "p")
+    with open(ruta_c, "w", encoding="utf-8") as f:
+        f.write(codigo)
+
+    orden = ["cc", "-std=c17", "-g", "-Wall", "-Wextra", "-Werror",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario]
+    if con_sanitizers:
+        orden.insert(3, "-fsanitize=address,undefined")
+        orden.insert(4, "-fno-omit-frame-pointer")
+
+    r = subprocess.run(orden, capture_output=True, text=True)
+    assert r.returncode == 0, "el C generado no compila:\n" + r.stderr
+
+    e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
+    return e.returncode, e.stdout, e.stderr
+
+
+print("=== RECHAZO: programas que no deben compilar ===")
+for nombre, fuente, esperado in RECHAZO:
+    total += 1
+    try:
+        codigo, errores = compilar_a_c(fuente, "<test>")
+    except (ErrorLexico, ErrorSintactico) as exc:
+        errores = [str(exc)]
+    if not errores:
+        falla(nombre, "compilo, y no deberia")
+        continue
+    if not any(esperado in e for e in errores):
+        falla(nombre, f"se esperaba {esperado!r}, se obtuvo: {errores}")
+
+print("=== ACEPTA: compilan, corren limpio bajo ASan+UBSan ===")
+with tempfile.TemporaryDirectory() as tmp:
+    for nombre, fuente, salida in ACEPTA:
+        total += 1
+        try:
+            rc, out, err = compilar_y_correr(fuente, tmp)
+        except AssertionError as exc:
+            falla(nombre, str(exc))
+            continue
+        if rc != 0:
+            falla(nombre, f"salio con codigo {rc}\n{err}")
+        elif out != salida:
+            falla(nombre, f"salida {out!r}, se esperaba {salida!r}")
+        elif "runtime error" in err or "AddressSanitizer" in err:
+            falla(nombre, f"sanitizer se quejo:\n{err}")
+
+print("=== ABORTA: la aritmetica comprobada detiene el programa ===")
+with tempfile.TemporaryDirectory() as tmp:
+    for nombre, fuente, esperado in ABORTA:
+        total += 1
+        try:
+            rc, out, err = compilar_y_correr(fuente, tmp, con_sanitizers=False)
+        except AssertionError as exc:
+            falla(nombre, str(exc))
+            continue
+        if rc == 0:
+            falla(nombre, "termino normalmente, deberia abortar")
+        elif esperado not in err:
+            falla(nombre, f"se esperaba {esperado!r} en stderr, hubo: {err!r}")
+
+print(f"\n{total} casos, {fallos} fallas")
+sys.exit(1 if fallos else 0)

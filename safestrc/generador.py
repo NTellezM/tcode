@@ -1,0 +1,635 @@
+"""
+Genera C a partir del arbol ya comprobado.
+
+Dos cosas que el generador hace y el programador de C tendria que hacer a
+mano, que son justo donde se equivoca:
+
+  - insertar `ss_free` al cerrar cada bloque, para los `str` que no se
+    movieron;
+  - envolver `+`, `-` y `*` en comprobaciones de desbordamiento.
+"""
+
+from safestrc.nodos import (
+    Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
+    Campo, Indice, LiteralStruct, LiteralArreglo,
+    Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
+    Funcion, Struct,
+)
+from safestrc.comprobador import (
+    INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
+)
+
+TIPOS_C = {
+    "str": "SafeString",
+    "view": "SafeView",
+    "usize": "size_t",
+    "i64": "int64_t",
+    "bool": "bool",
+    None: "void",
+    UNIDAD: "void",
+}
+
+CABECERA = r'''/* Generado por el compilador de safestr. No editar a mano. */
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include "safestr.h"
+
+/* Un programa puede no usar todas las comprobaciones; eso no es un aviso
+   que le sirva a nadie. */
+#if defined(__GNUC__) || defined(__clang__)
+#  define SS_LANG_QUIZA_SIN_USAR __attribute__((unused))
+#else
+#  define SS_LANG_QUIZA_SIN_USAR
+#endif
+
+/* Aritmetica comprobada: en safestr el desbordamiento no es silencioso.
+   Aborta diciendo donde, en vez de seguir con un valor equivocado. */
+SS_LANG_QUIZA_SIN_USAR static void ss_lang_desborde_(const char* op, const char* archivo, int linea)
+{
+    fprintf(stderr, "%s:%d: desbordamiento en `%s`\n", archivo, linea, op);
+    abort();
+}
+
+SS_LANG_QUIZA_SIN_USAR static void ss_lang_division_cero_(const char* archivo, int linea)
+{
+    fprintf(stderr, "%s:%d: division por cero\n", archivo, linea);
+    abort();
+}
+
+#define SS_LANG_SUMA_U(a, b, arch, ln) \
+    (((a) > SIZE_MAX - (b)) ? (ss_lang_desborde_("+", arch, ln), (size_t) 0) \
+                            : (size_t)((a) + (b)))
+
+#define SS_LANG_RESTA_U(a, b, arch, ln) \
+    (((a) < (b)) ? (ss_lang_desborde_("-", arch, ln), (size_t) 0) \
+                 : (size_t)((a) - (b)))
+
+#define SS_LANG_MUL_U(a, b, arch, ln) \
+    (((a) != 0 && (b) > SIZE_MAX / (a)) \
+        ? (ss_lang_desborde_("*", arch, ln), (size_t) 0) \
+        : (size_t)((a) * (b)))
+
+#define SS_LANG_SUMA_I(a, b, arch, ln) \
+    ((((b) > 0 && (a) > INT64_MAX - (b)) || ((b) < 0 && (a) < INT64_MIN - (b))) \
+        ? (ss_lang_desborde_("+", arch, ln), (int64_t) 0) \
+        : (int64_t)((a) + (b)))
+
+#define SS_LANG_RESTA_I(a, b, arch, ln) \
+    ((((b) < 0 && (a) > INT64_MAX + (b)) || ((b) > 0 && (a) < INT64_MIN + (b))) \
+        ? (ss_lang_desborde_("-", arch, ln), (int64_t) 0) \
+        : (int64_t)((a) - (b)))
+
+#define SS_LANG_MUL_I(a, b, arch, ln) \
+    (ss_lang_mul_i_((a), (b), arch, ln))
+
+SS_LANG_QUIZA_SIN_USAR static int64_t ss_lang_mul_i_(int64_t a, int64_t b, const char* arch, int ln)
+{
+    if (a == 0 || b == 0) return 0;
+    if (a > 0 ? (b > 0 ? a > INT64_MAX / b : b < INT64_MIN / a)
+              : (b > 0 ? a < INT64_MIN / b : a < INT64_MAX / b))
+        ss_lang_desborde_("*", arch, ln);
+    return a * b;
+}
+
+#define SS_LANG_DIV(a, b, arch, ln) \
+    (((b) == 0) ? (ss_lang_division_cero_(arch, ln), 0) : ((a) / (b)))
+
+#define SS_LANG_MOD(a, b, arch, ln) \
+    (((b) == 0) ? (ss_lang_division_cero_(arch, ln), 0) : ((a) % (b)))
+
+/* Indexar fuera de rango no lee memoria ajena: detiene el programa. */
+SS_LANG_QUIZA_SIN_USAR
+static size_t ss_lang_indice_(size_t i, size_t n, const char* arch, int ln)
+{
+    if (i >= n)
+    {
+        fprintf(stderr, "%s:%d: indice %zu fuera de rango (el arreglo tiene "
+                        "%zu elemento%s)\n", arch, ln, i, n, n == 1 ? "" : "s");
+        abort();
+    }
+    return i;
+}
+
+'''
+
+
+def mangle(t):
+    """Nombre C valido para un tipo: `[usize; 3]` -> `arr_usize_3`."""
+    if es_arreglo(t):
+        elem, n = partes_arreglo(t)
+        return f"arr_{mangle(elem)}_{n}"
+    return t
+
+
+class Generador:
+    def __init__(self, comprobador, archivo="<entrada>"):
+        self.c = comprobador
+        self.archivo = archivo
+        self.lineas = []
+        self.sangria = 0
+        # pila de bloques: cada uno con los `str` declarados que hay que liberar
+        self.pila = []
+        self.tmp = 0
+        # El generador lleva su propia tabla: los ambitos del comprobador ya
+        # se cerraron cuando llegamos aqui.
+        self.vars = []
+        self.arreglos = {}     # tipo safestr -> nombre del typedef en C
+        self.bucle = 0         # contador para variables de bucle de liberacion
+
+    # ---------- utilidades ----------
+
+    # ---------- tipos ----------
+
+    def tipo_c(self, t):
+        """Nombre C de un tipo. Los arreglos van envueltos en un struct.
+
+        En C un arreglo desnudo no se puede asignar, ni pasar por valor, ni
+        devolver: se degrada a puntero. Envolverlo en un struct le devuelve la
+        semantica de valor que el lenguaje promete.
+        """
+        if es_arreglo(t):
+            return self.registrar_arreglo(t)
+        return TIPOS_C.get(t, t)
+
+    def registrar_arreglo(self, t):
+        if t not in self.arreglos:
+            elem, _ = partes_arreglo(t)
+            if es_arreglo(elem):
+                self.registrar_arreglo(elem)
+            self.arreglos[t] = f"ss_{mangle(t)}"
+        return self.arreglos[t]
+
+    def recolectar_tipos(self, decls):
+        """Registra todos los tipos de arreglo que aparecen en el programa."""
+        def mirar(t):
+            if t and es_arreglo(t):
+                self.registrar_arreglo(t)
+
+        for d in decls:
+            if isinstance(d, Struct):
+                for c in d.campos:
+                    mirar(c.tipo)
+            elif isinstance(d, Funcion):
+                mirar(d.retorno)
+                for p in d.params:
+                    mirar(p.tipo)
+                self._mirar_cuerpo(d.cuerpo, mirar)
+
+    def _mirar_cuerpo(self, sentencias, mirar):
+        for s in sentencias:
+            if isinstance(s, Declaracion):
+                mirar(s.tipo)
+            elif isinstance(s, Si):
+                self._mirar_cuerpo(s.entonces, mirar)
+                if s.sino:
+                    self._mirar_cuerpo(s.sino, mirar)
+            elif isinstance(s, Mientras):
+                self._mirar_cuerpo(s.cuerpo, mirar)
+
+    def orden_structs(self, structs):
+        """Un struct por valor necesita el tamaño del que lleva dentro, asi
+        que hay que definirlos en orden de dependencia."""
+        por_nombre = {st.nombre: st for st in structs}
+        listos, salida = set(), []
+
+        def visitar(nombre):
+            if nombre in listos or nombre not in por_nombre:
+                return
+            listos.add(nombre)
+            for c in por_nombre[nombre].campos:
+                t = c.tipo
+                while es_arreglo(t):
+                    t = elem_de(t)
+                visitar(t)
+            salida.append(por_nombre[nombre])
+
+        for st in structs:
+            visitar(st.nombre)
+        return salida
+
+    def emitir(self, texto=""):
+        self.lineas.append("    " * self.sangria + texto if texto else "")
+
+    def declarar(self, nombre, tipo, por_puntero=False, decl=None):
+        self.vars[-1][nombre] = (tipo, por_puntero, decl)
+
+    def buscar(self, nombre):
+        for ambito in reversed(self.vars):
+            if nombre in ambito:
+                return ambito[nombre]
+        return None
+
+    def tipo_var(self, nombre):
+        v = self.buscar(nombre)
+        return v[0] if v else None
+
+    def es_puntero(self, nombre):
+        v = self.buscar(nombre)
+        return bool(v and v[1])
+
+    def fue_movida(self, nombre):
+        """Si el valor se movio a otro sitio, aqui ya no somos duenios."""
+        v = self.buscar(nombre)
+        return bool(v and v[2] is not None and getattr(v[2], "movida", False))
+
+    def ref(self, nombre):
+        """Como referirse a `nombre` cuando se necesita un SafeString*."""
+        return nombre if self.es_puntero(nombre) else f"&{nombre}"
+
+    def nuevo_tmp(self):
+        self.tmp += 1
+        return f"ss_tmp{self.tmp}"
+
+    def arch(self):
+        return '"' + self.archivo.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+    # ---------- programa ----------
+
+    def generar(self, decls):
+        structs = [d for d in decls if isinstance(d, Struct)]
+        funciones = [d for d in decls if isinstance(d, Funcion)]
+
+        self.lineas.append(CABECERA)
+        self.recolectar_tipos(decls)
+
+        # structs, en orden de dependencia
+        for st in self.orden_structs(structs):
+            self.lineas.append(f"typedef struct {st.nombre}")
+            self.lineas.append("{")
+            for c in st.campos:
+                self.lineas.append(f"    {self.tipo_c(c.tipo)} {c.nombre};")
+            self.lineas.append(f"}} {st.nombre};")
+            self.lineas.append("")
+
+        # envoltorios de arreglo, de dentro hacia fuera
+        for t in sorted(self.arreglos, key=lambda x: x.count("[")):
+            elem, n = partes_arreglo(t)
+            self.lineas.append(
+                f"typedef struct {{ {self.tipo_c(elem)} e[{n}]; }} "
+                f"{self.arreglos[t]};")
+        if self.arreglos:
+            self.lineas.append("")
+
+        # liberadores de los structs que poseen memoria
+        for st in self.orden_structs(structs):
+            if not self.c.posee(st.nombre):
+                continue
+            self.lineas.append(f"static void ss_drop_{st.nombre}({st.nombre}* p)")
+            self.lineas.append("{")
+            self.sangria = 1
+            marca = len(self.lineas)
+            for c in st.campos:
+                self.liberacion(f"p->{c.nombre}", c.tipo)
+            self.lineas.extend(self.lineas[marca:marca])
+            self.sangria = 0
+            self.lineas.append("}")
+            self.lineas.append("")
+
+        for f in funciones:
+            if f.nombre != "main":
+                self.lineas.append(self.prototipo(f) + ";")
+        self.lineas.append("")
+
+        for f in funciones:
+            self.funcion(f)
+            self.lineas.append("")
+
+        return "\n".join(self.lineas)
+
+    def prototipo(self, f: Funcion):
+        if f.nombre == "main":
+            return "int main(void)"
+        params = []
+        for p in f.params:
+            tc = self.tipo_c(p.tipo)
+            params.append(f"{tc}* {p.nombre}" if p.mutable else f"{tc} {p.nombre}")
+        ret = "void" if f.retorno in (None, UNIDAD) else self.tipo_c(f.retorno)
+        return f"{ret} {f.nombre}({', '.join(params) or 'void'})"
+
+    def funcion(self, f: Funcion):
+        self.emitir(self.prototipo(f))
+        self.emitir("{")
+        self.sangria += 1
+        # los parametros `str` por valor son propiedad de la funcion: se liberan
+        propios = [p.nombre for p in f.params
+                   if self.c.posee(p.tipo) and not p.mutable]
+        self.pila.append(list(propios))
+        self.vars.append({})
+        for p in f.params:
+            self.declarar(p.nombre, p.tipo, p.mutable, decl=p)
+
+        for s in f.cuerpo:
+            self.sentencia(s)
+
+        # Si el cuerpo ya termino en `return`, todo lo que siga es codigo
+        # muerto: el `return` se encargo de liberar.
+        if not self._termina_en_retorno(f.cuerpo):
+            self.liberar_bloque(self.pila[-1])
+            if f.nombre == "main":
+                self.emitir("return 0;")
+        self.pila.pop()
+        self.vars.pop()
+        self.sangria -= 1
+        self.emitir("}")
+
+    # ---------- liberacion automatica ----------
+
+    def liberacion(self, expr_c, tipo):
+        """Emite lo que haga falta para devolver la memoria de `expr_c`."""
+        if tipo == "str":
+            self.emitir(f"ss_free(&{expr_c});")
+            return
+
+        if es_arreglo(tipo):
+            elem, n = partes_arreglo(tipo)
+            if not self.c.posee(elem):
+                return
+            self.bucle += 1
+            i = f"ss_i{self.bucle}"
+            self.emitir(f"for (size_t {i} = 0; {i} < {n}; {i}++)")
+            self.emitir("{")
+            self.sangria += 1
+            self.liberacion(f"{expr_c}.e[{i}]", elem)
+            self.sangria -= 1
+            self.emitir("}")
+            return
+
+        if tipo in self.c.structs and self.c.posee(tipo):
+            self.emitir(f"ss_drop_{tipo}(&{expr_c});")
+
+    def liberar_bloque(self, nombres, excepto=None):
+        for n in reversed(nombres):
+            if n == excepto or self.fue_movida(n):
+                continue
+            self.liberacion(n, self.tipo_var(n))
+
+    def liberar_todo(self, excepto=None):
+        for marco in reversed(self.pila):
+            self.liberar_bloque(marco, excepto)
+
+    # ---------- sentencias ----------
+
+    def bloque(self, sentencias):
+        self.emitir("{")
+        self.sangria += 1
+        self.pila.append([])
+        self.vars.append({})
+        for s in sentencias:
+            self.sentencia(s)
+        if not self._termina_en_retorno(sentencias):
+            self.liberar_bloque(self.pila[-1])
+        self.pila.pop()
+        self.vars.pop()
+        self.sangria -= 1
+        self.emitir("}")
+
+    @staticmethod
+    def _termina_en_retorno(sentencias):
+        return bool(sentencias) and isinstance(sentencias[-1], Retorno)
+
+    def sentencia(self, s):
+        if isinstance(s, Declaracion):
+            tc = self.tipo_c(s.tipo)
+            self.emitir(f"{tc} {s.nombre} = {self.expr(s.valor, s.tipo)};")
+            self.declarar(s.nombre, s.tipo, decl=s)
+            if self.c.posee(s.tipo):
+                self.pila[-1].append(s.nombre)
+            return
+
+        if isinstance(s, Asignacion):
+            destino = self.lugar(s.lugar)
+            tipo = self._tipo_de(s.lugar)
+            if self.c.posee(tipo):
+                # el valor viejo se pierde: devolverlo antes de pisarlo
+                self.liberacion(destino, tipo)
+            self.emitir(f"{destino} = {self.expr(s.valor, tipo)};")
+            return
+
+        if isinstance(s, Si):
+            self.emitir(f"if ({self.expr(s.cond, 'bool')})")
+            self.bloque(s.entonces)
+            if s.sino is not None:
+                self.emitir("else")
+                self.bloque(s.sino)
+            return
+
+        if isinstance(s, Mientras):
+            self.emitir(f"while ({self.expr(s.cond, 'bool')})")
+            self.bloque(s.cuerpo)
+            return
+
+        if isinstance(s, Retorno):
+            if s.valor is None:
+                self.liberar_todo()
+                self.emitir("return;")
+                return
+            # Si se devuelve una variable duenia, esa NO se libera: se entrega.
+            devuelta = s.valor.nombre if isinstance(s.valor, Variable) else None
+            valor = self.expr(s.valor, None)
+            if devuelta is not None:
+                self.liberar_todo(excepto=devuelta)
+                self.emitir(f"return {devuelta};")
+            else:
+                tmp = self.nuevo_tmp()
+                self.emitir(f"{self.tipo_c(self._tipo_de(s.valor))} {tmp} = {valor};")
+                self.liberar_todo()
+                self.emitir(f"return {tmp};")
+            return
+
+        if isinstance(s, ExprSentencia):
+            self.emitir(self.expr(s.expr, None) + ";")
+            return
+
+        raise AssertionError(type(s).__name__)
+
+    def _tipo_de(self, e):
+        if isinstance(e, Entero):
+            return "usize"
+        if isinstance(e, Cadena):
+            return "view"
+        if isinstance(e, Booleano):
+            return "bool"
+        if isinstance(e, Variable):
+            return self.tipo_var(e.nombre) or "usize"
+        if isinstance(e, Llamada):
+            if e.nombre in INTERNAS:
+                return INTERNAS[e.nombre]["retorno"]
+            f = self.c.funciones.get(e.nombre)
+            return f.retorno if f else "usize"
+        if isinstance(e, Campo):
+            base = self._tipo_de(e.objeto)
+            st = self.c.structs.get(base)
+            if st:
+                for c in st.campos:
+                    if c.nombre == e.nombre:
+                        return c.tipo
+            return "usize"
+        if isinstance(e, Indice):
+            base = self._tipo_de(e.arreglo)
+            return elem_de(base) if es_arreglo(base) else "usize"
+        if isinstance(e, LiteralStruct):
+            return e.tipo
+        if isinstance(e, LiteralArreglo):
+            elem = self._tipo_de(e.elementos[0]) if e.elementos else "usize"
+            return f"[{elem}; {len(e.elementos)}]"
+        if isinstance(e, Binaria):
+            if e.op in {"==", "!=", "<", "<=", ">", ">=", "&&", "||"}:
+                return "bool"
+            return self._tipo_de(e.izq)
+        if isinstance(e, Unaria):
+            return "bool" if e.op == "!" else self._tipo_de(e.valor)
+        return "usize"
+
+    # ---------- expresiones ----------
+
+    def expr(self, e, esperado):
+        if isinstance(e, Entero):
+            return f"(int64_t){e.valor}" if esperado == "i64" else f"(size_t){e.valor}"
+
+        if isinstance(e, Cadena):
+            lit = (e.valor.replace("\\", "\\\\").replace('"', '\\"')
+                          .replace("\n", "\\n").replace("\t", "\\t")
+                          .replace("\0", "\\0"))
+            return f'sv_len("{lit}", {len(e.valor.encode("utf-8"))})'
+
+        if isinstance(e, Booleano):
+            return "true" if e.valor else "false"
+
+        if isinstance(e, Variable):
+            # un parametro `mut str` llega como puntero
+            if self.es_puntero(e.nombre):
+                return f"(*{e.nombre})"
+            return e.nombre
+
+        if isinstance(e, Unaria):
+            return f"({e.op}{self.expr(e.valor, esperado)})"
+
+        if isinstance(e, (Campo, Indice)):
+            return self.lugar(e)
+
+        if isinstance(e, LiteralStruct):
+            st = self.c.structs.get(e.tipo)
+            tipos = {c.nombre: c.tipo for c in st.campos} if st else {}
+            partes = ", ".join(
+                f".{n} = {self.expr(v, tipos.get(n))}" for n, v in e.campos)
+            return f"({e.tipo}){{ {partes} }}"
+
+        if isinstance(e, LiteralArreglo):
+            t = esperado if (esperado and es_arreglo(esperado)) else self._tipo_de(e)
+            elem = elem_de(t)
+            partes = ", ".join(self.expr(x, elem) for x in e.elementos)
+            return f"({self.tipo_c(t)}){{{{ {partes} }}}}"
+
+        if isinstance(e, Binaria):
+            return self.binaria(e, esperado)
+
+        if isinstance(e, Llamada):
+            return self.llamada(e)
+
+        raise AssertionError(type(e).__name__)
+
+    def lugar(self, e):
+        """C para un sitio al que se puede leer y escribir."""
+        if isinstance(e, Variable):
+            return f"(*{e.nombre})" if self.es_puntero(e.nombre) else e.nombre
+        if isinstance(e, Campo):
+            return f"{self.lugar(e.objeto)}.{e.nombre}"
+        if isinstance(e, Indice):
+            base = self._tipo_de(e.arreglo)
+            n = largo_arreglo(base) if es_arreglo(base) else 0
+            idx = self.expr(e.indice, "usize")
+            return (f"{self.lugar(e.arreglo)}.e"
+                    f"[ss_lang_indice_({idx}, {n}, {self.arch()}, {e.linea})]")
+        return self.expr(e, None)
+
+    def binaria(self, e: Binaria, esperado):
+        t = self._tipo_de(e.izq)
+        if t not in {"usize", "i64"}:
+            t = self._tipo_de(e.der)
+        sufijo = "I" if t == "i64" else "U"
+        izq = self.expr(e.izq, t)
+        der = self.expr(e.der, t)
+        pos = f"{self.arch()}, {e.linea}"
+
+        if e.op in {"+", "-", "*"}:
+            macro = {"+": "SUMA", "-": "RESTA", "*": "MUL"}[e.op]
+            return f"SS_LANG_{macro}_{sufijo}({izq}, {der}, {pos})"
+
+        if e.op in {"+?", "-?", "*?"}:
+            return f"({izq} {e.op[0]} {der})"      # envolvente, pedida a proposito
+
+        if e.op == "/":
+            return f"SS_LANG_DIV({izq}, {der}, {pos})"
+        if e.op == "%":
+            return f"SS_LANG_MOD({izq}, {der}, {pos})"
+
+        return f"({izq} {e.op} {der})"
+
+    def llamada(self, e: Llamada):
+        n = e.nombre
+
+        if n == "vacio":
+            return "ss_new()"
+        if n == "nuevo":
+            return f"ss_from_view({self.como_vista(e.args[0])})"
+        if n == "vista":
+            return f"ss_view({self.dir_de(e.args[0])})"
+        if n == "largo":
+            return f"sv_len_of({self.como_vista(e.args[0])})"
+        if n == "igual":
+            return (f"sv_equals({self.como_vista(e.args[0])}, "
+                    f"{self.como_vista(e.args[1])})")
+        if n == "rebanar":
+            return (f"sv_slice({self.como_vista(e.args[0])}, "
+                    f"{self.expr(e.args[1], 'usize')}, "
+                    f"{self.expr(e.args[2], 'usize')})")
+        if n == "empujar":
+            return (f"ss_append_view({self.dir_de(e.args[0])}, "
+                    f"{self.como_vista(e.args[1])})")
+        if n == "imprimir":
+            return self.imprimir(e.args[0])
+
+        # funcion del usuario
+        f = self.c.funciones.get(n)
+        args = []
+        for i, a in enumerate(e.args):
+            p = f.params[i] if f and i < len(f.params) else None
+            if p is not None and p.mutable:
+                args.append(self.ref(a.nombre))
+            else:
+                args.append(self.expr(a, p.tipo if p else None))
+        return f"{n}({', '.join(args)})"
+
+    def dir_de(self, a):
+        """La direccion de un sitio con nombre: `&x`, `&p.campo`, `&v.e[i]`."""
+        if isinstance(a, Variable):
+            return self.ref(a.nombre)
+        return f"&{self.lugar(a)}"
+
+    def como_vista(self, a):
+        """Un argumento donde se pide una SafeView."""
+        if self._tipo_de(a) == "str" and isinstance(a, (Variable, Campo, Indice)):
+            return f"ss_view({self.dir_de(a)})"
+        return self.expr(a, "view")
+
+    def imprimir(self, a):
+        t = self._tipo_de(a)
+        if t == "str":
+            return f'printf("%s", ss_cstr({self.dir_de(a)}))'
+        if t == "view":
+            v = self.como_vista(a)
+            return f'printf(SV_FMT, SV_ARG({v}))'
+        if t == "usize":
+            return f'printf("%zu", {self.expr(a, "usize")})'
+        if t == "i64":
+            return f'printf("%lld", (long long){self.expr(a, "i64")})'
+        if t == "bool":
+            return f'printf("%s", ({self.expr(a, "bool")}) ? "true" : "false")'
+        return f'printf("%s", "?")'
+
+
+def generar(funciones, comprobador, archivo="<entrada>"):
+    return Generador(comprobador, archivo).generar(funciones)
