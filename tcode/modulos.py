@@ -1,7 +1,7 @@
 """
 Carga de modulos.
 
-Un archivo es un modulo. `usar "ruta.sfs";` trae sus declaraciones, con las
+Un archivo es un modulo. `usar "ruta.t";` trae sus declaraciones, con las
 rutas relativas al archivo que las escribe. Cada modulo se carga una sola vez
 aunque lo pidan varios, y las dependencias circulares se detectan y se
 explican en vez de colgar el compilador.
@@ -13,8 +13,8 @@ dice en que archivos estan.
 
 import os
 
-from safestrc.parser import parsear
-from safestrc.nodos import Usar
+from tcode.parser import parsear
+from tcode.nodos import Usar
 
 
 class ErrorDeModulo(Exception):

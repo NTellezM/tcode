@@ -1,4 +1,4 @@
-"""Analisis lexico de safestr."""
+"""Analisis lexico de Tcode."""
 
 from dataclasses import dataclass
 
@@ -12,7 +12,7 @@ PALABRAS = {
 SIMBOLOS = [
     "+?", "-?", "*?", "->", "==", "!=", "<=", ">=", "&&", "||",
     "(", ")", "{", "}", "[", "]", ",", ";", ":", ".", "=", "+", "-", "*", "/",
-    "%", "<", ">", "!",
+    "%", "<", ">", "!", "&",
 ]
 
 

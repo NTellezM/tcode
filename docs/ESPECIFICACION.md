@@ -1,8 +1,9 @@
-# safestr — especificación del lenguaje, v0
+# Tcode — especificación del lenguaje, v0
 
 ## Por qué existe
 
-safestr nació como una librería de C. Auditándola encontramos cuatro fallos
+Tcode salió de auditar **safestr**, una librería de cadenas en C.
+Auditándola encontramos cuatro fallos
 de seguridad de memoria **en código escrito con cuidado poco común**:
 invariantes documentadas, aliasing resuelto a mano, comprobaciones de
 desbordamiento por todos lados. Aun así:
@@ -15,8 +16,8 @@ desbordamiento por todos lados. Aun así:
 | 4 | `sv_to_long("-9223372036854775808")` | desbordamiento con signo (UB) |
 
 La conclusión no es "hay que escribir mejor C". Es que **esas cuatro clases
-no deberían ser expresables**. Ese es el único motivo por el que safestr
-existe como lenguaje.
+no deberían ser expresables**. Ese es el único motivo por el que Tcode
+existe.
 
 ## Tesis
 
@@ -37,14 +38,14 @@ Mientras exista un `view` derivado de un `str`, ese `str` **no se puede
 mutar ni mover**. Los préstamos terminan al cerrar el bloque donde se
 declararon.
 
-```safestr
+```tcode
 var s: str = nuevo("hola");
 let v: view = vista(s);
 empujar(s, " mundo");   // error: `s` está prestado por `v`
 ```
 
 Esto es exactamente el caso 2 de la tabla, y también el "CONTRATO DE VIDA
-ÚTIL" que la librería en C documentaba y pedía respetar con criterio.
+ÚTIL" que safestr documentaba y pedía respetar con criterio.
 
 #### Vidas útiles: una vista no sobrevive a lo que presta
 
@@ -60,7 +61,7 @@ saber **de dónde sale** la memoria a la que apunta la vista:
 Se infiere sola, sin anotaciones, atravesando `rebanar` y las llamadas a
 otras funciones:
 
-```safestr
+```tcode
 fn primero(v: view) -> view { return rebanar(v, 0, 1); }   // ok
 fn estatica()      -> view { return "constante"; }         // ok
 
@@ -73,7 +74,7 @@ fn colgante() -> view {
 Y el préstamo sigue vivo en quien llama, aunque haya pasado por medio una
 función:
 
-```safestr
+```tcode
 var s: str = nuevo("hola");
 let p: view = primero(vista(s));
 empujar(s, "x");          // error: `s` esta prestada por `p`
@@ -93,7 +94,7 @@ programa aborta con el archivo y la línea. No hay comportamiento indefinido.
 
 Para optar por no comprobar, hay que escribirlo:
 
-```safestr
+```tcode
 let a: usize = x *? y;   // multiplicación envolvente, explícita
 ```
 
@@ -113,7 +114,7 @@ Un `struct` es dueño de lo que sus campos poseen; un arreglo, de lo que
 poseen sus elementos. La liberación se genera sola, en orden y a cualquier
 hondura:
 
-```safestr
+```tcode
 struct Articulo { nombre: str, unidades: usize }
 
 var inv: [Articulo; 4] = [ crear("tornillos", 420), ... ];
@@ -127,7 +128,7 @@ emite `ss_drop_Articulo` y el bucle que lo aplica a los cuatro elementos.
 programa diciendo dónde.
 
 ```
-inventario.sfs:4: indice 3 fuera de rango (el arreglo tiene 3 elementos)
+inventario.t:4: indice 3 fuera de rango (el arreglo tiene 3 elementos)
 ```
 
 Los arreglos se generan envueltos en un struct de C. Un arreglo desnudo de C
@@ -144,11 +145,55 @@ Lo que v0 **no** admite, y lo dice:
   contenedor entero.
 - **Structs recursivos.** Sin tamaño finito; da error.
 
-### 6. Módulos: un archivo es un módulo
+### 6. Préstamos: `&T` para leer, `mut T` para modificar
 
-```safestr
-usar "lib/texto.sfs";
-usar "lib/calculo.sfs";
+Pasar un valor por nombre lo **mueve**. Para dejárselo a una función sin
+entregárselo, se presta:
+
+```tcode
+fn describir(a: &Articulo) -> str { ... }        // presta para leer
+fn reponer(a: mut Articulo, cuantas: usize) { }  // presta para modificar
+```
+
+En C salen como `const Articulo*` y `Articulo*`. El `const` no es adorno: lo
+hace cumplir también el compilador de C.
+
+Se puede prestar una variable, un campo o un elemento, así que `inv[i]` deja
+de tener que desmontarse en campos sueltos.
+
+Lo que se presta no se puede mover: la función no es su dueña.
+
+```
+error: `p` llego prestado: esta funcion no es su duenia y no puede
+entregarlo. Pasa una copia, o recibelo por valor
+```
+
+Y lo prestado sólo para leer no se modifica, con un mensaje que dice el
+arreglo verdadero en vez de sugerir `var`:
+
+```
+error: `p` llego prestado solo para leer (`&`): para modificarlo, recibelo
+como `mut P`
+```
+
+**Dos préstamos de lo mismo sólo conviven si ninguno modifica.** Si no, el
+callee tendría dos nombres para la misma memoria y podría escribir por uno
+mientras lee por el otro:
+
+```
+error: `p` se presta dos veces en la misma llamada a `g` (como `a` y como
+`b`), y al menos uno de los dos puede modificarlo
+```
+
+v0 mira la variable entera, así que rechaza prestar dos campos distintos del
+mismo struct aunque no se solapen. Es conservador a propósito, y el mensaje
+lo dice.
+
+### 7. Módulos: un archivo es un módulo
+
+```tcode
+usar "lib/texto.t";
+usar "lib/calculo.t";
 ```
 
 Las rutas son relativas al archivo que las escribe. Cada módulo se carga una
@@ -156,19 +201,19 @@ sola vez aunque lo pidan varios, y las dependencias circulares se detectan y
 se explican:
 
 ```
-error: dependencia circular entre modulos: a.sfs -> b.sfs -> a.sfs
+error: dependencia circular entre modulos: a.t -> b.t -> a.t
 ```
 
 En v0 no hay espacios de nombres: lo que trae un `usar` entra al mismo saco.
 Dos declaraciones con el mismo nombre son un error, y el mensaje dice en qué
 archivo está la otra.
 
-### 7. Fallos: no se pueden ignorar
+### 8. Fallos: no se pueden ignorar
 
 Una función que puede fallar lo declara con `!` después del tipo de retorno,
 y sale con `falla`:
 
-```safestr
+```tcode
 fn dividir(a: usize, b: usize) -> usize ! {
     if b == 0 {
         falla "division por cero";
@@ -211,7 +256,7 @@ usar       := "usar" cadena ";"
 struct     := "struct" ident "{" (ident ":" tipo ",")* "}"
 funcion    := "fn" ident "(" params? ")" ("->" tipo)? "!"? bloque
 params     := param ("," param)*
-param      := ident ":" ("mut")? tipo
+param      := ident ":" ("mut" | "&")? tipo
 tipo       := "str" | "view" | "usize" | "i64" | "bool"
             | IDENT_STRUCT | "[" tipo ";" entero "]"
 bloque     := "{" sentencia* "}"
@@ -260,6 +305,6 @@ le corresponde.
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: genéricos, espacios de nombres, arreglos de tamaño
-variable, préstamo de structs enteros, aritmética de punteros, ni recolector. Todo valor que sale
+variable, aritmética de punteros, ni recolector. Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

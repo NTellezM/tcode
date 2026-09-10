@@ -1,4 +1,4 @@
-// lib/texto.sfs — utilidades de texto. No sabe nada del informe.
+// lib/texto.t — utilidades de texto. No sabe nada del informe.
 
 fn repetir(patron: view, veces: usize) -> str {
     var s: str = vacio();

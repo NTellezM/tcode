@@ -1,12 +1,12 @@
 """
-Comprobador de safestr: tipos, propiedad, prestamos y mutabilidad.
+Comprobador de Tcode: tipos, propiedad, prestamos y mutabilidad.
 
 Aqui viven las cuatro reglas de la especificacion. Un programa que pasa por
 aqui no puede tener ninguna de las cuatro clases de fallo que encontramos
 auditando la libreria en C.
 """
 
-from safestrc.nodos import (
+from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
@@ -89,6 +89,8 @@ class Simbolo:
         self.origen = None
         # si es una vista: de donde sale la memoria (ver ESTATICO/PARAMETRO/LOCAL)
         self.procedencia = None
+        # parametro recibido en prestamo: no somos duenios, no se puede mover
+        self.prestado = False
 
 
 class Comprobador:
@@ -153,6 +155,11 @@ class Comprobador:
         """Consumir el valor de una variable duenia."""
         if not self.usar(nodo, sim):
             return
+        if sim.prestado:
+            self.error(nodo, f"`{sim.nombre}` llego prestado: esta funcion no "
+                             f"es su duenia y no puede entregarlo. Pasa una "
+                             f"copia, o recibelo por valor")
+            return
         if sim.prestamos:
             self.error(nodo, f"no se puede mover `{sim.nombre}`: esta prestada "
                              f"por {self._lista(sim.prestamos)}")
@@ -173,12 +180,21 @@ class Comprobador:
         if not self.usar(nodo, sim):
             return
         if not sim.mutable:
-            self.error(nodo, f"`{sim.nombre}` se declaro con `let` y no se "
-                             f"puede modificar; usa `var`")
+            self.error_no_mutable(nodo, sim)
             return
         if sim.prestamos:
             self.error(nodo, f"no se puede modificar `{sim.nombre}`: esta "
                              f"prestada por {self._lista(sim.prestamos)}")
+
+    def error_no_mutable(self, nodo, sim):
+        """Por que no se puede modificar. La razon cambia el arreglo."""
+        if sim.prestado:
+            self.error(nodo, f"`{sim.nombre}` llego prestado solo para leer "
+                             f"(`&`): para modificarlo, recibelo como "
+                             f"`mut {sim.tipo}`")
+        else:
+            self.error(nodo, f"`{sim.nombre}` se declaro con `let` y no se "
+                             f"puede modificar; usa `var`")
 
     def prestar(self, nodo, sim, nombre_vista):
         if not self.usar(nodo, sim):
@@ -287,10 +303,12 @@ class Comprobador:
         self.falible_actual = f.falible
         self.abrir()
         for p in f.params:
-            if p.mutable and p.tipo != "str":
-                self.error(f, f"`mut` solo tiene sentido sobre `str`, "
-                              f"y `{p.nombre}` es `{p.tipo}`")
+            if p.prestado and p.tipo == "view":
+                marca = "mut" if p.mutable else "&"
+                self.error(f, f"`{marca}` sobre `view` no tiene sentido: una "
+                              f"vista ya es un prestamo. Quita el `{marca}`")
             sim = self.declarar(f, p.nombre, p.tipo, p.mutable, decl=p)
+            sim.prestado = p.prestado
             if p.tipo == "view":
                 sim.procedencia = PARAMETRO
         self.bloque(f.cuerpo)
@@ -334,8 +352,7 @@ class Comprobador:
             tipo = self.expresion(s.valor, mover_variables=True)
 
             if not sim.mutable:
-                self.error(s, f"`{base}` se declaro con `let` y no se puede "
-                              f"modificar; usa `var`")
+                self.error_no_mutable(s, sim)
             if sim.prestamos:
                 self.error(s, f"no se puede modificar `{base}`: esta prestada "
                               f"por {self._lista(sim.prestamos)}")
@@ -754,21 +771,46 @@ class Comprobador:
             self.error(e, f"`{nombre}` espera {len(f.params)} argumento(s) y "
                           f"recibio {len(e.args)}")
 
+        # Prestar la misma variable dos veces en una llamada, con una de las
+        # dos mutable, deja al callee con dos nombres para lo mismo: puede
+        # modificar por uno y leer por el otro sin enterarse.
+        prestados_mut, prestados_lec = {}, {}
+
         for arg, param in zip(e.args, f.params):
-            if param.mutable:
-                # se pasa por referencia mutable: tiene que ser una variable
-                if not isinstance(arg, Variable):
-                    self.error(e, f"el parametro `{param.nombre}` de `{nombre}` "
-                                  f"es `mut`: hay que pasarle una variable")
-                    continue
-                sim = self.buscar(arg.nombre)
+            if param.prestado:
+                marca = "mut" if param.mutable else "&"
+                base = self.variable_base(arg)
+                sim = self.buscar(base) if base else None
                 if sim is None:
-                    self.error(e, f"`{arg.nombre}` no esta declarada")
+                    self.error(e, f"el parametro `{param.nombre}` de `{nombre}` "
+                                  f"es `{marca}`: hay que pasarle una variable, "
+                                  f"un campo o un elemento")
                     continue
-                self.mutar(arg, sim)
-                if sim.tipo != param.tipo:
-                    self.error(e, f"`{arg.nombre}` es `{sim.tipo}` y "
-                                  f"`{param.nombre}` es `{param.tipo}`")
+
+                tipo_arg = self.tipo_de_lugar(arg)
+                if tipo_arg is not None and tipo_arg != param.tipo:
+                    self.error(e, f"`{param.nombre}` de `{nombre}` es "
+                                  f"`{param.tipo}` y recibio `{tipo_arg}`")
+
+                # Dos prestamos de lo mismo solo conviven si ninguno modifica.
+                otro = prestados_mut.get(base)
+                if otro is None and param.mutable:
+                    otro = prestados_lec.get(base)
+                if otro is not None:
+                    a, b = sorted([param.nombre, otro])
+                    self.error(e, f"`{base}` se presta dos veces en la misma "
+                                  f"llamada a `{nombre}` (como `{a}` y como "
+                                  f"`{b}`), y al menos uno de los dos puede "
+                                  f"modificarlo. v0 mira la variable entera, "
+                                  f"asi que rechaza esto aunque sean campos "
+                                  f"distintos")
+
+                if param.mutable:
+                    self.mutar(arg, sim)
+                    prestados_mut[base] = param.nombre
+                else:
+                    self.usar(arg, sim)
+                    prestados_lec[base] = param.nombre
                 continue
 
             mueve = self.posee(param.tipo)

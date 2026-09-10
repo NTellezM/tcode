@@ -1,4 +1,4 @@
-// texto.sfs — una libreria de texto escrita en safestr.
+// texto.t — una libreria de texto escrita en safestr.
 //
 // Ninguna funcion de aqui puede tener las cuatro clases de fallo que
 // encontramos auditando la libreria en C: el compilador las rechaza.

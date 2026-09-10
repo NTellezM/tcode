@@ -1,4 +1,4 @@
-// lib/calculo.sfs — aritmetica que puede fallar, y lo declara.
+// lib/calculo.t — aritmetica que puede fallar, y lo declara.
 
 fn dividir(a: usize, b: usize) -> usize ! {
     if b == 0 {

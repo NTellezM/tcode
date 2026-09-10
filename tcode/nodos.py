@@ -1,4 +1,4 @@
-"""Arbol sintactico de safestr. Solo datos: sin logica."""
+"""Arbol sintactico de Tcode. Solo datos: sin logica."""
 
 from dataclasses import dataclass, field
 from typing import Optional
@@ -127,8 +127,13 @@ class ExprSentencia(Nodo):
 class Parametro:
     nombre: str
     tipo: str
-    mutable: bool
+    mutable: bool          # `mut T`: prestado para modificar
+    compartido: bool = False   # `&T`: prestado para leer
     movida: bool = False
+
+    @property
+    def prestado(self):
+        return self.mutable or self.compartido
 
 @dataclass
 class Usar(Nodo):

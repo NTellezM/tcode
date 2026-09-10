@@ -14,15 +14,15 @@ check:
 	@$(PY) tests/test_lenguaje.py
 
 ejemplos:
-	@$(PY) -m safestrc ejemplos/hola.sfs  >/dev/null && ./ejemplos/hola
+	@$(PY) -m tcode ejemplos/hola.t  >/dev/null && ./ejemplos/hola
 	@echo
-	@$(PY) -m safestrc ejemplos/texto.sfs >/dev/null && ./ejemplos/texto
+	@$(PY) -m tcode ejemplos/texto.t >/dev/null && ./ejemplos/texto
 	@echo
-	@$(PY) -m safestrc ejemplos/inventario.sfs >/dev/null && ./ejemplos/inventario
+	@$(PY) -m tcode ejemplos/inventario.t >/dev/null && ./ejemplos/inventario
 	@echo
-	@$(PY) -m safestrc ejemplos/informe/informe.sfs >/dev/null && ./ejemplos/informe/informe
+	@$(PY) -m tcode ejemplos/informe/informe.t >/dev/null && ./ejemplos/informe/informe
 
 limpiar:
 	@rm -f ejemplos/hola ejemplos/texto ejemplos/inventario ejemplos/*.c
 	@rm -f ejemplos/informe/informe ejemplos/informe/*.c
-	@rm -rf safestrc/__pycache__ tests/__pycache__
+	@rm -rf tcode/__pycache__ tests/__pycache__

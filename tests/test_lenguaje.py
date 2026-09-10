@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Suite del lenguaje safestr.
+Suite del lenguaje Tcode.
 
 RECHAZO   -> el programa NO debe compilar, y el error debe explicar por que.
 ACEPTA    -> compila, corre bajo ASan+UBSan y da exactamente esta salida.
 
 Los cuatro primeros casos de RECHAZO son las cuatro clases de fallo que
-encontramos auditando la libreria en C. Que aqui sean errores de compilacion
+encontramos auditando la libreria safestr en C. Que aqui sean errores de compilacion
 es la unica razon por la que este lenguaje existe.
 """
 
@@ -18,9 +18,9 @@ import tempfile
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 
-from safestrc.cli import compilar_a_c
-from safestrc.lexer import ErrorLexico
-from safestrc.parser import ErrorSintactico
+from tcode.cli import compilar_a_c
+from tcode.lexer import ErrorLexico
+from tcode.parser import ErrorSintactico
 
 RUNTIME = os.path.join(RAIZ, "runtime")
 
@@ -202,9 +202,42 @@ RECHAZO = [
      'fn f() { let a: usize = 1; let a: usize = 2; }',
      "ya esta declarada"),
 
-    ("mut solo sobre str",
-     'fn g(a: mut usize) {} fn f() { }',
-     "`mut` solo tiene sentido sobre `str`"),
+    ("prestar una vista no tiene sentido: ya es un prestamo",
+     'fn g(v: &view) {}',
+     "una vista ya es un prestamo"),
+
+    # ---- prestamo de structs ----
+    ("mover algo que llego prestado",
+     'struct P { n: str } fn g(p: P) {} fn f(p: &P) { g(p); }',
+     "llego prestado"),
+
+    ("modificar un prestamo de solo lectura",
+     'struct P { n: str, u: usize } fn f(p: &P) { p.u = 1; }',
+     "solo para leer"),
+
+    ("empujar sobre un prestamo de solo lectura",
+     'struct P { n: str } fn f(p: &P) { empujar(p.n, "x"); }',
+     "solo para leer"),
+
+    ("prestar lo mismo como `&` y como `mut` en una llamada",
+     'struct P { u: usize } fn g(a: &P, b: mut P) {}'
+     ' fn f() { var p: P = P { u: 1 }; g(p, p); }',
+     "se presta dos veces"),
+
+    ("dos prestamos mutables de lo mismo",
+     'struct P { u: usize } fn g(a: mut P, b: mut P) {}'
+     ' fn f() { var p: P = P { u: 1 }; g(p, p); }',
+     "se presta dos veces"),
+
+    ("prestar un `let` para modificarlo",
+     'struct P { u: usize } fn g(a: mut P) {}'
+     ' fn f() { let p: P = P { u: 1 }; g(p); }',
+     "se declaro con `let`"),
+
+    ("el tipo del prestamo tiene que calzar",
+     'struct P { u: usize } struct Q { u: usize } fn g(a: &P) {}'
+     ' fn f() { var q: Q = Q { u: 1 }; g(q); }',
+     "recibio `Q`"),
 ]
 
 
@@ -265,7 +298,7 @@ ACEPTA = [
         fn cola(v: view) -> view { return rebanar(v, 1, largo(v)); }
         fn estatica() -> view { return "constante"; }
         fn main() -> usize {
-            let s: str = nuevo("safestr");
+            let s: str = nuevo("tcode!!");
             imprimir(primero(vista(s)));
             imprimir(cola(vista(s)));
             imprimir("\\n");
@@ -273,7 +306,7 @@ ACEPTA = [
             imprimir("\\n");
             return 0;
         }''',
-     "safestr\nconstante\n"),
+     "tcode!!\nconstante\n"),
 
     ("un prestamo que muere libera al duenio",
      '''fn primero(v: view) -> view { return rebanar(v, 0, 1); }
@@ -387,6 +420,54 @@ ACEPTA = [
             return 0;
         }''',
      "[dato de uno]\n(sin dato)\n"),
+
+    ("prestar un struct de un arreglo, para leer y para modificar",
+     '''struct Articulo { nombre: str, unidades: usize }
+        fn describir(a: &Articulo) -> str {
+            var s: str = vacio();
+            empujar(s, vista(a.nombre));
+            empujar(s, ": ");
+            return s;
+        }
+        fn reponer(a: mut Articulo, cuantas: usize) {
+            a.unidades = a.unidades + cuantas;
+            empujar(a.nombre, "*");
+        }
+        fn main() -> usize {
+            var inv: [Articulo; 2] = [
+                Articulo { nombre: nuevo("tornillos"), unidades: 420 },
+                Articulo { nombre: nuevo("tuercas"),   unidades: 310 }
+            ];
+            reponer(inv[1], 90);
+            var i: usize = 0;
+            while i < 2 {
+                let d: str = describir(inv[i]);
+                imprimir(d); imprimir(inv[i].unidades); imprimir("\\n");
+                i = i + 1;
+            }
+            return 0;
+        }''',
+     "tornillos: 420\ntuercas*: 400\n"),
+
+    ("dos prestamos de solo lectura conviven",
+     '''struct P { u: usize }
+        fn suma(a: &P, b: &P) -> usize { return a.u + b.u; }
+        fn main() -> usize {
+            var p: P = P { u: 21 };
+            imprimir(suma(p, p)); imprimir("\\n");
+            return 0;
+        }''',
+     "42\n"),
+
+    ("`mut` sobre cualquier tipo, no solo `str`",
+     '''fn doblar(n: mut usize) { n = n * 2; }
+        fn main() -> usize {
+            var x: usize = 7;
+            doblar(x); doblar(x);
+            imprimir(x); imprimir("\\n");
+            return 0;
+        }''',
+     "28\n"),
 
     ("rebanadas de vista",
      '''fn main() -> usize {
@@ -512,39 +593,39 @@ with tempfile.TemporaryDirectory() as tmp:
 # ---------------------------------------------------------------- modulos
 print("=== MODULOS: varios archivos, un solo programa ===")
 import shutil
-from safestrc.modulos import cargar, ErrorDeModulo
-from safestrc.cli import _compilar
+from tcode.modulos import cargar, ErrorDeModulo
+from tcode.cli import _compilar
 
 MODULOS = [
     ("un `usar` en rombo carga el modulo una sola vez",
-     {"lib/base.sfs": 'fn doble(n: usize) -> usize { return n * 2; }',
-      "lib/medio.sfs": 'usar "base.sfs";\n'
+     {"lib/base.t": 'fn doble(n: usize) -> usize { return n * 2; }',
+      "lib/medio.t": 'usar "base.t";\n'
                        'fn cuadruple(n: usize) -> usize { return doble(doble(n)); }',
-      "app.sfs": 'usar "lib/medio.sfs";\nusar "lib/base.sfs";\n'
+      "app.t": 'usar "lib/medio.t";\nusar "lib/base.t";\n'
                  'fn main() -> usize { imprimir(cuadruple(3)); imprimir("\\n");'
                  ' imprimir(doble(5)); imprimir("\\n"); return 0; }'},
-     "app.sfs", None, "12\n10\n"),
+     "app.t", None, "12\n10\n"),
 
     ("dependencia circular",
-     {"a.sfs": 'usar "b.sfs";\nfn a() {}',
-      "b.sfs": 'usar "a.sfs";\nfn b() {}'},
-     "a.sfs", "dependencia circular", None),
+     {"a.t": 'usar "b.t";\nfn a() {}',
+      "b.t": 'usar "a.t";\nfn b() {}'},
+     "a.t", "dependencia circular", None),
 
     ("modulo que no existe",
-     {"a.sfs": 'usar "fantasma.sfs";\nfn main() -> usize { return 0; }'},
-     "a.sfs", "no encuentro el modulo", None),
+     {"a.t": 'usar "fantasma.t";\nfn main() -> usize { return 0; }'},
+     "a.t", "no encuentro el modulo", None),
 
     ("el mismo nombre en dos modulos",
-     {"x.sfs": 'fn dos() -> usize { return 2; }',
-      "a.sfs": 'usar "x.sfs";\nfn dos() -> usize { return 3; }\n'
+     {"x.t": 'fn dos() -> usize { return 2; }',
+      "a.t": 'usar "x.t";\nfn dos() -> usize { return 3; }\n'
                'fn main() -> usize { return dos(); }'},
-     "a.sfs", "ya esta definida en", None),
+     "a.t", "ya esta definida en", None),
 
     ("un error dentro de un modulo dice de que archivo es",
-     {"roto.sfs": 'fn r() { let a: usize = 1; let b: i64 = 2;'
+     {"roto.t": 'fn r() { let a: usize = 1; let b: i64 = 2;'
                   ' let c: usize = a + b; }',
-      "a.sfs": 'usar "roto.sfs";\nfn main() -> usize { return 0; }'},
-     "a.sfs", "roto.sfs:1", None),
+      "a.t": 'usar "roto.t";\nfn main() -> usize { return 0; }'},
+     "a.t", "roto.t:1", None),
 ]
 
 for nombre, archivos, principal, error_esperado, salida in MODULOS:
