@@ -93,10 +93,30 @@ cualquier sitio donde haya un compilador de C17.
 | `tcode/generador.py` | árbol → C, con `ss_free` y comprobaciones insertadas |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
+## Velocidad
+
+Medido contra el mismo programa escrito en C a mano (`make bench`):
+
+| caso | C a mano | Tcode | Tcode / C |
+|---|---|---|---|
+| aritmética | 0.140s | 0.158s | **1.13x** |
+| arreglo (índices comprobados) | 0.266s | 0.265s | **1.00x** |
+| cadenas | 0.021s | 0.020s | **0.98x** |
+| structs prestados | 0.160s | 0.169s | **1.05x** |
+
+Lo único que se paga es la aritmética comprobada, y sólo cuando el bucle está
+dominado por aritmética. Los índices comprobados, los préstamos, la
+liberación automática y los arreglos envueltos en struct salen a 1.00x.
+
+El detalle está en [`bench/README.md`](bench/README.md), incluido por qué
+`-O3` importa aquí y por qué el compilador escrito en Python no se nota
+(es el 0.5% del tiempo; el otro 99.5% es gcc).
+
 ## Uso
 
 ```
 python3 -m tcode programa.t              # compila a binario
+python3 -m tcode programa.t -O3          # nivel de optimizacion del backend
 python3 -m tcode programa.t --emitir-c   # deja el C y no invoca a cc
 python3 -m tcode programa.t --solo-comprobar
 ```

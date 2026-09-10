@@ -13,3 +13,11 @@ __pycache__/
 # ejemplo de varios modulos
 ejemplos/informe/informe
 ejemplos/informe/*.c
+
+# binarios de las medidas
+bench/*_c
+bench/aritmetica
+bench/aritmetica_envolvente
+bench/arreglo
+bench/cadenas
+bench/structs

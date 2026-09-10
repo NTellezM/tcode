@@ -6,9 +6,12 @@
 
 PY ?= python3
 
-.PHONY: all check ejemplos limpiar
+.PHONY: all check bench ejemplos limpiar
 
 all: check
+
+bench:
+	@$(PY) bench/medir.py
 
 check:
 	@$(PY) tests/test_lenguaje.py
