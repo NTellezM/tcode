@@ -91,6 +91,10 @@ class Simbolo:
         self.procedencia = None
         # parametro recibido en prestamo: no somos duenios, no se puede mover
         self.prestado = False
+        # linea del `return` que la entrega, si sale por ahi
+        self.entregada_en = 0
+        # a que funcion se movio, si se movio
+        self.movida_a = None
 
 
 class Comprobador:
@@ -105,6 +109,10 @@ class Comprobador:
         self.en_condicion_bucle = 0
         self.en_retorno = 0
         self.errores = []
+        # Lo que se infirio, para poder explicarlo. El comprobador lo sabe
+        # todo mientras trabaja y hasta ahora lo tiraba al terminar.
+        self.informe = []
+        self.simbolos_funcion = None
 
     # ---------- errores ----------
 
@@ -139,6 +147,8 @@ class Comprobador:
             self.error(nodo, f"`{nombre}` ya esta declarada en este bloque")
         sim = Simbolo(nombre, tipo, mutable, len(self.ambitos), decl or nodo)
         self.ambitos[-1][nombre] = sim
+        if self.simbolos_funcion is not None:
+            self.simbolos_funcion.append(sim)
         return sim
 
     # ---------- reglas de propiedad ----------
@@ -169,6 +179,7 @@ class Comprobador:
         # `try`. Marcarla como movida para toda la funcion hacia que esas
         # salidas no la liberaran. El propio `return` ya la excluye.
         if self.en_retorno:
+            sim.entregada_en = nodo.linea
             return
         sim.movida = True
         sim.movida_en = nodo.linea
@@ -301,6 +312,7 @@ class Comprobador:
     def comprobar_funcion(self, f: Funcion):
         self.retorno_actual = f.retorno
         self.falible_actual = f.falible
+        self.simbolos_funcion = []
         self.abrir()
         for p in f.params:
             if p.prestado and p.tipo == "view":
@@ -313,6 +325,8 @@ class Comprobador:
                 sim.procedencia = PARAMETRO
         self.bloque(f.cuerpo)
         self.cerrar()
+        self.informe.append({"funcion": f, "simbolos": self.simbolos_funcion})
+        self.simbolos_funcion = None
         self.retorno_actual = None
         self.falible_actual = False
 
@@ -814,6 +828,10 @@ class Comprobador:
                 continue
 
             mueve = self.posee(param.tipo)
+            if mueve and isinstance(arg, Variable):
+                sim_arg = self.buscar(arg.nombre)
+                if sim_arg is not None:
+                    sim_arg.movida_a = nombre
             if mueve and isinstance(arg, Variable) and self.en_condicional:
                 self.error(e, f"en v0 no se puede mover `{arg.nombre}` dentro "
                               f"de una rama condicional; sacalo del `if`/`while`")

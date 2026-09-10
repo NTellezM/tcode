@@ -248,6 +248,13 @@ mueven en algún camino, y libera según el camino que se tomó de verdad.
 Lo que v0 no admite: `try` y `sino` en la condición de un `while` (se
 evaluaría una sola vez), y el motivo es un literal, no un texto construido.
 
+### Ver lo que el compilador infirió
+
+El análisis de propiedad y préstamos normalmente sólo se ve cuando falla.
+`tcode programa.t --explicar` lo muestra cuando sale bien: por variable, si
+es dueña o prestada, dónde se mueve, dónde se libera, y de dónde sale cada
+vista. Es el mismo modelo que produce los errores, escrito en positivo.
+
 ## Gramática v0
 
 ```

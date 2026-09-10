@@ -22,6 +22,9 @@ Las cinco propiedades:
   P4  Todo error nombra un archivo y una linea que existen de verdad.
   P5  El compilador nunca revienta: ni una excepcion de Python se escapa,
       con entrada valida o invalida.
+  P6  `--explicar` funciona sobre todo programa aceptado, y nombra todas sus
+      funciones y variables. Es el modelo del compilador hecho visible: si
+      deja de cuadrar, el fallo esta en el analisis.
 """
 
 import os
@@ -37,6 +40,7 @@ sys.path.insert(0, RAIZ)
 sys.path.insert(0, os.path.join(RAIZ, "tests"))
 
 from tcode.cli import compilar_a_c
+from tcode.explicar import explicar
 from tcode.lexer import ErrorLexico
 from tcode.parser import ErrorSintactico
 from generador_programas import generar
@@ -70,7 +74,8 @@ def probar_programa(semilla, tmp):
     # P5: compilar no puede lanzar una excepcion
     total += 1
     try:
-        codigo, errores = compilar_a_c(fuente, nombre + ".t")
+        codigo, errores, comp = compilar_a_c(fuente, nombre + ".t",
+                                             devolver_comp=True)
     except (ErrorLexico, ErrorSintactico) as exc:
         falla("P5 no revienta", semilla,
               f"el generador produjo algo que no parsea: {exc}", fuente)
@@ -85,9 +90,29 @@ def probar_programa(semilla, tmp):
               + "\n".join(errores), fuente)
         return
 
+    # P6: se puede explicar, y nombra lo que hay
+    total += 1
+    try:
+        texto = explicar(comp, nombre + ".t")
+    except Exception:
+        falla("P6 explicable", semilla, traceback.format_exc(), fuente)
+        return
+    faltan = [f.nombre for f in comp.informe and
+              [e["funcion"] for e in comp.informe] or []
+              if f"fn {f.nombre}(" not in texto]
+    if faltan:
+        falla("P6 explicable", semilla,
+              f"--explicar no nombra: {', '.join(faltan)}", fuente)
+    sin_nombrar = [s_.nombre for e in comp.informe for s_ in e["simbolos"]
+                   if f" {s_.nombre} " not in texto and f" {s_.nombre}  " not in texto]
+    if sin_nombrar:
+        falla("P6 explicable", semilla,
+              f"--explicar no nombra las variables: "
+              f"{', '.join(sorted(set(sin_nombrar))[:6])}", fuente)
+
     # P3: el compilador es determinista
     total += 1
-    otra, _ = compilar_a_c(fuente, nombre + ".t")
+    otra, _ = compilar_a_c(fuente, nombre + ".t")[:2]
     if otra != codigo:
         falla("P3 determinista", semilla,
               "dos compilaciones del mismo fuente dan C distinto", fuente)
