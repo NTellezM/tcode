@@ -28,17 +28,6 @@ def _lo_generamos_nosotros(ruta):
     except OSError:
         return False
 
-MARCA = "/* Generado por el compilador de Tcode. No editar a mano. */"
-
-
-def _lo_generamos_nosotros(ruta):
-    """True si ese .c lo escribio tcode: entonces se puede pisar."""
-    try:
-        with open(ruta, encoding="utf-8") as f:
-            return MARCA in f.read(200)
-    except OSError:
-        return False
-
 
 def compilar_a_c(fuente, archivo, devolver_comp=False):
     """Compila una fuente suelta, sin resolver `usar`. Lo usan los tests."""
@@ -167,22 +156,6 @@ def main(argv=None):
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
-    print(base)
-    return 0
-
-    orden = [args.cc, "-std=c17", "-O2", "-Wall", "-Wextra",
-             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
-             "-o", base]
-    r = subprocess.run(orden, capture_output=True, text=True)
-    if r.returncode != 0:
-        print("tcode: el C generado no compilo. Es un fallo del compilador,"
-              " no de tu programa.", file=sys.stderr)
-        print(r.stderr, file=sys.stderr)
-        return 1
-    if r.stderr.strip():
-        print(r.stderr, file=sys.stderr)
-
-    os.remove(ruta_c)
     print(base)
     return 0
 

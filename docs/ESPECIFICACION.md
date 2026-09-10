@@ -143,7 +143,30 @@ Lo que v0 **no** admite, y lo dice:
 - **Movimientos parciales.** Sacar un `str` de un campo o de un elemento
   dejaría el struct a medio mover o un hueco en el arreglo. Hay que mover el
   contenedor entero.
-- **Structs recursivos.** Sin tamaño finito; da error.
+- **Recursión directa por valor.** `struct Nodo { hijo: Nodo }` no tiene tamaño
+  finito y da error; la recursión mediante `lista<Nodo>` sí está permitida.
+
+#### Listas dinámicas
+
+`lista<T>` es una colección dueña cuyo largo se decide en ejecución:
+
+```tcode
+var numeros: lista<usize> = [];
+var nombres: lista<str> = [nuevo("Ana"), nuevo("Beto")];
+anadir(numeros, 10);
+anadir(nombres, nuevo("Cielo"));
+imprimir(nombres[2]);
+```
+
+El buffer crece de forma amortizada. `anadir` exige una lista `var`, mueve el
+elemento si éste posee memoria y conserva el tipo concreto también en el C
+generado. Al cerrar el bloque se liberan primero los elementos dueños y luego
+el buffer. La indexación usa la misma comprobación que los arreglos fijos.
+
+Una lista introduce indirección, por lo que permite estructuras recursivas de
+tamaño finito (`struct Nodo { hijos: lista<Nodo> }`). v0 no permite guardar
+`view` en listas —necesitaría vidas útiles en el tipo— ni usar un arreglo fijo
+como elemento de lista.
 
 ### 6. Préstamos: `&T` para leer, `mut T` para modificar
 
@@ -245,8 +268,38 @@ hacer bien a mano en C, y es donde estaba el problema: una variable que un
 compilador lleva una bandera en tiempo de ejecución para las variables que se
 mueven en algún camino, y libera según el camino que se tomó de verdad.
 
+**La regla es una sola, y vale para toda construcción presente y futura:**
+
+> `return x` entrega `x` ahí mismo y no vuelve, así que no hace falta
+> bandera. **Cualquier otro movimiento** puede no llegar a ocurrir —la
+> alternativa de un `sino`, un argumento en una expresión que se evalúa a
+> medias— y entonces la variable sigue siendo nuestra por el otro camino, y
+> lleva bandera.
+
+Ante la duda, bandera. Cuesta un `bool` que el compilador de C elimina en
+cuanto puede demostrar que sobra: en `hola.t` no se genera ninguna.
+
+Del lado del generador, quien abre un camino de ejecución lo hace con un
+`with camino():` que apaga dentro de esa rama lo que se haya entregado en
+ella. Se hizo así a propósito: una construcción nueva no puede olvidarse del
+apagado porque no hay nada que recordar. Es la diferencia entre una regla y
+una costumbre — y esa diferencia costó tres fugas (`falla`, `try` y `sino`),
+cada una encontrada corriendo, no leyendo.
+
 Lo que v0 no admite: `try` y `sino` en la condición de un `while` (se
 evaluaría una sola vez), y el motivo es un literal, no un texto construido.
+
+### 9. Entrada de archivos y texto construido
+
+`leer_archivo(ruta) -> str !` lee el archivo completo en modo binario. Es
+falible, así que exige `try` o `sino`; distingue apertura, lectura y falta de
+memoria sin dejar buffers ni descriptores abiertos. Los bytes cero se
+conservan. `byte(texto, i)` devuelve un valor entre 0 y 255 y comprueba el
+índice.
+
+`texto(x) -> str` materializa `usize`, `i64`, `bool`, `view` o `str`. Es la
+pieza mínima para construir mensajes sin introducir todavía interpolación ni
+un sistema de formatos.
 
 ### Avisos
 
@@ -279,6 +332,7 @@ funcion    := "fn" ident "(" params? ")" ("->" tipo)? "!"? bloque
 params     := param ("," param)*
 param      := ident ":" ("mut" | "&")? tipo
 tipo       := "str" | "view" | "usize" | "i64" | "bool"
+            | "lista" "<" tipo ">"
             | IDENT_STRUCT | "[" tipo ";" entero "]"
 bloque     := "{" sentencia* "}"
 
@@ -322,10 +376,15 @@ le corresponde.
 | `igual(a: view, b: view) -> bool` | `sv_equals` | solo lee |
 | `rebanar(v: view, a, b) -> view` | `sv_slice` | hereda el préstamo de `v` |
 | `imprimir(x)` | `printf` | solo lee |
+| `anadir(xs: mut lista<T>, x: T)` | `realloc` + asignación comprobada | **muta** `xs`, mueve `x` si es dueño |
+| `leer_archivo(ruta: view) -> str !` | `fopen` / `fread` / `fclose` | crea un dueño; el fallo es explícito |
+| `byte(texto: view, i) -> usize` | acceso con límite comprobado | solo lee |
+| `texto(x) -> str` | `ss_appendf` / copia | crea un dueño |
 
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: genéricos, espacios de nombres, arreglos de tamaño
-variable, aritmética de punteros, ni recolector. Todo valor que sale
+Es un v0 honesto. No hay: genéricos definidos por el usuario, espacios de
+nombres, diccionarios, E/S incremental, aritmética de punteros ni recolector.
+Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

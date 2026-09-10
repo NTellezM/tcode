@@ -31,6 +31,16 @@ def es_arreglo(t):
     return isinstance(t, str) and t.startswith("[")
 
 
+def es_lista(t):
+    return isinstance(t, str) and t.startswith("lista<") and t.endswith(">")
+
+
+def elem_lista(t):
+    if not es_lista(t):
+        raise AssertionError(f"tipo de lista mal formado: {t}")
+    return t[6:-1]
+
+
 def partes_arreglo(t):
     """`[usize; 5]` -> ("usize", 5). Aguanta arreglos de arreglos."""
     interior = t[1:-1]
@@ -95,6 +105,8 @@ class Simbolo:
         self.entregada_en = 0
         # a que funcion se movio, si se movio
         self.movida_a = None
+        # se mueve solo en algunos caminos: lo decide una bandera
+        self.movida_condicional = False
         # para los avisos: se leyo su valor alguna vez, se modifico alguna vez
         self.leida = False
         self.mutada = False
@@ -111,6 +123,8 @@ class Comprobador:
         self.en_condicional = 0
         self.en_condicion_bucle = 0
         self.en_retorno = 0
+        # el nodo que un `return` entrega directamente, si es una variable
+        self.retorno_directo = None
         self.errores = []
         # Lo que se infirio, para poder explicarlo. El comprobador lo sabe
         # todo mientras trabaja y hasta ahora lo tiraba al terminar.
@@ -176,6 +190,11 @@ class Comprobador:
         """Consumir el valor de una variable duenia."""
         if not self.usar(nodo, sim):
             return
+        if self.en_condicional and not self.en_retorno:
+            self.error(nodo, f"en v0 no se puede mover `{sim.nombre}` dentro "
+                             "de una rama condicional: el otro camino aun seria "
+                             "su duenio. Muevelo fuera del `if`/`while`")
+            return
         if sim.prestado:
             self.error(nodo, f"`{sim.nombre}` llego prestado: esta funcion no "
                              f"es su duenia y no puede entregarlo. Pasa una "
@@ -185,11 +204,18 @@ class Comprobador:
             self.error(nodo, f"no se puede mover `{sim.nombre}`: esta prestada "
                              f"por {self._lista(sim.prestamos)}")
             return
-        # Un `return` es lo ultimo de su camino: la variable sigue viva en
-        # todo lo que hay ANTES, incluida una salida temprana por `falla` o
-        # `try`. Marcarla como movida para toda la funcion hacia que esas
-        # salidas no la liberaran. El propio `return` ya la excluye.
-        if self.en_retorno:
+        # Una sola regla, en vez de un caso especial por construccion:
+        #
+        #   `return x` entrega x ahi mismo y no vuelve, asi que el propio
+        #   `return` la excluye de la liberacion y no hace falta bandera.
+        #   CUALQUIER otro movimiento puede no llegar a ocurrir —la
+        #   alternativa de un `sino`, un argumento en una expresion que se
+        #   evalua a medias— y entonces la variable sigue siendo nuestra por
+        #   el otro camino.
+        #
+        # Ante la duda, bandera: cuesta un `bool` que el compilador de C
+        # elimina en cuanto puede demostrar que sobra.
+        if self.en_retorno and nodo is self.retorno_directo:
             sim.entregada_en = nodo.linea
             return
         sim.movida = True
@@ -239,6 +265,9 @@ class Comprobador:
         """True si un valor de este tipo es duenio de memoria del heap."""
         if tipo == "str":
             return True
+        if es_lista(tipo):
+            # Incluso una lista de escalares posee su buffer dinamico.
+            return True
         if es_arreglo(tipo):
             return self.posee(elem_de(tipo), visitados)
         st = self.structs.get(tipo)
@@ -255,6 +284,10 @@ class Comprobador:
             return True
         if es_arreglo(t):
             return self.tipo_existe(elem_de(t))
+        if es_lista(t):
+            elem = elem_lista(t)
+            # Guardar vistas en una coleccion exigiria expresar su vida util.
+            return elem != "view" and not es_arreglo(elem) and self.tipo_existe(elem)
         return False
 
     def contiene_a(self, tipo, buscado, visitados=None):
@@ -263,6 +296,10 @@ class Comprobador:
             return True
         if es_arreglo(tipo):
             return self.contiene_a(elem_de(tipo), buscado, visitados)
+        if es_lista(tipo):
+            # La lista contiene un puntero, no el elemento por valor: corta el
+            # ciclo de tamaño (y permite arboles como lista<Nodo>).
+            return False
         st = self.structs.get(tipo)
         if st is None:
             return False
@@ -325,8 +362,14 @@ class Comprobador:
         self.retorno_actual = f.retorno
         self.falible_actual = f.falible
         self.simbolos_funcion = []
+        if f.retorno is not None and not self.tipo_existe(f.retorno):
+            self.error(f, f"la funcion `{f.nombre}` devuelve el tipo "
+                          f"`{f.retorno}`, que no se puede almacenar")
         self.abrir()
         for p in f.params:
+            if not self.tipo_existe(p.tipo):
+                self.error(f, f"el parametro `{p.nombre}` usa el tipo "
+                              f"`{p.tipo}`, que no se puede almacenar")
             if p.prestado and p.tipo == "view":
                 marca = "mut" if p.mutable else "&"
                 self.error(f, f"`{marca}` sobre `view` no tiene sentido: una "
@@ -383,6 +426,9 @@ class Comprobador:
 
     def sentencia(self, s):
         if isinstance(s, Declaracion):
+            if not self.tipo_existe(s.tipo):
+                self.error(s, f"`{s.tipo}` no es un tipo almacenable; las listas "
+                              "no pueden guardar `view` ni arreglos fijos")
             tipo = self.expresion(s.valor, destino=s.tipo,
                                   mover_variables=True)
             if tipo is not None and not encaja(s.tipo, tipo):
@@ -408,7 +454,7 @@ class Comprobador:
                 return
 
             destino = self.tipo_de_lugar(s.lugar)
-            tipo = self.expresion(s.valor, mover_variables=True)
+            tipo = self.expresion(s.valor, destino=destino, mover_variables=True)
 
             sim.mutada = True
             if not sim.mutable:
@@ -460,7 +506,11 @@ class Comprobador:
             # devolver una variable duenia la mueve fuera de la funcion (str,
             # struct con campos duenios, arreglo de duenios...)
             self.en_retorno += 1
-            tipo = self.expresion(s.valor, mover_variables=True)
+            previo = self.retorno_directo
+            self.retorno_directo = s.valor if isinstance(s.valor, Variable) else None
+            tipo = self.expresion(s.valor, destino=self.retorno_actual,
+                                  mover_variables=True)
+            self.retorno_directo = previo
             self.en_retorno -= 1
             if self.retorno_actual is None:
                 self.error(s, "esta funcion no declara tipo de retorno")
@@ -601,6 +651,10 @@ class Comprobador:
                 return None
             if mover_variables and self.posee(sim.tipo):
                 self.mover(e, sim)
+                # El generador necesita distinguir una lectura de una entrega
+                # de propiedad. Guardarlo en el propio uso evita reconstruir
+                # despues el contexto semantico a partir de los tipos.
+                e.mueve = True
             else:
                 self.usar(e, sim)
             return sim.tipo
@@ -631,7 +685,8 @@ class Comprobador:
                 self.error(e, "`sino` no puede ir en la condicion de un "
                               "`while`: se evaluaria una sola vez")
             t = self.desenvolver(e, e.expr, "sino")
-            alt = self.expresion(e.alternativa, mover_variables=True)
+            alt = self.expresion(e.alternativa, destino=t, mover_variables=True)
+
             if t is not None and alt is not None and not encaja(t, alt):
                 self.error(e, f"la llamada da `{t}` y el valor de despues de "
                               f"`sino` es `{alt}`")
@@ -659,9 +714,13 @@ class Comprobador:
 
     def desenvolver(self, nodo, interna, palabra):
         """Comprueba que lo que sigue a `try`/`sino` sea algo que pueda fallar."""
-        if not (isinstance(interna, Llamada)
-                and self.funciones.get(interna.nombre) is not None
-                and self.funciones[interna.nombre].falible):
+        es_falible = False
+        if isinstance(interna, Llamada):
+            f = self.funciones.get(interna.nombre)
+            firma = INTERNAS.get(interna.nombre)
+            es_falible = bool((f is not None and f.falible)
+                               or (firma is not None and firma.get("falible")))
+        if not es_falible:
             self.error(nodo, f"`{palabra}` va delante de una llamada a una "
                              f"funcion declarada con `!`")
             self.expresion(interna)
@@ -693,10 +752,10 @@ class Comprobador:
             self.error(e, f"un indice tiene que ser `usize`, es `{ti}`")
         if base is None:
             return None
-        if not es_arreglo(base):
+        if not es_arreglo(base) and not es_lista(base):
             self.error(e, f"`{base}` no es un arreglo, no se puede indexar")
             return None
-        elem = elem_de(base)
+        elem = elem_de(base) if es_arreglo(base) else elem_lista(base)
         if mover_variables and self.posee(elem):
             self.error(e, f"en v0 no se puede sacar un elemento de un arreglo: "
                           f"dejaria un hueco. Mueve el arreglo entero")
@@ -713,7 +772,9 @@ class Comprobador:
         dados = {}
         for nombre, valor in e.campos:
             definicion = next((c for c in st.campos if c.nombre == nombre), None)
-            t = self.expresion(valor, mover_variables=(
+            t = self.expresion(valor, destino=(definicion.tipo
+                                                if definicion is not None else None),
+                               mover_variables=(
                 definicion is not None and self.posee(definicion.tipo)))
             if definicion is None:
                 self.error(e, f"`{e.tipo}` no tiene un campo `{nombre}`")
@@ -732,12 +793,15 @@ class Comprobador:
         return e.tipo
 
     def literal_arreglo(self, e: LiteralArreglo, esperado=None):
-        if not e.elementos:
+        es_literal_lista = esperado is not None and es_lista(esperado)
+        if not e.elementos and not es_literal_lista:
             self.error(e, "un arreglo tiene que tener al menos un elemento")
             return None
 
         elem_esperado = None
-        if esperado is not None and es_arreglo(esperado):
+        if es_literal_lista:
+            elem_esperado = elem_lista(esperado)
+        elif esperado is not None and es_arreglo(esperado):
             elem_esperado, n = partes_arreglo(esperado)
             if n != len(e.elementos):
                 self.error(e, f"el tipo dice {n} elemento(s) y el literal "
@@ -755,7 +819,8 @@ class Comprobador:
                 if t is not None and not encaja(elem_esperado, t):
                     self.error(e, f"el elemento {i + 1} deberia ser "
                                   f"`{elem_esperado}` y es `{t}`")
-            return f"[{elem_esperado}; {len(e.elementos)}]"
+            return esperado if es_literal_lista else \
+                f"[{elem_esperado}; {len(e.elementos)}]"
 
         conocidos = [t for t in tipos if t is not None]
         if not conocidos:
@@ -769,7 +834,14 @@ class Comprobador:
 
     def binaria(self, e: Binaria):
         ti = self.expresion(e.izq)
-        td = self.expresion(e.der)
+        if e.op in {"&&", "||"}:
+            # C puede no evaluar el lado derecho. Hasta tener movimientos
+            # sensibles al flujo, no se permite entregar propiedad ahi.
+            self.en_condicional += 1
+            td = self.expresion(e.der)
+            self.en_condicional -= 1
+        else:
+            td = self.expresion(e.der)
 
         if e.op in {"&&", "||"}:
             for t, lado in ((ti, "izquierdo"), (td, "derecho")):
@@ -818,6 +890,10 @@ class Comprobador:
         nombre = e.nombre
 
         if nombre in INTERNAS:
+            if INTERNAS[nombre].get("falible") and not desenvuelta:
+                self.error(e, f"`{nombre}` puede fallar: la llamada tiene que ir "
+                              f"detras de `try`, o con `sino <valor>` para dar un "
+                              f"valor cuando falle")
             return self.interna(e)
 
         f = self.funciones.get(nombre)
@@ -883,10 +959,7 @@ class Comprobador:
                 sim_arg = self.buscar(arg.nombre)
                 if sim_arg is not None:
                     sim_arg.movida_a = nombre
-            if mueve and isinstance(arg, Variable) and self.en_condicional:
-                self.error(e, f"en v0 no se puede mover `{arg.nombre}` dentro "
-                              f"de una rama condicional; sacalo del `if`/`while`")
-            t = self.expresion(arg, mover_variables=mueve)
+            t = self.expresion(arg, destino=param.tipo, mover_variables=mueve)
             if t is not None and not encaja(param.tipo, t):
                 self.error(e, f"`{param.nombre}` de `{nombre}` es "
                               f"`{param.tipo}` y recibio `{t}`")
@@ -897,6 +970,70 @@ class Comprobador:
         nombre = e.nombre
         firma = INTERNAS[nombre]
         params, retorno = firma["params"], firma["retorno"]
+
+        # Operaciones cuyo tipo depende de sus argumentos. Mantenerlas aqui,
+        # explicitas, hace que el C generado siga sin casts implicitos.
+        if nombre == "largo":
+            if len(e.args) != 1:
+                self.error(e, f"`largo` espera 1 argumento y recibio {len(e.args)}")
+                for a in e.args:
+                    self.expresion(a)
+                return "usize"
+            t = self.expresion(e.args[0])
+            if t is not None and t != "view" and t != "str" \
+                    and not es_arreglo(t) and not es_lista(t):
+                self.error(e, f"`largo` opera sobre texto, arreglos o listas, "
+                              f"recibio `{t}`")
+            if ((t == "str" or es_lista(t))
+                    and not isinstance(e.args[0], (Variable, Campo, Indice))):
+                self.error(e, "el valor duenio que recibe `largo` tiene que "
+                              "estar guardado en una variable")
+            return "usize"
+
+        if nombre == "anadir":
+            if len(e.args) != 2:
+                self.error(e, f"`anadir` espera 2 argumentos y recibio "
+                              f"{len(e.args)}")
+                for a in e.args:
+                    self.expresion(a)
+                return UNIDAD
+            lugar, valor = e.args
+            base = self.variable_base(lugar)
+            sim = self.buscar(base) if base else None
+            tipo_lista = self.tipo_de_lugar(lugar) if sim is not None else None
+            if sim is None:
+                self.error(e, "el primer argumento de `anadir` tiene que ser "
+                              "una variable, un campo o un elemento")
+            elif not es_lista(tipo_lista):
+                self.error(e, f"`anadir` opera sobre `lista<T>`, recibio "
+                              f"`{tipo_lista}`")
+            else:
+                # Evaluar el valor antes de registrar la mutacion detecta los
+                # usos/movimientos y conserva el orden real de evaluacion.
+                elem = elem_lista(tipo_lista)
+                t = self.expresion(valor, destino=elem,
+                                   mover_variables=self.posee(elem))
+                if t is not None and not encaja(elem, t):
+                    self.error(e, f"la lista guarda `{elem}` y se intento "
+                                  f"agregar `{t}`")
+                self.mutar(lugar, sim)
+                return UNIDAD
+            self.expresion(valor)
+            return UNIDAD
+
+        if nombre == "texto":
+            if len(e.args) != 1:
+                self.error(e, f"`texto` espera 1 argumento y recibio {len(e.args)}")
+                for a in e.args:
+                    self.expresion(a)
+                return "str"
+            t = self.expresion(e.args[0])
+            if t is not None and t not in {LITERAL, "usize", "i64", "bool", "view", "str"}:
+                self.error(e, f"`texto` convierte escalares o texto, recibio `{t}`")
+            if t == "str" and not isinstance(e.args[0], (Variable, Campo, Indice)):
+                self.error(e, "el `str` que recibe `texto` tiene que estar guardado "
+                              "en una variable")
+            return "str"
 
         if len(e.args) != len(params):
             self.error(e, f"`{nombre}` espera {len(params)} argumento(s) y "
@@ -988,10 +1125,14 @@ INTERNAS = {
     "nuevo":    {"params": ["view"],                  "retorno": "str"},
     "vista":    {"params": ["@presta"],               "retorno": "view"},
     "empujar":  {"params": ["@mut", "view"],          "retorno": UNIDAD},
-    "largo":    {"params": ["view"],                  "retorno": "usize"},
+    "largo":    {"params": ["@dimensionable"],        "retorno": "usize"},
     "igual":    {"params": ["view", "view"],          "retorno": "bool"},
     "rebanar":  {"params": ["view", "usize", "usize"], "retorno": "view"},
     "imprimir": {"params": ["@cualquiera"],           "retorno": UNIDAD},
+    "anadir":   {"params": ["@lista_mut", "@elemento"], "retorno": UNIDAD},
+    "texto":    {"params": ["@escalar"],              "retorno": "str"},
+    "byte":     {"params": ["view", "usize"],         "retorno": "usize"},
+    "leer_archivo": {"params": ["view"], "retorno": "str", "falible": True},
 }
 
 

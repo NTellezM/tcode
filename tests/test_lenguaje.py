@@ -80,6 +80,11 @@ RECHAZO = [
      ' let v: view = vista(s); g(s); }',
      "no se puede mover"),
 
+    ("un movimiento dentro de una rama no es incondicional",
+     'fn tomar(s: str) {} fn f() { let s: str = nuevo("a");'
+     ' if true { tomar(s); } }',
+     "no se puede mover `s` dentro"),
+
     ("devolver algo prestado",
      'fn f() -> str { var s: str = nuevo("a"); let v: view = vista(s);'
      ' return s; }',
@@ -146,9 +151,29 @@ RECHAZO = [
      'fn f() { let n: usize = 1; imprimir(n[0]); }',
      "no es un arreglo"),
 
+    ("una lista no puede guardar vistas sin vidas utiles",
+     'fn f() { let xs: lista<view> = ["a"]; }',
+     "no es un tipo almacenable"),
+
+    ("anadir exige una lista mutable",
+     'fn f() { let xs: lista<usize> = []; anadir(xs, 1); }',
+     "se declaro con `let`"),
+
+    ("anadir comprueba el tipo del elemento",
+     'fn f() { var xs: lista<usize> = []; anadir(xs, true); }',
+     "la lista guarda `usize`"),
+
+    ("sacar un duenio de una lista dejaria un hueco",
+     'fn f() { var xs: lista<str> = [nuevo("a")]; let s: str = xs[0]; }',
+     "no se puede sacar un elemento"),
+
     # ---- fallos ----
     ("ignorar que una llamada puede fallar",
      'fn f() -> usize ! { falla "x"; }  fn g() -> usize { return f(); }',
+     "puede fallar"),
+
+    ("ignorar que leer un archivo puede fallar",
+     'fn f() { let s: str = leer_archivo("datos.txt"); }',
      "puede fallar"),
 
     ("`try` en una funcion que no esta declarada con `!`",
@@ -477,6 +502,106 @@ ACEPTA = [
             return 0;
         }''',
      "cde\n"),
+
+    ("listas dinamicas: crecer, indexar y medir",
+     '''fn suma(xs: &lista<usize>) -> usize {
+            var total: usize = 0;
+            var i: usize = 0;
+            while i < largo(xs) { total = total + xs[i]; i = i + 1; }
+            return total;
+        }
+        fn main() -> usize {
+            var xs: lista<usize> = [];
+            var i: usize = 0;
+            while i < 1000 { anadir(xs, i); i = i + 1; }
+            imprimir(largo(xs)); imprimir(" "); imprimir(suma(xs));
+            imprimir("\\n"); return 0;
+        }''',
+     "1000 499500\n"),
+
+    ("una lista de duenios libera y mueve cada elemento",
+     '''fn main() -> usize {
+            var xs: lista<str> = [nuevo("uno"), nuevo("dos")];
+            let tercero: str = nuevo("tres");
+            anadir(xs, tercero);
+            var i: usize = 0;
+            while i < largo(xs) { imprimir(xs[i]); imprimir(" "); i = i + 1; }
+            imprimir("\\n"); return 0;
+        }''',
+     "uno dos tres \n"),
+
+    ("reasignar propiedad invalida al duenio anterior",
+     '''fn main() -> usize {
+            let a: str = nuevo("movido");
+            let b: str = a;
+            imprimir(b); imprimir("\\n"); return 0;
+        }''',
+     "movido\n"),
+
+    ("devolver un compuesto entrega sus campos sin liberarlos",
+     '''struct Caja { nombre: str }
+        fn crear() -> Caja {
+            let s: str = nuevo("vivo");
+            return Caja { nombre: s };
+        }
+        fn main() -> usize {
+            let c: Caja = crear(); imprimir(c.nombre); imprimir("\\n"); return 0;
+        }''',
+     "vivo\n"),
+
+    ("sino mueve su alternativa solo en el camino de fallo",
+     '''fn elegir(falla_ahora: bool) -> str ! {
+            if falla_ahora { falla "pedido"; }
+            return nuevo("resultado");
+        }
+        fn caso(falla_ahora: bool) -> str {
+            let respaldo: str = nuevo("respaldo");
+            return elegir(falla_ahora) sino respaldo;
+        }
+        fn main() -> usize {
+            let a: str = caso(false); let b: str = caso(true);
+            imprimir(a); imprimir(" "); imprimir(b); imprimir("\\n"); return 0;
+        }''',
+     "resultado respaldo\n"),
+
+    ("listas vacias usan el tipo de retorno y de argumento",
+     '''fn vacia() -> lista<usize> { return []; }
+        fn contar(xs: lista<usize>) -> usize { return largo(xs); }
+        fn main() -> usize {
+            let xs: lista<usize> = vacia();
+            imprimir(largo(xs)); imprimir(" "); imprimir(contar([]));
+            imprimir("\\n"); return 0;
+        }''',
+     "0 0\n"),
+
+    ("listas recursivas tienen tamano finito",
+     '''struct Nodo { valor: usize, hijos: lista<Nodo> }
+        fn hoja(n: usize) -> Nodo { return Nodo { valor: n, hijos: [] }; }
+        fn main() -> usize {
+            var raiz: Nodo = hoja(1);
+            anadir(raiz.hijos, hoja(2));
+            anadir(raiz.hijos, hoja(3));
+            imprimir(raiz.valor + raiz.hijos[0].valor + raiz.hijos[1].valor);
+            imprimir("\\n"); return 0;
+        }''',
+     "6\n"),
+
+    ("texto y bytes permiten procesar cadenas construidas",
+     '''fn main() -> usize {
+            let n: str = texto(42);
+            let b: str = texto(true);
+            imprimir(n); imprimir(" "); imprimir(b); imprimir(" ");
+            imprimir(byte("Az", 1)); imprimir("\\n"); return 0;
+        }''',
+     "42 true 122\n"),
+
+    ("un fallo al abrir archivo se puede sustituir",
+     '''fn main() -> usize {
+            let s: str = leer_archivo("/ruta/que/no/existe/tcode")
+                         sino nuevo("sin datos");
+            imprimir(s); imprimir("\\n"); return 0;
+        }''',
+     "sin datos\n"),
 ]
 
 
@@ -644,6 +769,30 @@ with tempfile.TemporaryDirectory() as tmp:
             falla(nombre, f"salida {out!r}, se esperaba {salida!r}")
         elif "runtime error" in err or "AddressSanitizer" in err:
             falla(nombre, f"sanitizer se quejo:\n{err}")
+
+print("=== ARCHIVOS: lectura real, incluida entrada binaria ===")
+with tempfile.TemporaryDirectory() as tmp:
+    total += 1
+    entrada = os.path.join(tmp, "entrada.bin")
+    with open(entrada, "wb") as f:
+        f.write(b"uno\n\x00dos")
+    ruta = entrada.replace("\\", "\\\\").replace('"', '\\"')
+    fuente = f'''fn main() -> usize ! {{
+        let datos: str = try leer_archivo("{ruta}");
+        imprimir(largo(vista(datos))); imprimir(" ");
+        imprimir(byte(vista(datos), 4)); imprimir("\\n");
+        return 0;
+    }}'''
+    try:
+        rc, out, err = compilar_y_correr(fuente, tmp)
+    except AssertionError as exc:
+        falla("leer un archivo completo", str(exc))
+    else:
+        if rc != 0 or out != "8 0\n":
+            falla("leer un archivo completo",
+                  f"codigo {rc}, salida {out!r}, stderr {err!r}")
+        elif "runtime error" in err or "AddressSanitizer" in err:
+            falla("leer un archivo completo", f"sanitizer se quejo:\n{err}")
 
 print("=== ABORTA: la aritmetica comprobada detiene el programa ===")
 with tempfile.TemporaryDirectory() as tmp:
