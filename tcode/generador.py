@@ -19,7 +19,7 @@ from tcode.nodos import (
 )
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
-    es_lista, elem_lista,
+    es_lista, elem_lista, es_mapa, partes_mapa,
 )
 
 TIPOS_C = {
@@ -181,6 +181,31 @@ SS_LANG_DEFINIR_ARIT(i, int64_t, INT64_MAX, INT64_MIN)
 #define SS_LANG_MOD(a, b, arch, ln) \
     (((b) == 0) ? (ss_lang_division_cero_(arch, ln), 0) : ((a) % (b)))
 
+/* Argumentos de la linea de ordenes.
+   `argv` vive tanto como el proceso, asi que una vista suya nunca cuelga:
+   por eso `argumento` devuelve `view` y no reserva nada. */
+static int    ss_lang_argc_ = 0;
+static char** ss_lang_argv_ = NULL;
+
+SS_LANG_QUIZA_SIN_USAR
+static size_t ss_lang_n_argumentos_(void)
+{
+    return (size_t) ss_lang_argc_;
+}
+
+SS_LANG_QUIZA_SIN_USAR
+static SafeView ss_lang_argumento_(size_t i, const char* arch, int ln)
+{
+    if (SS_LANG_RARO(i >= (size_t) ss_lang_argc_))
+    {
+        fprintf(stderr, "%s:%d: no hay argumento %zu (se recibieron %d, "
+                        "contando el nombre del programa)\n",
+                arch, ln, i, ss_lang_argc_);
+        abort();
+    }
+    return sv(ss_lang_argv_[i]);
+}
+
 /* Indexar fuera de rango no lee memoria ajena: detiene el programa. */
 SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE
 static size_t ss_lang_indice_(size_t i, size_t n, const char* arch, int ln)
@@ -233,6 +258,9 @@ def mangle(t):
     if es_arreglo(t):
         elem, n = partes_arreglo(t)
         return f"arr_{mangle(elem)}_{n}"
+    if es_mapa(t):
+        k, v = partes_mapa(t)
+        return f"mapa_{mangle(k)}_{mangle(v)}"
     if es_lista(t):
         return f"lista_{mangle(elem_lista(t))}"
     return t
@@ -252,6 +280,7 @@ class Generador:
         self.vars = []
         self.arreglos = {}     # tipo Tcode -> nombre del typedef en C
         self.listas = {}       # tipo Tcode -> nombre del typedef en C
+        self.mapas = {}        # idem para mapa<K, V>
         self.resultados = {}   # tipo Tcode -> nombre del typedef de resultado
         self.usa_leer_archivo = False
         self.bucle = 0         # contador para variables de bucle de liberacion
@@ -275,6 +304,8 @@ class Generador:
         """
         if es_arreglo(t):
             return self.registrar_arreglo(t)
+        if es_mapa(t):
+            return self.registrar_mapa(t)
         if es_lista(t):
             return self.registrar_lista(t)
         return TIPOS_C.get(t, t)
@@ -296,6 +327,18 @@ class Generador:
             self.arreglos[t] = f"ss_{mangle(t)}"
         return self.arreglos[t]
 
+    def registrar_mapa(self, t):
+        if t not in self.mapas:
+            k, v = partes_mapa(t)
+            self.tipo_c(k)
+            self.tipo_c(v)
+            # `claves` devuelve una lista de claves y `obtener` un `V !`:
+            # los dos tipos tienen que existir antes de emitir los typedefs.
+            self.registrar_lista(f"lista<{k}>")
+            self.tipo_resultado(v)
+            self.mapas[t] = f"ss_{mangle(t)}"
+        return self.mapas[t]
+
     def registrar_lista(self, t):
         if t not in self.listas:
             elem = elem_lista(t)
@@ -309,6 +352,8 @@ class Generador:
         def mirar(t):
             if t and es_arreglo(t):
                 self.registrar_arreglo(t)
+            elif t and es_mapa(t):
+                self.registrar_mapa(t)
             elif t and es_lista(t):
                 self.registrar_lista(t)
 
@@ -439,6 +484,18 @@ class Generador:
         if self.listas:
             self.lineas.append("")
 
+        # Tabla de direccionamiento abierto con sondeo lineal. Sin borrado en
+        # v0, asi que no hacen falta lapidas: una celda con clave vacia es una
+        # celda libre y la busqueda puede parar ahi.
+        for t, nombre in self.mapas.items():
+            k, v = partes_mapa(t)
+            self.lineas.append(
+                f"typedef struct {{ {self.tipo_c(k)}* claves; "
+                f"{self.tipo_c(v)}* valores; size_t largo; "
+                f"size_t capacidad; }} {nombre};")
+        if self.mapas:
+            self.lineas.append("")
+
         # structs, en orden de dependencia
         for st in self.orden_structs(structs):
             self.lineas.append(f"struct {st.nombre}")
@@ -542,6 +599,128 @@ class Generador:
                 "",
             ])
 
+        # Un juego de funciones por cada mapa<K, V> concreto.
+        for t, nombre in self.mapas.items():
+            k, v = partes_mapa(t)
+            m = mangle(t)
+            tc_k, tc_v = self.tipo_c(k), self.tipo_c(v)
+            lista_k = self.tipo_c(f"lista<{k}>")
+            res_v = self.tipo_resultado(v)
+            self.lineas.extend([
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static size_t ss_mapa_sitio_{m}(const {nombre}* p, SafeView clave)",
+                "{",
+                "    /* La capacidad es potencia de dos, asi que el resto es",
+                "       una mascara. Sondeo lineal: bueno con la cache y sin",
+                "       lapidas, porque en v0 no se borra. */",
+                "    size_t mascara = p->capacidad - 1;",
+                "    size_t i = (size_t) sv_hash(clave) & mascara;",
+                "    while (p->claves[i].data != NULL)",
+                "    {",
+                "        if (sv_equals(ss_view(&p->claves[i]), clave)) return i;",
+                "        i = (i + 1) & mascara;",
+                "    }",
+                "    return i;   /* celda libre: aqui iria */",
+                "}",
+                "",
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static void ss_mapa_crecer_{m}({nombre}* p, const char* archivo, int linea)",
+                "{",
+                "    size_t nueva = p->capacidad == 0 ? 16 : p->capacidad * 2;",
+                "    if (nueva < p->capacidad) ss_lang_sin_memoria_(archivo, linea);",
+                f"    if (nueva > SIZE_MAX / sizeof({tc_k})",
+                f"        || nueva > SIZE_MAX / sizeof({tc_v}))",
+                "        ss_lang_sin_memoria_(archivo, linea);",
+                "",
+                f"    {nombre} nuevo;",
+                f"    nuevo.claves = ({tc_k}*) calloc(nueva, sizeof({tc_k}));",
+                f"    nuevo.valores = ({tc_v}*) malloc(nueva * sizeof({tc_v}));",
+                "    if (nuevo.claves == NULL || nuevo.valores == NULL)",
+                "    {",
+                "        free(nuevo.claves); free(nuevo.valores);",
+                "        ss_lang_sin_memoria_(archivo, linea);",
+                "    }",
+                "    nuevo.largo = p->largo;",
+                "    nuevo.capacidad = nueva;",
+                "",
+                "    /* Se reubican las claves tal cual: nadie copia texto. */",
+                "    for (size_t i = 0; i < p->capacidad; i++)",
+                "    {",
+                "        if (p->claves[i].data == NULL) continue;",
+                f"        size_t j = ss_mapa_sitio_{m}(&nuevo, ss_view(&p->claves[i]));",
+                "        nuevo.claves[j] = p->claves[i];",
+                "        nuevo.valores[j] = p->valores[i];",
+                "    }",
+                "    free(p->claves); free(p->valores);",
+                "    *p = nuevo;",
+                "}",
+                "",
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static void ss_mapa_poner_{m}({nombre}* p, SafeView clave, {tc_v} valor,",
+                "        const char* archivo, int linea)",
+                "{",
+                "    /* Se crece al 70% de ocupacion: por encima, el sondeo",
+                "       lineal empieza a formar cadenas largas. */",
+                "    if (p->capacidad == 0 || (p->largo + 1) * 10 >= p->capacidad * 7)",
+                f"        ss_mapa_crecer_{m}(p, archivo, linea);",
+                "",
+                f"    size_t i = ss_mapa_sitio_{m}(p, clave);",
+                "    if (p->claves[i].data != NULL)",
+                "    {",
+                "        p->valores[i] = valor;   /* ya estaba: se reemplaza */",
+                "        return;",
+                "    }",
+                "    p->claves[i] = ss_from_view(clave);",
+                "    if (!ss_ok(&p->claves[i])) ss_lang_sin_memoria_(archivo, linea);",
+                "    p->valores[i] = valor;",
+                "    p->largo++;",
+                "}",
+                "",
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static bool ss_mapa_tiene_{m}(const {nombre}* p, SafeView clave)",
+                "{",
+                "    if (p->capacidad == 0) return false;",
+                f"    return p->claves[ss_mapa_sitio_{m}(p, clave)].data != NULL;",
+                "}",
+                "",
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static {res_v} ss_mapa_obtener_{m}(const {nombre}* p, SafeView clave)",
+                "{",
+                "    if (p->capacidad == 0)",
+                f'        return ({res_v}){{ .motivo = "la clave no esta en el mapa" }};',
+                f"    size_t i = ss_mapa_sitio_{m}(p, clave);",
+                "    if (p->claves[i].data == NULL)",
+                f'        return ({res_v}){{ .motivo = "la clave no esta en el mapa" }};',
+                f"    return ({res_v}){{ .motivo = NULL, .valor = p->valores[i] }};",
+                "}",
+                "",
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static {lista_k} ss_mapa_claves_{m}(const {nombre}* p,",
+                "        const char* archivo, int linea)",
+                "{",
+                f"    {lista_k} salida = {{ NULL, 0, 0 }};",
+                "    for (size_t i = 0; i < p->capacidad; i++)",
+                "    {",
+                "        if (p->claves[i].data == NULL) continue;",
+                f"        {tc_k} copia = ss_clone(&p->claves[i]);",
+                "        if (!ss_ok(&copia)) ss_lang_sin_memoria_(archivo, linea);",
+                f"        ss_push_{mangle('lista<' + k + '>')}(&salida, copia, archivo, linea);",
+                "    }",
+                "    return salida;",
+                "}",
+                "",
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static void ss_mapa_libre_{m}({nombre}* p)",
+                "{",
+                "    for (size_t i = 0; i < p->capacidad; i++)",
+                "        if (p->claves[i].data != NULL) ss_free(&p->claves[i]);",
+                "    free(p->claves); free(p->valores);",
+                "    p->claves = NULL; p->valores = NULL;",
+                "    p->largo = 0; p->capacidad = 0;",
+                "}",
+                "",
+            ])
+
         # Prototipos primero: dos structs pueden referirse de forma finita a
         # traves de listas (A contiene lista<B>, B contiene lista<A>).
         for st in self.orden_structs(structs):
@@ -578,7 +757,7 @@ class Generador:
 
     def prototipo(self, f: Funcion):
         if f.nombre == "main" and not f.falible:
-            return "int main(void)"
+            return "int main(int argc, char** argv)"
         params = []
         for p in f.params:
             tc = self.tipo_c(p.tipo)
@@ -604,6 +783,9 @@ class Generador:
         self.emitir(self.prototipo(f))
         self.emitir("{")
         self.sangria += 1
+        if f.nombre == "main" and not f.falible:
+            self.emitir("ss_lang_argc_ = argc;")
+            self.emitir("ss_lang_argv_ = argv;")
         # los parametros `str` por valor son propiedad de la funcion: se liberan
         propios = [p.nombre for p in f.params
                    if self.c.posee(p.tipo) and not p.prestado]
@@ -638,9 +820,11 @@ class Generador:
         # de cero, para que el fallo no se pierda al salir del programa.
         if f.nombre == "main" and f.falible:
             self.emitir("")
-            self.emitir("int main(void)")
+            self.emitir("int main(int argc, char** argv)")
             self.emitir("{")
             self.sangria += 1
+            self.emitir("ss_lang_argc_ = argc;")
+            self.emitir("ss_lang_argv_ = argv;")
             self.emitir(f"{self.tipo_resultado(f.retorno)} r = ss_main_();")
             self.emitir("if (r.motivo != NULL)")
             self.emitir("{")
@@ -661,6 +845,10 @@ class Generador:
         """Emite lo que haga falta para devolver la memoria de `expr_c`."""
         if tipo == "str":
             self.emitir(f"ss_free(&{expr_c});")
+            return
+
+        if es_mapa(tipo):
+            self.emitir(f"ss_mapa_libre_{mangle(tipo)}(&{expr_c});")
             return
 
         if es_lista(tipo):
@@ -905,6 +1093,15 @@ class Generador:
         if isinstance(e, Variable):
             return self.tipo_var(e.nombre) or "usize"
         if isinstance(e, Llamada):
+            if e.nombre in ("obtener", "tiene", "claves") and e.args:
+                tm = self._tipo_de(e.args[0])
+                if es_mapa(tm):
+                    k, v = partes_mapa(tm)
+                    if e.nombre == "obtener":
+                        return v
+                    if e.nombre == "tiene":
+                        return "bool"
+                    return f"lista<{k}>"
             if e.nombre in INTERNAS:
                 return INTERNAS[e.nombre]["retorno"]
             f = self.c.funciones.get(e.nombre)
@@ -945,7 +1142,13 @@ class Generador:
 
     def expr(self, e, esperado):
         if isinstance(e, Entero):
-            return f"(int64_t){e.valor}" if esperado == "i64" else f"(size_t){e.valor}"
+            if esperado == "i64":
+                return f"(int64_t){e.valor}"
+            # Sin sufijo, un literal por encima de 2^63-1 no cabe en el tipo
+            # que C le asigna por defecto y el compilador avisa. `ULL` le dice
+            # cual es sin cambiar el valor.
+            sufijo = "ULL" if e.valor > 9223372036854775807 else ""
+            return f"(size_t){e.valor}{sufijo}"
 
         if isinstance(e, Cadena):
             lit = (e.valor.replace("\\", "\\\\").replace('"', '\\"')
@@ -1023,6 +1226,11 @@ class Generador:
             return f"({e.tipo}){{ {partes} }}"
 
         if isinstance(e, LiteralArreglo):
+            if esperado and es_mapa(esperado):
+                # El mapa vacio no reserva nada: la tabla nace en el primer
+                # `poner`, que es donde el coste se ve.
+                return (f"({self.tipo_c(esperado)}){{ .claves = NULL, "
+                        f".valores = NULL, .largo = 0, .capacidad = 0 }}")
             if esperado and es_lista(esperado):
                 elem = elem_lista(esperado)
                 tmp = self.nuevo_tmp()
@@ -1098,6 +1306,8 @@ class Generador:
             return f"ss_view({self.dir_de(e.args[0])})"
         if n == "largo":
             t = self._tipo_de(e.args[0])
+            if es_mapa(t):
+                return f"({self.lugar(e.args[0])}.largo)"
             if es_lista(t):
                 return f"({self.lugar(e.args[0])}.length)"
             if es_arreglo(t):
@@ -1143,6 +1353,31 @@ class Generador:
             self.emitir(f"SafeView {tmp} = {vista};")
             return (f"((size_t)(unsigned char){tmp}.ptr[ss_lang_indice_("
                     f"{idx}, {tmp}.len, {self.arch(e)}, {e.linea})])")
+        if n in ("poner", "obtener", "tiene", "claves"):
+            lugar = e.args[0]
+            tm = self._tipo_de(lugar)
+            m = mangle(tm)
+            dir_mapa = self.dir_de(lugar)
+            if n == "claves":
+                return (f"ss_mapa_claves_{m}({dir_mapa}, "
+                        f"{self.arch(e)}, {e.linea})")
+            clave = self.como_vista(e.args[1])
+            if n == "tiene":
+                return f"ss_mapa_tiene_{m}({dir_mapa}, {clave})"
+            if n == "obtener":
+                return f"ss_mapa_obtener_{m}({dir_mapa}, {clave})"
+            _, tv = partes_mapa(tm)
+            valor = self.expr(e.args[2], tv)
+            return (f"ss_mapa_poner_{m}({dir_mapa}, {clave}, {valor}, "
+                    f"{self.arch(e)}, {e.linea})")
+
+        if n == "n_argumentos":
+            return "ss_lang_n_argumentos_()"
+
+        if n == "argumento":
+            return (f"ss_lang_argumento_({self.expr(e.args[0], 'usize')}, "
+                    f"{self.arch(e)}, {e.linea})")
+
         if n == "leer_archivo":
             return f"ss_lang_leer_archivo_({self.como_vista(e.args[0])})"
 

@@ -35,6 +35,32 @@ def es_lista(t):
     return isinstance(t, str) and t.startswith("lista<") and t.endswith(">")
 
 
+def es_mapa(t):
+    return isinstance(t, str) and t.startswith("mapa<") and t.endswith(">")
+
+
+def partes_mapa(t):
+    """`mapa<str, usize>` -> ("str", "usize"). Respeta anidamientos."""
+    interior = t[len("mapa<"):-1]
+    prof = 0
+    for i, c in enumerate(interior):
+        if c == "<":
+            prof += 1
+        elif c == ">":
+            prof -= 1
+        elif c == "," and prof == 0:
+            return interior[:i].strip(), interior[i + 1:].strip()
+    raise AssertionError(f"tipo de mapa mal formado: {t}")
+
+
+def clave_mapa(t):
+    return partes_mapa(t)[0]
+
+
+def valor_mapa(t):
+    return partes_mapa(t)[1]
+
+
 def elem_lista(t):
     if not es_lista(t):
         raise AssertionError(f"tipo de lista mal formado: {t}")
@@ -265,6 +291,9 @@ class Comprobador:
         """True si un valor de este tipo es duenio de memoria del heap."""
         if tipo == "str":
             return True
+        if es_mapa(tipo):
+            # Posee su tabla, y ademas las claves, que son `str`.
+            return True
         if es_lista(tipo):
             # Incluso una lista de escalares posee su buffer dinamico.
             return True
@@ -284,6 +313,9 @@ class Comprobador:
             return True
         if es_arreglo(t):
             return self.tipo_existe(elem_de(t))
+        if es_mapa(t):
+            k, v = partes_mapa(t)
+            return self.tipo_existe(k) and self.tipo_existe(v)
         if es_lista(t):
             elem = elem_lista(t)
             # Guardar vistas en una coleccion exigiria expresar su vida util.
@@ -296,6 +328,9 @@ class Comprobador:
             return True
         if es_arreglo(tipo):
             return self.contiene_a(elem_de(tipo), buscado, visitados)
+        if es_mapa(tipo):
+            # Igual que la lista: guarda punteros, no valores por copia.
+            return False
         if es_lista(tipo):
             # La lista contiene un puntero, no el elemento por valor: corta el
             # ciclo de tamaño (y permite arboles como lista<Nodo>).
@@ -426,6 +461,7 @@ class Comprobador:
 
     def sentencia(self, s):
         if isinstance(s, Declaracion):
+            self.comprobar_mapa_valido(s, s.tipo)
             if not self.tipo_existe(s.tipo):
                 self.error(s, f"`{s.tipo}` no es un tipo almacenable; las listas "
                               "no pueden guardar `view` ni arreglos fijos")
@@ -581,6 +617,10 @@ class Comprobador:
 
             # vista(x) presta de un `str`. Aunque `x` sea un parametro, si
             # llego por valor esta funcion es su duenia y lo libera al salir.
+            # argv vive tanto como el proceso: una vista suya nunca cuelga
+            if n == "argumento":
+                return ESTATICO
+
             if n in ("vista", "nuevo", "vacio"):
                 return LOCAL
 
@@ -712,6 +752,79 @@ class Comprobador:
 
         raise AssertionError(f"expresion desconocida: {type(e).__name__}")
 
+    def comprobar_mapa_valido(self, nodo, tipo):
+        """Los limites de `mapa<K, V>` en v0, dichos donde se declara."""
+        if not es_mapa(tipo):
+            return
+        k, v = partes_mapa(tipo)
+        if k != "str":
+            self.error(nodo, f"en v0 la clave de un mapa tiene que ser `str`, "
+                             f"y aqui es `{k}`")
+        if self.posee(v):
+            self.error(nodo, f"en v0 el valor de un mapa no puede poseer "
+                             f"memoria, y `{v}` la posee. `obtener` devuelve "
+                             f"una copia, y sacar al duenio dejaria el mapa a "
+                             f"medias")
+
+    def interna_mapa(self, e: Llamada, nombre):
+        """`poner`, `obtener`, `tiene` y `claves` sobre `mapa<K, V>`."""
+        esperados = {"poner": 3, "obtener": 2, "tiene": 2, "claves": 1}[nombre]
+        retorno_si_falla = {"poner": UNIDAD, "obtener": None,
+                            "tiene": "bool", "claves": None}[nombre]
+
+        if len(e.args) != esperados:
+            self.error(e, f"`{nombre}` espera {esperados} argumento(s) y "
+                          f"recibio {len(e.args)}")
+            for a in e.args:
+                self.expresion(a)
+            return retorno_si_falla
+
+        lugar = e.args[0]
+        base = self.variable_base(lugar)
+        sim = self.buscar(base) if base else None
+        tipo_mapa = self.tipo_de_lugar(lugar) if sim is not None else None
+
+        if sim is None:
+            self.error(e, f"el primer argumento de `{nombre}` tiene que ser "
+                          f"una variable, un campo o un elemento")
+            for a in e.args[1:]:
+                self.expresion(a)
+            return retorno_si_falla
+
+        if not es_mapa(tipo_mapa):
+            self.error(e, f"`{nombre}` opera sobre `mapa<K, V>`, recibio "
+                          f"`{tipo_mapa}`")
+            for a in e.args[1:]:
+                self.expresion(a)
+            return retorno_si_falla
+
+        k, v = partes_mapa(tipo_mapa)
+
+        if nombre == "claves":
+            self.usar(lugar, sim)
+            return f"lista<{k}>"
+
+        # La clave se lee prestada: el mapa guarda su propia copia.
+        tc = self.expresion(e.args[1])
+        if tc is not None and not encaja(k, tc) and not (k == "str" and tc == "view"):
+            self.error(e, f"la clave del mapa es `{k}` y se paso `{tc}`")
+
+        if nombre == "tiene":
+            self.usar(lugar, sim)
+            return "bool"
+
+        if nombre == "obtener":
+            self.usar(lugar, sim)
+            return v
+
+        # poner: muta el mapa, y el valor entra por copia
+        tv = self.expresion(e.args[2], destino=v,
+                            mover_variables=self.posee(v))
+        if tv is not None and not encaja(v, tv):
+            self.error(e, f"el mapa guarda `{v}` y se intento poner `{tv}`")
+        self.mutar(lugar, sim)
+        return UNIDAD
+
     def desenvolver(self, nodo, interna, palabra):
         """Comprueba que lo que sigue a `try`/`sino` sea algo que pueda fallar."""
         es_falible = False
@@ -793,6 +906,14 @@ class Comprobador:
         return e.tipo
 
     def literal_arreglo(self, e: LiteralArreglo, esperado=None):
+        # `[]` con un mapa esperado es el mapa vacio. No hay literal con
+        # contenido: un mapa se llena con `poner`, que es donde se ve el coste.
+        if esperado is not None and es_mapa(esperado):
+            if e.elementos:
+                self.error(e, "un mapa se llena con `poner`; el unico literal "
+                              "que admite es `[]`")
+            return esperado
+
         es_literal_lista = esperado is not None and es_lista(esperado)
         if not e.elementos and not es_literal_lista:
             self.error(e, "un arreglo tiene que tener al menos un elemento")
@@ -981,10 +1102,10 @@ class Comprobador:
                 return "usize"
             t = self.expresion(e.args[0])
             if t is not None and t != "view" and t != "str" \
-                    and not es_arreglo(t) and not es_lista(t):
-                self.error(e, f"`largo` opera sobre texto, arreglos o listas, "
-                              f"recibio `{t}`")
-            if ((t == "str" or es_lista(t))
+                    and not es_arreglo(t) and not es_lista(t) and not es_mapa(t):
+                self.error(e, f"`largo` opera sobre texto, arreglos, listas o "
+                              f"mapas, recibio `{t}`")
+            if ((t == "str" or es_lista(t) or es_mapa(t))
                     and not isinstance(e.args[0], (Variable, Campo, Indice))):
                 self.error(e, "el valor duenio que recibe `largo` tiene que "
                               "estar guardado en una variable")
@@ -1020,6 +1141,9 @@ class Comprobador:
                 return UNIDAD
             self.expresion(valor)
             return UNIDAD
+
+        if nombre in ("poner", "obtener", "tiene", "claves"):
+            return self.interna_mapa(e, nombre)
 
         if nombre == "texto":
             if len(e.args) != 1:
@@ -1132,7 +1256,14 @@ INTERNAS = {
     "anadir":   {"params": ["@lista_mut", "@elemento"], "retorno": UNIDAD},
     "texto":    {"params": ["@escalar"],              "retorno": "str"},
     "byte":     {"params": ["view", "usize"],         "retorno": "usize"},
+    "n_argumentos": {"params": [],                    "retorno": "usize"},
+    "argumento":    {"params": ["usize"],             "retorno": "view"},
     "leer_archivo": {"params": ["view"], "retorno": "str", "falible": True},
+    # Mapas. El tipo concreto sale de `interna_mapa`, que mira el mapa real.
+    "poner":    {"params": ["@mapa_mut", "@clave", "@valor"], "retorno": UNIDAD},
+    "obtener":  {"params": ["@mapa", "@clave"], "retorno": None, "falible": True},
+    "tiene":    {"params": ["@mapa", "@clave"],       "retorno": "bool"},
+    "claves":   {"params": ["@mapa"],                 "retorno": None},
 }
 
 

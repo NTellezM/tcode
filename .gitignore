@@ -21,3 +21,6 @@ bench/aritmetica_envolvente
 bench/arreglo
 bench/cadenas
 bench/structs
+
+ejemplos/contar
+ejemplos/frecuencia

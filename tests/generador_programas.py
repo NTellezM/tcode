@@ -86,6 +86,8 @@ class Generador:
         s = "    " * sangria
         lineas = []
         vars_usize, vars_bool, vars_str = [], [], []
+        vars_struct = []          # (nombre, tipo) para poder prestarlos
+        vars_usize_puros = []     # variables usize sueltas, no campos
         n = [0]
 
         def nombre(p):
@@ -99,6 +101,7 @@ class Generador:
             if cual == "usize":
                 lineas.append(f"{s}var {v}: usize = {self.expr_usize(vars_usize)};")
                 vars_usize.append(v)
+                vars_usize_puros.append(v)
             elif cual == "bool":
                 lineas.append(f"{s}var {v}: bool = "
                               f"{self.expr_bool(vars_usize, vars_bool)};")
@@ -114,6 +117,7 @@ class Generador:
                 f"{c}: {self.expr_usize(vars_usize)}" for c in st["campos"])
             lineas.append(f"{s}var {v}: {st['nombre']} = "
                           f"{st['nombre']} {{ {campos} }};")
+            vars_struct.append((v, st["nombre"]))
             for c in st["campos"]:
                 if self.r.random() < 0.4:
                     lineas.append(f"{s}{v}.{c} = {self.expr_usize(vars_usize)};")
@@ -156,7 +160,26 @@ class Generador:
                                   f"{self.expr_usize(vars_usize)}));")
             idx = self.r.randrange(cuantos)
             lineas.append(f"{s}imprimir(largo(vista({v}[{idx}])));")
-            vars_usize.append(f"largo({v})")
+            # `largo(...)` no es un lugar: se lee, no se le asigna. No entra
+            # en vars_usize, que tambien sirve de destino de asignaciones.
+
+        # Mapa: insercion con claves repetidas, consulta de las que estan y de
+        # las que no, y recorrido por `claves`. Las claves repetidas importan
+        # porque ejercitan el reemplazo, que no reserva clave nueva.
+        if self.r.random() < 0.6:
+            v = nombre("mp")
+            lineas.append(f"{s}var {v}: mapa<str, usize> = [];")
+            usadas = [self.palabra() for _ in range(self.r.randint(1, 6))]
+            for k in usadas + [self.r.choice(usadas)]:
+                lineas.append(f'{s}poner({v}, "{k}", '
+                              f"{self.expr_usize(vars_usize)});")
+            lineas.append(f'{s}imprimir(tiene({v}, "{usadas[0]}"));')
+            lineas.append(f'{s}imprimir(tiene({v}, "no_esta_esta_clave"));')
+            lineas.append(f'{s}imprimir(obtener({v}, "{usadas[0]}") sino 0);')
+            lineas.append(f'{s}imprimir(obtener({v}, "tampoco") sino 7);')
+            ks = nombre("ks")
+            lineas.append(f"{s}let {ks}: lista<str> = claves({v});")
+            lineas.append(f"{s}imprimir(largo({ks}));")
 
         # --- fase 2: mutar ---
         for vs in vars_str:
@@ -211,6 +234,38 @@ class Generador:
         for v in vars_usize[:2]:
             lineas.append(f"{s}imprimir({v});")
 
+        # Prestar structs: el mismo dos veces para leer (permitido), y uno
+        # para modificar. Ejercita las reglas y el paso por puntero.
+        for st in self.structs:
+            tipo_st = st["nombre"]
+            propias = [x for x in vars_struct if x[1] == tipo_st]
+            if not propias:
+                continue
+            var_st = self.r.choice(propias)[0]
+            lineas.append(f"{s}imprimir(leer_{tipo_st}({var_st}));")
+            if self.r.random() < 0.6:
+                # dos prestamos de solo lectura de lo mismo: permitido
+                lineas.append(
+                    f"{s}imprimir(sumar_{tipo_st}({var_st}, {var_st}));")
+            if self.r.random() < 0.6:
+                lineas.append(f"{s}tocar_{tipo_st}({var_st}, {self.num(50)});")
+                lineas.append(f"{s}imprimir(leer_{tipo_st}({var_st}));")
+
+        # Prestar un `str`. Leerlo (`&str`) convive con una vista viva;
+        # modificarlo (`mut str`) no, asi que `marcar` solo va sobre los que
+        # no tienen ninguna vista con nombre encima.
+        if vars_str and self.r.random() < 0.7:
+            lineas.append(f"{s}imprimir(medir({self.r.choice(vars_str)}));")
+        if libres and self.r.random() < 0.7:
+            vs = self.r.choice(libres)
+            lineas.append(f"{s}marcar({vs});")
+            lineas.append(f"{s}imprimir(medir({vs}));")
+
+        if vars_usize_puros and self.r.random() < 0.5:
+            vu = self.r.choice(vars_usize_puros)
+            lineas.append(f"{s}doblar({vu});")
+            lineas.append(f"{s}imprimir({vu});")
+
         # `texto` de un escalar: un `str` recien creado que hay que liberar.
         if vars_usize and self.r.random() < 0.5:
             t = nombre("t")
@@ -252,6 +307,29 @@ class Generador:
             self.structs.append({"nombre": nombre, "campos": campos})
             cuerpo = ", ".join(f"{c}: usize" for c in campos)
             partes.append(f"struct {nombre} {{ {cuerpo} }}")
+
+        # Funciones que reciben PRESTAMOS. Es la parte del lenguaje con mas
+        # reglas —no mover lo prestado, no modificar lo compartido, no
+        # prestar dos veces si uno modifica— y la unica que hasta ahora solo
+        # se probaba con casos escritos a mano.
+        for st in self.structs:
+            n = st["nombre"]
+            c0 = st["campos"][0]
+            partes.append(
+                f"fn leer_{n}(x: &{n}) -> usize {{ return x.{c0}; }}")
+            partes.append(
+                f"fn sumar_{n}(a: &{n}, b: &{n}) -> usize {{\n"
+                f"    return (a.{c0} % 1000) + (b.{c0} % 1000);\n"
+                f"}}")
+            partes.append(
+                f"fn tocar_{n}(x: mut {n}, d: usize) {{\n"
+                f"    x.{c0} = (x.{c0} + d) % 1000;\n"
+                f"}}")
+
+        # Prestamos de `str`: leer sin copiar y modificar en el sitio.
+        partes.append("fn medir(s: &str) -> usize { return largo(vista(s)); }")
+        partes.append('fn marcar(s: mut str) { empujar(s, "#"); }')
+        partes.append("fn doblar(n: mut usize) { n = (n * 2) % 1000; }")
 
         # una funcion que consume un `str`: prueba los movimientos
         partes.append("fn consumir(s: str) -> usize { return largo(vista(s)); }")

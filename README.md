@@ -231,7 +231,8 @@ texto.
 
 Hay también: `struct`, arreglos de tamaño fijo con índices comprobados,
 structs anidados, arreglos de structs, propiedad recursiva, préstamos de
-structs (`&T` y `mut T`), `lista<T>` dinámica, módulos y fallos como valores.
+structs (`&T` y `mut T`), `lista<T>` dinámica, `mapa<str, V>` con tabla hash,
+argumentos de la línea de órdenes, módulos y fallos como valores.
 
 No hay: genéricos definidos por el usuario, espacios de nombres, diccionarios,
 E/S incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
@@ -240,7 +241,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-100 casos, 0 fallas
+110 casos, 0 fallas
 368 comprobaciones sobre 60 programas, 0 fallas
 ```
 
@@ -261,8 +262,9 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 | **P7** | todo aviso nombra un archivo y una línea que existen, y ningún aviso impide compilar |
 
 `tests/generador_programas.py` produce programas válidos por construcción
-—con `lista<usize>` y `lista<str>`, `texto`, `byte`, y las **dos** ramas de
-un `sino` cuya alternativa es dueña de su memoria—
+—con `lista<usize>` y `lista<str>`, `mapa<str, usize>`, préstamos `&T` y
+`mut T` de structs y de `str`, `texto`, `byte`, y las **dos** ramas de un
+`sino` cuya alternativa es dueña de su memoria—
 —con cadenas propias, structs, arreglos, listas dinámicas, préstamos,
 movimientos y fallos— y
 acotados para que no aborten ni se cuelguen. Para insistir más:

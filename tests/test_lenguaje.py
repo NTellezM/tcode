@@ -197,6 +197,31 @@ RECHAZO = [
      ' fn g() -> usize ! { while try f() > 0 { } return 0; }',
      "se evaluaria una sola vez"),
 
+    # ---- mapas ----
+    ("en v0 la clave de un mapa tiene que ser `str`",
+     'fn f() { var m: mapa<usize, usize> = []; imprimir(largo(m)); }',
+     "la clave de un mapa tiene que ser `str`"),
+
+    ("el valor de un mapa no puede poseer memoria",
+     'fn f() { var m: mapa<str, str> = []; imprimir(largo(m)); }',
+     "no puede poseer memoria"),
+
+    ("`obtener` puede fallar y hay que decirlo",
+     'fn f() { var m: mapa<str, usize> = []; imprimir(obtener(m, "x")); }',
+     "puede fallar"),
+
+    ("poner sobre un `let`",
+     'fn f() { let m: mapa<str, usize> = []; poner(m, "a", 1); }',
+     "se declaro con `let`"),
+
+    ("el valor tiene que ser del tipo del mapa",
+     'fn f() { var m: mapa<str, usize> = []; poner(m, "a", true); }',
+     "se intento poner `bool`"),
+
+    ("un mapa no admite literal con contenido",
+     'fn f() { var m: mapa<str, usize> = [1, 2]; imprimir(largo(m)); }',
+     "se llena con `poner`"),
+
     # ---- tipos ----
     ("tipo declarado que no calza",
      'fn f() { let n: usize = "no soy un numero"; }',
@@ -494,6 +519,61 @@ ACEPTA = [
         }''',
      "28\n"),
 
+    ("mapa: poner, reemplazar, consultar y contar",
+     '''fn main() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "uno", 1);
+            poner(m, "dos", 2);
+            poner(m, "uno", 11);
+            imprimir(largo(m)); imprimir(" ");
+            imprimir(tiene(m, "dos")); imprimir(" ");
+            imprimir(tiene(m, "tres")); imprimir(" ");
+            imprimir(obtener(m, "uno") sino 0); imprimir(" ");
+            imprimir(obtener(m, "tres") sino 99); imprimir("\\n");
+            return 0;
+        }''',
+     "2 true false 11 99\n"),
+
+    ("mapa: crece y rehace sin perder nada",
+     '''fn clave_de(i: usize) -> str {
+            var k: str = nuevo("c");
+            let n: str = texto(i);
+            empujar(k, vista(n));
+            return k;
+        }
+        fn main() -> usize {
+            var m: mapa<str, usize> = [];
+            var i: usize = 0;
+            while i < 200 {
+                let k: str = clave_de(i);
+                poner(m, vista(k), i * 3);
+                i = i + 1;
+            }
+            var malas: usize = 0;
+            i = 0;
+            while i < 200 {
+                let k: str = clave_de(i);
+                if (obtener(m, vista(k)) sino 999999) != i * 3 {
+                    malas = malas + 1;
+                }
+                i = i + 1;
+            }
+            let ks: lista<str> = claves(m);
+            imprimir(largo(m)); imprimir(" ");
+            imprimir(malas); imprimir(" ");
+            imprimir(largo(ks)); imprimir("\\n");
+            return 0;
+        }''',
+     "200 0 200\n"),
+
+    ("argumentos: siempre hay al menos el nombre del programa",
+     '''fn main() -> usize {
+            imprimir(n_argumentos() >= 1); imprimir(" ");
+            imprimir(largo(argumento(0)) > 0); imprimir("\\n");
+            return 0;
+        }''',
+     "true true\n"),
+
     ("rebanadas de vista",
      '''fn main() -> usize {
             let s: str = nuevo("abcdefgh");
@@ -679,6 +759,10 @@ ABORTA = [
             return 0;
         }''',
      "indice 3 fuera de rango"),
+
+    ("argumento fuera de rango",
+     'fn main() -> usize { imprimir(argumento(9)); return 0; }',
+     "no hay argumento 9"),
 
     ("division por cero",
      'fn main() -> usize { let a: usize = 1; let b: usize = 0;'

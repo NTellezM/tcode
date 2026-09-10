@@ -30,7 +30,9 @@ ejemplos:
 	@echo
 	@$(PY) -m tcode ejemplos/informe/informe.t >/dev/null && ./ejemplos/informe/informe
 	@echo
-	@$(PY) -m tcode ejemplos/contar.t >/dev/null && ./ejemplos/contar
+	@$(PY) -m tcode ejemplos/contar.t >/dev/null && ./ejemplos/contar README.md
+	@echo
+	@$(PY) -m tcode ejemplos/frecuencia.t >/dev/null && ./ejemplos/frecuencia README.md 5
 
 limpiar:
 	@rm -f ejemplos/hola ejemplos/texto ejemplos/inventario ejemplos/contar ejemplos/*.c

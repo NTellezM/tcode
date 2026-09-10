@@ -381,10 +381,59 @@ le corresponde.
 | `byte(texto: view, i) -> usize` | acceso con límite comprobado | solo lee |
 | `texto(x) -> str` | `ss_appendf` / copia | crea un dueño |
 
+### 10. Mapas y argumentos
+
+`mapa<K, V>` es una tabla hash dueña de sus claves:
+
+```tcode
+var cuenta: mapa<str, usize> = [];
+poner(cuenta, "hola", 1);
+let n: usize = obtener(cuenta, "hola") sino 0;
+```
+
+| operación | qué hace |
+|---|---|
+| `poner(m: mut mapa<K,V>, clave, valor)` | inserta o reemplaza; el mapa **copia** la clave |
+| `obtener(m, clave) -> V !` | falible: una clave ausente no es un caso especial, es un fallo |
+| `tiene(m, clave) -> bool` | sin construir el valor |
+| `claves(m) -> lista<K>` | copias, para poder recorrerlo |
+| `largo(m) -> usize` | cuántas entradas |
+
+Por dentro es direccionamiento abierto con sondeo lineal y capacidad
+potencia de dos, que crece al 70% de ocupación. En v0 no hay borrado, así que
+tampoco lápidas: una celda con clave vacía corta la búsqueda.
+
+Que `obtener` sea falible no es celo: es la misma decisión que en
+`leer_archivo`. Una clave que no está no es un valor, y devolver un cero
+disfrazado es exactamente cómo se cuelan los errores.
+
+**Los dos límites de v0, dichos donde se declara el mapa:**
+
+- **La clave tiene que ser `str`.** Se consulta con un `view`, sin copiar.
+- **El valor no puede poseer memoria.** `obtener` devuelve una copia, y sacar
+  al dueño dejaría el mapa a medias. Para valores compuestos hace falta
+  devolver préstamos, que es el mismo muro de los campos `view`.
+
+### Argumentos de la línea de órdenes
+
+```tcode
+if n_argumentos() < 2 {
+    imprimir("uso: "); imprimir(argumento(0)); imprimir(" <archivo>\n");
+    return 1;
+}
+let ruta: view = argumento(1);
+```
+
+`argumento(0)` es el nombre del programa, como en C. Devuelve `view` y no
+reserva nada: `argv` vive tanto como el proceso, así que esa vista nunca
+cuelga —el compilador lo sabe y la trata como estática—. El índice se
+comprueba.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: genéricos definidos por el usuario, espacios de
-nombres, diccionarios, E/S incremental, aritmética de punteros ni recolector.
+nombres, `for` ni `break`, borrado en los mapas, escritura a archivos ni a
+`stderr`, E/S incremental, aritmética de punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.
