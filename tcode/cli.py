@@ -76,6 +76,10 @@ def main(argv=None):
                          "en -O2 dejan de integrarse")
     ap.add_argument("--solo-comprobar", action="store_true",
                     help="analiza y reporta errores, sin generar nada")
+    ap.add_argument("--avisos-como-errores", action="store_true",
+                    help="no compila si hay avisos")
+    ap.add_argument("--sin-avisos", action="store_true",
+                    help="no muestra los avisos")
     ap.add_argument("--explicar", action="store_true",
                     help="muestra lo que el compilador infirio: quien es "
                          "duenio de que, quien presta a quien, donde se libera "
@@ -95,6 +99,8 @@ def main(argv=None):
         print(f"tcode: no se pudo leer: {exc}", file=sys.stderr)
         return 2
 
+    avisos = comp.avisos if comp is not None else []
+
     if errores:
         for e in errores:
             print(f"error: {e}", file=sys.stderr)
@@ -103,12 +109,25 @@ def main(argv=None):
               file=sys.stderr)
         return 1
 
+    if avisos and not args.sin_avisos:
+        for a in avisos:
+            print(f"aviso: {a}", file=sys.stderr)
+        if args.avisos_como_errores:
+            n = len(avisos)
+            print(f"\n{n} aviso{'s' if n != 1 else ''} tratado"
+                  f"{'s' if n != 1 else ''} como error. No se genero nada.",
+                  file=sys.stderr)
+            return 1
+
     if args.explicar:
         print(explicar(comp, args.fuente))
         return 0
 
     if args.solo_comprobar:
-        print(f"{args.fuente}: sin errores")
+        n = len(avisos)
+        resumen = "sin errores" if not n else \
+            f"sin errores, {n} aviso{'s' if n != 1 else ''}"
+        print(f"{args.fuente}: {resumen}")
         return 0
 
     base = args.salida or os.path.splitext(args.fuente)[0]
