@@ -123,6 +123,36 @@ python3 -m tcode programa.t --explicar   # que infirio el compilador
 python3 -m tcode programa.t --solo-comprobar
 ```
 
+## Avisos
+
+Un aviso no impide compilar. Señala algo que probablemente no era lo que
+querías, y apunta **al código que escribiste**, no al C generado:
+
+```
+$ python3 -m tcode area.t
+aviso: area.t:2: `total` se declara `var` y nunca se modifica; puede ser `let`
+aviso: area.t:3: `sobra` se declara y no se usa; si es a proposito llamala `_sobra`
+aviso: area.t:1: el parametro `b` de `area` no se usa; si es a proposito llamalo `_b`
+```
+
+Los cinco que hay hoy:
+
+| | |
+|---|---|
+| variable declarada y nunca usada | `_nombre` lo silencia |
+| valores que se asignan y nunca se leen | |
+| `var` que nunca se modifica | *puede ser `let`* |
+| parámetro que no se usa | `_nombre` lo silencia |
+| parámetro `mut T` que nunca se modifica | *podría ser `&T`* |
+
+Un `_` delante del nombre lo calla, como en Rust: dice que es a propósito y
+quien lea el código no tiene que preguntárselo.
+
+```
+python3 -m tcode programa.t --avisos-como-errores   # no compila si hay avisos
+python3 -m tcode programa.t --sin-avisos
+```
+
 ## `--explicar`
 
 Tcode se apoya en un análisis —quién es dueño de qué, quién presta a quién,
@@ -179,8 +209,8 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-74 casos, 0 fallas
-248 comprobaciones sobre 60 programas, 0 fallas
+84 casos, 0 fallas
+368 comprobaciones sobre 60 programas, 0 fallas
 ```
 
 La suite tiene dos mitades. La primera son **casos por ejemplo**: este
@@ -197,6 +227,7 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 | **P4** | todo error nombra un archivo y una línea que existen |
 | **P5** | el compilador nunca revienta, con entrada válida o inválida |
 | **P6** | `--explicar` funciona sobre todo programa aceptado y nombra todas sus funciones y variables |
+| **P7** | todo aviso nombra un archivo y una línea que existen, y ningún aviso impide compilar |
 
 `tests/generador_programas.py` produce programas válidos por construcción
 —con cadenas propias, structs, arreglos, préstamos, movimientos y fallos— y

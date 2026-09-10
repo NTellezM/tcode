@@ -95,6 +95,9 @@ class Simbolo:
         self.entregada_en = 0
         # a que funcion se movio, si se movio
         self.movida_a = None
+        # para los avisos: se leyo su valor alguna vez, se modifico alguna vez
+        self.leida = False
+        self.mutada = False
 
 
 class Comprobador:
@@ -113,12 +116,18 @@ class Comprobador:
         # todo mientras trabaja y hasta ahora lo tiraba al terminar.
         self.informe = []
         self.simbolos_funcion = None
+        self.avisos = []
 
     # ---------- errores ----------
 
     def error(self, nodo, mensaje):
         archivo = getattr(nodo, "archivo", "") or self.archivo
         self.errores.append(f"{archivo}:{nodo.linea}: {mensaje}")
+
+    def aviso(self, nodo, mensaje):
+        """No impide compilar. Apunta al codigo que escribio la persona."""
+        archivo = getattr(nodo, "archivo", "") or self.archivo
+        self.avisos.append(f"{archivo}:{nodo.linea}: {mensaje}")
 
     # ---------- ambitos ----------
 
@@ -153,8 +162,10 @@ class Comprobador:
 
     # ---------- reglas de propiedad ----------
 
-    def usar(self, nodo, sim):
+    def usar(self, nodo, sim, lectura=True):
         """Leer una variable. Falla si ya se movio."""
+        if lectura:
+            sim.leida = True
         if sim.movida:
             self.error(nodo, f"`{sim.nombre}` ya se movio en la linea "
                              f"{sim.movida_en} y aqui se usa otra vez")
@@ -188,7 +199,8 @@ class Comprobador:
 
     def mutar(self, nodo, sim):
         """Modificar una variable en el sitio."""
-        if not self.usar(nodo, sim):
+        sim.mutada = True
+        if not self.usar(nodo, sim, lectura=False):
             return
         if not sim.mutable:
             self.error_no_mutable(nodo, sim)
@@ -325,10 +337,43 @@ class Comprobador:
                 sim.procedencia = PARAMETRO
         self.bloque(f.cuerpo)
         self.cerrar()
+        self.avisar_sin_usar(f, self.simbolos_funcion)
         self.informe.append({"funcion": f, "simbolos": self.simbolos_funcion})
         self.simbolos_funcion = None
         self.retorno_actual = None
         self.falible_actual = False
+
+    def avisar_sin_usar(self, f, simbolos):
+        """Un `_` delante silencia el aviso, como en Rust: dice que es a
+        proposito y quien lea el codigo no tiene que preguntarse por que."""
+        params = {p.nombre: p for p in f.params}
+
+        for sim in simbolos:
+            if sim.nombre.startswith("_"):
+                continue
+            nodo = sim.decl if sim.decl is not None else f
+            p = params.get(sim.nombre)
+
+            if p is not None:
+                if not sim.leida and not sim.mutada:
+                    self.aviso(f, f"el parametro `{sim.nombre}` de "
+                                  f"`{f.nombre}` no se usa; si es a proposito "
+                                  f"llamalo `_{sim.nombre}`")
+                elif p.mutable and not sim.mutada:
+                    self.aviso(f, f"`{sim.nombre}` se recibe como "
+                                  f"`mut {sim.tipo}` y nunca se modifica; "
+                                  f"podria ser `&{sim.tipo}`")
+                continue
+
+            if not sim.leida and not sim.mutada:
+                self.aviso(nodo, f"`{sim.nombre}` se declara y no se usa; si "
+                                 f"es a proposito llamala `_{sim.nombre}`")
+            elif not sim.leida:
+                self.aviso(nodo, f"a `{sim.nombre}` se le asignan valores que "
+                                 f"nunca se leen")
+            elif sim.mutable and not sim.mutada:
+                self.aviso(nodo, f"`{sim.nombre}` se declara `var` y nunca se "
+                                 f"modifica; puede ser `let`")
 
     def bloque(self, sentencias):
         self.abrir()
@@ -365,6 +410,7 @@ class Comprobador:
             destino = self.tipo_de_lugar(s.lugar)
             tipo = self.expresion(s.valor, mover_variables=True)
 
+            sim.mutada = True
             if not sim.mutable:
                 self.error_no_mutable(s, sim)
             if sim.prestamos:
@@ -443,6 +489,11 @@ class Comprobador:
         return lugar.nombre if isinstance(lugar, Variable) else None
 
     def tipo_de_lugar(self, lugar):
+        # Escribir en `x` no es leer `x`. Mirar su tipo tampoco, asi que la
+        # variable suelta se resuelve sin pasar por `usar`.
+        if isinstance(lugar, Variable):
+            sim = self.buscar(lugar.nombre)
+            return sim.tipo if sim is not None else None
         return self.expresion(lugar)
 
     def comprobar_vista_devuelta(self, s):

@@ -25,6 +25,8 @@ Las cinco propiedades:
   P6  `--explicar` funciona sobre todo programa aceptado, y nombra todas sus
       funciones y variables. Es el modelo del compilador hecho visible: si
       deja de cuadrar, el fallo esta en el analisis.
+  P7  Todo aviso nombra un archivo y una linea que existen, y ningun aviso
+      impide compilar.
 """
 
 import os
@@ -89,6 +91,23 @@ def probar_programa(semilla, tmp):
               "el generador produjo un programa que no compila:\n"
               + "\n".join(errores), fuente)
         return
+
+    # P7: los avisos estan bien puestos y no impiden compilar
+    total += 1
+    n_lineas = len(fuente.split("\n"))
+    for a in comp.avisos:
+        if not a.startswith(nombre + ".t:"):
+            falla("P7 avisos ubicados", semilla,
+                  f"el aviso no nombra el archivo: {a!r}", fuente)
+            break
+        numero = a[len(nombre) + 3:].split(":", 1)[0]
+        if not numero.isdigit() or not 1 <= int(numero) <= n_lineas:
+            falla("P7 avisos ubicados", semilla,
+                  f"linea fuera del archivo (tiene {n_lineas}): {a!r}", fuente)
+            break
+    if codigo is None:
+        falla("P7 avisos ubicados", semilla,
+              "un aviso impidio generar codigo", fuente)
 
     # P6: se puede explicar, y nombra lo que hay
     total += 1

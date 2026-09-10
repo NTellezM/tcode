@@ -248,6 +248,20 @@ mueven en algún camino, y libera según el camino que se tomó de verdad.
 Lo que v0 no admite: `try` y `sino` en la condición de un `while` (se
 evaluaría una sola vez), y el motivo es un literal, no un texto construido.
 
+### Avisos
+
+Un aviso no impide compilar; señala algo que probablemente no era lo que se
+quería. Un `_` delante del nombre lo silencia, y de paso le dice a quien lea
+el código que es a propósito.
+
+- variable declarada y nunca usada
+- valores que se asignan y nunca se leen
+- `var` que nunca se modifica: puede ser `let`
+- parámetro que no se usa
+- parámetro `mut T` que nunca se modifica: podría ser `&T`
+
+`--avisos-como-errores` los convierte en errores; `--sin-avisos` los calla.
+
 ### Ver lo que el compilador infirió
 
 El análisis de propiedad y préstamos normalmente sólo se ve cuando falla.
