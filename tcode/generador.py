@@ -37,6 +37,16 @@ CABECERA = r'''/* Generado por el compilador de Tcode. No editar a mano. */
 #include <stdlib.h>
 #include "safestr.h"
 
+/* Este archivo lo escribe el compilador, no una persona. Un aviso sobre una
+   variable que no se usa, o sobre `x == x`, habla del programa en Tcode y no
+   de este C: apuntar aqui no le sirve a nadie. Que Tcode avise por su cuenta
+   de esas cosas es otra conversacion, pero el ruido de gcc sobre codigo
+   generado se apaga. */
+#if defined(__GNUC__) || defined(__clang__)
+#  pragma GCC diagnostic ignored "-Wtautological-compare"
+#  pragma GCC diagnostic ignored "-Wtype-limits"
+#endif
+
 /* Un programa puede no usar todas las comprobaciones; eso no es un aviso
    que le sirva a nadie. */
 #if defined(__GNUC__) || defined(__clang__)
@@ -405,13 +415,13 @@ class Generador:
         for p in f.params:
             tc = self.tipo_c(p.tipo)
             if p.mutable:
-                params.append(f"{tc}* {p.nombre}")
+                params.append(f"SS_LANG_QUIZA_SIN_USAR {tc}* {p.nombre}")
             elif p.compartido:
                 # solo lectura: el `const` lo documenta y lo hace cumplir el
                 # propio compilador de C
-                params.append(f"const {tc}* {p.nombre}")
+                params.append(f"SS_LANG_QUIZA_SIN_USAR const {tc}* {p.nombre}")
             else:
-                params.append(f"{tc} {p.nombre}")
+                params.append(f"SS_LANG_QUIZA_SIN_USAR {tc} {p.nombre}")
         if f.falible:
             ret = self.tipo_resultado(f.retorno)
         elif f.retorno in (None, UNIDAD):
@@ -554,7 +564,10 @@ class Generador:
     def _sentencia(self, s):
         if isinstance(s, Declaracion):
             tc = self.tipo_c(s.tipo)
-            self.emitir(f"{tc} {s.nombre} = {self.expr(s.valor, s.tipo)};")
+            # Una variable declarada y no usada es legitima en Tcode; el aviso
+            # de gcc apuntaria a este C, que el usuario no escribio.
+            self.emitir(f"SS_LANG_QUIZA_SIN_USAR {tc} {s.nombre} = "
+                        f"{self.expr(s.valor, s.tipo)};")
             self.declarar(s.nombre, s.tipo, decl=s)
             if self.c.posee(s.tipo):
                 self.pila[-1].append(s.nombre)
