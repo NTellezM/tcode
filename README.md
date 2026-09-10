@@ -91,6 +91,7 @@ cualquier sitio donde haya un compilador de C17.
 | `tcode/modulos.py` | resuelve `usar`, carga única, detecta ciclos |
 | `tcode/comprobador.py` | tipos, propiedad, préstamos, mutabilidad |
 | `tcode/generador.py` | árbol → C, con `ss_free` y comprobaciones insertadas |
+| `tcode/explicar.py` | el modelo del comprobador, hecho legible |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
 ## Velocidad
@@ -118,8 +119,45 @@ El detalle está en [`bench/README.md`](bench/README.md), incluido por qué
 python3 -m tcode programa.t              # compila a binario
 python3 -m tcode programa.t -O3          # nivel de optimizacion del backend
 python3 -m tcode programa.t --emitir-c   # deja el C y no invoca a cc
+python3 -m tcode programa.t --explicar   # que infirio el compilador
 python3 -m tcode programa.t --solo-comprobar
 ```
+
+## `--explicar`
+
+Tcode se apoya en un análisis —quién es dueño de qué, quién presta a quién,
+dónde se libera cada cosa, de dónde sale cada vista— que normalmente sólo se
+ve cuando **falla**, en forma de error. `--explicar` lo muestra cuando sale
+bien:
+
+```
+$ python3 -m tcode ejemplos/informe/informe.t --explicar
+
+  struct Articulo   es DUEÑO: contiene memoria que hay que liberar
+      nombre: str  <- duenio
+      unidades: usize
+      el compilador genera `ss_drop_Articulo` y lo llama donde haga falta
+
+  fn linea(a: &Articulo, total: usize) -> str !
+      puede fallar: quien la llame tiene que usar `try` o `sino`
+      arg a       Articulo  prestado para leer  no se libera aqui: es de quien llama
+      var s       str       DUEÑA               se entrega en la linea 27 (return)
+      let nombre  str       DUEÑA               se libera sola al cerrar su bloque
+      4 valor(es) con memoria propia: 3 se liberan solas, 1 se entrega
+```
+
+Y explica también los casos difíciles, como una variable que se mueve pero
+podría no llegar a moverse:
+
+```
+      var caja  Caja  DUEÑA  se mueve a `consumir` en la linea 14;
+                             lleva bandera por si el programa sale antes
+```
+
+Sirve para tres cosas: aprender el modelo sin pelearse con él, entender por
+qué un programa que compila hace lo que hace, y **revisar el propio
+compilador** — si lo que dice ahí no cuadra, el fallo está en el análisis.
+Por eso es una de las propiedades que comprueba la suite.
 
 ## Estado
 
@@ -158,6 +196,7 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 | **P3** | compilar dos veces da C byte a byte idéntico |
 | **P4** | todo error nombra un archivo y una línea que existen |
 | **P5** | el compilador nunca revienta, con entrada válida o inválida |
+| **P6** | `--explicar` funciona sobre todo programa aceptado y nombra todas sus funciones y variables |
 
 `tests/generador_programas.py` produce programas válidos por construcción
 —con cadenas propias, structs, arreglos, préstamos, movimientos y fallos— y

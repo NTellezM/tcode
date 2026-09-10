@@ -12,6 +12,7 @@ from tcode.parser import parsear, ErrorSintactico
 from tcode.modulos import cargar, ErrorDeModulo
 from tcode.comprobador import comprobar
 from tcode.generador import generar
+from tcode.explicar import explicar
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNTIME = os.path.join(RAIZ, "runtime")
@@ -39,24 +40,25 @@ def _lo_generamos_nosotros(ruta):
         return False
 
 
-def compilar_a_c(fuente, archivo):
+def compilar_a_c(fuente, archivo, devolver_comp=False):
     """Compila una fuente suelta, sin resolver `usar`. Lo usan los tests."""
-    return _compilar(parsear(fuente, archivo), archivo)
+    return _compilar(parsear(fuente, archivo), archivo, devolver_comp)
 
 
-def compilar_archivo(ruta):
+def compilar_archivo(ruta, devolver_comp=False):
     """Compila un archivo resolviendo sus modulos."""
     mostrada = os.path.relpath(ruta)
     if mostrada.startswith(".."):
         mostrada = os.path.abspath(ruta)
-    return _compilar(cargar(ruta), mostrada)
+    return _compilar(cargar(ruta), mostrada, devolver_comp)
 
 
-def _compilar(arbol, archivo):
+def _compilar(arbol, archivo, devolver_comp=False):
     errores, comp = comprobar(arbol, archivo)
     if errores:
-        return None, errores
-    return generar(arbol, comp, archivo), []
+        return (None, errores, comp) if devolver_comp else (None, errores)
+    codigo = generar(arbol, comp, archivo)
+    return (codigo, [], comp) if devolver_comp else (codigo, [])
 
 
 def main(argv=None):
@@ -74,6 +76,10 @@ def main(argv=None):
                          "en -O2 dejan de integrarse")
     ap.add_argument("--solo-comprobar", action="store_true",
                     help="analiza y reporta errores, sin generar nada")
+    ap.add_argument("--explicar", action="store_true",
+                    help="muestra lo que el compilador infirio: quien es "
+                         "duenio de que, quien presta a quien, donde se libera "
+                         "cada cosa y de donde sale cada vista")
     args = ap.parse_args(argv)
 
     if not os.path.isfile(args.fuente):
@@ -81,7 +87,7 @@ def main(argv=None):
         return 2
 
     try:
-        codigo, errores = compilar_archivo(args.fuente)
+        codigo, errores, comp = compilar_archivo(args.fuente, devolver_comp=True)
     except (ErrorLexico, ErrorSintactico, ErrorDeModulo) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
@@ -96,6 +102,10 @@ def main(argv=None):
         print(f"\n{n} error{'es' if n != 1 else ''}. No se genero nada.",
               file=sys.stderr)
         return 1
+
+    if args.explicar:
+        print(explicar(comp, args.fuente))
+        return 0
 
     if args.solo_comprobar:
         print(f"{args.fuente}: sin errores")
