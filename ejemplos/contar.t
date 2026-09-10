@@ -1,8 +1,11 @@
 // contar.t — una utilidad que consume entrada externa de verdad.
 //
-// Lee README.md, recorre todos sus bytes y calcula una version pequena de
-// `wc`: lineas, palabras y bytes. La lista dinamica guarda la posicion de
-// cada salto de linea; no hace falta conocer su cantidad de antemano.
+// Recorre todos los bytes del archivo que se le pase y calcula una version
+// pequena de `wc`: lineas, palabras y bytes. La lista dinamica guarda la
+// posicion de cada salto de linea; no hace falta conocer su cantidad de
+// antemano.
+//
+//     ./contar README.md
 
 fn es_espacio(b: usize) -> bool {
     return b == 32 || b == 9 || b == 10 || b == 13;
@@ -14,7 +17,15 @@ fn poner_numero(s: mut str, n: usize) {
 }
 
 fn main() -> usize ! {
-    let contenido: str = try leer_archivo("README.md");
+    if n_argumentos() < 2 {
+        imprimir("uso: ");
+        imprimir(argumento(0));
+        imprimir(" <archivo>\n");
+        return 1;
+    }
+
+    let ruta: view = argumento(1);
+    let contenido: str = try leer_archivo(ruta);
     var saltos: lista<usize> = [];
     var palabras: usize = 0;
     var dentro: bool = false;
@@ -43,7 +54,8 @@ fn main() -> usize ! {
         lineas = lineas + 1;
     }
 
-    var informe: str = nuevo("README.md: ");
+    var informe: str = nuevo(ruta);
+    empujar(informe, ": ");
     poner_numero(informe, lineas);
     empujar(informe, " lineas, ");
     poner_numero(informe, palabras);
