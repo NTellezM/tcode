@@ -1,15 +1,15 @@
-"""Compilador de safestr: fuente .sfs -> C -> binario nativo."""
+"""Compilador de Tcode: fuente .t -> C -> binario nativo."""
 
 import argparse
 import os
 import subprocess
 import sys
 
-from safestrc.lexer import ErrorLexico
-from safestrc.parser import parsear, ErrorSintactico
-from safestrc.modulos import cargar, ErrorDeModulo
-from safestrc.comprobador import comprobar
-from safestrc.generador import generar
+from tcode.lexer import ErrorLexico
+from tcode.parser import parsear, ErrorSintactico
+from tcode.modulos import cargar, ErrorDeModulo
+from tcode.comprobador import comprobar
+from tcode.generador import generar
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNTIME = os.path.join(RAIZ, "runtime")
@@ -37,8 +37,8 @@ def _compilar(arbol, archivo):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(
-        prog="safestrc", description="Compilador del lenguaje safestr")
-    ap.add_argument("fuente", help="archivo .sfs")
+        prog="tcode", description="Compilador del lenguaje Tcode")
+    ap.add_argument("fuente", help="archivo .t")
     ap.add_argument("-o", "--salida", help="binario de salida")
     ap.add_argument("--emitir-c", action="store_true",
                     help="escribe el C generado y no invoca al compilador")
@@ -48,7 +48,7 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     if not os.path.isfile(args.fuente):
-        print(f"safestrc: no encuentro {args.fuente}", file=sys.stderr)
+        print(f"tcode: no encuentro {args.fuente}", file=sys.stderr)
         return 2
 
     try:
@@ -57,7 +57,7 @@ def main(argv=None):
         print(f"error: {exc}", file=sys.stderr)
         return 1
     except OSError as exc:
-        print(f"safestrc: no se pudo leer: {exc}", file=sys.stderr)
+        print(f"tcode: no se pudo leer: {exc}", file=sys.stderr)
         return 2
 
     if errores:
@@ -86,7 +86,7 @@ def main(argv=None):
              "-o", base]
     r = subprocess.run(orden, capture_output=True, text=True)
     if r.returncode != 0:
-        print("safestrc: el C generado no compilo. Es un fallo del compilador,"
+        print("tcode: el C generado no compilo. Es un fallo del compilador,"
               " no de tu programa.", file=sys.stderr)
         print(r.stderr, file=sys.stderr)
         return 1

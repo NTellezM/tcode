@@ -1,9 +1,9 @@
-# safestr — el lenguaje
+# Tcode
 
 Un lenguaje de sistemas pequeño que compila a C portable, donde las clases de
 fallo de memoria más comunes de C **no son expresables**.
 
-```safestr
+```tcode
 fn saludo(nombre: view) -> str {
     var s: str = nuevo("Hola, ");
     empujar(s, nombre);
@@ -13,19 +13,20 @@ fn saludo(nombre: view) -> str {
 ```
 
 ```
-$ python3 -m safestrc ejemplos/hola.sfs && ./ejemplos/hola
+$ python3 -m tcode ejemplos/hola.t && ./ejemplos/hola
 Hola, mundo!
 12 bytes
 ```
 
 ## De dónde sale
 
-safestr empezó como una librería de C. Auditándola encontramos cuatro fallos
+Tcode salió de auditar **safestr**, una librería de cadenas en C.
+Auditándola encontramos cuatro fallos
 de seguridad de memoria **en código escrito con cuidado poco común**:
 invariantes documentadas, aliasing resuelto a mano, comprobaciones de
 desbordamiento por todos lados. Aun así:
 
-| Fallo en la librería de C | Clase |
+| Fallo en safestr (la librería de C) | Clase |
 |---|---|
 | `ss_reserve` con `n` enorme → bloque de 15 bytes con `capacity` de 2⁶⁴ | desbordamiento de entero → escritura fuera del heap |
 | `ss_appendf(&s, "%s", ss_cstr(&s))` | use-after-free por aliasing a través de un `realloc` |
@@ -38,8 +39,8 @@ La conclusión no fue "hay que escribir mejor C". Fue que esas cuatro clases
 Hoy los cuatro son errores de compilación:
 
 ```
-$ python3 -m safestrc malo.sfs
-error: malo.sfs:4: no se puede modificar `s`: esta prestada por `v`
+$ python3 -m tcode malo.t
+error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 
 1 error. No se genero nada.
 ```
@@ -56,13 +57,16 @@ error: malo.sfs:4: no se puede modificar `s`: esta prestada por `v`
    `a *? b`.
 3. **Sin conversiones implícitas.** `usize` e `i64` no se mezclan solos.
 4. **Sin valores no inicializados.** `let` es inmutable, `var` mutable.
-5. **Los fallos no se pueden ignorar.** Una función que puede fallar lo dice
+5. **Préstamos.** Pasar un valor lo mueve; `&T` lo presta para leer y
+   `mut T` para modificar. Lo prestado no se puede mover, y dos préstamos de
+   lo mismo sólo conviven si ninguno modifica.
+6. **Los fallos no se pueden ignorar.** Una función que puede fallar lo dice
    con `!`; quien la llama elige entre `try` (que lo propaga) y `sino`
    (que da un valor). Olvidarse es un error de compilación, y un fallo
    libera lo que ya se había reservado.
-6. **Un archivo es un módulo.** `usar "lib/texto.sfs";`, rutas relativas,
+7. **Un archivo es un módulo.** `usar "lib/texto.t";`, rutas relativas,
    carga única y detección de ciclos.
-7. **Propiedad recursiva y límites comprobados.** Un `struct` posee lo que
+8. **Propiedad recursiva y límites comprobados.** Un `struct` posee lo que
    poseen sus campos; un arreglo, lo que poseen sus elementos, y la
    liberación se genera sola a cualquier hondura. Todo índice se comprueba:
    salirse detiene el programa en vez de leer memoria ajena.
@@ -72,29 +76,29 @@ La especificación completa está en [`docs/ESPECIFICACION.md`](docs/ESPECIFICAC
 ## Cómo funciona
 
 ```
-fuente .sfs → lexer → parser → comprobador → generador → C → cc → binario
+fuente .t → lexer → parser → comprobador → generador → C → cc → binario
 ```
 
 El compilador está en Python, sin dependencias. Genera C legible que se
-enlaza contra `runtime/safestr.c` — la librería original, que pasó a ser el
-runtime del lenguaje. El C generado se puede leer, versionar y compilar en
+enlaza contra `runtime/safestr.c` — la librería que originó todo esto, que
+pasó a ser el runtime del lenguaje. El C generado se puede leer, versionar y compilar en
 cualquier sitio donde haya un compilador de C17.
 
 | Archivo | Qué hace |
 |---|---|
-| `safestrc/lexer.py` | texto → tokens |
-| `safestrc/parser.py` | tokens → árbol (descenso recursivo) |
-| `safestrc/modulos.py` | resuelve `usar`, carga única, detecta ciclos |
-| `safestrc/comprobador.py` | tipos, propiedad, préstamos, mutabilidad |
-| `safestrc/generador.py` | árbol → C, con `ss_free` y comprobaciones insertadas |
-| `runtime/` | la librería de C original, ya corregida |
+| `tcode/lexer.py` | texto → tokens |
+| `tcode/parser.py` | tokens → árbol (descenso recursivo) |
+| `tcode/modulos.py` | resuelve `usar`, carga única, detecta ciclos |
+| `tcode/comprobador.py` | tipos, propiedad, préstamos, mutabilidad |
+| `tcode/generador.py` | árbol → C, con `ss_free` y comprobaciones insertadas |
+| `runtime/` | safestr, la librería de C original, ya corregida |
 
 ## Uso
 
 ```
-python3 -m safestrc programa.sfs              # compila a binario
-python3 -m safestrc programa.sfs --emitir-c   # deja el C y no invoca a cc
-python3 -m safestrc programa.sfs --solo-comprobar
+python3 -m tcode programa.t              # compila a binario
+python3 -m tcode programa.t --emitir-c   # deja el C y no invoca a cc
+python3 -m tcode programa.t --solo-comprobar
 ```
 
 ## Estado
@@ -107,22 +111,21 @@ comprobada, `str`/`view`/`usize`/`i64`/`bool`, préstamos con ámbito léxico,
 liberación automática, y ocho funciones internas sobre la librería de C.
 
 Hay también: `struct`, arreglos de tamaño fijo con índices comprobados,
-structs anidados, arreglos de structs, propiedad recursiva, módulos y fallos
-como valores.
+structs anidados, arreglos de structs, propiedad recursiva, préstamos de
+structs (`&T` y `mut T`), módulos y fallos como valores.
 
 No hay: genéricos, espacios de nombres, arreglos de tamaño variable, ni el
-propio compilador escrito en safestr. Tampoco: campos `view` dentro de un
+propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
 struct (el muro real: exige la vida útil en el tipo), movimientos parciales
-de un campo o elemento, préstamo de un struct entero, ni devolver una vista
-de un parámetro `mut str`.
+de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-64 casos, 0 fallas
+74 casos, 0 fallas
 ```
 
-Los 40 casos de rechazo comprueban que los programas malos no compilan; los
-15 de aceptación corren bajo AddressSanitizer y UndefinedBehaviorSanitizer y
+Los 48 casos de rechazo comprueban que los programas malos no compilan; los
+18 de aceptación corren bajo AddressSanitizer y UndefinedBehaviorSanitizer y
 comparan la salida exacta; 4 comprueban que la aritmética y los índices
 comprobados detienen el programa en vez de seguir con basura; y 5 arman un
 programa de varios archivos en un directorio temporal para probar la carga de

@@ -1,4 +1,4 @@
-// inventario.sfs — structs, arreglos y propiedad recursiva.
+// inventario.t — structs, arreglos y propiedad recursiva.
 //
 // `Articulo` posee un `str`. Un `[Articulo; 4]` posee cuatro. El compilador
 // genera la liberacion de los cuatro, en orden, sin que aparezca un solo

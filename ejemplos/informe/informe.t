@@ -1,24 +1,22 @@
-// informe.sfs — el programa. Junta los dos modulos.
+// informe.t — el programa. Junta los dos modulos.
 //
 // Reparte el trabajo en tres archivos, usa una funcion que puede fallar y
 // no libera nada a mano. Es lo que hacia falta para escribir algo grande.
 
-usar "lib/texto.sfs";
-usar "lib/calculo.sfs";
+usar "lib/texto.t";
+usar "lib/calculo.t";
 
 struct Articulo {
     nombre: str,
     unidades: usize,
 }
 
-// Recibe los campos, no el struct: `inv[i]` por valor lo sacaria del
-// arreglo y v0 no admite movimientos parciales. Prestar structs enteros es
-// lo siguiente que le falta al lenguaje.
-fn linea(nombre_art: view, unidades: usize, total: usize) -> str ! {
-    let pct: usize = try porcentaje(unidades, total);
+// `&Articulo` lo presta para leer: no lo copia ni lo saca del arreglo.
+fn linea(a: &Articulo, total: usize) -> str ! {
+    let pct: usize = try porcentaje(a.unidades, total);
 
     var s: str = vacio();
-    let nombre: str = rellenar(nombre_art, 12);
+    let nombre: str = rellenar(vista(a.nombre), 12);
     empujar(s, vista(nombre));
 
     let barra: str = repetir("#", try dividir(pct, 4));
@@ -29,6 +27,11 @@ fn linea(nombre_art: view, unidades: usize, total: usize) -> str ! {
     return s;
 }
 
+// `mut Articulo` lo presta para modificarlo en el sitio.
+fn ajustar(a: mut Articulo, extra: usize) {
+    a.unidades = a.unidades + extra;
+}
+
 fn main() -> usize ! {
     var inv: [Articulo; 4] = [
         Articulo { nombre: nuevo("tornillos"), unidades: 420 },
@@ -36,6 +39,8 @@ fn main() -> usize ! {
         Articulo { nombre: nuevo("arandelas"), unidades: 200 },
         Articulo { nombre: nuevo("remaches"),  unidades: 275 }
     ];
+
+    ajustar(inv[2], 25);
 
     var total: usize = 0;
     var i: usize = 0;
@@ -49,7 +54,7 @@ fn main() -> usize ! {
 
     i = 0;
     while i < 4 {
-        let l: str = try linea(vista(inv[i].nombre), inv[i].unidades, total);
+        let l: str = try linea(inv[i], total);
         imprimir(l);
         imprimir(inv[i].unidades);
         imprimir(" (");

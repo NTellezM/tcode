@@ -9,13 +9,13 @@ mano, que son justo donde se equivoca:
   - envolver `+`, `-` y `*` en comprobaciones de desbordamiento.
 """
 
-from safestrc.nodos import (
+from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct,
 )
-from safestrc.comprobador import (
+from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
 )
 
@@ -29,7 +29,7 @@ TIPOS_C = {
     UNIDAD: "void",
 }
 
-CABECERA = r'''/* Generado por el compilador de safestr. No editar a mano. */
+CABECERA = r'''/* Generado por el compilador de Tcode. No editar a mano. */
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -45,7 +45,7 @@ CABECERA = r'''/* Generado por el compilador de safestr. No editar a mano. */
 #  define SS_LANG_QUIZA_SIN_USAR
 #endif
 
-/* Aritmetica comprobada: en safestr el desbordamiento no es silencioso.
+/* Aritmetica comprobada: en Tcode el desbordamiento no es silencioso.
    Aborta diciendo donde, en vez de seguir con un valor equivocado. */
 SS_LANG_QUIZA_SIN_USAR static void ss_lang_desborde_(const char* op, const char* archivo, int linea)
 {
@@ -136,8 +136,8 @@ class Generador:
         # El generador lleva su propia tabla: los ambitos del comprobador ya
         # se cerraron cuando llegamos aqui.
         self.vars = []
-        self.arreglos = {}     # tipo safestr -> nombre del typedef en C
-        self.resultados = {}   # tipo safestr -> nombre del typedef de resultado
+        self.arreglos = {}     # tipo Tcode -> nombre del typedef en C
+        self.resultados = {}   # tipo Tcode -> nombre del typedef de resultado
         self.bucle = 0         # contador para variables de bucle de liberacion
         self.func = None       # funcion que se esta generando
         # Variables que se mueven en algun punto: llevan una bandera en
@@ -162,7 +162,7 @@ class Generador:
         return TIPOS_C.get(t, t)
 
     def tipo_resultado(self, t):
-        """El `T !` de safestr es un struct: motivo == NULL significa que fue
+        """El `T !` de Tcode es un struct: motivo == NULL significa que fue
         bien. Un solo puntero en vez de un booleano mas el valor."""
         clave = t if t not in (None, UNIDAD) else UNIDAD
         if clave not in self.resultados:
@@ -337,7 +337,14 @@ class Generador:
         params = []
         for p in f.params:
             tc = self.tipo_c(p.tipo)
-            params.append(f"{tc}* {p.nombre}" if p.mutable else f"{tc} {p.nombre}")
+            if p.mutable:
+                params.append(f"{tc}* {p.nombre}")
+            elif p.compartido:
+                # solo lectura: el `const` lo documenta y lo hace cumplir el
+                # propio compilador de C
+                params.append(f"const {tc}* {p.nombre}")
+            else:
+                params.append(f"{tc} {p.nombre}")
         if f.falible:
             ret = self.tipo_resultado(f.retorno)
         elif f.retorno in (None, UNIDAD):
@@ -354,14 +361,14 @@ class Generador:
         self.sangria += 1
         # los parametros `str` por valor son propiedad de la funcion: se liberan
         propios = [p.nombre for p in f.params
-                   if self.c.posee(p.tipo) and not p.mutable]
+                   if self.c.posee(p.tipo) and not p.prestado]
         self.pila.append(list(propios))
         self.vars.append({})
         self.con_bandera = set()
         for p in f.params:
-            self.declarar(p.nombre, p.tipo, p.mutable, decl=p)
+            self.declarar(p.nombre, p.tipo, p.prestado, decl=p)
         for p in f.params:
-            if p.movida and self.c.posee(p.tipo) and not p.mutable:
+            if p.movida and self.c.posee(p.tipo) and not p.prestado:
                 self.con_bandera.add(p.nombre)
                 self.emitir(f"bool ss_vivo_{p.nombre} = true;")
 
@@ -736,8 +743,8 @@ class Generador:
         args = []
         for i, a in enumerate(e.args):
             p = f.params[i] if f and i < len(f.params) else None
-            if p is not None and p.mutable:
-                args.append(self.ref(a.nombre))
+            if p is not None and p.prestado:
+                args.append(self.dir_de(a))
             else:
                 if (p is not None and isinstance(a, Variable)
                         and a.nombre in self.con_bandera

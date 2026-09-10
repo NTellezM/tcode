@@ -1,7 +1,7 @@
-"""Analisis sintactico: tokens -> arbol. Descenso recursivo."""
+"""Analisis sintactico de Tcode: tokens -> arbol. Descenso recursivo."""
 
-from safestrc.lexer import tokenizar, Token
-from safestrc.nodos import (
+from tcode.lexer import tokenizar, Token
+from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
@@ -105,7 +105,9 @@ class Parser:
                 pn = self.espera("ident").valor
                 self.espera("simbolo", ":")
                 mutable = self.acepta("palabra", "mut") is not None
-                params.append(Parametro(pn, self.tipo(), mutable))
+                compartido = (not mutable
+                              and self.acepta("simbolo", "&") is not None)
+                params.append(Parametro(pn, self.tipo(), mutable, compartido))
                 if not self.acepta("simbolo", ","):
                     break
         self.espera("simbolo", ")")
