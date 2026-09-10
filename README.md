@@ -56,7 +56,13 @@ error: malo.sfs:4: no se puede modificar `s`: esta prestada por `v`
    `a *? b`.
 3. **Sin conversiones implícitas.** `usize` e `i64` no se mezclan solos.
 4. **Sin valores no inicializados.** `let` es inmutable, `var` mutable.
-5. **Propiedad recursiva y límites comprobados.** Un `struct` posee lo que
+5. **Los fallos no se pueden ignorar.** Una función que puede fallar lo dice
+   con `!`; quien la llama elige entre `try` (que lo propaga) y `sino`
+   (que da un valor). Olvidarse es un error de compilación, y un fallo
+   libera lo que ya se había reservado.
+6. **Un archivo es un módulo.** `usar "lib/texto.sfs";`, rutas relativas,
+   carga única y detección de ciclos.
+7. **Propiedad recursiva y límites comprobados.** Un `struct` posee lo que
    poseen sus campos; un arreglo, lo que poseen sus elementos, y la
    liberación se genera sola a cualquier hondura. Todo índice se comprueba:
    salirse detiene el programa en vez de leer memoria ajena.
@@ -78,6 +84,7 @@ cualquier sitio donde haya un compilador de C17.
 |---|---|
 | `safestrc/lexer.py` | texto → tokens |
 | `safestrc/parser.py` | tokens → árbol (descenso recursivo) |
+| `safestrc/modulos.py` | resuelve `usar`, carga única, detecta ciclos |
 | `safestrc/comprobador.py` | tipos, propiedad, préstamos, mutabilidad |
 | `safestrc/generador.py` | árbol → C, con `ss_free` y comprobaciones insertadas |
 | `runtime/` | la librería de C original, ya corregida |
@@ -100,20 +107,23 @@ comprobada, `str`/`view`/`usize`/`i64`/`bool`, préstamos con ámbito léxico,
 liberación automática, y ocho funciones internas sobre la librería de C.
 
 Hay también: `struct`, arreglos de tamaño fijo con índices comprobados,
-structs anidados, arreglos de structs y propiedad recursiva.
+structs anidados, arreglos de structs, propiedad recursiva, módulos y fallos
+como valores.
 
-No hay: genéricos, módulos, arreglos de tamaño variable, manejo de errores,
-ni el propio compilador escrito en safestr. Tampoco: campos `view` dentro de
-un struct (el muro real: exige la vida útil en el tipo), movimientos
-parciales de un campo o elemento, ni devolver una vista de un parámetro
-`mut str`.
+No hay: genéricos, espacios de nombres, arreglos de tamaño variable, ni el
+propio compilador escrito en safestr. Tampoco: campos `view` dentro de un
+struct (el muro real: exige la vida útil en el tipo), movimientos parciales
+de un campo o elemento, préstamo de un struct entero, ni devolver una vista
+de un parámetro `mut str`.
 
 ```
 $ make check
-51 casos, 0 fallas
+64 casos, 0 fallas
 ```
 
-Los 34 casos de rechazo comprueban que los programas malos no compilan; los
-13 de aceptación corren bajo AddressSanitizer y UndefinedBehaviorSanitizer y
-comparan la salida exacta; los 4 restantes comprueban que la aritmética y los
-índices comprobados detienen el programa en vez de seguir con basura.
+Los 40 casos de rechazo comprueban que los programas malos no compilan; los
+15 de aceptación corren bajo AddressSanitizer y UndefinedBehaviorSanitizer y
+comparan la salida exacta; 4 comprueban que la aritmética y los índices
+comprobados detienen el programa en vez de seguir con basura; y 5 arman un
+programa de varios archivos en un directorio temporal para probar la carga de
+módulos, los ciclos y los nombres repetidos.

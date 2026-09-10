@@ -7,6 +7,7 @@ import sys
 
 from safestrc.lexer import ErrorLexico
 from safestrc.parser import parsear, ErrorSintactico
+from safestrc.modulos import cargar, ErrorDeModulo
 from safestrc.comprobador import comprobar
 from safestrc.generador import generar
 
@@ -15,7 +16,19 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 def compilar_a_c(fuente, archivo):
-    arbol = parsear(fuente, archivo)
+    """Compila una fuente suelta, sin resolver `usar`. Lo usan los tests."""
+    return _compilar(parsear(fuente, archivo), archivo)
+
+
+def compilar_archivo(ruta):
+    """Compila un archivo resolviendo sus modulos."""
+    mostrada = os.path.relpath(ruta)
+    if mostrada.startswith(".."):
+        mostrada = os.path.abspath(ruta)
+    return _compilar(cargar(ruta), mostrada)
+
+
+def _compilar(arbol, archivo):
     errores, comp = comprobar(arbol, archivo)
     if errores:
         return None, errores
@@ -34,18 +47,18 @@ def main(argv=None):
                     help="analiza y reporta errores, sin generar nada")
     args = ap.parse_args(argv)
 
-    try:
-        with open(args.fuente, encoding="utf-8") as f:
-            fuente = f.read()
-    except OSError as exc:
-        print(f"safestrc: no se pudo leer {args.fuente}: {exc}", file=sys.stderr)
+    if not os.path.isfile(args.fuente):
+        print(f"safestrc: no encuentro {args.fuente}", file=sys.stderr)
         return 2
 
     try:
-        codigo, errores = compilar_a_c(fuente, args.fuente)
-    except (ErrorLexico, ErrorSintactico) as exc:
+        codigo, errores = compilar_archivo(args.fuente)
+    except (ErrorLexico, ErrorSintactico, ErrorDeModulo) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+    except OSError as exc:
+        print(f"safestrc: no se pudo leer: {exc}", file=sys.stderr)
+        return 2
 
     if errores:
         for e in errores:

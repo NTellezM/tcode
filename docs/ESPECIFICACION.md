@@ -144,12 +144,72 @@ Lo que v0 **no** admite, y lo dice:
   contenedor entero.
 - **Structs recursivos.** Sin tamaño finito; da error.
 
+### 6. Módulos: un archivo es un módulo
+
+```safestr
+usar "lib/texto.sfs";
+usar "lib/calculo.sfs";
+```
+
+Las rutas son relativas al archivo que las escribe. Cada módulo se carga una
+sola vez aunque lo pidan varios, y las dependencias circulares se detectan y
+se explican:
+
+```
+error: dependencia circular entre modulos: a.sfs -> b.sfs -> a.sfs
+```
+
+En v0 no hay espacios de nombres: lo que trae un `usar` entra al mismo saco.
+Dos declaraciones con el mismo nombre son un error, y el mensaje dice en qué
+archivo está la otra.
+
+### 7. Fallos: no se pueden ignorar
+
+Una función que puede fallar lo declara con `!` después del tipo de retorno,
+y sale con `falla`:
+
+```safestr
+fn dividir(a: usize, b: usize) -> usize ! {
+    if b == 0 {
+        falla "division por cero";
+    }
+    return a / b;
+}
+```
+
+Quien la llama tiene que decir qué hace con el fallo. No hay una tercera
+opción, y olvidarse es un error de compilación:
+
+| | |
+|---|---|
+| `try f(..)` | el fallo sube al que llamó; sólo dentro de otra función `!` |
+| `f(..) sino valor` | si falla, se usa `valor` |
+
+```
+error: `porcentaje` puede fallar: la llamada tiene que ir detras de `try`,
+o con `sino <valor>` para dar un valor cuando falle
+```
+
+`main` también puede declararse `!`. Si termina en fallo, el programa
+imprime `error: <motivo>` por la salida de error y devuelve un código
+distinto de cero, para que no se pierda al salir.
+
+**Un fallo libera lo que ya se había reservado.** Es la parte que cuesta
+hacer bien a mano en C, y es donde estaba el problema: una variable que un
+`return` posterior entrega no está movida todavía en el `falla` de antes. El
+compilador lleva una bandera en tiempo de ejecución para las variables que se
+mueven en algún camino, y libera según el camino que se tomó de verdad.
+
+Lo que v0 no admite: `try` y `sino` en la condición de un `while` (se
+evaluaría una sola vez), y el motivo es un literal, no un texto construido.
+
 ## Gramática v0
 
 ```
-programa   := (struct | funcion)*
+programa   := usar* (struct | funcion)*
+usar       := "usar" cadena ";"
 struct     := "struct" ident "{" (ident ":" tipo ",")* "}"
-funcion    := "fn" ident "(" params? ")" ("->" tipo)? bloque
+funcion    := "fn" ident "(" params? ")" ("->" tipo)? "!"? bloque
 params     := param ("," param)*
 param      := ident ":" ("mut")? tipo
 tipo       := "str" | "view" | "usize" | "i64" | "bool"
@@ -162,16 +222,17 @@ sentencia  := "let" ident ":" tipo "=" expr ";"
             | "if" expr bloque ("else" bloque)?
             | "while" expr bloque
             | "return" expr? ";"
+            | "falla" cadena ";"
             | expr ";"
 
-expr       := o
+expr       := o ("sino" o)?
 o          := y ("||" y)*
 y          := igualdad ("&&" igualdad)*
 igualdad   := comparacion (("==" | "!=") comparacion)*
 comparacion:= suma (("<" | "<=" | ">" | ">=") suma)*
 suma       := producto (("+" | "-" | "+?" | "-?") producto)*
 producto   := unario (("*" | "/" | "%" | "*?") unario)*
-unario     := ("!" | "-") unario | postfijo
+unario     := "try" unario | ("!" | "-") unario | postfijo
 postfijo   := primario ("." ident | "[" expr "]")*
 lugar      := ident ("." ident | "[" expr "]")*
 primario   := entero | cadena | "true" | "false" | ident
@@ -198,7 +259,7 @@ le corresponde.
 
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: genéricos, módulos, arreglos de tamaño variable,
-manejo de errores, aritmética de punteros, ni recolector. Todo valor que sale
+Es un v0 honesto. No hay: genéricos, espacios de nombres, arreglos de tamaño
+variable, préstamo de structs enteros, aritmética de punteros, ni recolector. Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

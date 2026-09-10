@@ -146,6 +146,32 @@ RECHAZO = [
      'fn f() { let n: usize = 1; imprimir(n[0]); }',
      "no es un arreglo"),
 
+    # ---- fallos ----
+    ("ignorar que una llamada puede fallar",
+     'fn f() -> usize ! { falla "x"; }  fn g() -> usize { return f(); }',
+     "puede fallar"),
+
+    ("`try` en una funcion que no esta declarada con `!`",
+     'fn f() -> usize ! { falla "x"; }  fn g() -> usize { return try f(); }',
+     "no esta declarada con `!`"),
+
+    ("`falla` en una funcion que no esta declarada con `!`",
+     'fn f() -> usize { falla "x"; }',
+     "no esta declarada con `!`"),
+
+    ("`try` sobre algo que no puede fallar",
+     'fn a() -> usize { return 1; }  fn g() -> usize ! { return try a(); }',
+     "va delante de una llamada"),
+
+    ("el valor de `sino` tiene que ser del mismo tipo",
+     'fn f() -> usize ! { falla "x"; }  fn g() -> usize { return f() sino true; }',
+     "es `bool`"),
+
+    ("`try` en la condicion de un while",
+     'fn f() -> usize ! { falla "x"; }'
+     ' fn g() -> usize ! { while try f() > 0 { } return 0; }',
+     "se evaluaria una sola vez"),
+
     # ---- tipos ----
     ("tipo declarado que no calza",
      'fn f() { let n: usize = "no soy un numero"; }',
@@ -324,6 +350,44 @@ ACEPTA = [
         }''',
      "Ana\n"),
 
+    ("fallos: propagar con try, sustituir con sino",
+     '''fn dividir(a: usize, b: usize) -> usize ! {
+            if b == 0 { falla "division por cero"; }
+            return a / b;
+        }
+        fn media(a: usize, b: usize, n: usize) -> usize ! {
+            return try dividir(a + b, n);
+        }
+        fn main() -> usize {
+            imprimir(media(10, 20, 2) sino 0); imprimir("\\n");
+            imprimir(media(10, 20, 0) sino 999); imprimir("\\n");
+            return 0;
+        }''',
+     "15\n999\n"),
+
+    ("un fallo libera lo que ya se habia reservado",
+     '''fn cargar(nombre: view) -> str ! {
+            var s: str = nuevo("dato de ");
+            empujar(s, nombre);
+            if largo(nombre) == 0 { falla "nombre vacio"; }
+            return s;
+        }
+        fn envolver(nombre: view) -> str ! {
+            var acc: str = nuevo("[");
+            let dato: str = try cargar(nombre);
+            empujar(acc, vista(dato));
+            empujar(acc, "]");
+            return acc;
+        }
+        fn main() -> usize {
+            let bueno: str = envolver("uno") sino nuevo("(sin dato)");
+            imprimir(bueno); imprimir("\\n");
+            let malo: str = envolver("") sino nuevo("(sin dato)");
+            imprimir(malo); imprimir("\\n");
+            return 0;
+        }''',
+     "[dato de uno]\n(sin dato)\n"),
+
     ("rebanadas de vista",
      '''fn main() -> usize {
             let s: str = nuevo("abcdefgh");
@@ -444,6 +508,91 @@ with tempfile.TemporaryDirectory() as tmp:
             falla(nombre, "termino normalmente, deberia abortar")
         elif esperado not in err:
             falla(nombre, f"se esperaba {esperado!r} en stderr, hubo: {err!r}")
+
+# ---------------------------------------------------------------- modulos
+print("=== MODULOS: varios archivos, un solo programa ===")
+import shutil
+from safestrc.modulos import cargar, ErrorDeModulo
+from safestrc.cli import _compilar
+
+MODULOS = [
+    ("un `usar` en rombo carga el modulo una sola vez",
+     {"lib/base.sfs": 'fn doble(n: usize) -> usize { return n * 2; }',
+      "lib/medio.sfs": 'usar "base.sfs";\n'
+                       'fn cuadruple(n: usize) -> usize { return doble(doble(n)); }',
+      "app.sfs": 'usar "lib/medio.sfs";\nusar "lib/base.sfs";\n'
+                 'fn main() -> usize { imprimir(cuadruple(3)); imprimir("\\n");'
+                 ' imprimir(doble(5)); imprimir("\\n"); return 0; }'},
+     "app.sfs", None, "12\n10\n"),
+
+    ("dependencia circular",
+     {"a.sfs": 'usar "b.sfs";\nfn a() {}',
+      "b.sfs": 'usar "a.sfs";\nfn b() {}'},
+     "a.sfs", "dependencia circular", None),
+
+    ("modulo que no existe",
+     {"a.sfs": 'usar "fantasma.sfs";\nfn main() -> usize { return 0; }'},
+     "a.sfs", "no encuentro el modulo", None),
+
+    ("el mismo nombre en dos modulos",
+     {"x.sfs": 'fn dos() -> usize { return 2; }',
+      "a.sfs": 'usar "x.sfs";\nfn dos() -> usize { return 3; }\n'
+               'fn main() -> usize { return dos(); }'},
+     "a.sfs", "ya esta definida en", None),
+
+    ("un error dentro de un modulo dice de que archivo es",
+     {"roto.sfs": 'fn r() { let a: usize = 1; let b: i64 = 2;'
+                  ' let c: usize = a + b; }',
+      "a.sfs": 'usar "roto.sfs";\nfn main() -> usize { return 0; }'},
+     "a.sfs", "roto.sfs:1", None),
+]
+
+for nombre, archivos, principal, error_esperado, salida in MODULOS:
+    total += 1
+    tmp = tempfile.mkdtemp()
+    try:
+        for ruta, texto in archivos.items():
+            destino = os.path.join(tmp, ruta)
+            os.makedirs(os.path.dirname(destino), exist_ok=True)
+            with open(destino, "w", encoding="utf-8") as f:
+                f.write(texto)
+
+        try:
+            decls = cargar(os.path.join(tmp, principal))
+            codigo, errores = _compilar(decls, principal)
+        except ErrorDeModulo as exc:
+            codigo, errores = None, [str(exc)]
+
+        if error_esperado is not None:
+            if not errores:
+                falla(nombre, "compilo, y no deberia")
+            elif not any(error_esperado in e for e in errores):
+                falla(nombre, f"se esperaba {error_esperado!r}, hubo: {errores}")
+            continue
+
+        if errores:
+            falla(nombre, f"errores inesperados: {errores}")
+            continue
+
+        ruta_c = os.path.join(tmp, "p.c")
+        binario = os.path.join(tmp, "p")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-g", "-fsanitize=address,undefined",
+             "-Wall", "-Wextra", "-Werror", f"-I{RUNTIME}", ruta_c,
+             os.path.join(RUNTIME, "safestr.c"), "-o", binario],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            falla(nombre, "el C generado no compila:\n" + r.stderr)
+            continue
+        e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
+        if e.stdout != salida:
+            falla(nombre, f"salida {e.stdout!r}, se esperaba {salida!r}")
+        elif "AddressSanitizer" in e.stderr:
+            falla(nombre, f"sanitizer:\n{e.stderr}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 print(f"\n{total} casos, {fallos} fallas")
 sys.exit(1 if fallos else 0)

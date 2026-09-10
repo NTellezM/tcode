@@ -1,0 +1,71 @@
+// informe.sfs — el programa. Junta los dos modulos.
+//
+// Reparte el trabajo en tres archivos, usa una funcion que puede fallar y
+// no libera nada a mano. Es lo que hacia falta para escribir algo grande.
+
+usar "lib/texto.sfs";
+usar "lib/calculo.sfs";
+
+struct Articulo {
+    nombre: str,
+    unidades: usize,
+}
+
+// Recibe los campos, no el struct: `inv[i]` por valor lo sacaria del
+// arreglo y v0 no admite movimientos parciales. Prestar structs enteros es
+// lo siguiente que le falta al lenguaje.
+fn linea(nombre_art: view, unidades: usize, total: usize) -> str ! {
+    let pct: usize = try porcentaje(unidades, total);
+
+    var s: str = vacio();
+    let nombre: str = rellenar(nombre_art, 12);
+    empujar(s, vista(nombre));
+
+    let barra: str = repetir("#", try dividir(pct, 4));
+    empujar(s, vista(barra));
+
+    let hueco: str = repetir(" ", 26 - largo(vista(barra)));
+    empujar(s, vista(hueco));
+    return s;
+}
+
+fn main() -> usize ! {
+    var inv: [Articulo; 4] = [
+        Articulo { nombre: nuevo("tornillos"), unidades: 420 },
+        Articulo { nombre: nuevo("tuercas"),   unidades: 310 },
+        Articulo { nombre: nuevo("arandelas"), unidades: 200 },
+        Articulo { nombre: nuevo("remaches"),  unidades: 275 }
+    ];
+
+    var total: usize = 0;
+    var i: usize = 0;
+    while i < 4 {
+        total = total + inv[i].unidades;
+        i = i + 1;
+    }
+
+    let borde: str = repetir("=", 46);
+    imprimir(borde); imprimir("\n");
+
+    i = 0;
+    while i < 4 {
+        let l: str = try linea(vista(inv[i].nombre), inv[i].unidades, total);
+        imprimir(l);
+        imprimir(inv[i].unidades);
+        imprimir(" (");
+        imprimir(try porcentaje(inv[i].unidades, total));
+        imprimir("%)\n");
+        i = i + 1;
+    }
+
+    imprimir(borde); imprimir("\n");
+    imprimir("total ");   imprimir(total);
+    imprimir(", media "); imprimir(try media(total, 4));
+    imprimir("\n");
+
+    // Un fallo que se sustituye en vez de propagarse.
+    imprimir("sobre cero: ");
+    imprimir(porcentaje(10, 0) sino 0);
+    imprimir(" (sustituido)\n");
+    return 0;
+}
