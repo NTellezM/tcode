@@ -1,0 +1,11 @@
+# binarios de los ejemplos
+ejemplos/hola
+ejemplos/texto
+ejemplos/inventario
+
+# C generado por el compilador
+ejemplos/*.c
+
+# Python
+__pycache__/
+*.pyc
