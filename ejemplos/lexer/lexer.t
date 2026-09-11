@@ -15,25 +15,25 @@ fn main() -> usize ! {
         return 1;
     }
 
-    let ruta: view = argumento(1);
-    let fuente: str = try leer_archivo(ruta);
-    let tokens: lista<Token> = try analizar(vista(fuente));
+    let ruta = argumento(1);
+    let fuente = try leer_archivo(ruta);
+    let tokens = try analizar(fuente);
 
-    var solo_contar: bool = false;
+    var solo_contar = false;
     if n_argumentos() > 2 { solo_contar = igual(argumento(2), "--contar"); }
 
     if solo_contar {
         var por_tipo: mapa<str, usize> = [];
         for t en tokens {
-            let cuantos: usize = obtener(por_tipo, vista(t.tipo)) sino 0;
-            poner(por_tipo, vista(t.tipo), cuantos + 1);
+            let cuantos = obtener(por_tipo, t.tipo) sino 0;
+            poner(por_tipo, t.tipo, cuantos + 1);
         }
         imprimir($"{ruta}: {largo(tokens)} tokens\n");
 
-        var nombres: lista<str> = claves(por_tipo);
+        var nombres = claves(por_tipo);
         ordenar(nombres);
         for nombre en nombres {
-            let cuantos: usize = obtener(por_tipo, vista(nombre)) sino 0;
+            let cuantos = obtener(por_tipo, nombre) sino 0;
             imprimir($"  {nombre}  {cuantos}\n");
         }
         return 0;
@@ -42,5 +42,4 @@ fn main() -> usize ! {
     for t en tokens {
         imprimir($"{t.linea}\t{t.tipo}\t{t.valor}\n");
     }
-    return 0;
 }

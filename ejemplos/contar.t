@@ -12,8 +12,8 @@ fn es_espacio(b: usize) -> bool {
 }
 
 fn poner_numero(s: mut str, n: usize) {
-    let t: str = texto(n);
-    empujar(s, vista(t));
+    let t = texto(n);
+    empujar(s, t);
 }
 
 fn main() -> usize ! {
@@ -24,15 +24,15 @@ fn main() -> usize ! {
         return 1;
     }
 
-    let ruta: view = argumento(1);
-    let contenido: str = try leer_archivo(ruta);
+    let ruta = argumento(1);
+    let contenido = try leer_archivo(ruta);
     var saltos: lista<usize> = [];
-    var palabras: usize = 0;
-    var dentro: bool = false;
-    var i: usize = 0;
+    var palabras = 0;
+    var dentro = false;
+    var i = 0;
 
-    while i < largo(vista(contenido)) {
-        let b: usize = byte(vista(contenido), i);
+    while i < largo(contenido) {
+        let b = byte(contenido, i);
         if b == 10 {
             anadir(saltos, i);
         }
@@ -49,12 +49,12 @@ fn main() -> usize ! {
 
     // Un archivo no vacio cuya ultima linea no acaba en \n tiene una linea
     // adicional, igual que las herramientas habituales de conteo de texto.
-    var lineas: usize = largo(saltos);
-    if i > 0 && byte(vista(contenido), i - 1) != 10 {
+    var lineas = largo(saltos);
+    if i > 0 && byte(contenido, i - 1) != 10 {
         lineas = lineas + 1;
     }
 
-    var informe: str = nuevo(ruta);
+    var informe = nuevo(ruta);
     empujar(informe, ": ");
     poner_numero(informe, lineas);
     empujar(informe, " lineas, ");
@@ -63,5 +63,4 @@ fn main() -> usize ! {
     poner_numero(informe, i);
     empujar(informe, " bytes\n");
     imprimir(informe);
-    return 0;
 }

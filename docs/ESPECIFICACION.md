@@ -103,6 +103,58 @@ let a: usize = x *? y;   // multiplicación envolvente, explícita
 No existe la conversión silenciosa entre anchos ni entre signos. `i64` y
 `usize` no se mezclan sin decirlo.
 
+### La complejidad vive en una capa, no en la superficie
+
+Las reglas de arriba las comprueba el compilador. Lo que **escribes** no tiene
+por qué repetirlas:
+
+```tcode
+fn main() {
+    let saludo = nuevo("hola, ");
+    empujar(saludo, "mundo");
+    imprimir(saludo);
+}
+```
+
+Ahí hay propiedad, un préstamo y una liberación automática, y no se menciona
+ninguna. Tres cosas lo hacen posible:
+
+**El tipo se deduce del valor.** `let n = 42;` en vez de `let n: usize = 42;`.
+Se escribe sólo cuando dice algo que el valor no dice: `let xs: lista<usize> =
+[];`, donde `[]` no revela si es lista, arreglo o mapa. Al quitar las
+redundantes de los once ejemplos quedaron **3 de 55**.
+
+**Un `str` se presta solo donde se pide una vista.** `largo(s)` en vez de
+`largo(vista(s))`, `empujar(s, t)` en vez de `empujar(s, vista(t))`. El
+préstamo ocurre igual y el comprobador lo vigila igual; lo que se ahorra es
+deletrearlo. De 56 `vista()` escritas a mano quedaron 5, y las cinco son
+vistas con nombre que sí quieren serlo.
+
+**`fn main()` sin ceremonia.** Sin `-> usize`, sin `return 0`. Se declara el
+tipo de retorno sólo si el programa devuelve otra cosa.
+
+La regla que decide qué se queda: **puedes bajar a la capa de abajo cuando la
+necesitas, y no antes.** `vista(s)` sigue existiendo para cuando quieras
+controlar exactamente dónde empieza el préstamo; el tipo escrito sigue
+existiendo para cuando el valor no baste. Lo que se quitó no fue capacidad,
+fue repetición.
+
+Los tipos de una **firma** no se quitan. Ahí no son ceremonia: son el
+contrato, y son donde un error sale con un mensaje bueno en vez de aparecer
+tres funciones más allá.
+
+### Prometer un valor obliga a devolverlo
+
+Una función que declara tipo de retorno tiene que salir por `return` o `falla`
+en **todos** los caminos. Un `while` no cuenta: puede no dar ni una vuelta.
+
+```
+error: `g` promete devolver `usize` pero hay un camino que llega al final
+sin `return`
+```
+
+`main` es la excepción: si no dice otra cosa, sale con cero.
+
 ### 4. Sin valores no inicializados
 
 Toda variable se inicializa en su declaración. `let` es inmutable; `var` es

@@ -1783,6 +1783,11 @@ class Generador:
             if p is not None and p.prestado:
                 args.append(self.dir_de(a))
             else:
+                # `str` donde se pide `view`: se presta sin escribirlo.
+                if (p is not None and p.tipo == "view"
+                        and self._tipo_de(a) == "str"):
+                    args.append(self.como_vista(a))
+                    continue
                 arg_c = self.expr(a, p.tipo if p else None)
                 if p is not None and self.c.posee(p.tipo):
                     self.reclamar(arg_c)     # la funcion se lo queda

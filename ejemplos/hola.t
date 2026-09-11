@@ -1,19 +1,20 @@
-// El primer programa que compila el lenguaje safestr.
+// El primer programa que compila el lenguaje Tcode.
+//
+// Hay propiedad, un prestamo y una liberacion automatica aqui dentro, y no
+// se menciona ninguna: el compilador las comprueba, tu no las escribes.
 
 fn saludo(nombre: view) -> str {
-    var s: str = nuevo("Hola, ");
+    var s = nuevo("Hola, ");
     empujar(s, nombre);
     empujar(s, "!");
     return s;
 }
 
-fn main() -> usize {
-    let quien: str = saludo("mundo");
+fn main() {
+    let quien = saludo("mundo");
     imprimir(quien);
     imprimir("\n");
 
-    let n: usize = largo(vista(quien));
-    imprimir(n);
+    imprimir(largo(quien));
     imprimir(" bytes\n");
-    return 0;
 }

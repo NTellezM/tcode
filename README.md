@@ -4,6 +4,17 @@ Un lenguaje de sistemas pequeño que compila a C portable, donde las clases de
 fallo de memoria más comunes de C **no son expresables**.
 
 ```tcode
+fn main() {
+    let saludo = nuevo("hola, ");
+    empujar(saludo, "mundo");
+    imprimir(saludo);            // se libera sola al cerrar el bloque
+}
+```
+
+Ahí hay propiedad, un préstamo y una liberación, y no se menciona ninguna: el
+compilador las comprueba, tú no las escribes.
+
+```tcode
 fn saludo(nombre: view) -> str {
     var s: str = nuevo("Hola, ");
     empujar(s, nombre);
@@ -319,7 +330,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-180 casos, 0 fallas
+185 casos, 0 fallas
 548 comprobaciones sobre 60 programas, 0 fallas
 ```
 

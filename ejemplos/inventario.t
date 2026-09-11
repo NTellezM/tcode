@@ -25,8 +25,8 @@ fn crear(nombre: view, pasillo: usize, unidades: usize) -> Articulo {
 }
 
 fn resumir(inv: [Articulo; 4]) -> Resumen {
-    var total: usize = 0;
-    var mayor: usize = 0;
+    var total = 0;
+    var mayor = 0;
     for a en inv {
         total = total + a.unidades;
         if a.unidades > mayor {
@@ -37,8 +37,8 @@ fn resumir(inv: [Articulo; 4]) -> Resumen {
 }
 
 fn barra(n: usize) -> str {
-    var s: str = vacio();
-    var i: usize = 0;
+    var s = vacio();
+    var i = 0;
     while i < n {
         empujar(s, "#");
         i = i + 1;
@@ -47,7 +47,7 @@ fn barra(n: usize) -> str {
 }
 
 fn main() -> usize {
-    var inv: [Articulo; 4] = [
+    var inv = [
         crear("tornillos",  1, 420),
         crear("tuercas",    1, 310),
         crear("arandelas",  2, 150),
@@ -57,13 +57,13 @@ fn main() -> usize {
     // Se puede escribir dentro de un arreglo de structs, a cualquier hondura.
     inv[2].unidades = inv[2].unidades + 50;
 
-    var i: usize = 0;
+    var i = 0;
     while i < 4 {
         imprimir(inv[i].nombre);
         imprimir("\t pasillo ");
         imprimir(inv[i].pasillo);
         imprimir("  ");
-        let b: str = barra(inv[i].unidades / 50);
+        let b = barra(inv[i].unidades / 50);
         imprimir(b);
         imprimir(" ");
         imprimir(inv[i].unidades);
@@ -71,7 +71,7 @@ fn main() -> usize {
         i = i + 1;
     }
 
-    let r: Resumen = resumir(inv);
+    let r = resumir(inv);
     imprimir("\ntotal ");
     imprimir(r.total);
     imprimir(", mayor ");
@@ -79,5 +79,4 @@ fn main() -> usize {
     imprimir(", lleno: ");
     imprimir(r.lleno);
     imprimir("\n");
-    return 0;
 }

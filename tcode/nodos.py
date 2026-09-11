@@ -89,7 +89,9 @@ class Unaria(Nodo):
 @dataclass
 class Declaracion(Nodo):
     nombre: str
-    tipo: str
+    # None si no se escribio: el comprobador lo deduce del valor y lo rellena
+    # aqui, para que el generador vea siempre un tipo concreto.
+    tipo: Optional[str]
     valor: Nodo
     mutable: bool
     # La pone el comprobador: si el valor se movio a otro sitio, el generador

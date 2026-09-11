@@ -356,6 +356,31 @@ RECHAZO = [
      'fn f() { if true { continue; } }',
      "solo tiene sentido dentro"),
 
+    # ---- lo que la inferencia no puede adivinar ----
+    ("`[]` sin tipo no dice si es lista, arreglo o mapa",
+     'fn f() { let xs = []; imprimir(largo(xs)); }',
+     "escribe el tipo"),
+
+    ("no se deduce el tipo de algo que no devuelve nada",
+     'fn g() {} fn f() { let x = g(); imprimir(0); }',
+     "no se puede deducir el tipo"),
+
+    ("un `str` suelto no se puede prestar a una funcion",
+     'fn g(v: view) {} fn f() { g(nuevo("a")); }',
+     "no esta guardado en ninguna variable"),
+
+    ("prometer un valor y no devolverlo",
+     'fn g() -> usize { imprimir(1); }',
+     "hay un camino que llega al final sin `return`"),
+
+    ("devolver solo en una rama",
+     'fn g(c: bool) -> usize { if c { return 1; } }',
+     "sin `return`"),
+
+    ("un `while` no garantiza la salida",
+     'fn g(c: bool) -> usize { while c { return 1; } }',
+     "sin `return`"),
+
     # ---- tipos ----
     ("tipo declarado que no calza",
      'fn f() { let n: usize = "no soy un numero"; }',
@@ -919,6 +944,36 @@ ACEPTA = [
             return 0;
         }''',
      "n:usize.....:5 s:str:0 \n"),
+
+    ("el tipo se deduce del valor",
+     '''struct P { x: usize, y: usize }
+        fn main() {
+            let n = 42;
+            let ok = true;
+            let s = nuevo("hola");
+            let v = vista(s);
+            let p = P { x: 1, y: 2 };
+            var xs = [10, 20, 30];
+            let t = texto(n);
+            let m = $"{n}/{ok}";
+            imprimir($"{n} {ok} {s} {largo(v)} {p.x} {xs[1]} {t} {m}\\n");
+        }''',
+     "42 true hola 4 1 20 42 42/true\n"),
+
+    ("un `str` se presta solo donde se pide una vista",
+     '''fn medir(v: view) -> usize { return largo(v); }
+        fn juntar(a: view, b: view) -> str {
+            var s = nuevo(a);
+            empujar(s, b);
+            return s;
+        }
+        fn main() {
+            let uno = nuevo("hola");
+            let dos = nuevo(" mundo");
+            let todo = juntar(uno, dos);
+            imprimir($"{medir(uno)} {medir(todo)} {todo}\\n");
+        }''',
+     "4 10 hola mundo\n"),
 
     ("rebanadas de vista",
      '''fn main() -> usize {
