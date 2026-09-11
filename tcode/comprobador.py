@@ -40,6 +40,15 @@ def es_lista(t):
     return isinstance(t, str) and t.startswith("lista<") and t.endswith(">")
 
 
+def es_referencia(t):
+    return isinstance(t, str) and t.startswith("&")
+
+
+def apuntado(t):
+    """`&Simbolo` -> `Simbolo`."""
+    return t[1:]
+
+
 def es_mapa(t):
     return isinstance(t, str) and t.startswith("mapa<") and t.endswith(">")
 
@@ -195,7 +204,8 @@ class Comprobador:
         # Al cerrar el bloque mueren las vistas declaradas aqui: se sueltan
         # los prestamos que tenian sobre variables de bloques exteriores.
         for sim in muerto.values():
-            if sim.tipo == "view" and sim.origen is not None:
+            if (sim.tipo == "view" or es_referencia(sim.tipo)) \
+                    and sim.origen is not None:
                 duenio = self.buscar(sim.origen)
                 if duenio is not None and sim.nombre in duenio.prestamos:
                     duenio.prestamos.remove(sim.nombre)
@@ -319,6 +329,8 @@ class Comprobador:
 
     def posee(self, tipo, visitados=None):
         """True si un valor de este tipo es duenio de memoria del heap."""
+        if es_referencia(tipo):
+            return False        # presta; el duenio es otro
         if tipo == "str":
             return True
         if es_mapa(tipo):
@@ -339,6 +351,10 @@ class Comprobador:
         return any(self.posee(c.tipo, visitados) for c in st.campos)
 
     def tipo_existe(self, t):
+        if es_referencia(t):
+            # Solo tiene sentido prestar algo que alguien posee.
+            interno = apuntado(t)
+            return self.tipo_existe(interno) and self.posee(interno)
         if t in {"str", "view", "usize", "i64", "bool"} or t in self.structs:
             return True
         if es_arreglo(t):
@@ -563,9 +579,12 @@ class Comprobador:
                 self.error(s, f"`{s.nombre}` se declaro `{s.tipo}` pero el "
                               f"valor es `{tipo}`")
             sim = self.declarar(s, s.nombre, s.tipo, s.mutable, decl=s)
-            if s.tipo == "view":
+            # Una vista y un `&T` son lo mismo para esto: apuntan a memoria
+            # de otro, y mientras vivan ese otro no se puede mover ni tocar.
+            if s.tipo == "view" or es_referencia(s.tipo):
                 sim.procedencia = self.procedencia_de(s.valor)
                 sim.origen = self._origen_de(s.valor)
+                sim.prestado = es_referencia(s.tipo)
                 if sim.origen is not None:
                     duenio = self.buscar(sim.origen)
                     if duenio is not None:
@@ -717,7 +736,8 @@ class Comprobador:
                 return
             # Una vista solo puede salir de la funcion si la memoria a la
             # que apunta sobrevive: o es estatica, o es del que llama.
-            if self.retorno_actual == "view":
+            if (self.retorno_actual == "view"
+                    or es_referencia(self.retorno_actual or "")):
                 self.comprobar_vista_devuelta(s)
 
             # devolver una variable duenia la mueve fuera de la funcion (str,
@@ -969,7 +989,12 @@ class Comprobador:
             t = self.desenvolver(e, e.expr, "sino")
             alt = self.expresion(e.alternativa, destino=t, mover_variables=True)
 
-            if t is not None and alt is not None and not encaja(t, alt):
+            if t is not None and es_referencia(t):
+                self.error(e, f"`sino` no vale aqui: la llamada devuelve un "
+                              f"prestamo (`{t}`) y no hay nada que prestar "
+                              f"cuando falla. Usa `try`, o pregunta antes con "
+                              f"`tiene(...)`")
+            elif t is not None and alt is not None and not encaja(t, alt):
                 self.error(e, f"la llamada da `{t}` y el valor de despues de "
                               f"`sino` es `{alt}`")
             return t
@@ -1002,11 +1027,9 @@ class Comprobador:
         if k != "str":
             self.error(nodo, f"en v0 la clave de un mapa tiene que ser `str`, "
                              f"y aqui es `{k}`")
-        if v != "str" and self.posee(v):
-            self.error(nodo, f"en v0 el valor de un mapa puede ser un escalar "
-                             f"o un `str`, y `{v}` no es ninguno. Para otros "
-                             f"duenios haria falta que `obtener` devolviera un "
-                             f"prestamo del tipo entero, no solo del texto")
+        if es_referencia(v) or es_referencia(k):
+            self.error(nodo, "un mapa guarda valores, no prestamos: `&T` no "
+                             "puede ser ni clave ni valor")
 
     def interna_mapa(self, e: Llamada, nombre):
         """`poner`, `obtener`, `tiene` y `claves` sobre `mapa<K, V>`."""
@@ -1065,9 +1088,12 @@ class Comprobador:
         if nombre == "obtener":
             self.usar(lugar, sim)
             # Un valor escalar cabe en el retorno; uno duenio no se puede
-            # sacar sin dejar el mapa a medias, asi que se presta: la vista
-            # apunta al texto que ya vive dentro de la tabla.
-            return "view" if self.posee(v) else v
+            # sacar sin dejar el mapa a medias, asi que se presta.
+            # Para texto se presta como `view`, que es lo que se quiere leer;
+            # para lo demas, como `&V`.
+            if not self.posee(v):
+                return v
+            return "view" if v == "str" else f"&{v}"
 
         # poner: muta el mapa, y el valor entra por copia
         tv = self.expresion(e.args[2], destino=v,
@@ -1096,6 +1122,8 @@ class Comprobador:
         base = self.expresion(e.objeto)
         if base is None:
             return None
+        if es_referencia(base):
+            base = apuntado(base)       # `p.x` sobre un `&P` mira dentro
         st = self.structs.get(base)
         if st is None:
             self.error(e, f"`{base}` no es un struct, no tiene campos")

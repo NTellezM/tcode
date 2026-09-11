@@ -431,9 +431,20 @@ disfrazado es exactamente cómo se cuelan los errores.
   Y no puede salir de la función, por la misma regla que cualquier vista de
   algo local.
 
-  Para valores más complejos —una `lista<T>` o un struct dentro de un mapa—
-  haría falta devolver un préstamo del tipo entero, no solo del texto. Ese
-  es el muro que queda.
+  Para un struct, `obtener` devuelve un **`&V`**: un préstamo de solo
+  lectura del valor que está en la tabla.
+
+  ```tcode
+  struct Simbolo { tipo: str, mutable: bool, usos: usize }
+
+  var tabla: mapa<str, Simbolo> = [];
+  poner(tabla, "n", Simbolo { tipo: nuevo("usize"), mutable: false, usos: 3 });
+  let s: &Simbolo = try obtener(tabla, "n");
+  imprimir($"{s.tipo} usado {s.usos} veces");
+  ```
+
+  `sino` no vale aquí, y el error lo dice: si la clave no está, no hay nada
+  que prestar. O se usa `try`, o se pregunta antes con `tiene`.
 
 ### Argumentos de la línea de órdenes
 
@@ -594,10 +605,33 @@ Y dos del generador: la asignación liberaba el valor viejo aunque ya se
 hubiera movido —doble `free`— y una sentencia que descartaba un valor dueño
 lo filtraba.
 
+### 14. `&T`: préstamos como tipo
+
+`&T` no es solo una marca de parámetro: es un tipo. Un valor `&T` apunta a
+algo que vive en otro sitio y es de solo lectura.
+
+```tcode
+let s: &Simbolo = try obtener(tabla, "n");
+imprimir(s.tipo);          // se leen sus campos
+```
+
+Las reglas son las de cualquier préstamo, y se comprueban igual:
+
+- Mientras viva, lo prestado no se puede modificar ni mover.
+- No puede salir de la función si presta de algo local.
+- No se puede mover: no es suyo.
+- Un mapa guarda valores, no préstamos: `mapa<str, &T>` es un error.
+
+En C sale como `const T*`, así que el propio compilador de C también
+impide escribir a través de él.
+
+Para **modificar** un valor guardado en un mapa, hoy se reemplaza entero con
+`poner`. Un préstamo mutable desde una colección es lo que falta.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: genéricos definidos por el usuario, espacios de
-nombres, préstamos devueltos de un tipo cualquiera (sólo de texto), E/S incremental, aritmética de punteros ni recolector.
+nombres, préstamos mutables desde una colección, E/S incremental, aritmética de punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

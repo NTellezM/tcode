@@ -122,6 +122,12 @@ class Parser:
     def tipo(self) -> str:
         t = self.actual
 
+        # `&T` como tipo: un prestamo de solo lectura. En la posicion de un
+        # parametro se sigue escribiendo igual, pero alli se guarda aparte.
+        if self.es("simbolo", "&"):
+            self.i += 1
+            return f"&{self.tipo()}"
+
         if t.tipo == "palabra" and t.valor in TIPOS:
             self.i += 1
             return t.valor
