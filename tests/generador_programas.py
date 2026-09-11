@@ -144,6 +144,9 @@ class Generador:
             idx = self.r.randrange(cuantos)
             lineas.append(f"{s}{v}[{idx}] = {self.expr_usize(vars_usize)};")
             vars_usize.append(f"{v}[{idx}]")
+            if self.r.random() < 0.6:
+                lineas.append(f"{s}ordenar({v});")
+                lineas.append(f"{s}imprimir({v}[0]);")
 
         # Lista de valores DUENIOS: cada elemento hay que liberarlo, y al
         # crecer la lista los mueve de sitio. Es el caso que mas facil se
@@ -177,9 +180,18 @@ class Generador:
             lineas.append(f'{s}imprimir(tiene({v}, "no_esta_esta_clave"));')
             lineas.append(f'{s}imprimir(obtener({v}, "{usadas[0]}") sino 0);')
             lineas.append(f'{s}imprimir(obtener({v}, "tampoco") sino 7);')
+            if self.r.random() < 0.6:
+                lineas.append(f'{s}imprimir(quitar({v}, "{usadas[0]}"));')
+                lineas.append(f'{s}imprimir(quitar({v}, "jamas_estuvo"));')
+                lineas.append(f'{s}imprimir(tiene({v}, "{usadas[0]}"));')
             ks = nombre("ks")
-            lineas.append(f"{s}let {ks}: lista<str> = claves({v});")
+            lineas.append(f"{s}var {ks}: lista<str> = claves({v});")
+            lineas.append(f"{s}ordenar({ks});")
             lineas.append(f"{s}imprimir(largo({ks}));")
+            if self.r.random() < 0.5:
+                lineas.append(f"{s}if largo({ks}) > 0 {{")
+                lineas.append(f"{s}    imprimir({ks}[0]);")
+                lineas.append(f"{s}}}")
 
         # --- fase 2: mutar ---
         for vs in vars_str:
@@ -273,6 +285,11 @@ class Generador:
                           f"{self.r.choice(vars_usize)});")
             lineas.append(f"{s}imprimir({t});")
 
+        # Comparacion de orden entre textos.
+        if vars_str and self.r.random() < 0.5:
+            lineas.append(f'{s}imprimir(menor(vista({self.r.choice(vars_str)}), '
+                          f'"{self.palabra()}"));')
+
         # `byte` con indice acotado por el largo: nunca se sale.
         if vars_str and self.r.random() < 0.5:
             vs = self.r.choice(vars_str)
@@ -292,6 +309,8 @@ class Generador:
                               f"puede_fallar({falla_ahora}) sino {alt};")
                 lineas.append(f"{s}imprimir(largo(vista({res})));")
 
+        if self.r.random() < 0.4:
+            lineas.append(f'{s}imprimir_error("");')
         lineas.append(f'{s}imprimir("\\n");')
 
         return lineas, (libres[-1] if libres else None)

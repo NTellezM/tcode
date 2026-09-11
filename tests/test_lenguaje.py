@@ -222,6 +222,27 @@ RECHAZO = [
      'fn f() { var m: mapa<str, usize> = [1, 2]; imprimir(largo(m)); }',
      "se llena con `poner`"),
 
+    # ---- orden y salida ----
+    ("un struct no tiene orden natural",
+     'struct P { a: usize } fn f() { var xs: lista<P> = []; ordenar(xs); }',
+     "no tiene un orden natural"),
+
+    ("`ordenar` necesita una lista",
+     'fn f() { var s: str = nuevo("a"); ordenar(s); }',
+     "opera sobre `lista<T>`"),
+
+    ("`ordenar` sobre un `let`",
+     'fn f() { let xs: lista<usize> = []; ordenar(xs); }',
+     "se declaro con `let`"),
+
+    ("`quitar` sobre un `let`",
+     'fn f() { let m: mapa<str, usize> = []; imprimir(quitar(m, "a")); }',
+     "se declaro con `let`"),
+
+    ("`escribir_archivo` puede fallar y hay que decirlo",
+     'fn f() { escribir_archivo("x", "y"); }',
+     "puede fallar"),
+
     # ---- tipos ----
     ("tipo declarado que no calza",
      'fn f() { let n: usize = "no soy un numero"; }',
@@ -574,6 +595,57 @@ ACEPTA = [
         }''',
      "true true\n"),
 
+    ("ordenar numeros y textos",
+     '''fn main() -> usize {
+            var n: lista<usize> = [];
+            anadir(n, 30); anadir(n, 4); anadir(n, 17); anadir(n, 4);
+            ordenar(n);
+            var i: usize = 0;
+            while i < largo(n) { imprimir(n[i]); imprimir(" "); i = i + 1; }
+            var p: lista<str> = [];
+            anadir(p, nuevo("pera")); anadir(p, nuevo("ana"));
+            anadir(p, nuevo("kiwi"));
+            ordenar(p);
+            i = 0;
+            while i < largo(p) { imprimir(p[i]); imprimir(" "); i = i + 1; }
+            imprimir(menor("ana", "pera")); imprimir(" ");
+            imprimir(menor("pera", "ana")); imprimir("\\n");
+            return 0;
+        }''',
+     "4 4 17 30 ana kiwi pera true false\n"),
+
+    ("quitar de un mapa cierra el hueco sin perder vecinos",
+     '''fn clave_de(i: usize) -> str {
+            var k: str = nuevo("c");
+            let n: str = texto(i);
+            empujar(k, vista(n));
+            return k;
+        }
+        fn main() -> usize {
+            var m: mapa<str, usize> = [];
+            var i: usize = 0;
+            while i < 200 { let k: str = clave_de(i); poner(m, vista(k), i); i = i + 1; }
+            i = 0;
+            var quitadas: usize = 0;
+            while i < 200 {
+                let k: str = clave_de(i);
+                if quitar(m, vista(k)) { quitadas = quitadas + 1; }
+                i = i + 2;
+            }
+            var malas: usize = 0;
+            i = 1;
+            while i < 200 {
+                let k: str = clave_de(i);
+                if (obtener(m, vista(k)) sino 999999) != i { malas = malas + 1; }
+                i = i + 2;
+            }
+            imprimir(quitadas); imprimir(" "); imprimir(largo(m)); imprimir(" ");
+            imprimir(malas); imprimir(" "); imprimir(quitar(m, "jamas"));
+            imprimir("\\n");
+            return 0;
+        }''',
+     "100 100 0 false\n"),
+
     ("rebanadas de vista",
      '''fn main() -> usize {
             let s: str = nuevo("abcdefgh");
@@ -877,6 +949,50 @@ with tempfile.TemporaryDirectory() as tmp:
                   f"codigo {rc}, salida {out!r}, stderr {err!r}")
         elif "runtime error" in err or "AddressSanitizer" in err:
             falla("leer un archivo completo", f"sanitizer se quejo:\n{err}")
+
+    # Ida y vuelta: escribir con bytes cero dentro y volver a leerlo.
+    total += 1
+    salida = os.path.join(tmp, "salida.bin")
+    ruta_s = salida.replace("\\", "\\\\").replace('"', '\\"')
+    fuente = f'''fn main() -> usize ! {{
+        var datos: str = nuevo("ab");
+        empujar(datos, "\\0cd");
+        try escribir_archivo("{ruta_s}", vista(datos));
+        let vuelta: str = try leer_archivo("{ruta_s}");
+        imprimir(largo(vista(vuelta))); imprimir(" ");
+        imprimir(byte(vista(vuelta), 2)); imprimir(" ");
+        imprimir(igual(vista(datos), vista(vuelta))); imprimir("\\n");
+        imprimir_error("esto va al diagnostico");
+        return 0;
+    }}'''
+    try:
+        rc, out, err = compilar_y_correr(fuente, tmp)
+    except AssertionError as exc:
+        falla("escribir y volver a leer", str(exc))
+    else:
+        if rc != 0 or out != "5 0 true\n":
+            falla("escribir y volver a leer",
+                  f"codigo {rc}, salida {out!r}, stderr {err!r}")
+        elif "esto va al diagnostico" not in err:
+            falla("escribir y volver a leer",
+                  "`imprimir_error` no salio por la salida de error")
+        elif "AddressSanitizer" in err:
+            falla("escribir y volver a leer", f"sanitizer se quejo:\n{err}")
+
+    # Escribir donde no se puede es un fallo, no un cuelgue.
+    total += 1
+    fuente = '''fn main() -> usize ! {
+        try escribir_archivo("/no/existe/de/verdad.txt", "x");
+        return 0;
+    }'''
+    try:
+        rc, out, err = compilar_y_correr(fuente, tmp)
+    except AssertionError as exc:
+        falla("escribir donde no se puede", str(exc))
+    else:
+        if rc == 0 or "no se pudo abrir el archivo para escribir" not in err:
+            falla("escribir donde no se puede",
+                  f"codigo {rc}, stderr {err!r}")
 
 print("=== ABORTA: la aritmetica comprobada detiene el programa ===")
 with tempfile.TemporaryDirectory() as tmp:

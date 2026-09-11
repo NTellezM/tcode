@@ -19,7 +19,7 @@ from tcode.nodos import (
 )
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
-    es_lista, elem_lista, es_mapa, partes_mapa,
+    es_lista, elem_lista, es_mapa, partes_mapa, ORDENABLES,
 )
 
 TIPOS_C = {
@@ -283,6 +283,7 @@ class Generador:
         self.mapas = {}        # idem para mapa<K, V>
         self.resultados = {}   # tipo Tcode -> nombre del typedef de resultado
         self.usa_leer_archivo = False
+        self.usa_escribir_archivo = False
         self.bucle = 0         # contador para variables de bucle de liberacion
         self.func = None       # funcion que se esta generando
         # Variables que se mueven en algun punto: llevan una bandera en
@@ -380,6 +381,9 @@ class Generador:
             if isinstance(x, Llamada) and x.nombre == "leer_archivo":
                 self.usa_leer_archivo = True
                 self.tipo_resultado("str")
+            if isinstance(x, Llamada) and x.nombre == "escribir_archivo":
+                self.usa_escribir_archivo = True
+                self.tipo_resultado(UNIDAD)
             if isinstance(x, (list, tuple)):
                 for y in x:
                     recorrer(y)
@@ -525,6 +529,37 @@ class Generador:
         if self.resultados:
             self.lineas.append("")
 
+        if self.usa_escribir_archivo:
+            res = self.tipo_resultado(UNIDAD)
+            self.lineas.extend([
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static {res} ss_lang_escribir_archivo_(SafeView ruta, SafeView datos)",
+                "{",
+                "    if (ruta.len != 0 && memchr(ruta.ptr, 0, ruta.len) != NULL)",
+                f'        return ({res}){{ .motivo = "la ruta contiene un byte cero" }};',
+                "",
+                "    SafeString copia = ss_from_view(ruta);",
+                "    if (!ss_ok(&copia))",
+                "    {",
+                "        ss_free(&copia);",
+                f'        return ({res}){{ .motivo = "sin memoria para la ruta" }};',
+                "    }",
+                '    FILE* f = fopen(ss_cstr(&copia), "wb");',
+                "    ss_free(&copia);",
+                "    if (f == NULL)",
+                f'        return ({res}){{ .motivo = "no se pudo abrir el archivo para escribir" }};',
+                "",
+                "    bool fallo = false;",
+                "    if (datos.len != 0)",
+                "        fallo = fwrite(datos.ptr, 1, datos.len, f) != datos.len;",
+                "    if (fclose(f) != 0) fallo = true;",
+                "    if (fallo)",
+                f'        return ({res}){{ .motivo = "fallo al escribir el archivo" }};',
+                f"    return ({res}){{ .motivo = NULL }};",
+                "}",
+                "",
+            ])
+
         if self.usa_leer_archivo:
             res = self.tipo_resultado("str")
             self.lineas.extend([
@@ -595,6 +630,40 @@ class Generador:
                 "        p->capacity = nueva;",
                 "    }",
                 "    p->e[p->length++] = valor;",
+                "}",
+                "",
+            ])
+
+        # Ordenacion por cada lista<T> con orden natural. Se apoya en qsort
+        # de la biblioteca estandar: el comparador es concreto por tipo, asi
+        # que el compilador de C tambien lo comprueba.
+        for t, nombre in self.listas.items():
+            elem = elem_lista(t)
+            if elem not in ORDENABLES:
+                continue
+            tc_elem = self.tipo_c(elem)
+            m = mangle(t)
+            if elem == "str":
+                cuerpo = ["    return ss_cmp((const SafeString*) a, "
+                          "(const SafeString*) b);"]
+            else:
+                cuerpo = [
+                    f"    {tc_elem} x = *(const {tc_elem}*) a;",
+                    f"    {tc_elem} y = *(const {tc_elem}*) b;",
+                    "    return (x > y) - (x < y);",
+                ]
+            self.lineas.extend([
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static int ss_cmp_{m}(const void* a, const void* b)",
+                "{",
+                *cuerpo,
+                "}",
+                "",
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static void ss_ordenar_{m}({nombre}* p)",
+                "{",
+                "    if (p->length > 1)",
+                f"        qsort(p->e, p->length, sizeof(*p->e), ss_cmp_{m});",
                 "}",
                 "",
             ])
@@ -707,6 +776,41 @@ class Generador:
                 f"        ss_push_{mangle('lista<' + k + '>')}(&salida, copia, archivo, linea);",
                 "    }",
                 "    return salida;",
+                "}",
+                "",
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static bool ss_mapa_quitar_{m}({nombre}* p, SafeView clave)",
+                "{",
+                "    if (p->capacidad == 0) return false;",
+                "    size_t mascara = p->capacidad - 1;",
+                f"    size_t i = ss_mapa_sitio_{m}(p, clave);",
+                "    if (p->claves[i].data == NULL) return false;",
+                "",
+                "    ss_free(&p->claves[i]);",
+                "    p->claves[i] = ss_new();",
+                "    p->largo--;",
+                "",
+                "    /* Sin lapidas: se cierra el hueco arrastrando hacia atras",
+                "       las entradas del mismo grupo que quedarian inalcanzables.",
+                "       Es lo que permite que la busqueda pueda parar en la",
+                "       primera celda libre. */",
+                "    size_t j = i;",
+                "    for (;;)",
+                "    {",
+                "        j = (j + 1) & mascara;",
+                "        if (p->claves[j].data == NULL) break;",
+                "        size_t k = (size_t) sv_hash(ss_view(&p->claves[j])) & mascara;",
+                "        bool mover = (i <= j) ? (k <= i || k > j)",
+                "                              : (k <= i && k > j);",
+                "        if (mover)",
+                "        {",
+                "            p->claves[i] = p->claves[j];",
+                "            p->valores[i] = p->valores[j];",
+                "            p->claves[j] = ss_new();",
+                "            i = j;",
+                "        }",
+                "    }",
+                "    return true;",
                 "}",
                 "",
                 "SS_LANG_QUIZA_SIN_USAR",
@@ -1093,13 +1197,13 @@ class Generador:
         if isinstance(e, Variable):
             return self.tipo_var(e.nombre) or "usize"
         if isinstance(e, Llamada):
-            if e.nombre in ("obtener", "tiene", "claves") and e.args:
+            if e.nombre in ("obtener", "tiene", "claves", "quitar") and e.args:
                 tm = self._tipo_de(e.args[0])
                 if es_mapa(tm):
                     k, v = partes_mapa(tm)
                     if e.nombre == "obtener":
                         return v
-                    if e.nombre == "tiene":
+                    if e.nombre in ("tiene", "quitar"):
                         return "bool"
                     return f"lista<{k}>"
             if e.nombre in INTERNAS:
@@ -1353,7 +1457,7 @@ class Generador:
             self.emitir(f"SafeView {tmp} = {vista};")
             return (f"((size_t)(unsigned char){tmp}.ptr[ss_lang_indice_("
                     f"{idx}, {tmp}.len, {self.arch(e)}, {e.linea})])")
-        if n in ("poner", "obtener", "tiene", "claves"):
+        if n in ("poner", "obtener", "tiene", "claves", "quitar"):
             lugar = e.args[0]
             tm = self._tipo_de(lugar)
             m = mangle(tm)
@@ -1364,6 +1468,8 @@ class Generador:
             clave = self.como_vista(e.args[1])
             if n == "tiene":
                 return f"ss_mapa_tiene_{m}({dir_mapa}, {clave})"
+            if n == "quitar":
+                return f"ss_mapa_quitar_{m}({dir_mapa}, {clave})"
             if n == "obtener":
                 return f"ss_mapa_obtener_{m}({dir_mapa}, {clave})"
             _, tv = partes_mapa(tm)
@@ -1377,6 +1483,21 @@ class Generador:
         if n == "argumento":
             return (f"ss_lang_argumento_({self.expr(e.args[0], 'usize')}, "
                     f"{self.arch(e)}, {e.linea})")
+
+        if n == "menor":
+            return (f"(sv_cmp({self.como_vista(e.args[0])}, "
+                    f"{self.como_vista(e.args[1])}) < 0)")
+
+        if n == "ordenar":
+            t = self._tipo_de(e.args[0])
+            return f"ss_ordenar_{mangle(t)}({self.dir_de(e.args[0])})"
+
+        if n == "imprimir_error":
+            return self.imprimir(e.args[0], "stderr")
+
+        if n == "escribir_archivo":
+            return (f"ss_lang_escribir_archivo_({self.como_vista(e.args[0])}, "
+                    f"{self.como_vista(e.args[1])})")
 
         if n == "leer_archivo":
             return f"ss_lang_leer_archivo_({self.como_vista(e.args[0])})"
@@ -1405,20 +1526,25 @@ class Generador:
             return f"ss_view({self.dir_de(a)})"
         return self.expr(a, "view")
 
-    def imprimir(self, a):
+    def imprimir(self, a, destino="stdout"):
+        """`imprimir` va al resultado; `imprimir_error` al diagnostico.
+
+        Separarlos no es cosmetico: es lo que permite encauzar la salida de
+        una herramienta sin que se le cuelen los mensajes de uso.
+        """
+        f = "printf(" if destino == "stdout" else f"fprintf({destino}, "
         t = self._tipo_de(a)
         if t == "str":
-            return f'printf("%s", ss_cstr({self.dir_de(a)}))'
+            return f'{f}"%s", ss_cstr({self.dir_de(a)}))'
         if t == "view":
-            v = self.como_vista(a)
-            return f'printf(SV_FMT, SV_ARG({v}))'
+            return f'{f}SV_FMT, SV_ARG({self.como_vista(a)}))'
         if t == "usize":
-            return f'printf("%zu", {self.expr(a, "usize")})'
+            return f'{f}"%zu", {self.expr(a, "usize")})'
         if t == "i64":
-            return f'printf("%lld", (long long){self.expr(a, "i64")})'
+            return f'{f}"%lld", (long long){self.expr(a, "i64")})'
         if t == "bool":
-            return f'printf("%s", ({self.expr(a, "bool")}) ? "true" : "false")'
-        return f'printf("%s", "?")'
+            return f'{f}"%s", ({self.expr(a, "bool")}) ? "true" : "false")'
+        return f'{f}"%s", "?")'
 
 
 def generar(funciones, comprobador, archivo="<entrada>"):

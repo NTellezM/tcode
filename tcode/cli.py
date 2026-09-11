@@ -17,6 +17,7 @@ from tcode.explicar import explicar
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNTIME = os.path.join(RAIZ, "runtime")
 
+VERSION = "0.1.0"
 MARCA = "/* Generado por el compilador de Tcode. No editar a mano. */"
 
 
@@ -53,6 +54,8 @@ def _compilar(arbol, archivo, devolver_comp=False):
 def main(argv=None):
     ap = argparse.ArgumentParser(
         prog="tcode", description="Compilador del lenguaje Tcode")
+    ap.add_argument("--version", action="version",
+                    version=f"tcode {VERSION}")
     ap.add_argument("fuente", help="archivo .t")
     ap.add_argument("-o", "--salida", help="binario de salida")
     ap.add_argument("--emitir-c", action="store_true",
