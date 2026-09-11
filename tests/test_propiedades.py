@@ -27,6 +27,10 @@ Las cinco propiedades:
       deja de cuadrar, el fallo esta en el analisis.
   P7  Todo aviso nombra un archivo y una linea que existen, y ningun aviso
       impide compilar.
+  P8  Ante un programa ROTO, el compilador se comporta: o lo acepta, o lo
+      rechaza diciendo archivo y linea. Nunca una excepcion, nunca un
+      cuelgue. Es la mitad del compilador que el generador de programas
+      validos no toca, y la que crece con cada construccion nueva.
 """
 
 import os
@@ -46,6 +50,7 @@ from tcode.explicar import explicar
 from tcode.lexer import ErrorLexico
 from tcode.parser import ErrorSintactico
 from generador_programas import generar
+from mutador import mutar
 
 RUNTIME = os.path.join(RAIZ, "runtime")
 CUANTOS = int(os.environ.get("TCODE_PROGRAMAS", "60"))
@@ -213,6 +218,65 @@ def probar_errores(tmp):
                       f"{e!r}", fuente)
 
 
+def probar_mutantes(semilla, por_programa=12):
+    """P8: romper un programa valido y exigir que el compilador se porte."""
+    global total
+    fuente = generar(semilla)
+    for k in range(por_programa):
+        total += 1
+        roto, descripcion = mutar(fuente, semilla * 1000 + k)
+        nombre = f"m{semilla}_{k}.t"
+        try:
+            codigo, errores, comp = compilar_a_c(roto, nombre,
+                                                 devolver_comp=True)
+        except (ErrorLexico, ErrorSintactico) as exc:
+            # Un error de sintaxis es una respuesta legitima, pero tiene que
+            # decir donde.
+            texto = str(exc)
+            if not texto.startswith(nombre + ":"):
+                falla("P8 rechazo con sitio", f"{semilla}/{k}",
+                      f"{descripcion}\nel error no nombra el archivo: {texto!r}",
+                      roto)
+            continue
+        except RecursionError:
+            falla("P8 no revienta", f"{semilla}/{k}",
+                  f"{descripcion}\nrecursion infinita en el compilador", roto)
+            continue
+        except Exception:
+            falla("P8 no revienta", f"{semilla}/{k}",
+                  f"{descripcion}\n{traceback.format_exc()}", roto)
+            continue
+
+        n_lineas = len(roto.split("\n"))
+        for e in errores + (comp.avisos if comp else []):
+            if not e.startswith(nombre + ":"):
+                falla("P8 rechazo con sitio", f"{semilla}/{k}",
+                      f"{descripcion}\nno nombra el archivo: {e!r}", roto)
+                break
+            numero = e[len(nombre) + 1:].split(":", 1)[0]
+            if not numero.isdigit() or not 1 <= int(numero) <= n_lineas:
+                falla("P8 rechazo con sitio", f"{semilla}/{k}",
+                      f"{descripcion}\nlinea fuera del archivo "
+                      f"(tiene {n_lineas}): {e!r}", roto)
+                break
+
+        # Si el mutante COMPILA, el C que sale tiene que compilar tambien:
+        # un programa aceptado nunca puede producir C invalido.
+        if not errores and codigo is not None:
+            with tempfile.TemporaryDirectory() as tmp:
+                ruta_c = os.path.join(tmp, "m.c")
+                with open(ruta_c, "w", encoding="utf-8") as f:
+                    f.write(codigo)
+                r = subprocess.run(
+                    ["cc", "-std=c17", "-O0", "-w", f"-I{RUNTIME}", ruta_c,
+                     os.path.join(RUNTIME, "safestr.c"), "-o",
+                     os.path.join(tmp, "m")],
+                    capture_output=True, text=True)
+                if r.returncode != 0:
+                    falla("P8 aceptado da C valido", f"{semilla}/{k}",
+                          f"{descripcion}\n{r.stderr}", roto)
+
+
 def main():
     print(f"=== PROPIEDADES sobre {CUANTOS} programas generados ===")
     tmp = tempfile.mkdtemp(prefix="tcode-prop-")
@@ -220,6 +284,10 @@ def main():
         for semilla in range(1, CUANTOS + 1):
             probar_programa(semilla, tmp)
         probar_errores(tmp)
+
+        print("=== MUTANTES: programas rotos a proposito ===")
+        for semilla in range(1, max(4, CUANTOS // 4) + 1):
+            probar_mutantes(semilla)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

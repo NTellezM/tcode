@@ -143,6 +143,40 @@ El detalle está en [`bench/README.md`](bench/README.md), incluido por qué
 `-O3` importa aquí y por qué el compilador escrito en Python no se nota
 (es el 0.5% del tiempo; el otro 99.5% es gcc).
 
+## Probarlo
+
+Hace falta Python 3 y un compilador de C. Nada más: el compilador no tiene
+dependencias.
+
+```
+git clone <este repo> && cd tcode
+python3 -m tcode --version
+make check          # la suite completa
+make ejemplos       # compila y corre los cinco ejemplos
+```
+
+Tu primer programa:
+
+```
+$ cat > hola.t <<'FIN'
+fn main() -> usize {
+    imprimir("hola\n");
+    return 0;
+}
+FIN
+$ python3 -m tcode hola.t && ./hola
+hola
+```
+
+Si quieres invocarlo como `tcode` desde cualquier sitio:
+
+```
+echo 'python3 -m tcode "$@"' > ~/.local/bin/tcode && chmod +x ~/.local/bin/tcode
+```
+
+(El compilador se ejecuta desde el directorio del repo, que es donde vive
+`runtime/`.)
+
 ## Uso
 
 ```
@@ -232,7 +266,8 @@ texto.
 Hay también: `struct`, arreglos de tamaño fijo con índices comprobados,
 structs anidados, arreglos de structs, propiedad recursiva, préstamos de
 structs (`&T` y `mut T`), `lista<T>` dinámica, `mapa<str, V>` con tabla hash,
-argumentos de la línea de órdenes, módulos y fallos como valores.
+argumentos de la línea de órdenes, `ordenar` y `menor`, salida de error y
+escritura de archivos, módulos y fallos como valores.
 
 No hay: genéricos definidos por el usuario, espacios de nombres, diccionarios,
 E/S incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
@@ -241,8 +276,8 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-110 casos, 0 fallas
-368 comprobaciones sobre 60 programas, 0 fallas
+119 casos, 0 fallas
+548 comprobaciones sobre 60 programas, 0 fallas
 ```
 
 La suite tiene dos mitades. La primera son **casos por ejemplo**: este
@@ -260,6 +295,7 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 | **P5** | el compilador nunca revienta, con entrada válida o inválida |
 | **P6** | `--explicar` funciona sobre todo programa aceptado y nombra todas sus funciones y variables |
 | **P7** | todo aviso nombra un archivo y una línea que existen, y ningún aviso impide compilar |
+| **P8** | ante un programa **roto a propósito**, el compilador o lo acepta o lo rechaza diciendo dónde: nunca una excepción, nunca un cuelgue |
 
 `tests/generador_programas.py` produce programas válidos por construcción
 —con `lista<usize>` y `lista<str>`, `mapa<str, usize>`, préstamos `&T` y

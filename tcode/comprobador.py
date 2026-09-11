@@ -20,6 +20,10 @@ UNIDAD = "()"
 # nadie se lo dice se queda en `usize`.
 LITERAL = "{entero}"
 
+# Tipos con un orden natural evidente. Un struct no lo tiene: cual de sus
+# campos manda es una decision del programa, no del lenguaje.
+ORDENABLES = {"usize", "i64", "bool", "str"}
+
 # De donde sale la memoria a la que apunta una vista. Es lo unico que hace
 # falta saber para decidir si esa vista puede sobrevivir a la funcion.
 ESTATICO = "estatico"      # un literal: vive lo que dura el programa
@@ -768,9 +772,10 @@ class Comprobador:
 
     def interna_mapa(self, e: Llamada, nombre):
         """`poner`, `obtener`, `tiene` y `claves` sobre `mapa<K, V>`."""
-        esperados = {"poner": 3, "obtener": 2, "tiene": 2, "claves": 1}[nombre]
-        retorno_si_falla = {"poner": UNIDAD, "obtener": None,
-                            "tiene": "bool", "claves": None}[nombre]
+        esperados = {"poner": 3, "obtener": 2, "tiene": 2,
+                     "claves": 1, "quitar": 2}[nombre]
+        retorno_si_falla = {"poner": UNIDAD, "obtener": None, "tiene": "bool",
+                            "claves": None, "quitar": "bool"}[nombre]
 
         if len(e.args) != esperados:
             self.error(e, f"`{nombre}` espera {esperados} argumento(s) y "
@@ -811,6 +816,12 @@ class Comprobador:
 
         if nombre == "tiene":
             self.usar(lugar, sim)
+            return "bool"
+
+        if nombre == "quitar":
+            # Devuelve si habia algo que quitar: asi el que llama puede
+            # distinguir "lo borre" de "no estaba" sin consultar antes.
+            self.mutar(lugar, sim)
             return "bool"
 
         if nombre == "obtener":
@@ -1142,7 +1153,31 @@ class Comprobador:
             self.expresion(valor)
             return UNIDAD
 
-        if nombre in ("poner", "obtener", "tiene", "claves"):
+        if nombre == "ordenar":
+            if len(e.args) != 1:
+                self.error(e, f"`ordenar` espera 1 argumento y recibio "
+                              f"{len(e.args)}")
+                for a in e.args:
+                    self.expresion(a)
+                return UNIDAD
+            lugar = e.args[0]
+            base = self.variable_base(lugar)
+            sim = self.buscar(base) if base else None
+            t = self.tipo_de_lugar(lugar) if sim is not None else None
+            if sim is None:
+                self.error(e, "`ordenar` necesita una variable, un campo o un "
+                              "elemento")
+            elif not es_lista(t):
+                self.error(e, f"`ordenar` opera sobre `lista<T>`, recibio `{t}`")
+            elif elem_lista(t) not in ORDENABLES:
+                self.error(e, f"`{elem_lista(t)}` no tiene un orden natural; "
+                              f"`ordenar` funciona sobre "
+                              f"{', '.join('`' + x + '`' for x in sorted(ORDENABLES))}")
+            else:
+                self.mutar(lugar, sim)
+            return UNIDAD
+
+        if nombre in ("poner", "obtener", "tiene", "claves", "quitar"):
             return self.interna_mapa(e, nombre)
 
         if nombre == "texto":
@@ -1259,11 +1294,17 @@ INTERNAS = {
     "n_argumentos": {"params": [],                    "retorno": "usize"},
     "argumento":    {"params": ["usize"],             "retorno": "view"},
     "leer_archivo": {"params": ["view"], "retorno": "str", "falible": True},
+    "escribir_archivo": {"params": ["view", "view"], "retorno": UNIDAD,
+                         "falible": True},
+    "imprimir_error": {"params": ["@cualquiera"],     "retorno": UNIDAD},
+    "menor":    {"params": ["view", "view"],          "retorno": "bool"},
+    "ordenar":  {"params": ["@lista_mut"],            "retorno": UNIDAD},
     # Mapas. El tipo concreto sale de `interna_mapa`, que mira el mapa real.
     "poner":    {"params": ["@mapa_mut", "@clave", "@valor"], "retorno": UNIDAD},
     "obtener":  {"params": ["@mapa", "@clave"], "retorno": None, "falible": True},
     "tiene":    {"params": ["@mapa", "@clave"],       "retorno": "bool"},
     "claves":   {"params": ["@mapa"],                 "retorno": None},
+    "quitar":   {"params": ["@mapa_mut", "@clave"],   "retorno": "bool"},
 }
 
 

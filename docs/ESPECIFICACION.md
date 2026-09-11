@@ -429,11 +429,45 @@ reserva nada: `argv` vive tanto como el proceso, así que esa vista nunca
 cuelga —el compilador lo sabe y la trata como estática—. El índice se
 comprueba.
 
+### 11. Salida, escritura y orden
+
+`imprimir` va al resultado; `imprimir_error` al diagnóstico. Separarlos no es
+cosmético: es lo que permite encauzar una herramienta sin que se le cuelen
+los mensajes de uso.
+
+```tcode
+imprimir_error("uso: "); imprimir_error(argumento(0));
+```
+
+`escribir_archivo(ruta, datos) !` escribe en binario, conserva los bytes cero
+y es falible como su gemela de lectura.
+
+Para el orden hay dos piezas:
+
+| | |
+|---|---|
+| `menor(a: view, b: view) -> bool` | orden lexicográfico sobre texto |
+| `ordenar(xs: mut lista<T>)` | ordena en el sitio |
+
+`ordenar` sólo funciona sobre `usize`, `i64`, `bool` y `str`, que son los
+tipos con un orden evidente. **Un struct no lo tiene**: cuál de sus campos
+manda es una decisión del programa, no del lenguaje, y el compilador lo dice
+en vez de inventarse uno.
+
+### Borrado en los mapas
+
+`quitar(m: mut mapa<K,V>, clave) -> bool` devuelve si había algo que quitar,
+para poder distinguir *lo borré* de *no estaba* sin consultar antes.
+
+Por dentro cierra el hueco arrastrando hacia atrás las entradas del mismo
+grupo que quedarían inalcanzables, en vez de dejar una lápida. Es lo que
+permite que la búsqueda siga pudiendo parar en la primera celda libre.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: genéricos definidos por el usuario, espacios de
-nombres, `for` ni `break`, borrado en los mapas, escritura a archivos ni a
-`stderr`, E/S incremental, aritmética de punteros ni recolector.
+nombres, `for` ni `break`, interpolación de texto, recorrido de un mapa sin
+copiar sus claves, E/S incremental, aritmética de punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.
