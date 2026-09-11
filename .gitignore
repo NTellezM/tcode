@@ -25,3 +25,5 @@ bench/structs
 ejemplos/contar
 ejemplos/frecuencia
 ejemplos/ordenar
+ejemplos/lexer/lexer
+ejemplos/lexer/*.c
