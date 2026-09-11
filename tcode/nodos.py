@@ -108,6 +108,21 @@ class Mientras(Nodo):
     cuerpo: list
 
 @dataclass
+class Para(Nodo):
+    """`for x en xs { ... }` sobre una lista o un arreglo."""
+    variable: str
+    coleccion: Nodo
+    cuerpo: list
+
+@dataclass
+class Romper(Nodo):
+    pass
+
+@dataclass
+class Continuar(Nodo):
+    pass
+
+@dataclass
 class Retorno(Nodo):
     valor: Optional[Nodo]
 

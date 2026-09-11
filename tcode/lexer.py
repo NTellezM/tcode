@@ -6,6 +6,7 @@ PALABRAS = {
     "fn", "let", "var", "mut", "if", "else", "while", "return",
     "true", "false", "str", "view", "usize", "i64", "bool", "lista", "struct",
     "usar", "try", "sino", "falla", "mapa",
+    "for", "en", "break", "continue",
 }
 
 # Los de mas caracteres primero: "+?" tiene que ganarle a "+".

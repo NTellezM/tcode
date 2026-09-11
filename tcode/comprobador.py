@@ -10,7 +10,7 @@ from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
-    Funcion, Struct,
+    Funcion, Struct, Para, Romper, Continuar,
 )
 
 ENTEROS = {"usize", "i64"}
@@ -152,6 +152,7 @@ class Comprobador:
         self.falible_actual = False
         self.en_condicional = 0
         self.en_condicion_bucle = 0
+        self.en_bucle = 0
         self.en_retorno = 0
         # el nodo que un `return` entrega directamente, si es una variable
         self.retorno_directo = None
@@ -219,6 +220,13 @@ class Comprobador:
     def mover(self, nodo, sim):
         """Consumir el valor de una variable duenia."""
         if not self.usar(nodo, sim):
+            return
+        # Si llego prestado, la razon de verdad es esa, y el mensaje de la
+        # rama condicional solo despistaria.
+        if sim.prestado:
+            self.error(nodo, f"`{sim.nombre}` llego prestado: esta funcion no "
+                             f"es su duenia y no puede entregarlo. Pasa una "
+                             f"copia, o recibelo por valor")
             return
         if self.en_condicional and not self.en_retorno:
             self.error(nodo, f"en v0 no se puede mover `{sim.nombre}` dentro "
@@ -521,15 +529,61 @@ class Comprobador:
             self.en_condicional -= 1
             return
 
+        if isinstance(s, Para):
+            tipo = self.expresion(s.coleccion)
+            if tipo is not None and not es_lista(tipo) and not es_arreglo(tipo):
+                self.error(s, f"`for` recorre una `lista<T>` o un arreglo, y "
+                              f"`{tipo}` no lo es. Para un mapa, recorre "
+                              f"`claves(m)`")
+                elem = None
+            else:
+                elem = (elem_lista(tipo) if es_lista(tipo)
+                        else elem_de(tipo)) if tipo else None
+
+            # El bucle presta la coleccion mientras dura: modificarla por
+            # dentro moveria los elementos bajo los pies del recorrido. Es la
+            # invalidacion de iteradores, dicha antes de compilar.
+            base = self.variable_base(s.coleccion)
+            duenio = self.buscar(base) if base else None
+            marca = f"<el for de la linea {s.linea}>"
+            if duenio is not None:
+                duenio.prestamos.append(marca)
+
+            self.abrir()
+            self.en_bucle += 1
+            self.en_condicional += 1
+            if elem is not None:
+                sim = self.declarar(s, s.variable, elem, False, decl=s)
+                # Se recibe prestado del contenedor: ni se mueve ni se modifica.
+                sim.prestado = True
+                sim.leida = True
+            self.bloque(s.cuerpo)
+            self.en_condicional -= 1
+            self.en_bucle -= 1
+            self.cerrar()
+
+            if duenio is not None and marca in duenio.prestamos:
+                duenio.prestamos.remove(marca)
+            return
+
+        if isinstance(s, (Romper, Continuar)):
+            if not self.en_bucle:
+                palabra = "break" if isinstance(s, Romper) else "continue"
+                self.error(s, f"`{palabra}` solo tiene sentido dentro de un "
+                              f"`for` o un `while`")
+            return
+
         if isinstance(s, Mientras):
             self.en_condicion_bucle += 1
             t = self.expresion(s.cond)
             self.en_condicion_bucle -= 1
+            self.en_bucle += 1
             if t is not None and t != "bool":
                 self.error(s, f"la condicion de `while` debe ser `bool`, es `{t}`")
             self.en_condicional += 1
             self.bloque(s.cuerpo)
             self.en_condicional -= 1
+            self.en_bucle -= 1
             return
 
         if isinstance(s, Retorno):

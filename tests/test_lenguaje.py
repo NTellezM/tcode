@@ -243,6 +243,31 @@ RECHAZO = [
      'fn f() { escribir_archivo("x", "y"); }',
      "puede fallar"),
 
+    # ---- recorridos ----
+    ("modificar una coleccion mientras se recorre",
+     'fn f() { var xs: lista<usize> = []; for x en xs { anadir(xs, 1); } }',
+     "esta prestada por `<el for"),
+
+    ("mover el elemento que llego prestado",
+     'fn g(s: str) {} fn f() { var xs: lista<str> = []; for s en xs { g(s); } }',
+     "llego prestado"),
+
+    ("modificar el elemento que llego prestado",
+     'fn f() { var xs: lista<str> = []; for s en xs { empujar(s, "x"); } }',
+     "solo para leer"),
+
+    ("`for` no recorre un mapa directamente",
+     'fn f() { var m: mapa<str, usize> = []; for k en m { imprimir(k); } }',
+     "recorre `claves(m)`"),
+
+    ("`break` fuera de un bucle",
+     'fn f() { break; }',
+     "solo tiene sentido dentro"),
+
+    ("`continue` fuera de un bucle",
+     'fn f() { if true { continue; } }',
+     "solo tiene sentido dentro"),
+
     # ---- tipos ----
     ("tipo declarado que no calza",
      'fn f() { let n: usize = "no soy un numero"; }',
@@ -645,6 +670,48 @@ ACEPTA = [
             return 0;
         }''',
      "100 100 0 false\n"),
+
+    ("for con break y continue sobre escalares y duenios",
+     '''fn main() -> usize {
+            var xs: lista<usize> = [];
+            anadir(xs, 5); anadir(xs, 12); anadir(xs, 7);
+            anadir(xs, 30); anadir(xs, 1);
+            for x en xs {
+                if x == 7 { continue; }
+                if x > 20 { break; }
+                imprimir(x); imprimir(" ");
+            }
+            var ns: lista<str> = [];
+            anadir(ns, nuevo("ana")); anadir(ns, nuevo("beto"));
+            anadir(ns, nuevo("cielo"));
+            for n en ns {
+                let etiqueta: str = texto(largo(vista(n)));
+                imprimir(n); imprimir(":"); imprimir(etiqueta); imprimir(" ");
+                if largo(vista(n)) > 4 { break; }
+            }
+            let fijo: [usize; 4] = [9, 8, 7, 6];
+            for v en fijo { imprimir(v); }
+            imprimir("\\n");
+            return 0;
+        }''',
+     "5 12 ana:3 beto:4 cielo:5 9876\n"),
+
+    ("salir de un `for` libera lo de dentro de la vuelta",
+     '''fn main() -> usize {
+            var ns: lista<str> = [];
+            var i: usize = 0;
+            while i < 50 { anadir(ns, nuevo("dato")); i = i + 1; }
+            var vueltas: usize = 0;
+            for n en ns {
+                let copia: str = nuevo("x");
+                let otra: str = texto(largo(vista(n)));
+                vueltas = vueltas + largo(vista(copia)) + largo(vista(otra));
+                if vueltas > 10 { break; }
+            }
+            imprimir(vueltas); imprimir("\\n");
+            return 0;
+        }''',
+     "12\n"),
 
     ("rebanadas de vista",
      '''fn main() -> usize {

@@ -337,6 +337,8 @@ tipo       := "str" | "view" | "usize" | "i64" | "bool"
 bloque     := "{" sentencia* "}"
 
 sentencia  := "let" ident ":" tipo "=" expr ";"
+            | "for" ident "en" expr bloque
+            | "break" ";" | "continue" ";"
             | "var" ident ":" tipo "=" expr ";"
             | lugar "=" expr ";"
             | "if" expr bloque ("else" bloque)?
@@ -463,11 +465,56 @@ Por dentro cierra el hueco arrastrando hacia atrás las entradas del mismo
 grupo que quedarían inalcanzables, en vez de dejar una lápida. Es lo que
 permite que la búsqueda siga pudiendo parar en la primera celda libre.
 
+### 12. Recorridos
+
+```tcode
+for x en xs {
+    if x == 7 { continue; }
+    if x > 20 { break; }
+    imprimir(x);
+}
+```
+
+Recorre una `lista<T>` o un arreglo. Para un mapa, `for k en claves(m)`.
+
+**El elemento llega prestado, no copiado.** Un `str` copiado tendría dos
+dueños, así que dentro del bucle la variable es de sólo lectura: no se mueve
+ni se modifica. Los escalares van por valor porque no hay nada que duplicar.
+En el C generado se ve tal cual:
+
+```c
+const SafeString* n = &ns.e[ss_k2];
+```
+
+**Y el bucle presta la colección mientras dura.** Modificarla por dentro
+movería los elementos bajo los pies del recorrido:
+
+```
+error: no se puede modificar `xs`: esta prestada por `<el for de la linea 4>`
+```
+
+Eso es la invalidación de iteradores —el fallo clásico de `vector` en C++ y
+de `map` en Go— dicho antes de compilar, sin coste en ejecución.
+
+`break` y `continue` liberan lo reservado en la vuelta antes de saltar, que
+es lo que en C hay que recordar a mano:
+
+```c
+if ((sv_len_of(ss_view(n)) > (size_t)4))
+{
+    ss_free(&etiqueta);
+    break;
+}
+```
+
+Sobre los nombres: `for`, `break` y `continue` se reconocen en cualquier
+lenguaje y leerlos en inglés no cuesta nada; `en` se eligió en español
+porque ahí `in` no aportaba nada a quien escribe el resto en español.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: genéricos definidos por el usuario, espacios de
-nombres, `for` ni `break`, interpolación de texto, recorrido de un mapa sin
-copiar sus claves, E/S incremental, aritmética de punteros ni recolector.
+nombres, interpolación de texto, recorrido de un mapa sin copiar sus claves, E/S incremental, aritmética de punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

@@ -5,7 +5,7 @@ from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
-    Parametro, Funcion, CampoDef, Struct, Usar,
+    Parametro, Funcion, CampoDef, Struct, Usar, Para, Romper, Continuar,
 )
 
 TIPOS = {"str", "view", "usize", "i64", "bool"}
@@ -192,6 +192,23 @@ class Parser:
             if self.acepta("palabra", "else"):
                 sino = self.bloque() if self.es("simbolo", "{") else [self.sentencia()]
             return Si(cond, entonces, sino, linea=t.linea)
+
+        if self.es("palabra", "for"):
+            self.i += 1
+            nombre = self.espera("ident").valor
+            self.espera("palabra", "en")
+            coleccion = self.expr()
+            return Para(nombre, coleccion, self.bloque(), linea=t.linea)
+
+        if self.es("palabra", "break"):
+            self.i += 1
+            self.espera("simbolo", ";")
+            return Romper(linea=t.linea)
+
+        if self.es("palabra", "continue"):
+            self.i += 1
+            self.espera("simbolo", ";")
+            return Continuar(linea=t.linea)
 
         if self.es("palabra", "while"):
             self.i += 1
