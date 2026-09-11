@@ -128,7 +128,7 @@ cualquier sitio donde haya un compilador de C17.
 | `tcode/explicar.py` | el modelo del comprobador, hecho legible |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
-## El lexer de Tcode, escrito en Tcode
+## El lexer y el parser de Tcode, escritos en Tcode
 
 `ejemplos/lexer/lexer.t` son 259 líneas que hacen el análisis léxico del
 propio lenguaje: comentarios, cadenas normales e interpoladas, números,
@@ -152,8 +152,20 @@ interpoladas para los mensajes, y lectura de archivos con argumentos. Corre
 limpio bajo ASan y UBSan, y ante una entrada rota —una cadena sin cerrar, un
 archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 
-Falta el parser para que Tcode se compile a sí mismo. Pero el lexer ya no es
-una promesa.
+`ejemplos/lexer/parser.t` son 621 líneas más: descenso recursivo con la
+precedencia completa, sentencias, declaraciones y un árbol que se construye
+de abajo arriba. Acepta y rechaza **exactamente** los mismos doce archivos
+que el parser del compilador, y sobre ellos produce 4.592 nodos:
+
+```
+$ ./ejemplos/lexer/parser ejemplos/lexer/parser.t --callado
+ejemplos/lexer/parser.t: 2109 nodos, hondura 16
+```
+
+Falta el comprobador y el generador para que Tcode se compile a sí mismo.
+Pero el análisis ya no es una promesa: son 884 líneas de Tcode que hacen el
+trabajo del frontend y coinciden con el original, comprobado en cada
+ejecución de la suite.
 
 ## Velocidad
 
@@ -308,7 +320,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-154 casos, 0 fallas
+170 casos, 0 fallas
 548 comprobaciones sobre 60 programas, 0 fallas
 ```
 

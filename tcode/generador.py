@@ -1174,11 +1174,31 @@ class Generador:
         if isinstance(s, Asignacion):
             destino = self.lugar(s.lugar)
             tipo = self._tipo_de(s.lugar)
-            if self.c.posee(tipo):
-                # el valor viejo se pierde: devolverlo antes de pisarlo
-                self.liberacion(destino, tipo)
+
+            # El valor se calcula ANTES de soltar el viejo: la expresion
+            # puede leer el destino, y ademas puede haberlo movido.
             valor_c = self.expr(s.valor, tipo)
             self.reclamar(valor_c)
+
+            if self.c.posee(tipo):
+                con_bandera = (isinstance(s.lugar, Variable)
+                               and s.lugar.nombre in self.con_bandera)
+                if con_bandera:
+                    # Si ya se lo llevaron, aqui no hay nada que devolver:
+                    # liberarlo seria soltarlo dos veces.
+                    bandera = f"ss_vivo_{s.lugar.nombre}"
+                    self.emitir(f"if ({bandera})")
+                    self.emitir("{")
+                    self.sangria += 1
+                    self.liberacion(destino, tipo)
+                    self.sangria -= 1
+                    self.emitir("}")
+                    self.emitir(f"{destino} = {valor_c};")
+                    self.emitir(f"{bandera} = true;")
+                    return
+                # el valor viejo se pierde: devolverlo antes de pisarlo
+                self.liberacion(destino, tipo)
+
             self.emitir(f"{destino} = {valor_c};")
             return
 
@@ -1319,7 +1339,22 @@ class Generador:
 
         if isinstance(s, ExprSentencia):
             c = self.expr(s.expr, None)
-            if c:
+            tipo = self._tipo_de(s.expr)
+
+            # Una sentencia suelta descarta el valor. Si ese valor era duenio
+            # de memoria, aqui es donde se devuelve: `try espera(...)` como
+            # sentencia tira el `str` que devuelve, y nadie mas lo iba a
+            # liberar.
+            if c and tipo not in (None, UNIDAD) and self.c.posee(tipo):
+                self.reclamar(c)
+                self.liberacion(c, tipo)
+                return
+
+            # `try f();` y `f() sino x;` ya emitieron todo el trabajo al
+            # generarse; lo que devuelven es el valor, y como sentencia suelta
+            # no haria nada. Emitirlo daria un aviso de C sobre codigo que el
+            # usuario no escribio.
+            if c and not isinstance(s.expr, (Try, Sino)):
                 self.emitir(c + ";")
             return
 

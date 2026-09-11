@@ -122,6 +122,12 @@ class Simbolo:
         self.tipo = tipo
         self.mutable = mutable
         self.profundidad = profundidad
+        # Cuantos bucles habia abiertos al declararla. Moverla desde dentro
+        # de un bucle mas hondo la moveria una vez por vuelta.
+        self.bucle_al_declarar = 0
+        # Para el patron de plegado de un parser: se mueve dentro del bucle y
+        # se reasigna en el mismo nivel antes de la siguiente vuelta.
+        self.reasignada_directo = False
         self.movida = False
         self.movida_en = 0
         # nombres de las vistas vivas que prestan de esta variable
@@ -154,6 +160,10 @@ class Comprobador:
         self.en_condicional = 0
         self.en_condicion_bucle = 0
         self.en_bucle = 0
+        # Profundidad de bucle cuyas sentencias estamos escribiendo
+        # directamente, sin un `if` de por medio.
+        self.en_bucle_directo = 0
+        self.movidas_en_bucle = []
         self.en_retorno = 0
         # el nodo que un `return` entrega directamente, si es una variable
         self.retorno_directo = None
@@ -201,6 +211,7 @@ class Comprobador:
         if nombre in self.ambitos[-1]:
             self.error(nodo, f"`{nombre}` ya esta declarada en este bloque")
         sim = Simbolo(nombre, tipo, mutable, len(self.ambitos), decl or nodo)
+        sim.bucle_al_declarar = self.en_bucle
         self.ambitos[-1][nombre] = sim
         if self.simbolos_funcion is not None:
             self.simbolos_funcion.append(sim)
@@ -229,11 +240,17 @@ class Comprobador:
                              f"es su duenia y no puede entregarlo. Pasa una "
                              f"copia, o recibelo por valor")
             return
-        if self.en_condicional and not self.en_retorno:
-            self.error(nodo, f"en v0 no se puede mover `{sim.nombre}` dentro "
-                             "de una rama condicional: el otro camino aun seria "
-                             "su duenio. Muevelo fuera del `if`/`while`")
-            return
+        # Mover dentro de un `if` es correcto: el generador lleva una bandera
+        # y libera segun el camino que se tomo. Dentro de un BUCLE solo es
+        # correcto si la variable nace en la misma vuelta; si se declaro
+        # fuera, la segunda vuelta la moveria otra vez.
+        if self.en_bucle > sim.bucle_al_declarar and not self.en_retorno:
+            # Puede seguir siendo correcto: si mas abajo, en el mismo nivel
+            # del bucle, se le da otro valor, la siguiente vuelta la encuentra
+            # viva. Se anota y se resuelve al cerrar el bucle.
+            sim.reasignada_directo = False
+            if self.movidas_en_bucle:
+                self.movidas_en_bucle[-1].append((sim, nodo))
         if sim.prestado:
             self.error(nodo, f"`{sim.nombre}` llego prestado: esta funcion no "
                              f"es su duenia y no puede entregarlo. Pasa una "
@@ -466,11 +483,73 @@ class Comprobador:
                 self.aviso(nodo, f"`{sim.nombre}` se declara `var` y nunca se "
                                  f"modifica; puede ser `let`")
 
-    def bloque(self, sentencias):
+    def cuerpo_de_bucle(self, sentencias):
+        """Como `bloque`, pero sabiendo que estas sentencias son el nivel
+        directo del bucle. Al cerrarlo comprueba los movimientos que se
+        hicieron sobre variables declaradas fuera."""
+        anterior = self.en_bucle_directo
+        self.en_bucle_directo = self.en_bucle
         self.abrir()
         for s in sentencias:
             self.sentencia(s)
-        return self.cerrar()
+        self.cerrar()
+        self.en_bucle_directo = anterior
+
+        # Basta con mirar si sigue movida al cerrar la vuelta: la union de
+        # las ramas de un `if` ya deja `movida` en cierto si ALGUN camino la
+        # movio y no le dio otro valor. No hace falta exigir que la
+        # reasignacion este al nivel directo del bucle.
+        for sim, nodo in self.movidas_en_bucle.pop():
+            if sim.movida:
+                self.error(nodo, f"`{sim.nombre}` se declaro fuera del bucle y "
+                                 f"se mueve aqui dentro, asi que la siguiente "
+                                 f"vuelta lo moveria otra vez. Declaralo dentro "
+                                 f"del bucle, o dale otro valor antes de cerrar "
+                                 f"la vuelta")
+
+    # ---------- caminos excluyentes ----------
+    #
+    # Las dos ramas de un `if` no se ejecutan las dos. Mover algo en una no
+    # deberia impedir moverlo en la otra, ni contar despues si esa rama
+    # termino en `return`. Para eso se guarda el estado de movimientos antes
+    # de cada rama y se junta al final.
+
+    def _simbolos_vivos(self):
+        for ambito in self.ambitos:
+            for sim in ambito.values():
+                yield sim
+
+    def _foto(self):
+        return {id(sim): (sim.movida, sim.movida_en, sim.entregada_en,
+                          sim.reasignada_directo, sim)
+                for sim in self._simbolos_vivos()}
+
+    def _restaurar(self, foto):
+        for movida, movida_en, entregada, reasignada, sim in foto.values():
+            sim.movida = movida
+            sim.movida_en = movida_en
+            sim.entregada_en = entregada
+            sim.reasignada_directo = reasignada
+
+    @staticmethod
+    def _termina(sentencias):
+        """True si el bloque no continua: sale por `return`, `falla`,
+        `break` o `continue`."""
+        if not sentencias:
+            return False
+        return isinstance(sentencias[-1], (Retorno, Falla, Romper, Continuar))
+
+    def bloque(self, sentencias):
+        # Un bloque anidado ya no es el nivel directo del bucle: lo que se
+        # asigne aqui dentro puede no ejecutarse, asi que no restaura nada.
+        anterior = self.en_bucle_directo
+        self.en_bucle_directo = -1
+        self.abrir()
+        for s in sentencias:
+            self.sentencia(s)
+        salida = self.cerrar()
+        self.en_bucle_directo = anterior
+        return salida
 
     def sentencia(self, s):
         if isinstance(s, Declaracion):
@@ -517,6 +596,8 @@ class Comprobador:
 
             if isinstance(s.lugar, Variable):
                 sim.movida = False          # vuelve a tener un valor valido
+                if self.en_bucle_directo == self.en_bucle:
+                    sim.reasignada_directo = True
             return
 
         if isinstance(s, Si):
@@ -524,9 +605,37 @@ class Comprobador:
             if t is not None and t != "bool":
                 self.error(s, f"la condicion de `if` debe ser `bool`, es `{t}`")
             self.en_condicional += 1
+
+            antes = self._foto()
             self.bloque(s.entonces)
+            tras_entonces = self._foto()
+            entonces_sale = self._termina(s.entonces)
+
             if s.sino is not None:
+                self._restaurar(antes)
                 self.bloque(s.sino)
+                tras_sino = self._foto()
+                sino_sale = self._termina(s.sino)
+            else:
+                tras_sino = antes
+                sino_sale = False
+
+            # Se junta lo que sobrevive: una rama que no continua no aporta.
+            for clave, (mov_a, linea_a, ent_a, rea_a, sim) in tras_entonces.items():
+                mov_b, linea_b, ent_b, rea_b, _ = tras_sino.get(
+                    clave, (mov_a, linea_a, ent_a, rea_a, sim))
+                if entonces_sale and not sino_sale:
+                    sim.movida, sim.movida_en = mov_b, linea_b
+                    sim.entregada_en, sim.reasignada_directo = ent_b, rea_b
+                elif sino_sale and not entonces_sale:
+                    sim.movida, sim.movida_en = mov_a, linea_a
+                    sim.entregada_en, sim.reasignada_directo = ent_a, rea_a
+                else:
+                    sim.movida = mov_a or mov_b
+                    sim.movida_en = linea_a if mov_a else linea_b
+                    sim.entregada_en = ent_a or ent_b
+                    sim.reasignada_directo = rea_a or rea_b
+
             self.en_condicional -= 1
             return
 
@@ -557,6 +666,7 @@ class Comprobador:
 
             self.abrir()
             self.en_bucle += 1
+            self.movidas_en_bucle.append([])
             self.en_condicional += 1
             if elem is not None:
                 sim = self.declarar(s, s.variable, elem, False, decl=s)
@@ -569,7 +679,7 @@ class Comprobador:
                 # Un valor escalar llega por copia; uno duenio, prestado.
                 if self.posee(tipo_valor):
                     sv.prestado = True
-            self.bloque(s.cuerpo)
+            self.cuerpo_de_bucle(s.cuerpo)
             self.en_condicional -= 1
             self.en_bucle -= 1
             self.cerrar()
@@ -590,10 +700,11 @@ class Comprobador:
             t = self.expresion(s.cond)
             self.en_condicion_bucle -= 1
             self.en_bucle += 1
+            self.movidas_en_bucle.append([])
             if t is not None and t != "bool":
                 self.error(s, f"la condicion de `while` debe ser `bool`, es `{t}`")
             self.en_condicional += 1
-            self.bloque(s.cuerpo)
+            self.cuerpo_de_bucle(s.cuerpo)
             self.en_condicional -= 1
             self.en_bucle -= 1
             return
@@ -701,9 +812,26 @@ class Comprobador:
             if n == "argumento":
                 return ESTATICO
 
-            # La vista que devuelve `obtener` vive dentro del mapa: no puede
-            # salir de la funcion, igual que una vista de un `str` local.
-            if n in ("vista", "nuevo", "vacio", "obtener"):
+            # `vista(x)` de algo que llego PRESTADO apunta a memoria de quien
+            # llamo, asi que sobrevive a la funcion igual que un parametro
+            # `view`. Solo es local si el duenio es local.
+            if n == "vista" and e.args:
+                base = self.variable_base(e.args[0])
+                sim_base = self.buscar(base) if base else None
+                if sim_base is not None and sim_base.prestado:
+                    return PARAMETRO
+                return LOCAL
+
+            # La vista que devuelve `obtener` vive dentro del mapa; sobrevive
+            # solo si el mapa tambien.
+            if n == "obtener" and e.args:
+                base = self.variable_base(e.args[0])
+                sim_base = self.buscar(base) if base else None
+                if sim_base is not None and sim_base.prestado:
+                    return PARAMETRO
+                return LOCAL
+
+            if n in ("nuevo", "vacio"):
                 return LOCAL
 
             if n == "rebanar":
@@ -719,9 +847,15 @@ class Comprobador:
             # vistas que le pasamos nosotros.
             peor = ESTATICO
             for arg, param in zip(e.args, f.params):
-                if param.tipo != "view":
+                if param.tipo == "view":
+                    p = self.procedencia_de(arg)
+                elif param.prestado:
+                    base = self.variable_base(arg)
+                    sim_base = self.buscar(base) if base else None
+                    p = (PARAMETRO if sim_base is not None and sim_base.prestado
+                         else LOCAL)
+                else:
                     continue
-                p = self.procedencia_de(arg)
                 if p == LOCAL:
                     return LOCAL
                 if p == PARAMETRO:
@@ -750,12 +884,17 @@ class Comprobador:
                 return self.variable_base(expr.args[0])
             f = self.funciones.get(expr.nombre)
             if f is not None and f.retorno == "view":
+                # La vista que devuelve solo puede venir de algo que le
+                # prestaron: un parametro `view`, o uno `&T`/`mut T`.
                 for arg, param in zip(expr.args, f.params):
-                    if param.tipo != "view":
-                        continue
-                    o = self._origen_de(arg)
-                    if o is not None:
-                        return o
+                    if param.tipo == "view":
+                        o = self._origen_de(arg)
+                        if o is not None:
+                            return o
+                    elif param.prestado:
+                        o = self.variable_base(arg)
+                        if o is not None:
+                            return o
                 return None
         if isinstance(expr, Variable):
             sim = self.buscar(expr.nombre)
@@ -1182,6 +1321,10 @@ class Comprobador:
 
                 if param.mutable:
                     self.mutar(arg, sim)
+                    # Prestar para modificar tambien es usar: quien lo recibe
+                    # casi siempre lee antes de escribir, y avisar de que
+                    # "nunca se lee" seria falso.
+                    sim.leida = True
                     prestados_mut[base] = param.nombre
                 else:
                     self.usar(arg, sim)

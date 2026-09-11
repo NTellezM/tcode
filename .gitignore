@@ -27,3 +27,4 @@ ejemplos/frecuencia
 ejemplos/ordenar
 ejemplos/lexer/lexer
 ejemplos/lexer/*.c
+ejemplos/lexer/parser
