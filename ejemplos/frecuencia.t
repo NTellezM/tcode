@@ -78,30 +78,28 @@ fn main() -> usize ! {
     imprimir(total); imprimir(" palabras, ");
     imprimir(largo(cuenta)); imprimir(" distintas\n\n");
 
-    // Seleccion de las `cuantas` mayores, sin ordenar: con pocas es mas
-    // barato que ordenar todo el vocabulario.
-    let vocabulario: lista<str> = claves(cuenta);
+    // Seleccion de las `cuantas` mayores recorriendo el mapa directamente.
+    // Antes hacia falta `claves(cuenta)`, que copia el vocabulario entero;
+    // ahora cada vuelta presta las claves que ya estan en la tabla y solo se
+    // copia la ganadora de cada linea.
     var mostradas: usize = 0;
-    // Ninguna palabra puede aparecer mas veces que bytes tiene el archivo.
     var tope: usize = largo(texto_completo) + 1;
 
-    while mostradas < cuantas && mostradas < largo(vocabulario) {
+    while mostradas < cuantas {
         var mejor: usize = 0;
-        var cual: usize = largo(vocabulario);
-        var j: usize = 0;
-        while j < largo(vocabulario) {
-            let c: usize = obtener(cuenta, vista(vocabulario[j])) sino 0;
-            if c > mejor && c < tope {
-                mejor = c;
-                cual = j;
+        var ganadora: str = vacio();
+
+        for palabra_actual, veces en cuenta {
+            if veces > mejor && veces < tope {
+                mejor = veces;
+                ganadora = nuevo(palabra_actual);
             }
-            j = j + 1;
         }
-        if cual == largo(vocabulario) { return 0; }
+        if mejor == 0 { return 0; }
 
         imprimir(mejor);
         imprimir("  ");
-        imprimir(vocabulario[cual]);
+        imprimir(ganadora);
         imprimir("\n");
         tope = mejor;
         mostradas = mostradas + 1;

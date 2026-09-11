@@ -1132,14 +1132,26 @@ class Generador:
 
         if isinstance(s, Para):
             tipo = self._tipo_de(s.coleccion)
-            elem = elem_lista(tipo) if es_lista(tipo) else elem_de(tipo)
-            tope = (f"{self.lugar(s.coleccion)}.length" if es_lista(tipo)
-                    else str(largo_arreglo(tipo)))
+            lugar = self.lugar(s.coleccion)
             self.bucle += 1
             i = f"ss_k{self.bucle}"
-            self.emitir(f"for (size_t {i} = 0; {i} < {tope}; {i}++)")
-            self.emitir("{")
-            self.sangria += 1
+
+            if es_mapa(tipo):
+                k, v = partes_mapa(tipo)
+                # Se recorren las celdas de la tabla y se saltan las vacias.
+                # Nadie copia una clave: se presta la que ya esta ahi.
+                self.emitir(f"for (size_t {i} = 0; {i} < {lugar}.capacidad;"
+                            f" {i}++)")
+                self.emitir("{")
+                self.sangria += 1
+                self.emitir(f"if ({lugar}.claves[{i}].data == NULL) continue;")
+            else:
+                tope = (f"{lugar}.length" if es_lista(tipo)
+                        else str(largo_arreglo(tipo)))
+                self.emitir(f"for (size_t {i} = 0; {i} < {tope}; {i}++)")
+                self.emitir("{")
+                self.sangria += 1
+
             self.pila.append([])
             self.vars.append({})
             self.bucles.append(len(self.pila))
@@ -1147,15 +1159,27 @@ class Generador:
             # El elemento se presta, no se copia: un `str` copiado tendria dos
             # duenios. Los escalares van por valor porque no hay nada que
             # duplicar.
-            acceso = f"{self.lugar(s.coleccion)}.e[{i}]"
+            if es_mapa(tipo):
+                elem, tipo_valor = partes_mapa(tipo)
+                acceso = f"{lugar}.claves[{i}]"
+            else:
+                elem = elem_lista(tipo) if es_lista(tipo) else elem_de(tipo)
+                tipo_valor = None
+                acceso = f"{lugar}.e[{i}]"
+
             if self.c.posee(elem):
-                self.emitir(f"const {self.tipo_c(elem)}* {s.variable} = "
-                            f"&{acceso};")
+                self.emitir(f"SS_LANG_QUIZA_SIN_USAR const "
+                            f"{self.tipo_c(elem)}* {s.variable} = &{acceso};")
                 self.declarar(s.variable, elem, True)
             else:
                 self.emitir(f"SS_LANG_QUIZA_SIN_USAR {self.tipo_c(elem)} "
                             f"{s.variable} = {acceso};")
                 self.declarar(s.variable, elem)
+
+            if tipo_valor is not None and s.valor is not None:
+                self.emitir(f"SS_LANG_QUIZA_SIN_USAR {self.tipo_c(tipo_valor)} "
+                            f"{s.valor} = {lugar}.valores[{i}];")
+                self.declarar(s.valor, tipo_valor)
 
             for x in s.cuerpo:
                 self.sentencia(x)

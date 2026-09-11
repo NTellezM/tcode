@@ -196,9 +196,12 @@ class Parser:
         if self.es("palabra", "for"):
             self.i += 1
             nombre = self.espera("ident").valor
+            valor = None
+            if self.acepta("simbolo", ","):
+                valor = self.espera("ident").valor
             self.espera("palabra", "en")
             coleccion = self.expr()
-            return Para(nombre, coleccion, self.bloque(), linea=t.linea)
+            return Para(nombre, coleccion, self.bloque(), valor, linea=t.linea)
 
         if self.es("palabra", "break"):
             self.i += 1

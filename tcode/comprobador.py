@@ -531,14 +531,19 @@ class Comprobador:
 
         if isinstance(s, Para):
             tipo = self.expresion(s.coleccion)
-            if tipo is not None and not es_lista(tipo) and not es_arreglo(tipo):
-                self.error(s, f"`for` recorre una `lista<T>` o un arreglo, y "
-                              f"`{tipo}` no lo es. Para un mapa, recorre "
-                              f"`claves(m)`")
-                elem = None
-            else:
-                elem = (elem_lista(tipo) if es_lista(tipo)
-                        else elem_de(tipo)) if tipo else None
+            elem = tipo_valor = None
+
+            if tipo is not None and es_mapa(tipo):
+                k, v = partes_mapa(tipo)
+                elem, tipo_valor = k, v
+            elif tipo is not None and (es_lista(tipo) or es_arreglo(tipo)):
+                elem = elem_lista(tipo) if es_lista(tipo) else elem_de(tipo)
+                if s.valor is not None:
+                    self.error(s, "los dos nombres de `for k, v en ...` son "
+                                  "para un mapa; una lista solo da el elemento")
+            elif tipo is not None:
+                self.error(s, f"`for` recorre una `lista<T>`, un arreglo o un "
+                              f"`mapa<K, V>`, y `{tipo}` no lo es")
 
             # El bucle presta la coleccion mientras dura: modificarla por
             # dentro moveria los elementos bajo los pies del recorrido. Es la
@@ -557,6 +562,11 @@ class Comprobador:
                 # Se recibe prestado del contenedor: ni se mueve ni se modifica.
                 sim.prestado = True
                 sim.leida = True
+            if tipo_valor is not None and s.valor is not None:
+                # El valor de un mapa no posee memoria (regla de v0), asi que
+                # llega por copia y no hay nada que prestar.
+                sv = self.declarar(s, s.valor, tipo_valor, False, decl=s)
+                sv.leida = True
             self.bloque(s.cuerpo)
             self.en_condicional -= 1
             self.en_bucle -= 1

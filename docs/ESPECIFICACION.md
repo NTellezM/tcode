@@ -337,7 +337,7 @@ tipo       := "str" | "view" | "usize" | "i64" | "bool"
 bloque     := "{" sentencia* "}"
 
 sentencia  := "let" ident ":" tipo "=" expr ";"
-            | "for" ident "en" expr bloque
+            | "for" ident ("," ident)? "en" expr bloque
             | "break" ";" | "continue" ";"
             | "var" ident ":" tipo "=" expr ";"
             | lugar "=" expr ";"
@@ -413,8 +413,10 @@ disfrazado es exactamente cómo se cuelan los errores.
 
 - **La clave tiene que ser `str`.** Se consulta con un `view`, sin copiar.
 - **El valor no puede poseer memoria.** `obtener` devuelve una copia, y sacar
-  al dueño dejaría el mapa a medias. Para valores compuestos hace falta
-  devolver préstamos, que es el mismo muro de los campos `view`.
+  al dueño dejaría el mapa a medias. El recorrido con `for k, v en m` ya
+  presta sin copiar, así que lo único que falta para levantar este límite es
+  que **`obtener` devuelva un préstamo** — el mismo muro que los campos
+  `view`, ahora reducido a una sola pieza.
 
 ### Argumentos de la línea de órdenes
 
@@ -475,7 +477,28 @@ for x en xs {
 }
 ```
 
-Recorre una `lista<T>` o un arreglo. Para un mapa, `for k en claves(m)`.
+Recorre una `lista<T>`, un arreglo o un `mapa<K, V>`. Sobre un mapa se
+pueden pedir los dos:
+
+```tcode
+for clave, veces en cuenta {
+    imprimir(clave); imprimir(": "); imprimir(veces); imprimir("\n");
+}
+```
+
+**Recorrer un mapa no copia nada.** `claves(m)` existe todavía y sirve
+cuando hace falta ordenar, pero clona el vocabulario entero; el recorrido
+directo presta las claves que ya están en la tabla:
+
+```c
+if (m.claves[ss_k1].data == NULL) continue;
+const SafeString* k = &m.claves[ss_k1];
+size_t v = m.valores[ss_k1];
+```
+
+Con 120.000 palabras la diferencia es real: 0,05 s y 20 MB recorriendo
+directo contra 0,08 s y 24 MB pasando por `claves`. Con vocabularios
+pequeños no se nota, y decirlo importa tanto como el número.
 
 **El elemento llega prestado, no copiado.** Un `str` copiado tendría dos
 dueños, así que dentro del bucle la variable es de sólo lectura: no se mueve
@@ -514,7 +537,7 @@ porque ahí `in` no aportaba nada a quien escribe el resto en español.
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: genéricos definidos por el usuario, espacios de
-nombres, interpolación de texto, recorrido de un mapa sin copiar sus claves, E/S incremental, aritmética de punteros ni recolector.
+nombres, interpolación de texto, valores dueños en los mapas, E/S incremental, aritmética de punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

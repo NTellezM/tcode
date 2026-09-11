@@ -66,9 +66,10 @@ error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
    libera lo que ya se había reservado.
 7. **Un archivo es un módulo.** `usar "lib/texto.t";`, rutas relativas,
    carga única y detección de ciclos.
-8. **Recorrer no invalida.** `for x en xs` presta la colección mientras dura
-   y presta cada elemento: modificarla por dentro es un error de
-   compilación, no una corrupción en tiempo de ejecución.
+8. **Recorrer no invalida ni copia.** `for x en xs` y `for k, v en m` prestan
+   la colección mientras dura y prestan cada elemento: modificarla por dentro
+   es un error de compilación, no una corrupción en tiempo de ejecución, y
+   recorrer un mapa no clona ni una clave.
 9. **Propiedad recursiva y límites comprobados.** Un `struct` posee lo que
    poseen sus campos; un arreglo o `lista<T>`, lo que poseen sus elementos, y la
    liberación se genera sola a cualquier hondura. Todo índice se comprueba:
@@ -280,7 +281,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-127 casos, 0 fallas
+133 casos, 0 fallas
 548 comprobaciones sobre 60 programas, 0 fallas
 ```
 
