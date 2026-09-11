@@ -273,10 +273,9 @@ RECHAZO = [
      'fn f() { let m: str = $"hola {}"; imprimir(m); }',
      "vacio en una cadena interpolada"),
 
-    ("llave sin cerrar",
+    ("llave sin cerrar en una interpolada",
      'fn f() { let m: str = $"hola {n"; imprimir(m); }',
-     "falta `}`"),
-
+     "falta `}` en algun hueco"),
     ("`obtener` puede fallar y hay que decirlo",
      'fn f() { var m: mapa<str, usize> = []; imprimir(obtener(m, "x")); }',
      "puede fallar"),
@@ -1001,6 +1000,36 @@ ACEPTA = [
         }''',
      "5 3 6\n"),
 
+    ("la biblioteca estandar: texto",
+     '''usar "std/texto";
+        fn main() -> usize ! {
+            let linea = nuevo("   hola, mundo cruel   ");
+            imprimir($"[{recortar(linea)}] ");
+            imprimir($"{empieza_con(recortar(linea), "hola")} ");
+            imprimir($"{termina_con(recortar(linea), "cruel")} ");
+            imprimir($"{contiene(linea, "mundo")} ");
+            imprimir($"{indice_de(linea, "mundo") sino 999} ");
+            let trozos = try dividir("a,b,,c", ",");
+            imprimir($"{largo(trozos)} [{unir(trozos, "|")}] ");
+            imprimir($"{repetir("-", 5)} ");
+            imprimir($"{try reemplazar("aaa", "a", "b")} ");
+            imprimir($"{try a_entero(recortar(nuevo("  42  ")))}\\n");
+        }''',
+     "[hola, mundo cruel] true true true 9 4 [a|b||c] ----- bbb 42\n"),
+
+    ("la biblioteca estandar: contar y mayores",
+     '''usar "std/cuenta";
+        fn main() {
+            let texto = nuevo("uno dos uno tres dos uno");
+            let cuenta = contar(palabras(minusculas(texto)));
+            imprimir($"{largo(cuenta)} ");
+            for p en mayores(cuenta, 2) {
+                imprimir($"{p}:{obtener(cuenta, p) sino 0} ");
+            }
+            imprimir("\\n");
+        }''',
+     "3 uno:3 dos:2 \n"),
+
     ("rebanadas de vista",
      '''fn main() -> usize {
             let s: str = nuevo("abcdefgh");
@@ -1210,7 +1239,15 @@ def falla(nombre, detalle):
 
 def compilar_y_correr(fuente, tmp, con_sanitizers=True):
     """Devuelve (codigo_de_salida, stdout, stderr) o lanza AssertionError."""
-    codigo, errores = compilar_a_c(fuente, "<test>")
+    if "usar " in fuente:
+        # Con `usar` hace falta el cargador de modulos, y para eso el fuente
+        # tiene que estar en un archivo.
+        ruta_t = os.path.join(tmp, "p.t")
+        with open(ruta_t, "w", encoding="utf-8") as f:
+            f.write(fuente)
+        codigo, errores = compilar_archivo(ruta_t)
+    else:
+        codigo, errores = compilar_a_c(fuente, "<test>")
     assert not errores, "errores inesperados: " + "; ".join(errores)
 
     ruta_c = os.path.join(tmp, "p.c")
@@ -1382,8 +1419,10 @@ with tempfile.TemporaryDirectory() as tmp:
         if r.returncode != 0:
             falla("el lexer en Tcode compila", r.stderr)
         else:
-            archivos = sorted(glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
-                                        recursive=True))
+            archivos = sorted(
+                glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
+                          recursive=True)
+                + glob.glob(os.path.join(RAIZ, "std", "*.t")))
             distintos = 0
             tokens_vistos = 0
             for archivo in archivos:

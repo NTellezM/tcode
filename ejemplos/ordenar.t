@@ -5,12 +5,8 @@
 //
 //     ./ordenar README.md
 
-fn es_separador(b: usize) -> bool {
-    if b >= 128 { return false; }
-    if b >= 97 && b <= 122 { return false; }
-    if b >= 65 && b <= 90 { return false; }
-    return !(b >= 48 && b <= 57);
-}
+
+usar "std/caracter";
 
 fn main() -> usize ! {
     if n_argumentos() < 2 {
@@ -30,7 +26,7 @@ fn main() -> usize ! {
     while i <= largo(texto_completo) {
         var corta = true;
         if i < largo(texto_completo) {
-            corta = es_separador(byte(texto_completo, i));
+            corta = !es_alfanumerico(byte(texto_completo, i));
         }
         if corta {
             if largo(palabra) > 0 {

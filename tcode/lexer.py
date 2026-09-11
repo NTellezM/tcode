@@ -73,10 +73,22 @@ def tokenizar(fuente: str, archivo: str = "<entrada>") -> list:
             c0, l0 = col(), linea
             i += 2
             partes = []
+            # Dentro de `{...}` va una expresion, y una expresion puede llevar
+            # cadenas: `$"{unir(xs, ", ")}"`. Se lleva la cuenta de llaves para
+            # no cortar en la comilla equivocada.
+            prof = 0
             while True:
                 if i >= n or fuente[i] == "\n":
-                    raise ErrorLexico(f"{archivo}:{l0}: cadena sin cerrar")
-                if fuente[i] == '"':
+                    # Puede faltar la comilla o puede faltar un `}`: desde
+                    # aqui no se distingue, asi que se dicen las dos.
+                    raise ErrorLexico(
+                        f"{archivo}:{l0}: cadena interpolada sin cerrar; "
+                        f"falta la comilla, o falta `}}` en algun hueco")
+                if fuente[i] == "{":
+                    prof += 1
+                elif fuente[i] == "}" and prof:
+                    prof -= 1
+                if fuente[i] == '"' and prof == 0:
                     i += 1
                     break
                 if fuente[i] == "\\":
