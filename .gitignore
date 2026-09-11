@@ -30,3 +30,6 @@ ejemplos/lexer/*.c
 ejemplos/lexer/parser
 
 std/*.c
+
+# binario commiteado por error alguna vez
+ejemplos/frec/

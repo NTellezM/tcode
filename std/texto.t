@@ -1,8 +1,6 @@
 // std/texto.t — lo que en Python te dan los metodos de `str`.
 
-fn es_blanco(b: usize) -> bool {
-    return b == 32 || b == 9 || b == 10 || b == 13;
-}
+usar "std/caracter";
 
 fn minusculas(v: view) -> str {
     var salida = vacio();
@@ -39,8 +37,28 @@ fn palabras(v: view) -> lista<str> {
     return salida;
 }
 
+// Como `palabras`, pero cortando por cualquier cosa que no sea letra ni
+// digito: de "hola, mundo!" salen "hola" y "mundo", sin la puntuacion. Es lo
+// que quiere un contador de palabras; `palabras` es lo que quiere quien parte
+// una linea en campos.
+fn terminos(v: view) -> lista<str> {
+    var salida: lista<str> = [];
+    var desde = 0;
+    var i = 0;
+    while i <= largo(v) {
+        var corta = true;
+        if i < largo(v) { corta = !es_alfanumerico(byte(v, i)); }
+        if corta {
+            if i > desde { anadir(salida, nuevo(rebanar(v, desde, i))); }
+            desde = i + 1;
+        }
+        i = i + 1;
+    }
+    return salida;
+}
+
 // Parte por un separador cualquiera, conservando los trozos vacios.
-fn dividir(v: view, sep: view) -> lista<str> ! {
+fn partir(v: view, sep: view) -> lista<str> ! {
     if largo(sep) == 0 { falla "el separador no puede estar vacio"; }
     var salida: lista<str> = [];
     var desde = 0;
@@ -159,5 +177,24 @@ fn reemplazar(v: view, viejo: view, nuevo_texto: view) -> str ! {
             i = i + 1;
         }
     }
+    return s;
+}
+
+// Rellena con espacios a la derecha hasta `ancho`. Si ya es mas largo, lo
+// deja como esta: recortar por sorpresa esconde datos.
+fn rellenar(v: view, ancho: usize) -> str {
+    var s = nuevo(v);
+    if largo(v) < ancho {
+        let hueco = repetir(" ", ancho - largo(v));
+        empujar(s, hueco);
+    }
+    return s;
+}
+
+// Lo mismo, pero pegado a la derecha: para columnas de numeros.
+fn alinear(v: view, ancho: usize) -> str {
+    if largo(v) >= ancho { return nuevo(v); }
+    var s = repetir(" ", ancho - largo(v));
+    empujar(s, v);
     return s;
 }

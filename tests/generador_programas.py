@@ -514,6 +514,26 @@ class Generador:
             "    return leer_archivo(\"/no/existe/tampoco\") sino alterno;\n"
             "}")
 
+        # Un `str` temporal dentro de lo que se devuelve. Los cinco caminos
+        # que salen antes de tiempo tienen que soltarlo: la limpieza de fin
+        # de sentencia se emite detras del `return` y no se ejecuta.
+        partes.append(
+            "fn envuelto(n: usize) -> str {\n"
+            "    return $\"[{copia(n)}]\";\n"
+            "}")
+        partes.append(
+            "fn envuelto_falible(n: usize) -> str ! {\n"
+            "    if n > 900 { falla \"grande\"; }\n"
+            "    let dentro = try puede_fallar(0);\n"
+            "    return $\"<{copia(n)}|{dentro}>\";\n"
+            "}")
+        partes.append(
+            "fn copia(n: usize) -> str {\n"
+            "    var s = nuevo(\"n=\");\n"
+            "    empujar(s, texto(n));\n"
+            "    return s;\n"
+            "}")
+
         auxiliares = []
         for k in range(self.r.randint(0, 2)):
             lineas, _ = self.cuerpo()
@@ -528,6 +548,9 @@ class Generador:
         if str_vivo is not None:
             lineas.append(f"    imprimir(consumir({str_vivo}));")
         lineas.append(f"    imprimir(mitad({self.r.randint(1, 50)}) sino 0);")
+        lineas.append(f"    imprimir(envuelto({self.r.randint(0, 99)}));")
+        lineas.append(f"    imprimir(envuelto_falible({self.r.randint(0, 99)}) "
+                      f"sino nuevo(\"nada\"));")
         lineas.append(f"    imprimir(mitad(0) sino 7);")
         lineas.append(f'    let respaldo: str = nuevo("respaldo");')
         lineas.append(f"    let leido: str = leer_o(respaldo);")

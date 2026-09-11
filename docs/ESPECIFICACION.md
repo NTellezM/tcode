@@ -722,9 +722,21 @@ cualquier otra.
 
 | módulo | qué trae |
 |---|---|
-| `std/caracter` | `es_digito`, `es_letra`, `es_alfanumerico`, `es_minuscula`, `es_mayuscula` |
-| `std/texto` | `palabras`, `dividir`, `unir`, `recortar`, `minusculas`, `repetir`, `reemplazar`, `empieza_con`, `termina_con`, `contiene`, `indice_de`, `a_entero` |
+| `std/caracter` | `es_blanco`, `es_digito`, `es_letra`, `es_alfanumerico`, `es_minuscula`, `es_mayuscula` |
+| `std/texto` | `palabras`, `terminos`, `partir`, `unir`, `recortar`, `rellenar`, `alinear`, `minusculas`, `repetir`, `reemplazar`, `empieza_con`, `termina_con`, `contiene`, `indice_de`, `a_entero` |
+| `std/lista` | `suma`, `maximo`, `minimo`, `media`, `invertir` sobre `lista<usize>`; `incluye`, `posicion`, `primeras`, `invertida` sobre `lista<str>` |
+| `std/numero` | `dividir`, `resto`, `porcentaje`, `menor_de`, `mayor_de`, `acotar` |
 | `std/cuenta` | `contar` y `mayores` — lo que en Python es `Counter` y `most_common` |
+
+Dos nombres piden explicación. `palabras` parte por espacios y `terminos`
+por cualquier cosa que no sea letra ni dígito: lo primero es lo que quiere
+quien separa campos de una línea, lo segundo lo que quiere un contador de
+palabras. Y partir texto se llama `partir`, no `dividir`, porque `dividir`
+es la división de `std/numero`: dos cosas distintas no pueden compartir
+nombre mientras no haya espacios de nombres.
+
+`std/lista` tiene dos familias casi iguales, una por tipo de elemento. Eso
+es lo que cuesta no tener genéricos todavía, y se ve.
 
 Lo que gana el programa que las usa se ve mejor que se explica:
 
@@ -748,7 +760,9 @@ que compra las garantías.
 
 **Encadenar llamadas funciona**: `contar(palabras(minusculas(texto)))`. Un
 valor recién creado se puede prestar, aunque no tenga nombre — el compilador
-lo guarda hasta el final de la sentencia y lo libera ahí.
+lo guarda hasta el final de la sentencia y lo libera ahí. Eso vale también
+donde el valor se devuelve: `return $"[{rellenar(v, 8)}]"` suelta el `str`
+de `rellenar` antes de salir, no después.
 
 ## Qué NO tiene v0
 

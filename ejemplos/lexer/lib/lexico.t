@@ -2,6 +2,8 @@
 //
 // Lo usan `lexer.t`, que imprime los tokens, y `parser.t`, que los analiza.
 
+usar "std/caracter";
+
 struct Token {
     tipo: str,      // palabra, ident, entero, cadena, interpolada, simbolo
     valor: str,
@@ -9,29 +11,17 @@ struct Token {
 }
 
 // ------------------------------------------------------------------
-// Clasificacion de bytes. Se trabaja sobre bytes, no sobre caracteres:
-// los de UTF-8 por encima de 127 se dejan pasar dentro de identificadores
-// y cadenas, que es lo que hace el compilador de verdad.
+// `es_digito`, `es_letra` y `es_alfanumerico` vienen de `std/caracter`, que
+// ya trabaja sobre bytes y deja pasar los de UTF-8 por encima de 127 dentro
+// de identificadores, que es lo que hace el compilador de verdad. Aqui solo
+// queda lo que difiere: un salto de linea no es espacio para el lexer,
+// porque hay que contarlo.
 // ------------------------------------------------------------------
 
 fn es_espacio(b: usize) -> bool {
     return b == 32 || b == 9 || b == 13;
 }
 
-fn es_digito(b: usize) -> bool {
-    return b >= 48 && b <= 57;
-}
-
-fn es_letra(b: usize) -> bool {
-    if b >= 97 && b <= 122 { return true; }
-    if b >= 65 && b <= 90 { return true; }
-    if b == 95 { return true; }
-    return b >= 128;
-}
-
-fn es_alfanumerico(b: usize) -> bool {
-    return es_letra(b) || es_digito(b);
-}
 
 fn palabras_reservadas() -> mapa<str, usize> {
     var m: mapa<str, usize> = [];
@@ -88,8 +78,12 @@ fn agregar(salida: mut lista<Token>, tipo: view, valor: view, linea: usize) {
 // Lee una cadena entre comillas y devuelve donde termina. El contenido se
 // deja crudo, con los escapes sin resolver: al lexer le basta con saber
 // donde acaba.
-fn fin_de_cadena(fuente: view, desde: usize) -> usize ! {
+// Dentro de `{...}` de una cadena interpolada va una expresion, y una
+// expresion puede llevar cadenas: `$"{unir(xs, ", ")}"`. Se lleva la cuenta
+// de llaves para no cortar en la comilla equivocada.
+fn fin_de_cadena(fuente: view, desde: usize, interpolada: bool) -> usize ! {
     var i = desde;
+    var hondura = 0;
     while i < largo(fuente) {
         let b = byte(fuente, i);
         if b == 10 {
@@ -99,7 +93,11 @@ fn fin_de_cadena(fuente: view, desde: usize) -> usize ! {
             i = i + 2;      // escape: se salta el par entero
             continue;
         }
-        if b == 34 {
+        if interpolada {
+            if b == 123 { hondura = hondura + 1; }
+            if b == 125 && hondura > 0 { hondura = hondura - 1; }
+        }
+        if b == 34 && hondura == 0 {
             return i;
         }
         i = i + 1;
@@ -154,7 +152,7 @@ fn analizar(fuente: view) -> lista<Token> ! {
 
         // cadena interpolada
         if b == 36 && i + 1 < largo(fuente) && byte(fuente, i + 1) == 34 {
-            let fin = try fin_de_cadena(fuente, i + 2);
+            let fin = try fin_de_cadena(fuente, i + 2, true);
             agregar(salida, "interpolada", rebanar(fuente, i + 2, fin), linea);
             i = fin + 1;
             continue;
@@ -162,7 +160,7 @@ fn analizar(fuente: view) -> lista<Token> ! {
 
         // cadena
         if b == 34 {
-            let fin = try fin_de_cadena(fuente, i + 1);
+            let fin = try fin_de_cadena(fuente, i + 1, false);
             agregar(salida, "cadena", rebanar(fuente, i + 1, fin), linea);
             i = fin + 1;
             continue;

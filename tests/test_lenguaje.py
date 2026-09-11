@@ -460,6 +460,37 @@ RECHAZO = [
 
 
 ACEPTA = [
+    # Los cinco caminos que salen antes de tiempo tienen que soltar los
+    # temporales de la sentencia: la limpieza de fin de sentencia se emite
+    # detras del `return` y no llega a ejecutarse.
+    ("descartar el `str` que devuelve una llamada no filtra ni rompe el C",
+     '''fn envuelto(n: usize) -> str {
+            var s = nuevo("n=");
+            empujar(s, texto(n));
+            return s;
+        }
+        fn main() -> usize {
+            // El valor se tira: hay que liberarlo, y no se puede tomar la
+            // direccion de una llamada.
+            envuelto(7);
+            imprimir("ok\\n");
+        }''',
+     "ok\n"),
+
+    ("un temporal dentro de lo que se devuelve no se filtra",
+     '''usar "std/texto";
+        fn etiqueta(v: view) -> str { return $"[{rellenar(v, 8)}]"; }
+        fn marcar(v: view) -> str ! {
+            if largo(v) == 0 { falla "vacio"; }
+            return $"<{rellenar(v, 4)}>";
+        }
+        fn ambas(v: view) -> str ! {
+            let a = try marcar(v);
+            return $"{etiqueta(v)}{a}";
+        }
+        fn main() -> usize ! { imprimir($"{try ambas("ab")}\\n"); return 0; }''',
+     "[ab      ]<ab  >\n"),
+
     ("de un prestamo si se copia un escalar",
      '''struct S { a: str, n: usize }
         fn f() -> usize ! {
@@ -1032,7 +1063,7 @@ ACEPTA = [
             imprimir($"{termina_con(recortar(linea), "cruel")} ");
             imprimir($"{contiene(linea, "mundo")} ");
             imprimir($"{indice_de(linea, "mundo") sino 999} ");
-            let trozos = try dividir("a,b,,c", ",");
+            let trozos = try partir("a,b,,c", ",");
             imprimir($"{largo(trozos)} [{unir(trozos, "|")}] ");
             imprimir($"{repetir("-", 5)} ");
             imprimir($"{try reemplazar("aaa", "a", "b")} ");
@@ -1654,6 +1685,50 @@ for nombre, archivos, principal, error_esperado, salida in MODULOS:
             falla(nombre, f"sanitizer:\n{e.stderr}")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+print("=== EJEMPLOS: los de ejemplos/ compilan y corren limpios ===")
+# La vitrina del lenguaje tiene que estar tan comprobada como el resto: si un
+# ejemplo filtra memoria, lo primero que lee alguien filtra memoria.
+EJEMPLOS = [
+    ("ejemplos/hola.t", []),
+    ("ejemplos/texto.t", []),
+    ("ejemplos/inventario.t", []),
+    ("ejemplos/contar.t", ["README.md"]),
+    ("ejemplos/ordenar.t", ["README.md"]),
+    ("ejemplos/frecuencia.t", ["README.md"]),
+    ("ejemplos/informe/informe.t", []),
+    ("ejemplos/lexer/lexer.t", ["ejemplos/hola.t"]),
+    ("ejemplos/lexer/parser.t", ["ejemplos/hola.t"]),
+]
+tmp = tempfile.mkdtemp(prefix="tcode-ejemplos-")
+try:
+    for relativo, args in EJEMPLOS:
+        total += 1
+        ruta = os.path.join(RAIZ, relativo)
+        codigo, errores = compilar_archivo(ruta)
+        if errores:
+            falla(f"ejemplo {relativo}", "\n".join(errores))
+            continue
+        base = os.path.join(tmp, relativo.replace("/", "_")[:-2])
+        with open(base + ".c", "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", base + ".c", os.path.join(RUNTIME, "safestr.c"),
+             "-o", base],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            falla(f"ejemplo {relativo}", r.stderr[:600])
+            continue
+        e = subprocess.run([base] + [os.path.join(RAIZ, a) for a in args],
+                           capture_output=True, text=True, timeout=180,
+                           cwd=RAIZ)
+        if e.returncode != 0 or e.stderr.strip():
+            falla(f"ejemplo {relativo}",
+                  f"codigo {e.returncode}\n{e.stderr[:600]}")
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
 
 print(f"\n{total} casos, {fallos} fallas")
 sys.exit(1 if fallos else 0)
