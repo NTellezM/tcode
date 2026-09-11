@@ -109,10 +109,11 @@ class Mientras(Nodo):
 
 @dataclass
 class Para(Nodo):
-    """`for x en xs { ... }` sobre una lista o un arreglo."""
+    """`for x en xs` sobre lista o arreglo; `for k, v en m` sobre un mapa."""
     variable: str
     coleccion: Nodo
     cuerpo: list
+    valor: Optional[str] = None    # el segundo nombre, solo en mapas
 
 @dataclass
 class Romper(Nodo):

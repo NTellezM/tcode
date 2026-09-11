@@ -204,6 +204,19 @@ class Generador:
                 lineas.append(f'{s}imprimir(quitar({v}, "{usadas[0]}"));')
                 lineas.append(f'{s}imprimir(quitar({v}, "jamas_estuvo"));')
                 lineas.append(f'{s}imprimir(tiene({v}, "{usadas[0]}"));')
+            # Recorrer el mapa prestando: ni una copia de clave.
+            if self.r.random() < 0.7:
+                ck = nombre("ck")
+                cv = nombre("cv")
+                lineas.append(f"{s}for {ck}, {cv} en {v} {{")
+                lineas.append(f"{s}    imprimir(largo(vista({ck})) + {cv});")
+                if self.r.random() < 0.3:
+                    lineas.append(f"{s}    if {cv} > 900 {{ break; }}")
+                lineas.append(f"{s}}}")
+            if self.r.random() < 0.5:
+                ck = nombre("ck")
+                lineas.append(f"{s}for {ck} en {v} {{ imprimir(largo(vista({ck}))); }}")
+
             ks = nombre("ks")
             lineas.append(f"{s}var {ks}: lista<str> = claves({v});")
             lineas.append(f"{s}ordenar({ks});")

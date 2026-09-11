@@ -256,9 +256,26 @@ RECHAZO = [
      'fn f() { var xs: lista<str> = []; for s en xs { empujar(s, "x"); } }',
      "solo para leer"),
 
-    ("`for` no recorre un mapa directamente",
-     'fn f() { var m: mapa<str, usize> = []; for k en m { imprimir(k); } }',
-     "recorre `claves(m)`"),
+    ("modificar un mapa mientras se recorre",
+     'fn f() { var m: mapa<str, usize> = []; for k, v en m { poner(m, "x", 1); } }',
+     "esta prestada por `<el for"),
+
+    ("quitar de un mapa mientras se recorre",
+     'fn f() { var m: mapa<str, usize> = []; for k, v en m { quitar(m, "x"); } }',
+     "esta prestada por `<el for"),
+
+    ("mover una clave prestada por el recorrido",
+     'fn g(s: str) {} fn f() { var m: mapa<str, usize> = [];'
+     ' for k, v en m { g(k); } }',
+     "llego prestado"),
+
+    ("dos nombres solo valen para un mapa",
+     'fn f() { var xs: lista<usize> = []; for a, b en xs { imprimir(a); } }',
+     "son para un mapa"),
+
+    ("`for` no recorre un texto",
+     'fn f() { let s: str = nuevo("abc"); for b en s { imprimir(b); } }',
+     "no lo es"),
 
     ("`break` fuera de un bucle",
      'fn f() { break; }',
@@ -712,6 +729,42 @@ ACEPTA = [
             return 0;
         }''',
      "12\n"),
+
+    ("recorrer un mapa prestando clave y valor",
+     '''fn main() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "uno", 1); poner(m, "dos", 2); poner(m, "tres", 3);
+            poner(m, "cuatro", 4); poner(m, "cinco", 5);
+            quitar(m, "tres");
+            var suma: usize = 0;
+            var letras: usize = 0;
+            for k, v en m {
+                suma = suma + v;
+                letras = letras + largo(vista(k));
+            }
+            imprimir(suma); imprimir(" "); imprimir(letras); imprimir("\\n");
+            return 0;
+        }''',
+     "12 17\n"),
+
+    ("recorrer un mapa grande sin copiar nada",
+     '''fn clave_de(i: usize) -> str {
+            var k: str = nuevo("c");
+            let n: str = texto(i);
+            empujar(k, vista(n));
+            return k;
+        }
+        fn main() -> usize {
+            var m: mapa<str, usize> = [];
+            var i: usize = 0;
+            while i < 300 { let k: str = clave_de(i); poner(m, vista(k), i); i = i + 1; }
+            var suma: usize = 0;
+            var cuantas: usize = 0;
+            for k, v en m { suma = suma + v; cuantas = cuantas + 1; }
+            imprimir(cuantas); imprimir(" "); imprimir(suma); imprimir("\\n");
+            return 0;
+        }''',
+     "300 44850\n"),
 
     ("rebanadas de vista",
      '''fn main() -> usize {
