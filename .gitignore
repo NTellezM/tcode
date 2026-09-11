@@ -33,3 +33,7 @@ std/*.c
 
 # binario commiteado por error alguna vez
 ejemplos/frec/
+
+# binarios del ejemplo de modulos
+ejemplos/modulos/escalas
+ejemplos/modulos/*.c

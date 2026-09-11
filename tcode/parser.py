@@ -38,6 +38,9 @@ class Parser:
         # dura, `T` es un tipo mas: no se resuelve aqui, se resuelve al
         # instanciar en cada llamada.
         self.tipo_params = set()
+        # Los alias de `usar ... como x` de ESTE archivo: `x.algo` es un
+        # nombre, no un campo de una variable llamada `x`.
+        self.alias = set()
         self.structs = set(structs_previos or ())
         self.structs |= {t.valor for j, t in enumerate(toks)
                         if t.tipo == "palabra" and t.valor == "struct"
@@ -81,8 +84,15 @@ class Parser:
             tok = self.actual
             self.i += 1
             ruta = self.espera("cadena").valor
+            alias = None
+            # `como` no es palabra reservada: solo significa esto aqui, y asi
+            # sigue valiendo como nombre de variable.
+            if self.actual.tipo == "ident" and self.actual.valor == "como":
+                self.i += 1
+                alias = self.espera("ident").valor
+                self.alias.add(alias)
             self.espera("simbolo", ";")
-            decls.append(Usar(ruta, linea=tok.linea))
+            decls.append(Usar(ruta, linea=tok.linea, alias=alias))
 
         while not self.es("fin"):
             if self.es("palabra", "usar"):
@@ -203,6 +213,23 @@ class Parser:
         if t.tipo == "ident" and t.valor in self.tipo_params:
             self.i += 1
             return t.valor
+
+        # tipo traido por un modulo con alias: `par.Par<usize, str>`
+        if (t.tipo == "ident" and t.valor in self.alias
+                and self.toks[self.i + 1].tipo == "simbolo"
+                and self.toks[self.i + 1].valor == "."):
+            self.i += 2
+            miembro = self.espera("ident").valor
+            nombre = f"{t.valor}.{miembro}"
+            if self.acepta("simbolo", "<"):
+                args = []
+                while True:
+                    args.append(self.tipo())
+                    if not self.acepta("simbolo", ","):
+                        break
+                self.espera("simbolo", ">")
+                return f"{nombre}<{', '.join(args)}>"
+            return nombre
 
         # nombre de struct, con o sin argumentos de tipo
         if t.tipo == "ident" and t.valor in self.structs:
@@ -440,6 +467,11 @@ class Parser:
                            "lo que quieras mostrar", tok)
 
             sub = Parser(tokenizar(dentro, self.archivo), self.archivo)
+            # El sub-parser tiene que saber lo mismo que este: dentro de un
+            # hueco vale cualquier expresion, incluida `txt.palabras(v)`.
+            sub.structs = self.structs
+            sub.alias = self.alias
+            sub.tipo_params = self.tipo_params
             sub.structs = self.structs
             expr = sub.expr()
             if not sub.es("fin"):
@@ -456,6 +488,30 @@ class Parser:
 
         trozos.append("".join(actual))
         return Interpolada(trozos, expresiones, linea=tok.linea)
+
+    def cuerpo_literal_struct(self, nombre, linea):
+        """Lo de dentro de `Nombre { ... }`, con el `{` todavia sin comer."""
+        self.espera("simbolo", "{")
+        campos = []
+        while not self.es("simbolo", "}"):
+            cn = self.espera("ident").valor
+            self.espera("simbolo", ":")
+            campos.append((cn, self.expr()))
+            if not self.acepta("simbolo", ","):
+                break
+        self.espera("simbolo", "}")
+        return LiteralStruct(nombre, campos, linea=linea)
+
+    def cuerpo_llamada(self, nombre, linea):
+        """Los argumentos de una llamada, con el `(` ya comido."""
+        args = []
+        if not self.es("simbolo", ")"):
+            while True:
+                args.append(self.expr())
+                if not self.acepta("simbolo", ","):
+                    break
+        self.espera("simbolo", ")")
+        return Llamada(nombre, args, linea=linea)
 
     def primario(self):
         t = self.actual
@@ -489,28 +545,23 @@ class Parser:
         if t.tipo == "ident":
             self.i += 1
 
+            # `txt.palabras(v)`: nombre calificado por el modulo de donde
+            # viene, no el campo `palabras` de una variable `txt`.
+            if t.valor in self.alias and self.es("simbolo", "."):
+                self.i += 1
+                miembro = self.espera("ident").valor
+                completo = f"{t.valor}.{miembro}"
+                if self.es("simbolo", "{"):
+                    return self.cuerpo_literal_struct(completo, t.linea)
+                self.espera("simbolo", "(")
+                return self.cuerpo_llamada(completo, t.linea)
+
             # literal de struct: solo si el nombre es de un struct conocido
             if t.valor in self.structs and self.es("simbolo", "{"):
-                self.i += 1
-                campos = []
-                while not self.es("simbolo", "}"):
-                    cn = self.espera("ident").valor
-                    self.espera("simbolo", ":")
-                    campos.append((cn, self.expr()))
-                    if not self.acepta("simbolo", ","):
-                        break
-                self.espera("simbolo", "}")
-                return LiteralStruct(t.valor, campos, linea=t.linea)
+                return self.cuerpo_literal_struct(t.valor, t.linea)
 
             if self.acepta("simbolo", "("):
-                args = []
-                if not self.es("simbolo", ")"):
-                    while True:
-                        args.append(self.expr())
-                        if not self.acepta("simbolo", ","):
-                            break
-                self.espera("simbolo", ")")
-                return Llamada(t.valor, args, linea=t.linea)
+                return self.cuerpo_llamada(t.valor, t.linea)
             return Variable(t.valor, linea=t.linea)
 
         if self.acepta("simbolo", "("):

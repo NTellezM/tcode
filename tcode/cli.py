@@ -40,11 +40,13 @@ def compilar_archivo(ruta, devolver_comp=False):
     mostrada = os.path.relpath(ruta)
     if mostrada.startswith(".."):
         mostrada = os.path.abspath(ruta)
-    return _compilar(cargar(ruta), mostrada, devolver_comp)
+    bonitos = {}
+    arbol = cargar(ruta, bonitos)
+    return _compilar(arbol, mostrada, devolver_comp, bonitos)
 
 
-def _compilar(arbol, archivo, devolver_comp=False):
-    errores, comp = comprobar(arbol, archivo)
+def _compilar(arbol, archivo, devolver_comp=False, nombres_bonitos=None):
+    errores, comp = comprobar(arbol, archivo, nombres_bonitos)
     if errores:
         return (None, errores, comp) if devolver_comp else (None, errores)
     codigo = generar(arbol, comp, archivo)

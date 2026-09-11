@@ -2229,6 +2229,10 @@ INTERNAS = {
 }
 
 
-def comprobar(funciones, archivo="<entrada>"):
+def comprobar(funciones, archivo="<entrada>", nombres_bonitos=None):
     c = Comprobador(archivo)
+    if nombres_bonitos:
+        # El cargador renombro lo que chocaba entre modulos. Los mensajes
+        # hablan del nombre que se escribio, no del que se invento.
+        c.nombre_original.update(nombres_bonitos)
     return c.comprobar_programa(funciones), c

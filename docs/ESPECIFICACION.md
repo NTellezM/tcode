@@ -283,9 +283,48 @@ error: dependencia circular entre modulos: a.t -> b.t -> a.t
 junto al programa. La extensión `.t` es opcional: se escribe el nombre del
 módulo, no el del archivo.
 
-En v0 no hay espacios de nombres: lo que trae un `usar` entra al mismo saco.
-Dos declaraciones con el mismo nombre son un error, y el mensaje dice en qué
-archivo está la otra.
+### Espacios de nombres
+
+Los nombres se resuelven **por archivo**: cada uno ve lo que él mismo
+importa, y nada más. Dos módulos pueden declarar `contar` sin estorbarse.
+
+```tcode
+usar "lib/celsius.t" como c;
+usar "lib/fahrenheit.t" como f;
+
+imprimir(c.nombre());        // "Celsius"
+imprimir(f.nombre());        // "Fahrenheit"
+```
+
+`usar` a secas trae los nombres tal cual. Sólo choca si **un mismo archivo**
+trae dos iguales de forma llana, y entonces el error dice de dónde vienen los
+dos y cómo arreglarlo:
+
+```
+error: app.t:2: `contar` llega de dos sitios, uno.t y dos.t. Dale un nombre
+                a uno de los dos: `usar "..." como algo;` y luego
+                `algo.contar`
+```
+
+Vale también para los tipos: `t.Caja`, `t.Par<usize, str>`.
+
+`como` **no es palabra reservada**: sólo significa eso detrás de una ruta de
+`usar`, así que sigue valiendo como nombre de variable.
+
+#### Qué se tomó de dónde
+
+| lenguaje | cómo lo hace | qué nos llevamos |
+|---|---|---|
+| **Python** | `import m as x`, resolución por archivo | el modelo entero: cada archivo ve lo suyo |
+| **Rust** | `use a::b as c` | la grafía del renombrado |
+| **Go** | obliga a calificar siempre: `pkg.F()` | lo que **no** copiamos: calificar cuando no hace falta es ruido |
+| **C++** | `using namespace`, ADL | el contraejemplo: nombres que aparecen sin que nadie los pida |
+
+Y un detalle propio: **el renombrado interno sólo ocurre cuando un nombre lo
+declara más de un módulo.** Mientras `palabras` sea de uno solo, en el C
+generado se sigue llamando `palabras`. Eso importa porque el C generado es
+para leerlo: ensuciar todos los nombres para resolver un choque que casi
+nunca pasa sale caro y no compra nada.
 
 ### 8. Fallos: no se pueden ignorar
 
