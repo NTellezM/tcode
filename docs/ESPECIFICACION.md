@@ -871,9 +871,80 @@ Eso compila para `T = usize`, `T = str` y `T = Cosa`. Sin `copiar` había que
 escribir `x` en un caso y `nuevo(vista(x))` en otro, y no hay forma de
 escribir las dos a la vez.
 
-Lo que sigue sin poder ser genérico es lo que necesita **sumar** o
-**comparar** el elemento: `suma` necesita `+`, `incluye` necesita `igual`, y
-todavía no hay forma de exigirle eso a `T`.
+Para sumar o comparar el elemento hace falta exigírselo a `T`, y eso son las
+restricciones.
+
+## Restricciones sobre `T`
+
+Lo que el cuerpo necesita del elemento va escrito en la firma:
+
+```tcode
+fn suma<T: numero>(ns: &lista<T>) -> T
+fn incluye<T: igualable>(xs: &lista<T>, aguja: &T) -> bool
+fn maximo<T: ordenable>(xs: &lista<T>) -> T !
+```
+
+Hay cuatro, y son **conjuntos de tipos con nombre**:
+
+| restricción | tipos | para qué |
+|---|---|---|
+| `numero` | `usize`, `i64` | `+`, `-`, `*`, `/`, `%` |
+| `igualable` | `usize`, `i64`, `bool`, `str`, `view` | `igual` |
+| `ordenable` | `usize`, `i64`, `str`, `view` | `menor` |
+| `texto` | `str`, `view` | lo que trabaja sobre bytes |
+
+Una restricción **no es una interfaz que haya que implementar**. `usize`
+cumple `numero` sin que nadie escriba nada en ningún sitio.
+
+### Qué se tomó de dónde
+
+| lenguaje | cómo lo hace | qué nos llevamos |
+|---|---|---|
+| **Go** (1.18) | *type sets*: `interface { ~int \| ~float64 }` | la grafía. Un conjunto de tipos, sin `impl`, sin coherencia, sin huérfanos |
+| **Rust** | traits, con `impl` por tipo | lo que **no** copiamos: el sistema entero es mucha maquinaria para lo que hacía falta |
+| **C++20** | *concepts*, predicados sobre expresiones | la pragmática: el cuerpo se sigue comprobando por instancia |
+| **C++ pre-20** | SFINAE | el contraejemplo: el error sale de tres niveles más adentro |
+
+**Dónde somos peores que Rust, y hay que decirlo.** En Rust el cuerpo de una
+genérica se comprueba **una vez**, contra la restricción: si compila, compila
+para todo `T` que la cumpla. Aquí no. La restricción se comprueba en la
+llamada, y el cuerpo se sigue comprobando una vez por instancia. Puede pasar
+que una genérica con restricción falle igualmente dentro del cuerpo para
+algún tipo del conjunto. Es más débil, y es a propósito: un sistema de traits
+completo es mucho más de lo que v0 necesita.
+
+**Dónde somos mejores que no tenerlas.** El valor está en dónde aparece el
+error:
+
+```
+$ cat sin.t
+fn suma<T>(ns: &lista<T>) -> T { var t = ns[0]; return t; }
+
+error: sin.t:1: en v0 no se puede sacar un elemento de un arreglo: dejaria
+                un hueco. Mueve el arreglo entero
+  al usar `suma` con T = str, desde sin.t:5
+```
+
+```
+$ cat con.t
+fn suma<T: numero>(ns: &lista<T>) -> T { ... }
+
+error: con.t:6: `suma` pide que `T` sea `numero`, y aqui `T` es `str`.
+                `numero` son: `i64`, `usize`
+```
+
+El primero te cuenta un problema de propiedad que no tienes. El segundo te
+dice qué se pedía, qué diste y qué valdría.
+
+### `igual` y `menor` sobre cualquier tipo sin partes
+
+Para que un cuerpo genérico pueda comparar, `igual` y `menor` dejaron de ser
+sólo de texto: valen para dos valores del mismo tipo sin partes —números,
+`bool` en `igual`, `str` y `view`—. Sobre escalares bajan a `==` y `<` de C;
+sobre texto, a `sv_equals` y `sv_cmp`.
+
+Un struct o una lista **no** se comparan: habría que decidir qué significa, y
+eso no se decide en silencio por quien escribe el programa.
 
 ## Qué NO tiene v0
 

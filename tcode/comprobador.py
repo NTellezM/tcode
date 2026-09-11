@@ -8,6 +8,7 @@ auditando la libreria en C.
 
 import re
 
+from tcode.parser import RESTRICCIONES
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
@@ -26,6 +27,12 @@ LITERAL = "{entero}"
 # Tipos con un orden natural evidente. Un struct no lo tiene: cual de sus
 # campos manda es una decision del programa, no del lenguaje.
 ORDENABLES = {"usize", "i64", "bool", "str"}
+# Lo que `igual` y `menor` saben comparar. Son tipos sin partes: comparar dos
+# structs o dos listas exigiria decidir que significa, y eso no se decide por
+# la persona en silencio.
+IGUALABLES = {"usize", "i64", "bool", "str", "view"}
+COMPARABLES = {"usize", "i64", "str", "view"}
+NUMEROS = {"usize", "i64"}
 
 # De donde sale la memoria a la que apunta una vista. Es lo unico que hace
 # falta saber para decidir si esa vista puede sobrevivir a la funcion.
@@ -659,6 +666,19 @@ class Comprobador:
                           f"no lo dicen. Guarda el argumento en una variable con "
                           f"su tipo escrito y pasa esa")
             return None
+
+        # La restriccion se comprueba aqui, en la llamada, no dentro del
+        # cuerpo: asi el error apunta a donde esta el problema de verdad y
+        # dice que se pedia, en vez de salir de tres niveles mas adentro.
+        for tp, restriccion in plantilla.restricciones.items():
+            valido = RESTRICCIONES[restriccion]
+            puesto = ligaduras.get(tp)
+            if puesto is not None and puesto not in valido:
+                self.error(e, f"`{plantilla.nombre}` pide que `{tp}` sea "
+                              f"`{restriccion}`, y aqui `{tp}` es `{puesto}`. "
+                              f"`{restriccion}` son: "
+                              + ", ".join("`" + x + "`" for x in sorted(valido)))
+                return None
 
         clave = (plantilla.nombre, tuple(ligaduras[t] for t in params))
         if clave in self.instancias:
@@ -1744,6 +1764,33 @@ class Comprobador:
 
         # Operaciones cuyo tipo depende de sus argumentos. Mantenerlas aqui,
         # explicitas, hace que el C generado siga sin casts implicitos.
+        if nombre in ("igual", "menor"):
+            if len(e.args) != 2:
+                self.error(e, f"`{nombre}` espera 2 argumentos y recibio "
+                              f"{len(e.args)}")
+                for a in e.args:
+                    self.expresion(a)
+                return "bool"
+            ta = sin_prestamo(self.expresion(e.args[0]) or "")
+            tb = sin_prestamo(self.expresion(e.args[1]) or "")
+            validos = IGUALABLES if nombre == "igual" else COMPARABLES
+            # `str` y `view` son lo mismo para comparar: uno se presta al otro.
+            def texto(t):
+                return t in ("str", "view")
+            for t in (ta, tb):
+                if t and t != LITERAL and t not in validos:
+                    self.error(e, f"`{nombre}` compara "
+                                  f"{', '.join('`' + x + '`' for x in sorted(validos))}"
+                                  f", y recibio `{t}`")
+                    return "bool"
+            if ta and tb and not (texto(ta) and texto(tb)):
+                a = "usize" if ta == LITERAL else ta
+                b = "usize" if tb == LITERAL else tb
+                if a != b:
+                    self.error(e, f"`{nombre}` compara dos valores del mismo "
+                                  f"tipo, y recibio `{ta}` y `{tb}`")
+            return "bool"
+
         if nombre == "copiar":
             if len(e.args) != 1:
                 self.error(e, f"`copiar` espera 1 argumento y recibio "
@@ -1950,7 +1997,9 @@ INTERNAS = {
     "vista":    {"params": ["@presta"],               "retorno": "view"},
     "empujar":  {"params": ["@mut", "view"],          "retorno": UNIDAD},
     "largo":    {"params": ["@dimensionable"],        "retorno": "usize"},
-    "igual":    {"params": ["view", "view"],          "retorno": "bool"},
+    # El tipo sale de los argumentos, en `interna`: comparan cualquier par
+    # de valores del mismo tipo sin partes.
+    "igual":    {"params": ["@comparable", "@comparable"], "retorno": "bool"},
     "rebanar":  {"params": ["view", "usize", "usize"], "retorno": "view"},
     "imprimir": {"params": ["@cualquiera"],           "retorno": UNIDAD},
     "anadir":   {"params": ["@lista_mut", "@elemento"], "retorno": UNIDAD},
@@ -1964,7 +2013,7 @@ INTERNAS = {
     "escribir_archivo": {"params": ["view", "view"], "retorno": UNIDAD,
                          "falible": True},
     "imprimir_error": {"params": ["@cualquiera"],     "retorno": UNIDAD},
-    "menor":    {"params": ["view", "view"],          "retorno": "bool"},
+    "menor":    {"params": ["@comparable", "@comparable"], "retorno": "bool"},
     "ordenar":  {"params": ["@lista_mut"],            "retorno": UNIDAD},
     # Mapas. El tipo concreto sale de `interna_mapa`, que mira el mapa real.
     "poner":    {"params": ["@mapa_mut", "@clave", "@valor"], "retorno": UNIDAD},

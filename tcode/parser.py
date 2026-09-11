@@ -11,6 +11,16 @@ from tcode.nodos import (
 
 TIPOS = {"str", "view", "usize", "i64", "bool"}
 
+# Conjuntos de tipos con nombre. Una restriccion no es una interfaz que haya
+# que implementar: es la lista de tipos que valen, y por eso no hace falta
+# escribir nada en ningun sitio para que un tipo la cumpla.
+RESTRICCIONES = {
+    "numero":    {"usize", "i64"},
+    "igualable": {"usize", "i64", "bool", "str", "view"},
+    "ordenable": {"usize", "i64", "str", "view"},
+    "texto":     {"str", "view"},
+}
+
 
 class ErrorSintactico(Exception):
     pass
@@ -107,6 +117,7 @@ class Parser:
         # `fn primeras<T>(...)`: los parametros de tipo valen dentro de la
         # firma y del cuerpo, y en ningun otro sitio.
         tipo_params = []
+        restricciones = {}
         if self.acepta("simbolo", "<"):
             while True:
                 tp = self.espera("ident").valor
@@ -119,6 +130,15 @@ class Parser:
                 if tp in tipo_params:
                     self.error(f"`{tp}` esta repetido en `{nombre}<...>`")
                 tipo_params.append(tp)
+                # `<T: numero>`: lo que se le exige. Es un conjunto de tipos
+                # con nombre, no una interfaz que haya que implementar.
+                if self.acepta("simbolo", ":"):
+                    r = self.espera("ident").valor
+                    if r not in RESTRICCIONES:
+                        self.error(f"`{r}` no es una restriccion; hay "
+                                   + ", ".join("`" + x + "`"
+                                               for x in sorted(RESTRICCIONES)))
+                    restricciones[tp] = r
                 if not self.acepta("simbolo", ","):
                     break
             self.espera("simbolo", ">")
@@ -151,7 +171,8 @@ class Parser:
         cuerpo = self.bloque()
         self.tipo_params = set()
         return Funcion(nombre, params, retorno, cuerpo, falible,
-                       linea=tok.linea, tipo_params=tipo_params)
+                       linea=tok.linea, tipo_params=tipo_params,
+                       restricciones=restricciones)
 
     def tipo(self) -> str:
         t = self.actual

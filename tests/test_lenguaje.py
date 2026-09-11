@@ -26,6 +26,24 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    ("una restriccion falla en la llamada, no dentro del cuerpo",
+     'fn suma<T: numero>(ns: &lista<T>) -> T { var t: T = 0; return t; }'
+     ' fn main() -> usize { var ss: lista<str> = [];'
+     ' anadir(ss, nuevo("a")); imprimir(suma(ss)); return 0; }',
+     "pide que `T` sea `numero`, y aqui `T` es `str`"),
+
+    ("una restriccion que no existe",
+     'fn f<T: sumable>(x: T) -> T { return x; } fn main() -> usize { return 0; }',
+     "no es una restriccion"),
+
+    ("`igual` no compara cosas de tipos distintos",
+     'fn f() -> bool { return igual(1, "a"); }',
+     "del mismo tipo"),
+
+    ("`igual` no compara structs: habria que decidir que significa",
+     'struct P { n: usize } fn f(a: P, b: P) -> bool { return igual(a, b); }',
+     "recibio `P`"),
+
     ("copiar una vista no copia nada",
      'fn f(v: view) -> usize { let c = copiar(v); return 0; }',
      "una vista no es duenia de nada que copiar"),
@@ -488,6 +506,31 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("restricciones: el cuerpo dice lo que necesita del elemento",
+     '''usar "std/lista";
+        fn main() -> usize ! {
+            var ns: lista<usize> = [];
+            anadir(ns, 3); anadir(ns, 9); anadir(ns, 5);
+            var ss: lista<str> = [];
+            anadir(ss, nuevo("pera")); anadir(ss, nuevo("uva"));
+            let buscado = nuevo("uva");
+            invertir(ns);
+            let vacia: lista<usize> = [];
+            imprimir($"{suma(ns)} {try maximo(ns)} {try minimo(ns)} {suma(vacia)}");
+            imprimir($" {try maximo(ss)} {incluye(ss, buscado)}");
+            imprimir($" {try posicion(ss, buscado)} {ns[0]}\\n");
+            return 0;
+        }''',
+     "17 9 3 0 uva true 1 5\n"),
+
+    ("`igual` y `menor` valen para cualquier tipo sin partes",
+     '''fn main() -> usize {
+            let s = nuevo("x");
+            imprimir($"{igual(1, 1)} {igual("a", "a")} {menor(2, 9)}");
+            imprimir($" {menor("a", "b")} {igual(true, false)} {igual(s, "x")}\\n");
+        }''',
+     "true true true true false true\n"),
+
     ("`copiar` es copia profunda: tocar el original no toca la copia",
      '''struct Cosa { nombre: str, n: usize }
         fn main() -> usize {

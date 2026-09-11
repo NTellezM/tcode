@@ -537,6 +537,11 @@ fn declaracion(e: mut Estado) -> Nodo ! {
         while mas_tipos {
             let tp = try espera(e, "ident", "");
             anadir(n.hijos, hoja("tipo_param", tp, l));
+            // `<T: numero>`: la restriccion es un nombre, nada mas.
+            if acepta(e, "simbolo", ":") {
+                let r = try espera(e, "ident", "");
+                anadir(n.hijos, hoja("restriccion", r, l));
+            }
             mas_tipos = acepta(e, "simbolo", ",");
         }
         try espera(e, "simbolo", ">");
