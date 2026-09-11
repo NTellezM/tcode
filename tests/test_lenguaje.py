@@ -365,9 +365,9 @@ RECHAZO = [
      'fn g() {} fn f() { let x = g(); imprimir(0); }',
      "no se puede deducir el tipo"),
 
-    ("un `str` suelto no se puede prestar a una funcion",
-     'fn g(v: view) {} fn f() { g(nuevo("a")); }',
-     "no esta guardado en ninguna variable"),
+    ("prestar para modificar algo recien hecho no sirve de nada",
+     'fn g(s: mut str) {} fn f() { g(nuevo("a")); }',
+     "modificar algo recien hecho"),
 
     ("prometer un valor y no devolverlo",
      'fn g() -> usize { imprimir(1); }',
@@ -974,6 +974,32 @@ ACEPTA = [
             imprimir($"{medir(uno)} {medir(todo)} {todo}\\n");
         }''',
      "4 10 hola mundo\n"),
+
+    ("se puede prestar un valor recien hecho",
+     '''fn medir(v: view) -> usize { return largo(v); }
+        fn mayusculas(v: view) -> str {
+            var s = nuevo(v);
+            empujar(s, "!");
+            return s;
+        }
+        fn cuantos(xs: &lista<str>) -> usize { return largo(xs); }
+        fn tres() -> lista<str> {
+            var xs: lista<str> = [];
+            anadir(xs, nuevo("a")); anadir(xs, nuevo("bb"));
+            anadir(xs, nuevo("ccc"));
+            return xs;
+        }
+        fn main() {
+            imprimir(medir(mayusculas("hola")));
+            imprimir(" ");
+            imprimir(cuantos(tres()));
+            imprimir(" ");
+            var total = 0;
+            for x en tres() { total = total + largo(x); }
+            imprimir(total);
+            imprimir("\\n");
+        }''',
+     "5 3 6\n"),
 
     ("rebanadas de vista",
      '''fn main() -> usize {

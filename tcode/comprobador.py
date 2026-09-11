@@ -1415,9 +1415,18 @@ class Comprobador:
                 base = self.variable_base(arg)
                 sim = self.buscar(base) if base else None
                 if sim is None:
-                    self.error(e, f"el parametro `{param.nombre}` de `{nombre}` "
-                                  f"es `{marca}`: hay que pasarle una variable, "
-                                  f"un campo o un elemento")
+                    # Un valor recien hecho —`contar(palabras(t))`— tambien se
+                    # puede prestar: vive hasta el final de la sentencia, que
+                    # es mas que lo que dura la llamada. El generador lo guarda
+                    # en un temporal y lo libera ahi.
+                    t_arg = self.expresion(arg)
+                    if t_arg is not None and not encaja(param.tipo, t_arg):
+                        self.error(e, f"`{param.nombre}` de `{nombre}` es "
+                                      f"`{param.tipo}` y recibio `{t_arg}`")
+                    elif param.mutable:
+                        self.error(e, f"`{param.nombre}` de `{nombre}` es "
+                                      f"`mut`: modificar algo recien hecho no "
+                                      f"le sirve a nadie, pasale una variable")
                     continue
 
                 tipo_arg = self.tipo_de_lugar(arg)
@@ -1461,11 +1470,8 @@ class Comprobador:
             # misma regla que ya valia para las internas: escribir `vista(s)`
             # no aporta nada que el comprobador no sepa.
             if param.tipo == "view" and t == "str":
-                if not isinstance(arg, (Variable, Campo, Indice)):
-                    self.error(e, f"`{param.nombre}` de `{nombre}` es una "
-                                  f"vista, y el `str` que se le pasa no esta "
-                                  f"guardado en ninguna variable; asignalo "
-                                  f"primero con `let`")
+                # Tambien vale un `str` recien hecho: el generador lo guarda
+                # en un temporal, que vive hasta el final de la sentencia.
                 continue
 
             if t is not None and not encaja(param.tipo, t):
@@ -1492,10 +1498,6 @@ class Comprobador:
                     and not es_arreglo(t) and not es_lista(t) and not es_mapa(t):
                 self.error(e, f"`largo` opera sobre texto, arreglos, listas o "
                               f"mapas, recibio `{t}`")
-            if ((t == "str" or es_lista(t) or es_mapa(t))
-                    and not isinstance(e.args[0], (Variable, Campo, Indice, Interpolada))):
-                self.error(e, "el valor duenio que recibe `largo` tiene que "
-                              "estar guardado en una variable")
             return "usize"
 
         if nombre == "anadir":
@@ -1566,9 +1568,6 @@ class Comprobador:
             t = self.expresion(e.args[0])
             if t is not None and t not in {LITERAL, "usize", "i64", "bool", "view", "str"}:
                 self.error(e, f"`texto` convierte escalares o texto, recibio `{t}`")
-            if t == "str" and not isinstance(e.args[0], (Variable, Campo, Indice, Interpolada)):
-                self.error(e, "el `str` que recibe `texto` tiene que estar guardado "
-                              "en una variable")
             return "str"
 
         if len(e.args) != len(params):
