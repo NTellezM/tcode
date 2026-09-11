@@ -26,6 +26,30 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    # ---- genericas ----
+    ("una generica sin argumentos que digan el tipo",
+     'fn vacia<T>() -> lista<T> { var s: lista<T> = []; return s; }'
+     ' fn main() -> usize { let x = vacia(); return 0; }',
+     "no se puede deducir `T`"),
+
+    ("un parametro de tipo es un solo tipo en toda la llamada",
+     'fn dos<T>(a: T, b: T) -> T { return a; }'
+     ' fn main() -> usize { let s: str = nuevo("x");'
+     ' imprimir(dos(1, s)); return 0; }',
+     "ya quedo en `usize`"),
+
+    ("el cuerpo de una generica se comprueba con los tipos puestos",
+     'fn primeras<T>(xs: &lista<T>) -> lista<T> {'
+     ' var salida: lista<T> = []; for x en xs { anadir(salida, x); }'
+     ' return salida; }'
+     ' fn main() -> usize { var ss: lista<str> = [];'
+     ' anadir(ss, nuevo("a")); let d = primeras(ss); return 0; }',
+     "al usar `primeras` con T = str"),
+
+    ("un parametro de tipo no puede llamarse como un tipo del lenguaje",
+     'fn f<str>(a: str) -> str { return a; } fn main() -> usize { return 0; }',
+     "se esperaba 'ident'"),
+
     ("`falla` con parentesis: el error dice como se escribe",
      'fn f() -> usize ! { falla("roto"); }',
      "no lleva parentesis"),
@@ -460,6 +484,48 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("una generica se copia una vez por cada juego de tipos",
+     '''struct Punto { x: usize, y: usize }
+
+        fn primero<T>(xs: &lista<T>) -> T ! {
+            if largo(xs) == 0 { falla "lista vacia"; }
+            return xs[0];
+        }
+
+        fn cuantos<K, V>(m: &mapa<K, V>) -> usize { return largo(m); }
+
+        // una generica que llama a otra generica
+        fn primero_o<T>(xs: &lista<T>, alterno: T) -> T {
+            return primero(xs) sino alterno;
+        }
+
+        fn main() -> usize ! {
+            var ns: lista<usize> = [];
+            anadir(ns, 7);
+            var ps: lista<Punto> = [];
+            anadir(ps, Punto { x: 1, y: 2 });
+            let p = try primero(ps);
+
+            let vacia: lista<usize> = [];
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+
+            imprimir($"{try primero(ns)} {p.y} {primero_o(vacia, 99)} {cuantos(m)}\\n");
+            return 0;
+        }''',
+     "7 2 99 1\n"),
+
+    ("la misma generica vale para un tipo que posee y para uno que no",
+     '''usar "std/lista";
+        fn main() -> usize ! {
+            var ns: lista<usize> = [];
+            anadir(ns, 3); anadir(ns, 9);
+            var xs: lista<str> = [];
+            imprimir($"{esta_vacia(ns)} {esta_vacia(xs)} {try ultima_posicion(ns)}\\n");
+            return 0;
+        }''',
+     "false true 1\n"),
+
     # Los cinco caminos que salen antes de tiempo tienen que soltar los
     # temporales de la sentencia: la limpieza de fin de sentencia se emite
     # detras del `return` y no llega a ejecutarse.

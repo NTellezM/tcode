@@ -527,9 +527,22 @@ fn declaracion(e: mut Estado) -> Nodo ! {
 
     try espera(e, "palabra", "fn");
     let nombre = try espera(e, "ident", "");
-    try espera(e, "simbolo", "(");
     var n = rama("fn", l);
     empujar(n.texto, nombre);
+
+    // `fn primeras<T>(...)`: parametros de tipo. Dentro de la firma y del
+    // cuerpo, `T` es un tipo mas, y `tipo` ya acepta cualquier nombre.
+    if acepta(e, "simbolo", "<") {
+        var mas_tipos = true;
+        while mas_tipos {
+            let tp = try espera(e, "ident", "");
+            anadir(n.hijos, hoja("tipo_param", tp, l));
+            mas_tipos = acepta(e, "simbolo", ",");
+        }
+        try espera(e, "simbolo", ">");
+    }
+
+    try espera(e, "simbolo", "(");
 
     if !es(e, "simbolo", ")") {
         var mas = true;

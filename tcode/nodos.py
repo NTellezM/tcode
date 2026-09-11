@@ -182,3 +182,7 @@ class Funcion(Nodo):
     cuerpo: list
     # declarada con `!`: puede fallar
     falible: bool = False
+    # `fn f<T>(...)`: los nombres de tipo que quedan por resolver. Vacia en
+    # una funcion normal; con algo dentro, la funcion no se comprueba ni se
+    # genera tal cual, sino una copia por cada juego de tipos que se use.
+    tipo_params: list = field(default_factory=list)
