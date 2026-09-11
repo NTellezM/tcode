@@ -13,17 +13,17 @@ struct Articulo {
 
 // `&Articulo` lo presta para leer: no lo copia ni lo saca del arreglo.
 fn linea(a: &Articulo, total: usize) -> str ! {
-    let pct: usize = try porcentaje(a.unidades, total);
+    let pct = try porcentaje(a.unidades, total);
 
-    var s: str = vacio();
-    let nombre: str = rellenar(vista(a.nombre), 12);
-    empujar(s, vista(nombre));
+    var s = vacio();
+    let nombre = rellenar(a.nombre, 12);
+    empujar(s, nombre);
 
-    let barra: str = repetir("#", try dividir(pct, 4));
-    empujar(s, vista(barra));
+    let barra = repetir("#", try dividir(pct, 4));
+    empujar(s, barra);
 
-    let hueco: str = repetir(" ", 26 - largo(vista(barra)));
-    empujar(s, vista(hueco));
+    let hueco = repetir(" ", 26 - largo(barra));
+    empujar(s, hueco);
     return s;
 }
 
@@ -33,7 +33,7 @@ fn ajustar(a: mut Articulo, extra: usize) {
 }
 
 fn main() -> usize ! {
-    var inv: [Articulo; 4] = [
+    var inv = [
         Articulo { nombre: nuevo("tornillos"), unidades: 420 },
         Articulo { nombre: nuevo("tuercas"),   unidades: 310 },
         Articulo { nombre: nuevo("arandelas"), unidades: 200 },
@@ -42,19 +42,19 @@ fn main() -> usize ! {
 
     ajustar(inv[2], 25);
 
-    var total: usize = 0;
-    var i: usize = 0;
+    var total = 0;
+    var i = 0;
     while i < 4 {
         total = total + inv[i].unidades;
         i = i + 1;
     }
 
-    let borde: str = repetir("=", 46);
+    let borde = repetir("=", 46);
     imprimir(borde); imprimir("\n");
 
     i = 0;
     while i < 4 {
-        let l: str = try linea(inv[i], total);
+        let l = try linea(inv[i], total);
         imprimir(l);
         imprimir(inv[i].unidades);
         imprimir(" (");
@@ -72,5 +72,4 @@ fn main() -> usize ! {
     imprimir("sobre cero: ");
     imprimir(porcentaje(10, 0) sino 0);
     imprimir(" (sustituido)\n");
-    return 0;
 }

@@ -99,7 +99,11 @@ class Generador:
             cual = self.r.choice(["usize", "usize", "bool", "str", "str"])
             v = nombre(cual[0])
             if cual == "usize":
-                lineas.append(f"{s}var {v}: usize = {self.expr_usize(vars_usize)};")
+                # A veces con tipo y a veces sin el: las dos formas valen y
+                # las dos tienen que probarse.
+                anota = ": usize" if self.r.random() < 0.5 else ""
+                lineas.append(f"{s}var {v}{anota} = "
+                              f"{self.expr_usize(vars_usize)};")
                 vars_usize.append(v)
                 vars_usize_puros.append(v)
             elif cual == "bool":
@@ -107,7 +111,8 @@ class Generador:
                               f"{self.expr_bool(vars_usize, vars_bool)};")
                 vars_bool.append(v)
             else:
-                lineas.append(f'{s}var {v}: str = nuevo("{self.palabra()}");')
+                anota = ": str" if self.r.random() < 0.5 else ""
+                lineas.append(f'{s}var {v}{anota} = nuevo("{self.palabra()}");')
                 vars_str.append(v)
 
         if self.structs and self.r.random() < 0.5:

@@ -20,21 +20,21 @@ fn main() -> usize ! {
         return 1;
     }
 
-    let contenido: str = try leer_archivo(argumento(1));
-    let texto_completo: view = vista(contenido);
+    let contenido = try leer_archivo(argumento(1));
+    let texto_completo = vista(contenido);
 
     var vistas: mapa<str, usize> = [];
-    var palabra: str = vacio();
-    var i: usize = 0;
+    var palabra = vacio();
+    var i = 0;
 
     while i <= largo(texto_completo) {
-        var corta: bool = true;
+        var corta = true;
         if i < largo(texto_completo) {
             corta = es_separador(byte(texto_completo, i));
         }
         if corta {
-            if largo(vista(palabra)) > 0 {
-                poner(vistas, vista(palabra), 1);
+            if largo(palabra) > 0 {
+                poner(vistas, palabra, 1);
                 palabra = vacio();
             }
         } else {
@@ -44,13 +44,13 @@ fn main() -> usize ! {
     }
 
     // Ordenadas alfabeticamente, que es lo que `ordenar` da sobre `lista<str>`.
-    var vocabulario: lista<str> = claves(vistas);
+    var vocabulario = claves(vistas);
     ordenar(vocabulario);
 
     imprimir(largo(vocabulario));
     imprimir(" palabras distintas, las 8 primeras en orden:\n");
 
-    var mostradas: usize = 0;
+    var mostradas = 0;
     for palabra_ordenada en vocabulario {
         if mostradas == 8 { break; }
         imprimir("  ");
@@ -58,5 +58,4 @@ fn main() -> usize ! {
         imprimir("\n");
         mostradas = mostradas + 1;
     }
-    return 0;
 }

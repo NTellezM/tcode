@@ -479,6 +479,13 @@ class Comprobador:
                 sim.procedencia = PARAMETRO
         self.bloque(f.cuerpo)
         self.cerrar()
+        # Prometer un valor y no devolverlo deja al que llama leyendo basura.
+        # `main` es la excepcion: si no dice otra cosa, sale con cero.
+        if (f.retorno not in (None, UNIDAD) and f.nombre != "main"
+                and not self._siempre_sale(f.cuerpo)):
+            self.error(f, f"`{f.nombre}` promete devolver `{f.retorno}` pero "
+                          f"hay un camino que llega al final sin `return`")
+
         self.avisar_sin_usar(f, self.simbolos_funcion)
         self.informe.append({"funcion": f, "simbolos": self.simbolos_funcion})
         self.simbolos_funcion = None
@@ -573,6 +580,22 @@ class Comprobador:
             return False
         return isinstance(sentencias[-1], (Retorno, Falla, Romper, Continuar))
 
+    def _siempre_sale(self, sentencias):
+        """True si TODOS los caminos de este bloque salen de la funcion.
+
+        Un `while` no cuenta: puede no dar ni una vuelta. Un `if` cuenta solo
+        si tiene `else` y los dos lados salen.
+        """
+        if not sentencias:
+            return False
+        ultima = sentencias[-1]
+        if isinstance(ultima, (Retorno, Falla)):
+            return True
+        if isinstance(ultima, Si) and ultima.sino is not None:
+            return (self._siempre_sale(ultima.entonces)
+                    and self._siempre_sale(ultima.sino))
+        return False
+
     def bloque(self, sentencias):
         # Un bloque anidado ya no es el nivel directo del bucle: lo que se
         # asigne aqui dentro puede no ejecutarse, asi que no restaura nada.
@@ -587,21 +610,37 @@ class Comprobador:
 
     def sentencia(self, s):
         if isinstance(s, Declaracion):
-            self.comprobar_mapa_valido(s, s.tipo)
-            if not self.tipo_existe(s.tipo):
-                if es_referencia(s.tipo):
-                    self.error(s, f"`{s.tipo}` no tiene sentido: "
-                                  f"`{apuntado(s.tipo)}` es un escalar, y "
-                                  f"prestarlo no aporta nada sobre copiarlo")
-                else:
-                    self.error(s, f"`{s.tipo}` no es un tipo almacenable; las "
-                                  "listas no pueden guardar `view` ni arreglos "
-                                  "fijos")
-            tipo = self.expresion(s.valor, destino=s.tipo,
-                                  mover_variables=True)
-            if tipo is not None and not encaja(s.tipo, tipo):
-                self.error(s, f"`{s.nombre}` se declaro `{s.tipo}` pero el "
-                              f"valor es `{tipo}`")
+            if s.tipo is None:
+                # Sin tipo escrito: se deduce del valor. `destino=None` hace
+                # que un `[]` no sepa si es lista, arreglo o mapa, y entonces
+                # el error pide el tipo en vez de adivinar.
+                tipo = self.expresion(s.valor, mover_variables=True)
+                if tipo is None:
+                    return
+                if tipo == LITERAL:
+                    tipo = concreto(tipo)
+                if not self.tipo_existe(tipo):
+                    self.error(s, f"no se puede deducir el tipo de "
+                                  f"`{s.nombre}`: escribelo con `: tipo`")
+                    return
+                # El generador espera siempre un tipo concreto.
+                s.tipo = tipo
+            else:
+                self.comprobar_mapa_valido(s, s.tipo)
+                if not self.tipo_existe(s.tipo):
+                    if es_referencia(s.tipo):
+                        self.error(s, f"`{s.tipo}` no tiene sentido: "
+                                      f"`{apuntado(s.tipo)}` es un escalar, y "
+                                      f"prestarlo no aporta nada sobre copiarlo")
+                    else:
+                        self.error(s, f"`{s.tipo}` no es un tipo almacenable; "
+                                      "las listas no pueden guardar `view` ni "
+                                      "arreglos fijos")
+                tipo = self.expresion(s.valor, destino=s.tipo,
+                                      mover_variables=True)
+                if tipo is not None and not encaja(s.tipo, tipo):
+                    self.error(s, f"`{s.nombre}` se declaro `{s.tipo}` pero el "
+                                  f"valor es `{tipo}`")
             sim = self.declarar(s, s.nombre, s.tipo, s.mutable, decl=s)
             # Una vista y un `&T` son lo mismo para esto: apuntan a memoria
             # de otro, y mientras vivan ese otro no se puede mover ni tocar.
@@ -1243,7 +1282,12 @@ class Comprobador:
 
         es_literal_lista = esperado is not None and es_lista(esperado)
         if not e.elementos and not es_literal_lista:
-            self.error(e, "un arreglo tiene que tener al menos un elemento")
+            if esperado is None:
+                self.error(e, "`[]` vacio no dice si es una lista, un arreglo "
+                              "o un mapa: escribe el tipo, como "
+                              "`let xs: lista<usize> = [];`")
+            else:
+                self.error(e, "un arreglo tiene que tener al menos un elemento")
             return None
 
         elem_esperado = None
@@ -1412,6 +1456,18 @@ class Comprobador:
                 if sim_arg is not None:
                     sim_arg.movida_a = nombre
             t = self.expresion(arg, destino=param.tipo, mover_variables=mueve)
+
+            # Donde se pide una vista, un `str` se lee prestandolo. Es la
+            # misma regla que ya valia para las internas: escribir `vista(s)`
+            # no aporta nada que el comprobador no sepa.
+            if param.tipo == "view" and t == "str":
+                if not isinstance(arg, (Variable, Campo, Indice)):
+                    self.error(e, f"`{param.nombre}` de `{nombre}` es una "
+                                  f"vista, y el `str` que se le pasa no esta "
+                                  f"guardado en ninguna variable; asignalo "
+                                  f"primero con `let`")
+                continue
+
             if t is not None and not encaja(param.tipo, t):
                 self.error(e, f"`{param.nombre}` de `{nombre}` es "
                               f"`{param.tipo}` y recibio `{t}`")

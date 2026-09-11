@@ -4,8 +4,8 @@
 // encontramos auditando la libreria en C: el compilador las rechaza.
 
 fn repetir(patron: view, veces: usize) -> str {
-    var s: str = vacio();
-    var i: usize = 0;
+    var s = vacio();
+    var i = 0;
     while i < veces {
         empujar(s, patron);
         i = i + 1;
@@ -14,14 +14,14 @@ fn repetir(patron: view, veces: usize) -> str {
 }
 
 fn unir(a: view, b: view, sep: view) -> str {
-    var s: str = nuevo(a);
+    var s = nuevo(a);
     empujar(s, sep);
     empujar(s, b);
     return s;
 }
 
 fn empieza_con(texto: view, prefijo: view) -> bool {
-    let n: usize = largo(prefijo);
+    let n = largo(prefijo);
     if largo(texto) < n {
         return false;
     }
@@ -29,8 +29,8 @@ fn empieza_con(texto: view, prefijo: view) -> bool {
 }
 
 fn termina_con(texto: view, sufijo: view) -> bool {
-    let n: usize = largo(sufijo);
-    let m: usize = largo(texto);
+    let n = largo(sufijo);
+    let m = largo(texto);
     if m < n {
         return false;
     }
@@ -58,26 +58,26 @@ fn agregar_separador(s: mut str) {
 }
 
 fn marco(titulo: view) -> str {
-    let borde: str = repetir("=", largo(titulo) + 4);
-    var s: str = vacio();
-    empujar(s, vista(borde));
+    let borde = repetir("=", largo(titulo) + 4);
+    var s = vacio();
+    empujar(s, borde);
     empujar(s, "\n| ");
     empujar(s, titulo);
     empujar(s, " |\n");
-    empujar(s, vista(borde));
+    empujar(s, borde);
     empujar(s, "\n");
     return s;
 }
 
 fn main() -> usize {
-    let cabecera: str = marco("safestr");
+    let cabecera = marco("safestr");
     imprimir(cabecera);
 
-    let saludo: str = unir("hola", "mundo", ", ");
+    let saludo = unir("hola", "mundo", ", ");
     imprimir(saludo);
     imprimir("\n");
 
-    var linea: str = nuevo("campo1");
+    var linea = nuevo("campo1");
     agregar_separador(linea);
     empujar(linea, "campo2");
     agregar_separador(linea);
@@ -85,19 +85,18 @@ fn main() -> usize {
     imprimir(linea);
     imprimir("\n");
 
-    imprimir(empieza_con(vista(saludo), "hola"));
+    imprimir(empieza_con(saludo, "hola"));
     imprimir(" ");
-    imprimir(termina_con(vista(saludo), "mundo"));
+    imprimir(termina_con(saludo, "mundo"));
     imprimir("\n");
 
-    let ruta: str = nuevo("PRE:documento.txt");
-    imprimir(sin_prefijo(vista(ruta), 4));
+    let ruta = nuevo("PRE:documento.txt");
+    imprimir(sin_prefijo(ruta, 4));
     imprimir("  ");
-    imprimir(primera_mitad(vista(ruta)));
+    imprimir(primera_mitad(ruta));
     imprimir("\n");
 
-    let barras: str = repetir("-*", 10);
+    let barras = repetir("-*", 10);
     imprimir(barras);
     imprimir("\n");
-    return 0;
 }

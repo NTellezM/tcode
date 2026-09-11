@@ -22,10 +22,10 @@ fn minuscula(b: usize) -> usize {
 }
 
 fn a_entero(v: view) -> usize {
-    var n: usize = 0;
-    var i: usize = 0;
+    var n = 0;
+    var i = 0;
     while i < largo(v) {
-        let b: usize = byte(v, i);
+        let b = byte(v, i);
         if b < 48 || b > 57 { return n; }
         n = n * 10 + (b - 48);
         i = i + 1;
@@ -41,29 +41,29 @@ fn main() -> usize ! {
         return 1;
     }
 
-    var cuantas: usize = 10;
+    var cuantas = 10;
     if n_argumentos() > 2 { cuantas = a_entero(argumento(2)); }
     if cuantas == 0 { cuantas = 10; }
 
-    let contenido: str = try leer_archivo(argumento(1));
-    let texto_completo: view = vista(contenido);
+    let contenido = try leer_archivo(argumento(1));
+    let texto_completo = vista(contenido);
 
     var cuenta: mapa<str, usize> = [];
-    var palabra: str = vacio();
-    var i: usize = 0;
-    var total: usize = 0;
+    var palabra = vacio();
+    var i = 0;
+    var total = 0;
 
     while i <= largo(texto_completo) {
         // Al pasarse por uno se cierra la ultima palabra sin repetir codigo.
-        var corta: bool = true;
+        var corta = true;
         if i < largo(texto_completo) {
             corta = es_separador(byte(texto_completo, i));
         }
 
         if corta {
-            if largo(vista(palabra)) > 0 {
-                let previo: usize = obtener(cuenta, vista(palabra)) sino 0;
-                poner(cuenta, vista(palabra), previo + 1);
+            if largo(palabra) > 0 {
+                let previo = obtener(cuenta, palabra) sino 0;
+                poner(cuenta, palabra, previo + 1);
                 total = total + 1;
                 palabra = vacio();
             }
@@ -82,12 +82,12 @@ fn main() -> usize ! {
     // Antes hacia falta `claves(cuenta)`, que copia el vocabulario entero;
     // ahora cada vuelta presta las claves que ya estan en la tabla y solo se
     // copia la ganadora de cada linea.
-    var mostradas: usize = 0;
-    var tope: usize = largo(texto_completo) + 1;
+    var mostradas = 0;
+    var tope = largo(texto_completo) + 1;
 
     while mostradas < cuantas {
-        var mejor: usize = 0;
-        var ganadora: str = vacio();
+        var mejor = 0;
+        var ganadora = vacio();
 
         for palabra_actual, veces en cuenta {
             if veces > mejor && veces < tope {
@@ -104,5 +104,4 @@ fn main() -> usize ! {
         tope = mejor;
         mostradas = mostradas + 1;
     }
-    return 0;
 }

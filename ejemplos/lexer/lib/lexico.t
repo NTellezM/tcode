@@ -89,9 +89,9 @@ fn agregar(salida: mut lista<Token>, tipo: view, valor: view, linea: usize) {
 // deja crudo, con los escapes sin resolver: al lexer le basta con saber
 // donde acaba.
 fn fin_de_cadena(fuente: view, desde: usize) -> usize ! {
-    var i: usize = desde;
+    var i = desde;
     while i < largo(fuente) {
-        let b: usize = byte(fuente, i);
+        let b = byte(fuente, i);
         if b == 10 {
             falla "cadena sin cerrar antes del salto de linea";
         }
@@ -108,13 +108,13 @@ fn fin_de_cadena(fuente: view, desde: usize) -> usize ! {
 }
 
 fn analizar(fuente: view) -> lista<Token> ! {
-    let reservadas: mapa<str, usize> = palabras_reservadas();
+    let reservadas = palabras_reservadas();
     var salida: lista<Token> = [];
-    var i: usize = 0;
-    var linea: usize = 1;
+    var i = 0;
+    var linea = 1;
 
     while i < largo(fuente) {
-        let b: usize = byte(fuente, i);
+        let b = byte(fuente, i);
 
         if b == 10 {
             linea = linea + 1;
@@ -128,7 +128,7 @@ fn analizar(fuente: view) -> lista<Token> ! {
 
         // comentarios
         if b == 47 && i + 1 < largo(fuente) {
-            let sig: usize = byte(fuente, i + 1);
+            let sig = byte(fuente, i + 1);
             if sig == 47 {
                 while i < largo(fuente) && byte(fuente, i) != 10 {
                     i = i + 1;
@@ -136,7 +136,7 @@ fn analizar(fuente: view) -> lista<Token> ! {
                 continue;
             }
             if sig == 42 {
-                var cerrado: bool = false;
+                var cerrado = false;
                 i = i + 2;
                 while i + 1 < largo(fuente) {
                     if byte(fuente, i) == 10 { linea = linea + 1; }
@@ -154,7 +154,7 @@ fn analizar(fuente: view) -> lista<Token> ! {
 
         // cadena interpolada
         if b == 36 && i + 1 < largo(fuente) && byte(fuente, i + 1) == 34 {
-            let fin: usize = try fin_de_cadena(fuente, i + 2);
+            let fin = try fin_de_cadena(fuente, i + 2);
             agregar(salida, "interpolada", rebanar(fuente, i + 2, fin), linea);
             i = fin + 1;
             continue;
@@ -162,7 +162,7 @@ fn analizar(fuente: view) -> lista<Token> ! {
 
         // cadena
         if b == 34 {
-            let fin: usize = try fin_de_cadena(fuente, i + 1);
+            let fin = try fin_de_cadena(fuente, i + 1);
             agregar(salida, "cadena", rebanar(fuente, i + 1, fin), linea);
             i = fin + 1;
             continue;
@@ -170,7 +170,7 @@ fn analizar(fuente: view) -> lista<Token> ! {
 
         // numero
         if es_digito(b) {
-            var j: usize = i;
+            var j = i;
             while j < largo(fuente) && (es_digito(byte(fuente, j))
                                         || byte(fuente, j) == 95) {
                 j = j + 1;
@@ -182,11 +182,11 @@ fn analizar(fuente: view) -> lista<Token> ! {
 
         // identificador o palabra reservada
         if es_letra(b) {
-            var j: usize = i;
+            var j = i;
             while j < largo(fuente) && es_alfanumerico(byte(fuente, j)) {
                 j = j + 1;
             }
-            let texto_pieza: view = rebanar(fuente, i, j);
+            let texto_pieza = rebanar(fuente, i, j);
             if tiene(reservadas, texto_pieza) {
                 agregar(salida, "palabra", texto_pieza, linea);
             } else {

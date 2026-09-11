@@ -192,8 +192,9 @@ class Parser:
             mutable = t.valor == "var"
             self.i += 1
             nombre = self.espera("ident").valor
-            self.espera("simbolo", ":")
-            tipo = self.tipo()
+            # El tipo se escribe solo cuando aporta algo: casi siempre se
+            # deduce del valor, y repetirlo es decir lo mismo dos veces.
+            tipo = self.tipo() if self.acepta("simbolo", ":") else None
             self.espera("simbolo", "=")
             valor = self.expr()
             self.espera("simbolo", ";")
