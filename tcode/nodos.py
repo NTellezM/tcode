@@ -22,6 +22,12 @@ class Cadena(Nodo):
     valor: str
 
 @dataclass
+class Interpolada(Nodo):
+    """`$"hola {quien}"`: trozos de texto y expresiones, alternados."""
+    trozos: list      # [str] literales
+    expresiones: list # [Nodo], uno menos que trozos
+
+@dataclass
 class Booleano(Nodo):
     valor: bool
 

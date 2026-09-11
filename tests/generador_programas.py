@@ -311,6 +311,30 @@ class Generador:
             lineas.append(f"{s}doblar({vu});")
             lineas.append(f"{s}imprimir({vu});")
 
+        # Cadenas interpoladas: sueltas y guardadas, con escalares y texto.
+        if vars_usize and self.r.random() < 0.7:
+            v = self.r.choice(vars_usize)
+            lineas.append(f'{s}imprimir($"[{{{v}}}]");')
+        if vars_str and vars_usize and self.r.random() < 0.6:
+            ip = nombre("ip")
+            lineas.append(f'{s}let {ip}: str = $"{{{self.r.choice(vars_str)}}}'
+                          f'={{{self.r.choice(vars_usize)}}} {{{{fin}}}}";')
+            lineas.append(f"{s}imprimir(largo(vista({ip})));")
+
+        # Mapa de textos: valor duenio, prestado al leerlo.
+        if self.r.random() < 0.5:
+            mt = nombre("mt")
+            lineas.append(f"{s}var {mt}: mapa<str, str> = [];")
+            for _ in range(self.r.randint(1, 4)):
+                lineas.append(f'{s}poner({mt}, "{self.palabra()}", '
+                              f'nuevo("{self.palabra()}"));')
+            lineas.append(f'{s}imprimir(largo(obtener({mt}, "no_esta") sino ""));')
+            ck = nombre("ck")
+            cv = nombre("cv")
+            lineas.append(f"{s}for {ck}, {cv} en {mt} {{")
+            lineas.append(f"{s}    imprimir(largo(vista({ck})) + largo({cv}));")
+            lineas.append(f"{s}}}")
+
         # `texto` de un escalar: un `str` recien creado que hay que liberar.
         if vars_usize and self.r.random() < 0.5:
             t = nombre("t")

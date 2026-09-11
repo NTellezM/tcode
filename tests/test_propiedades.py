@@ -66,7 +66,8 @@ def falla(propiedad, semilla, detalle, fuente=None):
     for linea in detalle.strip().split("\n")[:12]:
         print(f"         {linea}")
     if fuente is not None:
-        ruta = os.path.join(tempfile.gettempdir(), f"tcode_falla_{semilla}.t")
+        seguro = str(semilla).replace("/", "_")
+        ruta = os.path.join(tempfile.gettempdir(), f"tcode_falla_{seguro}.t")
         with open(ruta, "w", encoding="utf-8") as f:
             f.write(fuente)
         print(f"         programa guardado en {ruta}")
@@ -267,10 +268,13 @@ def probar_mutantes(semilla, por_programa=12):
                 ruta_c = os.path.join(tmp, "m.c")
                 with open(ruta_c, "w", encoding="utf-8") as f:
                     f.write(codigo)
+                # Solo compilar, sin enlazar: un mutante puede haberse
+                # quedado sin `main`, y un archivo sin `main` es un modulo
+                # perfectamente valido. Lo que se comprueba aqui es que el C
+                # generado sea C, no que forme un programa.
                 r = subprocess.run(
-                    ["cc", "-std=c17", "-O0", "-w", f"-I{RUNTIME}", ruta_c,
-                     os.path.join(RUNTIME, "safestr.c"), "-o",
-                     os.path.join(tmp, "m")],
+                    ["cc", "-std=c17", "-O0", "-w", "-c", f"-I{RUNTIME}",
+                     ruta_c, "-o", os.path.join(tmp, "m.o")],
                     capture_output=True, text=True)
                 if r.returncode != 0:
                     falla("P8 aceptado da C valido", f"{semilla}/{k}",

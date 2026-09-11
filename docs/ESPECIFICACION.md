@@ -357,7 +357,7 @@ producto   := unario (("*" | "/" | "%" | "*?") unario)*
 unario     := "try" unario | ("!" | "-") unario | postfijo
 postfijo   := primario ("." ident | "[" expr "]")*
 lugar      := ident ("." ident | "[" expr "]")*
-primario   := entero | cadena | "true" | "false" | ident
+primario   := entero | cadena | interpolada | "true" | "false" | ident
             | ident "(" args? ")" | "(" expr ")"
             | IDENT_STRUCT "{" (ident ":" expr ",")* "}"
             | "[" (expr ",")* "]"
@@ -412,11 +412,28 @@ disfrazado es exactamente cómo se cuelan los errores.
 **Los dos límites de v0, dichos donde se declara el mapa:**
 
 - **La clave tiene que ser `str`.** Se consulta con un `view`, sin copiar.
-- **El valor no puede poseer memoria.** `obtener` devuelve una copia, y sacar
-  al dueño dejaría el mapa a medias. El recorrido con `for k, v en m` ya
-  presta sin copiar, así que lo único que falta para levantar este límite es
-  que **`obtener` devuelva un préstamo** — el mismo muro que los campos
-  `view`, ahora reducido a una sola pieza.
+- **El valor es un escalar o un `str`.** Para un escalar, `obtener` devuelve
+  una copia; para un `str`, **devuelve una vista prestada del texto que ya
+  vive dentro de la tabla**, así que no se saca al dueño ni se copia nada:
+
+  ```tcode
+  var cfg: mapa<str, str> = [];
+  poner(cfg, "host", nuevo("localhost"));
+  let h: view = obtener(cfg, "host") sino "(sin valor)";
+  ```
+
+  Esa vista presta del mapa, así que modificarlo mientras viva es un error:
+
+  ```
+  error: no se puede modificar `cfg`: esta prestada por `h`
+  ```
+
+  Y no puede salir de la función, por la misma regla que cualquier vista de
+  algo local.
+
+  Para valores más complejos —una `lista<T>` o un struct dentro de un mapa—
+  haría falta devolver un préstamo del tipo entero, no solo del texto. Ese
+  es el muro que queda.
 
 ### Argumentos de la línea de órdenes
 
@@ -534,10 +551,28 @@ Sobre los nombres: `for`, `break` y `continue` se reconocen en cualquier
 lenguaje y leerlos en inglés no cuesta nada; `en` se eligió en español
 porque ahí `in` no aportaba nada a quien escribe el resto en español.
 
+### 13. Cadenas interpoladas
+
+```tcode
+let aviso: str = $"linea {n}: `{palabra}` aparece {veces} veces";
+imprimir($"[{i}]");
+```
+
+El `$` delante distingue una cadena interpolada de una normal, así que los
+literales de siempre siguen siendo literales. Dentro de `{}` cabe **cualquier
+expresión** del lenguaje, y se analiza con las reglas de siempre: `{n + 1}`,
+`{obtener(m, k) sino ""}`, `{a.campo}`. Para escribir una llave, `{{` y `}}`.
+
+No hay formato en tiempo de ejecución. Cada hueco se convierte con las
+mismas reglas que `imprimir`, y como el tipo se conoce al compilar, el C que
+sale es una secuencia de `ss_append_view` — no un `printf` con cadena
+variable. Un `{}` sobre una lista o un struct es un error de compilación, no
+un `?` en la salida.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: genéricos definidos por el usuario, espacios de
-nombres, interpolación de texto, valores dueños en los mapas, E/S incremental, aritmética de punteros ni recolector.
+nombres, préstamos devueltos de un tipo cualquiera (sólo de texto), E/S incremental, aritmética de punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

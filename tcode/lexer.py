@@ -13,7 +13,7 @@ PALABRAS = {
 SIMBOLOS = [
     "+?", "-?", "*?", "->", "==", "!=", "<=", ">=", "&&", "||",
     "(", ")", "{", "}", "[", "]", ",", ";", ":", ".", "=", "+", "-", "*", "/",
-    "%", "<", ">", "!", "&",
+    "%", "<", ">", "!", "&", "$",
 ]
 
 
@@ -66,6 +66,34 @@ def tokenizar(fuente: str, archivo: str = "<entrada>") -> list:
                 raise ErrorLexico(f"{archivo}:{linea}: comentario /* sin cerrar")
             linea += fuente.count("\n", i, fin)
             i = fin + 2
+            continue
+
+        # cadena interpolada: $"hola {nombre}, van {n} veces"
+        if c == "$" and i + 1 < n and fuente[i + 1] == '"':
+            c0, l0 = col(), linea
+            i += 2
+            partes = []
+            while True:
+                if i >= n or fuente[i] == "\n":
+                    raise ErrorLexico(f"{archivo}:{l0}: cadena sin cerrar")
+                if fuente[i] == '"':
+                    i += 1
+                    break
+                if fuente[i] == "\\":
+                    if i + 1 >= n:
+                        raise ErrorLexico(f"{archivo}:{l0}: escape sin cerrar")
+                    esc = fuente[i + 1]
+                    mapa = {"n": "\n", "t": "\t", "\\": "\\", '"': '"',
+                            "0": "\0", "{": "{", "}": "}"}
+                    if esc not in mapa:
+                        raise ErrorLexico(
+                            f"{archivo}:{linea}: escape desconocido \\{esc}")
+                    partes.append(mapa[esc])
+                    i += 2
+                    continue
+                partes.append(fuente[i])
+                i += 1
+            toks.append(Token("interpolada", "".join(partes), l0, c0))
             continue
 
         # cadena

@@ -139,6 +139,12 @@ def main(argv=None):
         print(ruta_c)
         return 0
 
+    if "int main(" not in codigo:
+        print(f"tcode: {args.fuente} no tiene `fn main`, asi que no es un "
+              f"programa. Si es un modulo, compila el archivo que lo usa; "
+              f"si no, anade `fn main() -> usize {{ ... }}`.", file=sys.stderr)
+        return 1
+
     tmp = tempfile.mkdtemp(prefix="tcode-")
     try:
         ruta_c = os.path.join(tmp, os.path.basename(base) + ".c")

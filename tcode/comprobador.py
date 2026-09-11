@@ -9,6 +9,7 @@ auditando la libreria en C.
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
+    Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
 )
@@ -563,10 +564,11 @@ class Comprobador:
                 sim.prestado = True
                 sim.leida = True
             if tipo_valor is not None and s.valor is not None:
-                # El valor de un mapa no posee memoria (regla de v0), asi que
-                # llega por copia y no hay nada que prestar.
                 sv = self.declarar(s, s.valor, tipo_valor, False, decl=s)
                 sv.leida = True
+                # Un valor escalar llega por copia; uno duenio, prestado.
+                if self.posee(tipo_valor):
+                    sv.prestado = True
             self.bloque(s.cuerpo)
             self.en_condicional -= 1
             self.en_bucle -= 1
@@ -664,6 +666,16 @@ class Comprobador:
                       f"el texto, devuelve un `str` con `nuevo(...)`")
 
     def procedencia_de(self, e):
+        if isinstance(e, Try):
+            return self.procedencia_de(e.expr)
+        if isinstance(e, Sino):
+            # Lo peor de los dos caminos: el resultado puede venir de
+            # cualquiera de ellos.
+            a = self.procedencia_de(e.expr)
+            b = self.procedencia_de(e.alternativa)
+            if LOCAL in (a, b):
+                return LOCAL
+            return PARAMETRO if PARAMETRO in (a, b) else ESTATICO
         """De donde sale la memoria a la que apunta una vista.
 
         Ante la duda devuelve LOCAL, que es lo restrictivo: preferimos
@@ -689,7 +701,9 @@ class Comprobador:
             if n == "argumento":
                 return ESTATICO
 
-            if n in ("vista", "nuevo", "vacio"):
+            # La vista que devuelve `obtener` vive dentro del mapa: no puede
+            # salir de la funcion, igual que una vista de un `str` local.
+            if n in ("vista", "nuevo", "vacio", "obtener"):
                 return LOCAL
 
             if n == "rebanar":
@@ -717,6 +731,12 @@ class Comprobador:
         return LOCAL
 
     def _origen_de(self, expr):
+        # `try f(..)` y `f(..) sino alt` no cambian de donde sale el valor.
+        if isinstance(expr, Try):
+            return self._origen_de(expr.expr)
+        if isinstance(expr, Sino):
+            return (self._origen_de(expr.expr)
+                    or self._origen_de(expr.alternativa))
         """De que variable duenia proviene una vista, si es que proviene de una."""
         if isinstance(expr, Llamada):
             if expr.nombre == "vista" and expr.args:
@@ -726,6 +746,8 @@ class Comprobador:
             # Una funcion que devuelve `view` solo puede devolver algo
             # derivado de sus parametros `view`: el prestamo del que llama
             # tiene que seguir vivo mientras viva el resultado.
+            if expr.nombre == "obtener" and expr.args:
+                return self.variable_base(expr.args[0])
             f = self.funciones.get(expr.nombre)
             if f is not None and f.retorno == "view":
                 for arg, param in zip(expr.args, f.params):
@@ -751,6 +773,19 @@ class Comprobador:
             return "view"
         if isinstance(e, Booleano):
             return "bool"
+
+        if isinstance(e, Interpolada):
+            for x in e.expresiones:
+                t = self.expresion(x)
+                if t is None:
+                    continue
+                if es_arreglo(t) or es_lista(t) or es_mapa(t) or t in self.structs:
+                    self.error(e, f"dentro de `{{}}` va un escalar o texto, y "
+                                  f"`{t}` no lo es")
+                elif t == "str" and not isinstance(x, (Variable, Campo, Indice)):
+                    self.error(e, "el `str` que va dentro de `{}` tiene que "
+                                  "estar guardado en una variable")
+            return "str"
 
         if isinstance(e, Variable):
             sim = self.buscar(e.nombre)
@@ -828,11 +863,11 @@ class Comprobador:
         if k != "str":
             self.error(nodo, f"en v0 la clave de un mapa tiene que ser `str`, "
                              f"y aqui es `{k}`")
-        if self.posee(v):
-            self.error(nodo, f"en v0 el valor de un mapa no puede poseer "
-                             f"memoria, y `{v}` la posee. `obtener` devuelve "
-                             f"una copia, y sacar al duenio dejaria el mapa a "
-                             f"medias")
+        if v != "str" and self.posee(v):
+            self.error(nodo, f"en v0 el valor de un mapa puede ser un escalar "
+                             f"o un `str`, y `{v}` no es ninguno. Para otros "
+                             f"duenios haria falta que `obtener` devolviera un "
+                             f"prestamo del tipo entero, no solo del texto")
 
     def interna_mapa(self, e: Llamada, nombre):
         """`poner`, `obtener`, `tiene` y `claves` sobre `mapa<K, V>`."""
@@ -890,7 +925,10 @@ class Comprobador:
 
         if nombre == "obtener":
             self.usar(lugar, sim)
-            return v
+            # Un valor escalar cabe en el retorno; uno duenio no se puede
+            # sacar sin dejar el mapa a medias, asi que se presta: la vista
+            # apunta al texto que ya vive dentro de la tabla.
+            return "view" if self.posee(v) else v
 
         # poner: muta el mapa, y el valor entra por copia
         tv = self.expresion(e.args[2], destino=v,
@@ -1181,7 +1219,7 @@ class Comprobador:
                 self.error(e, f"`largo` opera sobre texto, arreglos, listas o "
                               f"mapas, recibio `{t}`")
             if ((t == "str" or es_lista(t) or es_mapa(t))
-                    and not isinstance(e.args[0], (Variable, Campo, Indice))):
+                    and not isinstance(e.args[0], (Variable, Campo, Indice, Interpolada))):
                 self.error(e, "el valor duenio que recibe `largo` tiene que "
                               "estar guardado en una variable")
             return "usize"
@@ -1253,7 +1291,7 @@ class Comprobador:
             t = self.expresion(e.args[0])
             if t is not None and t not in {LITERAL, "usize", "i64", "bool", "view", "str"}:
                 self.error(e, f"`texto` convierte escalares o texto, recibio `{t}`")
-            if t == "str" and not isinstance(e.args[0], (Variable, Campo, Indice)):
+            if t == "str" and not isinstance(e.args[0], (Variable, Campo, Indice, Interpolada)):
                 self.error(e, "el `str` que recibe `texto` tiene que estar guardado "
                               "en una variable")
             return "str"
@@ -1300,7 +1338,7 @@ class Comprobador:
             # Prestar de un `str` exige poder nombrar donde vive. El resultado
             # de una llamada no vive en ningun sitio todavia.
             if (t == "str" and esperado in ("view", "@cualquiera")
-                    and not isinstance(arg, (Variable, Campo, Indice))):
+                    and not isinstance(arg, (Variable, Campo, Indice, Interpolada))):
                 self.error(e, f"el argumento {i + 1} de `{nombre}` es un `str` "
                               f"que no esta guardado en ninguna variable; "
                               f"asignalo primero con `let`")
