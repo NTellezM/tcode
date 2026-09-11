@@ -26,6 +26,10 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    ("`falla` con parentesis: el error dice como se escribe",
+     'fn f() -> usize ! { falla("roto"); }',
+     "no lleva parentesis"),
+
     # ---- las cuatro clases de la auditoria de safestr.c ----
     ("fallo 2: use-after-free por aliasing a traves de realloc",
      'fn f() { var s: str = nuevo("hola"); empujar(s, vista(s)); }',
@@ -248,6 +252,12 @@ RECHAZO = [
      ' let s: &mut S = try obtener_mut(m, "k"); return 0; }',
      "se declaro con `let`"),
 
+    ("de un prestamo no se saca un `str`",
+     'struct S { a: str } fn f() -> usize ! {'
+     ' var m: mapa<str, S> = []; let r: &S = try obtener(m, "x");'
+     ' let sacado: S = r; return 0; }',
+     "pero el valor es `&S`"),
+
     ("un `&T` no se puede mover",
      'struct S { a: str } fn g(x: S) {} fn f() -> usize ! {'
      ' var m: mapa<str, S> = []; let s: &S = try obtener(m, "x");'
@@ -450,6 +460,19 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("de un prestamo si se copia un escalar",
+     '''struct S { a: str, n: usize }
+        fn f() -> usize ! {
+            var m: mapa<str, S> = [];
+            poner(m, "x", S { a: nuevo("hola"), n: 7 });
+            let r: &S = try obtener(m, "x");
+            let copia: usize = r.n;
+            imprimir(copia); imprimir("\\n");
+            return 0;
+        }
+        fn main() -> usize ! { try f(); return 0; }''',
+     "7\n"),
+
     ("aritmetica y control",
      '''fn f(n: usize) -> usize {
             var acc: usize = 0;

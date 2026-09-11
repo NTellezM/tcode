@@ -27,6 +27,9 @@ Las cinco propiedades:
       deja de cuadrar, el fallo esta en el analisis.
   P7  Todo aviso nombra un archivo y una linea que existen, y ningun aviso
       impide compilar.
+  P9  Un programa repartido en varios archivos se comporta igual: los
+      structs y las funciones cruzan de modulo a modulo, la carga en rombo no
+      duplica nada, y corre limpio bajo los sanitizers.
   P8  Ante un programa ROTO, el compilador se comporta: o lo acepta, o lo
       rechaza diciendo archivo y linea. Nunca una excepcion, nunca un
       cuelgue. Es la mitad del compilador que el generador de programas
@@ -45,11 +48,11 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 sys.path.insert(0, os.path.join(RAIZ, "tests"))
 
-from tcode.cli import compilar_a_c
+from tcode.cli import compilar_a_c, compilar_archivo
 from tcode.explicar import explicar
 from tcode.lexer import ErrorLexico
 from tcode.parser import ErrorSintactico
-from generador_programas import generar
+from generador_programas import generar, generar_modulos
 from mutador import mutar
 
 RUNTIME = os.path.join(RAIZ, "runtime")
@@ -281,6 +284,49 @@ def probar_mutantes(semilla, por_programa=12):
                           f"{descripcion}\n{r.stderr}", roto)
 
 
+def probar_modulos(semilla):
+    """P9: un programa repartido en varios archivos compila y corre igual."""
+    global total
+    total += 1
+    archivos = generar_modulos(semilla)
+    fuente = "\n".join(f"--- {k} ---\n{v}" for k, v in sorted(archivos.items()))
+    raiz = tempfile.mkdtemp(prefix="tcode-mod-")
+    try:
+        for ruta, texto in archivos.items():
+            destino = os.path.join(raiz, ruta)
+            os.makedirs(os.path.dirname(destino), exist_ok=True)
+            with open(destino, "w", encoding="utf-8") as f:
+                f.write(texto)
+        try:
+            codigo, errores = compilar_archivo(os.path.join(raiz, "app.t"))
+        except Exception:
+            falla("P9 modulos", semilla, traceback.format_exc(), fuente)
+            return
+        if errores:
+            falla("P9 modulos", semilla,
+                  "no compila:\n" + "\n".join(errores), fuente)
+            return
+        ruta_c = os.path.join(raiz, "app.c")
+        binario = os.path.join(raiz, "app")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            falla("P9 modulos", semilla, r.stderr, fuente)
+            return
+        e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
+        if e.returncode != 0 or "Sanitizer" in e.stderr:
+            falla("P9 modulos", semilla,
+                  f"codigo {e.returncode}\n{e.stderr[:600]}", fuente)
+    finally:
+        shutil.rmtree(raiz, ignore_errors=True)
+
+
 def main():
     print(f"=== PROPIEDADES sobre {CUANTOS} programas generados ===")
     tmp = tempfile.mkdtemp(prefix="tcode-prop-")
@@ -288,6 +334,10 @@ def main():
         for semilla in range(1, CUANTOS + 1):
             probar_programa(semilla, tmp)
         probar_errores(tmp)
+
+        print("=== MODULOS GENERADOS: varios archivos, un programa ===")
+        for semilla in range(1, max(4, CUANTOS // 6) + 1):
+            probar_modulos(semilla)
 
         print("=== MUTANTES: programas rotos a proposito ===")
         for semilla in range(1, max(4, CUANTOS // 4) + 1):
