@@ -137,6 +137,7 @@ cualquier sitio donde haya un compilador de C17.
 | `tcode/comprobador.py` | tipos, propiedad, préstamos, mutabilidad |
 | `tcode/generador.py` | árbol → C, con `ss_free` y comprobaciones insertadas |
 | `tcode/explicar.py` | el modelo del comprobador, hecho legible |
+| `std/` | la biblioteca estándar, escrita en Tcode |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
 ## El lexer y el parser de Tcode, escritos en Tcode
@@ -330,7 +331,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-185 casos, 0 fallas
+197 casos, 0 fallas
 548 comprobaciones sobre 60 programas, 0 fallas
 ```
 

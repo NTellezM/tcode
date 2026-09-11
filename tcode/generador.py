@@ -1530,7 +1530,9 @@ class Generador:
                     x = e.expresiones[k]
                     tx = self._tipo_de(x)
                     if tx == "str":
-                        vista = f"ss_view({self.dir_de(x)})"
+                        # `como_vista` sabe guardar en un temporal lo que no
+                        # tiene sitio propio, como `{unir(xs, ", ")}`.
+                        vista = self.como_vista(x)
                     elif tx == "view":
                         vista = self.como_vista(x)
                     else:

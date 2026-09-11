@@ -1015,9 +1015,6 @@ class Comprobador:
                 if es_arreglo(t) or es_lista(t) or es_mapa(t) or t in self.structs:
                     self.error(e, f"dentro de `{{}}` va un escalar o texto, y "
                                   f"`{t}` no lo es")
-                elif t == "str" and not isinstance(x, (Variable, Campo, Indice)):
-                    self.error(e, "el `str` que va dentro de `{}` tiene que "
-                                  "estar guardado en una variable")
             return "str"
 
         if isinstance(e, Variable):

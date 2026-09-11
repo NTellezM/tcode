@@ -2,7 +2,7 @@
 //
 //     ./frecuencia README.md
 
-usar "../std/cuenta.t";
+usar "std/cuenta";
 
 fn main() -> usize ! {
     let texto = try leer_archivo(argumento(1));

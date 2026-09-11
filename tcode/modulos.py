@@ -39,6 +39,29 @@ class ErrorDeModulo(Exception):
     pass
 
 
+# Donde vive la biblioteca estandar: junto al compilador, no junto al programa.
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ESTANDAR = os.path.join(RAIZ, "std")
+
+
+def resolver(ruta, desde_dir):
+    """Donde buscar un `usar`.
+
+    `usar "std/texto"` viene de la instalacion; cualquier otra ruta es
+    relativa al archivo que la escribe. La extension `.t` es opcional: se
+    escribe el nombre del modulo, no el del archivo.
+    """
+    candidatos = [ruta, ruta + ".t"] if not ruta.endswith(".t") else [ruta]
+    base = ESTANDAR if ruta.startswith("std/") else desde_dir
+    recorte = 4 if ruta.startswith("std/") else 0
+    for c in candidatos:
+        entero = os.path.join(base, c[recorte:])
+        if os.path.isfile(entero):
+            return entero
+    # Se devuelve el primero para que el error diga algo reconocible.
+    return os.path.join(base, candidatos[0][recorte:])
+
+
 def cargar(ruta_principal):
     """Devuelve las declaraciones de todos los modulos, dependencias primero."""
     cargados = {}
@@ -62,7 +85,10 @@ def cargar(ruta_principal):
 
         if not os.path.isfile(real):
             de = f"{quien}:{linea}: " if quien else ""
-            raise ErrorDeModulo(f"{de}no encuentro el modulo {ruta!r}")
+            pista = ("; los modulos de `std/` viven junto al compilador"
+                     if os.sep + "std" + os.sep in ruta else "")
+            raise ErrorDeModulo(
+                f"{de}no encuentro el modulo {os.path.basename(ruta)!r}{pista}")
 
         with open(real, encoding="utf-8") as f:
             fuente = f.read()
@@ -76,8 +102,8 @@ def cargar(ruta_principal):
         # antes de analizar este archivo.
         pila.append(real)
         for d in _solo_usar(fuente, mostrada):
-            base = os.path.dirname(real)
-            cargar_uno(os.path.join(base, d.ruta), mostrada, d.linea)
+            destino = resolver(d.ruta, os.path.dirname(real))
+            cargar_uno(destino, mostrada, d.linea)
         pila.pop()
 
         propias = parsear(fuente, mostrada, structs)

@@ -7,9 +7,7 @@
 //
 //     ./contar README.md
 
-fn es_espacio(b: usize) -> bool {
-    return b == 32 || b == 9 || b == 10 || b == 13;
-}
+usar "std/texto";
 
 fn poner_numero(s: mut str, n: usize) {
     let t = texto(n);
@@ -36,7 +34,7 @@ fn main() -> usize ! {
         if b == 10 {
             anadir(saltos, i);
         }
-        if es_espacio(b) {
+        if es_blanco(b) {
             dentro = false;
         } else {
             if !dentro {

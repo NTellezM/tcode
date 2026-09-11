@@ -1,6 +1,6 @@
 // std/cuenta.t — lo que en Python te da `collections.Counter`.
 
-usar "texto.t";
+usar "std/texto";
 
 fn contar(cosas: &lista<str>) -> mapa<str, usize> {
     var m: mapa<str, usize> = [];

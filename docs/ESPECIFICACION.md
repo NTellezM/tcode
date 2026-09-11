@@ -279,6 +279,10 @@ se explican:
 error: dependencia circular entre modulos: a.t -> b.t -> a.t
 ```
 
+`usar "std/texto"` busca en la biblioteca que viene con el compilador, no
+junto al programa. La extensión `.t` es opcional: se escribe el nombre del
+módulo, no el del archivo.
+
 En v0 no hay espacios de nombres: lo que trae un `usar` entra al mismo saco.
 Dos declaraciones con el mismo nombre son un error, y el mensaje dice en qué
 archivo está la otra.
@@ -709,6 +713,42 @@ Se presta lo que tiene partes. Un escalar se copia y ya está, así que
 acceso exclusivo: recorrer un mapa mientras existe un `&mut` suyo está
 permitido, porque leer no reubica nada. Lo que sí se impide es todo lo que
 puede mover la memoria bajo un préstamo vivo.
+
+## La biblioteca estándar
+
+`std/` es Tcode escrito en Tcode. Nada de lo que hay ahí necesita el
+compilador: son funciones normales, con las mismas reglas de propiedad que
+cualquier otra.
+
+| módulo | qué trae |
+|---|---|
+| `std/caracter` | `es_digito`, `es_letra`, `es_alfanumerico`, `es_minuscula`, `es_mayuscula` |
+| `std/texto` | `palabras`, `dividir`, `unir`, `recortar`, `minusculas`, `repetir`, `reemplazar`, `empieza_con`, `termina_con`, `contiene`, `indice_de`, `a_entero` |
+| `std/cuenta` | `contar` y `mayores` — lo que en Python es `Counter` y `most_common` |
+
+Lo que gana el programa que las usa se ve mejor que se explica:
+
+```tcode
+usar "std/cuenta";
+
+fn main() -> usize ! {
+    let texto = try leer_archivo(argumento(1));
+    let cuenta = contar(palabras(minusculas(texto)));
+
+    for palabra en mayores(cuenta, 5) {
+        imprimir($"{obtener(cuenta, palabra) sino 0}  {palabra}\n");
+    }
+}
+```
+
+Eso mismo eran **107 líneas** antes de que existiera `std/`. En Python son 5.
+Las cuatro de diferencia son el `usar`, el `try` al leer el archivo, y que
+`obtener` devuelve un fallo en vez de un cero disfrazado: es decir, justo lo
+que compra las garantías.
+
+**Encadenar llamadas funciona**: `contar(palabras(minusculas(texto)))`. Un
+valor recién creado se puede prestar, aunque no tenga nombre — el compilador
+lo guarda hasta el final de la sentencia y lo libera ahí.
 
 ## Qué NO tiene v0
 
