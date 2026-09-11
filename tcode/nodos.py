@@ -173,6 +173,9 @@ class CampoDef:
 class Struct(Nodo):
     nombre: str
     campos: list          # [CampoDef]
+    # `struct Par<A, B>`: como en una funcion, de aqui salen copias con los
+    # tipos puestos, una por cada juego de tipos que se use.
+    tipo_params: list = field(default_factory=list)
 
 @dataclass
 class Funcion(Nodo):

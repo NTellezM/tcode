@@ -158,8 +158,21 @@ fn tipo(e: mut Estado) -> str ! {
         return t;
     }
     if es(e, "palabra", "") || es(e, "ident", "") {
-        let v = nuevo(valor_en(e, 0));
+        var v = nuevo(valor_en(e, 0));
         avanzar(e);
+        // `Par<usize, str>`: un struct generico aplicado a sus tipos.
+        if acepta(e, "simbolo", "<") {
+            empujar(v, "<");
+            var mas_arg = true;
+            while mas_arg {
+                let a = try tipo(e);
+                empujar(v, a);
+                mas_arg = acepta(e, "simbolo", ",");
+                if mas_arg { empujar(v, ", "); }
+            }
+            try espera(e, "simbolo", ">");
+            empujar(v, ">");
+        }
         return v;
     }
     falla "se esperaba un tipo";
@@ -507,9 +520,19 @@ fn declaracion(e: mut Estado) -> Nodo ! {
     if es(e, "palabra", "struct") {
         avanzar(e);
         let nombre = try espera(e, "ident", "");
-        try espera(e, "simbolo", "{");
         var n = rama("struct", l);
         empujar(n.texto, nombre);
+        // `struct Par<A, B>`: igual que en una funcion.
+        if acepta(e, "simbolo", "<") {
+            var mas_tp = true;
+            while mas_tp {
+                let tp = try espera(e, "ident", "");
+                anadir(n.hijos, hoja("tipo_param", tp, l));
+                mas_tp = acepta(e, "simbolo", ",");
+            }
+            try espera(e, "simbolo", ">");
+        }
+        try espera(e, "simbolo", "{");
         while !es(e, "simbolo", "}") {
             let campo = try espera(e, "ident", "");
             try espera(e, "simbolo", ":");

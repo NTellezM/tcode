@@ -946,10 +946,43 @@ sobre texto, a `sv_equals` y `sv_cmp`.
 Un struct o una lista **no** se comparan: habría que decidir qué significa, y
 eso no se decide en silencio por quien escribe el programa.
 
+## Structs genéricos
+
+```tcode
+struct Pila<T> { cosas: lista<T> }
+struct Par<A, B> { primero: A, segundo: B }
+struct Nodo<T> { valor: T, hijos: lista<Nodo<T>> }
+```
+
+Igual que las funciones: una copia por cada juego de tipos, y cada copia es
+un struct normal a partir de ahí. `Nodo<T>` se contiene a sí mismo a través
+de una lista, que es finito, y funciona.
+
+El literal **no lleva los tipos**: salen de donde va a parar el valor, y si
+de ahí no salen, de lo que hay en los campos.
+
+```tcode
+var ps: Pila<str> = Pila { cosas: [] };   // de la anotación
+let t = par(nuevo("clave"), 9);           // de los argumentos
+```
+
+Si de ninguno de los dos sale, el compilador lo dice y pide la anotación.
+
+`std/par` es la prueba de que sirve: una función devuelve un valor, y cuando
+hacen falta dos, `Par<A, B>` los junta. **El compilador no sabe nada de
+`Par`**: es un struct genérico corriente escrito en Tcode, con las mismas
+reglas de propiedad que cualquier otro, y si `A` o `B` poseen memoria, el par
+la posee y se libera solo.
+
+Eso es lo que separa "un lenguaje con dos colecciones" de un lenguaje:
+`lista<T>` y `mapa<K, V>` siguen dentro del compilador, pero ya no hacen
+falta para escribir un contenedor.
+
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: restricciones sobre los parámetros de tipo (sumar
-o comparar un `T`), structs genéricos, espacios de
+Es un v0 honesto. No hay: comprobación del cuerpo genérico una sola vez
+contra la restricción (eso es Rust, y es más), `lista`/`mapa` fuera del
+compilador, espacios de
 nombres, préstamos mutables de una variable suelta (sólo desde un mapa), E/S incremental, aritmética de punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a

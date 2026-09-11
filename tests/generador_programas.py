@@ -527,6 +527,19 @@ class Generador:
             "    let dentro = try puede_fallar(0);\n"
             "    return $\"<{copia(n)}|{dentro}>\";\n"
             "}")
+        # Un struct generico, usado con un tipo que posee memoria y con uno
+        # que no: la copia del struct se hace por cada juego de tipos, y
+        # liberar la de `str` no se parece a liberar la de `usize`.
+        partes.append("struct Caja<T> { dentro: lista<T> }")
+        partes.append(
+            "fn en_caja<T>(xs: &lista<T>) -> Caja<T> {\n"
+            "    return Caja { dentro: copiar(xs) };\n"
+            "}")
+        partes.append(
+            "fn cuantas_en<T>(c: &Caja<T>) -> usize {\n"
+            "    return largo(c.dentro);\n"
+            "}")
+
         # Genericas: una plantilla, una copia por cada juego de tipos. Se usan
         # con un tipo que posee memoria y con uno que no, que es donde las
         # reglas de propiedad cambian de respuesta con el mismo cuerpo.
@@ -591,6 +604,10 @@ class Generador:
         lineas.append("    imprimir(largo(g_copia));")
         lineas.append("    imprimir(largo(g_hondo2));")
         lineas.append(f"    imprimir(copiar({self.r.randint(0, 99)}));")
+        lineas.append("    let g_caja = en_caja(g_ss);")
+        lineas.append("    let g_caja_n = en_caja(g_ns);")
+        lineas.append("    imprimir(cuantas_en(g_caja));")
+        lineas.append("    imprimir(cuantas_en(g_caja_n));")
         lineas.append("    imprimir(total(g_ns));")
         lineas.append(f'    let g_aguja = nuevo("{self.palabra()}");')
         lineas.append("    imprimir(esta(g_ss, g_aguja));")

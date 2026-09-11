@@ -347,15 +347,20 @@ tipos con nombre, sin `impl` y sin coherencia. Sirven para que el error salga
 en la llamada y diga qué se pedía, en vez de salir de tres niveles más
 adentro del cuerpo.
 
+Y **structs genéricos**: `struct Pila<T>`, `struct Par<A, B>`, y
+`struct Nodo<T> { valor: T, hijos: lista<Nodo<T>> }`, que se contiene a sí
+mismo. `std/par` es un contenedor escrito en Tcode del que el compilador no
+sabe nada: es lo que separa "un lenguaje con dos colecciones" de un lenguaje.
+
 No hay: comprobación del cuerpo genérico una sola vez contra la restricción
-(eso es Rust, y es más), structs genéricos, espacios de nombres, E/S
-incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
+(eso es Rust, y es más), `lista`/`mapa` fuera del compilador, espacios de
+nombres, E/S incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
 struct (el muro real: exige la vida útil en el tipo), movimientos parciales
 de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-227 casos, 0 fallas
+233 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

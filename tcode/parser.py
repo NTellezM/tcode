@@ -93,9 +93,44 @@ class Parser:
                 decls.append(self.funcion())
         return decls
 
+    def lista_tipo_params(self, de_quien):
+        """`<T>`, `<A, B>`, `<T: numero>`. Vale igual para `fn` y `struct`."""
+        tipo_params = []
+        restricciones = {}
+        if not self.acepta("simbolo", "<"):
+            return tipo_params, restricciones
+        while True:
+            tp = self.espera("ident").valor
+            if tp in TIPOS:
+                self.error(f"`{tp}` ya es un tipo del lenguaje: un parametro "
+                           f"de tipo necesita otro nombre")
+            if tp in self.structs:
+                self.error(f"`{tp}` ya es un struct: un parametro de tipo "
+                           f"necesita otro nombre")
+            if tp in tipo_params:
+                self.error(f"`{tp}` esta repetido en `{de_quien}<...>`")
+            tipo_params.append(tp)
+            # `<T: numero>`: lo que se le exige. Es un conjunto de tipos con
+            # nombre, no una interfaz que haya que implementar.
+            if self.acepta("simbolo", ":"):
+                r = self.espera("ident").valor
+                if r not in RESTRICCIONES:
+                    self.error(f"`{r}` no es una restriccion; hay "
+                               + ", ".join("`" + x + "`"
+                                           for x in sorted(RESTRICCIONES)))
+                restricciones[tp] = r
+            if not self.acepta("simbolo", ","):
+                break
+        self.espera("simbolo", ">")
+        if not tipo_params:
+            self.error(f"`{de_quien}<>` no declara ningun parametro de tipo")
+        return tipo_params, restricciones
+
     def struct(self) -> Struct:
         tok = self.espera("palabra", "struct")
         nombre = self.espera("ident").valor
+        tipo_params = self.lista_tipo_params(nombre)[0]
+        self.tipo_params = set(tipo_params)
         self.espera("simbolo", "{")
         campos = []
         while not self.es("simbolo", "}"):
@@ -108,7 +143,9 @@ class Parser:
             if not self.acepta("simbolo", ","):
                 break
         self.espera("simbolo", "}")
-        return Struct(nombre, campos, linea=tok.linea)
+        self.tipo_params = set()
+        return Struct(nombre, campos, linea=tok.linea,
+                      tipo_params=tipo_params)
 
     def funcion(self) -> Funcion:
         tok = self.espera("palabra", "fn")
@@ -116,34 +153,7 @@ class Parser:
 
         # `fn primeras<T>(...)`: los parametros de tipo valen dentro de la
         # firma y del cuerpo, y en ningun otro sitio.
-        tipo_params = []
-        restricciones = {}
-        if self.acepta("simbolo", "<"):
-            while True:
-                tp = self.espera("ident").valor
-                if tp in TIPOS:
-                    self.error(f"`{tp}` ya es un tipo del lenguaje: un "
-                               f"parametro de tipo necesita otro nombre")
-                if tp in self.structs:
-                    self.error(f"`{tp}` ya es un struct: un parametro de tipo "
-                               f"necesita otro nombre")
-                if tp in tipo_params:
-                    self.error(f"`{tp}` esta repetido en `{nombre}<...>`")
-                tipo_params.append(tp)
-                # `<T: numero>`: lo que se le exige. Es un conjunto de tipos
-                # con nombre, no una interfaz que haya que implementar.
-                if self.acepta("simbolo", ":"):
-                    r = self.espera("ident").valor
-                    if r not in RESTRICCIONES:
-                        self.error(f"`{r}` no es una restriccion; hay "
-                                   + ", ".join("`" + x + "`"
-                                               for x in sorted(RESTRICCIONES)))
-                    restricciones[tp] = r
-                if not self.acepta("simbolo", ","):
-                    break
-            self.espera("simbolo", ">")
-            if not tipo_params:
-                self.error(f"`{nombre}<>` no declara ningun parametro de tipo")
+        tipo_params, restricciones = self.lista_tipo_params(nombre)
         self.tipo_params = set(tipo_params)
 
         self.espera("simbolo", "(")
@@ -194,9 +204,17 @@ class Parser:
             self.i += 1
             return t.valor
 
-        # nombre de struct
+        # nombre de struct, con o sin argumentos de tipo
         if t.tipo == "ident" and t.valor in self.structs:
             self.i += 1
+            if self.acepta("simbolo", "<"):
+                args = []
+                while True:
+                    args.append(self.tipo())
+                    if not self.acepta("simbolo", ","):
+                        break
+                self.espera("simbolo", ">")
+                return f"{t.valor}<{', '.join(args)}>"
             return t.valor
 
         # Coleccion dinamica y duenia. El tipo del elemento forma parte del
