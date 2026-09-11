@@ -570,6 +570,15 @@ class Generador:
         lineas.append(f"    anadir(g_ns, {self.r.randint(0, 99)});")
         lineas.append("    var g_ss: lista<str> = [];")
         lineas.append(f'    anadir(g_ss, nuevo("{self.palabra()}"));')
+        # Copia profunda: de una lista de textos, de una anidada y de un
+        # escalar. Cada copia es memoria nueva que alguien tiene que soltar.
+        lineas.append("    let g_copia = copiar(g_ss);")
+        lineas.append("    var g_hondo: lista<lista<str>> = [];")
+        lineas.append("    anadir(g_hondo, copiar(g_ss));")
+        lineas.append("    let g_hondo2 = copiar(g_hondo);")
+        lineas.append("    imprimir(largo(g_copia));")
+        lineas.append("    imprimir(largo(g_hondo2));")
+        lineas.append(f"    imprimir(copiar({self.r.randint(0, 99)}));")
         lineas.append("    imprimir(cuantas(g_ns));")
         lineas.append("    imprimir(sin_nada(g_ss));")
         lineas.append("    imprimir(try ultimo_sitio(g_ss));")

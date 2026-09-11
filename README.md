@@ -332,6 +332,11 @@ Hay además una biblioteca estándar escrita en Tcode: `std/caracter`,
 programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
 queda una sola función duplicada entre `ejemplos/` y `std/`.
 
+Y **`copiar(x)`**: copia profunda de cualquier valor —número, `str`, struct,
+`lista<lista<str>>`, mapa— con el copiador generado por el compilador, uno
+por tipo. Explícita como el `Clone` de Rust, pero sin `derive`: todo tipo es
+copiable siempre, porque la estructura del tipo es toda la verdad que hay.
+
 Y **funciones genéricas**: `fn primeras<T>(xs: &lista<T>) -> lista<T>`, con
 una copia por cada juego de tipos, los tipos deducidos de los argumentos, y
 errores que dicen con qué tipos se instanció y desde dónde.
@@ -343,7 +348,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-219 casos, 0 fallas
+221 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

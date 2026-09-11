@@ -1744,6 +1744,29 @@ class Comprobador:
 
         # Operaciones cuyo tipo depende de sus argumentos. Mantenerlas aqui,
         # explicitas, hace que el C generado siga sin casts implicitos.
+        if nombre == "copiar":
+            if len(e.args) != 1:
+                self.error(e, f"`copiar` espera 1 argumento y recibio "
+                              f"{len(e.args)}")
+                for a in e.args:
+                    self.expresion(a)
+                return None
+            # Copiar es leer, no mover: el original se queda donde estaba.
+            t = self.expresion(e.args[0])
+            if t is None:
+                return None
+            t = sin_prestamo(t)
+            if t == "view":
+                self.error(e, "una vista no es duenia de nada que copiar: si "
+                              "quieres el texto, `nuevo(v)` te da un `str`")
+                return "str"
+            if t == LITERAL:
+                return "usize"
+            if not self.tipo_existe(t):
+                self.error(e, f"`copiar` no sabe copiar un `{t}`")
+                return t
+            return t
+
         if nombre == "largo":
             if len(e.args) != 1:
                 self.error(e, f"`largo` espera 1 argumento y recibio {len(e.args)}")
@@ -1932,6 +1955,8 @@ INTERNAS = {
     "imprimir": {"params": ["@cualquiera"],           "retorno": UNIDAD},
     "anadir":   {"params": ["@lista_mut", "@elemento"], "retorno": UNIDAD},
     "texto":    {"params": ["@escalar"],              "retorno": "str"},
+    # Copia profunda. El tipo sale del argumento, en `interna`.
+    "copiar":   {"params": ["@copiable"],             "retorno": None},
     "byte":     {"params": ["view", "usize"],         "retorno": "usize"},
     "n_argumentos": {"params": [],                    "retorno": "usize"},
     "argumento":    {"params": ["usize"],             "retorno": "view"},

@@ -813,10 +813,72 @@ eso de `T`, esas funciones no pueden ser genéricas. Las que sí lo son
 —`esta_vacia`, `ultima_posicion`— son justo las que no miran dentro del
 elemento. Tampoco hay structs genéricos.
 
+## `copiar`: copia profunda, explícita, sin anotar nada
+
+`copiar(x)` da una copia independiente de cualquier valor: un número, un
+`str`, un struct, una `lista<lista<str>>`, un `mapa<str, V>`. Tocar el
+original después no toca la copia.
+
+```tcode
+let copia = copiar(xs);
+empujar(xs[0], "!!");      // `copia` sigue como estaba
+```
+
+El copiador lo genera el compilador, uno por tipo, recursivo, y es el espejo
+exacto de la liberación: **si el compilador sabe soltar un tipo, sabe
+duplicarlo**. Eso no es una coincidencia feliz, es la misma información.
+
+### Qué se tomó de dónde
+
+| lenguaje | qué hace | qué nos llevamos |
+|---|---|---|
+| **Rust** | `Clone`, explícito, con `#[derive(Clone)]` en cada tipo | la explicitud: una copia profunda nunca es implícita |
+| **C++** | constructores de copia implícitos | el contraejemplo: copias accidentales de O(n) que nadie escribió |
+| **Swift** | semántica de valor con copy-on-write | la ergonomía, pero no el precio: esconde el coste y pide contar referencias |
+| **Go** | no hay; te la escribes a mano cada vez | el aviso de lo que pasa si no existe |
+| **Zig** | explícito, y el alojador se pasa a mano | que reservar memoria se vea |
+
+Dónde lo mejoramos: en Rust hay que poner `#[derive(Clone)]` en cada tipo, y
+si falta, el error aparece lejos de donde está el problema. Aquí **todo tipo
+es copiable, siempre, sin escribir nada**, y se puede porque en Tcode no hay
+semánticas que respetar: no hay `Rc`, ni punteros crudos, ni destructores que
+la persona haya escrito. La estructura del tipo es toda la verdad. Se queda
+la explicitud de Rust y se va la ceremonia.
+
+Dónde somos peores, y conviene decirlo: `copiar(n)` sobre un número y
+`copiar(m)` sobre un mapa grande se escriben igual, así que el coste no se ve
+en la forma. Lo único que lo delata es que es una llamada y no una asignación.
+
+### En una genérica
+
+`copiar` es lo que permite que una genérica que necesita duplicar el elemento
+lo sea de verdad:
+
+```tcode
+fn primeras<T>(xs: &lista<T>, cuantas: usize) -> lista<T> {
+    var salida: lista<T> = [];
+    var i = 0;
+    for x en xs {
+        if i == cuantas { break; }
+        anadir(salida, copiar(x));
+        i = i + 1;
+    }
+    return salida;
+}
+```
+
+Eso compila para `T = usize`, `T = str` y `T = Cosa`. Sin `copiar` había que
+escribir `x` en un caso y `nuevo(vista(x))` en otro, y no hay forma de
+escribir las dos a la vez.
+
+Lo que sigue sin poder ser genérico es lo que necesita **sumar** o
+**comparar** el elemento: `suma` necesita `+`, `incluye` necesita `igual`, y
+todavía no hay forma de exigirle eso a `T`.
+
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: restricciones sobre los parámetros de tipo,
-structs genéricos, espacios de
+Es un v0 honesto. No hay: restricciones sobre los parámetros de tipo (sumar
+o comparar un `T`), structs genéricos, espacios de
 nombres, préstamos mutables de una variable suelta (sólo desde un mapa), E/S incremental, aritmética de punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
