@@ -26,6 +26,18 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    ("un literal de struct generico cuyos campos no dicen el tipo",
+     'struct Par<A, B> { a: A, b: B }'
+     ' fn cual<T>(x: T) -> T { return x; }'
+     ' fn main() -> usize { let p = Par { a: cual(1), b: 2 }; return 0; }',
+     "Escribe el tipo en la declaracion"),
+
+    ("un struct generico con el numero de tipos equivocado",
+     'struct Par<A, B> { a: A, b: B }'
+     ' fn f(p: Par<usize>) -> usize { return 0; }'
+     ' fn main() -> usize { return 0; }',
+     "toma 2 tipo(s) y se le dieron 1"),
+
     ("una restriccion falla en la llamada, no dentro del cuerpo",
      'fn suma<T: numero>(ns: &lista<T>) -> T { var t: T = 0; return t; }'
      ' fn main() -> usize { var ss: lista<str> = [];'
@@ -506,6 +518,59 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("un contenedor propio, escrito en Tcode y no en el compilador",
+     '''struct Pila<T> { cosas: lista<T> }
+
+        fn vacia<T>(p: &Pila<T>) -> bool { return largo(p.cosas) == 0; }
+        fn apilar<T>(p: mut Pila<T>, x: T) { anadir(p.cosas, x); }
+        fn cima<T>(p: &Pila<T>) -> T ! {
+            if vacia(p) { falla "la pila esta vacia"; }
+            return copiar(p.cosas[largo(p.cosas) - 1]);
+        }
+
+        // Un tipo generico que se contiene a si mismo a traves de una lista.
+        struct Nodo<T> { valor: T, hijos: lista<Nodo<T>> }
+
+        fn hojas<T>(n: &Nodo<T>) -> usize {
+            if largo(n.hijos) == 0 { return 1; }
+            var t = 0;
+            for h en n.hijos { t = t + hojas(h); }
+            return t;
+        }
+
+        fn main() -> usize ! {
+            var ps: Pila<str> = Pila { cosas: [] };
+            apilar(ps, nuevo("a"));
+            apilar(ps, nuevo("b"));
+            var pn: Pila<usize> = Pila { cosas: [] };
+            apilar(pn, 42);
+
+            var raiz: Nodo<usize> = Nodo { valor: 1, hijos: [] };
+            let h1: Nodo<usize> = Nodo { valor: 2, hijos: [] };
+            let h2: Nodo<usize> = Nodo { valor: 3, hijos: [] };
+            anadir(raiz.hijos, h1);
+            anadir(raiz.hijos, h2);
+
+            imprimir($"{try cima(ps)} {try cima(pn)} {vacia(ps)} {hojas(raiz)}\\n");
+            return 0;
+        }''',
+     "b 42 false 2\n"),
+
+    ("`std/par`: devolver dos valores, sin que el compilador sepa nada",
+     '''usar "std/par";
+        fn dividir_con_resto(a: usize, b: usize) -> Par<usize, usize> ! {
+            if b == 0 { falla "division por cero"; }
+            return par(a / b, a % b);
+        }
+        fn main() -> usize ! {
+            let r = try dividir_con_resto(17, 5);
+            let t = par(nuevo("clave"), 9);
+            let v = volteado(t);
+            imprimir($"{r.primero} {r.segundo} {t.primero} {v.segundo}\\n");
+            return 0;
+        }''',
+     "3 2 clave clave\n"),
+
     ("restricciones: el cuerpo dice lo que necesita del elemento",
      '''usar "std/lista";
         fn main() -> usize ! {

@@ -633,7 +633,9 @@ class Generador:
         # genera son las copias que el comprobador hizo al ver con que tipos
         # se usa, y a partir de aqui son funciones normales.
         decls = [d for d in decls
-                 if not (isinstance(d, Funcion) and d.tipo_params)]
+                 if not (isinstance(d, Funcion) and d.tipo_params)
+                 and not (isinstance(d, Struct) and d.tipo_params)]
+        decls += list(getattr(self.c, "structs_instanciados", ()))
         decls += list(getattr(self.c, "instanciadas", ()))
 
         structs = [d for d in decls if isinstance(d, Struct)]

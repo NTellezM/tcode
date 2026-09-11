@@ -141,7 +141,7 @@ def sustituir_tipo(t, ligaduras):
                   lambda m: ligaduras.get(m.group(0), m.group(0)), t)
 
 
-def unificar_tipo(patron, concreto, params, ligaduras):
+def unificar_tipo(patron, concreto, params, ligaduras, instancias=None):
     """Deduce los parametros de tipo comparando la firma con lo que llega.
 
     `lista<T>` contra `lista<str>` liga `T` a `str`. Si un mismo parametro
@@ -165,17 +165,57 @@ def unificar_tipo(patron, concreto, params, ligaduras):
                                       concreto[len(marca):], params, ligaduras))
     if es_lista(patron) and es_lista(concreto):
         return unificar_tipo(elem_lista(patron), elem_lista(concreto),
-                             params, ligaduras)
+                             params, ligaduras, instancias)
     if es_mapa(patron) and es_mapa(concreto):
         pk, pv = partes_mapa(patron)
         ck, cv = partes_mapa(concreto)
-        return (unificar_tipo(pk, ck, params, ligaduras)
-                and unificar_tipo(pv, cv, params, ligaduras))
+        return (unificar_tipo(pk, ck, params, ligaduras, instancias)
+                and unificar_tipo(pv, cv, params, ligaduras, instancias))
     if es_arreglo(patron) and es_arreglo(concreto):
         pe, pn = partes_arreglo(patron)
         ce, cn = partes_arreglo(concreto)
-        return pn == cn and unificar_tipo(pe, ce, params, ligaduras)
+        return pn == cn and unificar_tipo(pe, ce, params, ligaduras, instancias)
+
+    # `Par<A, B>` contra `Par__usize_str`: la copia ya perdio la forma, asi
+    # que se recupera de donde salio.
+    ap = aplicacion_generica(patron)
+    if ap is not None and instancias is not None:
+        base, args = ap
+        de_donde = instancias.get(concreto)
+        if de_donde is None or de_donde[0] != base or len(de_donde[1]) != len(args):
+            return False
+        return all(unificar_tipo(a, c, params, ligaduras, instancias)
+                   for a, c in zip(args, de_donde[1]))
     return False
+
+
+def partir_tipos(dentro):
+    """Parte `usize, lista<str>` por las comas de fuera."""
+    piezas, hondura, actual = [], 0, ""
+    for ch in dentro:
+        if ch in "<[":
+            hondura += 1
+        elif ch in ">]":
+            hondura -= 1
+        if ch == "," and hondura == 0:
+            piezas.append(actual.strip())
+            actual = ""
+        else:
+            actual += ch
+    if actual.strip():
+        piezas.append(actual.strip())
+    return piezas
+
+
+def aplicacion_generica(t):
+    """`Par<usize, str>` -> ("Par", ["usize", "str"]). `lista<...>` no, que
+    esa la pone el compilador."""
+    if not isinstance(t, str) or "<" not in t or not t.endswith(">"):
+        return None
+    base = t[:t.index("<")]
+    if base in ("lista", "mapa") or not base or not base[0].isalpha():
+        return None
+    return base, partir_tipos(t[t.index("<") + 1:-1])
 
 
 def _sustituir_en_arbol(nodo, ligaduras):
@@ -274,6 +314,9 @@ class Comprobador:
         self.instanciando = []      # pila, para cortar la recursion infinita
         self.contexto_instancia = []  # para que el error diga con que tipos
         self.nombre_original = {}   # copia -> generica, para los mensajes
+        self.structs_genericos = {}   # plantillas de `struct Par<A, B>`
+        self.structs_instanciados = []  # las copias, para el generador
+        self.args_instancia = {}    # copia -> (base, argumentos de tipo)
         self.retorno_actual = None
         self.falible_actual = False
         self.en_condicional = 0
@@ -541,14 +584,82 @@ class Comprobador:
         return any(self.contiene_a(c.tipo, buscado, visitados)
                    for c in st.campos)
 
+    # ---------- structs genericos ----------
+
+    def resolver_tipo(self, t, nodo):
+        """Cambia `Par<usize, str>` por la copia concreta, creandola si hace
+        falta. Recorre el tipo entero: tambien dentro de listas y mapas."""
+        if not isinstance(t, str) or "<" not in t and "[" not in t:
+            return t
+        for marca in ("&mut ", "&"):
+            if t.startswith(marca):
+                return marca + self.resolver_tipo(t[len(marca):], nodo)
+        if es_lista(t):
+            return f"lista<{self.resolver_tipo(elem_lista(t), nodo)}>"
+        if es_mapa(t):
+            k, v = partes_mapa(t)
+            return (f"mapa<{self.resolver_tipo(k, nodo)}, "
+                    f"{self.resolver_tipo(v, nodo)}>")
+        if es_arreglo(t):
+            elem, n = partes_arreglo(t)
+            return f"[{self.resolver_tipo(elem, nodo)}; {n}]"
+        ap = aplicacion_generica(t)
+        if ap is None:
+            return t
+        base, args = ap
+        return self.instanciar_struct(base, [self.resolver_tipo(a, nodo)
+                                             for a in args], nodo)
+
+    def instanciar_struct(self, base, args, nodo):
+        import copy as _copy
+        plantilla = self.structs_genericos.get(base)
+        if plantilla is None:
+            self.error(nodo, f"`{base}` no es un struct generico")
+            return base
+        if len(args) != len(plantilla.tipo_params):
+            self.error(nodo, f"`{base}` toma {len(plantilla.tipo_params)} "
+                             f"tipo(s) y se le dieron {len(args)}")
+            return base
+        ligaduras = dict(zip(plantilla.tipo_params, args))
+        nombre = nombre_instancia(base, plantilla.tipo_params, ligaduras)
+        if nombre in self.structs:
+            self.args_instancia.setdefault(nombre, (base, list(args)))
+            return nombre
+
+        copia = _copy.deepcopy(plantilla)
+        copia.nombre = nombre
+        copia.tipo_params = []
+        # Se registra antes de resolver los campos: un `Nodo<T>` con un campo
+        # `lista<Nodo<T>>` se refiere a si mismo, y eso es finito.
+        self.structs[nombre] = copia
+        self.nombre_original[nombre] = base
+        self.args_instancia[nombre] = (base, list(args))
+        for c in copia.campos:
+            c.tipo = self.resolver_tipo(sustituir_tipo(c.tipo, ligaduras), nodo)
+        self.structs_instanciados.append(copia)
+        return nombre
+
     def comprobar_structs(self, structs):
+        concretos = []
         for st in structs:
-            previo = self.structs.get(st.nombre)
+            previo = (self.structs.get(st.nombre)
+                      or self.structs_genericos.get(st.nombre))
             if previo is not None:
                 self.error(st, f"el struct `{st.nombre}` ya esta definido en "
                                f"{previo.archivo or '<entrada>'}:{previo.linea}")
-            self.structs[st.nombre] = st
+            if st.tipo_params:
+                self.structs_genericos[st.nombre] = st
+            else:
+                self.structs[st.nombre] = st
+                concretos.append(st)
 
+        # Los tipos escritos en el programa se resuelven de una vez: a partir
+        # de aqui nadie mas tiene que saber que existian los genericos.
+        for st in concretos:
+            for c in st.campos:
+                c.tipo = self.resolver_tipo(c.tipo, st)
+
+        structs = concretos + self.structs_instanciados
         for st in structs:
             vistos = set()
             for c in st.campos:
@@ -572,10 +683,36 @@ class Comprobador:
                 self.error(st, f"`{st.nombre}` se contiene a si mismo: no tiene "
                                f"un tamaño finito")
 
+    def _resolver_en_arbol(self, nodo, sitio=None):
+        """Cambia cada `Par<usize, str>` escrito en el arbol por su copia.
+        Despues de esto, nadie mas tiene que saber que hubo un generico.
+
+        `sitio` es el ultimo nodo con linea que se vio: un `Parametro` no
+        tiene, y un error suyo tiene que apuntar a la funcion.
+        """
+        from dataclasses import fields, is_dataclass
+        if isinstance(nodo, (list, tuple)):
+            for x in nodo:
+                self._resolver_en_arbol(x, sitio)
+            return
+        if not is_dataclass(nodo):
+            return
+        if getattr(nodo, "linea", None) is not None:
+            sitio = nodo
+        for campo in fields(nodo):
+            valor = getattr(nodo, campo.name)
+            if campo.name in ("tipo", "retorno") and isinstance(valor, str):
+                setattr(nodo, campo.name, self.resolver_tipo(valor, sitio or nodo))
+            else:
+                self._resolver_en_arbol(valor, sitio)
+
     def comprobar_programa(self, funciones):
         structs = [d for d in funciones if isinstance(d, Struct)]
         funciones = [d for d in funciones if isinstance(d, Funcion)]
         self.comprobar_structs(structs)
+        for f in funciones:
+            if not f.tipo_params:
+                self._resolver_en_arbol(f, f)
 
         for f in funciones:
             previa = self.funciones.get(f.nombre) or self.genericas.get(f.nombre)
@@ -623,7 +760,22 @@ class Comprobador:
             except Exception:
                 return None
         if isinstance(e, LiteralStruct):
-            return e.nombre
+            return e.tipo
+        if isinstance(e, Unaria):
+            if e.op == "!":
+                return "bool"
+            t = self.tipo_probable(e.valor)
+            return "i64" if t == LITERAL else t
+        if isinstance(e, Binaria):
+            if e.op in ("&&", "||", "==", "!=", "<", "<=", ">", ">="):
+                return "bool"
+            # Aritmetica: el tipo es el de los operandos; un numero escrito
+            # no decide nada por su cuenta.
+            a = self.tipo_probable(e.izq)
+            b = self.tipo_probable(e.der)
+            if a in (None, LITERAL):
+                return b if b != LITERAL else "usize"
+            return a
         if isinstance(e, Llamada):
             if e.nombre in INTERNAS:
                 return INTERNAS[e.nombre].get("retorno")
@@ -644,7 +796,8 @@ class Comprobador:
                 if concreto is not None and es_referencia(concreto):
                     concreto = apuntado(concreto)
                 antes = dict(ligaduras)
-                if not unificar_tipo(p.tipo, concreto, params, ligaduras):
+                if not unificar_tipo(p.tipo, concreto, params, ligaduras,
+                                     self.args_instancia):
                     choca = next((t for t in params
                                   if t in antes and t in p.tipo), None)
                     if choca is not None:
@@ -696,10 +849,12 @@ class Comprobador:
         copia = _copy.deepcopy(plantilla)
         copia.nombre = nombre
         copia.tipo_params = []
-        copia.retorno = sustituir_tipo(copia.retorno, ligaduras)
+        copia.retorno = self.resolver_tipo(
+            sustituir_tipo(copia.retorno, ligaduras), e)
         for p in copia.params:
-            p.tipo = sustituir_tipo(p.tipo, ligaduras)
+            p.tipo = self.resolver_tipo(sustituir_tipo(p.tipo, ligaduras), e)
         _sustituir_en_arbol(copia.cuerpo, ligaduras)
+        self._resolver_en_arbol(copia.cuerpo, copia)
 
         self.instancias[clave] = nombre
         self.nombre_original[nombre] = plantilla.nombre
@@ -1303,6 +1458,10 @@ class Comprobador:
                 if t is not None and t != "bool":
                     self.error(e, f"`!` necesita un `bool`, recibio `{t}`")
                 return "bool"
+            if t == LITERAL:
+                # `-9` es un numero escrito, y un numero escrito negativo solo
+                # cabe en `i64`. Antes esto no compilaba en ningun sitio.
+                return "i64"
             if t is not None and t not in ENTEROS:
                 self.error(e, f"`-` necesita un entero, recibio `{t}`")
             if t == "usize":
@@ -1342,7 +1501,7 @@ class Comprobador:
             return self.indice(e, mover_variables)
 
         if isinstance(e, LiteralStruct):
-            return self.literal_struct(e)
+            return self.literal_struct(e, destino)
 
         if isinstance(e, LiteralArreglo):
             return self.literal_arreglo(e, destino)
@@ -1505,7 +1664,51 @@ class Comprobador:
                           f"dejaria un hueco. Mueve el arreglo entero")
         return elem
 
-    def literal_struct(self, e: LiteralStruct):
+    def tipo_de_literal_generico(self, e: LiteralStruct, destino):
+        """`Par { a: 7, b: nuevo("x") }` no dice sus tipos. Se sacan de donde
+        va a parar, y si de ahi no salen, de lo que hay en los campos."""
+        plantilla = self.structs_genericos[e.tipo]
+        params = plantilla.tipo_params
+
+        ap = aplicacion_generica(destino) if destino else None
+        if destino and self.nombre_original.get(destino) == e.tipo:
+            return destino          # ya viene resuelto de la anotacion
+        if ap and ap[0] == e.tipo and len(ap[1]) == len(params):
+            return self.instanciar_struct(e.tipo, ap[1], e)
+
+        ligaduras = {}
+        for nombre, valor in e.campos:
+            definicion = next((c for c in plantilla.campos
+                               if c.nombre == nombre), None)
+            if definicion is None:
+                continue
+            concreto = self.tipo_probable(valor)
+            if concreto == LITERAL:
+                concreto = "usize"
+            if concreto is not None and es_referencia(concreto):
+                concreto = apuntado(concreto)
+            unificar_tipo(definicion.tipo, concreto, params, ligaduras,
+                          self.args_instancia)
+
+        faltan = [t for t in params if t not in ligaduras]
+        if faltan:
+            self.error(e, f"no se puede deducir "
+                          + ", ".join("`" + t + "`" for t in faltan)
+                          + f" en `{e.tipo} {{ ... }}`: ni los campos ni el "
+                          f"sitio donde va lo dicen. Escribe el tipo en la "
+                          f"declaracion: `let x: {e.tipo}<...> = ...`")
+            return None
+        return self.instanciar_struct(e.tipo, [ligaduras[t] for t in params], e)
+
+    def literal_struct(self, e: LiteralStruct, destino=None):
+        if e.tipo in self.structs_genericos:
+            resuelto = self.tipo_de_literal_generico(e, destino)
+            if resuelto is None:
+                for _, v in e.campos:
+                    self.expresion(v)
+                return None
+            e.tipo = resuelto
+
         st = self.structs.get(e.tipo)
         if st is None:
             self.error(e, f"`{e.tipo}` no es un struct conocido")
