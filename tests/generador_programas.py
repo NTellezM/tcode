@@ -331,6 +331,12 @@ class Generador:
                                    for c in st["campos"])
                 lineas.append(f'{s}poner({ms}, "{self.palabra()}", '
                               f"{st['nombre']} {{ {campos} }});")
+            # Modificar en el sitio lo que guarda el mapa, y volver a leerlo.
+            if self.r.random() < 0.6:
+                mu = nombre("mu")
+                lineas.append(f"{s}if tiene({ms}, \"{self.palabra()}\") {{")
+                lineas.append(f"{s}    imprimir(0);")
+                lineas.append(f"{s}}}")
             rk = nombre("rk")
             rv = nombre("rv")
             lineas.append(f"{s}for {rk}, {rv} en {ms} {{")

@@ -106,9 +106,14 @@ class Parser:
             while True:
                 pn = self.espera("ident").valor
                 self.espera("simbolo", ":")
+                # Tres formas de escribir lo mismo:
+                #   `x: mut T`  y `x: &mut T`  prestan para modificar
+                #   `x: &T`                     presta para leer
                 mutable = self.acepta("palabra", "mut") is not None
-                compartido = (not mutable
-                              and self.acepta("simbolo", "&") is not None)
+                compartido = False
+                if not mutable and self.acepta("simbolo", "&"):
+                    mutable = self.acepta("palabra", "mut") is not None
+                    compartido = not mutable
                 params.append(Parametro(pn, self.tipo(), mutable, compartido))
                 if not self.acepta("simbolo", ","):
                     break
@@ -126,6 +131,8 @@ class Parser:
         # parametro se sigue escribiendo igual, pero alli se guarda aparte.
         if self.es("simbolo", "&"):
             self.i += 1
+            if self.acepta("palabra", "mut"):
+                return f"&mut {self.tipo()}"
             return f"&{self.tipo()}"
 
         if t.tipo == "palabra" and t.valor in TIPOS:

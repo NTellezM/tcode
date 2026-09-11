@@ -227,6 +227,27 @@ RECHAZO = [
      ' return try obtener(m, "x"); }',
      "muere al cerrar la funcion"),
 
+    ("escribir a traves de un `&T` de solo lectura",
+     'struct S { n: usize } fn f(x: &S) { x.n = 5; }',
+     "solo para leer"),
+
+    ("`poner` con un `&mut` vivo",
+     'struct S { n: usize } fn f() -> usize ! { var m: mapa<str, S> = [];'
+     ' let s: &mut S = try obtener_mut(m, "k"); poner(m, "z", S { n: 1 });'
+     ' s.n = 2; return 0; }',
+     "esta prestada por `s`"),
+
+    ("dos `&mut` del mismo mapa a la vez",
+     'struct S { n: usize } fn f() -> usize ! { var m: mapa<str, S> = [];'
+     ' let a: &mut S = try obtener_mut(m, "k");'
+     ' let b: &mut S = try obtener_mut(m, "j"); a.n = 1; return 0; }',
+     "esta prestada por `a`"),
+
+    ("`obtener_mut` sobre un mapa inmutable",
+     'struct S { n: usize } fn f() -> usize ! { let m: mapa<str, S> = [];'
+     ' let s: &mut S = try obtener_mut(m, "k"); return 0; }',
+     "se declaro con `let`"),
+
     ("un `&T` no se puede mover",
      'struct S { a: str } fn g(x: S) {} fn f() -> usize ! {'
      ' var m: mapa<str, S> = []; let s: &S = try obtener(m, "x");'
@@ -874,6 +895,30 @@ ACEPTA = [
             return 0;
         }''',
      "usize false 3 6 2 true\n"),
+
+    ("modificar en el sitio lo que guarda un mapa",
+     '''struct Simbolo { tipo: str, usos: usize }
+        fn main() -> usize ! {
+            var tabla: mapa<str, Simbolo> = [];
+            poner(tabla, "n", Simbolo { tipo: nuevo("usize"), usos: 0 });
+            poner(tabla, "s", Simbolo { tipo: nuevo("str"), usos: 0 });
+            var i: usize = 0;
+            while i < 5 {
+                let s: &mut Simbolo = try obtener_mut(tabla, "n");
+                s.usos = s.usos + 1;
+                empujar(s.tipo, ".");
+                i = i + 1;
+            }
+            var claves_ord: lista<str> = claves(tabla);
+            ordenar(claves_ord);
+            for c en claves_ord {
+                let s: &Simbolo = try obtener(tabla, vista(c));
+                imprimir($"{c}:{s.tipo}:{s.usos} ");
+            }
+            imprimir("\\n");
+            return 0;
+        }''',
+     "n:usize.....:5 s:str:0 \n"),
 
     ("rebanadas de vista",
      '''fn main() -> usize {

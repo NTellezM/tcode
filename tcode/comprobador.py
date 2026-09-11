@@ -44,9 +44,13 @@ def es_referencia(t):
     return isinstance(t, str) and t.startswith("&")
 
 
+def es_referencia_mutable(t):
+    return isinstance(t, str) and t.startswith("&mut ")
+
+
 def apuntado(t):
-    """`&Simbolo` -> `Simbolo`."""
-    return t[1:]
+    """`&Simbolo` -> `Simbolo`; `&mut Simbolo` -> `Simbolo`."""
+    return t[5:] if es_referencia_mutable(t) else t[1:]
 
 
 def es_mapa(t):
@@ -289,10 +293,17 @@ class Comprobador:
         if sim.decl is not None:
             sim.decl.movida = True
 
-    def mutar(self, nodo, sim):
+    def mutar(self, nodo, sim, por_referencia=False):
         """Modificar una variable en el sitio."""
         sim.mutada = True
         if not self.usar(nodo, sim, lectura=False):
+            return
+        if por_referencia and es_referencia(sim.tipo):
+            if not es_referencia_mutable(sim.tipo):
+                self.error(nodo, f"`{sim.nombre}` es un prestamo de solo "
+                                 f"lectura (`{sim.tipo}`): para modificar lo "
+                                 f"que apunta hace falta `&mut "
+                                 f"{apuntado(sim.tipo)}`")
             return
         if not sim.mutable:
             self.error_no_mutable(nodo, sim)
@@ -350,11 +361,18 @@ class Comprobador:
         visitados = visitados | {tipo}
         return any(self.posee(c.tipo, visitados) for c in st.campos)
 
+    def es_compuesto(self, t):
+        """Tiene partes: se puede leer un campo o modificarlo en el sitio.
+        Un escalar no lo es; prestarlo no aporta nada sobre copiarlo."""
+        return (t == "str" or es_lista(t) or es_mapa(t) or es_arreglo(t)
+                or t in self.structs)
+
     def tipo_existe(self, t):
         if es_referencia(t):
-            # Solo tiene sentido prestar algo que alguien posee.
+            # Solo tiene sentido prestar algo con partes: un escalar se copia
+            # y ya esta.
             interno = apuntado(t)
-            return self.tipo_existe(interno) and self.posee(interno)
+            return self.tipo_existe(interno) and self.es_compuesto(interno)
         if t in {"str", "view", "usize", "i64", "bool"} or t in self.structs:
             return True
         if es_arreglo(t):
@@ -571,8 +589,14 @@ class Comprobador:
         if isinstance(s, Declaracion):
             self.comprobar_mapa_valido(s, s.tipo)
             if not self.tipo_existe(s.tipo):
-                self.error(s, f"`{s.tipo}` no es un tipo almacenable; las listas "
-                              "no pueden guardar `view` ni arreglos fijos")
+                if es_referencia(s.tipo):
+                    self.error(s, f"`{s.tipo}` no tiene sentido: "
+                                  f"`{apuntado(s.tipo)}` es un escalar, y "
+                                  f"prestarlo no aporta nada sobre copiarlo")
+                else:
+                    self.error(s, f"`{s.tipo}` no es un tipo almacenable; las "
+                                  "listas no pueden guardar `view` ni arreglos "
+                                  "fijos")
             tipo = self.expresion(s.valor, destino=s.tipo,
                                   mover_variables=True)
             if tipo is not None and not encaja(s.tipo, tipo):
@@ -604,7 +628,18 @@ class Comprobador:
             tipo = self.expresion(s.valor, destino=destino, mover_variables=True)
 
             sim.mutada = True
-            if not sim.mutable:
+            # Escribir a traves de un `&mut T` no es reasignar la variable:
+            # la variable sigue apuntando al mismo sitio. Lo que se exige es
+            # que el prestamo sea mutable.
+            por_referencia = (es_referencia(sim.tipo)
+                              and not isinstance(s.lugar, Variable))
+            if por_referencia:
+                if not es_referencia_mutable(sim.tipo):
+                    self.error(s, f"`{base}` es un prestamo de solo lectura "
+                                  f"(`{sim.tipo}`): para modificar lo que "
+                                  f"apunta hace falta `&mut "
+                                  f"{apuntado(sim.tipo)}`")
+            elif not sim.mutable:
                 self.error_no_mutable(s, sim)
             if sim.prestamos:
                 self.error(s, f"no se puede modificar `{base}`: esta prestada "
@@ -844,7 +879,7 @@ class Comprobador:
 
             # La vista que devuelve `obtener` vive dentro del mapa; sobrevive
             # solo si el mapa tambien.
-            if n == "obtener" and e.args:
+            if n in ("obtener", "obtener_mut") and e.args:
                 base = self.variable_base(e.args[0])
                 sim_base = self.buscar(base) if base else None
                 if sim_base is not None and sim_base.prestado:
@@ -900,7 +935,7 @@ class Comprobador:
             # Una funcion que devuelve `view` solo puede devolver algo
             # derivado de sus parametros `view`: el prestamo del que llama
             # tiene que seguir vivo mientras viva el resultado.
-            if expr.nombre == "obtener" and expr.args:
+            if expr.nombre in ("obtener", "obtener_mut") and expr.args:
                 return self.variable_base(expr.args[0])
             f = self.funciones.get(expr.nombre)
             if f is not None and f.retorno == "view":
@@ -1033,9 +1068,10 @@ class Comprobador:
 
     def interna_mapa(self, e: Llamada, nombre):
         """`poner`, `obtener`, `tiene` y `claves` sobre `mapa<K, V>`."""
-        esperados = {"poner": 3, "obtener": 2, "tiene": 2,
+        esperados = {"poner": 3, "obtener": 2, "obtener_mut": 2, "tiene": 2,
                      "claves": 1, "quitar": 2}[nombre]
-        retorno_si_falla = {"poner": UNIDAD, "obtener": None, "tiene": "bool",
+        retorno_si_falla = {"poner": UNIDAD, "obtener": None,
+                            "obtener_mut": None, "tiene": "bool",
                             "claves": None, "quitar": "bool"}[nombre]
 
         if len(e.args) != esperados:
@@ -1078,6 +1114,17 @@ class Comprobador:
         if nombre == "tiene":
             self.usar(lugar, sim)
             return "bool"
+
+        if nombre == "obtener_mut":
+            # Prestar para modificar: el mapa tiene que ser modificable, y
+            # mientras dure el prestamo nadie mas puede tocarlo.
+            if not self.es_compuesto(v):
+                self.error(e, f"`obtener_mut` presta para modificar algo que "
+                              f"vive en el mapa; `{v}` es un escalar, asi que "
+                              f"usa `obtener` y vuelve a `poner`")
+                return v
+            self.mutar(lugar, sim)
+            return f"&mut {v}"
 
         if nombre == "quitar":
             # Devuelve si habia algo que quitar: asi el que llama puede
@@ -1450,7 +1497,8 @@ class Comprobador:
                 self.mutar(lugar, sim)
             return UNIDAD
 
-        if nombre in ("poner", "obtener", "tiene", "claves", "quitar"):
+        if nombre in ("poner", "obtener", "obtener_mut", "tiene", "claves",
+                      "quitar"):
             return self.interna_mapa(e, nombre)
 
         if nombre == "texto":
@@ -1544,7 +1592,7 @@ class Comprobador:
                               f"llamada a `{nombre}`: al crecer, el buffer "
                               f"puede moverse y dejar la vista colgando")
                 continue
-            self.mutar(arg, sim)
+            self.mutar(arg, sim, por_referencia=not isinstance(arg, Variable))
 
         return retorno
 
@@ -1578,6 +1626,8 @@ INTERNAS = {
     "tiene":    {"params": ["@mapa", "@clave"],       "retorno": "bool"},
     "claves":   {"params": ["@mapa"],                 "retorno": None},
     "quitar":   {"params": ["@mapa_mut", "@clave"],   "retorno": "bool"},
+    "obtener_mut": {"params": ["@mapa_mut", "@clave"], "retorno": None,
+                    "falible": True},
 }
 
 

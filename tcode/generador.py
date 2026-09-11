@@ -21,7 +21,7 @@ from tcode.nodos import (
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
     es_lista, elem_lista, es_mapa, partes_mapa, ORDENABLES,
-    es_referencia, apuntado,
+    es_referencia, es_referencia_mutable, apuntado,
 )
 
 TIPOS_C = {
@@ -269,7 +269,8 @@ static SafeString ss_lang_texto_view_(SafeView valor, const char* ar, int ln)
 def mangle(t):
     """Nombre C valido para un tipo: `[usize; 3]` -> `arr_usize_3`."""
     if es_referencia(t):
-        return f"ref_{mangle(apuntado(t))}"
+        marca = "refmut" if es_referencia_mutable(t) else "ref"
+        return f"{marca}_{mangle(apuntado(t))}"
     if es_arreglo(t):
         elem, n = partes_arreglo(t)
         return f"arr_{mangle(elem)}_{n}"
@@ -328,8 +329,10 @@ class Generador:
         if es_arreglo(t):
             return self.registrar_arreglo(t)
         if es_referencia(t):
-            # Un prestamo es un puntero a algo que no se toca.
-            return f"const {self.tipo_c(apuntado(t))}*"
+            # Un prestamo es un puntero. El de solo lectura sale `const`, asi
+            # que el propio compilador de C impide escribir por el.
+            interno = self.tipo_c(apuntado(t))
+            return f"{interno}*" if es_referencia_mutable(t) else f"const {interno}*"
         if es_mapa(t):
             return self.registrar_mapa(t)
         if es_lista(t):
@@ -381,6 +384,8 @@ class Generador:
             # los dos tipos tienen que existir antes de emitir los typedefs.
             self.registrar_lista(f"lista<{k}>")
             self.tipo_resultado(self._tipo_obtener(v))
+            if self.c.es_compuesto(v):
+                self.tipo_resultado(f"&mut {v}")
             self.mapas[t] = f"ss_{mangle(t)}"
         return self.mapas[t]
 
@@ -858,6 +863,23 @@ class Generador:
                 "    return salida;",
                 "}",
                 "",
+                *([] if not self.c.es_compuesto(v) else [
+                    "SS_LANG_QUIZA_SIN_USAR",
+                    f"static {self.tipo_resultado(f'&mut {v}')} "
+                    f"ss_mapa_obtener_mut_{m}({nombre}* p, SafeView clave)",
+                    "{",
+                    "    if (p->capacidad == 0)",
+                    f'        return ({self.tipo_resultado(f"&mut {v}")})'
+                    f'{{ .motivo = "la clave no esta en el mapa" }};',
+                    f"    size_t i = ss_mapa_sitio_{m}(p, clave);",
+                    "    if (p->claves[i].data == NULL)",
+                    f'        return ({self.tipo_resultado(f"&mut {v}")})'
+                    f'{{ .motivo = "la clave no esta en el mapa" }};',
+                    f"    return ({self.tipo_resultado(f'&mut {v}')})"
+                    f"{{ .motivo = NULL, .valor = &p->valores[i] }};",
+                    "}",
+                    "",
+                ]),
                 "SS_LANG_QUIZA_SIN_USAR",
                 f"static bool ss_mapa_quitar_{m}({nombre}* p, SafeView clave)",
                 "{",
@@ -1401,13 +1423,16 @@ class Generador:
         if isinstance(e, Variable):
             return self.tipo_var(e.nombre) or "usize"
         if isinstance(e, Llamada):
-            if e.nombre in ("obtener", "tiene", "claves", "quitar") and e.args:
+            if e.nombre in ("obtener", "obtener_mut", "tiene", "claves",
+                            "quitar") and e.args:
                 tm = self._tipo_de(e.args[0])
                 if es_mapa(tm):
                     k, v = partes_mapa(tm)
                     if e.nombre == "obtener":
                         # Un valor duenio no sale del mapa: sale prestado.
                         return self._tipo_obtener(v)
+                    if e.nombre == "obtener_mut":
+                        return f"&mut {v}"
                     if e.nombre in ("tiene", "quitar"):
                         return "bool"
                     return f"lista<{k}>"
@@ -1703,7 +1728,7 @@ class Generador:
             self.emitir(f"SafeView {tmp} = {vista};")
             return (f"((size_t)(unsigned char){tmp}.ptr[ss_lang_indice_("
                     f"{idx}, {tmp}.len, {self.arch(e)}, {e.linea})])")
-        if n in ("poner", "obtener", "tiene", "claves", "quitar"):
+        if n in ("poner", "obtener", "obtener_mut", "tiene", "claves", "quitar"):
             lugar = e.args[0]
             tm = self._tipo_de(lugar)
             m = mangle(tm)
@@ -1718,6 +1743,8 @@ class Generador:
                 return f"ss_mapa_quitar_{m}({dir_mapa}, {clave})"
             if n == "obtener":
                 return f"ss_mapa_obtener_{m}({dir_mapa}, {clave})"
+            if n == "obtener_mut":
+                return f"ss_mapa_obtener_mut_{m}({dir_mapa}, {clave})"
             _, tv = partes_mapa(tm)
             valor = self.expr(e.args[2], tv)
             return (f"ss_mapa_poner_{m}({dir_mapa}, {clave}, {valor}, "

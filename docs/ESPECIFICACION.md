@@ -625,13 +625,43 @@ Las reglas son las de cualquier préstamo, y se comprueban igual:
 En C sale como `const T*`, así que el propio compilador de C también
 impide escribir a través de él.
 
-Para **modificar** un valor guardado en un mapa, hoy se reemplaza entero con
-`poner`. Un préstamo mutable desde una colección es lo que falta.
+### `&mut T`: préstamos que sí escriben
+
+`obtener_mut(m, clave) -> &mut V !` presta para modificar lo que ya está
+guardado, sin sacarlo ni reemplazarlo:
+
+```tcode
+let s: &mut Simbolo = try obtener_mut(tabla, "n");
+s.usos = s.usos + 1;
+empujar(s.tipo, ".");
+```
+
+En C es un `T*` sin `const`. Las reglas son las que ya tenía el lenguaje, sin
+añadir ninguna:
+
+```
+error: no se puede modificar `tabla`: esta prestada por `s`
+```
+
+Eso rechaza `poner` y `quitar` mientras el préstamo viva —importante, porque
+un `poner` puede disparar el rehash y mover el valor bajo los pies del
+puntero— y también un segundo `obtener_mut`.
+
+`mut T`, `&T` y `&mut T` en la posición de un parámetro son la misma idea:
+`x: mut T` y `x: &mut T` prestan para modificar, `x: &T` presta para leer.
+
+Se presta lo que tiene partes. Un escalar se copia y ya está, así que
+`&usize` da error y lo dice.
+
+**Qué se comprueba y qué no.** Tcode garantiza seguridad de memoria, no
+acceso exclusivo: recorrer un mapa mientras existe un `&mut` suyo está
+permitido, porque leer no reubica nada. Lo que sí se impide es todo lo que
+puede mover la memoria bajo un préstamo vivo.
 
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: genéricos definidos por el usuario, espacios de
-nombres, préstamos mutables desde una colección, E/S incremental, aritmética de punteros ni recolector.
+nombres, préstamos mutables de una variable suelta (sólo desde un mapa), E/S incremental, aritmética de punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.
