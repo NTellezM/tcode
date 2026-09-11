@@ -11,6 +11,7 @@
 // aguantan un arbol que se construye de abajo arriba, moviendo cada hijo
 // dentro de su padre.
 
+usar "std/texto";
 usar "lib/lexico.t";
 
 struct Nodo {
@@ -23,6 +24,9 @@ struct Nodo {
 struct Estado {
     toks: lista<Token>,
     i: usize,
+    // Los alias de `usar ... como x`: `x.algo` es un nombre, no el campo
+    // `algo` de una variable `x`.
+    alias: mapa<str, usize>,
     // Nombres de struct, recogidos antes de analizar: hacen falta para saber
     // que `Punto { x: 1 }` es un literal y no el inicio de un bloque.
     structs: mapa<str, usize>,
@@ -160,6 +164,15 @@ fn tipo(e: mut Estado) -> str ! {
     if es(e, "palabra", "") || es(e, "ident", "") {
         var v = nuevo(valor_en(e, 0));
         avanzar(e);
+        // `t.Caja`: un tipo que llega con nombre de modulo.
+        if tiene(e.alias, vista(v)) {
+            if es(e, "simbolo", ".") {
+                avanzar(e);
+                let miembro = try espera(e, "ident", "");
+                empujar(v, ".");
+                empujar(v, miembro);
+            }
+        }
         // `Par<usize, str>`: un struct generico aplicado a sus tipos.
         if acepta(e, "simbolo", "<") {
             empujar(v, "<");
@@ -221,7 +234,16 @@ fn primario(e: mut Estado) -> Nodo ! {
         return n;
     }
     if es(e, "ident", "") {
-        let nombre = try espera(e, "ident", "");
+        var nombre = try espera(e, "ident", "");
+
+        // `txt.palabras(v)`: nombre calificado por el modulo de donde viene.
+        if tiene(e.alias, vista(nombre)) {
+            if acepta(e, "simbolo", ".") {
+                let miembro = try espera(e, "ident", "");
+                empujar(nombre, ".");
+                empujar(nombre, miembro);
+            }
+        }
 
         if acepta(e, "simbolo", "(") {
             var n = rama("llamada", l);
@@ -238,7 +260,8 @@ fn primario(e: mut Estado) -> Nodo ! {
             return n;
         }
 
-        if es(e, "simbolo", "{") && tiene(e.structs, nombre) {
+        if es(e, "simbolo", "{") && (tiene(e.structs, nombre)
+                                     || contiene(vista(nombre), ".")) {
             avanzar(e);
             var n = rama("literal_struct", l);
             empujar(n.texto, nombre);
@@ -625,6 +648,13 @@ fn programa(e: mut Estado) -> Nodo ! {
     var raiz = rama("programa", 1);
     while acepta(e, "palabra", "usar") {
         let ruta = try espera(e, "cadena", "");
+        // `usar "x" como a;`: `como` no es palabra reservada, es un ident.
+        if igual(valor_en(e, 0), "como") {
+            avanzar(e);
+            let a = try espera(e, "ident", "");
+            anadir(raiz.hijos, hoja("alias", a, linea_actual(e)));
+            poner(e.alias, a, 1);
+        }
         try espera(e, "simbolo", ";");
         anadir(raiz.hijos, hoja("usar", ruta, linea_actual(e)));
     }
@@ -652,7 +682,8 @@ fn main() -> usize ! {
     // Los structs se recogen ANTES de mover los tokens dentro del estado:
     // despues del movimiento ya no serian nuestros. El compilador lo dice.
     let nombres = recoger_structs(tokens);
-    var e = Estado { toks: tokens, i: 0, structs: nombres };
+    var sin_alias: mapa<str, usize> = [];
+    var e = Estado { toks: tokens, i: 0, alias: sin_alias, structs: nombres };
     let arbol = try programa(e);
 
 

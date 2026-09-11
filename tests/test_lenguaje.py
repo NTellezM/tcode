@@ -1829,11 +1829,34 @@ MODULOS = [
      {"a.t": 'usar "fantasma.t";\nfn main() -> usize { return 0; }'},
      "a.t", "no encuentro el modulo", None),
 
-    ("el mismo nombre en dos modulos",
+    ("el mismo nombre desde dos sitios, y como arreglarlo",
      {"x.t": 'fn dos() -> usize { return 2; }',
       "a.t": 'usar "x.t";\nfn dos() -> usize { return 3; }\n'
                'fn main() -> usize { return dos(); }'},
-     "a.t", "ya esta definida en", None),
+     "a.t", "llega de dos sitios", None),
+
+    ("dos modulos con el mismo nombre no se estorban si no se cruzan",
+     {"uno.t": 'fn contar(xs: &lista<str>) -> usize { return largo(xs); }',
+      "dos.t": 'fn contar(xs: &lista<usize>) -> usize { return largo(xs) * 2; }',
+      "a.t": 'usar "uno.t";\nusar "dos.t" como d;\n'
+               'fn main() -> usize {\n'
+               '    var ss: lista<str> = []; anadir(ss, nuevo("a"));\n'
+               '    var ns: lista<usize> = []; anadir(ns, 1); anadir(ns, 2);\n'
+               '    imprimir($"{contar(ss)} {d.contar(ns)}\\n");\n'
+               '    return 0;\n}'},
+     "a.t", None, "1 4\n"),
+
+    ("un struct que llega con nombre de modulo",
+     {"tipos.t": 'struct Caja { n: usize }\n'
+                   'fn hacer(n: usize) -> Caja { return Caja { n: n }; }',
+      "a.t": 'usar "tipos.t" como t;\n'
+               'fn leer(c: &t.Caja) -> usize { return c.n; }\n'
+               'fn main() -> usize {\n'
+               '    let c: t.Caja = t.Caja { n: 7 };\n'
+               '    let d = t.hacer(9);\n'
+               '    imprimir($"{leer(c)} {leer(d)}\\n");\n'
+               '    return 0;\n}'},
+     "a.t", None, "7 9\n"),
 
     ("un error dentro de un modulo dice de que archivo es",
      {"roto.t": 'fn r() { let a: usize = 1; let b: i64 = 2;'
@@ -1900,6 +1923,7 @@ EJEMPLOS = [
     ("ejemplos/ordenar.t", ["README.md"]),
     ("ejemplos/frecuencia.t", ["README.md"]),
     ("ejemplos/informe/informe.t", []),
+    ("ejemplos/modulos/escalas.t", []),
     ("ejemplos/lexer/lexer.t", ["ejemplos/hola.t"]),
     ("ejemplos/lexer/parser.t", ["ejemplos/hola.t"]),
 ]

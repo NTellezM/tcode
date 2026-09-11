@@ -686,9 +686,16 @@ def generar_modulos(semilla):
              "}", "",
              "fn doble(d: &Dato) -> usize { return primero(d) * 2; }"]
 
-    # El principal usa los dos: el de base llega por dos caminos y no se
-    # puede cargar dos veces.
-    app = ['usar "lib/medio.t";', 'usar "lib/base.t";', "",
+    # Un modulo que declara los mismos nombres que `base`: si el `como` no
+    # separara de verdad, esto no compilaria.
+    otro = ["struct Dato { c0: usize }", "",
+            "fn primero(d: &Dato) -> usize { return d.c0 + 1; }", "",
+            f"fn crear() -> Dato {{ return Dato {{ c0: {r.randint(0, 99)} }}; }}"]
+
+    # El principal usa los tres: `base` llega por dos caminos y no se puede
+    # cargar dos veces, y `otro` llega con nombre propio.
+    app = ['usar "lib/medio.t";', 'usar "lib/base.t";',
+           'usar "lib/otro.t" como o;', "",
            "fn main() -> usize ! {",
            "    var d = crear();",
            f"    subir(d, {r.randint(1, 50)});",
@@ -700,6 +707,8 @@ def generar_modulos(semilla):
     app.append("    var g_ss: lista<str> = [];")
     app.append(f'    anadir(g_ss, nuevo("{g.palabra()}"));')
     app.append('    imprimir($" {cuantas(g_ns)}{cuantas(g_ss)}");')
+    app.append("    let od = o.crear();")
+    app.append('    imprimir($" {o.primero(od)}");')
     app.append("    let e: str = etiqueta(d);")
     app.append('    imprimir($" {e}");')
     app.append("    let v = try chequear(primero(d));")
@@ -707,6 +716,7 @@ def generar_modulos(semilla):
     app += ['    imprimir("' + chr(92) + 'n");', "    return 0;", "}"]
 
     return {
+        "lib/otro.t": "\n".join(otro) + "\n",
         "lib/base.t": "\n".join(base) + "\n",
         "lib/medio.t": "\n".join(medio) + "\n",
         "app.t": "\n".join(app) + "\n",

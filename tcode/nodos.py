@@ -162,6 +162,9 @@ class Parametro:
 @dataclass
 class Usar(Nodo):
     ruta: str
+    # `usar "std/texto" como txt;`: dentro de ESTE archivo, lo que trae el
+    # modulo se nombra `txt.algo`. None es la forma llana.
+    alias: str = None
 
 @dataclass
 class CampoDef:
