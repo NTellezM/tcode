@@ -527,6 +527,23 @@ class Generador:
             "    let dentro = try puede_fallar(0);\n"
             "    return $\"<{copia(n)}|{dentro}>\";\n"
             "}")
+        # Genericas: una plantilla, una copia por cada juego de tipos. Se usan
+        # con un tipo que posee memoria y con uno que no, que es donde las
+        # reglas de propiedad cambian de respuesta con el mismo cuerpo.
+        partes.append(
+            "fn cuantas<T>(xs: &lista<T>) -> usize {\n"
+            "    return largo(xs);\n"
+            "}")
+        partes.append(
+            "fn sin_nada<T>(xs: &lista<T>) -> bool {\n"
+            "    return cuantas(xs) == 0;\n"
+            "}")
+        partes.append(
+            "fn ultimo_sitio<T>(xs: &lista<T>) -> usize ! {\n"
+            "    if sin_nada(xs) { falla \"vacia\"; }\n"
+            "    return largo(xs) - 1;\n"
+            "}")
+
         partes.append(
             "fn copia(n: usize) -> str {\n"
             "    var s = nuevo(\"n=\");\n"
@@ -548,6 +565,14 @@ class Generador:
         if str_vivo is not None:
             lineas.append(f"    imprimir(consumir({str_vivo}));")
         lineas.append(f"    imprimir(mitad({self.r.randint(1, 50)}) sino 0);")
+        # La misma generica con `usize` y con `str`.
+        lineas.append("    var g_ns: lista<usize> = [];")
+        lineas.append(f"    anadir(g_ns, {self.r.randint(0, 99)});")
+        lineas.append("    var g_ss: lista<str> = [];")
+        lineas.append(f'    anadir(g_ss, nuevo("{self.palabra()}"));')
+        lineas.append("    imprimir(cuantas(g_ns));")
+        lineas.append("    imprimir(sin_nada(g_ss));")
+        lineas.append("    imprimir(try ultimo_sitio(g_ss));")
         lineas.append(f"    imprimir(envuelto({self.r.randint(0, 99)}));")
         lineas.append(f"    imprimir(envuelto_falible({self.r.randint(0, 99)}) "
                       f"sino nuevo(\"nada\"));")
@@ -597,6 +622,13 @@ def generar_modulos(semilla):
     base.append("}")
     # una funcion falible declarada aqui y usada con `try` alla
     base.append("")
+    # Una generica declarada aqui y usada alla, con dos tipos distintos: la
+    # copia se crea en el modulo que la usa, no donde esta la plantilla.
+    base.append("")
+    base.append("fn cuantas<T>(xs: &lista<T>) -> usize {")
+    base.append("    return largo(xs);")
+    base.append("}")
+    base.append("")
     base.append("fn chequear(n: usize) -> usize ! {")
     base.append(f"    if n > {r.randint(900, 1200)} {{ falla \"muy grande\"; }}")
     base.append("    return n;")
@@ -622,6 +654,11 @@ def generar_modulos(semilla):
            '    imprimir($"{primero(d)} {doble(d)}");']
     if con_texto:
         app.append('    imprimir($" {d.t}");')
+    app.append("    var g_ns: lista<usize> = [];")
+    app.append(f"    anadir(g_ns, {r.randint(0, 99)});")
+    app.append("    var g_ss: lista<str> = [];")
+    app.append(f'    anadir(g_ss, nuevo("{g.palabra()}"));')
+    app.append('    imprimir($" {cuantas(g_ns)}{cuantas(g_ss)}");')
     app.append("    let e: str = etiqueta(d);")
     app.append('    imprimir($" {e}");')
     app.append("    let v = try chequear(primero(d));")

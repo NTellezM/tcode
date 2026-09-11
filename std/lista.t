@@ -1,11 +1,30 @@
 // std/lista.t — lo que se le pide a una lista y no viene de serie.
 //
 // `anadir`, `largo`, `ordenar` y la indexacion las pone el compilador. Aqui
-// esta el resto. Mientras no haya genericos hay dos familias, una para
-// `lista<usize>` y otra para `lista<str>`; cuando las haya, esto se queda en
-// una sola y la mitad de estas lineas se van.
+// esta el resto.
+//
+// Lo que sirve para cualquier elemento es generico: `largo_de`, `esta_vacia`.
+// Lo que no, no lo es, y por una razon que se ve: `suma` necesita sumar,
+// `incluye` necesita comparar, y `primeras` necesita copiar el elemento.
+// `usize` se copia solo; un `str` hay que copiarlo a mano. Sin restricciones
+// sobre `T` el compilador no puede saber cual de las dos cosas vale, asi que
+// esas siguen siendo una por tipo. Es honesto: la generica que existe es la
+// que de verdad no mira dentro del elemento.
 
 usar "std/numero";
+
+// ---------- para cualquier lista ----------
+
+fn esta_vacia<T>(xs: &lista<T>) -> bool {
+    return largo(xs) == 0;
+}
+
+// La ultima posicion valida. Falla en vez de devolver un numero envuelto:
+// `largo(xs) - 1` sobre una lista vacia aborta el programa.
+fn ultima_posicion<T>(xs: &lista<T>) -> usize ! {
+    if largo(xs) == 0 { falla "una lista vacia no tiene ultima posicion"; }
+    return largo(xs) - 1;
+}
 
 // ---------- listas de numeros ----------
 
@@ -16,30 +35,30 @@ fn suma(ns: &lista<usize>) -> usize {
 }
 
 fn maximo(ns: &lista<usize>) -> usize ! {
-    if largo(ns) == 0 { falla "una lista vacia no tiene maximo"; }
+    if esta_vacia(ns) { falla "una lista vacia no tiene maximo"; }
     var m = ns[0];
     for n en ns { if n > m { m = n; } }
     return m;
 }
 
 fn minimo(ns: &lista<usize>) -> usize ! {
-    if largo(ns) == 0 { falla "una lista vacia no tiene minimo"; }
+    if esta_vacia(ns) { falla "una lista vacia no tiene minimo"; }
     var m = ns[0];
     for n en ns { if n < m { m = n; } }
     return m;
 }
 
 fn media(ns: &lista<usize>) -> usize ! {
-    if largo(ns) == 0 { falla "una lista vacia no tiene media"; }
+    if esta_vacia(ns) { falla "una lista vacia no tiene media"; }
     return try dividir(suma(ns), largo(ns));
 }
 
 // Da la vuelta a la lista en el sitio. Con numeros se puede: copiar un
 // `usize` no le quita nada a nadie.
 fn invertir(ns: mut lista<usize>) {
-    if largo(ns) == 0 { return; }
+    var j = ultima_posicion(ns) sino 0;
+    if esta_vacia(ns) { return; }
     var i = 0;
-    var j = largo(ns) - 1;
     while i < j {
         let guardado = ns[i];
         ns[i] = ns[j];

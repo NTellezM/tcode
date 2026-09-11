@@ -24,6 +24,10 @@ class Parser:
         # Se recogen antes de parsear porque hacen falta para desambiguar:
         # `Punto { x: 1 }` es un literal solo si `Punto` es un struct. Sin
         # esto, el `s` de `if s { }` se leeria como el inicio de uno.
+        # Los parametros de tipo de la funcion que se esta leyendo. Mientras
+        # dura, `T` es un tipo mas: no se resuelve aqui, se resuelve al
+        # instanciar en cada llamada.
+        self.tipo_params = set()
         self.structs = set(structs_previos or ())
         self.structs |= {t.valor for j, t in enumerate(toks)
                         if t.tipo == "palabra" and t.valor == "struct"
@@ -99,6 +103,29 @@ class Parser:
     def funcion(self) -> Funcion:
         tok = self.espera("palabra", "fn")
         nombre = self.espera("ident").valor
+
+        # `fn primeras<T>(...)`: los parametros de tipo valen dentro de la
+        # firma y del cuerpo, y en ningun otro sitio.
+        tipo_params = []
+        if self.acepta("simbolo", "<"):
+            while True:
+                tp = self.espera("ident").valor
+                if tp in TIPOS:
+                    self.error(f"`{tp}` ya es un tipo del lenguaje: un "
+                               f"parametro de tipo necesita otro nombre")
+                if tp in self.structs:
+                    self.error(f"`{tp}` ya es un struct: un parametro de tipo "
+                               f"necesita otro nombre")
+                if tp in tipo_params:
+                    self.error(f"`{tp}` esta repetido en `{nombre}<...>`")
+                tipo_params.append(tp)
+                if not self.acepta("simbolo", ","):
+                    break
+            self.espera("simbolo", ">")
+            if not tipo_params:
+                self.error(f"`{nombre}<>` no declara ningun parametro de tipo")
+        self.tipo_params = set(tipo_params)
+
         self.espera("simbolo", "(")
 
         params = []
@@ -121,8 +148,10 @@ class Parser:
 
         retorno = self.tipo() if self.acepta("simbolo", "->") else None
         falible = self.acepta("simbolo", "!") is not None
-        return Funcion(nombre, params, retorno, self.bloque(), falible,
-                       linea=tok.linea)
+        cuerpo = self.bloque()
+        self.tipo_params = set()
+        return Funcion(nombre, params, retorno, cuerpo, falible,
+                       linea=tok.linea, tipo_params=tipo_params)
 
     def tipo(self) -> str:
         t = self.actual
@@ -136,6 +165,11 @@ class Parser:
             return f"&{self.tipo()}"
 
         if t.tipo == "palabra" and t.valor in TIPOS:
+            self.i += 1
+            return t.valor
+
+        # parametro de tipo de la funcion en curso
+        if t.tipo == "ident" and t.valor in self.tipo_params:
             self.i += 1
             return t.valor
 

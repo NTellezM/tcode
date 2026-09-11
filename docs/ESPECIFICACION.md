@@ -764,9 +764,59 @@ lo guarda hasta el final de la sentencia y lo libera ahí. Eso vale también
 donde el valor se devuelve: `return $"[{rellenar(v, 8)}]"` suelta el `str`
 de `rellenar` antes de salir, no después.
 
+## Genéricas
+
+Una función puede dejar tipos sin decidir: `fn primeras<T>(xs: &lista<T>,
+n: usize) -> lista<T>`. Dentro de la firma y del cuerpo, `T` es un tipo más.
+
+No hay borrado de tipos ni casts escondidos: de cada genérica sale **una
+copia por cada juego de tipos con que se use**, y esa copia se comprueba
+entera con los tipos ya puestos. Eso tiene una consecuencia que conviene ver
+antes de escribir la primera:
+
+```tcode
+fn primeras<T>(xs: &lista<T>) -> lista<T> {
+    var salida: lista<T> = [];
+    for x en xs { anadir(salida, x); }
+    return salida;
+}
+```
+
+Con `T = usize` compila: copiar un número de una lista prestada no le quita
+nada a nadie. Con `T = str` **no**, y el error lo dice:
+
+```
+error: ejemplo.t:3: `x` llego prestado: esta funcion no es su duenia y no
+                    puede entregarlo. Pasa una copia, o recibelo por valor
+  al usar `primeras` con T = str, desde ejemplo.t:9
+```
+
+La última línea es deliberada. Un error dentro de una genérica no se entiende
+sin saber con qué tipos se la usó ni desde dónde: es lo que hace ilegibles los
+errores de plantillas de C++, y aquí se dice en una línea, de dentro hacia
+fuera.
+
+**Los tipos se deducen de los argumentos; no se escriben.** No existe
+`primeras<str>(xs)`. La razón es la gramática: `f<str>(x)` no se distingue de
+`f < str > (x)` sin mirar mucho más allá, y preferimos una gramática sin
+trucos. Si los argumentos no bastan para deducir un tipo, el compilador lo
+dice y pide que se guarde el argumento en una variable con su tipo escrito.
+
+Un mismo parámetro de tipo es un solo tipo en toda la llamada. `dos(1, s)`
+sobre `fn dos<T>(a: T, b: T)` no compila, y el error dice qué argumento
+fijó `T` primero.
+
+Lo que **no** hay todavía: restricciones sobre `T`. Por eso `std/lista` sigue
+teniendo una familia por tipo de elemento: `suma` necesita sumar, `incluye`
+necesita comparar y `primeras` necesita copiar el elemento. Sin poder exigir
+eso de `T`, esas funciones no pueden ser genéricas. Las que sí lo son
+—`esta_vacia`, `ultima_posicion`— son justo las que no miran dentro del
+elemento. Tampoco hay structs genéricos.
+
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: genéricos definidos por el usuario, espacios de
+Es un v0 honesto. No hay: restricciones sobre los parámetros de tipo,
+structs genéricos, espacios de
 nombres, préstamos mutables de una variable suelta (sólo desde un mapa), E/S incremental, aritmética de punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a

@@ -6,6 +6,8 @@ aqui no puede tener ninguna de las cuatro clases de fallo que encontramos
 auditando la libreria en C.
 """
 
+import re
+
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
@@ -123,6 +125,79 @@ def sin_prestamo(t):
 COPIABLES = ENTEROS | {"bool", "view", LITERAL, UNIDAD}
 
 
+def sustituir_tipo(t, ligaduras):
+    """Cambia los parametros de tipo por lo que se les ligo: con `{T: "str"}`,
+    `lista<T>` pasa a ser `lista<str>`."""
+    if not t or not ligaduras:
+        return t
+    return re.sub(r"[A-Za-z_][A-Za-z0-9_]*",
+                  lambda m: ligaduras.get(m.group(0), m.group(0)), t)
+
+
+def unificar_tipo(patron, concreto, params, ligaduras):
+    """Deduce los parametros de tipo comparando la firma con lo que llega.
+
+    `lista<T>` contra `lista<str>` liga `T` a `str`. Si un mismo parametro
+    sale dos veces con tipos distintos, no unifica: eso es un error del que
+    llama, no una conversion silenciosa.
+    """
+    if patron is None or concreto is None:
+        return True             # sin informacion: no contradice nada
+    if patron in params:
+        previo = ligaduras.get(patron)
+        if previo is None:
+            ligaduras[patron] = concreto
+            return True
+        return previo == concreto
+    if patron == concreto:
+        return True
+    for marca in ("&mut ", "&"):
+        if patron.startswith(marca):
+            return (concreto.startswith(marca)
+                    and unificar_tipo(patron[len(marca):],
+                                      concreto[len(marca):], params, ligaduras))
+    if es_lista(patron) and es_lista(concreto):
+        return unificar_tipo(elem_lista(patron), elem_lista(concreto),
+                             params, ligaduras)
+    if es_mapa(patron) and es_mapa(concreto):
+        pk, pv = partes_mapa(patron)
+        ck, cv = partes_mapa(concreto)
+        return (unificar_tipo(pk, ck, params, ligaduras)
+                and unificar_tipo(pv, cv, params, ligaduras))
+    if es_arreglo(patron) and es_arreglo(concreto):
+        pe, pn = partes_arreglo(patron)
+        ce, cn = partes_arreglo(concreto)
+        return pn == cn and unificar_tipo(pe, ce, params, ligaduras)
+    return False
+
+
+def _sustituir_en_arbol(nodo, ligaduras):
+    """Pone los tipos ligados en las anotaciones que quedan dentro del cuerpo:
+    `var salida: lista<T> = []` tiene que decir `lista<str>` en la copia."""
+    from dataclasses import fields, is_dataclass
+    if isinstance(nodo, (list, tuple)):
+        for x in nodo:
+            _sustituir_en_arbol(x, ligaduras)
+        return
+    if not is_dataclass(nodo):
+        return
+    for campo in fields(nodo):
+        valor = getattr(nodo, campo.name)
+        if campo.name in ("tipo", "retorno") and isinstance(valor, str):
+            setattr(nodo, campo.name, sustituir_tipo(valor, ligaduras))
+        else:
+            _sustituir_en_arbol(valor, ligaduras)
+
+
+def nombre_instancia(nombre, params, ligaduras):
+    """Un nombre de C valido y legible por cada juego de tipos."""
+    piezas = []
+    for tp in params:
+        t = ligaduras[tp]
+        piezas.append(re.sub(r"[^A-Za-z0-9]+", "_", t).strip("_"))
+    return f"{nombre}__{'_'.join(piezas)}"
+
+
 def encaja(esperado, dado):
     """True si un valor de tipo `dado` sirve donde se pide `esperado`."""
     if esperado == dado:
@@ -184,6 +259,14 @@ class Comprobador:
         self.ambitos = []          # lista de dicts nombre -> Simbolo
         self.structs = {}
         self.funciones = {}
+        # `fn f<T>(...)`: la plantilla, sin comprobar. De cada una salen
+        # copias con los tipos ya puestos, una por juego de tipos usado.
+        self.genericas = {}
+        self.instancias = {}        # (nombre, tipos) -> nombre de la copia
+        self.instanciadas = []      # las copias, en orden, para el generador
+        self.instanciando = []      # pila, para cortar la recursion infinita
+        self.contexto_instancia = []  # para que el error diga con que tipos
+        self.nombre_original = {}   # copia -> generica, para los mensajes
         self.retorno_actual = None
         self.falible_actual = False
         self.en_condicional = 0
@@ -207,12 +290,38 @@ class Comprobador:
 
     def error(self, nodo, mensaje):
         archivo = getattr(nodo, "archivo", "") or self.archivo
-        self.errores.append(f"{archivo}:{nodo.linea}: {mensaje}")
+        self.errores.append(f"{archivo}:{nodo.linea}: {self._legible(mensaje)}"
+                            + self._por_instanciar())
+
+    def _legible(self, mensaje):
+        """La copia de una generica se llama `primeras__str`, que es un nombre
+        que nadie escribio. En un mensaje va el nombre de verdad."""
+        for copia, original in self.nombre_original.items():
+            if copia in mensaje:
+                mensaje = mensaje.replace(copia, original)
+        return mensaje
+
+    def _por_instanciar(self):
+        """Un error dentro de una generica no se entiende sin saber con que
+        tipos se la uso, ni desde donde. Es lo que hace ilegibles los errores
+        de plantillas: se dice aqui, en una linea, de dentro hacia fuera."""
+        if not self.contexto_instancia:
+            return ""
+        partes = []
+        for nombre, ligaduras, sitio in reversed(self.contexto_instancia):
+            tipos = ", ".join(f"{k} = {v}" for k, v in ligaduras.items())
+            partes.append(f"\n  al usar `{nombre}` con {tipos}, desde {sitio}")
+        return "".join(partes)
 
     def aviso(self, nodo, mensaje):
         """No impide compilar. Apunta al codigo que escribio la persona."""
         archivo = getattr(nodo, "archivo", "") or self.archivo
-        self.avisos.append(f"{archivo}:{nodo.linea}: {mensaje}")
+        linea = f"{archivo}:{nodo.linea}: {self._legible(mensaje)}"
+        # Un aviso sobre el cuerpo de una generica es el mismo aviso por cada
+        # juego de tipos con que se use. Se dice una vez.
+        if self.contexto_instancia and linea in self.avisos:
+            return
+        self.avisos.append(linea)
 
     # ---------- ambitos ----------
 
@@ -462,16 +571,137 @@ class Comprobador:
         self.comprobar_structs(structs)
 
         for f in funciones:
-            previa = self.funciones.get(f.nombre)
+            previa = self.funciones.get(f.nombre) or self.genericas.get(f.nombre)
             if previa is not None:
                 self.error(f, f"la funcion `{f.nombre}` ya esta definida en "
                               f"{previa.archivo or '<entrada>'}:{previa.linea}")
-            self.funciones[f.nombre] = f
+            if f.tipo_params:
+                self.genericas[f.nombre] = f
+            else:
+                self.funciones[f.nombre] = f
 
+        # Una generica no se comprueba tal cual: sus tipos no existen todavia.
+        # Se comprueba cada copia, cuando se sabe con que tipos se usa.
         for f in funciones:
-            self.comprobar_funcion(f)
+            if not f.tipo_params:
+                self.comprobar_funcion(f)
 
         return self.errores
+
+    # ---------- genericas: una copia por juego de tipos ----------
+
+    def tipo_probable(self, e):
+        """El tipo de una expresion, sin anotar usos ni movimientos.
+
+        Solo sirve para deducir los parametros de tipo antes de comprobar la
+        llamada de verdad. Si no lo sabe dice `None`, y entonces el error
+        pide que se le ponga nombre al argumento.
+        """
+        if isinstance(e, (Try, Sino)):
+            return self.tipo_probable(e.expr)
+        if isinstance(e, Variable):
+            sim = self.buscar(e.nombre)
+            return sim.tipo if sim is not None else None
+        if isinstance(e, Cadena):
+            return "view"
+        if isinstance(e, Entero):
+            return "usize"
+        if isinstance(e, Booleano):
+            return "bool"
+        if isinstance(e, Interpolada):
+            return "str"
+        if isinstance(e, (Campo, Indice)):
+            try:
+                return self.tipo_de_lugar(e)
+            except Exception:
+                return None
+        if isinstance(e, LiteralStruct):
+            return e.nombre
+        if isinstance(e, Llamada):
+            if e.nombre in INTERNAS:
+                return INTERNAS[e.nombre].get("retorno")
+            f = self.funciones.get(e.nombre)
+            return f.retorno if f is not None else None
+        return None
+
+    def instanciar(self, e, plantilla):
+        """Deduce los tipos de una llamada a una generica y devuelve el nombre
+        de la copia con esos tipos, creandola la primera vez."""
+        import copy as _copy
+
+        params = plantilla.tipo_params
+        ligaduras = {}
+        if len(e.args) == len(plantilla.params):
+            for arg, p in zip(e.args, plantilla.params):
+                concreto = self.tipo_probable(arg)
+                if concreto is not None and es_referencia(concreto):
+                    concreto = apuntado(concreto)
+                antes = dict(ligaduras)
+                if not unificar_tipo(p.tipo, concreto, params, ligaduras):
+                    choca = next((t for t in params
+                                  if t in antes and t in p.tipo), None)
+                    if choca is not None:
+                        self.error(e, f"`{choca}` en `{plantilla.nombre}` ya "
+                                      f"quedo en `{antes[choca]}` por un "
+                                      f"argumento anterior, y `{p.nombre}` "
+                                      f"pide `{concreto}`. Un mismo parametro "
+                                      f"de tipo es un solo tipo en toda la "
+                                      f"llamada")
+                    else:
+                        self.error(e, f"`{p.nombre}` de `{plantilla.nombre}` "
+                                      f"es `{p.tipo}` y recibio `{concreto}`")
+                    return None
+
+        faltan = [t for t in params if t not in ligaduras]
+        if faltan:
+            self.error(e, f"no se puede deducir {', '.join('`' + t + '`' for t in faltan)} "
+                          f"en la llamada a `{plantilla.nombre}`: los argumentos "
+                          f"no lo dicen. Guarda el argumento en una variable con "
+                          f"su tipo escrito y pasa esa")
+            return None
+
+        clave = (plantilla.nombre, tuple(ligaduras[t] for t in params))
+        if clave in self.instancias:
+            return self.instancias[clave]
+
+        nombre = nombre_instancia(plantilla.nombre, params, ligaduras)
+        if clave in self.instanciando:
+            # Una generica que se llama a si misma con tipos nuevos cada vez
+            # no termina nunca de instanciarse. Se corta aqui.
+            self.error(e, f"`{plantilla.nombre}` se instancia sin fin: una "
+                          f"generica no puede llamarse a si misma con un tipo "
+                          f"que dependa de su propio parametro")
+            return None
+
+        copia = _copy.deepcopy(plantilla)
+        copia.nombre = nombre
+        copia.tipo_params = []
+        copia.retorno = sustituir_tipo(copia.retorno, ligaduras)
+        for p in copia.params:
+            p.tipo = sustituir_tipo(p.tipo, ligaduras)
+        _sustituir_en_arbol(copia.cuerpo, ligaduras)
+
+        self.instancias[clave] = nombre
+        self.nombre_original[nombre] = plantilla.nombre
+        self.funciones[nombre] = copia
+
+        # Se comprueba con el estado de la funcion en curso guardado: la copia
+        # es una funcion entera, con sus propios simbolos y su propio retorno.
+        guardado = (self.retorno_actual, self.falible_actual,
+                    self.simbolos_funcion, self.ambitos)
+        self.ambitos = []
+        self.instanciando.append(clave)
+        sitio = f"{getattr(e, 'archivo', '') or self.archivo}:{e.linea}"
+        self.contexto_instancia.append((plantilla.nombre, dict(ligaduras), sitio))
+        try:
+            self.comprobar_funcion(copia)
+        finally:
+            self.contexto_instancia.pop()
+            self.instanciando.pop()
+            (self.retorno_actual, self.falible_actual,
+             self.simbolos_funcion, self.ambitos) = guardado
+        self.instanciadas.append(copia)
+        return nombre
 
     def comprobar_funcion(self, f: Funcion):
         self.retorno_actual = f.retorno
@@ -1205,7 +1435,10 @@ class Comprobador:
         """Comprueba que lo que sigue a `try`/`sino` sea algo que pueda fallar."""
         es_falible = False
         if isinstance(interna, Llamada):
-            f = self.funciones.get(interna.nombre)
+            # Una generica todavia no tiene copia: la plantilla ya dice si
+            # puede fallar, que es lo unico que hace falta saber aqui.
+            f = (self.funciones.get(interna.nombre)
+                 or self.genericas.get(interna.nombre))
             firma = INTERNAS.get(interna.nombre)
             es_falible = bool((f is not None and f.falible)
                                or (firma is not None and firma.get("falible")))
@@ -1400,8 +1633,20 @@ class Comprobador:
                               f"valor cuando falle")
             return self.interna(e)
 
+        if nombre in self.genericas:
+            # Se elige la copia por los tipos que llegan, y a partir de aqui
+            # la llamada es a una funcion normal como cualquier otra.
+            resuelto = self.instanciar(e, self.genericas[nombre])
+            if resuelto is None:
+                for a in e.args:
+                    self.expresion(a)
+                return None
+            e.nombre = nombre = resuelto
+
         f = self.funciones.get(nombre)
         if f is None:
+            if nombre in self.genericas:
+                return None
             self.error(e, f"`{nombre}` no es una funcion conocida")
             for a in e.args:
                 self.expresion(a)

@@ -332,14 +332,18 @@ Hay además una biblioteca estándar escrita en Tcode: `std/caracter`,
 programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
 queda una sola función duplicada entre `ejemplos/` y `std/`.
 
-No hay: genéricos definidos por el usuario, espacios de nombres,
-E/S incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
+Y **funciones genéricas**: `fn primeras<T>(xs: &lista<T>) -> lista<T>`, con
+una copia por cada juego de tipos, los tipos deducidos de los argumentos, y
+errores que dicen con qué tipos se instanció y desde dónde.
+
+No hay: restricciones sobre los parámetros de tipo, structs genéricos,
+espacios de nombres, E/S incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
 struct (el muro real: exige la vida útil en el tipo), movimientos parciales
 de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-213 casos, 0 fallas
+219 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

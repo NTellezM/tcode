@@ -534,6 +534,13 @@ class Generador:
     # ---------- programa ----------
 
     def generar(self, decls):
+        # Una generica no se genera: no hay un tipo que poner. Lo que se
+        # genera son las copias que el comprobador hizo al ver con que tipos
+        # se usa, y a partir de aqui son funciones normales.
+        decls = [d for d in decls
+                 if not (isinstance(d, Funcion) and d.tipo_params)]
+        decls += list(getattr(self.c, "instanciadas", ()))
+
         structs = [d for d in decls if isinstance(d, Struct)]
         funciones = [d for d in decls if isinstance(d, Funcion)]
 
