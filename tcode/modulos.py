@@ -13,8 +13,26 @@ dice en que archivos estan.
 
 import os
 
+from tcode.lexer import tokenizar
 from tcode.parser import parsear
-from tcode.nodos import Usar
+from tcode.nodos import Usar, Struct
+
+
+def _solo_usar(fuente, archivo):
+    """Los `usar` de un archivo, sin analizarlo entero.
+
+    Hace falta porque las dependencias tienen que cargarse ANTES de analizar
+    el archivo que las usa, y para analizarlo hacen falta sus structs.
+    """
+    toks = tokenizar(fuente, archivo)
+    salida = []
+    i = 0
+    while (i + 2 < len(toks) and toks[i].tipo == "palabra"
+           and toks[i].valor == "usar" and toks[i + 1].tipo == "cadena"):
+        salida.append(Usar(toks[i + 1].valor, linea=toks[i].linea,
+                           archivo=archivo))
+        i += 3
+    return salida
 
 
 class ErrorDeModulo(Exception):
@@ -26,6 +44,9 @@ def cargar(ruta_principal):
     cargados = {}
     decls = []
     pila = []
+    # Nombres de struct ya vistos. Un modulo puede usar un tipo que declara
+    # otro, asi que el parser tiene que conocerlos antes de leerlo.
+    structs = set()
 
     def cargar_uno(ruta, quien=None, linea=0):
         real = os.path.realpath(ruta)
@@ -51,14 +72,16 @@ def cargar(ruta_principal):
         mostrada = os.path.relpath(real)
         if mostrada.startswith(".."):
             mostrada = real
-        propias = parsear(fuente, mostrada)
-
+        # Primero las dependencias: sus structs tienen que estar declarados
+        # antes de analizar este archivo.
         pila.append(real)
-        for d in propias:
-            if isinstance(d, Usar):
-                base = os.path.dirname(real)
-                cargar_uno(os.path.join(base, d.ruta), mostrada, d.linea)
+        for d in _solo_usar(fuente, mostrada):
+            base = os.path.dirname(real)
+            cargar_uno(os.path.join(base, d.ruta), mostrada, d.linea)
         pila.pop()
+
+        propias = parsear(fuente, mostrada, structs)
+        structs.update(d.nombre for d in propias if isinstance(d, Struct))
 
         cargados[real] = True
         decls.extend(d for d in propias if not isinstance(d, Usar))

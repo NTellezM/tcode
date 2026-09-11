@@ -79,11 +79,16 @@ RECHAZO = [
      'fn g(x: str) {} fn f() { var s: str = nuevo("a");'
      ' let v: view = vista(s); g(s); }',
      "no se puede mover"),
+    ("mover en un bucle algo declarado fuera",
+     'fn g(s: str) {} fn f() { let s: str = nuevo("a"); var i: usize = 0;'
+     ' while i < 3 { g(s); i = i + 1; } }',
+     "se declaro fuera del bucle"),
 
-    ("un movimiento dentro de una rama no es incondicional",
-     'fn tomar(s: str) {} fn f() { let s: str = nuevo("a");'
-     ' if true { tomar(s); } }',
-     "no se puede mover `s` dentro"),
+    ("reasignar dentro de un `if` no salva el movimiento del bucle",
+     'fn g(s: str) {} fn f(c: bool) { var s: str = nuevo("a"); var i: usize = 0;'
+     ' while i < 3 { g(s); if c { s = nuevo("b"); } i = i + 1; } }',
+     "se declaro fuera del bucle"),
+
 
     ("devolver algo prestado",
      'fn f() -> str { var s: str = nuevo("a"); let v: view = vista(s);'
@@ -1178,7 +1183,7 @@ with tempfile.TemporaryDirectory() as tmp:
 # fuerte que tiene el lenguaje: un programa de 250 lineas que produce
 # exactamente lo mismo que el original sobre todos los .t del repo, incluido
 # el suyo propio.
-print("=== AUTOANALISIS: el lexer en Tcode contra el de Python ===")
+print("=== AUTOANALISIS: el lexer y el parser en Tcode, contra los de Python ===")
 import glob
 from tcode.lexer import tokenizar as tokenizar_py
 
@@ -1246,6 +1251,56 @@ with tempfile.TemporaryDirectory() as tmp:
                     tokens_vistos += len(obtenidos)
                     distintos += 1
             print(f"    {distintos} archivos, {tokens_vistos} tokens identicos")
+
+            # --- el parser en Tcode, sobre los mismos archivos ---
+            total += 1
+            from tcode.modulos import cargar as cargar_modulos, ErrorDeModulo
+            fuente_parser = os.path.join(RAIZ, "ejemplos", "lexer", "parser.t")
+            codigo_p, errores_p = compilar_archivo(fuente_parser)
+            if errores_p:
+                falla("el parser en Tcode compila", f"errores: {errores_p}")
+            else:
+                ruta_p = os.path.join(tmp, "par.c")
+                bin_p = os.path.join(tmp, "par")
+                with open(ruta_p, "w", encoding="utf-8") as f:
+                    f.write(codigo_p)
+                r = subprocess.run(
+                    ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra",
+                     "-Werror", "-fsanitize=address,undefined",
+                     "-fno-omit-frame-pointer", f"-I{RUNTIME}", ruta_p,
+                     os.path.join(RUNTIME, "safestr.c"), "-o", bin_p],
+                    capture_output=True, text=True)
+                if r.returncode != 0:
+                    falla("el parser en Tcode compila", r.stderr)
+                else:
+                    nodos_vistos = 0
+                    coinciden = 0
+                    for archivo in archivos:
+                        total += 1
+                        try:
+                            cargar_modulos(archivo)
+                            py_acepta = True
+                        except (ErrorLexico, ErrorSintactico, ErrorDeModulo):
+                            py_acepta = False
+                        e = subprocess.run([bin_p, archivo, "--callado"],
+                                           capture_output=True, text=True,
+                                           timeout=180)
+                        if "Sanitizer" in e.stderr:
+                            falla("el parser en Tcode",
+                                  f"{os.path.basename(archivo)}: "
+                                  f"sanitizer\n{e.stderr[:400]}")
+                            continue
+                        if (e.returncode == 0) != py_acepta:
+                            falla("el parser en Tcode",
+                                  f"{os.path.basename(archivo)}: acepta="
+                                  f"{e.returncode == 0}, el de Python="
+                                  f"{py_acepta}")
+                            continue
+                        if e.returncode == 0:
+                            nodos_vistos += int(e.stdout.split()[1])
+                        coinciden += 1
+                    print(f"    parser: {coinciden} archivos, "
+                          f"{nodos_vistos} nodos, sin discrepancias")
 
             # Entradas hostiles: no puede reventar ni filtrar.
             for nombre, contenido, esperado in [

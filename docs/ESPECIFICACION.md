@@ -571,13 +571,28 @@ un `?` en la salida.
 
 ## Autoanálisis
 
-`ejemplos/lexer/lexer.t` es el análisis léxico de Tcode escrito en Tcode: 259
-líneas que sobre los diez `.t` del repositorio producen 4.660 tokens
-idénticos a los del compilador, incluido el suyo propio.
+El **frontend de Tcode, escrito en Tcode**: 884 líneas entre
+`ejemplos/lexer/lib/lexico.t` (léxico), `lexer.t` y `parser.t` (sintaxis).
 
-No es una demostración: está en la suite y se comprueba token a token en cada
-ejecución. Es la primera evidencia de que el lenguaje aguanta un programa que
-no se escribió para lucirlo.
+Sobre los doce `.t` del repositorio —incluidos ellos mismos— producen 9.099
+tokens idénticos a los del compilador y 4.592 nodos, aceptando y rechazando
+exactamente los mismos archivos. No es una demostración: está en la suite y
+se comprueba en cada ejecución.
+
+Escribir el parser sacó cuatro fallos del lenguaje que ningún ejemplo pequeño
+había tocado, y que están corregidos:
+
+- Una vista derivada de un parámetro prestado se trataba como local, así que
+  no podía salir de la función aunque la memoria fuera de quien llamó.
+- Los nombres de struct no cruzaban de un módulo a otro.
+- Mover dentro de un `if` estaba prohibido, y el plegado de un parser es
+  exactamente eso.
+- Las dos ramas de un `if` compartían el estado de movimientos, como si se
+  ejecutaran las dos.
+
+Y dos del generador: la asignación liberaba el valor viejo aunque ya se
+hubiera movido —doble `free`— y una sentencia que descartaba un valor dueño
+lo filtraba.
 
 ## Qué NO tiene v0
 

@@ -17,14 +17,15 @@ class ErrorSintactico(Exception):
 
 
 class Parser:
-    def __init__(self, toks, archivo="<entrada>"):
+    def __init__(self, toks, archivo="<entrada>", structs_previos=None):
         self.toks = toks
         self.i = 0
         self.archivo = archivo
         # Se recogen antes de parsear porque hacen falta para desambiguar:
         # `Punto { x: 1 }` es un literal solo si `Punto` es un struct. Sin
         # esto, el `s` de `if s { }` se leeria como el inicio de uno.
-        self.structs = {t.valor for j, t in enumerate(toks)
+        self.structs = set(structs_previos or ())
+        self.structs |= {t.valor for j, t in enumerate(toks)
                         if t.tipo == "palabra" and t.valor == "struct"
                         and j + 1 < len(toks) and toks[j + 1].tipo == "ident"
                         for t in [toks[j + 1]]}
@@ -467,7 +468,11 @@ def _marcar(nodo, archivo, vistos=None):
         _marcar(getattr(nodo, f.name), archivo, vistos)
 
 
-def parsear(fuente: str, archivo="<entrada>") -> list:
-    decls = Parser(tokenizar(fuente, archivo), archivo).programa()
+def parsear(fuente: str, archivo="<entrada>", structs_previos=None) -> list:
+    """`structs_previos` trae los nombres de struct de los modulos ya
+    cargados: hacen falta para saber que `Punto { x: 1 }` es un literal y no
+    el inicio de un bloque."""
+    decls = Parser(tokenizar(fuente, archivo), archivo,
+                   structs_previos).programa()
     _marcar(decls, archivo)
     return decls
