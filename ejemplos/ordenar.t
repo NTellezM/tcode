@@ -50,12 +50,13 @@ fn main() -> usize ! {
     imprimir(largo(vocabulario));
     imprimir(" palabras distintas, las 8 primeras en orden:\n");
 
-    var j: usize = 0;
-    while j < 8 && j < largo(vocabulario) {
+    var mostradas: usize = 0;
+    for palabra_ordenada en vocabulario {
+        if mostradas == 8 { break; }
         imprimir("  ");
-        imprimir(vocabulario[j]);
+        imprimir(palabra_ordenada);
         imprimir("\n");
-        j = j + 1;
+        mostradas = mostradas + 1;
     }
     return 0;
 }

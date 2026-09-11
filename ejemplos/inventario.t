@@ -27,13 +27,11 @@ fn crear(nombre: view, pasillo: usize, unidades: usize) -> Articulo {
 fn resumir(inv: [Articulo; 4]) -> Resumen {
     var total: usize = 0;
     var mayor: usize = 0;
-    var i: usize = 0;
-    while i < 4 {
-        total = total + inv[i].unidades;
-        if inv[i].unidades > mayor {
-            mayor = inv[i].unidades;
+    for a en inv {
+        total = total + a.unidades;
+        if a.unidades > mayor {
+            mayor = a.unidades;
         }
-        i = i + 1;
     }
     return Resumen { total: total, mayor: mayor, lleno: total > 1000 };
 }

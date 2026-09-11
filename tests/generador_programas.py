@@ -147,6 +147,15 @@ class Generador:
             if self.r.random() < 0.6:
                 lineas.append(f"{s}ordenar({v});")
                 lineas.append(f"{s}imprimir({v}[0]);")
+            if self.r.random() < 0.7:
+                e = nombre("e")
+                lineas.append(f"{s}for {e} en {v} {{")
+                if self.r.random() < 0.4:
+                    lineas.append(f"{s}    if {e} % 7 == 0 {{ continue; }}")
+                if self.r.random() < 0.4:
+                    lineas.append(f"{s}    if {e} > 900 {{ break; }}")
+                lineas.append(f"{s}    imprimir({e});")
+                lineas.append(f"{s}}}")
 
         # Lista de valores DUENIOS: cada elemento hay que liberarlo, y al
         # crecer la lista los mueve de sitio. Es el caso que mas facil se
@@ -161,6 +170,17 @@ class Generador:
                 else:
                     lineas.append(f"{s}anadir({v}, texto("
                                   f"{self.expr_usize(vars_usize)}));")
+            # Recorrer una lista de duenios: el elemento llega prestado, y
+            # cada vuelta reserva y libera su propio temporal.
+            if self.r.random() < 0.7:
+                e = nombre("e")
+                t2 = nombre("t")
+                lineas.append(f"{s}for {e} en {v} {{")
+                lineas.append(f"{s}    let {t2}: str = texto(largo(vista({e})));")
+                lineas.append(f"{s}    imprimir({t2});")
+                if self.r.random() < 0.4:
+                    lineas.append(f"{s}    if largo(vista({e})) > 4 {{ break; }}")
+                lineas.append(f"{s}}}")
             idx = self.r.randrange(cuantos)
             lineas.append(f"{s}imprimir(largo(vista({v}[{idx}])));")
             # `largo(...)` no es un lugar: se lee, no se le asigna. No entra

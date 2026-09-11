@@ -15,7 +15,7 @@ from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
-    Funcion, Struct,
+    Funcion, Struct, Para, Romper, Continuar,
 )
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
@@ -291,6 +291,9 @@ class Generador:
         # camino que tome el programa.
         self.con_bandera = set()
         self.pendientes = []
+        # Profundidad de la pila de bloques donde empieza el bucle actual:
+        # `break` y `continue` tienen que liberar desde ahi hacia dentro.
+        self.bucles = []
 
     # ---------- utilidades ----------
 
@@ -1127,9 +1130,59 @@ class Generador:
                 self.bloque(s.sino)
             return
 
+        if isinstance(s, Para):
+            tipo = self._tipo_de(s.coleccion)
+            elem = elem_lista(tipo) if es_lista(tipo) else elem_de(tipo)
+            tope = (f"{self.lugar(s.coleccion)}.length" if es_lista(tipo)
+                    else str(largo_arreglo(tipo)))
+            self.bucle += 1
+            i = f"ss_k{self.bucle}"
+            self.emitir(f"for (size_t {i} = 0; {i} < {tope}; {i}++)")
+            self.emitir("{")
+            self.sangria += 1
+            self.pila.append([])
+            self.vars.append({})
+            self.bucles.append(len(self.pila))
+
+            # El elemento se presta, no se copia: un `str` copiado tendria dos
+            # duenios. Los escalares van por valor porque no hay nada que
+            # duplicar.
+            acceso = f"{self.lugar(s.coleccion)}.e[{i}]"
+            if self.c.posee(elem):
+                self.emitir(f"const {self.tipo_c(elem)}* {s.variable} = "
+                            f"&{acceso};")
+                self.declarar(s.variable, elem, True)
+            else:
+                self.emitir(f"SS_LANG_QUIZA_SIN_USAR {self.tipo_c(elem)} "
+                            f"{s.variable} = {acceso};")
+                self.declarar(s.variable, elem)
+
+            for x in s.cuerpo:
+                self.sentencia(x)
+            if not self._termina_en_retorno(s.cuerpo):
+                self.liberar_bloque(self.pila[-1])
+            self.bucles.pop()
+            self.pila.pop()
+            self.vars.pop()
+            self.sangria -= 1
+            self.emitir("}")
+            return
+
+        if isinstance(s, (Romper, Continuar)):
+            # Salir del bucle salta el cierre de los bloques de dentro, asi
+            # que hay que liberarlos aqui. Los de fuera siguen vivos.
+            self._apagar_ahora()
+            desde = self.bucles[-1] - 1 if self.bucles else 0
+            for marco in reversed(self.pila[desde:]):
+                self.liberar_bloque(marco)
+            self.emitir("break;" if isinstance(s, Romper) else "continue;")
+            return
+
         if isinstance(s, Mientras):
+            self.bucles.append(len(self.pila) + 1)
             self.emitir(f"while ({self.expr(s.cond, 'bool')})")
             self.bloque(s.cuerpo)
+            self.bucles.pop()
             return
 
         if isinstance(s, Falla):
