@@ -202,9 +202,32 @@ RECHAZO = [
      'fn f() { var m: mapa<usize, usize> = []; imprimir(largo(m)); }',
      "la clave de un mapa tiene que ser `str`"),
 
-    ("el valor de un mapa no puede poseer memoria",
-     'fn f() { var m: mapa<str, str> = []; imprimir(largo(m)); }',
-     "no puede poseer memoria"),
+    ("el valor de un mapa puede ser escalar o `str`, no mas",
+     'fn f() { var m: mapa<str, lista<usize>> = []; imprimir(largo(m)); }',
+     "un escalar o un `str`"),
+
+    ("modificar un mapa con una vista de `obtener` viva",
+     'fn f() { var m: mapa<str, str> = [];'
+     ' let v: view = obtener(m, "a") sino "?"; poner(m, "b", nuevo("y"));'
+     ' imprimir(v); }',
+     "esta prestada por `v`"),
+
+    ("devolver la vista que presta un mapa local",
+     'fn f() -> view { var m: mapa<str, str> = [];'
+     ' return obtener(m, "a") sino "?"; }',
+     "no se puede devolver una vista"),
+
+    ("dentro de `{}` no cabe una coleccion",
+     'fn f() { var xs: lista<usize> = []; let m: str = $"{xs}"; imprimir(m); }',
+     "va un escalar o texto"),
+
+    ("`{}` vacio",
+     'fn f() { let m: str = $"hola {}"; imprimir(m); }',
+     "vacio en una cadena interpolada"),
+
+    ("llave sin cerrar",
+     'fn f() { let m: str = $"hola {n"; imprimir(m); }',
+     "falta `}`"),
 
     ("`obtener` puede fallar y hay que decirlo",
      'fn f() { var m: mapa<str, usize> = []; imprimir(obtener(m, "x")); }',
@@ -765,6 +788,42 @@ ACEPTA = [
             return 0;
         }''',
      "300 44850\n"),
+
+    ("mapa de textos: reemplazo, prestamo y recorrido",
+     '''fn main() -> usize {
+            var cfg: mapa<str, str> = [];
+            poner(cfg, "host", nuevo("localhost"));
+            poner(cfg, "puerto", nuevo("8080"));
+            poner(cfg, "host", nuevo("127.0.0.1"));
+            imprimir(obtener(cfg, "host") sino "?"); imprimir(" ");
+            imprimir(obtener(cfg, "puerto") sino "?"); imprimir(" ");
+            imprimir(obtener(cfg, "falta") sino "(nada)"); imprimir(" ");
+            var letras: usize = 0;
+            for k, v en cfg { letras = letras + largo(vista(k)) + largo(v); }
+            imprimir(letras); imprimir(" ");
+            imprimir(quitar(cfg, "puerto")); imprimir(" ");
+            imprimir(largo(cfg)); imprimir("\\n");
+            return 0;
+        }''',
+     "127.0.0.1 8080 (nada) 23 true 1\n"),
+
+    ("cadenas interpoladas",
+     '''fn main() -> usize {
+            let quien: str = nuevo("mundo");
+            let n: usize = 3;
+            let ok: bool = true;
+            let m: str = $"hola {quien}, van {n + 1} veces, ok={ok} {{y}}";
+            imprimir(m); imprimir("\\n");
+            imprimir($"suelta: {n} {quien}\\n");
+            var i: usize = 0;
+            while i < 3 {
+                imprimir($"[{i}]");
+                i = i + 1;
+            }
+            imprimir("\\n");
+            return 0;
+        }''',
+     "hola mundo, van 4 veces, ok=true {y}\nsuelta: 3 mundo\n[0][1][2]\n"),
 
     ("rebanadas de vista",
      '''fn main() -> usize {

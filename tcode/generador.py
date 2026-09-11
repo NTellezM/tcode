@@ -14,6 +14,7 @@ import contextlib
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
+    Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
 )
@@ -226,6 +227,17 @@ static void ss_lang_sin_memoria_(const char* archivo, int linea)
     abort();
 }
 
+/* Agrega texto a un `str` y aborta si no hay memoria. Lo usan las cadenas
+   interpoladas, donde no hay un sitio razonable al que devolver el fallo. */
+SS_LANG_QUIZA_SIN_USAR
+static void ss_lang_agregar_texto_(SafeString* s, SafeView v,
+                                   const char* archivo, int linea)
+{
+    if (!ss_append_view(s, v))
+        ss_lang_sin_memoria_(archivo, linea);
+}
+
+
 SS_LANG_QUIZA_SIN_USAR
 static SafeString ss_lang_texto_usize_(size_t valor, const char* ar, int ln)
 {
@@ -291,6 +303,10 @@ class Generador:
         # camino que tome el programa.
         self.con_bandera = set()
         self.pendientes = []
+        # Valores duenios creados al vuelo por una expresion (hoy, las
+        # cadenas interpoladas). Quien se los queda los "reclama"; los que
+        # sobran al terminar la sentencia se liberan ahi mismo.
+        self.temporales = []
         # Profundidad de la pila de bloques donde empieza el bucle actual:
         # `break` y `continue` tienen que liberar desde ahi hacia dentro.
         self.bucles = []
@@ -339,7 +355,7 @@ class Generador:
             # `claves` devuelve una lista de claves y `obtener` un `V !`:
             # los dos tipos tienen que existir antes de emitir los typedefs.
             self.registrar_lista(f"lista<{k}>")
-            self.tipo_resultado(v)
+            self.tipo_resultado("view" if self.c.posee(v) else v)
             self.mapas[t] = f"ss_{mangle(t)}"
         return self.mapas[t]
 
@@ -456,6 +472,25 @@ class Generador:
     def ref(self, nombre):
         """Como referirse a `nombre` cuando se necesita un SafeString*."""
         return nombre if self.es_puntero(nombre) else f"&{nombre}"
+
+    @staticmethod
+    def literal_c(texto):
+        """Un literal de C con el mismo contenido, escapado."""
+        return '"' + (texto.replace("\\", "\\\\").replace('"', '\\"')
+                           .replace("\n", "\\n").replace("\t", "\\t")
+                           .replace("\0", "\\0")) + '"'
+
+    def texto_de(self, expresion_c, tipo, nodo):
+        """El `str` que representa un valor. Mismas reglas que `texto`."""
+        pos = f"{self.arch(nodo)}, {nodo.linea}"
+        if tipo == "usize":
+            return f"ss_lang_texto_usize_({expresion_c}, {pos})"
+        if tipo == "i64":
+            return f"ss_lang_texto_i64_({expresion_c}, {pos})"
+        if tipo == "bool":
+            return (f"ss_lang_texto_view_(({expresion_c}) ? sv(\"true\") "
+                    f": sv(\"false\"), {pos})")
+        return f"ss_lang_texto_view_({expresion_c}, {pos})"
 
     def nuevo_tmp(self):
         self.tmp += 1
@@ -677,7 +712,7 @@ class Generador:
             m = mangle(t)
             tc_k, tc_v = self.tipo_c(k), self.tipo_c(v)
             lista_k = self.tipo_c(f"lista<{k}>")
-            res_v = self.tipo_resultado(v)
+            res_v = self.tipo_resultado("view" if self.c.posee(v) else v)
             self.lineas.extend([
                 "SS_LANG_QUIZA_SIN_USAR",
                 f"static size_t ss_mapa_sitio_{m}(const {nombre}* p, SafeView clave)",
@@ -706,7 +741,9 @@ class Generador:
                 "",
                 f"    {nombre} nuevo;",
                 f"    nuevo.claves = ({tc_k}*) calloc(nueva, sizeof({tc_k}));",
-                f"    nuevo.valores = ({tc_v}*) malloc(nueva * sizeof({tc_v}));",
+                (f"    nuevo.valores = ({tc_v}*) calloc(nueva, sizeof({tc_v}));"
+                 if self.c.posee(v) else
+                 f"    nuevo.valores = ({tc_v}*) malloc(nueva * sizeof({tc_v}));"),
                 "    if (nuevo.claves == NULL || nuevo.valores == NULL)",
                 "    {",
                 "        free(nuevo.claves); free(nuevo.valores);",
@@ -739,6 +776,8 @@ class Generador:
                 f"    size_t i = ss_mapa_sitio_{m}(p, clave);",
                 "    if (p->claves[i].data != NULL)",
                 "    {",
+                *(["        ss_free(&p->valores[i]);   /* el valor viejo era nuestro */"]
+                  if self.c.posee(v) else []),
                 "        p->valores[i] = valor;   /* ya estaba: se reemplaza */",
                 "        return;",
                 "    }",
@@ -763,7 +802,9 @@ class Generador:
                 f"    size_t i = ss_mapa_sitio_{m}(p, clave);",
                 "    if (p->claves[i].data == NULL)",
                 f'        return ({res_v}){{ .motivo = "la clave no esta en el mapa" }};',
-                f"    return ({res_v}){{ .motivo = NULL, .valor = p->valores[i] }};",
+                (f"    return ({res_v}){{ .motivo = NULL, "
+                 f".valor = ss_view(&p->valores[i]) }};" if self.c.posee(v) else
+                 f"    return ({res_v}){{ .motivo = NULL, .valor = p->valores[i] }};"),
                 "}",
                 "",
                 "SS_LANG_QUIZA_SIN_USAR",
@@ -791,6 +832,8 @@ class Generador:
                 "",
                 "    ss_free(&p->claves[i]);",
                 "    p->claves[i] = ss_new();",
+                *(["    ss_free(&p->valores[i]);",
+                   "    p->valores[i] = ss_new();"] if self.c.posee(v) else []),
                 "    p->largo--;",
                 "",
                 "    /* Sin lapidas: se cierra el hueco arrastrando hacia atras",
@@ -820,7 +863,11 @@ class Generador:
                 f"static void ss_mapa_libre_{m}({nombre}* p)",
                 "{",
                 "    for (size_t i = 0; i < p->capacidad; i++)",
-                "        if (p->claves[i].data != NULL) ss_free(&p->claves[i]);",
+                "        if (p->claves[i].data != NULL)",
+                "        {",
+                "            ss_free(&p->claves[i]);",
+                *(["            ss_free(&p->valores[i]);"] if self.c.posee(v) else []),
+                "        }",
                 "    free(p->claves); free(p->valores);",
                 "    p->claves = NULL; p->valores = NULL;",
                 "    p->largo = 0; p->capacidad = 0;",
@@ -1094,17 +1141,28 @@ class Generador:
                 self.emitir(f"ss_vivo_{n} = false;")
             self.pendientes = anteriores
 
+    def reclamar(self, valor_c):
+        """Quien se queda con un temporal lo dice, y deja de liberarse aqui."""
+        if valor_c in self.temporales:
+            self.temporales.remove(valor_c)
+
     def sentencia(self, s):
+        anteriores = self.temporales
+        self.temporales = []
         with self.camino():
             self._sentencia(s)
+        for t in self.temporales:
+            self.emitir(f"ss_free(&{t});")
+        self.temporales = anteriores
 
     def _sentencia(self, s):
         if isinstance(s, Declaracion):
             tc = self.tipo_c(s.tipo)
             # Una variable declarada y no usada es legitima en Tcode; el aviso
             # de gcc apuntaria a este C, que el usuario no escribio.
-            self.emitir(f"SS_LANG_QUIZA_SIN_USAR {tc} {s.nombre} = "
-                        f"{self.expr(s.valor, s.tipo)};")
+            valor_c = self.expr(s.valor, s.tipo)
+            self.reclamar(valor_c)      # la variable se queda con el temporal
+            self.emitir(f"SS_LANG_QUIZA_SIN_USAR {tc} {s.nombre} = {valor_c};")
             self.declarar(s.nombre, s.tipo, decl=s)
             if self.c.posee(s.tipo):
                 self.pila[-1].append(s.nombre)
@@ -1119,7 +1177,9 @@ class Generador:
             if self.c.posee(tipo):
                 # el valor viejo se pierde: devolverlo antes de pisarlo
                 self.liberacion(destino, tipo)
-            self.emitir(f"{destino} = {self.expr(s.valor, tipo)};")
+            valor_c = self.expr(s.valor, tipo)
+            self.reclamar(valor_c)
+            self.emitir(f"{destino} = {valor_c};")
             return
 
         if isinstance(s, Si):
@@ -1237,6 +1297,7 @@ class Generador:
             if devuelta is not None:
                 entregadas.add(devuelta)
             valor = self.expr(s.valor, self.func.retorno if self.func else None)
+            self.reclamar(valor)
             envolver = (lambda v: f"({self.tipo_resultado(self.func.retorno)})"
                                   f"{{ .motivo = NULL, .valor = {v} }}") \
                        if falible else (lambda v: v)
@@ -1279,7 +1340,8 @@ class Generador:
                 if es_mapa(tm):
                     k, v = partes_mapa(tm)
                     if e.nombre == "obtener":
-                        return v
+                        # Un valor duenio no sale del mapa: sale prestado.
+                        return "view" if self.c.posee(v) else v
                     if e.nombre in ("tiene", "quitar"):
                         return "bool"
                     return f"lista<{k}>"
@@ -1306,6 +1368,8 @@ class Generador:
             if es_lista(base):
                 return elem_lista(base)
             return "usize"
+        if isinstance(e, Interpolada):
+            return "str"
         if isinstance(e, LiteralStruct):
             return e.tipo
         if isinstance(e, LiteralArreglo):
@@ -1339,6 +1403,40 @@ class Generador:
 
         if isinstance(e, Booleano):
             return "true" if e.valor else "false"
+
+        if isinstance(e, Interpolada):
+            # Se baja a un `str` que se va llenando: cada trozo se agrega tal
+            # cual y cada expresion pasa por la misma conversion que
+            # `imprimir`. No hay formato en tiempo de ejecucion ni printf con
+            # cadena variable: el tipo de cada hueco se conoce al compilar.
+            tmp = self.nuevo_tmp()
+            self.emitir(f"SafeString {tmp} = ss_new();")
+            self.declarar(tmp, "str")
+            self.temporales.append(tmp)
+            for k, trozo in enumerate(e.trozos):
+                if trozo:
+                    lit = self.literal_c(trozo)
+                    self.emitir(f"ss_lang_agregar_texto_(&{tmp}, "
+                                f"sv_len({lit}, {len(trozo.encode('utf-8'))}), "
+                                f"{self.arch(e)}, {e.linea});")
+                if k < len(e.expresiones):
+                    x = e.expresiones[k]
+                    tx = self._tipo_de(x)
+                    if tx == "str":
+                        vista = f"ss_view({self.dir_de(x)})"
+                    elif tx == "view":
+                        vista = self.como_vista(x)
+                    else:
+                        conv = self.expr(x, tx)
+                        pieza = self.nuevo_tmp()
+                        self.emitir(f"SafeString {pieza} = "
+                                    f"{self.texto_de(conv, tx, e)};")
+                        self.declarar(pieza, "str")
+                        self.temporales.append(pieza)
+                        vista = f"ss_view(&{pieza})"
+                    self.emitir(f"ss_lang_agregar_texto_(&{tmp}, {vista}, "
+                                f"{self.arch(e)}, {e.linea});")
+            return tmp
 
         if isinstance(e, Variable):
             if getattr(e, "mueve", False) and e.nombre in self.con_bandera:
@@ -1587,7 +1685,10 @@ class Generador:
             if p is not None and p.prestado:
                 args.append(self.dir_de(a))
             else:
-                args.append(self.expr(a, p.tipo if p else None))
+                arg_c = self.expr(a, p.tipo if p else None)
+                if p is not None and self.c.posee(p.tipo):
+                    self.reclamar(arg_c)     # la funcion se lo queda
+                args.append(arg_c)
         destino = "ss_main_" if n == "main" else n
         return f"{destino}({', '.join(args)})"
 

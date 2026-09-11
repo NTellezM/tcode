@@ -4,6 +4,7 @@ from tcode.lexer import tokenizar, Token
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
+    Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Parametro, Funcion, CampoDef, Struct, Usar, Para, Romper, Continuar,
 )
@@ -306,12 +307,74 @@ class Parser:
                 continue
             return e
 
+    def interpolada(self, tok):
+        """Parte el contenido en trozos literales y expresiones.
+
+        Cada expresion se vuelve a analizar con el mismo parser, asi que
+        dentro de las llaves vale cualquier expresion del lenguaje y los
+        errores salen con las reglas de siempre. `{{` y `}}` escriben llaves.
+        """
+        trozos, expresiones = [], []
+        actual = []
+        texto = tok.valor
+        i = 0
+        while i < len(texto):
+            c = texto[i]
+            if c == "{" and i + 1 < len(texto) and texto[i + 1] == "{":
+                actual.append("{"); i += 2; continue
+            if c == "}" and i + 1 < len(texto) and texto[i + 1] == "}":
+                actual.append("}"); i += 2; continue
+            if c == "}":
+                self.error("`}` suelto dentro de una cadena interpolada; "
+                           "escribe `}}` si querias la llave", tok)
+            if c != "{":
+                actual.append(c); i += 1; continue
+
+            # {expresion}: se busca la llave de cierre respetando anidamiento
+            prof = 1
+            j = i + 1
+            while j < len(texto) and prof > 0:
+                if texto[j] == "{":
+                    prof += 1
+                elif texto[j] == "}":
+                    prof -= 1
+                if prof > 0:
+                    j += 1
+            if prof != 0:
+                self.error("falta `}` en una cadena interpolada", tok)
+            dentro = texto[i + 1:j].strip()
+            if not dentro:
+                self.error("`{}` vacio en una cadena interpolada: pon dentro "
+                           "lo que quieras mostrar", tok)
+
+            sub = Parser(tokenizar(dentro, self.archivo), self.archivo)
+            sub.structs = self.structs
+            expr = sub.expr()
+            if not sub.es("fin"):
+                self.error(f"sobra algo despues de la expresion {dentro!r} "
+                           f"dentro de la cadena", tok)
+            _marcar(expr, self.archivo)
+            for nodo in _todos(expr):
+                nodo.linea = tok.linea
+
+            trozos.append("".join(actual))
+            actual = []
+            expresiones.append(expr)
+            i = j + 1
+
+        trozos.append("".join(actual))
+        return Interpolada(trozos, expresiones, linea=tok.linea)
+
     def primario(self):
         t = self.actual
 
         if t.tipo == "entero":
             self.i += 1
             return Entero(int(t.valor), linea=t.linea)
+
+        if t.tipo == "interpolada":
+            self.i += 1
+            return self.interpolada(t)
 
         if t.tipo == "cadena":
             self.i += 1
@@ -364,6 +427,25 @@ class Parser:
             return e
 
         self.error("se esperaba una expresion")
+
+
+def _todos(nodo, vistos=None):
+    """Todos los nodos de un arbol, para poder fijarles la linea."""
+    from dataclasses import fields, is_dataclass
+    vistos = vistos if vistos is not None else set()
+    if id(nodo) in vistos:
+        return
+    vistos.add(id(nodo))
+    if isinstance(nodo, (list, tuple)):
+        for x in nodo:
+            yield from _todos(x, vistos)
+        return
+    if not is_dataclass(nodo):
+        return
+    if hasattr(nodo, "linea"):
+        yield nodo
+    for f in fields(nodo):
+        yield from _todos(getattr(nodo, f.name), vistos)
 
 
 def _marcar(nodo, archivo, vistos=None):

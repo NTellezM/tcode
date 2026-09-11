@@ -271,8 +271,8 @@ Hay también: `struct`, arreglos de tamaño fijo con índices comprobados,
 structs anidados, arreglos de structs, propiedad recursiva, préstamos de
 structs (`&T` y `mut T`), `lista<T>` dinámica, `mapa<str, V>` con tabla hash,
 argumentos de la línea de órdenes, `ordenar` y `menor`, salida de error y
-escritura de archivos, `for`/`break`/`continue`, módulos y fallos como
-valores.
+escritura de archivos, `for`/`break`/`continue`, `mapa<str, str>` con
+`obtener` prestado, cadenas interpoladas, módulos y fallos como valores.
 
 No hay: genéricos definidos por el usuario, espacios de nombres, diccionarios,
 E/S incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
@@ -281,7 +281,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-133 casos, 0 fallas
+140 casos, 0 fallas
 548 comprobaciones sobre 60 programas, 0 fallas
 ```
 
