@@ -128,6 +128,33 @@ cualquier sitio donde haya un compilador de C17.
 | `tcode/explicar.py` | el modelo del comprobador, hecho legible |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
+## El lexer de Tcode, escrito en Tcode
+
+`ejemplos/lexer/lexer.t` son 259 líneas que hacen el análisis léxico del
+propio lenguaje: comentarios, cadenas normales e interpoladas, números,
+identificadores, palabras reservadas y símbolos de uno y dos caracteres.
+
+Sobre los diez `.t` del repositorio —incluido el suyo propio— produce
+**4.660 tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+está en la suite, así que si alguna vez deja de coincidir, se sabe.
+
+```
+$ ./ejemplos/lexer/lexer ejemplos/lexer/lexer.t --contar
+ejemplos/lexer/lexer.t: 1688 tokens
+  cadena  40      entero  136     fin  1        ident  405
+  interpolada  4  palabra  225    simbolo  877
+```
+
+Es el primer programa grande del lenguaje y su primera prueba de fuego: usa
+`lista<Token>` con campos dueños, `mapa<str, usize>` para las palabras
+reservadas, `for` con `break` y `continue`, fallos con `try`, cadenas
+interpoladas para los mensajes, y lectura de archivos con argumentos. Corre
+limpio bajo ASan y UBSan, y ante una entrada rota —una cadena sin cerrar, un
+archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
+
+Falta el parser para que Tcode se compile a sí mismo. Pero el lexer ya no es
+una promesa.
+
 ## Velocidad
 
 Medido contra el mismo programa escrito en C a mano (`make bench`):
@@ -281,7 +308,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-140 casos, 0 fallas
+154 casos, 0 fallas
 548 comprobaciones sobre 60 programas, 0 fallas
 ```
 

@@ -35,6 +35,8 @@ ejemplos:
 	@$(PY) -m tcode ejemplos/frecuencia.t >/dev/null && ./ejemplos/frecuencia README.md 5
 	@echo
 	@$(PY) -m tcode ejemplos/ordenar.t >/dev/null && ./ejemplos/ordenar Makefile
+	@echo
+	@$(PY) -m tcode ejemplos/lexer/lexer.t >/dev/null && ./ejemplos/lexer/lexer ejemplos/lexer/lexer.t --contar
 
 limpiar:
 	@rm -f ejemplos/hola ejemplos/texto ejemplos/inventario ejemplos/contar ejemplos/*.c

@@ -569,6 +569,16 @@ sale es una secuencia de `ss_append_view` — no un `printf` con cadena
 variable. Un `{}` sobre una lista o un struct es un error de compilación, no
 un `?` en la salida.
 
+## Autoanálisis
+
+`ejemplos/lexer/lexer.t` es el análisis léxico de Tcode escrito en Tcode: 259
+líneas que sobre los diez `.t` del repositorio producen 4.660 tokens
+idénticos a los del compilador, incluido el suyo propio.
+
+No es una demostración: está en la suite y se comprueba token a token en cada
+ejecución. Es la primera evidencia de que el lenguaje aguanta un programa que
+no se escribió para lucirlo.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: genéricos definidos por el usuario, espacios de

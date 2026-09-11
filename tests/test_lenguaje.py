@@ -18,7 +18,7 @@ import tempfile
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 
-from tcode.cli import compilar_a_c
+from tcode.cli import compilar_a_c, compilar_archivo
 from tcode.lexer import ErrorLexico
 from tcode.parser import ErrorSintactico
 
@@ -1172,6 +1172,101 @@ with tempfile.TemporaryDirectory() as tmp:
         if rc == 0 or "no se pudo abrir el archivo para escribir" not in err:
             falla("escribir donde no se puede",
                   f"codigo {rc}, stderr {err!r}")
+
+# ------------------------------------------------------------------ lexer
+# El lexer de Tcode escrito en Tcode, contra el de Python. Es la prueba mas
+# fuerte que tiene el lenguaje: un programa de 250 lineas que produce
+# exactamente lo mismo que el original sobre todos los .t del repo, incluido
+# el suyo propio.
+print("=== AUTOANALISIS: el lexer en Tcode contra el de Python ===")
+import glob
+from tcode.lexer import tokenizar as tokenizar_py
+
+with tempfile.TemporaryDirectory() as tmp:
+    total += 1
+    fuente_lexer = os.path.join(RAIZ, "ejemplos", "lexer", "lexer.t")
+    try:
+        codigo, errores = compilar_archivo(fuente_lexer)
+    except Exception as exc:
+        falla("el lexer en Tcode compila", str(exc))
+        codigo = None
+    if codigo is None or errores:
+        falla("el lexer en Tcode compila", f"errores: {errores}")
+    else:
+        ruta_c = os.path.join(tmp, "lex.c")
+        binario = os.path.join(tmp, "lex")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            falla("el lexer en Tcode compila", r.stderr)
+        else:
+            archivos = sorted(glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
+                                        recursive=True))
+            distintos = 0
+            tokens_vistos = 0
+            for archivo in archivos:
+                total += 1
+                texto = open(archivo, encoding="utf-8").read()
+                esperados = tokenizar_py(texto, archivo)
+                e = subprocess.run([binario, archivo], capture_output=True,
+                                   text=True, timeout=120)
+                if e.returncode != 0 or "Sanitizer" in e.stderr:
+                    falla("autoanalisis", f"{os.path.basename(archivo)}: "
+                                          f"codigo {e.returncode}\n{e.stderr[:400]}")
+                    continue
+                obtenidos = []
+                for linea in e.stdout.split("\n"):
+                    if not linea:
+                        continue
+                    partes = linea.split("\t", 2)
+                    obtenidos.append((partes[1], partes[2] if len(partes) > 2 else ""))
+                if len(obtenidos) != len(esperados):
+                    falla("autoanalisis",
+                          f"{os.path.basename(archivo)}: {len(obtenidos)} tokens "
+                          f"contra {len(esperados)}")
+                    continue
+                # Las cadenas se comparan solo por tipo: el lexer en Tcode las
+                # deja crudas, sin resolver escapes, que es todo lo que
+                # necesita para saber donde terminan.
+                malos = [i for i, ((tp, val), t) in
+                         enumerate(zip(obtenidos, esperados))
+                         if tp != t.tipo or (tp not in ("cadena", "interpolada")
+                                             and val != t.valor)]
+                if malos:
+                    falla("autoanalisis",
+                          f"{os.path.basename(archivo)}: {len(malos)} tokens "
+                          f"distintos, el primero en la posicion {malos[0]}")
+                else:
+                    tokens_vistos += len(obtenidos)
+                    distintos += 1
+            print(f"    {distintos} archivos, {tokens_vistos} tokens identicos")
+
+            # Entradas hostiles: no puede reventar ni filtrar.
+            for nombre, contenido, esperado in [
+                ("cadena sin cerrar", 'fn f() { let s: str = "abre\n', "cadena sin cerrar"),
+                ("comentario sin cerrar", "fn f() { /* abre\n", "comentario /* sin cerrar"),
+                ("byte que no es de Tcode", "fn f() { let x: usize = 1 @ 2; }\n",
+                 "caracter inesperado"),
+            ]:
+                total += 1
+                ruta = os.path.join(tmp, "hostil.t")
+                with open(ruta, "w", encoding="utf-8") as f:
+                    f.write(contenido)
+                e = subprocess.run([binario, ruta], capture_output=True,
+                                   text=True, timeout=60)
+                if e.returncode == 0:
+                    falla(f"entrada hostil: {nombre}", "no fallo, y deberia")
+                elif esperado not in e.stderr:
+                    falla(f"entrada hostil: {nombre}",
+                          f"se esperaba {esperado!r}, hubo {e.stderr[:200]!r}")
+                elif "Sanitizer" in e.stderr:
+                    falla(f"entrada hostil: {nombre}", f"sanitizer:\n{e.stderr}")
 
 print("=== ABORTA: la aritmetica comprobada detiene el programa ===")
 with tempfile.TemporaryDirectory() as tmp:
