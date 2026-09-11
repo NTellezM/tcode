@@ -22,7 +22,7 @@ from tcode.nodos import (
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
     es_lista, elem_lista, es_mapa, partes_mapa, ORDENABLES,
-    es_referencia, es_referencia_mutable, apuntado,
+    es_referencia, es_referencia_mutable, apuntado, sin_prestamo,
 )
 
 TIPOS_C = {
@@ -267,6 +267,11 @@ static SafeString ss_lang_texto_view_(SafeView valor, const char* ar, int ln)
 '''
 
 
+def hondura_tipo(t):
+    """Cuanto anida un tipo: `lista<lista<str>>` mas que `lista<str>`."""
+    return t.count("<") + t.count("[")
+
+
 def mangle(t):
     """Nombre C valido para un tipo: `[usize; 3]` -> `arr_usize_3`."""
     if es_referencia(t):
@@ -291,6 +296,7 @@ class Generador:
         self.sangria = 0
         # pila de bloques: cada uno con los `str` declarados que hay que liberar
         self.pila = []
+        self.copiadores = {}    # tipo -> nombre del copiador generado
         self.tmp = 0
         # El generador lleva su propia tabla: los ambitos del comprobador ya
         # se cerraron cuando llegamos aqui.
@@ -369,6 +375,95 @@ class Generador:
         salida = self.lineas
         self.lineas, self.sangria = guardadas, sangria_previa
         return salida
+
+    def necesita_copiador(self, tipo):
+        """Anota que hace falta un copiador para este tipo, y para lo que
+        lleve dentro. Se emiten despues, de dentro hacia fuera."""
+        # Un `str` se copia con `ss_clone`, que ya esta en el runtime, y un
+        # escalar se copia solo: ninguno de los dos necesita generar nada.
+        if tipo == "str" or not self.c.posee(tipo) or tipo in self.copiadores:
+            return
+        self.copiadores[tipo] = f"ss_copia_{mangle(tipo)}"
+        if es_lista(tipo):
+            self.necesita_copiador(elem_lista(tipo))
+        elif es_mapa(tipo):
+            self.necesita_copiador(partes_mapa(tipo)[1])
+        elif es_arreglo(tipo):
+            self.necesita_copiador(partes_arreglo(tipo)[0])
+        elif tipo in self.c.structs:
+            for c in self.c.structs[tipo].campos:
+                self.necesita_copiador(c.tipo)
+
+    def copia_de(self, expr_c, tipo):
+        """Una expresion C que es una copia independiente de `expr_c`.
+
+        Un escalar se copia solo. Lo demas lleva memoria detras, y de eso se
+        encarga un copiador generado: uno por tipo, recursivo, que es el
+        espejo exacto de `liberacion`. Si `liberacion` sabe soltarlo, este
+        sabe duplicarlo.
+        """
+        if not self.c.posee(tipo):
+            return expr_c
+        if tipo == "str":
+            return f"ss_clone(&{expr_c})"
+        self.necesita_copiador(tipo)
+        return f"{self.copiadores[tipo]}(&{expr_c})"
+
+    def cuerpo_copiador(self, tipo, nombre):
+        """El copiador de un tipo compuesto, ya con su nombre de C."""
+        tc = self.tipo_c(tipo)
+        lineas = ["SS_LANG_QUIZA_SIN_USAR",
+                  f"static {tc} {nombre}(const {tc}* p)", "{"]
+        if es_lista(tipo):
+            elem = elem_lista(tipo)
+            te = self.tipo_c(elem)
+            lineas += [
+                f"    {tc} r = {{ NULL, 0, 0 }};",
+                "    if (p->length == 0) return r;",
+                f"    r.e = ({te}*) calloc(p->length, sizeof({te}));",
+                "    if (r.e == NULL) ss_lang_sin_memoria_(__FILE__, __LINE__);",
+                "    r.capacity = p->length;",
+                "    for (size_t i = 0; i < p->length; i++)",
+                f"        r.e[i] = {self.copia_de('p->e[i]', elem)};",
+                "    r.length = p->length;",
+                "    return r;",
+            ]
+        elif es_mapa(tipo):
+            k, v = partes_mapa(tipo)
+            tck, tcv = self.tipo_c(k), self.tipo_c(v)
+            lineas += [
+                f"    {tc} r = {{ NULL, NULL, 0, 0 }};",
+                "    if (p->capacidad == 0) return r;",
+                f"    r.claves = ({tck}*) calloc(p->capacidad, sizeof({tck}));",
+                f"    r.valores = ({tcv}*) calloc(p->capacidad, sizeof({tcv}));",
+                "    if (r.claves == NULL || r.valores == NULL)",
+                "        ss_lang_sin_memoria_(__FILE__, __LINE__);",
+                "    r.capacidad = p->capacidad;",
+                "    r.largo = p->largo;",
+                "    for (size_t i = 0; i < p->capacidad; i++)",
+                "    {",
+                "        if (p->claves[i].data == NULL) continue;",
+                "        r.claves[i] = ss_clone(&p->claves[i]);",
+                f"        r.valores[i] = {self.copia_de('p->valores[i]', v)};",
+                "    }",
+                "    return r;",
+            ]
+        elif es_arreglo(tipo):
+            elem, n = partes_arreglo(tipo)
+            lineas += [
+                f"    {tc} r;",
+                f"    for (size_t i = 0; i < {n}; i++)",
+                f"        r.e[i] = {self.copia_de('p->e[i]', elem)};",
+                "    return r;",
+            ]
+        else:
+            lineas.append(f"    {tc} r;")
+            for c in self.c.structs[tipo].campos:
+                lineas.append(f"    r.{c.nombre} = "
+                              f"{self.copia_de('p->' + c.nombre, c.tipo)};")
+            lineas.append("    return r;")
+        lineas += ["}", ""]
+        return lineas
 
     def _tipo_obtener(self, v):
         """Lo que devuelve `obtener` para un mapa cuyo valor es `v`."""
@@ -960,6 +1055,11 @@ class Generador:
             self.lineas.append("}")
             self.lineas.append("")
 
+        # Copiadores. Se descubren generando las funciones, asi que el hueco
+        # se reserva aqui y se rellena al final: un copiador puede necesitar
+        # otro, y los prototipos van todos delante.
+        hueco_copiadores = len(self.lineas)
+
         for f in funciones:
             if f.nombre != "main":
                 self.lineas.append(self.prototipo(f) + ";")
@@ -968,6 +1068,26 @@ class Generador:
         for f in funciones:
             self.funcion(f)
             self.lineas.append("")
+
+        # De dentro hacia fuera: el copiador de `lista<Cosa>` llama al de
+        # `Cosa`, asi que el de `Cosa` tiene que estar definido antes.
+        copiadores = []
+        vistos = set()
+        while len(vistos) < len(self.copiadores):
+            for tipo, nombre in list(self.copiadores.items()):
+                if tipo in vistos:
+                    continue
+                vistos.add(tipo)
+                copiadores.append((tipo, nombre))
+        copiadores.sort(key=lambda tn: hondura_tipo(tn[0]))
+        cuerpo = []
+        for tipo, nombre in copiadores:
+            cuerpo.append(f"static {self.tipo_c(tipo)} {nombre}"
+                          f"(const {self.tipo_c(tipo)}* p);")
+        cuerpo.append("")
+        for tipo, nombre in copiadores:
+            cuerpo.extend(self.cuerpo_copiador(tipo, nombre))
+        self.lineas[hueco_copiadores:hueco_copiadores] = cuerpo
 
         return "\n".join(self.lineas)
 
@@ -1484,6 +1604,10 @@ class Generador:
                     if e.nombre in ("tiene", "quitar"):
                         return "bool"
                     return f"lista<{k}>"
+            if e.nombre == "copiar" and e.args:
+                # Una copia tiene el tipo de lo copiado, ya sin el prestamo.
+                t = sin_prestamo(self._tipo_de(e.args[0]) or "usize")
+                return t
             if e.nombre in INTERNAS:
                 return INTERNAS[e.nombre]["retorno"]
             f = self.c.funciones.get(e.nombre)
@@ -1766,6 +1890,23 @@ class Generador:
             valor = self.expr(e.args[1], elem)
             return (f"ss_push_{mangle(tipo_lista)}({self.dir_de(lista)}, {valor}, "
                     f"{self.arch(e)}, {e.linea})")
+        if n == "copiar":
+            a = e.args[0]
+            t = sin_prestamo(self._tipo_de(a) or "")
+            if not self.c.posee(t):
+                return self.expr(a, t)      # un escalar se copia solo
+            if isinstance(a, (Variable, Campo, Indice)):
+                return self.copia_de(f"(*{self.dir_de(a)})", t)
+            # Lo que no vive en ningun sitio hay que guardarlo para poder
+            # tomarle la direccion; y como ya es nuestro, se libera al acabar.
+            tmp = self.nuevo_tmp()
+            valor = self.expr(a, t)
+            self.reclamar(valor)
+            self.emitir(f"{self.tipo_c(t)} {tmp} = {valor};")
+            self.declarar(tmp, t)
+            self.temporales.append(tmp)
+            return self.copia_de(tmp, t)
+
         if n == "texto":
             a = e.args[0]
             t = self._tipo_de(a)

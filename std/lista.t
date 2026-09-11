@@ -3,13 +3,11 @@
 // `anadir`, `largo`, `ordenar` y la indexacion las pone el compilador. Aqui
 // esta el resto.
 //
-// Lo que sirve para cualquier elemento es generico: `largo_de`, `esta_vacia`.
-// Lo que no, no lo es, y por una razon que se ve: `suma` necesita sumar,
-// `incluye` necesita comparar, y `primeras` necesita copiar el elemento.
-// `usize` se copia solo; un `str` hay que copiarlo a mano. Sin restricciones
-// sobre `T` el compilador no puede saber cual de las dos cosas vale, asi que
-// esas siguen siendo una por tipo. Es honesto: la generica que existe es la
-// que de verdad no mira dentro del elemento.
+// Es generico lo que no necesita saber nada del elemento (`esta_vacia`) y lo
+// que solo necesita copiarlo (`primeras`, `invertida`), porque `copiar` vale
+// para cualquier tipo. Lo que hace falta sumar o comparar sigue siendo una
+// funcion por tipo: `suma` necesita `+` e `incluye` necesita `igual`, y
+// todavia no hay forma de exigirselos a `T`.
 
 usar "std/numero";
 
@@ -24,6 +22,30 @@ fn esta_vacia<T>(xs: &lista<T>) -> bool {
 fn ultima_posicion<T>(xs: &lista<T>) -> usize ! {
     if largo(xs) == 0 { falla "una lista vacia no tiene ultima posicion"; }
     return largo(xs) - 1;
+}
+
+// Las primeras `cuantas`, o todas si hay menos.
+fn primeras<T>(xs: &lista<T>, cuantas: usize) -> lista<T> {
+    var salida: lista<T> = [];
+    var i = 0;
+    for x en xs {
+        if i == cuantas { break; }
+        anadir(salida, copiar(x));
+        i = i + 1;
+    }
+    return salida;
+}
+
+// Copia al reves, no da la vuelta en el sitio: sacar un elemento duenio de
+// una lista dejaria un hueco sin duenio, y el compilador no lo permite.
+fn invertida<T>(xs: &lista<T>) -> lista<T> {
+    var salida: lista<T> = [];
+    var i = largo(xs);
+    while i > 0 {
+        i = i - 1;
+        anadir(salida, copiar(xs[i]));
+    }
+    return salida;
 }
 
 // ---------- listas de numeros ----------
@@ -86,26 +108,4 @@ fn posicion(xs: &lista<str>, aguja: view) -> usize ! {
     falla "eso no esta en la lista";
 }
 
-// Las primeras `cuantas`, o todas si hay menos.
-fn primeras(xs: &lista<str>, cuantas: usize) -> lista<str> {
-    var salida: lista<str> = [];
-    var i = 0;
-    for x en xs {
-        if i == cuantas { break; }
-        anadir(salida, nuevo(vista(x)));
-        i = i + 1;
-    }
-    return salida;
-}
 
-// Aqui hay que copiar, no dar la vuelta en el sitio: sacar un `str` de una
-// lista dejaria un hueco sin duenio, y el compilador no lo permite.
-fn invertida(xs: &lista<str>) -> lista<str> {
-    var salida: lista<str> = [];
-    var i = largo(xs);
-    while i > 0 {
-        i = i - 1;
-        anadir(salida, nuevo(vista(xs[i])));
-    }
-    return salida;
-}

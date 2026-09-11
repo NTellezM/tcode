@@ -26,6 +26,10 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    ("copiar una vista no copia nada",
+     'fn f(v: view) -> usize { let c = copiar(v); return 0; }',
+     "una vista no es duenia de nada que copiar"),
+
     # ---- genericas ----
     ("una generica sin argumentos que digan el tipo",
      'fn vacia<T>() -> lista<T> { var s: lista<T> = []; return s; }'
@@ -484,6 +488,31 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("`copiar` es copia profunda: tocar el original no toca la copia",
+     '''struct Cosa { nombre: str, n: usize }
+        fn main() -> usize {
+            var xs: lista<str> = [];
+            anadir(xs, nuevo("hola"));
+            let copia_xs = copiar(xs);
+            empujar(xs[0], "!!");
+
+            var dentro: lista<lista<str>> = [];
+            anadir(dentro, copiar(xs));
+            let copia_dentro = copiar(dentro);
+            empujar(dentro[0][0], "??");
+
+            let c = Cosa { nombre: nuevo("a"), n: 1 };
+            let c2 = copiar(c);
+
+            var m: mapa<str, str> = [];
+            poner(m, "k", nuevo("v"));
+            let m2 = copiar(m);
+
+            imprimir($"{xs[0]} {copia_xs[0]} {dentro[0][0]} {copia_dentro[0][0]}");
+            imprimir($" {c2.nombre}{c2.n} {largo(m2)} {copiar(7)}\\n");
+        }''',
+     "hola!! hola hola!!?? hola!! a1 1 7\n"),
+
     ("una generica se copia una vez por cada juego de tipos",
      '''struct Punto { x: usize, y: usize }
 
