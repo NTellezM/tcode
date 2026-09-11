@@ -186,3 +186,6 @@ class Funcion(Nodo):
     # una funcion normal; con algo dentro, la funcion no se comprueba ni se
     # genera tal cual, sino una copia por cada juego de tipos que se use.
     tipo_params: list = field(default_factory=list)
+    # `fn f<T: numero>`: que se le exige a cada parametro de tipo. Lo que no
+    # aparece aqui no se le exige nada.
+    restricciones: dict = field(default_factory=dict)

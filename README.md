@@ -341,14 +341,21 @@ Y **funciones genéricas**: `fn primeras<T>(xs: &lista<T>) -> lista<T>`, con
 una copia por cada juego de tipos, los tipos deducidos de los argumentos, y
 errores que dicen con qué tipos se instanció y desde dónde.
 
-No hay: restricciones sobre los parámetros de tipo, structs genéricos,
-espacios de nombres, E/S incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
+Con **restricciones** sobre los parámetros de tipo —`fn suma<T: numero>`,
+`fn incluye<T: igualable>`— tomadas de los *type sets* de Go: un conjunto de
+tipos con nombre, sin `impl` y sin coherencia. Sirven para que el error salga
+en la llamada y diga qué se pedía, en vez de salir de tres niveles más
+adentro del cuerpo.
+
+No hay: comprobación del cuerpo genérico una sola vez contra la restricción
+(eso es Rust, y es más), structs genéricos, espacios de nombres, E/S
+incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
 struct (el muro real: exige la vida útil en el tipo), movimientos parciales
 de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-221 casos, 0 fallas
+227 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

@@ -538,6 +538,18 @@ class Generador:
             "fn sin_nada<T>(xs: &lista<T>) -> bool {\n"
             "    return cuantas(xs) == 0;\n"
             "}")
+        # Con restriccion: el cuerpo suma y compara, y la firma lo declara.
+        partes.append(
+            "fn total<T: numero>(ns: &lista<T>) -> T {\n"
+            "    var t: T = 0;\n"
+            "    for n en ns { t = t +? n; }\n"
+            "    return t;\n"
+            "}")
+        partes.append(
+            "fn esta<T: igualable>(xs: &lista<T>, aguja: &T) -> bool {\n"
+            "    for x en xs { if igual(x, aguja) { return true; } }\n"
+            "    return false;\n"
+            "}")
         partes.append(
             "fn ultimo_sitio<T>(xs: &lista<T>) -> usize ! {\n"
             "    if sin_nada(xs) { falla \"vacia\"; }\n"
@@ -579,6 +591,9 @@ class Generador:
         lineas.append("    imprimir(largo(g_copia));")
         lineas.append("    imprimir(largo(g_hondo2));")
         lineas.append(f"    imprimir(copiar({self.r.randint(0, 99)}));")
+        lineas.append("    imprimir(total(g_ns));")
+        lineas.append(f'    let g_aguja = nuevo("{self.palabra()}");')
+        lineas.append("    imprimir(esta(g_ss, g_aguja));")
         lineas.append("    imprimir(cuantas(g_ns));")
         lineas.append("    imprimir(sin_nada(g_ss));")
         lineas.append("    imprimir(try ultimo_sitio(g_ss));")

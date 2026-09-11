@@ -1871,9 +1871,18 @@ class Generador:
             if es_arreglo(t):
                 return f"((size_t){largo_arreglo(t)})"
             return f"sv_len_of({self.como_vista(e.args[0])})"
-        if n == "igual":
-            return (f"sv_equals({self.como_vista(e.args[0])}, "
-                    f"{self.como_vista(e.args[1])})")
+        if n in ("igual", "menor"):
+            ta = sin_prestamo(self._tipo_de(e.args[0]) or "view")
+            op = "==" if n == "igual" else "<"
+            if ta in ("str", "view"):
+                if n == "igual":
+                    return (f"sv_equals({self.como_vista(e.args[0])}, "
+                            f"{self.como_vista(e.args[1])})")
+                return (f"(sv_cmp({self.como_vista(e.args[0])}, "
+                        f"{self.como_vista(e.args[1])}) < 0)")
+            # Escalares: la comparacion de C, que es la que el lector espera.
+            return (f"({self.expr(e.args[0], ta)} {op} "
+                    f"{self.expr(e.args[1], ta)})")
         if n == "rebanar":
             return (f"sv_slice({self.como_vista(e.args[0])}, "
                     f"{self.expr(e.args[1], 'usize')}, "
@@ -1956,10 +1965,6 @@ class Generador:
         if n == "argumento":
             return (f"ss_lang_argumento_({self.expr(e.args[0], 'usize')}, "
                     f"{self.arch(e)}, {e.linea})")
-
-        if n == "menor":
-            return (f"(sv_cmp({self.como_vista(e.args[0])}, "
-                    f"{self.como_vista(e.args[1])}) < 0)")
 
         if n == "ordenar":
             t = self._tipo_de(e.args[0])
