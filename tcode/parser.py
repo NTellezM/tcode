@@ -236,6 +236,10 @@ class Parser:
 
         if self.es("palabra", "falla"):
             self.i += 1
+            if self.es("simbolo", "("):
+                raise ErrorSintactico(
+                    f"{self.archivo}:{t.linea}: `falla` no lleva parentesis; "
+                    f'se escribe `falla "el motivo";`')
             motivo = self.espera("cadena").valor
             self.espera("simbolo", ";")
             return Falla(motivo, linea=t.linea)

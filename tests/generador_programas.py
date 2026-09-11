@@ -48,7 +48,7 @@ class Generador:
         if vars_usize:
             opciones += ["var", "var"]
         if hondura < 2:
-            opciones += ["suma", "mod", "mul"]
+            opciones += ["suma", "mod", "mul", "resta", "suelta"]
 
         cual = self.r.choice(opciones)
         if cual == "lit":
@@ -61,6 +61,20 @@ class Generador:
         if cual == "mod":
             return (f"({self.expr_usize(vars_usize, hondura + 1)} % "
                     f"{self.r.randint(1, 97)})")
+        if cual == "resta":
+            # `a - (a % k)` nunca baja de cero: la resta chequeada no aborta
+            a = self.expr_usize(vars_usize, hondura + 1)
+            return f"({a} - ({a} % {self.r.randint(1, 97)}))"
+        if cual == "suelta":
+            # los mismos valores acotados, pero con los operadores sin
+            # chequeo: no desbordan, y asi se recorre tambien ese camino
+            a = self.expr_usize(vars_usize, hondura + 1)
+            op = self.r.choice(["suma", "resta", "mul"])
+            if op == "suma":
+                return f"({a} +? {self.num()})"
+            if op == "resta":
+                return f"({a} -? ({a} % {self.r.randint(1, 97)}))"
+            return f"(({a} % 50) *? {self.r.randint(1, 20)})"
         # multiplicar solo por un literal chico: el producto se queda acotado
         return f"(({self.expr_usize(vars_usize, hondura + 1)} % 50) * {self.r.randint(1, 20)})"
 
@@ -120,6 +134,8 @@ class Generador:
             v = nombre("e")
             campos = ", ".join(
                 f"{c}: {self.expr_usize(vars_usize)}" for c in st["campos"])
+            if st.get("texto"):
+                campos = campos + f', t: nuevo("{self.palabra()}")'
             lineas.append(f"{s}var {v}: {st['nombre']} = "
                           f"{st['nombre']} {{ {campos} }};")
             vars_struct.append((v, st["nombre"]))
@@ -331,16 +347,38 @@ class Generador:
             st = self.r.choice(self.structs)
             ms = nombre("ms")
             lineas.append(f"{s}var {ms}: mapa<str, {st['nombre']}> = [];")
+            usadas_mapa = []
             for _ in range(self.r.randint(1, 3)):
                 campos = ", ".join(f"{c}: {self.expr_usize(vars_usize)}"
                                    for c in st["campos"])
-                lineas.append(f'{s}poner({ms}, "{self.palabra()}", '
+                if st.get("texto"):
+                    campos = campos + f', t: nuevo("{self.palabra()}")'
+                k = self.palabra()
+                usadas_mapa.append(k)
+                lineas.append(f'{s}poner({ms}, "{k}", '
                               f"{st['nombre']} {{ {campos} }});")
-            # Modificar en el sitio lo que guarda el mapa, y volver a leerlo.
-            if self.r.random() < 0.6:
+            # Modificar EN EL SITIO lo que guarda el mapa: `obtener_mut`
+            # devuelve un `&mut T` y por el se escribe sin sacar nada.
+            clave_viva = usadas_mapa[0]
+            if self.r.random() < 0.7:
                 mu = nombre("mu")
-                lineas.append(f"{s}if tiene({ms}, \"{self.palabra()}\") {{")
-                lineas.append(f"{s}    imprimir(0);")
+                lineas.append(f'{s}if tiene({ms}, "{clave_viva}") {{')
+                lineas.append(f"{s}    let {mu}: &mut {st['nombre']} = "
+                              f'try obtener_mut({ms}, "{clave_viva}");')
+                lineas.append(f"{s}    {mu}.{st['campos'][0]} = "
+                              f"({mu}.{st['campos'][0]} + 1) % 1000;")
+                lineas.append(f"{s}}}")
+
+            # Y leerlo prestado, sin copiarlo.
+            if self.r.random() < 0.6:
+                ro = nombre("ro")
+                lineas.append(f'{s}if tiene({ms}, "{clave_viva}") {{')
+                # Sin anotar: `obtener` devuelve una copia si el struct no
+                # posee memoria, y un prestamo si la posee. La inferencia se
+                # encarga, y asi se prueban los dos caminos.
+                lineas.append(f"{s}    let {ro} = "
+                              f'try obtener({ms}, "{clave_viva}");')
+                lineas.append(f"{s}    imprimir({ro}.{st['campos'][0]});")
                 lineas.append(f"{s}}}")
             rk = nombre("rk")
             rv = nombre("rv")
@@ -353,10 +391,20 @@ class Generador:
         if self.r.random() < 0.5:
             mt = nombre("mt")
             lineas.append(f"{s}var {mt}: mapa<str, str> = [];")
+            usadas_texto = []
             for _ in range(self.r.randint(1, 4)):
-                lineas.append(f'{s}poner({mt}, "{self.palabra()}", '
+                k = self.palabra()
+                usadas_texto.append(k)
+                lineas.append(f'{s}poner({mt}, "{k}", '
                               f'nuevo("{self.palabra()}"));')
             lineas.append(f'{s}imprimir(largo(obtener({mt}, "no_esta") sino ""));')
+            if usadas_texto and self.r.random() < 0.6:
+                mm = nombre("mm")
+                lineas.append(f'{s}if tiene({mt}, "{usadas_texto[0]}") {{')
+                lineas.append(f"{s}    let {mm}: &mut str = "
+                              f'try obtener_mut({mt}, "{usadas_texto[0]}");')
+                lineas.append(f'{s}    empujar({mm}, "+");')
+                lineas.append(f"{s}}}")
             ck = nombre("ck")
             cv = nombre("cv")
             lineas.append(f"{s}for {ck}, {cv} en {mt} {{")
@@ -408,8 +456,14 @@ class Generador:
         for k in range(self.r.randint(0, 2)):
             campos = [f"c{j}" for j in range(self.r.randint(1, 3))]
             nombre = f"S{k}"
-            self.structs.append({"nombre": nombre, "campos": campos})
+            # Alguno con texto dentro: asi hay structs que POSEEN memoria, y
+            # un mapa que los guarde presta en vez de copiar.
+            con_texto = self.r.random() < 0.5
+            self.structs.append({"nombre": nombre, "campos": campos,
+                                 "texto": "t" if con_texto else None})
             cuerpo = ", ".join(f"{c}: usize" for c in campos)
+            if con_texto:
+                cuerpo = cuerpo + ", t: str"
             partes.append(f"struct {nombre} {{ {cuerpo} }}")
 
         # Funciones que reciben PRESTAMOS. Es la parte del lenguaje con mas
@@ -465,11 +519,12 @@ class Generador:
             lineas, _ = self.cuerpo()
             nombre = f"aux{k}"
             auxiliares.append(nombre)
-            partes.append(f"fn {nombre}() {{\n" + "\n".join(lineas) + "\n}")
+            # Falibles: el cuerpo puede usar `try` (obtener_mut, dividir...).
+            partes.append(f"fn {nombre}() ! {{\n" + "\n".join(lineas) + "\n}")
 
         lineas, str_vivo = self.cuerpo()
         for a in auxiliares:
-            lineas.append(f"    {a}();")
+            lineas.append(f"    try {a}();")
         if str_vivo is not None:
             lineas.append(f"    imprimir(consumir({str_vivo}));")
         lineas.append(f"    imprimir(mitad({self.r.randint(1, 50)}) sino 0);")
@@ -479,13 +534,82 @@ class Generador:
         lineas.append(f"    imprimir(largo(vista(leido)));")
         lineas.append('    imprimir("\\n");')
         lineas.append("    return 0;")
-        partes.append("fn main() -> usize {\n" + "\n".join(lineas) + "\n}")
+        partes.append("fn main() -> usize ! {\n" + "\n".join(lineas) + "\n}")
 
         return "\n\n".join(partes) + "\n"
 
 
 def generar(semilla):
     return Generador(semilla).programa()
+
+
+def generar_modulos(semilla):
+    """Un programa repartido en archivos, con `usar` entre ellos.
+
+    Devuelve {ruta relativa: contenido}. El principal se llama `app.t`.
+    Prueba lo que un archivo suelto no toca: que los structs y las funciones
+    crucen de modulo a modulo, y que la carga en rombo no duplique nada.
+    """
+    g = Generador(semilla)
+    r = g.r
+
+    # Un modulo de base con un struct y funciones sobre el.
+    campos = [f"c{j}" for j in range(r.randint(1, 2))]
+    con_texto = r.random() < 0.5
+    cuerpo = ", ".join(f"{c}: usize" for c in campos)
+    if con_texto:
+        cuerpo += ", t: str"
+    base = [f"struct Dato {{ {cuerpo} }}", ""]
+    base.append("fn primero(d: &Dato) -> usize { return d." + campos[0] + "; }")
+    base.append("fn subir(d: mut Dato, cuanto: usize) {")
+    base.append(f"    d.{campos[0]} = (d.{campos[0]} + cuanto) % 1000;")
+    base.append("}")
+    # un `str` que nace en un modulo y muere en otro: la responsabilidad de
+    # liberarlo cruza el archivo
+    base.append("")
+    base.append("fn etiqueta(d: &Dato) -> str {")
+    base.append(f'    var e: str = nuevo("{g.palabra()}");')
+    base.append("    empujar(e, \"=\");")
+    base.append(f"    return e;")
+    base.append("}")
+    # una funcion falible declarada aqui y usada con `try` alla
+    base.append("")
+    base.append("fn chequear(n: usize) -> usize ! {")
+    base.append(f"    if n > {r.randint(900, 1200)} {{ falla \"muy grande\"; }}")
+    base.append("    return n;")
+    base.append("}")
+
+    valores = ", ".join(f"{c}: {r.randint(0, 99)}" for c in campos)
+    if con_texto:
+        valores += f', t: nuevo("{g.palabra()}")'
+
+    # Un modulo intermedio que usa el de base: la carga es en cadena.
+    medio = ['usar "base.t";', "",
+             "fn crear() -> Dato {",
+             f"    return Dato {{ {valores} }};",
+             "}", "",
+             "fn doble(d: &Dato) -> usize { return primero(d) * 2; }"]
+
+    # El principal usa los dos: el de base llega por dos caminos y no se
+    # puede cargar dos veces.
+    app = ['usar "lib/medio.t";', 'usar "lib/base.t";', "",
+           "fn main() -> usize ! {",
+           "    var d = crear();",
+           f"    subir(d, {r.randint(1, 50)});",
+           '    imprimir($"{primero(d)} {doble(d)}");']
+    if con_texto:
+        app.append('    imprimir($" {d.t}");')
+    app.append("    let e: str = etiqueta(d);")
+    app.append('    imprimir($" {e}");')
+    app.append("    let v = try chequear(primero(d));")
+    app.append('    imprimir($" {v}");')
+    app += ['    imprimir("' + chr(92) + 'n");', "    return 0;", "}"]
+
+    return {
+        "lib/base.t": "\n".join(base) + "\n",
+        "lib/medio.t": "\n".join(medio) + "\n",
+        "app.t": "\n".join(app) + "\n",
+    }
 
 
 if __name__ == "__main__":

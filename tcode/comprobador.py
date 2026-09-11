@@ -112,12 +112,28 @@ def concreto(t):
     return "usize" if t == LITERAL else t
 
 
+def sin_prestamo(t):
+    """`&T` y `&mut T` valen como `T` para leer: se llega por puntero, pero
+    lo que hay al otro lado es un `T`."""
+    return apuntado(t) if es_referencia(t) else t
+
+
+# Tipos que no son duenios de nada: se copian al leerlos, sin quitarle
+# memoria a nadie. Son los unicos que se pueden sacar de un prestamo.
+COPIABLES = ENTEROS | {"bool", "view", LITERAL, UNIDAD}
+
+
 def encaja(esperado, dado):
     """True si un valor de tipo `dado` sirve donde se pide `esperado`."""
     if esperado == dado:
         return True
     if dado == LITERAL and esperado in ENTEROS:
         return True
+    # De un prestamo se puede leer, pero no sacar: si lo que se pide es un
+    # tipo que posee memoria, aceptarlo aqui seria moverlo fuera del duenio.
+    if (es_referencia(dado) and not es_referencia(esperado)
+            and esperado in COPIABLES):
+        return encaja(esperado, apuntado(dado))
     return False
 
 
@@ -670,8 +686,7 @@ class Comprobador:
             # Escribir a traves de un `&mut T` no es reasignar la variable:
             # la variable sigue apuntando al mismo sitio. Lo que se exige es
             # que el prestamo sea mutable.
-            por_referencia = (es_referencia(sim.tipo)
-                              and not isinstance(s.lugar, Variable))
+            por_referencia = es_referencia(sim.tipo)
             if por_referencia:
                 if not es_referencia_mutable(sim.tipo):
                     self.error(s, f"`{base}` es un prestamo de solo lectura "
@@ -1491,6 +1506,7 @@ class Comprobador:
                     self.expresion(a)
                 return "usize"
             t = self.expresion(e.args[0])
+            t = sin_prestamo(t) if t else t
             if t is not None and t != "view" and t != "str" \
                     and not es_arreglo(t) and not es_lista(t) and not es_mapa(t):
                 self.error(e, f"`largo` opera sobre texto, arreglos, listas o "
@@ -1562,8 +1578,8 @@ class Comprobador:
                 for a in e.args:
                     self.expresion(a)
                 return "str"
-            t = self.expresion(e.args[0])
-            if t is not None and t not in {LITERAL, "usize", "i64", "bool", "view", "str"}:
+            t = sin_prestamo(self.expresion(e.args[0]) or "")
+            if t and t not in {LITERAL, "usize", "i64", "bool", "view", "str"}:
                 self.error(e, f"`texto` convierte escalares o texto, recibio `{t}`")
             return "str"
 
@@ -1591,7 +1607,10 @@ class Comprobador:
                     self.error(e, f"`{nombre}` necesita una variable, un campo "
                                   f"o un elemento, no una expresion suelta")
                     continue
-                if self.tipo_de_lugar(arg) != "str":
+                t_presta = self.tipo_de_lugar(arg)
+                if es_referencia(t_presta):
+                    t_presta = apuntado(t_presta)
+                if t_presta != "str":
                     self.error(e, f"`{nombre}` presta de un `str`")
                     continue
                 self.usar(arg, sim)
@@ -1602,7 +1621,7 @@ class Comprobador:
             if (t is not None and esperado != "@cualquiera"
                     and not encaja(esperado, t)):
                 # donde se pide una vista, un `str` se lee prestandolo
-                if not (esperado == "view" and t == "str"):
+                if not (esperado == "view" and sin_prestamo(t or "") == "str"):
                     self.error(e, f"el argumento {i + 1} de `{nombre}` debe ser "
                                   f"`{esperado}` y es `{t}`")
 
@@ -1636,7 +1655,12 @@ class Comprobador:
                 self.error(e, f"el argumento {i + 1} de `{nombre}` tiene que "
                               f"ser una variable, un campo o un elemento")
                 continue
-            if self.tipo_de_lugar(arg) != "str":
+            t_lugar = self.tipo_de_lugar(arg)
+            # Un `&mut str` es un `str` al que se llega por puntero: para
+            # `empujar` es lo mismo.
+            if es_referencia(t_lugar):
+                t_lugar = apuntado(t_lugar)
+            if t_lugar != "str":
                 self.error(e, f"`{nombre}` opera sobre `str`")
                 continue
             if base in prestados:
@@ -1644,7 +1668,9 @@ class Comprobador:
                               f"llamada a `{nombre}`: al crecer, el buffer "
                               f"puede moverse y dejar la vista colgando")
                 continue
-            self.mutar(arg, sim, por_referencia=not isinstance(arg, Variable))
+            self.mutar(arg, sim,
+                       por_referencia=(not isinstance(arg, Variable)
+                                       or es_referencia(sim.tipo)))
 
         return retorno
 

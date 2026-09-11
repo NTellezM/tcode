@@ -940,6 +940,7 @@ class Generador:
         for st in self.orden_structs(structs):
             if not self.c.posee(st.nombre):
                 continue
+            self.lineas.append("SS_LANG_QUIZA_SIN_USAR")
             self.lineas.append(f"static void ss_drop_{st.nombre}({st.nombre}* p)")
             self.lineas.append("{")
             self.sangria = 1
@@ -1697,6 +1698,7 @@ class Generador:
             return f"ss_view({self.dir_de(e.args[0])})"
         if n == "largo":
             t = self._tipo_de(e.args[0])
+            t = apuntado(t) if es_referencia(t) else t
             if es_mapa(t):
                 return f"({self.lugar(e.args[0])}.largo)"
             if es_lista(t):
@@ -1835,12 +1837,19 @@ class Generador:
     def dir_de(self, a):
         """La direccion de un sitio con nombre: `&x`, `&p.campo`, `&v.e[i]`."""
         if isinstance(a, Variable):
+            # Un `&T` ya ES la direccion: pedirsela otra vez sobra.
+            if es_referencia(self.tipo_var(a.nombre) or ""):
+                return a.nombre
             return self.ref(a.nombre)
         return f"&{self.lugar(a)}"
 
     def como_vista(self, a):
         """Un argumento donde se pide una SafeView."""
-        if self._tipo_de(a) != "str":
+        t = self._tipo_de(a)
+        if es_referencia(t) and apuntado(t) == "str":
+            # Un `&mut str` ya es el puntero que necesita `ss_view`.
+            return f"ss_view({self.lugar(a)})"
+        if t != "str":
             return self.expr(a, "view")
         if isinstance(a, (Variable, Campo, Indice)):
             return f"ss_view({self.dir_de(a)})"
