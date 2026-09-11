@@ -321,6 +321,23 @@ class Generador:
                           f'={{{self.r.choice(vars_usize)}}} {{{{fin}}}}";')
             lineas.append(f"{s}imprimir(largo(vista({ip})));")
 
+        # Mapa de structs: el valor se lee prestado con `&T`.
+        if self.structs and self.r.random() < 0.5:
+            st = self.r.choice(self.structs)
+            ms = nombre("ms")
+            lineas.append(f"{s}var {ms}: mapa<str, {st['nombre']}> = [];")
+            for _ in range(self.r.randint(1, 3)):
+                campos = ", ".join(f"{c}: {self.expr_usize(vars_usize)}"
+                                   for c in st["campos"])
+                lineas.append(f'{s}poner({ms}, "{self.palabra()}", '
+                              f"{st['nombre']} {{ {campos} }});")
+            rk = nombre("rk")
+            rv = nombre("rv")
+            lineas.append(f"{s}for {rk}, {rv} en {ms} {{")
+            lineas.append(f"{s}    imprimir(largo(vista({rk})) + "
+                          f"{rv}.{st['campos'][0]});")
+            lineas.append(f"{s}}}")
+
         # Mapa de textos: valor duenio, prestado al leerlo.
         if self.r.random() < 0.5:
             mt = nombre("mt")

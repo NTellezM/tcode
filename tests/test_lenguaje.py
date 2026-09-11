@@ -207,9 +207,31 @@ RECHAZO = [
      'fn f() { var m: mapa<usize, usize> = []; imprimir(largo(m)); }',
      "la clave de un mapa tiene que ser `str`"),
 
-    ("el valor de un mapa puede ser escalar o `str`, no mas",
-     'fn f() { var m: mapa<str, lista<usize>> = []; imprimir(largo(m)); }',
-     "un escalar o un `str`"),
+    ("un mapa guarda valores, no prestamos",
+     'struct S { a: str } fn f() { var m: mapa<str, &S> = []; imprimir(largo(m)); }',
+     "no puede ser ni clave ni valor"),
+
+    ("`sino` no puede dar un prestamo por defecto",
+     'struct S { a: str } fn f() { var m: mapa<str, S> = [];'
+     ' let s: &S = obtener(m, "x") sino S { a: vacio() }; imprimir(s.a); }',
+     "no hay nada que prestar"),
+
+    ("modificar un mapa con un `&T` suyo vivo",
+     'struct S { a: str } fn f() -> usize ! { var m: mapa<str, S> = [];'
+     ' let s: &S = try obtener(m, "x"); poner(m, "z", S { a: nuevo("w") });'
+     ' imprimir(s.a); return 0; }',
+     "esta prestada por `s`"),
+
+    ("devolver un `&T` de un mapa local",
+     'struct S { a: str } fn f() -> &S ! { var m: mapa<str, S> = [];'
+     ' return try obtener(m, "x"); }',
+     "muere al cerrar la funcion"),
+
+    ("un `&T` no se puede mover",
+     'struct S { a: str } fn g(x: S) {} fn f() -> usize ! {'
+     ' var m: mapa<str, S> = []; let s: &S = try obtener(m, "x");'
+     ' g(s); return 0; }',
+     "recibio `&S`"),
 
     ("modificar un mapa con una vista de `obtener` viva",
      'fn f() { var m: mapa<str, str> = [];'
@@ -829,6 +851,29 @@ ACEPTA = [
             return 0;
         }''',
      "hola mundo, van 4 veces, ok=true {y}\nsuelta: 3 mundo\n[0][1][2]\n"),
+
+    ("tabla de simbolos: mapa de structs con prestamo",
+     '''struct Simbolo { tipo: str, mutable: bool, usos: usize }
+        fn main() -> usize ! {
+            var tabla: mapa<str, Simbolo> = [];
+            poner(tabla, "n", Simbolo { tipo: nuevo("usize"), mutable: false,
+                                        usos: 3 });
+            poner(tabla, "s", Simbolo { tipo: nuevo("str"), mutable: true,
+                                        usos: 1 });
+            if true {
+                // El prestamo vive solo aqui dentro: fuera se vuelve a poder
+                // tocar la tabla.
+                let a: &Simbolo = try obtener(tabla, "n");
+                imprimir($"{a.tipo} {a.mutable} {a.usos} ");
+            }
+            var total: usize = 0;
+            for clave, sim en tabla {
+                total = total + largo(vista(clave)) + sim.usos;
+            }
+            imprimir($"{total} {largo(tabla)} {quitar(tabla, \\"s\\")}\\n");
+            return 0;
+        }''',
+     "usize false 3 6 2 true\n"),
 
     ("rebanadas de vista",
      '''fn main() -> usize {

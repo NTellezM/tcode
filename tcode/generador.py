@@ -21,6 +21,7 @@ from tcode.nodos import (
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
     es_lista, elem_lista, es_mapa, partes_mapa, ORDENABLES,
+    es_referencia, apuntado,
 )
 
 TIPOS_C = {
@@ -267,6 +268,8 @@ static SafeString ss_lang_texto_view_(SafeView valor, const char* ar, int ln)
 
 def mangle(t):
     """Nombre C valido para un tipo: `[usize; 3]` -> `arr_usize_3`."""
+    if es_referencia(t):
+        return f"ref_{mangle(apuntado(t))}"
     if es_arreglo(t):
         elem, n = partes_arreglo(t)
         return f"arr_{mangle(elem)}_{n}"
@@ -324,6 +327,9 @@ class Generador:
         """
         if es_arreglo(t):
             return self.registrar_arreglo(t)
+        if es_referencia(t):
+            # Un prestamo es un puntero a algo que no se toca.
+            return f"const {self.tipo_c(apuntado(t))}*"
         if es_mapa(t):
             return self.registrar_mapa(t)
         if es_lista(t):
@@ -347,6 +353,25 @@ class Generador:
             self.arreglos[t] = f"ss_{mangle(t)}"
         return self.arreglos[t]
 
+    def lineas_liberacion(self, expr_c, tipo, sangria=1):
+        """Las lineas de C que devuelven la memoria de `expr_c`.
+
+        Reutiliza `liberacion`, que ya sabe de textos, structs, listas y
+        mapas, capturando lo que emite en vez de escribirlo donde toque.
+        """
+        guardadas, sangria_previa = self.lineas, self.sangria
+        self.lineas, self.sangria = [], sangria
+        self.liberacion(expr_c, tipo)
+        salida = self.lineas
+        self.lineas, self.sangria = guardadas, sangria_previa
+        return salida
+
+    def _tipo_obtener(self, v):
+        """Lo que devuelve `obtener` para un mapa cuyo valor es `v`."""
+        if not self.c.posee(v):
+            return v
+        return "view" if v == "str" else f"&{v}"
+
     def registrar_mapa(self, t):
         if t not in self.mapas:
             k, v = partes_mapa(t)
@@ -355,7 +380,7 @@ class Generador:
             # `claves` devuelve una lista de claves y `obtener` un `V !`:
             # los dos tipos tienen que existir antes de emitir los typedefs.
             self.registrar_lista(f"lista<{k}>")
-            self.tipo_resultado("view" if self.c.posee(v) else v)
+            self.tipo_resultado(self._tipo_obtener(v))
             self.mapas[t] = f"ss_{mangle(t)}"
         return self.mapas[t]
 
@@ -547,6 +572,14 @@ class Generador:
             self.lineas.append("};")
             self.lineas.append("")
 
+        # Prototipos primero: dos structs pueden referirse de forma finita a
+        # traves de listas (A contiene lista<B>, B contiene lista<A>).
+        for st in self.orden_structs(structs):
+            if self.c.posee(st.nombre):
+                self.lineas.append(f"static void ss_drop_{st.nombre}({st.nombre}* p);")
+        if any(self.c.posee(st.nombre) for st in structs):
+            self.lineas.append("")
+
         # envoltorios de arreglo, de dentro hacia fuera
         for t in sorted(self.arreglos, key=lambda x: x.count("[")):
             elem, n = partes_arreglo(t)
@@ -712,7 +745,7 @@ class Generador:
             m = mangle(t)
             tc_k, tc_v = self.tipo_c(k), self.tipo_c(v)
             lista_k = self.tipo_c(f"lista<{k}>")
-            res_v = self.tipo_resultado("view" if self.c.posee(v) else v)
+            res_v = self.tipo_resultado(self._tipo_obtener(v))
             self.lineas.extend([
                 "SS_LANG_QUIZA_SIN_USAR",
                 f"static size_t ss_mapa_sitio_{m}(const {nombre}* p, SafeView clave)",
@@ -776,7 +809,8 @@ class Generador:
                 f"    size_t i = ss_mapa_sitio_{m}(p, clave);",
                 "    if (p->claves[i].data != NULL)",
                 "    {",
-                *(["        ss_free(&p->valores[i]);   /* el valor viejo era nuestro */"]
+                *(["        /* el valor viejo era nuestro */"]
+                  + self.lineas_liberacion("p->valores[i]", v, 2)
                   if self.c.posee(v) else []),
                 "        p->valores[i] = valor;   /* ya estaba: se reemplaza */",
                 "        return;",
@@ -803,7 +837,9 @@ class Generador:
                 "    if (p->claves[i].data == NULL)",
                 f'        return ({res_v}){{ .motivo = "la clave no esta en el mapa" }};',
                 (f"    return ({res_v}){{ .motivo = NULL, "
-                 f".valor = ss_view(&p->valores[i]) }};" if self.c.posee(v) else
+                 f".valor = ss_view(&p->valores[i]) }};" if v == "str" else
+                 f"    return ({res_v}){{ .motivo = NULL, "
+                 f".valor = &p->valores[i] }};" if self.c.posee(v) else
                  f"    return ({res_v}){{ .motivo = NULL, .valor = p->valores[i] }};"),
                 "}",
                 "",
@@ -832,8 +868,9 @@ class Generador:
                 "",
                 "    ss_free(&p->claves[i]);",
                 "    p->claves[i] = ss_new();",
-                *(["    ss_free(&p->valores[i]);",
-                   "    p->valores[i] = ss_new();"] if self.c.posee(v) else []),
+                *(self.lineas_liberacion("p->valores[i]", v, 1)
+                  + [f"    memset(&p->valores[i], 0, sizeof({tc_v}));"]
+                  if self.c.posee(v) else []),
                 "    p->largo--;",
                 "",
                 "    /* Sin lapidas: se cierra el hueco arrastrando hacia atras",
@@ -866,7 +903,8 @@ class Generador:
                 "        if (p->claves[i].data != NULL)",
                 "        {",
                 "            ss_free(&p->claves[i]);",
-                *(["            ss_free(&p->valores[i]);"] if self.c.posee(v) else []),
+                *(self.lineas_liberacion("p->valores[i]", v, 3)
+                  if self.c.posee(v) else []),
                 "        }",
                 "    free(p->claves); free(p->valores);",
                 "    p->claves = NULL; p->valores = NULL;",
@@ -875,13 +913,6 @@ class Generador:
                 "",
             ])
 
-        # Prototipos primero: dos structs pueden referirse de forma finita a
-        # traves de listas (A contiene lista<B>, B contiene lista<A>).
-        for st in self.orden_structs(structs):
-            if self.c.posee(st.nombre):
-                self.lineas.append(f"static void ss_drop_{st.nombre}({st.nombre}* p);")
-        if any(self.c.posee(st.nombre) for st in structs):
-            self.lineas.append("")
 
         # liberadores de los structs que poseen memoria
         for st in self.orden_structs(structs):
@@ -1376,7 +1407,7 @@ class Generador:
                     k, v = partes_mapa(tm)
                     if e.nombre == "obtener":
                         # Un valor duenio no sale del mapa: sale prestado.
-                        return "view" if self.c.posee(v) else v
+                        return self._tipo_obtener(v)
                     if e.nombre in ("tiene", "quitar"):
                         return "bool"
                     return f"lista<{k}>"
@@ -1390,6 +1421,8 @@ class Generador:
             return self._tipo_de(e.expr)
         if isinstance(e, Campo):
             base = self._tipo_de(e.objeto)
+            if es_referencia(base):
+                base = apuntado(base)
             st = self.c.structs.get(base)
             if st:
                 for c in st.campos:
@@ -1573,6 +1606,9 @@ class Generador:
         if isinstance(e, Variable):
             return f"(*{e.nombre})" if self.es_puntero(e.nombre) else e.nombre
         if isinstance(e, Campo):
+            base = self._tipo_de(e.objeto)
+            if es_referencia(base):
+                return f"{self.lugar(e.objeto)}->{e.nombre}"
             return f"{self.lugar(e.objeto)}.{e.nombre}"
         if isinstance(e, Indice):
             base = self._tipo_de(e.arreglo)
