@@ -1205,7 +1205,9 @@ class Generador:
         with self.camino():
             self._sentencia(s)
         for t in self.temporales:
-            self.emitir(f"ss_free(&{t});")
+            # Un temporal puede ser un `str`, una lista o un mapa: se libera
+            # segun lo que sea, no siempre con `ss_free`.
+            self.liberacion(t, self.tipo_var(t) or "str")
         self.temporales = anteriores
 
     def _sentencia(self, s):
@@ -1265,7 +1267,19 @@ class Generador:
 
         if isinstance(s, Para):
             tipo = self._tipo_de(s.coleccion)
-            lugar = self.lugar(s.coleccion)
+            if isinstance(s.coleccion, (Variable, Campo, Indice)):
+                lugar = self.lugar(s.coleccion)
+            else:
+                # `for x en f(...)`: la coleccion se calcula UNA vez. Si se
+                # dejara la llamada en la condicion del bucle se repetiria en
+                # cada vuelta, y cada vuelta filtraria una copia.
+                lugar = self.nuevo_tmp()
+                valor = self.expr(s.coleccion, tipo)
+                self.reclamar(valor)
+                self.emitir(f"{self.tipo_c(tipo)} {lugar} = {valor};")
+                self.declarar(lugar, tipo)
+                if self.c.posee(tipo):
+                    self.temporales.append(lugar)
             self.bucle += 1
             i = f"ss_k{self.bucle}"
 
@@ -1684,7 +1698,15 @@ class Generador:
             if es_mapa(t):
                 return f"({self.lugar(e.args[0])}.largo)"
             if es_lista(t):
-                return f"({self.lugar(e.args[0])}.length)"
+                if isinstance(e.args[0], (Variable, Campo, Indice)):
+                    return f"({self.lugar(e.args[0])}.length)"
+                tmp = self.nuevo_tmp()
+                valor = self.expr(e.args[0], t)
+                self.reclamar(valor)
+                self.emitir(f"{self.tipo_c(t)} {tmp} = {valor};")
+                self.declarar(tmp, t)
+                self.temporales.append(tmp)
+                return f"({tmp}.length)"
             if es_arreglo(t):
                 return f"((size_t){largo_arreglo(t)})"
             return f"sv_len_of({self.como_vista(e.args[0])})"
@@ -1781,7 +1803,20 @@ class Generador:
         for i, a in enumerate(e.args):
             p = f.params[i] if f and i < len(f.params) else None
             if p is not None and p.prestado:
-                args.append(self.dir_de(a))
+                if isinstance(a, (Variable, Campo, Indice)):
+                    args.append(self.dir_de(a))
+                else:
+                    # Prestar algo recien hecho: se guarda en un temporal para
+                    # poder tomarle la direccion, y se libera al acabar la
+                    # sentencia como cualquier otro valor descartado.
+                    tmp = self.nuevo_tmp()
+                    valor = self.expr(a, p.tipo)
+                    self.reclamar(valor)
+                    self.emitir(f"{self.tipo_c(p.tipo)} {tmp} = {valor};")
+                    self.declarar(tmp, p.tipo)
+                    if self.c.posee(p.tipo):
+                        self.temporales.append(tmp)
+                    args.append(f"&{tmp}")
             else:
                 # `str` donde se pide `view`: se presta sin escribirlo.
                 if (p is not None and p.tipo == "view"
@@ -1803,9 +1838,19 @@ class Generador:
 
     def como_vista(self, a):
         """Un argumento donde se pide una SafeView."""
-        if self._tipo_de(a) == "str" and isinstance(a, (Variable, Campo, Indice)):
+        if self._tipo_de(a) != "str":
+            return self.expr(a, "view")
+        if isinstance(a, (Variable, Campo, Indice)):
             return f"ss_view({self.dir_de(a)})"
-        return self.expr(a, "view")
+        # Un `str` recien hecho no tiene sitio del que tomar la direccion: se
+        # guarda en un temporal, que se libera al acabar la sentencia.
+        tmp = self.nuevo_tmp()
+        valor = self.expr(a, "str")
+        self.reclamar(valor)
+        self.emitir(f"SafeString {tmp} = {valor};")
+        self.declarar(tmp, "str")
+        self.temporales.append(tmp)
+        return f"ss_view(&{tmp})"
 
     def imprimir(self, a, destino="stdout"):
         """`imprimir` va al resultado; `imprimir_error` al diagnostico.
@@ -1816,7 +1861,9 @@ class Generador:
         f = "printf(" if destino == "stdout" else f"fprintf({destino}, "
         t = self._tipo_de(a)
         if t == "str":
-            return f'{f}"%s", ss_cstr({self.dir_de(a)}))'
+            if isinstance(a, (Variable, Campo, Indice)):
+                return f'{f}"%s", ss_cstr({self.dir_de(a)}))'
+            return f'{f}SV_FMT, SV_ARG({self.como_vista(a)}))'
         if t == "view":
             return f'{f}SV_FMT, SV_ARG({self.como_vista(a)}))'
         if t == "usize":
