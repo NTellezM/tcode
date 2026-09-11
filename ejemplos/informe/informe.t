@@ -1,43 +1,17 @@
-// informe.t — el programa. Junta los dos modulos.
+// informe.t — el programa. Junta un modulo propio con la biblioteca.
 //
-// Reparte el trabajo en tres archivos, usa una funcion que puede fallar y
+// Reparte el trabajo en varios archivos, usa funciones que pueden fallar y
 // no libera nada a mano. Es lo que hacia falta para escribir algo grande.
 
-usar "lib/texto.t";
-usar "lib/calculo.t";
-
-struct Articulo {
-    nombre: str,
-    unidades: usize,
-}
-
-// `&Articulo` lo presta para leer: no lo copia ni lo saca del arreglo.
-fn linea(a: &Articulo, total: usize) -> str ! {
-    let pct = try porcentaje(a.unidades, total);
-
-    var s = vacio();
-    let nombre = rellenar(a.nombre, 12);
-    empujar(s, nombre);
-
-    let barra = repetir("#", try dividir(pct, 4));
-    empujar(s, barra);
-
-    let hueco = repetir(" ", 26 - largo(barra));
-    empujar(s, hueco);
-    return s;
-}
-
-// `mut Articulo` lo presta para modificarlo en el sitio.
-fn ajustar(a: mut Articulo, extra: usize) {
-    a.unidades = a.unidades + extra;
-}
+usar "lib/articulo.t";
+usar "std/numero";
 
 fn main() -> usize ! {
     var inv = [
-        Articulo { nombre: nuevo("tornillos"), unidades: 420 },
-        Articulo { nombre: nuevo("tuercas"),   unidades: 310 },
-        Articulo { nombre: nuevo("arandelas"), unidades: 200 },
-        Articulo { nombre: nuevo("remaches"),  unidades: 275 }
+        crear("tornillos", 420),
+        crear("tuercas",   310),
+        crear("arandelas", 200),
+        crear("remaches",  275)
     ];
 
     ajustar(inv[2], 25);
@@ -50,26 +24,17 @@ fn main() -> usize ! {
     }
 
     let borde = repetir("=", 46);
-    imprimir(borde); imprimir("\n");
+    imprimir($"{borde}\n");
 
     i = 0;
     while i < 4 {
-        let l = try linea(inv[i], total);
-        imprimir(l);
-        imprimir(inv[i].unidades);
-        imprimir(" (");
-        imprimir(try porcentaje(inv[i].unidades, total));
-        imprimir("%)\n");
+        imprimir($"{try linea(inv[i], total)}\n");
         i = i + 1;
     }
 
-    imprimir(borde); imprimir("\n");
-    imprimir("total ");   imprimir(total);
-    imprimir(", media "); imprimir(try media(total, 4));
-    imprimir("\n");
+    imprimir($"{borde}\n");
+    imprimir($"total {total}, media {try dividir(total, 4)}\n");
 
     // Un fallo que se sustituye en vez de propagarse.
-    imprimir("sobre cero: ");
-    imprimir(porcentaje(10, 0) sino 0);
-    imprimir(" (sustituido)\n");
+    imprimir($"sobre cero: {porcentaje(10, 0) sino 0} (sustituido)\n");
 }

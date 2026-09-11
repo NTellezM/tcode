@@ -10,6 +10,7 @@ mano, que son justo donde se equivoca:
 """
 
 import contextlib
+import re
 
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
@@ -1112,6 +1113,20 @@ class Generador:
             self.liberacion(n, self.tipo_var(n))
 
     def liberar_todo(self, excepto=None):
+        """Todo lo que esta vivo aqui: los temporales de la sentencia en curso
+        y las variables de todos los bloques abiertos.
+
+        Los cinco sitios que salen antes de tiempo (`falla`, los tres caminos
+        de `return` y la rama de fallo de `try`) pasan por aqui. Si los
+        temporales no se soltaran, `return $"{rellenar(v, 8)}"` filtraria el
+        `str` de `rellenar`: la limpieza de fin de sentencia se emite despues
+        del `return` y no se ejecuta nunca.
+
+        No se vacia la lista: `try` llama desde dentro de una rama, y el
+        camino en que no falla tiene que soltarlos igual al acabar.
+        """
+        for t in self.temporales:
+            self.liberacion(t, self.tipo_var(t) or "str")
         for marco in reversed(self.pila):
             self.liberar_bloque(marco, excepto)
 
@@ -1363,6 +1378,7 @@ class Generador:
             self.liberar_todo()
             self.emitir(f"return ({self.tipo_resultado(self.func.retorno)})"
                         f'{{ .motivo = "{lit}" }};')
+            self.temporales = []
             return
 
         if isinstance(s, Retorno):
@@ -1393,6 +1409,7 @@ class Generador:
                 self._apagar_ahora()
                 self.liberar_todo(excepto=entregadas)
                 self.emitir(f"return {envolver(devuelta)};")
+                self.temporales = []
             else:
                 tmp = self.nuevo_tmp()
                 tipo_devuelto = self.func.retorno if self.func else self._tipo_de(s.valor)
@@ -1403,6 +1420,7 @@ class Generador:
                 self._apagar_ahora()
                 self.liberar_todo(excepto=entregadas)
                 self.emitir(f"return {envolver(tmp)};")
+                self.temporales = []
             return
 
         if isinstance(s, ExprSentencia):
@@ -1415,6 +1433,14 @@ class Generador:
             # liberar.
             if c and tipo not in (None, UNIDAD) and self.c.posee(tipo):
                 self.reclamar(c)
+                # `liberacion` toma la direccion de lo que libera, y el
+                # resultado de una llamada no tiene direccion: `f();` a secas
+                # daba `ss_free(&f())`, que ni siquiera es C. Se guarda antes.
+                if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", c):
+                    tmp = self.nuevo_tmp()
+                    self.emitir(f"{self.tipo_c(tipo)} {tmp} = {c};")
+                    self.declarar(tmp, tipo)
+                    c = tmp
                 self.liberacion(c, tipo)
                 return
 

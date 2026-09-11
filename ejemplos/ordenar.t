@@ -1,57 +1,29 @@
-// ordenar.t — las palabras mas frecuentes de un archivo, ordenadas de verdad.
+// ordenar.t — las palabras distintas de un archivo, en orden alfabetico.
 //
-// `frecuencia.t` elegia las mayores recorriendo el vocabulario una vez por
-// cada una. Con `ordenar` se ordena una sola vez.
+// El bucle de veinte lineas que partia el texto byte a byte esta ahora en
+// `terminos`, y el recorte de las ocho primeras en `primeras`. Lo que queda
+// es el programa.
 //
 //     ./ordenar README.md
 
-
-usar "std/caracter";
+usar "std/texto";
+usar "std/lista";
+usar "std/cuenta";
 
 fn main() -> usize ! {
     if n_argumentos() < 2 {
-        imprimir_error("uso: ");
-        imprimir_error(argumento(0));
-        imprimir_error(" <archivo>\n");
+        imprimir_error($"uso: {argumento(0)} <archivo>\n");
         return 1;
     }
 
     let contenido = try leer_archivo(argumento(1));
-    let texto_completo = vista(contenido);
-
-    var vistas: mapa<str, usize> = [];
-    var palabra = vacio();
-    var i = 0;
-
-    while i <= largo(texto_completo) {
-        var corta = true;
-        if i < largo(texto_completo) {
-            corta = !es_alfanumerico(byte(texto_completo, i));
-        }
-        if corta {
-            if largo(palabra) > 0 {
-                poner(vistas, palabra, 1);
-                palabra = vacio();
-            }
-        } else {
-            empujar(palabra, rebanar(texto_completo, i, i + 1));
-        }
-        i = i + 1;
-    }
-
-    // Ordenadas alfabeticamente, que es lo que `ordenar` da sobre `lista<str>`.
-    var vocabulario = claves(vistas);
+    let repetidas = terminos(vista(contenido));
+    let distintas = contar(repetidas);
+    var vocabulario = claves(distintas);
     ordenar(vocabulario);
 
-    imprimir(largo(vocabulario));
-    imprimir(" palabras distintas, las 8 primeras en orden:\n");
-
-    var mostradas = 0;
-    for palabra_ordenada en vocabulario {
-        if mostradas == 8 { break; }
-        imprimir("  ");
-        imprimir(palabra_ordenada);
-        imprimir("\n");
-        mostradas = mostradas + 1;
+    imprimir($"{largo(vocabulario)} palabras distintas, las 8 primeras en orden:\n");
+    for palabra en primeras(vocabulario, 8) {
+        imprimir($"  {palabra}\n");
     }
 }

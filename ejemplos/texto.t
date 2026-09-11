@@ -1,41 +1,10 @@
-// texto.t — una libreria de texto escrita en safestr.
+// texto.t — lo que sigue siendo tuyo cuando la biblioteca ya esta escrita.
 //
-// Ninguna funcion de aqui puede tener las cuatro clases de fallo que
-// encontramos auditando la libreria en C: el compilador las rechaza.
+// `repetir`, `unir`, `empieza_con` y `termina_con` estaban aqui copiadas.
+// Ahora vienen de `std/texto`, y lo que queda es lo que este archivo de
+// verdad ensena: vistas que no reservan memoria, y prestamos mutables.
 
-fn repetir(patron: view, veces: usize) -> str {
-    var s = vacio();
-    var i = 0;
-    while i < veces {
-        empujar(s, patron);
-        i = i + 1;
-    }
-    return s;
-}
-
-fn unir(a: view, b: view, sep: view) -> str {
-    var s = nuevo(a);
-    empujar(s, sep);
-    empujar(s, b);
-    return s;
-}
-
-fn empieza_con(texto: view, prefijo: view) -> bool {
-    let n = largo(prefijo);
-    if largo(texto) < n {
-        return false;
-    }
-    return igual(rebanar(texto, 0, n), prefijo);
-}
-
-fn termina_con(texto: view, sufijo: view) -> bool {
-    let n = largo(sufijo);
-    let m = largo(texto);
-    if m < n {
-        return false;
-    }
-    return igual(rebanar(texto, m - n, m), sufijo);
-}
+usar "std/texto";
 
 // Estas dos devuelven una vista atada a su parametro: no reservan un solo
 // byte. El compilador comprueba que el texto al que apuntan sobrevive a la
@@ -59,44 +28,29 @@ fn agregar_separador(s: mut str) {
 
 fn marco(titulo: view) -> str {
     let borde = repetir("=", largo(titulo) + 4);
-    var s = vacio();
-    empujar(s, borde);
-    empujar(s, "\n| ");
-    empujar(s, titulo);
-    empujar(s, " |\n");
-    empujar(s, borde);
-    empujar(s, "\n");
-    return s;
+    return $"{borde}\n| {titulo} |\n{borde}\n";
 }
 
-fn main() -> usize {
-    let cabecera = marco("safestr");
-    imprimir(cabecera);
+fn main() -> usize ! {
+    imprimir(marco("safestr"));
 
-    let saludo = unir("hola", "mundo", ", ");
-    imprimir(saludo);
-    imprimir("\n");
+    var partes: lista<str> = [];
+    anadir(partes, nuevo("hola"));
+    anadir(partes, nuevo("mundo"));
+    let saludo = unir(partes, ", ");
+    imprimir($"{saludo}\n");
 
     var linea = nuevo("campo1");
     agregar_separador(linea);
     empujar(linea, "campo2");
     agregar_separador(linea);
     empujar(linea, "campo3");
-    imprimir(linea);
-    imprimir("\n");
+    imprimir($"{linea}\n");
 
-    imprimir(empieza_con(saludo, "hola"));
-    imprimir(" ");
-    imprimir(termina_con(saludo, "mundo"));
-    imprimir("\n");
+    imprimir($"{empieza_con(saludo, "hola")} {termina_con(saludo, "mundo")}\n");
 
     let ruta = nuevo("PRE:documento.txt");
-    imprimir(sin_prefijo(ruta, 4));
-    imprimir("  ");
-    imprimir(primera_mitad(ruta));
-    imprimir("\n");
+    imprimir($"{sin_prefijo(ruta, 4)}  {primera_mitad(ruta)}\n");
 
-    let barras = repetir("-*", 10);
-    imprimir(barras);
-    imprimir("\n");
+    imprimir($"{repetir("-*", 10)}\n");
 }

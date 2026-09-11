@@ -4,6 +4,10 @@
 // tratan como parte de una palabra, que es lo que quiere casi todo el mundo
 // al partir texto en español.
 
+fn es_blanco(b: usize) -> bool {
+    return b == 32 || b == 9 || b == 10 || b == 13;
+}
+
 fn es_digito(b: usize) -> bool {
     return b >= 48 && b <= 57;
 }

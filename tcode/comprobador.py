@@ -1625,13 +1625,11 @@ class Comprobador:
                     self.error(e, f"el argumento {i + 1} de `{nombre}` debe ser "
                                   f"`{esperado}` y es `{t}`")
 
-            # Prestar de un `str` exige poder nombrar donde vive. El resultado
-            # de una llamada no vive en ningun sitio todavia.
-            if (t == "str" and esperado in ("view", "@cualquiera")
-                    and not isinstance(arg, (Variable, Campo, Indice, Interpolada))):
-                self.error(e, f"el argumento {i + 1} de `{nombre}` es un `str` "
-                              f"que no esta guardado en ninguna variable; "
-                              f"asignalo primero con `let`")
+            # Un `str` recien hecho tambien vale donde se pide una vista: el
+            # generador lo guarda en un temporal que vive hasta el final de la
+            # sentencia y lo libera ahi. Es la misma regla que ya valia para
+            # las funciones de uno, y no tenerla aqui obligaba a escribir un
+            # `let` que no decia nada: `imprimir(marco("x"))` es lo natural.
 
             if (esperado == "@cualquiera" and t is not None
                     and (es_arreglo(t) or t in self.structs)):

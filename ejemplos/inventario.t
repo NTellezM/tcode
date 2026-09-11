@@ -4,6 +4,8 @@
 // genera la liberacion de los cuatro, en orden, sin que aparezca un solo
 // `ss_free` en este archivo.
 
+usar "std/texto";
+
 struct Articulo {
     nombre: str,
     pasillo: usize,
@@ -36,16 +38,6 @@ fn resumir(inv: [Articulo; 4]) -> Resumen {
     return Resumen { total: total, mayor: mayor, lleno: total > 1000 };
 }
 
-fn barra(n: usize) -> str {
-    var s = vacio();
-    var i = 0;
-    while i < n {
-        empujar(s, "#");
-        i = i + 1;
-    }
-    return s;
-}
-
 fn main() -> usize {
     var inv = [
         crear("tornillos",  1, 420),
@@ -59,24 +51,11 @@ fn main() -> usize {
 
     var i = 0;
     while i < 4 {
-        imprimir(inv[i].nombre);
-        imprimir("\t pasillo ");
-        imprimir(inv[i].pasillo);
-        imprimir("  ");
-        let b = barra(inv[i].unidades / 50);
-        imprimir(b);
-        imprimir(" ");
-        imprimir(inv[i].unidades);
-        imprimir("\n");
+        let marcas = repetir("#", inv[i].unidades / 50);
+        imprimir($"{inv[i].nombre}\t pasillo {inv[i].pasillo}  {marcas} {inv[i].unidades}\n");
         i = i + 1;
     }
 
     let r = resumir(inv);
-    imprimir("\ntotal ");
-    imprimir(r.total);
-    imprimir(", mayor ");
-    imprimir(r.mayor);
-    imprimir(", lleno: ");
-    imprimir(r.lleno);
-    imprimir("\n");
+    imprimir($"\ntotal {r.total}, mayor {r.mayor}, lleno: {r.lleno}\n");
 }

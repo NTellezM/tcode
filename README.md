@@ -142,19 +142,22 @@ cualquier sitio donde haya un compilador de C17.
 
 ## El lexer y el parser de Tcode, escritos en Tcode
 
-`ejemplos/lexer/lexer.t` son 259 líneas que hacen el análisis léxico del
-propio lenguaje: comentarios, cadenas normales e interpoladas, números,
-identificadores, palabras reservadas y símbolos de uno y dos caracteres.
+`ejemplos/lexer/lib/lexico.t` hace el análisis léxico del propio lenguaje:
+comentarios, cadenas normales e interpoladas, números, identificadores,
+palabras reservadas y símbolos de uno y dos caracteres.
 
-Sobre los diez `.t` del repositorio —incluido el suyo propio— produce
-**4.660 tokens idénticos** a los del lexer del compilador, uno a uno. Eso
-está en la suite, así que si alguna vez deja de coincidir, se sabe.
+Sobre los dieciséis `.t` del repositorio —incluido el suyo propio— produce
+**9.161 tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
+pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
+interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
+instante.
 
 ```
-$ ./ejemplos/lexer/lexer ejemplos/lexer/lexer.t --contar
-ejemplos/lexer/lexer.t: 1688 tokens
-  cadena  40      entero  136     fin  1        ident  405
-  interpolada  4  palabra  225    simbolo  877
+$ ./ejemplos/lexer/lexer ejemplos/lexer/lib/lexico.t --contar
+ejemplos/lexer/lib/lexico.t: 1400 tokens
+  cadena  40   entero  125   fin  1
+  ident  347   palabra  159  simbolo  728
 ```
 
 Es el primer programa grande del lenguaje y su primera prueba de fuego: usa
@@ -164,14 +167,14 @@ interpoladas para los mensajes, y lectura de archivos con argumentos. Corre
 limpio bajo ASan y UBSan, y ante una entrada rota —una cadena sin cerrar, un
 archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 
-`ejemplos/lexer/parser.t` son 621 líneas más: descenso recursivo con la
+`ejemplos/lexer/parser.t` son 626 líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
-de abajo arriba. Acepta y rechaza **exactamente** los mismos doce archivos
-que el parser del compilador, y sobre ellos produce 4.592 nodos:
+de abajo arriba. Acepta y rechaza **exactamente** los mismos dieciséis
+archivos que el parser del compilador, y sobre ellos produce 4.790 nodos:
 
 ```
 $ ./ejemplos/lexer/parser ejemplos/lexer/parser.t --callado
-ejemplos/lexer/parser.t: 2109 nodos, hondura 16
+ejemplos/lexer/parser.t: 2082 nodos, hondura 15
 ```
 
 Falta el comprobador y el generador para que Tcode se compile a sí mismo.
@@ -324,15 +327,20 @@ structs (`&T` y `mut T`), `lista<T>` dinámica, `mapa<str, V>` con tabla hash,
 argumentos de la línea de órdenes, `ordenar` y `menor`, salida de error y
 escritura de archivos, `for`/`break`/`continue`, `mapa<str, V>` con `obtener` prestado y `&T` y `&mut T` como tipos, cadenas interpoladas, módulos y fallos como valores.
 
-No hay: genéricos definidos por el usuario, espacios de nombres, diccionarios,
+Hay además una biblioteca estándar escrita en Tcode: `std/caracter`,
+`std/texto`, `std/lista`, `std/numero` y `std/cuenta`, 398 líneas que ningún
+programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
+queda una sola función duplicada entre `ejemplos/` y `std/`.
+
+No hay: genéricos definidos por el usuario, espacios de nombres,
 E/S incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
 struct (el muro real: exige la vida útil en el tipo), movimientos parciales
 de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-197 casos, 0 fallas
-548 comprobaciones sobre 60 programas, 0 fallas
+213 casos, 0 fallas
+558 comprobaciones sobre 60 programas, 0 fallas
 ```
 
 La suite tiene dos mitades. La primera son **casos por ejemplo**: este
@@ -351,6 +359,7 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 | **P6** | `--explicar` funciona sobre todo programa aceptado y nombra todas sus funciones y variables |
 | **P7** | todo aviso nombra un archivo y una línea que existen, y ningún aviso impide compilar |
 | **P8** | ante un programa **roto a propósito**, el compilador o lo acepta o lo rechaza diciendo dónde: nunca una excepción, nunca un cuelgue |
+| **P9** | un programa repartido en varios archivos, con `usar` en rombo, compila y corre igual: los structs y las funciones cruzan de módulo, y un `str` que nace en uno y muere en otro no se filtra |
 
 `tests/generador_programas.py` produce programas válidos por construcción
 —con `lista<usize>` y `lista<str>`, `mapa<str, usize>`, préstamos `&T` y
@@ -366,7 +375,10 @@ TCODE_PROGRAMAS=1000 make propiedades
 
 Los casos de rechazo comprueban que los programas malos no compilan; los de
 aceptación corren bajo AddressSanitizer y UndefinedBehaviorSanitizer y comparan
-la salida exacta, incluida una lectura binaria real. Otros comprueban que la
+la salida exacta, incluida una lectura binaria real. Los nueve programas de
+`ejemplos/` se compilan y se corren ahí también: la vitrina del lenguaje
+tiene que estar tan comprobada como el resto, y la primera vez que se hizo
+apareció una fuga real. Otros comprueban que la
 aritmética y los índices detienen el programa en vez de seguir con basura, y
 arman programas de varios archivos para probar módulos, ciclos y nombres
 repetidos.

@@ -1,31 +1,23 @@
-// contar.t — una utilidad que consume entrada externa de verdad.
+// contar.t — una version pequena de `wc`: lineas, palabras y bytes.
 //
-// Recorre todos los bytes del archivo que se le pase y calcula una version
-// pequena de `wc`: lineas, palabras y bytes. La lista dinamica guarda la
-// posicion de cada salto de linea; no hace falta conocer su cantidad de
-// antemano.
+// Consume entrada externa de verdad, y recorre el archivo una sola vez: la
+// lista dinamica guarda la posicion de cada salto de linea sin conocer su
+// cantidad de antemano.
 //
 //     ./contar README.md
 
 usar "std/texto";
 
-fn poner_numero(s: mut str, n: usize) {
-    let t = texto(n);
-    empujar(s, t);
-}
-
 fn main() -> usize ! {
     if n_argumentos() < 2 {
-        imprimir("uso: ");
-        imprimir(argumento(0));
-        imprimir(" <archivo>\n");
+        imprimir($"uso: {argumento(0)} <archivo>\n");
         return 1;
     }
 
     let ruta = argumento(1);
     let contenido = try leer_archivo(ruta);
     var saltos: lista<usize> = [];
-    var palabras = 0;
+    var cuantas_palabras = 0;
     var dentro = false;
     var i = 0;
 
@@ -38,7 +30,7 @@ fn main() -> usize ! {
             dentro = false;
         } else {
             if !dentro {
-                palabras = palabras + 1;
+                cuantas_palabras = cuantas_palabras + 1;
                 dentro = true;
             }
         }
@@ -52,13 +44,5 @@ fn main() -> usize ! {
         lineas = lineas + 1;
     }
 
-    var informe = nuevo(ruta);
-    empujar(informe, ": ");
-    poner_numero(informe, lineas);
-    empujar(informe, " lineas, ");
-    poner_numero(informe, palabras);
-    empujar(informe, " palabras, ");
-    poner_numero(informe, i);
-    empujar(informe, " bytes\n");
-    imprimir(informe);
+    imprimir($"{ruta}: {lineas} lineas, {cuantas_palabras} palabras, {i} bytes\n");
 }
