@@ -1373,6 +1373,34 @@ en el que las colecciones se escriben en el propio lenguaje.
 `lista<T>` sigue siendo la que trae de serie, por ergonomía —literales `[]`,
 `for`, `anadir`— pero ya no es la única posible, que era el punto.
 
+## Depurar: el C generado apunta al `.t`
+
+Tcode compila a C, así que `gdb`, `valgrind`, los sanitizers y los
+perfiladores funcionaban desde el primer día —pero hablaban del `.c`
+intermedio, que nadie escribió. Con directivas `#line` en el C generado,
+todos ellos señalan el Tcode:
+
+```
+$ gdb ./mi_programa
+Breakpoint 1, hondo (n=3) at mi.t:2
+2           let a = n * 2;
+(gdb) info locals
+a = ...
+(gdb) bt
+#7  hondo (n=3) at mi.t:3
+#8  main (argc=1, argv=...) at mi.t:7
+```
+
+Puntos de ruptura en funciones Tcode, la fuente Tcode listada, variables con
+sus nombres de Tcode, y la pila en líneas de Tcode. **Sin escribir un
+depurador**: no hacía falta escribirlo, hacía falta no perder el sitio.
+
+Lo mismo vale para AddressSanitizer, UndefinedBehaviorSanitizer, `valgrind`
+y `perf`: cualquier herramienta que lea información de depuración.
+
+`--sin-lineas` las quita. Sólo sirve para depurar el propio compilador,
+cuando lo que hay que mirar es el C.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: clausuras que modifiquen lo capturado

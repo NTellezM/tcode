@@ -449,6 +449,8 @@ class Generador:
         self.tipos_funcion = {}   # tipo de funcion -> nombre de su typedef
         self.decimales = set()    # anchos decimales cuya comprobacion hace falta
         self.bloques = {}         # tipo bloque -> nombre de su struct en C
+        self.con_lineas = True    # emitir `#line` apuntando al `.t`
+        self.ultima_pos = None
         self.tmp = 0
         # El generador lleva su propia tabla: los ambitos del comprobador ya
         # se cerraron cuando llegamos aqui.
@@ -767,6 +769,28 @@ class Generador:
 
     def emitir(self, texto=""):
         self.lineas.append("    " * self.sangria + texto if texto else "")
+
+    def marcar(self, nodo):
+        """`#line`: le dice al compilador de C de que linea de Tcode viene lo
+        que sigue.
+
+        Con esto, gdb, valgrind, los sanitizers y los perfiladores dejan de
+        hablar del `.c` intermedio y sealan el `.t` que escribio la persona.
+        No hace falta escribir un depurador: hace falta no perder el sitio.
+
+        Va pegada al margen: una directiva sangrada no es una directiva.
+        """
+        if not self.con_lineas:
+            return
+        linea = getattr(nodo, "linea", None)
+        if not linea:
+            return
+        archivo = getattr(nodo, "archivo", "") or self.archivo
+        if (archivo, linea) == self.ultima_pos:
+            return
+        self.ultima_pos = (archivo, linea)
+        escapado = archivo.replace("\\", "\\\\").replace('"', '\\"')
+        self.lineas.append(f'#line {linea} "{escapado}"')
 
     def declarar(self, nombre, tipo, por_puntero=False, decl=None):
         self.vars[-1][nombre] = (tipo, por_puntero, decl)
@@ -1429,6 +1453,7 @@ class Generador:
 
     def funcion(self, f: Funcion):
         self.func = f
+        self.marcar(f)
         self.emitir(self.prototipo(f))
         self.emitir("{")
         self.sangria += 1
@@ -1672,6 +1697,7 @@ class Generador:
             self.temporales.remove(valor_c)
 
     def sentencia(self, s):
+        self.marcar(s)
         anteriores = self.temporales
         self.temporales = []
         with self.camino():
@@ -2631,5 +2657,7 @@ class Generador:
         return f'{f}"%s", "?")'
 
 
-def generar(funciones, comprobador, archivo="<entrada>"):
-    return Generador(comprobador, archivo).generar(funciones)
+def generar(funciones, comprobador, archivo="<entrada>", con_lineas=True):
+    g = Generador(comprobador, archivo)
+    g.con_lineas = con_lineas
+    return g.generar(funciones)
