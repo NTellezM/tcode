@@ -782,8 +782,15 @@ class Generador:
         return v[0] if v else None
 
     def es_puntero(self, nombre):
+        """Si en C esa variable es un puntero.
+
+        Lo es un parametro prestado, y tambien una variable local cuyo tipo
+        es un prestamo: `let x = try obtener(m, k);` guarda un `&V`.
+        """
         v = self.buscar(nombre)
-        return bool(v and v[1])
+        if not v:
+            return False
+        return bool(v[1]) or es_referencia(v[0] or "")
 
     def fue_movida(self, nombre):
         """Si el valor se movio a otro sitio, aqui ya no somos duenios."""
@@ -1731,7 +1738,7 @@ class Generador:
             return
 
         if isinstance(s, Para):
-            tipo = self._tipo_de(s.coleccion)
+            tipo = sin_prestamo(self._tipo_de(s.coleccion) or "")
             if isinstance(s.coleccion, (Variable, Campo, Indice)):
                 lugar = self.lugar(s.coleccion)
             else:
@@ -2225,9 +2232,8 @@ class Generador:
         if isinstance(e, Variable):
             return f"(*{e.nombre})" if self.es_puntero(e.nombre) else e.nombre
         if isinstance(e, Campo):
-            base = self._tipo_de(e.objeto)
-            if es_referencia(base):
-                return f"{self.como_lugar(e.objeto)}->{e.nombre}"
+            # `como_lugar` ya devuelve el valor, no el puntero: un prestamo
+            # sale como `(*x)`, asi que aqui siempre es un punto.
             return f"{self.como_lugar(e.objeto)}.{e.nombre}"
         if isinstance(e, Indice):
             base = self._tipo_de(e.arreglo)
