@@ -15,6 +15,7 @@ import re
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
+    Decimal,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
@@ -33,6 +34,7 @@ TIPOS_C = {
     "usize": "size_t",
     "u8": "uint8_t", "u16": "uint16_t", "u32": "uint32_t", "u64": "uint64_t",
     "i8": "int8_t", "i16": "int16_t", "i32": "int32_t", "i64": "int64_t",
+    "f32": "float", "f64": "double",
     None: "void",
     UNIDAD: "void",
 }
@@ -40,6 +42,8 @@ TIPOS_C = {
 # Por cada entero: el sufijo de sus funciones de aritmetica comprobada, el
 # tipo de C, y sus limites. `usize` no lleva ancho escrito porque mide cosas
 # de la maquina; los demas valen lo mismo en todas.
+DECIMALES = {"f32": "float", "f64": "double"}
+
 ARITMETICA = {
     "usize": ("usize", "size_t",  "SIZE_MAX",   None),
     "u8":    ("u8",    "uint8_t", "UINT8_MAX",  None),
@@ -56,6 +60,7 @@ CABECERA = r'''/* Generado por el compilador de Tcode. No editar a mano. */
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -89,6 +94,15 @@ CABECERA = r'''/* Generado por el compilador de Tcode. No editar a mano. */
 
 /* Aritmetica comprobada: en Tcode el desbordamiento no es silencioso.
    Aborta diciendo donde, en vez de seguir con un valor equivocado. */
+SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
+static void ss_lang_no_es_numero_(const char* op, const char* consejo,
+                                  const char* archivo, int linea)
+{
+    fprintf(stderr, "%s:%d: `%s` no dio un numero (NaN o infinito). %s\n",
+            archivo, linea, op, consejo);
+    abort();
+}
+
 SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
 static void ss_lang_no_cabe_(const char* de, const char* a,
                              const char* archivo, int linea)
@@ -203,6 +217,11 @@ static tipo ss_lang_mul_##sufijo(tipo a, tipo b, const char* ar, int ln)      \
       { ss_lang_desborde_("*", ar, ln); }                    \
   return r; }                             \
 SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_abs_##sufijo(tipo a, const char* ar, int ln)              \
+{ /* el absoluto del minimo no cabe en el tipo: es el unico caso. */          \
+  if (a == tmin) { ss_lang_desborde_("absoluto", ar, ln); }                   \
+  return a < 0 ? (tipo) -a : a; }                                             \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
 static tipo ss_lang_desp_izq_##sufijo(tipo a, size_t n, const char* ar, int ln)\
 { if (n >= sizeof(tipo) * 8) { ss_lang_desborde_("<<", ar, ln); }             \
   /* desplazar un negativo es indefinido en C: se hace sobre los bits. */     \
@@ -211,6 +230,23 @@ SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
 static tipo ss_lang_desp_der_##sufijo(tipo a, size_t n, const char* ar, int ln)\
 { if (n >= sizeof(tipo) * 8) { ss_lang_desborde_(">>", ar, ln); }             \
   return (tipo) (a >> n); }
+
+/* Decimales. Un calculo que sale de los numeros —un NaN, un infinito— no
+   sigue adelante: para donde aparece. Es la misma regla que ya vale para el
+   desbordamiento entero, y la diferencia con C, Go, Rust y Swift, donde un
+   NaN nacido en el paso 3 se descubre en el paso 900 habiendolo contaminado
+   todo. `+?`, `-?`, `*?` y `/?` dejan el IEEE de siempre, dicho a proposito.
+
+   Se comprueba el RESULTADO, no los operandos: una sola comparacion cubre
+   NaN, infinito por division entre cero y desborde a infinito. */
+#define SS_LANG_ARIT_F(sufijo, tipo)                                          \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_fin_##sufijo(tipo r, const char* op, const char* consejo, \
+                                 const char* ar, int ln)                      \
+{                                                                             \
+    if (!isfinite(r)) { ss_lang_no_es_numero_(op, consejo, ar, ln); }         \
+    return r;                                                                 \
+}
 
 /* Conversion entre anchos. La comprobacion es de ida y vuelta: se convierte,
    se vuelve a convertir al tipo de origen, y si no sale lo mismo es que no
@@ -280,6 +316,22 @@ static void ss_lang_sin_memoria_(const char* archivo, int linea)
 
 /* Agrega texto a un `str` y aborta si no hay memoria. Lo usan las cadenas
    interpoladas, donde no hay un sitio razonable al que devolver el fallo. */
+/* Un decimal se escribe con `%g`, pero si sale entero se le pone `.0`: un
+   `f64` que vale 1 tiene que verse como `1.0` y no como `1`, que es lo que
+   hacen C y Go y lo que confunde al leer una salida. El buffer es estatico
+   por llamada, asi que el resultado se usa y se copia en el acto. */
+SS_LANG_QUIZA_SIN_USAR
+static const char* ss_lang_texto_decimal_(double v)
+{
+    static char buf[40];
+    snprintf(buf, sizeof buf, "%g", v);
+    for (const char* p = buf; *p; p++)
+        if (*p == '.' || *p == 'e' || *p == 'n' || *p == 'i') return buf;
+    size_t n = strlen(buf);
+    if (n + 2 < sizeof buf) { buf[n] = '.'; buf[n + 1] = '0'; buf[n + 2] = 0; }
+    return buf;
+}
+
 SS_LANG_QUIZA_SIN_USAR
 static void ss_lang_empujar_byte_(SafeString* s, uint8_t b,
                                   const char* archivo, int linea)
@@ -392,6 +444,7 @@ class Generador:
         self.aritmeticas = set()  # anchos de entero cuya aritmetica hace falta
         self.conversiones = set()  # (destino, origen) de cada `como`
         self.tipos_funcion = {}   # tipo de funcion -> nombre de su typedef
+        self.decimales = set()    # anchos decimales cuya comprobacion hace falta
         self.tmp = 0
         # El generador lleva su propia tabla: los ambitos del comprobador ya
         # se cerraron cuando llegamos aqui.
@@ -734,6 +787,9 @@ class Generador:
         pos = f"{self.arch(nodo)}, {nodo.linea}"
         if tipo == "usize":
             return f"ss_lang_texto_usize_({expresion_c}, {pos})"
+        if tipo in DECIMALES:
+            return (f"ss_lang_texto_view_(sv(ss_lang_texto_decimal_"
+                    f"({expresion_c})), {pos})")
         if tipo in ARITMETICA:
             # Un ancho fijo se ensancha al mayor de su signo: una funcion de
             # conversion por signo, no una por ancho.
@@ -1231,6 +1287,8 @@ class Generador:
                 sin_signo = TIPOS_C[t.replace("i", "u", 1)]
                 arit.append(f"SS_LANG_ARIT_I({suf}, {tc}, {sin_signo}, "
                             f"{tmax}, {tmin})")
+        for t in sorted(self.decimales):
+            arit.append(f"SS_LANG_ARIT_F({t}, {DECIMALES[t]})")
         for destino, origen in sorted(self.conversiones):
             arit.append(f"SS_LANG_CONV({destino}, {TIPOS_C[destino]}, "
                         f"{origen}, {TIPOS_C[origen]})")
@@ -1743,6 +1801,8 @@ class Generador:
     def _tipo_de(self, e):
         if isinstance(e, Entero):
             return "usize"
+        if isinstance(e, Decimal):
+            return "f64"
         if isinstance(e, Cadena):
             return "view"
         if isinstance(e, Booleano):
@@ -1763,6 +1823,11 @@ class Generador:
                     if e.nombre in ("tiene", "quitar"):
                         return "bool"
                     return f"lista<{k}>"
+            if e.nombre in ("raiz", "piso", "techo", "redondear") and e.args:
+                t = sin_prestamo(self._tipo_de(e.args[0]) or "f64")
+                return t if t in DECIMALES else "f64"
+            if e.nombre == "absoluto" and e.args:
+                return sin_prestamo(self._tipo_de(e.args[0]) or "f64")
             if e.nombre == "copiar" and e.args:
                 # Una copia tiene el tipo de lo copiado, ya sin el prestamo.
                 t = sin_prestamo(self._tipo_de(e.args[0]) or "usize")
@@ -1815,6 +1880,9 @@ class Generador:
 
     def expr(self, e, esperado):
         if isinstance(e, Entero):
+            if esperado in DECIMALES:
+                # `let x: f64 = 0;` — un numero escrito no decide su tipo.
+                return f"{e.valor}.0f" if esperado == "f32" else f"{e.valor}.0"
             if esperado == "i64":
                 return f"(int64_t){e.valor}"
             # Sin sufijo, un literal por encima de 2^63-1 no cabe en el tipo
@@ -1826,6 +1894,12 @@ class Generador:
         if isinstance(e, Cadena):
             return (f"sv_len({self.literal_c(e.valor)}, "
                     f"{len(bytes_de(e.valor))})")
+
+        if isinstance(e, Decimal):
+            # Tal cual se escribio, con sufijo si el destino es de 32 bits.
+            lit = e.valor if ("." in e.valor or "e" in e.valor.lower()) \
+                  else e.valor + ".0"
+            return f"{lit}f" if esperado == "f32" else lit
 
         if isinstance(e, Booleano):
             return "true" if e.valor else "false"
@@ -2018,11 +2092,26 @@ class Generador:
 
     def binaria(self, e: Binaria, esperado):
         t = self._tipo_de(e.izq)
-        if t not in ARITMETICA:
+        if t not in ARITMETICA and t not in DECIMALES:
             t = self._tipo_de(e.der)
-        if t not in ARITMETICA:
-            t = esperado if esperado in ARITMETICA else "usize"
+        if t not in ARITMETICA and t not in DECIMALES:
+            if esperado in ARITMETICA or esperado in DECIMALES:
+                t = esperado
+            else:
+                t = "usize"
         pos = f"{self.arch(e)}, {e.linea}"
+
+        if t in DECIMALES:
+            izq = self.expr(e.izq, t)
+            der = self.expr(e.der, t)
+            if e.op in {"+", "-", "*", "/"}:
+                self.decimales.add(t)
+                consejo = f"Si lo querias, escribe `{e.op}?`."
+                return (f"ss_lang_fin_{t}(({izq} {e.op} {der}), "
+                        f"\"{e.op}\", \"{consejo}\", {pos})")
+            if e.op in {"+?", "-?", "*?", "/?"}:
+                return f"({izq} {e.op[0]} {der})"
+            return f"({izq} {e.op} {der})"
 
         # El desplazamiento tiene dos tipos: lo que se mueve y cuanto se mueve.
         if e.op in {"<<", ">>"}:
@@ -2056,7 +2145,7 @@ class Generador:
 
     def conversion(self, e):
         origen = sin_prestamo(self._tipo_de(e.valor) or "usize")
-        if origen not in ARITMETICA:
+        if origen not in ARITMETICA and origen not in DECIMALES:
             origen = "usize"
         destino = e.a_tipo
         valor = self.expr(e.valor, origen)
@@ -2134,6 +2223,30 @@ class Generador:
             valor = self.expr(e.args[1], elem)
             return (f"ss_push_{mangle(tipo_lista)}({self.dir_de(lista)}, {valor}, "
                     f"{self.arch(e)}, {e.linea})")
+        if n in ("raiz", "piso", "techo", "redondear", "absoluto"):
+            t = sin_prestamo(self._tipo_de(e.args[0]) or "f64")
+            if t not in DECIMALES and t not in ARITMETICA:
+                t = "f64"
+            valor = self.expr(e.args[0], t)
+            if t in DECIMALES:
+                sufijo = "f" if t == "f32" else ""
+                fn = {"raiz": "sqrt", "piso": "floor", "techo": "ceil",
+                      "redondear": "round", "absoluto": "fabs"}[n]
+                self.decimales.add(t)
+                # `raiz` de un negativo da NaN: la misma regla que todo lo
+                # demas, y por eso pasa por la comprobacion.
+                consejo = {
+                    "raiz": "Comprueba el signo antes: la raiz de un negativo "
+                            "no es un numero.",
+                }.get(n, "Comprueba el valor antes de operar con el.")
+                return (f"ss_lang_fin_{t}({fn}{sufijo}({valor}), "
+                        f"\"{n}\", \"{consejo}\", "
+                        f"{self.arch(e)}, {e.linea})")
+            # Entero con signo: el valor absoluto de `tmin` no cabe en el tipo.
+            self.usar_aritmetica(t)
+            return (f"ss_lang_abs_{ARITMETICA[t][0]}({valor}, "
+                    f"{self.arch(e)}, {e.linea})")
+
         if n == "copiar":
             a = e.args[0]
             t = sin_prestamo(self._tipo_de(a) or "")
@@ -2157,6 +2270,9 @@ class Generador:
             pos = f"{self.arch(e)}, {e.linea}"
             if t == "usize":
                 return f"ss_lang_texto_usize_({self.expr(a, t)}, {pos})"
+            if t in DECIMALES:
+                return (f"ss_lang_texto_view_(sv(ss_lang_texto_decimal_"
+                        f"({self.expr(a, t)})), {pos})")
             if t in ARITMETICA:
                 if t.startswith("u"):
                     return (f"ss_lang_texto_usize_((size_t) "
@@ -2303,6 +2419,9 @@ class Generador:
             return f'{f}SV_FMT, SV_ARG({self.como_vista(a)}))'
         if t == "usize":
             return f'{f}"%zu", {self.expr(a, "usize")})'
+        if t in DECIMALES:
+            self.decimales_impresos = True
+            return f'{f}"%s", ss_lang_texto_decimal_({self.expr(a, t)}))'
         if t in ARITMETICA:
             # Un ancho fijo se ensancha al mayor para imprimirlo: asi hay un
             # solo formato por signo y no nueve.

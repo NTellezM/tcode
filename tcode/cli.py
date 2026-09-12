@@ -155,7 +155,11 @@ def main(argv=None):
 
         orden = [args.cc, "-std=c17", f"-O{args.optimizacion}", "-Wall", "-Wextra",
                  f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
-                 "-o", base]
+                 "-o", base,
+                 # `raiz`, `piso` y compania viven en libm. En glibc moderna
+                 # ya va dentro de libc, pero enlazarla no estorba y hace
+                 # falta en todo lo demas.
+                 "-lm"]
         r = subprocess.run(orden, capture_output=True, text=True)
         if r.returncode != 0:
             print("tcode: el C generado no compilo. Es un fallo del "

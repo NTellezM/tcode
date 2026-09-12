@@ -11,11 +11,12 @@ PALABRAS = {
     # la maquina y por eso vale lo que valga ahi.
     "u8", "u16", "u32", "u64", "usize",
     "i8", "i16", "i32", "i64",
+    "f32", "f64",
 }
 
 # Los de mas caracteres primero: "+?" tiene que ganarle a "+".
 SIMBOLOS = [
-    "<<", ">>", "+?", "-?", "*?", "->", "==", "!=", "<=", ">=", "&&", "||",
+    "<<", ">>", "+?", "-?", "*?", "/?", "->", "==", "!=", "<=", ">=", "&&", "||",
     "(", ")", "{", "}", "[", "]", ",", ";", ":", ".", "=", "+", "-", "*", "/",
     "%", "<", ">", "!", "&", "|", "^", "~", "?", "$",
 ]
@@ -167,11 +168,32 @@ def tokenizar(fuente: str, archivo: str = "<entrada>") -> list:
             j = i
             while j < n and (fuente[j].isdigit() or fuente[j] == "_"):
                 j += 1
+
+            # Decimal: el punto tiene que llevar un digito a cada lado. `1.`
+            # y `.5` no valen, porque `1.largo()` seria ambiguo y `.5` se
+            # confunde con el acceso a un campo.
+            decimal = False
+            if (j + 1 < n and fuente[j] == "." and fuente[j + 1].isdigit()):
+                decimal = True
+                j += 1
+                while j < n and (fuente[j].isdigit() or fuente[j] == "_"):
+                    j += 1
+            if j < n and fuente[j] in "eE":
+                k = j + 1
+                if k < n and fuente[k] in "+-":
+                    k += 1
+                if k < n and fuente[k].isdigit():
+                    decimal = True
+                    j = k
+                    while j < n and fuente[j].isdigit():
+                        j += 1
+
             if j < n and (fuente[j].isalpha() or fuente[j] == "."):
                 raise ErrorLexico(
                     f"{archivo}:{linea}: numero mal formado cerca de "
                     f"{fuente[i:j+1]!r}")
-            toks.append(Token("entero", fuente[i:j].replace("_", ""), linea, c0))
+            toks.append(Token("decimal" if decimal else "entero",
+                              fuente[i:j].replace("_", ""), linea, c0))
             i = j
             continue
 

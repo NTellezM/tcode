@@ -26,6 +26,19 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    ("`%` no tiene un significado unico con decimales",
+     'fn main() -> usize { let a: f64 = 5.5; let b: f64 = 2.0;'
+     ' imprimir(a % b); return 0; }',
+     "no tiene un significado unico"),
+
+    ("`como?` de un decimal a un entero no dice que hacer con la fraccion",
+     'fn main() -> usize { let f: f64 = 3.7; imprimir(f como? usize); return 0; }',
+     "di que quieres con la parte decimal"),
+
+    ("los bits no operan sobre decimales",
+     'fn main() -> usize { let a: f64 = 2.0; imprimir(a & 1); return 0; }',
+     "trabaja sobre los bits de un entero"),
+
     ("una funcion falible no se puede pasar como valor en v0",
      'fn r(n: usize) -> usize ! { if n == 0 { falla "cero"; } return n; }'
      ' fn f(g: fn(usize) -> usize) -> usize { return g(1); }'
@@ -48,9 +61,9 @@ RECHAZO = [
      'fn main() -> usize { let a: u8 = 1; let b: u32 = 2; imprimir(a + b); return 0; }',
      "no se mezclan sin conversion explicita"),
 
-    ("`como` es entre enteros, no un molde universal",
+    ("`como` es entre numeros, no un molde universal",
      'fn main() -> usize { let s = nuevo("a"); imprimir(s como u8); return 0; }',
-     "`como` convierte entre enteros"),
+     "`como` convierte entre numeros"),
 
     ("los bits no operan sobre texto",
      'fn main() -> usize { let s = nuevo("a"); imprimir(s & 1); return 0; }',
@@ -548,6 +561,31 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("decimales, con lo que sale de los numeros parando el programa",
+     '''usar "std/numero";
+        fn main() -> usize ! {
+            let a: f64 = 3.5;
+            let b: f64 = 1.5;
+            let uno: f64 = 1;            // un numero escrito no decide su tipo
+            let z: f64 = 0;
+            imprimir($"{a} {uno} {a * b + uno} {a / b}");
+            imprimir($" {raiz(4.0)} {piso(3.7)} {techo(3.2)} {redondear(3.5)}");
+            imprimir($" {absoluto(0.0 - 2.5)} {cerca(0.1 + 0.2, 0.3, 0.000001)}");
+            // IEEE de siempre, pedido a proposito
+            imprimir($" {a /? z} {try porcentaje_exacto(1.0, 8.0)}\\n");
+            return 0;
+        }''',
+     "3.5 1.0 6.25 2.33333 2.0 3.0 4.0 4.0 2.5 true inf 12.5\n"),
+
+    ("un entero y un decimal se convierten, y la conversion se comprueba",
+     '''fn main() -> usize {
+            let n: usize = 7;
+            let x = n como f64;
+            let exacto: f64 = 3.0;
+            imprimir($"{x} {exacto como usize} {x / 2}\\n");
+        }''',
+     "7.0 3 3.5\n"),
+
     ("indexar lo que devuelve una llamada no la evalua dos veces ni filtra",
      '''fn hacer() -> lista<usize> {
             var xs: lista<usize> = [];
@@ -1565,6 +1603,23 @@ AVISA = [
 
 # Programas que compilan pero deben ABORTAR en tiempo de ejecucion.
 ABORTA = [
+    ("un NaN no sigue adelante: para donde aparece",
+     'fn main() -> usize { let z: f64 = 0; let a: f64 = 0;'
+     ' imprimir(a / z); return 0; }',
+     "no dio un numero"),
+
+    ("un infinito tampoco",
+     'fn main() -> usize { let g: f64 = 1e308; imprimir(g * 10.0); return 0; }',
+     "no dio un numero"),
+
+    ("la raiz de un negativo para, y dice por que",
+     'fn main() -> usize { let n: f64 = 0.0 - 1.0; imprimir(raiz(n)); return 0; }',
+     "la raiz de un negativo no es un numero"),
+
+    ("una conversion que pierde la parte decimal para",
+     'fn main() -> usize { let f: f64 = 3.7; imprimir(f como usize); return 0; }',
+     "no cabe en `usize` viniendo de `f64`"),
+
     ("desbordamiento al multiplicar",
      '''fn main() -> usize {
             var a: usize = 1;
@@ -1630,7 +1685,7 @@ def compilar_y_correr(fuente, tmp, con_sanitizers=True):
 
     orden = ["cc", "-std=c17", "-g", "-Wall", "-Wextra", "-Werror",
              f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
-             "-o", binario]
+             "-o", binario, "-lm"]
     if con_sanitizers:
         orden.insert(3, "-fsanitize=address,undefined")
         orden.insert(4, "-fno-omit-frame-pointer")
@@ -1787,7 +1842,7 @@ with tempfile.TemporaryDirectory() as tmp:
             ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
              "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
              f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
-             "-o", binario],
+             "-o", binario, "-lm"],
             capture_output=True, text=True)
         if r.returncode != 0:
             falla("el lexer en Tcode compila", r.stderr)
@@ -1851,7 +1906,7 @@ with tempfile.TemporaryDirectory() as tmp:
                     ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra",
                      "-Werror", "-fsanitize=address,undefined",
                      "-fno-omit-frame-pointer", f"-I{RUNTIME}", ruta_p,
-                     os.path.join(RUNTIME, "safestr.c"), "-o", bin_p],
+                     os.path.join(RUNTIME, "safestr.c"), "-o", bin_p, "-lm"],
                     capture_output=True, text=True)
                 if r.returncode != 0:
                     falla("el parser en Tcode compila", r.stderr)
@@ -2015,7 +2070,7 @@ for nombre, archivos, principal, error_esperado, salida in MODULOS:
         r = subprocess.run(
             ["cc", "-std=c17", "-g", "-fsanitize=address,undefined",
              "-Wall", "-Wextra", "-Werror", f"-I{RUNTIME}", ruta_c,
-             os.path.join(RUNTIME, "safestr.c"), "-o", binario],
+             os.path.join(RUNTIME, "safestr.c"), "-o", binario, "-lm"],
             capture_output=True, text=True)
         if r.returncode != 0:
             falla(nombre, "el C generado no compila:\n" + r.stderr)
@@ -2060,7 +2115,7 @@ try:
             ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
              "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
              f"-I{RUNTIME}", base + ".c", os.path.join(RUNTIME, "safestr.c"),
-             "-o", base],
+             "-o", base, "-lm"],
             capture_output=True, text=True)
         if r.returncode != 0:
             falla(f"ejemplo {relativo}", r.stderr[:600])
