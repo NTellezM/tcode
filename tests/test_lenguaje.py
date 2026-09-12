@@ -2516,10 +2516,16 @@ print("=== EXPRESIONES: el C de una expresion, escrito por Tcode ===")
 #
 # Lo que esta capa no sabe hacer todavia sale como `?` y no se compara: se
 # cuentan las cubiertas y se exige un minimo, que es mas honesto que decir
-# que estan todas. Hoy cubre literales, variables, prestamos, operadores
-# logicos y de comparacion, aritmetica comprobada, division y resto, y
-# llamadas a funciones del programa. Falta lo que necesita emitir lineas
-# aparte: textos, interpolacion, `try`, clausuras y colecciones.
+# que estan todas.
+#
+# Hoy cubre literales, variables, prestamos, operadores logicos y de
+# comparacion, aritmetica comprobada, division y resto, llamadas a funciones
+# del programa, y las internas que no necesitan emitir nada aparte: `vacio`,
+# `nuevo`, `vista`, `largo`, `rebanar`, `igual` y `menor`.
+#
+# Falta lo que necesita emitir lineas propias: `byte` (guarda la vista en un
+# temporal antes de indexarla), interpolacion, `try`, clausuras y
+# colecciones.
 from tcode.nodos import Retorno as _Ret
 
 def _retornos(nodo, fuera):
@@ -2564,7 +2570,7 @@ def _expresiones_esperadas(ruta):
             fuera.append(f"{d.nombre}\t{r.linea}\t{c}")
     return fuera
 
-_MINIMO_CUBIERTAS = 200
+_MINIMO_CUBIERTAS = 340
 
 tmp = tempfile.mkdtemp(prefix="tcode-expr-")
 try:
