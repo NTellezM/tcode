@@ -895,37 +895,48 @@ class Generador:
         if structs:
             self.lineas.append("")
 
-        # Tipos de lista, de dentro hacia fuera. El elemento puede estar aun
-        # incompleto porque aqui solo aparece detras de un puntero.
-        # Bloques: memoria reservada de una pieza, con su tamaño al lado.
-        # Nacen a ceros, y en Tcode un valor a ceros es siempre uno valido y
-        # vacio: un `str` a ceros es el texto vacio, una lista a ceros es la
-        # lista vacia. Por eso no hay ranuras sin inicializar que temer.
-        for t in sorted(self.bloques, key=lambda x: x.count("<")):
-            self.lineas.append(
+        # Bloques, listas y mapas son `typedef` de structs sin nombre, asi
+        # que no se pueden declarar antes: cada uno tiene que ir detras de lo
+        # que lleva dentro. `lista<mapa<str, str>>` necesita el mapa primero.
+        # Se ordenan por dependencia; un ciclo no puede darse, porque pasar
+        # por un struct con nombre corta la cadena (esos si van declarados
+        # arriba) y sin eso el tipo seria infinito.
+        agregados = {}
+        for t, nombre in self.bloques.items():
+            agregados[t] = (
                 f"typedef struct {{ {self.tipo_c(elem_bloque(t))}* e; "
-                f"size_t n; }} {self.bloques[t]};")
-        if self.bloques:
-            self.lineas.append("")
-
-        for t in sorted(self.listas, key=lambda x: x.count("lista<")):
+                f"size_t n; }} {nombre};", [elem_bloque(t)])
+        for t, nombre in self.listas.items():
             elem = elem_lista(t)
-            self.lineas.append(
+            agregados[t] = (
                 f"typedef struct {{ {self.tipo_c(elem)}* e; size_t length; "
-                f"size_t capacity; }} {self.listas[t]};")
-        if self.listas:
-            self.lineas.append("")
-
+                f"size_t capacity; }} {nombre};", [elem])
         # Tabla de direccionamiento abierto con sondeo lineal. Sin borrado en
         # v0, asi que no hacen falta lapidas: una celda con clave vacia es una
         # celda libre y la busqueda puede parar ahi.
         for t, nombre in self.mapas.items():
             k, v = partes_mapa(t)
-            self.lineas.append(
+            agregados[t] = (
                 f"typedef struct {{ {self.tipo_c(k)}* claves; "
                 f"{self.tipo_c(v)}* valores; size_t largo; "
-                f"size_t capacidad; }} {nombre};")
-        if self.mapas:
+                f"size_t capacidad; }} {nombre};", [k, v])
+
+        puestos = set()
+        en_curso = set()
+
+        def poner_tipo(t):
+            if t in puestos or t not in agregados or t in en_curso:
+                return
+            en_curso.add(t)
+            for dependencia in agregados[t][1]:
+                poner_tipo(dependencia)
+            en_curso.discard(t)
+            puestos.add(t)
+            self.lineas.append(agregados[t][0])
+
+        for t in sorted(agregados):
+            poner_tipo(t)
+        if agregados:
             self.lineas.append("")
 
         # structs, en orden de dependencia
@@ -2171,9 +2182,14 @@ class Generador:
         if isinstance(e, LiteralStruct):
             st = self.c.structs.get(e.tipo)
             tipos = {c.nombre: c.tipo for c in st.campos} if st else {}
-            partes = ", ".join(
-                f".{n} = {self.expr(v, tipos.get(n))}" for n, v in e.campos)
-            return f"({e.tipo}){{ {partes} }}"
+            piezas = []
+            for n, v in e.campos:
+                valor = self.expr(v, tipos.get(n))
+                # El struct se queda con el campo: si venia de un temporal de
+                # la sentencia, deja de liberarse ahi.
+                self.reclamar(valor)
+                piezas.append(f".{n} = {valor}")
+            return f"({e.tipo}){{ {', '.join(piezas)} }}"
 
         if isinstance(e, LiteralArreglo):
             if esperado and es_mapa(esperado):
@@ -2188,6 +2204,7 @@ class Generador:
                             "{ .e = NULL, .length = 0, .capacity = 0 };")
                 for x in e.elementos:
                     valor = self.expr(x, elem)
+                    self.reclamar(valor)
                     self.emitir(f"ss_push_{mangle(esperado)}(&{tmp}, {valor}, "
                                 f"{self.arch(e)}, {e.linea});")
                 return tmp
@@ -2415,6 +2432,10 @@ class Generador:
             tipo_lista = self._tipo_de(lista)
             elem = elem_lista(tipo_lista)
             valor = self.expr(e.args[1], elem)
+            # La lista se queda con el valor: si venia de un temporal de la
+            # sentencia, deja de liberarse ahi. Sin esto, `anadir(xs, $"...")`
+            # mete el texto en la lista y lo libera al acabar la linea.
+            self.reclamar(valor)
             return (f"ss_push_{mangle(tipo_lista)}({self.dir_de(lista)}, {valor}, "
                     f"{self.arch(e)}, {e.linea})")
         if n in ("raiz", "piso", "techo", "redondear", "absoluto"):
@@ -2478,6 +2499,11 @@ class Generador:
                 return self.expr(a, t)      # un escalar se copia solo
             if isinstance(a, (Variable, Campo, Indice)):
                 return self.copia_de(f"(*{self.dir_de(a)})", t)
+            crudo = self._tipo_de(a) or t
+            if es_referencia(crudo):
+                # Llega prestado y en C eso es un puntero: se copia lo que
+                # hay al otro lado, no el puntero.
+                return self.copia_de(f"(*{self.expr(a, crudo)})", t)
             # Lo que no vive en ningun sitio hay que guardarlo para poder
             # tomarle la direccion; y como ya es nuestro, se libera al acabar.
             tmp = self.nuevo_tmp()
@@ -2534,6 +2560,9 @@ class Generador:
                 return f"ss_mapa_obtener_mut_{m}({dir_mapa}, {clave})"
             _, tv = partes_mapa(tm)
             valor = self.expr(e.args[2], tv)
+            # El mapa se queda con el valor: si venia de un temporal de la
+            # sentencia, deja de liberarse ahi.
+            self.reclamar(valor)
             return (f"ss_mapa_poner_{m}({dir_mapa}, {clave}, {valor}, "
                     f"{self.arch(e)}, {e.linea})")
 

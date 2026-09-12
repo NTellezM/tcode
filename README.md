@@ -177,13 +177,20 @@ $ ./ejemplos/lexer/parser ejemplos/lexer/parser.t --callado
 ejemplos/lexer/parser.t: 2082 nodos, hondura 15
 ```
 
-La tercera capa ya está empezada: `ejemplos/compilador/lib/tipos.t` responde
-en Tcode las dos preguntas de las que cuelga el comprobador —¿este tipo es
-dueño de memoria?, ¿se puede guardar un valor suyo?— y la suite le pregunta
-lo mismo que al comprobador de Python sobre **cada tipo que aparece en el
-repositorio**: 26 archivos, 117 tipos, las mismas respuestas.
+Y dos capas más del comprobador, en `ejemplos/compilador/`:
 
-Falta el resto del comprobador y el generador para que Tcode se compile a sí mismo.
+- `lib/tipos.t` responde las dos preguntas de las que cuelga todo —¿este tipo
+  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **31 archivos, 154
+  tipos**, las mismas respuestas que el comprobador de Python.
+- `lib/tipar.t` dice **de qué tipo es cada variable de cada función**, con
+  llamadas, campos, índices, préstamos y genéricas instanciadas: **29
+  archivos, 474 variables**, los mismos tipos.
+
+Las dos se comparan contra el comprobador de Python en cada ejecución de la
+suite, sobre el código real del repositorio.
+
+Falta la propiedad, los préstamos y el generador para que Tcode se compile a
+sí mismo.
 Pero el análisis ya no es una promesa: son 884 líneas de Tcode que hacen el
 trabajo del frontend y coinciden con el original, comprobado en cada
 ejecución de la suite.
@@ -448,7 +455,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-372 casos, 0 fallas
+410 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 
