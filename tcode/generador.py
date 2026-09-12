@@ -1868,8 +1868,47 @@ class Generador:
 
         if isinstance(s, Mientras):
             self.bucles.append(len(self.pila) + 1)
-            self.emitir(f"while ({self.expr(s.cond, 'bool')})")
-            self.bloque(s.cuerpo)
+            # Casi todas las condiciones salen enteras en una expresion de C
+            # y van donde van. Pero algunas necesitan lineas propias —`byte`
+            # guarda la vista en un temporal antes de indexarla— y esas
+            # lineas tienen que correr en CADA vuelta: dejarlas fuera del
+            # bucle significaria mirar, en la segunda vuelta, algo calculado
+            # antes de que el cuerpo lo cambiara. Con `s` reasignada dentro,
+            # ese temporal apunta a memoria ya devuelta.
+            marca = len(self.lineas)
+            tmp_antes, bucle_antes = self.tmp, self.bucle
+            temporales_antes = list(self.temporales)
+            cond = self.expr(s.cond, "bool")
+            if len(self.lineas) == marca:
+                self.emitir(f"while ({cond})")
+                self.bloque(s.cuerpo)
+                self.bucles.pop()
+                return
+
+            # La condicion dejo lineas: se deshace y se rehace dentro.
+            del self.lineas[marca:]
+            self.tmp, self.bucle = tmp_antes, bucle_antes
+            self.temporales = temporales_antes
+            self.emitir("while (true)")
+            self.emitir("{")
+            self.sangria += 1
+            self.pila.append([])
+            self.vars.append({})
+            cond = self.expr(s.cond, "bool")
+            self.emitir(f"if (!({cond}))")
+            self.emitir("{")
+            self.sangria += 1
+            self.emitir("break;")
+            self.sangria -= 1
+            self.emitir("}")
+            for x in s.cuerpo:
+                self.sentencia(x)
+            if not self._termina_en_retorno(s.cuerpo):
+                self.liberar_bloque(self.pila[-1])
+            self.pila.pop()
+            self.vars.pop()
+            self.sangria -= 1
+            self.emitir("}")
             self.bucles.pop()
             return
 
