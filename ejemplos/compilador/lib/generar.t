@@ -241,6 +241,9 @@ struct Sitio {
     tipos: mapa<str, str>,
     // nombres que en C son punteros: parametros prestados
     punteros: mapa<str, usize>,
+    // nombres que se entregan por algun camino: su liberacion la decide una
+    // bandera `ss_vivo_X` en vez de hacerse siempre
+    pide_bandera: mapa<str, usize>,
 }
 
 fn no_se() -> str { return nuevo("?"); }
@@ -607,9 +610,11 @@ fn llamada_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             continue;
         }
 
-        // Pasar una variable con duenio a algo que se la queda es moverla,
-        // y eso pide bandera: no se cubre.
-        if !presta_el && entrega_variable(s, h, tipos) { return no_se(); }
+        // Pasar una variable con duenio a algo que se la queda es moverla.
+        // La bandera la apaga la sentencia; aqui basta con que exista.
+        if !presta_el && entrega_variable(s, h, tipos) {
+            if !tiene(s.pide_bandera, vista(h.texto)) { return no_se(); }
+        }
         let arg = expresion_c(s, h, vista(esperado), tipos);
         if es_desconocido(vista(arg)) { return no_se(); }
         empujar(v, vista(arg));
@@ -622,11 +627,118 @@ fn llamada_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 // Si la expresion entrega una variable entera que tiene duenio: eso es un
 // movimiento, y un movimiento pide bandera.
 fn entrega_variable(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
+    return entrega_suelta(s.punteros, n, tipos);
+}
+
+// Lo mismo sin el `Sitio`: la pasada que decide las banderas corre antes de
+// que el `Sitio` exista, porque el `Sitio` las lleva dentro.
+fn entrega_suelta(punteros: &mapa<str, usize>, n: &P.Nodo,
+    tipos: &I.Contexto) -> bool {
     if !igual(vista(n.clase), "variable") { return false; }
-    if tiene(s.punteros, vista(n.texto)) { return false; }
+    if tiene(punteros, vista(n.texto)) { return false; }
     let t = I.tipo_de(tipos, n);
     if igual(vista(t), "str") { return true; }
     return T.es_lista(vista(t)) || T.es_mapa(vista(t)) || T.es_bloque(vista(t));
+}
+
+// ------------------------------------------------------------------
+// Banderas de propiedad
+// ------------------------------------------------------------------
+//
+// Una variable con duenio puede entregarse por unos caminos y no por otros:
+//
+//     var s = nuevo("hola");
+//     if c { guardar(s); }    // por aqui se la llevan
+//     // y aqui hay que soltarla, pero solo si no se la llevaron
+//
+// C no sabe cual de los dos caminos se tomo, asi que se le dice con un
+// `bool ss_vivo_s`. Rust hace justo esto desde 1.12, y por lo mismo. C++ lo
+// evita cobrando siempre: lo movido queda vacio pero valido y su destructor
+// corre igual, uno por cada objeto movido. Go y Swift lo mandan al tiempo de
+// ejecucion, recolector o cuentas de referencias. Zig no lo resuelve: lo
+// escribe el programador con `defer`, y a veces se equivoca.
+//
+// Tcode cobra lo que Rust —un `bool` en la pila que el compilador de C borra
+// en cuanto puede demostrar que sobra— y no pide escribir nada.
+
+// Si el parametro `i` de `nombre` presta en vez de quedarse con el valor.
+fn presta_argumento(tipos: &I.Contexto, nombre: view, i: usize) -> bool {
+    // `anadir(xs, v)` y `poner(m, k, v)` prestan la coleccion y se quedan
+    // con lo demas. Las otras internas cubiertas toman vistas o escalares.
+    if igual(nombre, "anadir") || igual(nombre, "poner") { return i == 0; }
+    if es_interna(nombre) { return true; }
+    let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];
+    if i >= largo(marcados) { return true; }
+    let m = vista(marcados[i]);
+    return empieza_con(m, "&") || empieza_con(m, "mut ");
+}
+
+fn apuntar_movida(salida: mut lista<str>, nombre: view) {
+    for x en salida {
+        if igual(vista(x), nombre) { return; }
+    }
+    anadir(salida, nuevo(nombre));
+}
+
+// Los nombres que este nodo entrega. Sin entrar en los bloques de dentro:
+// cada sentencia apaga las suyas, donde toca.
+fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
+    salida: mut lista<str>) {
+    let clase = vista(n.clase);
+    if igual(clase, "bloque") { return; }
+
+    // `let y = x;` y `y = x;` mueven tanto como pasarla a una funcion.
+    if igual(clase, "declaracion") && largo(n.hijos) == 1 {
+        if entrega_suelta(punteros, n.hijos[0], tipos) {
+            apuntar_movida(salida, vista(n.hijos[0].texto));
+        }
+    }
+    if igual(clase, "asignacion") && largo(n.hijos) == 2 {
+        if entrega_suelta(punteros, n.hijos[1], tipos) {
+            apuntar_movida(salida, vista(n.hijos[1].texto));
+        }
+    }
+
+    if igual(clase, "llamada") {
+        var i = 0;
+        for h en n.hijos {
+            if !presta_argumento(tipos, vista(n.texto), i) {
+                if entrega_suelta(punteros, h, tipos) {
+                    apuntar_movida(salida, vista(h.texto));
+                }
+            }
+            i = i + 1;
+        }
+    }
+
+    for h en n.hijos { movidas_en(punteros, h, tipos, salida); }
+}
+
+// Lo mismo entrando en los bloques de dentro: es la pasada que decide quien
+// lleva bandera. Declara los locales segun los va encontrando, porque para
+// saber si una variable se entrega hay que saber primero que tiene duenio, y
+// eso lo dice su tipo. Devolver una variable no cuenta: ahi ya no queda
+// nadie a quien mentirle.
+fn movidas_hondo(punteros: &mapa<str, usize>, bloque: &P.Nodo,
+    tipos: mut I.Contexto, salida: mut lista<str>) {
+    I.abrir(tipos);
+    for st en bloque.hijos {
+        if igual(vista(st.clase), "declaracion") && largo(st.hijos) == 1 {
+            let nombre = nombre_declarado(vista(st.texto));
+            var tipo = tipo_escrito(vista(st.texto));
+            if largo(tipo) == 0 { tipo = I.tipo_de(tipos, st.hijos[0]); }
+            movidas_en(punteros, st, tipos, salida);
+            I.declarar(tipos, vista(nombre), vista(tipo));
+        } else {
+            movidas_en(punteros, st, tipos, salida);
+        }
+        for h en st.hijos {
+            if igual(vista(h.clase), "bloque") {
+                movidas_hondo(punteros, h, tipos, salida);
+            }
+        }
+    }
+    I.cerrar(tipos);
 }
 
 fn es_interna(nombre: view) -> bool {
@@ -665,11 +777,19 @@ struct Cuerpo {
     temporal: usize,
     // La ultima posicion marcada con `#line`, para no repetirla.
     ultima_linea: usize,
+    // Cuantos bucles se han abierto: cada uno lleva su propio indice.
+    bucle: usize,
+}
+
+fn nombre_de_bucle(n: usize) -> str {
+    var s = nuevo("ss_i");
+    empujar(s, texto(n));
+    return s;
 }
 
 fn cuerpo() -> Cuerpo {
     return Cuerpo { lineas: [], bloques: [], sangria: 1, temporal: 0,
-        ultima_linea: 0 };
+        ultima_linea: 0, bucle: 0 };
 }
 
 fn sangrar(b: &Cuerpo) -> str {
@@ -727,10 +847,10 @@ fn anotar_duenio(b: mut Cuerpo, nombre: view, tipo: view) {
 }
 
 // Suelta lo del bloque de dentro, en orden inverso, y lo quita de la pila.
-fn cerrar_bloque(b: mut Cuerpo) {
+fn cerrar_bloque(b: mut Cuerpo, s: &Sitio) {
     if largo(b.bloques) == 0 { return; }
     let ultimo = largo(b.bloques) - 1;
-    liberar_uno(b, ultimo, "");
+    liberar_uno(b, s, ultimo, "");
     quitar_ultimo_bloque(b);
 }
 
@@ -748,15 +868,15 @@ fn quitar_ultimo_bloque(b: mut Cuerpo) {
 
 // Todo lo vivo, de dentro hacia fuera: es lo que hace falta antes de un
 // `return`, donde no se cierra un bloque sino todos.
-fn liberar_todo(b: mut Cuerpo, excepto: view) {
+fn liberar_todo(b: mut Cuerpo, s: &Sitio, excepto: view) {
     var i = largo(b.bloques);
     while i > 0 {
         i = i - 1;
-        liberar_uno(b, i, excepto);
+        liberar_uno(b, s, i, excepto);
     }
 }
 
-fn liberar_uno(b: mut Cuerpo, cual: usize, excepto: view) {
+fn liberar_uno(b: mut Cuerpo, s: &Sitio, cual: usize, excepto: view) {
     var j = largo(b.bloques[cual]);
     while j > 0 {
         j = j - 1;
@@ -764,8 +884,48 @@ fn liberar_uno(b: mut Cuerpo, cual: usize, excepto: view) {
         let nombre = antes_de_dos_puntos(vista(entrada));
         if igual(vista(nombre), excepto) { continue; }
         let tipo = despues_de_dos_puntos(vista(entrada));
+        // Si se entrega por algun camino, quien decide es la bandera: aqui
+        // no se sabe por cual se vino.
+        if tiene(s.pide_bandera, vista(nombre)) {
+            var g = nuevo("if (ss_vivo_");
+            empujar(g, vista(nombre));
+            empujar(g, ")");
+            emitir(b, vista(g));
+            emitir(b, "{");
+            b.sangria = b.sangria + 1;
+            liberacion(b, vista(nombre), vista(tipo));
+            b.sangria = b.sangria - 1;
+            emitir(b, "}");
+            continue;
+        }
         liberacion(b, vista(nombre), vista(tipo));
     }
+}
+
+// `bool ss_vivo_x = true;` justo detras de la declaracion de `x`.
+fn nace_bandera(b: mut Cuerpo, nombre: view) {
+    var l = nuevo("bool ss_vivo_");
+    empujar(l, nombre);
+    empujar(l, " = true;");
+    emitir(b, vista(l));
+}
+
+// `ss_vivo_x = false;` por cada una que se entrego en el camino que acaba.
+fn apagar(b: mut Cuerpo, nombres: &lista<str>) {
+    for nm en nombres {
+        var l = nuevo("ss_vivo_");
+        empujar(l, vista(nm));
+        empujar(l, " = false;");
+        emitir(b, vista(l));
+    }
+}
+
+// Lo que hay que soltar, dentro del subconjunto que esta capa emite.
+// `T.posee` sabe mas —structs, arreglos— pero pide los campos de todos los
+// structs y puede fallar; aqui no hace falta tanto.
+fn tiene_duenio(t: view) -> bool {
+    if igual(t, "str") { return true; }
+    return T.es_lista(t) || T.es_mapa(t) || T.es_bloque(t);
 }
 
 fn liberacion(b: mut Cuerpo, nombre: view, tipo: view) {
@@ -777,8 +937,32 @@ fn liberacion(b: mut Cuerpo, nombre: view, tipo: view) {
         return;
     }
     // Una lista suelta su memoria y se queda vacia. Si sus elementos tienen
-    // duenio hay que soltarlos uno a uno antes, y eso todavia no se cubre.
+    // duenio, cada uno se suelta antes: la lista era su unica duenia.
     if T.es_lista(tipo) {
+        let elem = T.elemento(tipo);
+        if tiene_duenio(vista(elem)) {
+            b.bucle = b.bucle + 1;
+            let i = nombre_de_bucle(b.bucle);
+            var f = nuevo("for (size_t ");
+            empujar(f, vista(i));
+            empujar(f, " = 0; ");
+            empujar(f, vista(i));
+            empujar(f, " < ");
+            empujar(f, nombre);
+            empujar(f, ".length; ");
+            empujar(f, vista(i));
+            empujar(f, "++)");
+            emitir(b, vista(f));
+            emitir(b, "{");
+            b.sangria = b.sangria + 1;
+            var dentro = nuevo(nombre);
+            empujar(dentro, ".e[");
+            empujar(dentro, vista(i));
+            empujar(dentro, "]");
+            liberacion(b, vista(dentro), vista(elem));
+            b.sangria = b.sangria - 1;
+            emitir(b, "}");
+        }
         var l = nuevo("free(");
         empujar(l, nombre);
         empujar(l, ".e);");
@@ -817,6 +1001,23 @@ fn despues_de_dos_puntos(t: view) -> str {
 
 // Una sentencia. Devuelve false si esta capa no la sabe hacer: entonces la
 // funcion entera se descarta, porque media funcion generada no vale nada.
+// Lo que esta sentencia entrego, apagado aqui mismo: el camino se acaba.
+fn apagar_las_de(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) {
+    var salen: lista<str> = [];
+    movidas_en(s.punteros, n, tipos, salen);
+    var vivas: lista<str> = [];
+    for nm en salen {
+        if tiene(s.pide_bandera, vista(nm)) { anadir(vivas, copiar(nm)); }
+    }
+    apagar(b, vivas);
+}
+
+fn mueve_algo(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
+    var salen: lista<str> = [];
+    movidas_en(s.punteros, n, tipos, salen);
+    return largo(salen) > 0;
+}
+
 fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
     let clase = vista(n.clase);
@@ -867,21 +1068,42 @@ fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         I.declarar(tipos, vista(nombre), vista(tipo));
         if igual(vista(tipo), "str") || T.es_lista(vista(tipo)) {
             anotar_duenio(b, vista(nombre), vista(tipo));
+            if tiene(s.pide_bandera, vista(nombre)) {
+                nace_bandera(b, vista(nombre));
+            }
         }
+        apagar_las_de(b, s, n, tipos);
         return true;
     }
 
     if igual(clase, "expresion") {
-        // Una llamada suelta: hoy solo `anadir`, que es la que mete en una
-        // lista y no devuelve nada.
         if largo(n.hijos) != 1 { return false; }
-        return anadir_c(b, s, n.hijos[0], tipos);
+        if anadir_c(b, s, n.hijos[0], tipos) {
+            apagar_las_de(b, s, n, tipos);
+            return true;
+        }
+        // Una llamada suelta a una funcion que no devuelve nada. Si
+        // devolviera algo con duenio habria que soltarlo aqui mismo, y eso
+        // es otra capa: por ahora se descarta la funcion entera.
+        if !igual(vista(n.hijos[0].clase), "llamada") { return false; }
+        let quien = vista(n.hijos[0].texto);
+        if es_interna(quien) { return false; }
+        if !tiene(tipos.retornos, quien) { return false; }
+        let devuelve = nuevo(obtener(tipos.retornos, quien) sino "?");
+        if largo(vista(devuelve)) > 0 { return false; }
+        let hecha = llamada_c(s, n.hijos[0], tipos);
+        if es_desconocido(vista(hecha)) { return false; }
+        var l = copiar(hecha);
+        empujar(l, ";");
+        emitir(b, vista(l));
+        apagar_las_de(b, s, n, tipos);
+        return true;
     }
 
     if igual(clase, "falla") {
         // Salir por el camino malo: se suelta todo y se devuelve el motivo.
         if !falible { return false; }
-        liberar_todo(b, "");
+        liberar_todo(b, s, "");
         var l = nuevo("return (");
         empujar(l, tipo_resultado(retorno));
         empujar(l, "){ .motivo = ");
@@ -893,7 +1115,7 @@ fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
 
     if igual(clase, "retorno") {
         if largo(n.hijos) == 0 {
-            liberar_todo(b, "");
+            liberar_todo(b, s, "");
             if falible {
                 var l = nuevo("return (");
                 empujar(l, tipo_resultado(retorno));
@@ -908,7 +1130,7 @@ fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         // que calcular, y liberar lo demas no la toca.
         if igual(vista(n.hijos[0].clase), "variable") {
             let quien = vista(n.hijos[0].texto);
-            liberar_todo(b, quien);
+            liberar_todo(b, s, quien);
             let c = expresion_c(s, n.hijos[0], retorno, tipos);
             var r = nuevo("return ");
             if falible {
@@ -937,12 +1159,16 @@ fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         empujar(l, vista(valor));
         empujar(l, ";");
         emitir(b, vista(l));
+        // Antes de liberar, y no despues: lo que se apague detras de un
+        // `return` no se ejecuta nunca, y la liberacion veria la bandera
+        // encendida todavia.
+        apagar_las_de(b, s, n, tipos);
         // Lo que se entrega no se libera.
         var entregada = vacio();
         if igual(vista(n.hijos[0].clase), "variable") {
             entregada = nuevo(vista(n.hijos[0].texto));
         }
-        liberar_todo(b, vista(entregada));
+        liberar_todo(b, s, vista(entregada));
         var r = nuevo("return ");
         if falible {
             // En una falible lo que se devuelve va envuelto: `motivo` a
@@ -962,6 +1188,7 @@ fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
 
     if igual(clase, "si") {
         if largo(n.hijos) < 2 { return false; }
+        if mueve_algo(s, n.hijos[0], tipos) { return false; }
         let cond = expresion_c(s, n.hijos[0], "bool", tipos);
         if es_desconocido(vista(cond)) { return false; }
         var l = nuevo("if (");
@@ -982,6 +1209,7 @@ fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
 
     if igual(clase, "mientras") {
         if largo(n.hijos) != 2 { return false; }
+        if mueve_algo(s, n.hijos[0], tipos) { return false; }
         let cond = expresion_c(s, n.hijos[0], "bool", tipos);
         if es_desconocido(vista(cond)) { return false; }
         var l = nuevo("while (");
@@ -1005,6 +1233,7 @@ fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         empujar(l, vista(valor));
         empujar(l, ";");
         emitir(b, vista(l));
+        apagar_las_de(b, s, n, tipos);
         return true;
     }
 
@@ -1024,7 +1253,7 @@ fn bloque_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     for h en n.hijos {
         if bien { bien = sentencia_c(b, s, h, tipos, retorno, falible); }
     }
-    if bien && !termina_saliendo(n) { cerrar_bloque(b); }
+    if bien && !termina_saliendo(n) { cerrar_bloque(b, s); }
     else { quitar_ultimo_bloque(b); }
     I.cerrar(tipos);
     b.sangria = b.sangria - 1;
@@ -1096,7 +1325,7 @@ fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
     emitir(b, vista(cond));
     emitir(b, "{");
     b.sangria = b.sangria + 1;
-    liberar_todo(b, "");
+    liberar_todo(b, s, "");
     var sale = nuevo("return (");
     empujar(sale, tipo_resultado(retorno));
     empujar(sale, "){ .motivo = ");
@@ -1120,16 +1349,18 @@ fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     let sobre = I.tipo_de(tipos, n.hijos[0]);
     if !T.es_lista(vista(sobre)) { return false; }
     let elem = T.elemento(vista(sobre));
-    // Meter una variable con duenio en una lista la mueve, y un valor movido
-    // lleva bandera por si el programa sale antes de llegar aqui. Eso es
-    // otra capa: mejor no emitir nada que emitirlo sin la bandera.
-    if entrega_variable(s, n.hijos[1], tipos) { return false; }
+    // Meter una variable con duenio en una lista la mueve: la lista se la
+    // queda y desde aqui la suelta ella.
+    if entrega_variable(s, n.hijos[1], tipos) {
+        if !tiene(s.pide_bandera, vista(n.hijos[1].texto)) { return false; }
+    }
     let valor = expresion_c(s, n.hijos[1], vista(elem), tipos);
     if es_desconocido(vista(valor)) { return false; }
 
     var l = nuevo("ss_push_");
     empujar(l, mangle(vista(sobre)));
-    empujar(l, "(&");
+    empujar(l, "(");
+    if !tiene(s.punteros, vista(n.hijos[0].texto)) { empujar(l, "&"); }
     empujar(l, vista(n.hijos[0].texto));
     empujar(l, ", ");
     empujar(l, vista(valor));

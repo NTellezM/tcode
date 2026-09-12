@@ -2642,25 +2642,30 @@ print("=== CUERPOS: la funcion entera en C, escrita por Tcode ===")
 # cuenta: la firma, el cuerpo, y los `ss_free` puestos solos donde tocan.
 # Se compara con lo que emite el generador de Python, linea por linea.
 #
-# Lo unico que se normaliza son los numeros de temporal: el original los
-# cuenta por archivo y esta capa por funcion, asi que se renumeran en los dos
-# por orden de aparicion. Todo lo demas tiene que salir identico.
+# Lo unico que se normaliza son los contadores —temporales e indices de
+# bucle—: el original los cuenta por archivo y esta capa por funcion, asi que
+# se renumeran en los dos por orden de aparicion. Todo lo demas tiene que
+# salir identico.
 #
 # Una funcion que esta capa no sabe hacer entera no se emite a medias: se
 # descarta. Se cuentan las que salen, y se exige un minimo.
 import re as _re_cuerpos
 
 def _normaliza_tmp(texto):
-    visto, n = {}, [0]
-    def cambia(m):
-        k = m.group(0)
-        if k not in visto:
-            n[0] += 1
-            visto[k] = f"ss_tmp{n[0]}"
-        return visto[k]
-    return _re_cuerpos.sub(r"ss_tmp\d+", cambia, texto)
+    def renumera(texto, prefijo):
+        visto, n = {}, [0]
+        def cambia(m):
+            k = m.group(0)
+            if k not in visto:
+                n[0] += 1
+                visto[k] = f"{prefijo}{n[0]}"
+            return visto[k]
+        return _re_cuerpos.sub(prefijo + r"\d+", cambia, texto)
+    for prefijo in ("ss_tmp", "ss_i", "ss_k"):
+        texto = renumera(texto, prefijo)
+    return texto
 
-_MINIMO_CUERPOS = 40
+_MINIMO_CUERPOS = 46
 
 tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
 try:

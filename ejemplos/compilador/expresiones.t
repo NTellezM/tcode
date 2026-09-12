@@ -141,8 +141,11 @@ fn main() -> usize ! {
                     if presta(vista(h.texto)) { poner(puntos, vista(pn), 1); }
                 }
             }
+            // Esta capa mira expresiones sueltas, no caminos: sin caminos
+            // no hay nada que una bandera pueda decidir.
+            let sin_banderas: mapa<str, usize> = [];
             let sitio = G.Sitio { archivo: nuevo(ruta), tipos: de_tipo,
-                punteros: puntos };
+                punteros: puntos, pide_bandera: sin_banderas };
 
             var lineas: lista<usize> = [];
             var nodos: lista<P.Nodo> = [];
