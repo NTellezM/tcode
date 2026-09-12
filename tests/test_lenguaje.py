@@ -2189,6 +2189,86 @@ try:
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
+print("=== LINEAS: el C generado apunta al `.t`, no a si mismo ===")
+# Con `#line`, gdb, valgrind, los sanitizers y los perfiladores hablan del
+# codigo que se escribio. Se comprueba que cada directiva señale una linea
+# que existe de verdad, y que el depurador lo vea.
+import re as _re
+_DIRECTIVA = _re.compile(r'^#line (\d+) "(.*)"$')
+tmp = tempfile.mkdtemp(prefix="tcode-lineas-")
+try:
+    marcadas = 0
+    MUESTRA = ["ejemplos/hola.t", "ejemplos/texto.t", "ejemplos/binario.t",
+               "ejemplos/pruebas.t", "ejemplos/informe/informe.t",
+               "ejemplos/modulos/escalas.t"]
+    for relativo in MUESTRA:
+        total += 1
+        ruta = os.path.join(RAIZ, relativo)
+        codigo, errores = compilar_archivo(ruta)
+        if errores:
+            falla(f"lineas de {relativo}", "\n".join(errores))
+            continue
+        vistas = 0
+        for l in codigo.splitlines():
+            m = _DIRECTIVA.match(l)
+            if not m:
+                continue
+            vistas += 1
+            n, archivo = int(m.group(1)), m.group(2)
+            if not os.path.isfile(archivo):
+                falla(f"lineas de {relativo}",
+                      f"`#line {n} \"{archivo}\"` señala un archivo que no existe")
+                break
+            with open(archivo, encoding="utf-8") as f:
+                cuantas = sum(1 for _ in f)
+            if not 1 <= n <= cuantas:
+                falla(f"lineas de {relativo}",
+                      f"`#line {n} \"{archivo}\"` se sale: el archivo tiene "
+                      f"{cuantas} lineas")
+                break
+        else:
+            if vistas == 0:
+                falla(f"lineas de {relativo}", "no hay ninguna directiva `#line`")
+            marcadas += vistas
+
+    # Y que el depurador lo vea de verdad, si esta instalado.
+    total += 1
+    fuente = ("fn hondo(n: usize) -> usize {\n"
+              "    let a = n * 2;\n"
+              "    let b = a - 100;\n"
+              "    return b;\n"
+              "}\n"
+              "fn main() -> usize { imprimir(hondo(3)); }\n")
+    ruta_t = os.path.join(tmp, "hondo.t")
+    with open(ruta_t, "w", encoding="utf-8") as f:
+        f.write(fuente)
+    codigo, errores = compilar_archivo(ruta_t)
+    if errores:
+        falla("el depurador ve el `.t`", "\n".join(errores))
+    else:
+        ruta_c = os.path.join(tmp, "hondo.c")
+        binario = os.path.join(tmp, "hondo")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-O0", "-g", f"-I{RUNTIME}", ruta_c,
+             os.path.join(RUNTIME, "safestr.c"), "-o", binario, "-lm"],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            falla("el depurador ve el `.t`", r.stderr[:400])
+        elif shutil.which("gdb") is None:
+            print("    (sin gdb: no se pudo comprobar la pila)")
+        else:
+            e = subprocess.run(["gdb", "-batch", "-ex", "run", "-ex", "bt",
+                                binario], capture_output=True, text=True,
+                               timeout=120)
+            if f"hondo.t:3" not in e.stdout:
+                falla("el depurador ve el `.t`",
+                      "la pila no señala `hondo.t:3`:\n" + e.stdout[-600:])
+    print(f"    {marcadas} directivas, todas a una linea que existe")
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
 print("=== ABORTA: la aritmetica comprobada detiene el programa ===")
 with tempfile.TemporaryDirectory() as tmp:
     for nombre, fuente, esperado in ABORTA:

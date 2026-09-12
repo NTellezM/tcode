@@ -188,6 +188,24 @@ Pero el análisis ya no es una promesa: son 884 líneas de Tcode que hacen el
 trabajo del frontend y coinciden con el original, comprobado en cada
 ejecución de la suite.
 
+## Depurar
+
+Tcode compila a C, así que `gdb`, `valgrind`, los sanitizers y `perf` ya
+funcionaban — pero hablaban del `.c` intermedio. Con directivas `#line` en el
+C generado, todos señalan el Tcode:
+
+```
+Breakpoint 1, hondo (n=3) at mi.t:2
+2           let a = n * 2;
+(gdb) bt
+#7  hondo (n=3) at mi.t:3
+#8  main (argc=1, argv=...) at mi.t:7
+```
+
+Puntos de ruptura en funciones Tcode, la fuente listada, variables con sus
+nombres. Sin escribir un depurador: no hacía falta escribirlo, hacía falta no
+perder el sitio.
+
 ## Velocidad
 
 Medido contra el mismo programa escrito en C a mano (`make bench`):
@@ -417,7 +435,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-329 casos, 0 fallas
+336 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

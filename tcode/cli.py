@@ -30,26 +30,28 @@ def _lo_generamos_nosotros(ruta):
         return False
 
 
-def compilar_a_c(fuente, archivo, devolver_comp=False):
+def compilar_a_c(fuente, archivo, devolver_comp=False, con_lineas=True):
     """Compila una fuente suelta, sin resolver `usar`. Lo usan los tests."""
-    return _compilar(parsear(fuente, archivo), archivo, devolver_comp)
+    return _compilar(parsear(fuente, archivo), archivo, devolver_comp,
+                     con_lineas=con_lineas)
 
 
-def compilar_archivo(ruta, devolver_comp=False):
+def compilar_archivo(ruta, devolver_comp=False, con_lineas=True):
     """Compila un archivo resolviendo sus modulos."""
     mostrada = os.path.relpath(ruta)
     if mostrada.startswith(".."):
         mostrada = os.path.abspath(ruta)
     bonitos = {}
     arbol = cargar(ruta, bonitos)
-    return _compilar(arbol, mostrada, devolver_comp, bonitos)
+    return _compilar(arbol, mostrada, devolver_comp, bonitos, con_lineas)
 
 
-def _compilar(arbol, archivo, devolver_comp=False, nombres_bonitos=None):
+def _compilar(arbol, archivo, devolver_comp=False, nombres_bonitos=None,
+              con_lineas=True):
     errores, comp = comprobar(arbol, archivo, nombres_bonitos)
     if errores:
         return (None, errores, comp) if devolver_comp else (None, errores)
-    codigo = generar(arbol, comp, archivo)
+    codigo = generar(arbol, comp, archivo, con_lineas)
     return (codigo, [], comp) if devolver_comp else (codigo, [])
 
 
@@ -60,6 +62,11 @@ def main(argv=None):
                     version=f"tcode {VERSION}")
     ap.add_argument("fuente", help="archivo .t")
     ap.add_argument("-o", "--salida", help="binario de salida")
+    ap.add_argument("--sin-lineas", action="store_true",
+                    help="no poner `#line` en el C generado. Por defecto se "
+                         "ponen, y hacen que gdb, valgrind y los sanitizers "
+                         "señalen el `.t` en vez del C intermedio; quitarlas "
+                         "solo sirve para depurar el propio compilador")
     ap.add_argument("--emitir-c", action="store_true",
                     help="escribe el C generado y no invoca al compilador")
     ap.add_argument("--cc", default=os.environ.get("CC", "cc"))
@@ -85,7 +92,8 @@ def main(argv=None):
         return 2
 
     try:
-        codigo, errores, comp = compilar_archivo(args.fuente, devolver_comp=True)
+        codigo, errores, comp = compilar_archivo(args.fuente, devolver_comp=True,
+                                                  con_lineas=not args.sin_lineas)
     except (ErrorLexico, ErrorSintactico, ErrorDeModulo) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
