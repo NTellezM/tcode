@@ -586,6 +586,19 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("asignar a una variable algo que la presta no la lee despues de soltarla",
+     '''fn main() -> usize {
+            var s = nuevo("lista<P.Nodo>");
+            // El valor nuevo lee el viejo. En C lo que cuenta no es donde se
+            // calculo la expresion sino donde queda escrita, asi que el
+            // valor se guarda antes de soltar lo que habia.
+            s = nuevo(rebanar(vista(s), 0, 6));
+            var t = nuevo("hola");
+            t = nuevo(rebanar(vista(t), 1, 4));
+            imprimir($"{s} {t}\\n");
+        }''',
+     "lista< ola\n"),
+
     ("la inferencia atraviesa una llamada a una generica",
      '''usar "std/par";
         struct Caja<T> { dentro: lista<T> }
@@ -2323,6 +2336,7 @@ _PROPIEDAD_PENDIENTES = {
     # llamada repartida en varias lineas
     "ejemplos/compilador/tipos.t",
     "ejemplos/compilador/firmas.t",
+    "ejemplos/compilador/expresiones.t",
 }
 
 def _propiedad_esperada(ruta):
@@ -2491,6 +2505,127 @@ try:
                 comparados += 1
                 firmas += len(dado)
             print(f"    {comparados} archivos, {firmas} firmas, mismas que el "
+                  f"generador de Python")
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+print("=== EXPRESIONES: el C de una expresion, escrito por Tcode ===")
+# Segunda pieza del generador en su propio lenguaje. Por cada `return <expr>`
+# del repositorio se compara el C que sale, caracter por caracter, con el que
+# emite el generador de Python.
+#
+# Lo que esta capa no sabe hacer todavia sale como `?` y no se compara: se
+# cuentan las cubiertas y se exige un minimo, que es mas honesto que decir
+# que estan todas. Hoy cubre literales, variables, prestamos, operadores
+# logicos y de comparacion, aritmetica comprobada, division y resto, y
+# llamadas a funciones del programa. Falta lo que necesita emitir lineas
+# aparte: textos, interpolacion, `try`, clausuras y colecciones.
+from tcode.nodos import Retorno as _Ret
+
+def _retornos(nodo, fuera):
+    from dataclasses import fields as _f, is_dataclass as _isd
+    if isinstance(nodo, (list, tuple)):
+        for x in nodo:
+            _retornos(x, fuera)
+        return
+    if not _isd(nodo):
+        return
+    if isinstance(nodo, _Ret) and nodo.valor is not None:
+        fuera.append(nodo)
+    for campo in _f(nodo):
+        _retornos(getattr(nodo, campo.name), fuera)
+
+def _expresiones_esperadas(ruta):
+    from tcode.parser import parsear as _p
+    try:
+        arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set())
+    except Exception:
+        return None
+    codigo, errores, comp = compilar_archivo(ruta, devolver_comp=True)
+    if errores:
+        return None
+    fuera = []
+    for d in arbol:
+        if not isinstance(d, _Fn_t) or d.tipo_params:
+            continue
+        g = _Gen(comp, ruta)
+        g.func = d
+        g.vars = [{}]
+        g.pila = [[]]
+        for p in d.params:
+            g.declarar(p.nombre, p.tipo, p.prestado, p)
+        rr = []
+        _retornos(d.cuerpo, rr)
+        for r in rr:
+            try:
+                c = g.expr(r.valor, d.retorno)
+            except Exception:
+                c = "<revienta>"
+            fuera.append(f"{d.nombre}\t{r.linea}\t{c}")
+    return fuera
+
+_MINIMO_CUBIERTAS = 200
+
+tmp = tempfile.mkdtemp(prefix="tcode-expr-")
+try:
+    total += 1
+    codigo, errores = compilar_archivo(
+        os.path.join(RAIZ, "ejemplos", "compilador", "expresiones.t"))
+    if errores:
+        falla("expresiones en Tcode", "\n".join(errores))
+    else:
+        ruta_c = os.path.join(tmp, "expresiones.c")
+        binario = os.path.join(tmp, "expresiones")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            falla("expresiones en Tcode compila", r.stderr[:600])
+        else:
+            archivos = sorted(
+                glob.glob(os.path.join(RAIZ, "std", "*.t"))
+                + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
+                            recursive=True))
+            cubiertas = vistas = 0
+            for archivo in archivos:
+                esperado = _expresiones_esperadas(archivo)
+                if esperado is None:
+                    continue
+                total += 1
+                e = subprocess.run([binario, archivo], capture_output=True,
+                                   text=True, timeout=180)
+                if "Sanitizer" in e.stderr:
+                    falla("expresiones en Tcode",
+                          f"{os.path.basename(archivo)}: sanitizer\n"
+                          f"{e.stderr[:400]}")
+                    continue
+                dado = [l for l in e.stdout.splitlines() if l.strip()]
+                if len(dado) != len(esperado):
+                    falla("expresiones en Tcode",
+                          f"{os.path.relpath(archivo, RAIZ)}: {len(dado)} "
+                          f"expresiones contra {len(esperado)}")
+                    continue
+                for a, b in zip(dado, esperado):
+                    vistas += 1
+                    if a.endswith("\t?"):
+                        continue        # esta capa no la cubre todavia
+                    if a != b:
+                        falla("expresiones en Tcode",
+                              f"{os.path.relpath(archivo, RAIZ)}:\n"
+                              f"  Tcode:  {a!r}\n  Python: {b!r}")
+                    else:
+                        cubiertas += 1
+            if cubiertas < _MINIMO_CUBIERTAS:
+                total += 1
+                falla("expresiones en Tcode",
+                      f"solo {cubiertas} expresiones cubiertas, se esperaban "
+                      f"al menos {_MINIMO_CUBIERTAS}")
+            print(f"    {cubiertas} de {vistas} expresiones, mismo C que el "
                   f"generador de Python")
 finally:
     shutil.rmtree(tmp, ignore_errors=True)

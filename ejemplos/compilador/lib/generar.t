@@ -8,6 +8,8 @@
 // Python, cadena por cadena, para cada funcion del repositorio.
 
 usar "tipos.t" como T;
+usar "tipar.t" como I;
+usar "../../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
 usar "std/lista";
 
@@ -222,4 +224,273 @@ fn nombre_de_param(marcado: view) -> str {
         i = i + 1;
     }
     return nuevo(marcado);
+}
+
+// ------------------------------------------------------------------
+// Expresiones
+// ------------------------------------------------------------------
+//
+// El C de una expresion. Solo las que no necesitan emitir lineas aparte:
+// un temporal o una bandera hay que declararlos antes, y eso es del cuerpo,
+// no de la expresion. Lo que no se sabe hacer sale como `?`, y la suite
+// cuenta cuantas se cubren en vez de fingir que son todas.
+
+struct Sitio {
+    archivo: str,
+    // nombre -> tipo, para elegir el ancho de la aritmetica comprobada
+    tipos: mapa<str, str>,
+    // nombres que en C son punteros: parametros prestados
+    punteros: mapa<str, usize>,
+}
+
+fn no_se() -> str { return nuevo("?"); }
+
+fn es_desconocido(c: view) -> bool { return igual(c, "?"); }
+
+fn literal_entero(valor: view, esperado: view) -> str {
+    if igual(esperado, "i64") {
+        var s = nuevo("(int64_t)");
+        empujar(s, valor);
+        return s;
+    }
+    if igual(esperado, "f64") || igual(esperado, "f32") {
+        var s = nuevo(valor);
+        empujar(s, ".0");
+        if igual(esperado, "f32") { empujar(s, "f"); }
+        return s;
+    }
+    // Sin sufijo, un literal por encima de 2^63-1 no cabe en el tipo que C le
+    // asigna por defecto y el compilador avisa.
+    var s = nuevo("(size_t)");
+    empujar(s, valor);
+    if mayor_que_i64(valor) { empujar(s, "ULL"); }
+    return s;
+}
+
+fn mayor_que_i64(valor: view) -> bool {
+    let tope = "9223372036854775807";
+    if largo(valor) > largo(tope) { return true; }
+    if largo(valor) < largo(tope) { return false; }
+    return menor(tope, valor);
+}
+
+// El tipo de un nombre segun lo que se sabe aqui.
+fn tipo_de_nombre(s: &Sitio, nombre: view) -> str {
+    if !tiene(s.tipos, nombre) { return vacio(); }
+    return nuevo(obtener(s.tipos, nombre) sino "");
+}
+
+// La aritmetica comprobada tiene una familia por ancho, y el nombre lo elige
+// el tipo de los operandos.
+fn familia(op: view) -> str {
+    if igual(op, "+") { return nuevo("suma"); }
+    if igual(op, "-") { return nuevo("resta"); }
+    if igual(op, "*") { return nuevo("mul"); }
+    return vacio();
+}
+
+fn expresion_c(s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str {
+    let clase = vista(n.clase);
+
+    if igual(clase, "entero") { return literal_entero(vista(n.texto), esperado); }
+    if igual(clase, "booleano") { return nuevo(vista(n.texto)); }
+
+    if igual(clase, "expresion") {
+        if largo(n.hijos) == 1 {
+            return expresion_c(s, n.hijos[0], esperado, tipos);
+        }
+        return no_se();
+    }
+
+    if igual(clase, "variable") {
+        let nombre = vista(n.texto);
+        if tiene(s.punteros, nombre) {
+            var v = nuevo("(*");
+            empujar(v, nombre);
+            empujar(v, ")");
+            return v;
+        }
+        return nuevo(nombre);
+    }
+
+    if igual(clase, "llamada") {
+        return llamada_c(s, n, tipos);
+    }
+
+    if igual(clase, "binaria") {
+        return binaria_c(s, n, esperado, tipos);
+    }
+
+    if igual(clase, "unaria") {
+        let op = vista(n.texto);
+        if largo(n.hijos) != 1 { return no_se(); }
+        // `~` lleva molde para que el resultado no se ensanche por el camino.
+        if igual(op, "~") { return no_se(); }
+        let dentro = expresion_c(s, n.hijos[0], esperado, tipos);
+        if es_desconocido(vista(dentro)) { return no_se(); }
+        var v = nuevo("(");
+        empujar(v, op);
+        empujar(v, vista(dentro));
+        empujar(v, ")");
+        return v;
+    }
+
+    return no_se();
+}
+
+fn binaria_c(s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Contexto) -> str {
+    if largo(n.hijos) != 2 { return no_se(); }
+    let op = vista(n.texto);
+
+    // Lo logico y lo comparativo salen tal cual: en C significan lo mismo.
+    if igual(op, "&&") || igual(op, "||") {
+        return junta(s, n, "bool", op, tipos);
+    }
+    if igual(op, "==") || igual(op, "!=") || igual(op, "<") || igual(op, "<=")
+    || igual(op, ">") || igual(op, ">=") {
+        let t = tipo_operando(s, n, tipos);
+        return junta(s, n, vista(t), op, tipos);
+    }
+
+    let t = tipo_operando(s, n, tipos);
+    if largo(t) == 0 { return no_se(); }
+    // Los decimales tienen su propia comprobacion; no se cubre aqui.
+    if igual(vista(t), "f32") || igual(vista(t), "f64") { return no_se(); }
+
+    let fam = familia(op);
+    if largo(fam) > 0 {
+        let izq = expresion_c(s, n.hijos[0], vista(t), tipos);
+        let der = expresion_c(s, n.hijos[1], vista(t), tipos);
+        if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
+            return no_se();
+        }
+        var v = nuevo("ss_lang_");
+        empujar(v, vista(fam));
+        empujar(v, "_");
+        empujar(v, vista(t));
+        empujar(v, "(");
+        empujar(v, vista(izq));
+        empujar(v, ", ");
+        empujar(v, vista(der));
+        empujar(v, ", \"");
+        empujar(v, vista(s.archivo));
+        empujar(v, "\", ");
+        empujar(v, texto(n.linea));
+        empujar(v, ")");
+        return v;
+    }
+
+    if igual(op, "/") || igual(op, "%") {
+        let izq = expresion_c(s, n.hijos[0], vista(t), tipos);
+        let der = expresion_c(s, n.hijos[1], vista(t), tipos);
+        if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
+            return no_se();
+        }
+        var v = nuevo("SS_LANG_DIV(");
+        if igual(op, "%") { v = nuevo("SS_LANG_MOD("); }
+        empujar(v, vista(izq));
+        empujar(v, ", ");
+        empujar(v, vista(der));
+        empujar(v, ", \"");
+        empujar(v, vista(s.archivo));
+        empujar(v, "\", ");
+        empujar(v, texto(n.linea));
+        empujar(v, ")");
+        return v;
+    }
+
+    return no_se();
+}
+
+// `(izq OP der)`, que es como salen los operadores que C ya tiene.
+fn junta(s: &Sitio, n: &P.Nodo, esperado: view, op: view,
+    tipos: &I.Contexto) -> str {
+    let izq = expresion_c(s, n.hijos[0], esperado, tipos);
+    let der = expresion_c(s, n.hijos[1], esperado, tipos);
+    if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
+        return no_se();
+    }
+    var v = nuevo("(");
+    empujar(v, vista(izq));
+    empujar(v, " ");
+    empujar(v, op);
+    empujar(v, " ");
+    empujar(v, vista(der));
+    empujar(v, ")");
+    return v;
+}
+
+// El tipo con el que operar los dos lados: el del primero que se sepa.
+fn tipo_operando(_s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let a = I.tipo_de(tipos, n.hijos[0]);
+    if es_entero(vista(a)) { return a; }
+    let b = I.tipo_de(tipos, n.hijos[1]);
+    if es_entero(vista(b)) { return b; }
+    return nuevo("usize");
+}
+
+fn es_entero(t: view) -> bool {
+    if igual(t, "usize") || igual(t, "i64") { return true; }
+    if igual(t, "u8") || igual(t, "u16") || igual(t, "u32") { return true; }
+    if igual(t, "u64") || igual(t, "i8") || igual(t, "i16") { return true; }
+    return igual(t, "i32");
+}
+
+// Solo las llamadas a funciones del programa: las internas tienen cada una
+// su forma, y eso es otra capa.
+fn llamada_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let nombre = vista(n.texto);
+    if es_interna(nombre) { return no_se(); }
+    if !tiene(tipos.retornos, nombre) { return no_se(); }
+    if tiene(tipos.tipo_params, nombre) { return no_se(); }
+
+    let firmados = I.lista_de(tipos.params, nombre) sino [];
+    let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];
+    var v = nuevo(nombre);
+    empujar(v, "(");
+    var i = 0;
+    for h en n.hijos {
+        if i > 0 { empujar(v, ", "); }
+        var esperado = vacio();
+        if i < largo(firmados) { esperado = copiar(firmados[i]); }
+
+        // Un parametro prestado recibe la direccion, no el valor. Si lo que
+        // se le pasa ya es un puntero, se pasa tal cual.
+        var presta_el = false;
+        if i < largo(marcados) {
+            let m = vista(marcados[i]);
+            presta_el = empieza_con(m, "&") || empieza_con(m, "mut ");
+        }
+        if presta_el && igual(vista(h.clase), "variable") {
+            if tiene(s.punteros, vista(h.texto)) {
+                empujar(v, vista(h.texto));
+            } else {
+                empujar(v, "&");
+                empujar(v, vista(h.texto));
+            }
+            i = i + 1;
+            continue;
+        }
+
+        let arg = expresion_c(s, h, vista(esperado), tipos);
+        if es_desconocido(vista(arg)) { return no_se(); }
+        empujar(v, vista(arg));
+        i = i + 1;
+    }
+    empujar(v, ")");
+    return v;
+}
+
+fn es_interna(nombre: view) -> bool {
+    if igual(nombre, "largo") || igual(nombre, "byte") { return true; }
+    if igual(nombre, "nuevo") || igual(nombre, "vacio") { return true; }
+    if igual(nombre, "vista") || igual(nombre, "rebanar") { return true; }
+    if igual(nombre, "igual") || igual(nombre, "menor") { return true; }
+    if igual(nombre, "imprimir") || igual(nombre, "empujar") { return true; }
+    if igual(nombre, "anadir") || igual(nombre, "poner") { return true; }
+    if igual(nombre, "obtener") || igual(nombre, "tiene") { return true; }
+    if igual(nombre, "claves") || igual(nombre, "quitar") { return true; }
+    if igual(nombre, "texto") || igual(nombre, "copiar") { return true; }
+    if igual(nombre, "ordenar") || igual(nombre, "reservar") { return true; }
+    return false;
 }

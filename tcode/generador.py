@@ -1745,6 +1745,14 @@ class Generador:
             self.reclamar(valor_c)
 
             if self.c.posee(tipo):
+                # Y se guarda en un temporal antes de liberar, porque en C lo
+                # que cuenta no es donde se genero la expresion sino donde
+                # queda escrita: `s = nuevo(rebanar(vista(s), ...))` leeria
+                # `s` despues de soltarlo.
+                guardado = self.nuevo_tmp()
+                self.emitir(f"{self.tipo_c(tipo)} {guardado} = {valor_c};")
+                self.declarar(guardado, tipo)
+                valor_c = guardado
                 con_bandera = (isinstance(s.lugar, Variable)
                                and s.lugar.nombre in self.con_bandera)
                 if con_bandera:

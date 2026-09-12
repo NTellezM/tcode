@@ -24,19 +24,42 @@ fn nombre_de(texto: view) -> str {
     return nuevo(texto);
 }
 
-// `P.Nodo` es `Nodo`: el nombre del modulo no forma parte del tipo.
+// `P.Nodo` es `Nodo`, y `lista<P.Nodo>` es `lista<Nodo>`: el nombre del
+// modulo no forma parte del tipo, este donde este.
 fn sin_alias_de_modulo(t: view) -> str {
-    var corte = 0;
-    var visto = false;
+    var salida = vacio();
+    // Donde empieza el ultimo nombre escrito: si detras viene un punto, ese
+    // nombre era el del modulo y se borra.
+    var inicio_nombre = 0;
+    var desde = 0;
     var i = 0;
-    while i < largo(t) {
-        let b = byte(t, i);
-        if b == 46 && !visto { corte = i + 1; visto = true; }
-        if b == 60 { break; }
+    while i <= largo(t) {
+        var corta = true;
+        if i < largo(t) { corta = !de_nombre(byte(t, i)); }
+        if corta {
+            if i > desde {
+                inicio_nombre = largo(vista(salida));
+                empujar(salida, rebanar(t, desde, i));
+            }
+            if i < largo(t) {
+                if byte(t, i) == 46 {
+                    salida = nuevo(rebanar(vista(salida), 0, inicio_nombre));
+                } else {
+                    empujar(salida, rebanar(t, i, i + 1));
+                }
+            }
+            desde = i + 1;
+        }
         i = i + 1;
     }
-    if !visto { return nuevo(t); }
-    return nuevo(rebanar(t, corte, largo(t)));
+    return salida;
+}
+
+fn de_nombre(b: usize) -> bool {
+    if b >= 97 && b <= 122 { return true; }
+    if b >= 65 && b <= 90 { return true; }
+    if b >= 48 && b <= 57 { return true; }
+    return b == 95;
 }
 
 // Como `tipo_desnudo` pero conservando la marca: `&Cosa`, `mut lista<str>`.
@@ -248,7 +271,7 @@ fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
                 // variable de un `for` sobre algo con duenio: ahi se recorre
                 // lo que hay, no se saca.
                 var prestada = tiene(prestados, vista(nom));
-                if tiene(de_bucle, vista(nom)) && Q.posee(c, vista(tip)) {
+                if tiene(de_bucle, vista(nom)) && Q.tiene_duenio(c, vista(tip)) {
                     prestada = true;
                 }
                 var donde = 0;

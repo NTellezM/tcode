@@ -56,7 +56,7 @@ fn destino_de(c: &I.Contexto, v: &Vigilada) -> str {
     if v.prestado || T.es_referencia(vista(v.tipo)) {
         return nuevo("prestado");
     }
-    if !posee(c, vista(v.tipo)) { return nuevo("nada"); }
+    if !tiene_duenio(c, vista(v.tipo)) { return nuevo("nada"); }
     if v.entregada_en > 0 {
         var s = nuevo("entrega:");
         empujar(s, texto(v.entregada_en));
@@ -70,7 +70,7 @@ fn destino_de(c: &I.Contexto, v: &Vigilada) -> str {
     return nuevo("libera");
 }
 
-fn posee(c: &I.Contexto, t: view) -> bool {
+fn tiene_duenio(c: &I.Contexto, t: view) -> bool {
     var visitados: mapa<str, usize> = [];
     return T.posee(c.campos, t, visitados) sino false;
 }
@@ -134,7 +134,7 @@ fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
     let m = vista(marcados[i]);
     // Un prestamo no se queda con nada.
     if empieza_con(m, "&") || empieza_con(m, "mut ") { return false; }
-    return posee(c, m);
+    return tiene_duenio(c, m);
 }
 
 // ------------------------------------------------------------------
@@ -169,7 +169,7 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
                 let quien = variable_suelta(x);
                 if largo(quien) > 0 {
                     let t = tipo_vigilado(vs, vista(quien), n.linea);
-                    if posee(c, vista(t)) {
+                    if tiene_duenio(c, vista(t)) {
                         marcar_movida(vs, vista(quien), n.linea);
                     }
                 }
@@ -186,7 +186,7 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
             let quien = variable_suelta(n.hijos[1]);
             if largo(quien) > 0 {
                 let t = tipo_vigilado(vs, vista(quien), n.linea);
-                if posee(c, vista(t)) {
+                if tiene_duenio(c, vista(t)) {
                     marcar_movida(vs, vista(quien), n.linea);
                 }
             }
@@ -201,7 +201,7 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
             let quien = variable_suelta(n.hijos[0]);
             if largo(quien) > 0 {
                 let t = tipo_vigilado(vs, vista(quien), n.linea);
-                if posee(c, vista(t)) {
+                if tiene_duenio(c, vista(t)) {
                     marcar_movida(vs, vista(quien), n.linea);
                 }
             }
@@ -235,7 +235,7 @@ fn mirar_llamada(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
             let quien = variable_suelta(h);
             if largo(quien) > 0 {
                 let t = tipo_vigilado(vs, vista(quien), h.linea);
-                if posee(c, vista(t)) {
+                if tiene_duenio(c, vista(t)) {
                     // En la linea del argumento, no en la de la llamada: una
                     // llamada puede ocupar varias lineas.
                     marcar_movida(vs, vista(quien), h.linea);
