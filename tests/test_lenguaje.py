@@ -2197,6 +2197,24 @@ print("=== TIPAR: de que tipo es cada variable, dicho por Tcode ===")
 # el comprobador de Python.
 from tcode.nodos import Funcion as _Fn_t
 
+def _nombre_escrito(nombre, propias):
+    """El nombre tal como esta en el archivo.
+
+    El cargador renombra dos cosas: lo que choca con una palabra de C
+    (`ss_id_union`) y lo que declaran dos modulos a la vez
+    (`propiedad__posee`). Ninguno de los dos esta escrito en la fuente.
+    """
+    if nombre in propias:
+        return nombre
+    if nombre.startswith("ss_id_") and nombre[len("ss_id_"):] in propias:
+        return nombre[len("ss_id_"):]
+    if "__" in nombre:
+        corto = nombre.split("__", 1)[1]
+        if corto in propias:
+            return corto
+    return None
+
+
 def _tipos_esperados(ruta):
     """Lo que dice el comprobador de Python, dejando fuera lo que el
     compilador se inventa: las copias de una generica, las clausuras, y los
@@ -2218,9 +2236,8 @@ def _tipos_esperados(ruta):
         f = entrada["funcion"]
         if (f.archivo or propio) != propio:
             continue
-        nombre = (f.nombre[len("ss_id_"):] if f.nombre.startswith("ss_id_")
-                  else f.nombre)
-        if nombre not in propias:
+        nombre = _nombre_escrito(f.nombre, propias)
+        if nombre is None:
             continue
         for sim in entrada["simbolos"]:
             fuera.append(f"{nombre}\t{sim.nombre}\t{sim.tipo}")
@@ -2278,6 +2295,125 @@ try:
                 simbolos += len(dado)
             print(f"    {comparados} archivos, {simbolos} variables, "
                   f"mismos tipos que el comprobador de Python")
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+print("=== PROPIEDAD: que le pasa a cada valor, dicho por Tcode ===")
+# Quinta capa del compilador en su propio lenguaje, y la que de verdad separa
+# a Tcode de C: quien es duenio de que memoria y donde deja de serlo. Cada
+# variable acaba en `presta`, `prestado`, `nada`, `entrega:N`, `mueve:N` o
+# `libera`, y tiene que coincidir con lo que el comprobador de Python sabe
+# decir con `--explicar`.
+#
+# Tres archivos no coinciden todavia, por dos limitaciones de la capa en
+# Tcode que estan sin resolver y no se esconden:
+#
+#   - dos variables con el MISMO NOMBRE en bloques distintos de una funcion:
+#     el destino de una se le atribuye a la otra
+#   - una llamada repartida en varias lineas: el movimiento se apunta en la
+#     linea del argumento, y el comprobador de Python a veces usa otra
+#
+# La lista esta aqui escrita para que no crezca sin que nadie se entere: si
+# un archivo que hoy coincide deja de hacerlo, la suite lo dice.
+_PROPIEDAD_PENDIENTES = {
+    "ejemplos/compilador/lib/propiedad.t",
+    "ejemplos/compilador/lib/tipar.t",
+    "ejemplos/compilador/tipos.t",
+}
+
+def _propiedad_esperada(ruta):
+    from tcode.parser import parsear as _p
+    try:
+        arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set())
+    except Exception:
+        return None
+    propias = {d.nombre for d in arbol
+               if isinstance(d, _Fn_t) and not d.tipo_params}
+    codigo, errores, comp = compilar_archivo(ruta, devolver_comp=True)
+    if errores:
+        return None
+    propio = os.path.relpath(ruta)
+    fuera = []
+    for entrada in comp.informe:
+        f = entrada["funcion"]
+        if (f.archivo or propio) != propio:
+            continue
+        nombre = _nombre_escrito(f.nombre, propias)
+        if nombre is None:
+            continue
+        for sim in entrada["simbolos"]:
+            if sim.tipo == "view":
+                d = "presta"
+            elif sim.prestado:
+                d = "prestado"
+            elif not comp.posee(sim.tipo):
+                d = "nada"
+            elif sim.entregada_en:
+                d = f"entrega:{sim.entregada_en}"
+            elif sim.movida:
+                d = f"mueve:{sim.movida_en}"
+            else:
+                d = "libera"
+            fuera.append(f"{nombre}\t{sim.nombre}\t{sim.tipo}\t{d}")
+    return fuera
+
+tmp = tempfile.mkdtemp(prefix="tcode-prop-")
+try:
+    total += 1
+    codigo, errores = compilar_archivo(
+        os.path.join(RAIZ, "ejemplos", "compilador", "tipar.t"))
+    if errores:
+        falla("propiedad en Tcode", "\n".join(errores))
+    else:
+        ruta_c = os.path.join(tmp, "tipar.c")
+        binario = os.path.join(tmp, "tipar")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            falla("propiedad en Tcode compila", r.stderr[:600])
+        else:
+            archivos = sorted(
+                glob.glob(os.path.join(RAIZ, "std", "*.t"))
+                + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
+                            recursive=True))
+            comparados = variables = 0
+            for archivo in archivos:
+                rel = os.path.relpath(archivo, RAIZ)
+                esperado = _propiedad_esperada(archivo)
+                if esperado is None:
+                    continue
+                total += 1
+                e = subprocess.run([binario, archivo, "--propiedad"],
+                                   capture_output=True, text=True, timeout=180)
+                if "Sanitizer" in e.stderr:
+                    falla("propiedad en Tcode",
+                          f"{rel}: sanitizer\n{e.stderr[:400]}")
+                    continue
+                dado = [l for l in e.stdout.splitlines() if l.strip()]
+                coincide = dado == esperado
+                if coincide and rel in _PROPIEDAD_PENDIENTES:
+                    falla("propiedad en Tcode",
+                          f"{rel} ya coincide: quitalo de "
+                          f"_PROPIEDAD_PENDIENTES")
+                elif not coincide and rel not in _PROPIEDAD_PENDIENTES:
+                    d = next((i for i, (a, b) in enumerate(zip(dado, esperado))
+                              if a != b), None)
+                    detalle = (f"  Tcode:  {dado[d]!r}\n  Python: {esperado[d]!r}"
+                               if d is not None
+                               else f"{len(dado)} lineas contra {len(esperado)}")
+                    falla("propiedad en Tcode", f"{rel}:\n" + detalle)
+                elif coincide:
+                    comparados += 1
+                    variables += len(dado)
+            print(f"    {comparados} archivos, {variables} variables, mismo "
+                  f"destino que el comprobador de Python "
+                  f"({len(_PROPIEDAD_PENDIENTES)} pendientes)")
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
