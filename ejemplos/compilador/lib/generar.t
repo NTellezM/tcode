@@ -438,8 +438,135 @@ fn es_entero(t: view) -> bool {
 
 // Solo las llamadas a funciones del programa: las internas tienen cada una
 // su forma, y eso es otra capa.
+// Las internas que no necesitan emitir nada aparte: se bajan a una llamada
+// del runtime y ya. `byte` no esta porque necesita guardar la vista en un
+// temporal antes de indexarla.
+fn interna_pura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let nombre = vista(n.texto);
+
+    if igual(nombre, "vacio") { return nuevo("ss_new()"); }
+
+    if igual(nombre, "largo") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        let v = como_vista(s, n.hijos[0], tipos);
+        if es_desconocido(vista(v)) { return no_se(); }
+        var r = nuevo("sv_len_of(");
+        empujar(r, vista(v));
+        empujar(r, ")");
+        return r;
+    }
+
+    if igual(nombre, "nuevo") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        let v = como_vista(s, n.hijos[0], tipos);
+        if es_desconocido(vista(v)) { return no_se(); }
+        var r = nuevo("ss_from_view(");
+        empujar(r, vista(v));
+        empujar(r, ")");
+        return r;
+    }
+
+    if igual(nombre, "vista") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        if !igual(vista(n.hijos[0].clase), "variable") { return no_se(); }
+        return direccion_de(s, vista(n.hijos[0].texto), "ss_view(");
+    }
+
+    if igual(nombre, "igual") || igual(nombre, "menor") {
+        if largo(n.hijos) != 2 { return no_se(); }
+        let a = como_vista(s, n.hijos[0], tipos);
+        let b = como_vista(s, n.hijos[1], tipos);
+        if es_desconocido(vista(a)) || es_desconocido(vista(b)) {
+            return no_se();
+        }
+        var r = nuevo("sv_equals(");
+        if igual(nombre, "menor") { r = nuevo("(sv_cmp("); }
+        empujar(r, vista(a));
+        empujar(r, ", ");
+        empujar(r, vista(b));
+        if igual(nombre, "menor") { empujar(r, ") < 0)"); }
+        else { empujar(r, ")"); }
+        return r;
+    }
+
+    if igual(nombre, "rebanar") {
+        if largo(n.hijos) != 3 { return no_se(); }
+        let v = como_vista(s, n.hijos[0], tipos);
+        let a = expresion_c(s, n.hijos[1], "usize", tipos);
+        let b = expresion_c(s, n.hijos[2], "usize", tipos);
+        if es_desconocido(vista(v)) || es_desconocido(vista(a))
+        || es_desconocido(vista(b)) {
+            return no_se();
+        }
+        var r = nuevo("sv_slice(");
+        empujar(r, vista(v));
+        empujar(r, ", ");
+        empujar(r, vista(a));
+        empujar(r, ", ");
+        empujar(r, vista(b));
+        empujar(r, ")");
+        return r;
+    }
+
+    return no_se();
+}
+
+// `ss_view(&x)`, o `ss_view(x)` si `x` ya es un puntero.
+fn direccion_de(s: &Sitio, nombre: view, envoltura: view) -> str {
+    var r = nuevo(envoltura);
+    if !tiene(s.punteros, nombre) { empujar(r, "&"); }
+    empujar(r, nombre);
+    empujar(r, ")");
+    return r;
+}
+
+// Un argumento donde se pide una vista: un `view` va tal cual, un `str` se
+// presta, y un literal es su propia vista.
+fn como_vista(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    if igual(vista(n.clase), "cadena") {
+        var r = nuevo("sv_len(");
+        empujar(r, literal_c(vista(n.texto)));
+        empujar(r, ", ");
+        empujar(r, texto(cuantos_bytes(vista(n.texto))));
+        empujar(r, ")");
+        return r;
+    }
+    let t = I.tipo_de(tipos, n);
+    if igual(vista(t), "str") {
+        if !igual(vista(n.clase), "variable") { return no_se(); }
+        return direccion_de(s, vista(n.texto), "ss_view(");
+    }
+    if igual(vista(t), "view") { return expresion_c(s, n, "view", tipos); }
+    return no_se();
+}
+
+// El literal de C con los mismos bytes. Aqui solo lo que no necesita
+// escaparse raro: si lleva algo mas, no se cubre.
+fn literal_c(t: view) -> str {
+    var r = nuevo("\"");
+    var i = 0;
+    while i < largo(t) {
+        let b = byte(t, i);
+        if b == 34 || b == 92 { return no_se(); }
+        if b == 10 { empujar(r, "\\n"); }
+        else {
+            if b == 9 { empujar(r, "\\t"); }
+            else { empujar(r, rebanar(t, i, i + 1)); }
+        }
+        i = i + 1;
+    }
+    empujar(r, "\"");
+    return r;
+}
+
+fn cuantos_bytes(t: view) -> usize {
+    return largo(t);
+}
+
 fn llamada_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let nombre = vista(n.texto);
+    let pura = interna_pura(s, n, tipos);
+    if !es_desconocido(vista(pura)) { return pura; }
     if es_interna(nombre) { return no_se(); }
     if !tiene(tipos.retornos, nombre) { return no_se(); }
     if tiene(tipos.tipo_params, nombre) { return no_se(); }
@@ -482,10 +609,11 @@ fn llamada_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 }
 
 fn es_interna(nombre: view) -> bool {
-    if igual(nombre, "largo") || igual(nombre, "byte") { return true; }
-    if igual(nombre, "nuevo") || igual(nombre, "vacio") { return true; }
-    if igual(nombre, "vista") || igual(nombre, "rebanar") { return true; }
-    if igual(nombre, "igual") || igual(nombre, "menor") { return true; }
+    if igual(nombre, "byte") { return true; }
+    if igual(nombre, "largo") || igual(nombre, "nuevo") { return true; }
+    if igual(nombre, "vacio") || igual(nombre, "vista") { return true; }
+    if igual(nombre, "rebanar") || igual(nombre, "igual") { return true; }
+    if igual(nombre, "menor") { return true; }
     if igual(nombre, "imprimir") || igual(nombre, "empujar") { return true; }
     if igual(nombre, "anadir") || igual(nombre, "poner") { return true; }
     if igual(nombre, "obtener") || igual(nombre, "tiene") { return true; }
