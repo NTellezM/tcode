@@ -2316,9 +2316,13 @@ print("=== PROPIEDAD: que le pasa a cada valor, dicho por Tcode ===")
 # La lista esta aqui escrita para que no crezca sin que nadie se entere: si
 # un archivo que hoy coincide deja de hacerlo, la suite lo dice.
 _PROPIEDAD_PENDIENTES = {
+    # nombre repetido en bloques distintos
     "ejemplos/compilador/lib/propiedad.t",
     "ejemplos/compilador/lib/tipar.t",
+    "ejemplos/compilador/lib/generar.t",
+    # llamada repartida en varias lineas
     "ejemplos/compilador/tipos.t",
+    "ejemplos/compilador/firmas.t",
 }
 
 def _propiedad_esperada(ruta):
@@ -2414,6 +2418,80 @@ try:
             print(f"    {comparados} archivos, {variables} variables, mismo "
                   f"destino que el comprobador de Python "
                   f"({len(_PROPIEDAD_PENDIENTES)} pendientes)")
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+print("=== FIRMAS: la cara en C de cada funcion, dicha por Tcode ===")
+# Primera pieza del generador escrita en su propio lenguaje: como se llama
+# cada tipo en C y como queda la firma de cada funcion. Se compara con lo que
+# emite el generador de Python, cadena por cadena.
+from tcode.generador import Generador as _Gen
+
+def _firmas_esperadas(ruta):
+    from tcode.parser import parsear as _p
+    try:
+        arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set())
+    except Exception:
+        return None
+    codigo, errores, comp = compilar_archivo(ruta, devolver_comp=True)
+    if errores:
+        return None
+    g = _Gen(comp, ruta)
+    return [g.prototipo(d) for d in arbol
+            if isinstance(d, _Fn_t) and not d.tipo_params]
+
+tmp = tempfile.mkdtemp(prefix="tcode-firmas-")
+try:
+    total += 1
+    codigo, errores = compilar_archivo(
+        os.path.join(RAIZ, "ejemplos", "compilador", "firmas.t"))
+    if errores:
+        falla("firmas en Tcode", "\n".join(errores))
+    else:
+        ruta_c = os.path.join(tmp, "firmas.c")
+        binario = os.path.join(tmp, "firmas")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            falla("firmas en Tcode compila", r.stderr[:600])
+        else:
+            archivos = sorted(
+                glob.glob(os.path.join(RAIZ, "std", "*.t"))
+                + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
+                            recursive=True))
+            comparados = firmas = 0
+            for archivo in archivos:
+                esperado = _firmas_esperadas(archivo)
+                if esperado is None:
+                    continue
+                total += 1
+                e = subprocess.run([binario, archivo], capture_output=True,
+                                   text=True, timeout=180)
+                if "Sanitizer" in e.stderr:
+                    falla("firmas en Tcode",
+                          f"{os.path.basename(archivo)}: sanitizer\n"
+                          f"{e.stderr[:400]}")
+                    continue
+                dado = [l for l in e.stdout.splitlines() if l.strip()]
+                if dado != esperado:
+                    d = next((i for i, (a, b) in enumerate(zip(dado, esperado))
+                              if a != b), None)
+                    detalle = (f"  Tcode:  {dado[d]!r}\n  Python: {esperado[d]!r}"
+                               if d is not None
+                               else f"{len(dado)} firmas contra {len(esperado)}")
+                    falla("firmas en Tcode",
+                          f"{os.path.relpath(archivo, RAIZ)}:\n" + detalle)
+                    continue
+                comparados += 1
+                firmas += len(dado)
+            print(f"    {comparados} archivos, {firmas} firmas, mismas que el "
+                  f"generador de Python")
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
