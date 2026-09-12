@@ -1957,6 +1957,7 @@ with tempfile.TemporaryDirectory() as tmp:
 # el suyo propio.
 print("=== AUTOANALISIS: el lexer y el parser en Tcode, contra los de Python ===")
 import glob
+import traceback
 from tcode.lexer import tokenizar as tokenizar_py
 
 with tempfile.TemporaryDirectory() as tmp:
@@ -2188,6 +2189,53 @@ try:
                   f"mismas respuestas que el comprobador de Python")
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
+
+print("=== FORMATO: un estilo, y el repositorio ya lo tiene ===")
+# Tres propiedades, y la primera es la que importa: el formateador no puede
+# perder ni cambiar nada, porque la salida lexea a los mismos tokens que la
+# entrada. Las otras dos son que es idempotente y que el repositorio esta
+# escrito en el formato canonico.
+from tcode.formato import formatear as _formatear
+from tcode.lexer import tokenizar as _tokenizar_fmt
+
+_TODOS = sorted(
+    glob.glob(os.path.join(RAIZ, "std", "*.t"))
+    + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"), recursive=True)
+    + glob.glob(os.path.join(RAIZ, "bench", "*.t")))
+sin_formato = []
+for archivo in _TODOS:
+    total += 1
+    with open(archivo, encoding="utf-8") as f:
+        fuente = f.read()
+    try:
+        uno = _formatear(fuente, archivo)
+        dos = _formatear(uno, archivo)
+    except Exception:
+        falla(f"formato de {os.path.relpath(archivo, RAIZ)}",
+              traceback.format_exc())
+        continue
+    antes = [(t.tipo, t.valor) for t in _tokenizar_fmt(fuente, archivo)]
+    despues = [(t.tipo, t.valor) for t in _tokenizar_fmt(uno, archivo)]
+    if antes != despues:
+        donde = next((i for i, (a, b) in enumerate(zip(antes, despues))
+                      if a != b), min(len(antes), len(despues)))
+        falla(f"formato de {os.path.relpath(archivo, RAIZ)}",
+              f"cambia los tokens en la posicion {donde}: "
+              f"{antes[donde:donde + 3]} -> {despues[donde:donde + 3]}")
+        continue
+    if uno != dos:
+        falla(f"formato de {os.path.relpath(archivo, RAIZ)}",
+              "formatear dos veces no da lo mismo")
+        continue
+    if uno != fuente:
+        sin_formato.append(os.path.relpath(archivo, RAIZ))
+if sin_formato:
+    total += 1
+    falla("el repositorio esta formateado",
+          "sin formatear: " + ", ".join(sin_formato[:6])
+          + "; arreglalo con `make formato`")
+print(f"    {len(_TODOS)} archivos: mismos tokens, idempotente, y ya "
+      f"en formato canonico")
 
 print("=== LINEAS: el C generado apunta al `.t`, no a si mismo ===")
 # Con `#line`, gdb, valgrind, los sanitizers y los perfiladores hablan del

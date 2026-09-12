@@ -31,12 +31,12 @@ struct Estado {
 
 fn hoja(clase: view, texto: view, linea: usize) -> Nodo {
     return Nodo { clase: nuevo(clase), texto: nuevo(texto), linea: linea,
-                  hijos: [] };
+        hijos: [] };
 }
 
 fn rama(clase: view, linea: usize) -> Nodo {
     return Nodo { clase: nuevo(clase), texto: vacio(), linea: linea,
-                  hijos: [] };
+        hijos: [] };
 }
 
 fn contar_nodos(n: &Nodo) -> usize {
@@ -136,14 +136,14 @@ fn tipo(e: mut Estado) -> str ! {
     // `bloque<T>`: no es palabra reservada, se reconoce por el `<`.
     if es(e, "ident", "bloque") {
         if igual(valor_en(e, 1), "<") {
-        avanzar(e);
-        try espera(e, "simbolo", "<");
-        let dentro = try tipo(e);
-        try espera(e, "simbolo", ">");
-        var t = nuevo("bloque<");
-        empujar(t, dentro);
-        empujar(t, ">");
-        return t;
+            avanzar(e);
+            try espera(e, "simbolo", "<");
+            let dentro = try tipo(e);
+            try espera(e, "simbolo", ">");
+            var t = nuevo("bloque<");
+            empujar(t, dentro);
+            empujar(t, ">");
+            return t;
         }
     }
     if es(e, "palabra", "lista") {
@@ -379,7 +379,7 @@ fn primario(e: mut Estado) -> Nodo ! {
         }
 
         if es(e, "simbolo", "{") && (tiene(e.structs, nombre)
-                                     || contiene(vista(nombre), ".")) {
+            || contiene(vista(nombre), ".")) {
             avanzar(e);
             var n = rama("literal_struct", l);
             empujar(n.texto, nombre);

@@ -47,10 +47,10 @@ fn main() -> usize ! {
     empujar(linea, "campo3");
     imprimir($"{linea}\n");
 
-    imprimir($"{empieza_con(saludo, "hola")} {termina_con(saludo, "mundo")}\n");
+    imprimir($"{empieza_con(saludo, \"hola\")} {termina_con(saludo, \"mundo\")}\n");
 
     let ruta = nuevo("PRE:documento.txt");
     imprimir($"{sin_prefijo(ruta, 4)}  {primera_mitad(ruta)}\n");
 
-    imprimir($"{repetir("-*", 10)}\n");
+    imprimir($"{repetir(\"-*\", 10)}\n");
 }

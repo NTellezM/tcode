@@ -44,3 +44,13 @@ limpiar:
 	@rm -f ejemplos/hola ejemplos/texto ejemplos/inventario ejemplos/contar ejemplos/*.c
 	@rm -f ejemplos/informe/informe ejemplos/informe/*.c
 	@rm -rf tcode/__pycache__ tests/__pycache__
+
+# Deja todo el codigo Tcode en el formato canonico. Sin opciones: hay un
+# estilo y es este.
+formato:
+	@for f in $$(find std ejemplos bench -name '*.t'); do \
+	    python3 -m tcode.cli "$$f" --formatear --escribir; \
+	done
+	@echo "listo"
+
+.PHONY: formato

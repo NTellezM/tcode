@@ -129,7 +129,7 @@ fn escalar(t: view) -> bool {
 // `visitados` corta la recursion: un `Nodo` con un campo `lista<Nodo>` se
 // contiene a si mismo de forma finita, y preguntarle dos veces no aporta.
 fn posee(campos: &mapa<str, lista<str>>, t: view,
-         visitados: mut mapa<str, usize>) -> bool ! {
+    visitados: mut mapa<str, usize>) -> bool ! {
     if es_referencia(t) || es_funcion(t) { return false; }
     if igual(t, "str") { return true; }
     if es_mapa(t) || es_lista(t) || es_bloque(t) { return true; }
@@ -167,7 +167,7 @@ fn tipo_existe(campos: &mapa<str, lista<str>>, t: view) -> bool {
         let partes = partir_tipos(entre_angulos(t));
         if largo(partes) != 2 { return false; }
         return tipo_existe(campos, vista(partes[0]))
-            && tipo_existe(campos, vista(partes[1]));
+        && tipo_existe(campos, vista(partes[1]));
     }
     if es_lista(t) || es_bloque(t) {
         let dentro = elemento(t);

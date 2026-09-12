@@ -15,7 +15,7 @@ fn linea(escala: view, grados: usize) -> str {
 }
 
 fn main() -> usize {
-    let kelvin_por_diez = 3000;     // 300,0 K
+    let kelvin_por_diez = 3000; // 300,0 K
 
     imprimir(linea(c.nombre(), c.desde_kelvin(kelvin_por_diez)));
     imprimir(linea(f.nombre(), f.desde_kelvin(kelvin_por_diez)));
