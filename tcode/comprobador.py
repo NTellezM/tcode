@@ -1899,8 +1899,12 @@ class Comprobador:
         else:
             elem = elem_lista(base)
         if mover_variables and self.posee(elem):
-            self.error(e, f"en v0 no se puede sacar un elemento de un arreglo: "
-                          f"dejaria un hueco. Mueve el arreglo entero")
+            que = ("un bloque" if es_bloque(base)
+                   else "una lista" if es_lista(base) else "un arreglo")
+            self.error(e, f"no se puede sacar un elemento de {que} y dejar el "
+                          f"hueco sin duenio. Si quieres sacarlo, di que dejas "
+                          f"en su sitio: `intercambiar(...)`. Si solo quieres "
+                          f"leerlo, `copiar(...)`")
         return elem
 
     def cierre(self, e: Cierre):
