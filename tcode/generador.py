@@ -15,7 +15,7 @@ import re
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
-    Decimal, SiExpr,
+    Decimal, SiExpr, Cierre,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
@@ -1866,6 +1866,8 @@ class Generador:
             return "str"
         if isinstance(e, LiteralStruct):
             return e.tipo
+        if isinstance(e, Cierre):
+            return e.tipo_struct
         if isinstance(e, LiteralArreglo):
             elem = self._tipo_de(e.elementos[0]) if e.elementos else "usize"
             return f"[{elem}; {len(e.elementos)}]"
@@ -2006,6 +2008,23 @@ class Generador:
 
         if isinstance(e, (Campo, Indice)):
             return self.lugar(e)
+
+        if isinstance(e, Cierre):
+            # La clausura es su struct: lo capturado, por valor. Lo que posee
+            # memoria se movio al capturarlo, asi que aqui se entrega.
+            st = self.c.structs[e.tipo_struct]
+            piezas = []
+            for c in st.campos:
+                if c.nombre == "ss_vacio":
+                    piezas.append(".ss_vacio = 0")
+                    continue
+                v = Variable(c.nombre, linea=e.linea)
+                # Capturar lo que posee memoria es entregarlo: a partir de
+                # aqui el duenio es el struct de la clausura.
+                v.mueve = self.c.posee(c.tipo)
+                piezas.append(f".{c.nombre} = {self.expr(v, c.tipo)}")
+            partes = ", ".join(piezas)
+            return f"({e.tipo_struct}){{ {partes} }}"
 
         if isinstance(e, LiteralStruct):
             st = self.c.structs.get(e.tipo)

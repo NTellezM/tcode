@@ -552,6 +552,22 @@ class Generador:
             "    return a > b;\n"
             "}")
         partes.append(
+            "fn con_criterio_gen<F>(xs: &lista<usize>, antes: F) -> usize {\n"
+            "    var mejor = 0;\n"
+            "    var i = 1;\n"
+            "    while i < largo(xs) {\n"
+            "        if antes(xs[i], xs[mejor]) { mejor = i; }\n"
+            "        i = i + 1;\n"
+            "    }\n"
+            "    return mejor;\n"
+            "}")
+        partes.append(
+            "fn cuantas_cumplen<T, F>(xs: &lista<T>, cumple: F) -> usize {\n"
+            "    var n = 0;\n"
+            "    for x en xs { if cumple(x) { n = n + 1; } }\n"
+            "    return n;\n"
+            "}")
+        partes.append(
             "fn con_criterio(xs: &lista<usize>, antes: fn(&usize, &usize) -> bool)\n"
             "        -> usize {\n"
             "    var mejor = 0;\n"
@@ -665,6 +681,18 @@ class Generador:
         lineas.append("    let g_caja_n = en_caja(g_ns);")
         lineas.append("    imprimir(cuantas_en(g_caja));")
         lineas.append("    imprimir(cuantas_en(g_caja_n));")
+        # Una clausura que captura un escalar y otra que captura un `str`:
+        # la segunda posee memoria y su struct la tiene que liberar.
+        lineas.append(f"    let c_tope: usize = {self.r.randint(0, 99)};")
+        lineas.append("    let c_menor = fn[c_tope](a: &usize, b: &usize) -> bool {")
+        lineas.append("        return (a % (c_tope +? 1)) < (b % (c_tope +? 1));")
+        lineas.append("    };")
+        lineas.append("    imprimir(con_criterio_gen(g_ns, c_menor));")
+        lineas.append(f'    let c_marca = nuevo("{self.palabra()}");')
+        lineas.append("    let c_igual = fn[c_marca](x: &str) -> bool {")
+        lineas.append("        return igual(vista(x), vista(c_marca));")
+        lineas.append("    };")
+        lineas.append("    imprimir(cuantas_cumplen(g_ss, c_igual));")
         lineas.append("    imprimir(con_criterio(g_ns, antes_n));")
         lineas.append("    let g_criterio = antes_rev;")
         lineas.append("    imprimir(con_criterio(g_ns, g_criterio));")

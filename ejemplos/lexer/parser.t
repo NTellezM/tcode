@@ -274,6 +274,55 @@ fn primario(e: mut Estado) -> Nodo ! {
         try espera(e, "simbolo", "]");
         return n;
     }
+    // `fn[a, b](x: usize) -> bool { ... }`: una clausura.
+    if es(e, "palabra", "fn") {
+        avanzar(e);
+        var n = rama("cierre", l);
+        if acepta(e, "simbolo", "[") {
+            if !es(e, "simbolo", "]") {
+                var mas_c = true;
+                while mas_c {
+                    let cap = try espera(e, "ident", "");
+                    anadir(n.hijos, hoja("captura", cap, l));
+                    mas_c = acepta(e, "simbolo", ",");
+                }
+            }
+            try espera(e, "simbolo", "]");
+        }
+        try espera(e, "simbolo", "(");
+        if !es(e, "simbolo", ")") {
+            var mas_p = true;
+            while mas_p {
+                let pn = try espera(e, "ident", "");
+                try espera(e, "simbolo", ":");
+                var marca = vacio();
+                if acepta(e, "palabra", "mut") { marca = nuevo("mut "); }
+                else { if acepta(e, "simbolo", "&") { marca = nuevo("&"); } }
+                let t = try tipo(e);
+                var pp = rama("param", l);
+                empujar(pp.texto, pn);
+                empujar(pp.texto, ": ");
+                empujar(pp.texto, marca);
+                empujar(pp.texto, t);
+                anadir(n.hijos, pp);
+                mas_p = acepta(e, "simbolo", ",");
+            }
+        }
+        try espera(e, "simbolo", ")");
+        if acepta(e, "simbolo", "->") {
+            let t = try tipo(e);
+            var r = rama("retorno_tipo", l);
+            empujar(r.texto, t);
+            anadir(n.hijos, r);
+        }
+        if acepta(e, "simbolo", "!") {
+            anadir(n.hijos, hoja("falible", "", l));
+        }
+        let cuerpo = try bloque(e);
+        anadir(n.hijos, cuerpo);
+        return n;
+    }
+
     // `if c { a } else { b }` como valor: cada rama es una expresion suelta.
     if es(e, "palabra", "if") {
         avanzar(e);

@@ -4,7 +4,7 @@ from tcode.lexer import tokenizar, Token
 from tcode.nodos import (
     Entero, Decimal, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
-    SiExpr,
+    SiExpr, Cierre,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Parametro, Funcion, CampoDef, Struct, Usar, Para, Romper, Continuar,
@@ -572,6 +572,38 @@ class Parser:
 
     def primario(self):
         t = self.actual
+
+        # `fn[a, b](x: usize) -> bool { ... }`: una clausura. La lista de
+        # captura va delante y es explicita; se captura por valor.
+        if self.es("palabra", "fn"):
+            self.i += 1
+            capturas = []
+            if self.acepta("simbolo", "["):
+                if not self.es("simbolo", "]"):
+                    while True:
+                        capturas.append(self.espera("ident").valor)
+                        if not self.acepta("simbolo", ","):
+                            break
+                self.espera("simbolo", "]")
+            self.espera("simbolo", "(")
+            params = []
+            if not self.es("simbolo", ")"):
+                while True:
+                    pn = self.espera("ident").valor
+                    self.espera("simbolo", ":")
+                    mutable = self.acepta("palabra", "mut") is not None
+                    compartido = False
+                    if not mutable and self.acepta("simbolo", "&"):
+                        mutable = self.acepta("palabra", "mut") is not None
+                        compartido = not mutable
+                    params.append(Parametro(pn, self.tipo(), mutable, compartido))
+                    if not self.acepta("simbolo", ","):
+                        break
+            self.espera("simbolo", ")")
+            retorno = self.tipo() if self.acepta("simbolo", "->") else None
+            falible = self.acepta("simbolo", "!") is not None
+            return Cierre(capturas, params, retorno, self.bloque(), falible,
+                          linea=t.linea)
 
         # `if c { a } else { b }` como valor. Cada rama es una expresion
         # suelta: sin punto y coma, sin sentencias, y con `else` obligatorio.

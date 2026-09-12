@@ -71,7 +71,7 @@ fn aplanar<T>(xss: &lista<lista<T>>) -> lista<T> {
 // elementos duenios dentro de la lista dejaria un hueco sin duenio, y el
 // compilador no lo permite; asi son n copias en vez de n log n intercambios
 // imposibles.
-fn ordenadas_por<T>(xs: &lista<T>, antes: fn(&T, &T) -> bool) -> lista<T> {
+fn ordenadas_por<T, F>(xs: &lista<T>, antes: F) -> lista<T> {
     var orden: lista<usize> = [];
     var i = 0;
     while i < largo(xs) {
@@ -105,6 +105,25 @@ fn ordenadas_por<T>(xs: &lista<T>, antes: fn(&T, &T) -> bool) -> lista<T> {
     var salida: lista<T> = [];
     for p en orden { anadir(salida, copiar(xs[p])); }
     return salida;
+}
+
+// Se queda con los que cumplen. `cumple` puede ser una funcion con nombre o
+// una clausura que lleve algo capturado: al ser generico, valen las dos.
+fn filtradas<T, F>(xs: &lista<T>, cumple: F) -> lista<T> {
+    var salida: lista<T> = [];
+    for x en xs {
+        if cumple(x) { anadir(salida, copiar(x)); }
+    }
+    return salida;
+}
+
+// Cuantos cumplen, sin construir la lista.
+fn cuantas_cumplen<T, F>(xs: &lista<T>, cumple: F) -> usize {
+    var n = 0;
+    for x en xs {
+        if cumple(x) { n = n + 1; }
+    }
+    return n;
 }
 
 // ---------- hace falta poder comparar ----------
