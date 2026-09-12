@@ -77,6 +77,23 @@ class Conversion(Nodo):
     envolviendo: bool = False
 
 @dataclass
+class Cierre(Nodo):
+    """`fn[a, b](x: usize) -> bool { ... }`.
+
+    La lista de captura es explicita y se captura POR VALOR. Eso es lo que
+    hace que una clausura sea exactamente un struct con los valores dentro
+    mas una funcion que los recibe: no hay que saber cuanto vive nada.
+    """
+    capturas: list        # nombres
+    params: list          # [Parametro]
+    retorno: Optional[str]
+    cuerpo: list
+    falible: bool = False
+    # Las rellena el comprobador al sintetizar el struct y la funcion.
+    tipo_struct: Optional[str] = None
+    funcion: Optional[str] = None
+
+@dataclass
 class SiExpr(Nodo):
     """`if c { a } else { b }` en posicion de expresion.
 

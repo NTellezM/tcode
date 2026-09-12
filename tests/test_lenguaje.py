@@ -26,6 +26,23 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    ("una clausura no cabe en un puntero a funcion",
+     'fn usar_fn(f: fn(usize) -> usize) -> usize { return f(1); }'
+     ' fn main() -> usize { let n = 2;'
+     ' let c = fn[n](x: usize) -> usize { return x + n; };'
+     ' return usar_fn(c); }',
+     "recibio una clausura"),
+
+    ("una clausura no captura un prestamo",
+     'fn f(v: view) -> usize { let g = fn[v](x: usize) -> usize { return x; };'
+     ' return g(1); }',
+     "una clausura captura por valor"),
+
+    ("no se captura lo que no existe",
+     'fn main() -> usize { let g = fn[nada](x: usize) -> usize { return x; };'
+     ' return g(1); }',
+     "no esta declarada, no se puede capturar"),
+
     ("un `if` que da valor necesita `else`",
      'fn main() -> usize { let x = if true { 1 }; return x; }',
      "necesita `else`"),
@@ -569,6 +586,35 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("una clausura captura por valor, incluso lo que tiene duenio",
+     '''usar "std/lista";
+        usar "std/texto";
+
+        fn por_largo(a: &str, b: &str) -> bool { return largo(a) < largo(b); }
+
+        fn main() -> usize {
+            var xs: lista<str> = [];
+            anadir(xs, nuevo("arandano"));
+            anadir(xs, nuevo("pera"));
+            anadir(xs, nuevo("aguacate"));
+
+            // Captura un `str`: el struct de la clausura lo posee y lo
+            // libera solo al acabar el bloque.
+            let inicial = nuevo("a");
+            let empiezan = fn[inicial](x: &str) -> bool {
+                return empieza_con(vista(x), vista(inicial));
+            };
+
+            for c en filtradas(xs, empiezan) { imprimir($"{c} "); }
+            let cuantas = cuantas_cumplen(xs,
+                fn(x: &str) -> bool { return largo(x) > 4; });
+            imprimir($"| {cuantas} | ");
+            // La misma generica, con una funcion con nombre.
+            for c en ordenadas_por(xs, por_largo) { imprimir($"{c} "); }
+            imprimir("\\n");
+        }''',
+     "arandano aguacate | 2 | pera arandano aguacate \n"),
+
     ("`if` como valor, con ramas que son una expresion",
      '''fn clasificar(n: usize) -> str {
             return if n > 100 { nuevo("grande") } else { nuevo("pequeno") };

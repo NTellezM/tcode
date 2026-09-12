@@ -352,6 +352,13 @@ Y **structs genéricos**: `struct Pila<T>`, `struct Par<A, B>`, y
 mismo. `std/par` es un contenedor escrito en Tcode del que el compilador no
 sabe nada: es lo que separa "un lenguaje con dos colecciones" de un lenguaje.
 
+Y **clausuras**: `fn[inicial](x: &str) -> bool { ... }`, con lista de captura
+explícita y **por valor**. Un `str` capturado se mueve a la clausura y se
+libera con ella. Por eso son simples aquí: una clausura es un struct con lo
+capturado más una función que lo recibe, y de structs con dueño el compilador
+ya lo sabía todo. Sin traits, sin anotaciones, sin recolector — el precio es
+que no puedes capturar un préstamo, y el error lo dice.
+
 Y **`if` como valor**: `let x = if n > 3 { 1 } else { 2 };`. Cada rama es una
 expresión y el `else` es obligatorio — así no hay que aprender la regla sutil
 de Rust, donde añadir un `;` cambia lo que vale un bloque.
@@ -387,7 +394,7 @@ cómo arreglarlo con `usar "..." como algo;`. El renombrado interno sólo
 ocurre donde de verdad choca: mientras `palabras` sea de un solo módulo, en
 el C generado se sigue llamando `palabras`.
 
-No hay: clausuras con captura, comprobación del cuerpo genérico una sola vez
+No hay: clausuras que modifiquen lo capturado, comprobación del cuerpo genérico una sola vez
 contra la restricción
 (eso es Rust, y es más), `lista`/`mapa` fuera del compilador —falta poder
 reservar memoria desde Tcode—, E/S incremental ni el propio compilador
@@ -397,7 +404,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-270 casos, 0 fallas
+274 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

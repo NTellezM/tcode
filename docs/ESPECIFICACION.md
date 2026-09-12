@@ -1245,9 +1245,70 @@ dentro de `?:` no caben. El compilador de C lo vuelve a juntar.
 Las dos ramas se comprueban como caminos que se excluyen, igual que el `if`
 sentencia: lo que una mueve, la otra no lo ha movido.
 
+## Clausuras
+
+```tcode
+let inicial = nuevo("a");
+let empiezan = fn[inicial](x: &str) -> bool {
+    return empieza_con(vista(x), vista(inicial));
+};
+
+for c en filtradas(frutas, empiezan) { ... }
+```
+
+La lista de captura va entre corchetes, es **explícita**, y se captura
+**por valor**. Un `str` capturado se *mueve* a la clausura: a partir de ahí
+el dueño es ella, y se libera sola al acabar el bloque.
+
+### Por qué es simple aquí y difícil en otros sitios
+
+Una clausura es exactamente **un struct con lo capturado dentro, más una
+función que lo recibe**. No hay maquinaria nueva: de structs con dueño el
+compilador ya lo sabía todo —cuándo liberarlos, cómo copiarlos, cuándo se
+mueven— y la clausura hereda eso entero.
+
+Lo que encarece las clausuras en otros lenguajes es capturar **por
+referencia**: entonces hay que saber cuánto vive lo capturado.
+
+| lenguaje | cómo | qué cuesta |
+|---|---|---|
+| **Rust** | por referencia o por movimiento, con `Fn`/`FnMut`/`FnOnce` | tres traits, porque hay que distinguir si la clausura lee, modifica o consume. Es la parte del lenguaje que más cuesta aprender |
+| **C++** | lista explícita `[x, &y]`, tipo anónimo; `std::function` reserva | la captura por referencia trae los mismos colgados que un puntero |
+| **Go, JS** | por referencia, con recolector detrás | no podemos permitírnoslo |
+| **Swift** | captura fuerte + ARC | ciclos de retención |
+| **Zig** | no hay | — |
+| **Tcode** | por valor, lista explícita | no puedes capturar un préstamo. A cambio: cero traits, cero anotaciones, cero recolector |
+
+Capturar un préstamo se rechaza y el error dice qué hacer:
+
+```
+error: f.t:2: `v` es `view`, un prestamo: una clausura captura por valor, y
+              guardar un prestamo exigiria saber cuanto vive. Captura un
+              `str` con `copiar(v)`
+```
+
+### Pasarla a una función
+
+Cada clausura tiene su propio tipo, así que quien la recibe es **genérico**:
+
+```tcode
+fn filtradas<T, F>(xs: &lista<T>, cumple: F) -> lista<T>
+```
+
+Y ese mismo `F` acepta también una función con nombre, así que una sola
+firma vale para las dos. Un `fn(&T, &T) -> bool` —puntero a función— no
+acepta clausuras, y el error lo dice y propone hacerlo genérico.
+
+No hay `FnMut`: la clausura recibe su entorno prestado para leer. Modificar
+lo capturado desde dentro es lo que obliga a Rust a tener el segundo trait, y
+v0 no lo necesita todavía.
+
+En `std/lista` lo usan `filtradas`, `cuantas_cumplen` y `ordenadas_por`.
+
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: clausuras con captura, comprobación del cuerpo
+Es un v0 honesto. No hay: clausuras que modifiquen lo capturado
+(`FnMut`), comprobación del cuerpo
 genérico una sola vez contra la restricción (eso es Rust, y es más),
 `lista`/`mapa` fuera del compilador —falta poder reservar memoria desde
 Tcode—, E/S incremental, aritmética de punteros ni recolector.

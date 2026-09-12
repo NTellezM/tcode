@@ -12,7 +12,7 @@ from tcode.parser import RESTRICCIONES
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
-    Decimal, SiExpr,
+    Decimal, SiExpr, Cierre, CampoDef, Parametro,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
@@ -282,6 +282,30 @@ def aplicacion_generica(t):
     return base, partir_tipos(t[t.index("<") + 1:-1])
 
 
+def _renombrar_capturas(nodo, nombres, linea):
+    """Dentro del cuerpo de una clausura, un nombre capturado es un campo del
+    entorno. Se cambia aqui y el resto del comprobador no se entera."""
+    from dataclasses import fields, is_dataclass
+    if isinstance(nodo, (list, tuple)):
+        for i, x in enumerate(nodo):
+            if isinstance(x, Variable) and x.nombre in nombres:
+                nodo[i] = Campo(Variable("_ss_entorno", linea=linea),
+                                x.nombre, linea=x.linea)
+            else:
+                _renombrar_capturas(x, nombres, linea)
+        return
+    if not is_dataclass(nodo):
+        return
+    for campo in fields(nodo):
+        valor = getattr(nodo, campo.name)
+        if isinstance(valor, Variable) and valor.nombre in nombres:
+            setattr(nodo, campo.name,
+                    Campo(Variable("_ss_entorno", linea=linea), valor.nombre,
+                          linea=valor.linea))
+        else:
+            _renombrar_capturas(valor, nombres, linea)
+
+
 def _sustituir_en_arbol(nodo, ligaduras):
     """Pone los tipos ligados en las anotaciones que quedan dentro del cuerpo:
     `var salida: lista<T> = []` tiene que decir `lista<str>` en la copia."""
@@ -383,6 +407,8 @@ class Comprobador:
         self.structs_genericos = {}   # plantillas de `struct Par<A, B>`
         self.structs_instanciados = []  # las copias, para el generador
         self.args_instancia = {}    # copia -> (base, argumentos de tipo)
+        self.cierres = {}       # struct de cierre -> nombre de su funcion
+        self.n_cierres = 0
         self.retorno_actual = None
         self.falible_actual = False
         self.en_condicional = 0
@@ -815,7 +841,19 @@ class Comprobador:
             return self.tipo_probable(e.expr)
         if isinstance(e, Variable):
             sim = self.buscar(e.nombre)
-            return sim.tipo if sim is not None else None
+            if sim is not None:
+                return sim.tipo
+            # El nombre de una funcion usado como valor.
+            f = self.funciones.get(e.nombre)
+            if f is not None and not f.falible:
+                return firma_funcion([tipo_de_parametro(p) for p in f.params],
+                                     f.retorno)
+            return None
+        if isinstance(e, Cierre):
+            # Una clausura escrita en el sitio: hay que crear su struct antes
+            # de poder deducir con que se llama a la generica. Se hace una
+            # sola vez; `expresion` la ve ya hecha y no la repite.
+            return self.cierre(e)
         if isinstance(e, Cadena):
             return "view"
         if isinstance(e, Entero):
@@ -1581,6 +1619,9 @@ class Comprobador:
                 self.error(e, "`usize` no tiene signo: no se puede negar")
             return t
 
+        if isinstance(e, Cierre):
+            return e.tipo_struct or self.cierre(e)
+
         if isinstance(e, SiExpr):
             tc = self.expresion(e.cond)
             if tc is not None and tc != "bool":
@@ -1825,6 +1866,77 @@ class Comprobador:
                           f"dejaria un hueco. Mueve el arreglo entero")
         return elem
 
+    def cierre(self, e: Cierre):
+        """Una clausura se convierte en un struct con lo capturado y una
+        funcion que lo recibe. A partir de ahi no hay nada nuevo: el struct
+        posee lo que posean sus campos, se libera solo, y se copia con
+        `copiar` como cualquier otro."""
+        import copy as _copy
+
+        self.n_cierres += 1
+        nombre_struct = f"Cierre_{self.n_cierres}"
+        nombre_fn = f"ss_cierre_{self.n_cierres}"
+
+        campos = []
+        vistos = set()
+        for nombre in e.capturas:
+            if nombre in vistos:
+                self.error(e, f"`{nombre}` se captura dos veces")
+                continue
+            vistos.add(nombre)
+            sim = self.buscar(nombre)
+            if sim is None:
+                self.error(e, f"`{nombre}` no esta declarada, no se puede "
+                              f"capturar")
+                continue
+            if sim.tipo == "view" or es_referencia(sim.tipo):
+                self.error(e, f"`{nombre}` es `{sim.tipo}`, un prestamo: una "
+                              f"clausura captura por valor, y guardar un "
+                              f"prestamo exigiria saber cuanto vive. Captura "
+                              f"un `str` con `copiar({nombre})`")
+                continue
+            campos.append(CampoDef(nombre, sim.tipo, e.linea))
+            # Capturar por valor mueve lo que posee memoria, igual que
+            # pasarlo a una funcion.
+            if self.posee(sim.tipo):
+                self.mover(e, sim)
+            else:
+                self.usar(e, sim)
+
+        if not campos:
+            # Un struct vacio no es C valido. Una clausura sin capturas es
+            # solo una funcion sin nombre, y el campo sobra en cuanto el
+            # compilador de C optimiza.
+            campos.append(CampoDef("ss_vacio", "u8", e.linea))
+        st = Struct(nombre_struct, campos, linea=e.linea, archivo=e.archivo)
+        self.structs[nombre_struct] = st
+        self.structs_instanciados.append(st)
+        # En un mensaje, `Cierre_3` no le dice nada a nadie.
+        self.nombre_original[nombre_struct] = "clausura"
+
+        # El cuerpo ve lo capturado como campos del entorno.
+        cuerpo = _copy.deepcopy(e.cuerpo)
+        _renombrar_capturas(cuerpo, vistos, e.linea)
+        entorno = Parametro("_ss_entorno", nombre_struct, False, True)
+        f = Funcion(nombre_fn, [entorno] + list(e.params), e.retorno, cuerpo,
+                    e.falible, linea=e.linea, archivo=e.archivo)
+        self.funciones[nombre_fn] = f
+        self.instanciadas.append(f)
+        self.cierres[nombre_struct] = nombre_fn
+
+        guardado = (self.retorno_actual, self.falible_actual,
+                    self.simbolos_funcion, self.ambitos)
+        self.ambitos = []
+        try:
+            self.comprobar_funcion(f)
+        finally:
+            (self.retorno_actual, self.falible_actual,
+             self.simbolos_funcion, self.ambitos) = guardado
+
+        e.tipo_struct = nombre_struct
+        e.funcion = nombre_fn
+        return nombre_struct
+
     def tipo_de_literal_generico(self, e: LiteralStruct, destino):
         """`Par { a: 7, b: nuevo("x") }` no dice sus tipos. Se sacan de donde
         va a parar, y si de ahi no salen, de lo que hay en los campos."""
@@ -2054,6 +2166,17 @@ class Comprobador:
                               f"valor cuando falle")
             return self.interna(e)
 
+        # Una variable que guarda una clausura se llama igual que una
+        # funcion: por dentro es su struct mas la funcion que lo recibe.
+        sim_cierre = self.buscar(nombre)
+        if sim_cierre is not None and sin_prestamo(sim_cierre.tipo) in self.cierres:
+            # El entorno se pasa como primer argumento, prestado. A partir de
+            # ahi es una llamada normal y todo lo demas vale tal cual.
+            tipo_c = sin_prestamo(sim_cierre.tipo)
+            e.nombre = nombre = self.cierres[tipo_c]
+            e.args = ([Variable(sim_cierre.nombre, linea=e.linea)]
+                      + list(e.args))
+
         # Una variable que guarda una funcion se llama como cualquier otra.
         sim_valor = self.buscar(nombre)
         if sim_valor is not None and es_funcion(sim_valor.tipo):
@@ -2183,8 +2306,17 @@ class Comprobador:
                 continue
 
             if t is not None and not encaja(param.tipo, t):
-                self.error(e, f"`{param.nombre}` de `{nombre}` es "
-                              f"`{param.tipo}` y recibio `{t}`")
+                if t in self.cierres and es_funcion(param.tipo):
+                    self.error(e, f"`{param.nombre}` de `{nombre}` es "
+                                  f"`{param.tipo}`, un puntero a funcion, y "
+                                  f"recibio una clausura. Una clausura lleva "
+                                  f"dentro lo que capturo, asi que no cabe en "
+                                  f"un puntero: haz el parametro generico "
+                                  f"(`{param.nombre}: F`) y valdra para las "
+                                  f"dos")
+                else:
+                    self.error(e, f"`{param.nombre}` de `{nombre}` es "
+                                  f"`{param.tipo}` y recibio `{t}`")
 
         return f.retorno if f.retorno is not None else UNIDAD
 
