@@ -146,8 +146,9 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
         if igual(vista(h.clase), "falible") { falible = true; }
     }
 
-    // Las falibles y `main` tienen envoltorios propios: otra capa.
-    if falible || igual(vista(d.texto), "main") {
+    // `main` lleva envoltorio propio: recoge los argumentos, y si es
+    // falible ademas informa del motivo al salir. Otra capa.
+    if igual(vista(d.texto), "main") {
         I.cerrar(tipos);
         return;
     }
@@ -177,10 +178,17 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
         if igual(vista(h.clase), "bloque") {
             for st en h.hijos {
                 if bien {
-                    bien = G.sentencia_c(b, sitio, st, tipos, vista(retorno));
+                    bien = G.sentencia_c(b, sitio, st, tipos, vista(retorno),
+                        falible);
                 }
             }
-            if bien && !G.termina_saliendo(h) { G.liberar_todo(b, ""); }
+            if bien && !G.termina_saliendo(h) {
+                G.liberar_todo(b, "");
+                if falible {
+                    // Una falible que llega al final salio bien.
+                    G.emitir_final_bien(b, vista(retorno));
+                }
+            }
         }
     }
     I.cerrar(tipos);

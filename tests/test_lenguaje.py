@@ -2660,7 +2660,7 @@ def _normaliza_tmp(texto):
         return visto[k]
     return _re_cuerpos.sub(r"ss_tmp\d+", cambia, texto)
 
-_MINIMO_CUERPOS = 30
+_MINIMO_CUERPOS = 40
 
 tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
 try:
@@ -2683,25 +2683,23 @@ try:
         if r.returncode != 0:
             falla("cuerpos en Tcode compila", r.stderr[:600])
         else:
-            from tcode.parser import parsear as _p_cuerpos
             archivos = sorted(
                 glob.glob(os.path.join(RAIZ, "std", "*.t"))
                 + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
                             recursive=True))
             iguales = 0
             for archivo in archivos:
-                try:
-                    arbol = _p_cuerpos(open(archivo, encoding="utf-8").read(),
-                                       archivo, set())
-                except Exception:
-                    continue
                 codigo_f, errores_f, comp = compilar_archivo(
                     archivo, devolver_comp=True)
                 if errores_f:
                     continue
+                # El comprobador guarda la ruta relativa a la raiz, y esa
+                # ruta sale en los `#line`. Para comparar hay que darle la
+                # misma al de Tcode, no la absoluta.
+                propio = os.path.relpath(archivo, RAIZ)
                 total += 1
-                e = subprocess.run([binario, archivo], capture_output=True,
-                                   text=True, timeout=180)
+                e = subprocess.run([binario, propio], capture_output=True,
+                                   text=True, timeout=180, cwd=RAIZ)
                 if "Sanitizer" in e.stderr:
                     falla("cuerpos en Tcode",
                           f"{os.path.basename(archivo)}: sanitizer\n"
@@ -2710,12 +2708,18 @@ try:
                 for bloque in e.stdout.split("@@ ")[1:]:
                     nombre, _, cuerpo = bloque.partition("\n")
                     nombre = nombre.strip()
-                    d = next((x for x in arbol
-                              if isinstance(x, _Fn_t) and x.nombre == nombre
-                              and not x.tipo_params), None)
+                    # La funcion tal como la dejo el comprobador: con los
+                    # tipos deducidos puestos. Sin eso, un `var i = 0;` sin
+                    # anotar no tendria tipo y el original saldria mal.
+                    d = comp.funciones.get(nombre)
                     if d is None:
+                        d = next((f for k, f in comp.funciones.items()
+                                  if k.endswith("__" + nombre)
+                                  or k == "ss_id_" + nombre), None)
+                    if (d is None or (d.archivo or propio) != propio
+                            or d.tipo_params):
                         continue
-                    g = _Gen(comp, archivo)
+                    g = _Gen(comp, propio)
                     g.funcion(d)
                     esperado = _normaliza_tmp("\n".join(g.lineas)).strip()
                     dado = _normaliza_tmp(cuerpo).strip()
