@@ -1305,13 +1305,73 @@ v0 no lo necesita todavía.
 
 En `std/lista` lo usan `filtradas`, `cuantas_cumplen` y `ordenadas_por`.
 
+## Memoria propia: `bloque<T>`, `reservar` e `intercambiar`
+
+`lista<T>` y `mapa<K, V>` los pone el compilador. Debajo de ellos no había
+nada: no se podía escribir una colección propia en Tcode porque no había
+forma de reservar memoria. Ahora sí.
+
+```tcode
+var b: bloque<str> = reservar(3);
+imprimir(b[0]);              // "" — nace a ceros
+b[0] = nuevo("hola");
+redimensionar(b, 5);         // lo nuevo nace a ceros
+redimensionar(b, 1);         // lo que sobra se libera antes de soltar
+```
+
+Un `bloque<T>` es memoria reservada de una pieza con su tamaño al lado.
+Índices comprobados, y dueño: se libera solo, elemento a elemento.
+
+### Por qué no hace falta `unsafe`
+
+Reservar memoria en C o en Rust deja ranuras **sin inicializar**, y de ahí
+sale todo lo demás: el `MaybeUninit` de Rust, el `unsafe` dentro de `Vec`, y
+en C directamente leer basura.
+
+En Tcode no hace falta, y es por una propiedad del lenguaje que estaba ahí
+sin usar: **todo tipo puesto a ceros es un valor válido y vacío.** Un `str` a
+ceros es el texto vacío. Una lista a ceros es la lista vacía. Un mapa a ceros
+es el mapa vacío. Un struct a ceros tiene todos sus campos vacíos. Así que un
+bloque se reserva con `calloc` y **todas sus ranuras son valores de verdad**
+desde el primer momento. No hay estado intermedio que esconder.
+
+### `intercambiar`
+
+```tcode
+let viejo = intercambiar(xs[i], vacio());
+```
+
+Pone un valor en un sitio y devuelve el que había. Es lo que permite **sacar
+algo de una colección sin dejar un hueco sin dueño**, que es justo lo que el
+compilador no dejaba hacer de ninguna otra forma. Con esto, dar la vuelta a
+una `lista<str>` en el sitio —imposible hasta ahora— son seis líneas.
+
+Es el `mem::replace` de Rust, y por la misma razón: es la operación mínima
+que hace segura la salida de un valor de un sitio compartido.
+
+### Una lista escrita en Tcode
+
+`std/vector` es una lista dinámica completa —`agregar`, `sacar`, `cuantos`,
+`capacidad`, `ajustar`— escrita **entera en Tcode**, sobre `bloque<T>`, sin
+que el compilador sepa nada de ella:
+
+```tcode
+struct Vector<T> { datos: bloque<T>, largo: usize }
+```
+
+Crece al doble, encoge cuando se lo pides, y libera lo que le sobra. Eso es
+lo que separa "un lenguaje con dos colecciones dentro del compilador" de uno
+en el que las colecciones se escriben en el propio lenguaje.
+
+`lista<T>` sigue siendo la que trae de serie, por ergonomía —literales `[]`,
+`for`, `anadir`— pero ya no es la única posible, que era el punto.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: clausuras que modifiquen lo capturado
-(`FnMut`), comprobación del cuerpo
-genérico una sola vez contra la restricción (eso es Rust, y es más),
-`lista`/`mapa` fuera del compilador —falta poder reservar memoria desde
-Tcode—, E/S incremental, aritmética de punteros ni recolector.
+(`FnMut`), comprobación del cuerpo genérico una sola vez contra la
+restricción (eso es Rust, y es más), E/S incremental, aritmética de punteros
+ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

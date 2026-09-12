@@ -284,6 +284,14 @@ class Parser:
             self.espera("simbolo", ">")
             return f"mapa<{clave}, {valor}>"
 
+        if (t.tipo == "ident" and t.valor == "bloque"
+                and self.toks[self.i + 1].valor == "<"):
+            self.i += 1
+            self.espera("simbolo", "<")
+            elem = self.tipo()
+            self.espera("simbolo", ">")
+            return f"bloque<{elem}>"
+
         if self.acepta("palabra", "lista"):
             self.espera("simbolo", "<")
             elem = self.tipo()

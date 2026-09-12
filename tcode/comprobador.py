@@ -62,6 +62,14 @@ def es_arreglo(t):
     return isinstance(t, str) and t.startswith("[")
 
 
+def es_bloque(t):
+    return isinstance(t, str) and t.startswith("bloque<") and t.endswith(">")
+
+
+def elem_bloque(t):
+    return t[len("bloque<"):-1]
+
+
 def es_lista(t):
     return isinstance(t, str) and t.startswith("lista<") and t.endswith(">")
 
@@ -277,7 +285,8 @@ def aplicacion_generica(t):
     if not isinstance(t, str) or "<" not in t or not t.endswith(">"):
         return None
     base = t[:t.index("<")]
-    if base in ("lista", "mapa") or not base or not base[0].isalpha():
+    if base in ("lista", "mapa", "bloque", "fn") or not base \
+            or not base[0].isalpha():
         return None
     return base, partir_tipos(t[t.index("<") + 1:-1])
 
@@ -614,8 +623,8 @@ class Comprobador:
         if es_mapa(tipo):
             # Posee su tabla, y ademas las claves, que son `str`.
             return True
-        if es_lista(tipo):
-            # Incluso una lista de escalares posee su buffer dinamico.
+        if es_bloque(tipo) or es_lista(tipo):
+            # Incluso un bloque de escalares posee su memoria.
             return True
         if es_arreglo(tipo):
             return self.posee(elem_de(tipo), visitados)
@@ -651,6 +660,10 @@ class Comprobador:
         if es_mapa(t):
             k, v = partes_mapa(t)
             return self.tipo_existe(k) and self.tipo_existe(v)
+        if es_bloque(t):
+            elem = elem_bloque(t)
+            return (elem != "view" and not es_arreglo(elem)
+                    and self.tipo_existe(elem))
         if es_lista(t):
             elem = elem_lista(t)
             # Guardar vistas en una coleccion exigiria expresar su vida util.
@@ -690,6 +703,8 @@ class Comprobador:
         for marca in ("&mut ", "&"):
             if t.startswith(marca):
                 return marca + self.resolver_tipo(t[len(marca):], nodo)
+        if es_bloque(t):
+            return f"bloque<{self.resolver_tipo(elem_bloque(t), nodo)}>"
         if es_lista(t):
             return f"lista<{self.resolver_tipo(elem_lista(t), nodo)}>"
         if es_mapa(t):
@@ -1712,7 +1727,7 @@ class Comprobador:
             return self.binaria(e)
 
         if isinstance(e, Llamada):
-            return self.llamada(e)
+            return self.llamada(e, destino=destino)
 
         raise AssertionError(f"expresion desconocida: {type(e).__name__}")
 
@@ -1857,10 +1872,16 @@ class Comprobador:
             self.error(e, f"un indice tiene que ser `usize`, es `{ti}`")
         if base is None:
             return None
-        if not es_arreglo(base) and not es_lista(base):
+        base = sin_prestamo(base)
+        if not es_arreglo(base) and not es_lista(base) and not es_bloque(base):
             self.error(e, f"`{base}` no es un arreglo, no se puede indexar")
             return None
-        elem = elem_de(base) if es_arreglo(base) else elem_lista(base)
+        if es_arreglo(base):
+            elem = elem_de(base)
+        elif es_bloque(base):
+            elem = elem_bloque(base)
+        else:
+            elem = elem_lista(base)
         if mover_variables and self.posee(elem):
             self.error(e, f"en v0 no se puede sacar un elemento de un arreglo: "
                           f"dejaria un hueco. Mueve el arreglo entero")
@@ -2156,7 +2177,7 @@ class Comprobador:
 
     # ---------- internas ----------
 
-    def llamada(self, e: Llamada, desenvuelta=False):
+    def llamada(self, e: Llamada, desenvuelta=False, destino=None):
         nombre = e.nombre
 
         if nombre in INTERNAS:
@@ -2164,7 +2185,7 @@ class Comprobador:
                 self.error(e, f"`{nombre}` puede fallar: la llamada tiene que ir "
                               f"detras de `try`, o con `sino <valor>` para dar un "
                               f"valor cuando falle")
-            return self.interna(e)
+            return self.interna(e, destino)
 
         # Una variable que guarda una clausura se llama igual que una
         # funcion: por dentro es su struct mas la funcion que lo recibe.
@@ -2320,7 +2341,7 @@ class Comprobador:
 
         return f.retorno if f.retorno is not None else UNIDAD
 
-    def interna(self, e: Llamada):
+    def interna(self, e: Llamada, destino=None):
         nombre = e.nombre
         firma = INTERNAS[nombre]
         params, retorno = firma["params"], firma["retorno"]
@@ -2380,6 +2401,74 @@ class Comprobador:
                 return None
             return t
 
+        if nombre == "reservar":
+            if len(e.args) != 1:
+                self.error(e, f"`reservar` espera 1 argumento (cuantos) y "
+                              f"recibio {len(e.args)}")
+                for a in e.args:
+                    self.expresion(a)
+                return None
+            t = self.expresion(e.args[0])
+            if t is not None and not encaja("usize", t):
+                self.error(e, f"`reservar` espera cuantos elementos, un "
+                              f"`usize`, y recibio `{t}`")
+            if destino is None or not es_bloque(destino):
+                self.error(e, "`reservar(n)` necesita saber de que: escribelo "
+                              "en la declaracion, "
+                              "`var b: bloque<str> = reservar(4);`")
+                return None
+            return destino
+
+        if nombre == "redimensionar":
+            if len(e.args) != 2:
+                self.error(e, f"`redimensionar` espera 2 argumentos y recibio "
+                              f"{len(e.args)}")
+                for a in e.args:
+                    self.expresion(a)
+                return UNIDAD
+            base = self.variable_base(e.args[0])
+            sim = self.buscar(base) if base else None
+            # El sitio puede ser un campo (`v.datos`), asi que el tipo sale
+            # del lugar, no de la variable que lo contiene.
+            t_sitio = sin_prestamo(self.tipo_de_lugar(e.args[0]) or "")
+            if sim is None or not es_bloque(t_sitio):
+                self.error(e, "`redimensionar` cambia el tamaño de un bloque, "
+                              "y necesita un sitio que lo sea: una variable, "
+                              "un campo o un elemento")
+                self.expresion(e.args[1])
+                return UNIDAD
+            self.mutar(e.args[0], sim)
+            t = self.expresion(e.args[1])
+            if t is not None and not encaja("usize", t):
+                self.error(e, f"`redimensionar` espera el tamaño nuevo, un "
+                              f"`usize`, y recibio `{t}`")
+            return UNIDAD
+
+        if nombre == "intercambiar":
+            if len(e.args) != 2:
+                self.error(e, f"`intercambiar` espera 2 argumentos y recibio "
+                              f"{len(e.args)}")
+                for a in e.args:
+                    self.expresion(a)
+                return None
+            destino_nodo, valor = e.args
+            base = self.variable_base(destino_nodo)
+            sim = self.buscar(base) if base else None
+            if sim is None:
+                self.error(e, "`intercambiar` necesita un sitio: una variable, "
+                              "un campo o un elemento, no una expresion suelta")
+                self.expresion(valor)
+                return None
+            t = self.tipo_de_lugar(destino_nodo)
+            self.mutar(destino_nodo, sim)
+            tv = self.expresion(valor, destino=t,
+                                mover_variables=(t is not None
+                                                 and self.posee(t)))
+            if t is not None and tv is not None and not encaja(t, tv):
+                self.error(e, f"`intercambiar` pone y saca lo mismo: el sitio "
+                              f"es `{t}` y el valor es `{tv}`")
+            return t
+
         if nombre == "copiar":
             if len(e.args) != 1:
                 self.error(e, f"`copiar` espera 1 argumento y recibio "
@@ -2412,7 +2501,8 @@ class Comprobador:
             t = self.expresion(e.args[0])
             t = sin_prestamo(t) if t else t
             if t is not None and t != "view" and t != "str" \
-                    and not es_arreglo(t) and not es_lista(t) and not es_mapa(t):
+                    and not es_arreglo(t) and not es_lista(t) \
+                    and not es_mapa(t) and not es_bloque(t):
                 self.error(e, f"`largo` opera sobre texto, arreglos, listas o "
                               f"mapas, recibio `{t}`")
             return "usize"
@@ -2598,6 +2688,14 @@ INTERNAS = {
     "texto":    {"params": ["@escalar"],              "retorno": "str"},
     # Copia profunda. El tipo sale del argumento, en `interna`.
     "copiar":   {"params": ["@copiable"],             "retorno": None},
+    # Saca lo que hay en un sitio dejando otro valor en su lugar. Es lo que
+    # permite mover algo fuera de una lista sin dejar un hueco sin duenio.
+    "intercambiar": {"params": ["@lugar_mut", "@valor_igual"], "retorno": None},
+    # Memoria cruda, pero no insegura: un bloque nace a ceros, y en Tcode
+    # todo tipo puesto a ceros es un valor valido y vacio. Eso es lo que
+    # permite escribir una lista en Tcode sin ranuras sin inicializar.
+    "reservar": {"params": ["usize"],                 "retorno": None},
+    "redimensionar": {"params": ["@bloque_mut", "usize"], "retorno": UNIDAD},
     # Decimales. Devuelven lo mismo que reciben; `raiz` de un negativo daria
     # NaN, y eso detiene el programa como cualquier otro NaN.
     "raiz":     {"params": ["@decimal"],              "retorno": None},
