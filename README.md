@@ -188,6 +188,19 @@ Pero el análisis ya no es una promesa: son 884 líneas de Tcode que hacen el
 trabajo del frontend y coinciden con el original, comprobado en cada
 ejecución de la suite.
 
+## Formato
+
+```
+$ tcode mi.t --formatear --escribir
+$ make formato
+```
+
+Sin opciones, como `gofmt`: hay un estilo y es este. Pero **no mueve tokens
+de línea** — no decide dónde parte una expresión larga. Por eso no puede
+estropear nada: la salida lexea exactamente a los mismos tokens que la
+entrada, y la suite lo comprueba sobre los 36 `.t` del repositorio, junto con
+que formatear dos veces da lo mismo y que el repositorio ya está formateado.
+
 ## Depurar
 
 Tcode compila a C, así que `gdb`, `valgrind`, los sanitizers y `perf` ya
@@ -435,7 +448,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-336 casos, 0 fallas
+372 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

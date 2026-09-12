@@ -12,7 +12,7 @@ usar "std/bytes";
 struct Cabecera {
     version: u16,
     altura: u64,
-    anterior: str,      // 4 bytes de resumen
+    anterior: str, // 4 bytes de resumen
 }
 
 fn escribir(c: &Cabecera) -> str {

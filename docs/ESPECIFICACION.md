@@ -1401,6 +1401,51 @@ y `perf`: cualquier herramienta que lea información de depuración.
 `--sin-lineas` las quita. Sólo sirve para depurar el propio compilador,
 cuando lo que hay que mirar es el C.
 
+## Formato
+
+```
+$ tcode mi.t --formatear            # a la salida
+$ tcode mi.t --formatear --escribir # en su sitio
+$ make formato                      # todo el repositorio
+```
+
+**Sin opciones.** Hay un estilo y es este. Una opción de formato es una
+discusión que se repite en cada revisión de código, y no vale lo que cuesta:
+eso lo demostró `gofmt` y lo confirmó `black`.
+
+Qué hace: sangra por hondura de llaves con cuatro espacios, quita el espacio
+al final de línea, deja como mucho una línea en blanco seguida, normaliza el
+espacio alrededor de `,`, `;` y los paréntesis, y alinea entre sí los
+comentarios de líneas seguidas.
+
+### Qué NO hace, a propósito
+
+**No mueve tokens de línea.** No decide dónde parte una expresión larga. Eso
+tiene dos consecuencias:
+
+- **No puede estropear nada.** La salida lexea exactamente a los mismos
+  tokens que la entrada, y la suite lo comprueba sobre los 36 `.t` del
+  repositorio en cada ejecución. Un formateador que reparte líneas puede
+  cambiar lo que un programa significa si se equivoca con la precedencia;
+  este no puede.
+- **Quien escribe sigue mandando** sobre la forma de su código.
+
+Ahí está la diferencia con `gofmt`, que sí reparte. En un lenguaje joven, un
+formateador que se equivoca al partir una expresión hace más daño que bien.
+Cuando la gramática lleve años quieta, se puede.
+
+Lo que sí se pierde: la alineación hecha a mano entre sentencias. Es el trato
+de `gofmt` — pierdes algo de ajuste fino, ganas no discutir nunca.
+
+### Cómo se comprueba
+
+Tres propiedades, en la suite, sobre todos los `.t` del repositorio:
+
+1. **No cambia los tokens.** La salida lexea igual que la entrada.
+2. **Es idempotente.** Formatear dos veces da lo mismo.
+3. **El repositorio ya está formateado.** Si alguien sube algo sin formatear,
+   la suite lo dice y nombra el archivo.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: clausuras que modifiquen lo capturado

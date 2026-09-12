@@ -37,7 +37,8 @@ class Token:
         return f"{self.tipo}:{self.valor!r}@{self.linea}"
 
 
-def tokenizar(fuente: str, archivo: str = "<entrada>") -> list:
+def tokenizar(fuente: str, archivo: str = "<entrada>",
+              con_comentarios: bool = False) -> list:
     toks = []
     i = 0
     linea = 1
@@ -62,13 +63,19 @@ def tokenizar(fuente: str, archivo: str = "<entrada>") -> list:
 
         # comentarios
         if fuente.startswith("//", i):
+            c0, j = col(), i
             while i < n and fuente[i] != "\n":
                 i += 1
+            if con_comentarios:
+                toks.append(Token("comentario", fuente[j:i], linea, c0))
             continue
         if fuente.startswith("/*", i):
+            c0, l0 = col(), linea
             fin = fuente.find("*/", i + 2)
             if fin < 0:
                 raise ErrorLexico(f"{archivo}:{linea}: comentario /* sin cerrar")
+            if con_comentarios:
+                toks.append(Token("comentario", fuente[i:fin + 2], l0, c0))
             linea += fuente.count("\n", i, fin)
             i = fin + 2
             continue

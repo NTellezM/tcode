@@ -35,7 +35,7 @@ fn tras_dos_puntos(texto: view) -> str {
 }
 
 fn recoger(n: &P.Nodo, campos: mut mapa<str, lista<str>>,
-           tipos: mut lista<str>) {
+    tipos: mut lista<str>) {
     if igual(vista(n.clase), "struct") {
         var suyos: lista<str> = [];
         for h en n.hijos {
@@ -68,7 +68,7 @@ fn main() -> usize ! {
     let nombres = P.structs_visibles(argumento(1), tokens);
     let sin_alias: mapa<str, usize> = [];
     var estado = P.Estado { toks: tokens, i: 0, alias: sin_alias,
-                            structs: nombres };
+        structs: nombres };
     let arbol = try P.programa(estado);
 
     var campos: mapa<str, lista<str>> = [];

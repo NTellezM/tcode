@@ -26,7 +26,6 @@ fn main() -> usize ! {
     var e = Estado { toks: tokens, i: 0, alias: sin_alias, structs: nombres };
     let arbol = try programa(e);
 
-
     var callado = false;
     if n_argumentos() > 2 { callado = igual(argumento(2), "--callado"); }
 

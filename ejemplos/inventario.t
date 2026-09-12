@@ -40,10 +40,10 @@ fn resumir(inv: [Articulo; 4]) -> Resumen {
 
 fn main() -> usize {
     var inv = [
-        crear("tornillos",  1, 420),
-        crear("tuercas",    1, 310),
-        crear("arandelas",  2, 150),
-        crear("remaches",   3, 275)
+        crear("tornillos", 1, 420),
+        crear("tuercas", 1, 310),
+        crear("arandelas", 2, 150),
+        crear("remaches", 3, 275)
     ];
 
     // Se puede escribir dentro de un arreglo de structs, a cualquier hondura.

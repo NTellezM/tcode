@@ -9,9 +9,9 @@ usar "std/numero";
 fn main() -> usize ! {
     var inv = [
         crear("tornillos", 420),
-        crear("tuercas",   310),
+        crear("tuercas", 310),
         crear("arandelas", 200),
-        crear("remaches",  275)
+        crear("remaches", 275)
     ];
 
     ajustar(inv[2], 25);

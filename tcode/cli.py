@@ -62,6 +62,11 @@ def main(argv=None):
                     version=f"tcode {VERSION}")
     ap.add_argument("fuente", help="archivo .t")
     ap.add_argument("-o", "--salida", help="binario de salida")
+    ap.add_argument("--formatear", action="store_true",
+                    help="escribe el archivo con el formato canonico en la "
+                         "salida y no compila nada")
+    ap.add_argument("--escribir", action="store_true",
+                    help="con --formatear, reescribe el archivo en su sitio")
     ap.add_argument("--sin-lineas", action="store_true",
                     help="no poner `#line` en el C generado. Por defecto se "
                          "ponen, y hacen que gdb, valgrind y los sanitizers "
@@ -92,6 +97,20 @@ def main(argv=None):
         return 2
 
     try:
+        if args.formatear:
+            from tcode.formato import formatear
+            with open(args.fuente, encoding="utf-8") as f:
+                fuente = f.read()
+            salida = formatear(fuente, args.fuente)
+            if args.escribir:
+                if salida != fuente:
+                    with open(args.fuente, "w", encoding="utf-8") as f:
+                        f.write(salida)
+                    print(f"formateado {args.fuente}")
+            else:
+                sys.stdout.write(salida)
+            return 0
+
         codigo, errores, comp = compilar_archivo(args.fuente, devolver_comp=True,
                                                   con_lineas=not args.sin_lineas)
     except (ErrorLexico, ErrorSintactico, ErrorDeModulo) as exc:
