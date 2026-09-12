@@ -153,8 +153,19 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
         return;
     }
 
+    // Quien se entrega por algun camino lleva bandera. Se decide antes de
+    // emitir nada, porque la bandera nace pegada a la declaracion.
+    var movidas: lista<str> = [];
+    for h en d.hijos {
+        if igual(vista(h.clase), "bloque") {
+            G.movidas_hondo(puntos, h, tipos, movidas);
+        }
+    }
+    var banderas: mapa<str, usize> = [];
+    for nm en movidas { poner(banderas, vista(nm), 1); }
+
     let sitio = G.Sitio { archivo: nuevo(ruta), tipos: de_tipo,
-        punteros: puntos };
+        punteros: puntos, pide_bandera: banderas };
     var b = G.cuerpo();
     // La directiva de la funcion la pone el que imprime, antes de la firma;
     // aqui solo hay que saber que ya esta puesta, para no repetirla si la
@@ -172,6 +183,19 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
         }
         k = k + 1;
     }
+    // Las banderas de los parametros abren el cuerpo, en orden de firma.
+    var q = 0;
+    while q < largo(tipos_param) {
+        if igual(vista(tipos_param[q]), "str") {
+            if largo(G.marca_sola(vista(marcas[q]))) == 0 {
+                let pn = G.nombre_de_param(vista(marcas[q]));
+                if tiene(sitio.pide_bandera, vista(pn)) {
+                    G.nace_bandera(b, vista(pn));
+                }
+            }
+        }
+        q = q + 1;
+    }
 
     var bien = true;
     for h en d.hijos {
@@ -183,7 +207,7 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
                 }
             }
             if bien && !G.termina_saliendo(h) {
-                G.liberar_todo(b, "");
+                G.liberar_todo(b, sitio, "");
                 if falible {
                     // Una falible que llega al final salio bien.
                     G.emitir_final_bien(b, vista(retorno));
