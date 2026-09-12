@@ -7,6 +7,7 @@
 //     ./tipar std/texto.t
 
 usar "lib/tipar.t" como I;
+usar "lib/propiedad.t" como Q;
 usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
@@ -36,6 +37,21 @@ fn sin_alias_de_modulo(t: view) -> str {
     }
     if !visto { return nuevo(t); }
     return nuevo(rebanar(t, corte, largo(t)));
+}
+
+// Como `tipo_desnudo` pero conservando la marca: `&Cosa`, `mut lista<str>`.
+// Sirve para saber si una llamada se queda con lo que le dan.
+fn tipo_con_marca(texto: view) -> str {
+    var i = 0;
+    while i + 1 < largo(texto) {
+        if byte(texto, i) == 58 {
+            if byte(texto, i + 1) == 32 {
+                return nuevo(recortar(rebanar(texto, i + 2, largo(texto))));
+            }
+        }
+        i = i + 1;
+    }
+    return vacio();
 }
 
 fn tipo_desnudo(texto: view) -> str {
@@ -95,6 +111,7 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
         var retorno = vacio();
         var sueltos: lista<str> = [];
         var tipos_param: lista<str> = [];
+        var marcados: lista<str> = [];
         for h en n.hijos {
             if igual(vista(h.clase), "retorno_tipo") {
                 retorno = nuevo(vista(h.texto));
@@ -104,10 +121,12 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
             }
             if igual(vista(h.clase), "param") {
                 anadir(tipos_param, tipo_desnudo(vista(h.texto)));
+                anadir(marcados, tipo_con_marca(vista(h.texto)));
             }
         }
         poner(c.retornos, vista(n.texto), retorno);
         poner(c.params, vista(n.texto), tipos_param);
+        poner(c.params_marcados, vista(n.texto), marcados);
         if largo(sueltos) > 0 {
             poner(c.tipo_params, vista(n.texto), sueltos);
         }
@@ -117,7 +136,8 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
 
 // Recorre un cuerpo declarando lo que vaya apareciendo, y va apuntando cada
 // variable con su tipo en el orden en que se declara.
-fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>) {
+fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
+    lineas: mut lista<usize>) {
     let clase = vista(n.clase);
 
     if igual(clase, "declaracion") {
@@ -129,7 +149,7 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>) 
         } else {
             if largo(n.hijos) > 0 { tipo = I.tipo_de(c, n.hijos[0]); }
         }
-        for h en n.hijos { recorrer(h, c, quien, salida); }
+        for h en n.hijos { recorrer(h, c, quien, salida, lineas); }
         let nombre = nombre_declarado(vista(n.texto));
         I.declarar(c, vista(nombre), vista(tipo));
         anadir(salida, $"{quien}\t{nombre}\t{tipo}");
@@ -146,16 +166,18 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>) 
             let uno = copiar(partes[0]);
             I.declarar(c, vista(uno), vista(base));
             anadir(salida, $"{quien}\t{uno}\t{base}");
+            anadir(lineas, n.linea);
             if largo(partes) > 1 {
                 // `for clave, valor en mapa`: la segunda es el valor.
                 let dos = copiar(partes[1]);
                 let tv = valor_de(vista(sobre));
                 I.declarar(c, vista(dos), vista(tv));
                 anadir(salida, $"{quien}\t{dos}\t{tv}");
+                anadir(lineas, n.linea);
             }
             var k = 1;
             while k < largo(n.hijos) {
-                recorrer(n.hijos[k], c, quien, salida);
+                recorrer(n.hijos[k], c, quien, salida, lineas);
                 k = k + 1;
             }
             I.cerrar(c);
@@ -165,12 +187,12 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>) 
 
     if igual(clase, "bloque") {
         I.abrir(c);
-        for h en n.hijos { recorrer(h, c, quien, salida); }
+        for h en n.hijos { recorrer(h, c, quien, salida, lineas); }
         I.cerrar(c);
         return;
     }
 
-    for h en n.hijos { recorrer(h, c, quien, salida); }
+    for h en n.hijos { recorrer(h, c, quien, salida, lineas); }
 }
 
 // El tipo de lo que sale al recorrer una coleccion.
@@ -181,6 +203,116 @@ fn es_generica(d: &P.Nodo) -> bool {
         if igual(vista(h.clase), "tipo_param") { return true; }
     }
     return false;
+}
+
+// Donde empiezan las lineas de esta funcion dentro de `salida`.
+fn primera_de(salida: &lista<str>, quien: view) -> usize {
+    var i = 0;
+    while i < largo(salida) {
+        if empieza_con(vista(salida[i]), quien) { return i; }
+        i = i + 1;
+    }
+    return largo(salida);
+}
+
+// Recorre la funcion otra vez, ahora buscando quien entrega y quien mueve, y
+// le pega a cada linea ya escrita su destino.
+fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
+    salida: mut lista<str>, lineas: &lista<usize>, desde: usize) {
+    // Una por cada linea ya escrita, en el mismo orden. Asi dos variables
+    // con el mismo nombre en bloques distintos siguen siendo dos: juntarlas
+    // por el nombre daria el destino de una a la otra.
+    var de_bucle: mapa<str, usize> = [];
+    recoger_bucles(d, de_bucle);
+    var prestados: mapa<str, usize> = [];
+    for h en d.hijos {
+        if igual(vista(h.clase), "param") {
+            let marca = tipo_con_marca(vista(h.texto));
+            if empieza_con(vista(marca), "&") || empieza_con(vista(marca), "mut ") {
+                let pn = nombre_de(vista(h.texto));
+                poner(prestados, vista(pn), 1);
+            }
+        }
+    }
+
+    var vs: lista<Q.Vigilada> = [];
+    var mias: lista<usize> = [];
+    var i = desde;
+    while i < largo(salida) {
+        let partes = partir_por_tab(vista(salida[i]));
+        if largo(partes) == 3 {
+            if igual(vista(partes[0]), quien) {
+                let nom = copiar(partes[1]);
+                let tip = copiar(partes[2]);
+                // Prestada si llego como parametro prestado, o si es la
+                // variable de un `for` sobre algo con duenio: ahi se recorre
+                // lo que hay, no se saca.
+                var prestada = tiene(prestados, vista(nom));
+                if tiene(de_bucle, vista(nom)) && Q.posee(c, vista(tip)) {
+                    prestada = true;
+                }
+                var donde = 0;
+                if i < largo(lineas) { donde = lineas[i]; }
+                anadir(vs, Q.vigilar(vista(nom), vista(tip), prestada, donde));
+                anadir(mias, i);
+            }
+        }
+        i = i + 1;
+    }
+
+    for h en d.hijos {
+        if igual(vista(h.clase), "bloque") { Q.mirar(c, h, vs); }
+    }
+
+    var k = 0;
+    while k < largo(mias) {
+        let dest = Q.destino_de(c, vs[k]);
+        var nueva = copiar(salida[mias[k]]);
+        empujar(nueva, "\t");
+        empujar(nueva, vista(dest));
+        salida[mias[k]] = nueva;
+        k = k + 1;
+    }
+}
+
+fn recoger_bucles(n: &P.Nodo, fuera: mut mapa<str, usize>) {
+    if igual(vista(n.clase), "para") {
+        for parte en try_partir(vista(n.texto)) {
+            poner(fuera, vista(parte), 1);
+        }
+    }
+    for h en n.hijos { recoger_bucles(h, fuera); }
+}
+
+fn ya_esta(vs: &lista<Q.Vigilada>, nombre: view) -> bool {
+    for v en vs {
+        if igual(vista(v.nombre), nombre) { return true; }
+    }
+    return false;
+}
+
+fn destino_para(c: &I.Contexto, vs: &lista<Q.Vigilada>, nombre: view) -> str {
+    for v en vs {
+        if igual(vista(v.nombre), nombre) { return Q.destino_de(c, v); }
+    }
+    return nuevo("nada");
+}
+
+fn partir_por_tab(l: view) -> lista<str> {
+    var salida: lista<str> = [];
+    var desde = 0;
+    var i = 0;
+    while i <= largo(l) {
+        var corta = false;
+        if i == largo(l) { corta = true; }
+        else { corta = byte(l, i) == 9; }
+        if corta {
+            anadir(salida, nuevo(rebanar(l, desde, i)));
+            desde = i + 1;
+        }
+        i = i + 1;
+    }
+    return salida;
 }
 
 fn try_partir(texto: view) -> lista<str> {
@@ -344,6 +476,12 @@ fn main() -> usize ! {
         return 1;
     }
 
+    // Con `--propiedad` dice ademas que le pasa a cada valor con duenio.
+    var con_propiedad = false;
+    if n_argumentos() > 2 {
+        con_propiedad = igual(argumento(2), "--propiedad");
+    }
+
     let fuente = try leer_archivo(argumento(1));
     let tokens = try analizar(vista(fuente));
     let nombres = P.structs_visibles(argumento(1), tokens);
@@ -357,6 +495,7 @@ fn main() -> usize ! {
     recoger_declaraciones(arbol, c);
 
     var salida: lista<str> = [];
+    var lineas: lista<usize> = [];
     for d en arbol.hijos {
         if igual(vista(d.clase), "fn") && !es_generica(d) {
             I.abrir(c);
@@ -367,12 +506,17 @@ fn main() -> usize ! {
                     let pt = tipo_desnudo(vista(h.texto));
                     I.declarar(c, vista(pn), vista(pt));
                     anadir(salida, $"{quien}\t{pn}\t{pt}");
+                    anadir(lineas, d.linea);
                 }
             }
             for h en d.hijos {
                 if igual(vista(h.clase), "bloque") {
-                    recorrer(h, c, vista(quien), salida);
+                    recorrer(h, c, vista(quien), salida, lineas);
                 }
+            }
+            if con_propiedad {
+                anotar_propiedad(c, d, vista(quien), salida, lineas,
+                    primera_de(salida, vista(quien)));
             }
             I.cerrar(c);
         }

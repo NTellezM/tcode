@@ -183,14 +183,18 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
   es dueño de memoria?, ¿se puede guardar un valor suyo?—: **31 archivos, 154
   tipos**, las mismas respuestas que el comprobador de Python.
 - `lib/tipar.t` dice **de qué tipo es cada variable de cada función**, con
-  llamadas, campos, índices, préstamos y genéricas instanciadas: **29
-  archivos, 474 variables**, los mismos tipos.
+  llamadas, campos, índices, préstamos y genéricas instanciadas: **30
+  archivos, 535 variables**, los mismos tipos.
+- `lib/propiedad.t` dice **qué le pasa a cada valor con dueño** —se presta,
+  se entrega en la línea N, se mueve en la línea N, o se libera al cerrar su
+  bloque—, que es lo único que de verdad separa a Tcode de C: **27 archivos,
+  360 variables**, el mismo destino. Quedan tres archivos pendientes, por dos
+  limitaciones que están escritas en la suite y no se esconden.
 
 Las dos se comparan contra el comprobador de Python en cada ejecución de la
 suite, sobre el código real del repositorio.
 
-Falta la propiedad, los préstamos y el generador para que Tcode se compile a
-sí mismo.
+Falta el generador para que Tcode se compile a sí mismo.
 Pero el análisis ya no es una promesa: son 884 líneas de Tcode que hacen el
 trabajo del frontend y coinciden con el original, comprobado en cada
 ejecución de la suite.
@@ -455,7 +459,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-410 casos, 0 fallas
+446 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

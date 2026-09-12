@@ -28,11 +28,14 @@ struct Contexto {
     // `xs: lista<str>` devuelve `lista<str>`, no `lista<T>`.
     tipo_params: mapa<str, lista<str>>,
     params: mapa<str, lista<str>>,
+    // Los mismos parametros pero con su marca (`&`, `mut`): hace falta para
+    // saber si una llamada se queda con el valor o solo lo mira.
+    params_marcados: mapa<str, lista<str>>,
 }
 
 fn contexto() -> Contexto {
     return Contexto { ambitos: [], campos: [], nombres: [], retornos: [],
-        tipo_params: [], params: [] };
+        tipo_params: [], params: [], params_marcados: [] };
 }
 
 fn abrir(c: mut Contexto) {
