@@ -4,6 +4,7 @@ from tcode.lexer import tokenizar, Token
 from tcode.nodos import (
     Entero, Decimal, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
+    SiExpr,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Parametro, Funcion, CampoDef, Struct, Usar, Para, Romper, Continuar,
@@ -571,6 +572,22 @@ class Parser:
 
     def primario(self):
         t = self.actual
+
+        # `if c { a } else { b }` como valor. Cada rama es una expresion
+        # suelta: sin punto y coma, sin sentencias, y con `else` obligatorio.
+        if self.es("palabra", "if"):
+            self.i += 1
+            cond = self.expr()
+            self.espera("simbolo", "{")
+            entonces = self.expr()
+            self.espera("simbolo", "}")
+            if not self.acepta("palabra", "else"):
+                self.error("un `if` que da un valor necesita `else`: sin el "
+                           "no habria valor cuando la condicion es falsa")
+            self.espera("simbolo", "{")
+            alterno = self.expr()
+            self.espera("simbolo", "}")
+            return SiExpr(cond, entonces, alterno, linea=t.linea)
 
         if t.tipo == "entero":
             self.i += 1

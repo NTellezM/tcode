@@ -624,6 +624,8 @@ class Generador:
         # de los numeros: lo que se prueba es que el C sale limpio.
         lineas.append(f"    let d_a: f64 = {self.r.randint(1, 900)}.5;")
         lineas.append(f"    let d_b: f64 = {self.r.randint(1, 90)}.25;")
+        lineas.append(f"    let d_cual = if d_a > d_b {{ d_a }} else {{ d_b }};")
+        lineas.append("    imprimir(d_cual);")
         lineas.append("    imprimir(d_a + d_b);")
         lineas.append("    imprimir(d_a / d_b);")
         lineas.append("    imprimir(raiz(d_a));")

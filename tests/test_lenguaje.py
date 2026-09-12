@@ -26,6 +26,14 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    ("un `if` que da valor necesita `else`",
+     'fn main() -> usize { let x = if true { 1 }; return x; }',
+     "necesita `else`"),
+
+    ("las dos ramas de un `if` valor dan el mismo tipo",
+     'fn main() -> usize { let x = if true { 1 } else { nuevo("a") }; return 0; }',
+     "tienen que dar el mismo tipo"),
+
     ("`%` no tiene un significado unico con decimales",
      'fn main() -> usize { let a: f64 = 5.5; let b: f64 = 2.0;'
      ' imprimir(a % b); return 0; }',
@@ -561,6 +569,19 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("`if` como valor, con ramas que son una expresion",
+     '''fn clasificar(n: usize) -> str {
+            return if n > 100 { nuevo("grande") } else { nuevo("pequeno") };
+        }
+        fn main() -> usize {
+            let n = 7;
+            let x = if n > 3 { 1 } else { 2 };
+            let anidado = if n > 3 { if n > 5 { 10 } else { 20 } } else { 30 };
+            imprimir($"{x} {clasificar(500)} {anidado}");
+            imprimir($" {if n == 7 { "si" } else { "no" }}\\n");
+        }''',
+     "1 grande 10 si\n"),
+
     ("decimales, con lo que sale de los numeros parando el programa",
      '''usar "std/numero";
         fn main() -> usize ! {

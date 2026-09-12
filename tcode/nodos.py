@@ -77,6 +77,19 @@ class Conversion(Nodo):
     envolviendo: bool = False
 
 @dataclass
+class SiExpr(Nodo):
+    """`if c { a } else { b }` en posicion de expresion.
+
+    Las ramas son UNA expresion, no un bloque: asi no hace falta decidir que
+    vale un bloque, que es lo que obliga a Rust a tener reglas sobre el
+    punto y coma final. Y el `else` es obligatorio, porque un `if` sin el no
+    tiene valor que dar.
+    """
+    cond: Nodo
+    entonces: Nodo
+    sino_: Nodo
+
+@dataclass
 class Try(Nodo):
     """`try f(..)`: si falla, la falla sube al que llamo."""
     expr: Nodo

@@ -12,7 +12,7 @@ from tcode.parser import RESTRICCIONES
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
-    Decimal,
+    Decimal, SiExpr,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
@@ -1058,6 +1058,17 @@ class Comprobador:
                           sim.reasignada_directo, sim)
                 for sim in self._simbolos_vivos()}
 
+    def _juntar_ramas(self, tras_a, tras_b):
+        """Lo que sobrevive a dos caminos que se excluyen: movido en uno o en
+        el otro cuenta como movido, porque desde fuera no se sabe cual paso."""
+        for clave, (mov_a, linea_a, ent_a, rea_a, sim) in tras_a.items():
+            mov_b, linea_b, ent_b, rea_b, _ = tras_b.get(
+                clave, (mov_a, linea_a, ent_a, rea_a, sim))
+            sim.movida = mov_a or mov_b
+            sim.movida_en = linea_a if mov_a else linea_b
+            sim.entregada_en = ent_a or ent_b
+            sim.reasignada_directo = rea_a or rea_b
+
     def _restaurar(self, foto):
         for movida, movida_en, entregada, reasignada, sim in foto.values():
             sim.movida = movida
@@ -1569,6 +1580,32 @@ class Comprobador:
             if t == "usize":
                 self.error(e, "`usize` no tiene signo: no se puede negar")
             return t
+
+        if isinstance(e, SiExpr):
+            tc = self.expresion(e.cond)
+            if tc is not None and tc != "bool":
+                self.error(e, f"la condicion de un `if` tiene que ser `bool`, "
+                              f"y es `{tc}`")
+            # Las dos ramas son caminos que se excluyen: lo que una mueve, la
+            # otra no lo ha movido. Es la misma regla que el `if` sentencia.
+            antes = self._foto()
+            self.en_condicional += 1
+            ta = self.expresion(e.entonces, destino=destino,
+                                mover_variables=mover_variables)
+            tras_a = self._foto()
+            self._restaurar(antes)
+            tb = self.expresion(e.sino_, destino=destino,
+                                mover_variables=mover_variables)
+            tras_b = self._foto()
+            self.en_condicional -= 1
+            self._juntar_ramas(tras_a, tras_b)
+            if ta is not None and tb is not None and not encaja(ta, tb) \
+                    and not encaja(tb, ta):
+                self.error(e, f"las dos ramas de un `if` tienen que dar el "
+                              f"mismo tipo, y dan `{ta}` y `{tb}`")
+            if ta in (None, LITERAL, LITERAL_DECIMAL):
+                return tb if tb is not None else ta
+            return ta
 
         if isinstance(e, Conversion):
             t = sin_prestamo(self.expresion(e.valor) or "")
