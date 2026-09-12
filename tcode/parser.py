@@ -219,6 +219,22 @@ class Parser:
             self.i += 1
             return t.valor
 
+        # `fn(usize, usize) -> bool`: el tipo de una funcion usada como valor.
+        if self.es("palabra", "fn"):
+            self.i += 1
+            self.espera("simbolo", "(")
+            params = []
+            if not self.es("simbolo", ")"):
+                while True:
+                    params.append(self.tipo())
+                    if not self.acepta("simbolo", ","):
+                        break
+            self.espera("simbolo", ")")
+            dentro = ", ".join(params)
+            if self.acepta("simbolo", "->"):
+                return f"fn({dentro}) -> {self.tipo()}"
+            return f"fn({dentro})"
+
         # parametro de tipo de la funcion en curso
         if t.tipo == "ident" and t.valor in self.tipo_params:
             self.i += 1

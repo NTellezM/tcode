@@ -132,6 +132,15 @@ fn espera(e: mut Estado, tipo: view, valor: view) -> str ! {
 // ------------------------------------------------------------------
 
 fn tipo(e: mut Estado) -> str ! {
+    // `&T` y `&mut T` como tipo. Fuera de la posicion de parametro aparecen
+    // dentro de un tipo de funcion: `fn(&T, &T) -> bool`.
+    if acepta(e, "simbolo", "&") {
+        var t = nuevo("&");
+        if acepta(e, "palabra", "mut") { empujar(t, "mut "); }
+        let dentro = try tipo(e);
+        empujar(t, dentro);
+        return t;
+    }
     if es(e, "palabra", "lista") {
         avanzar(e);
         try espera(e, "simbolo", "<");
@@ -156,6 +165,30 @@ fn tipo(e: mut Estado) -> str ! {
         empujar(t, ">");
         return t;
     }
+    // `fn(usize, usize) -> bool`: el tipo de una funcion usada como valor.
+    if es(e, "palabra", "fn") {
+        avanzar(e);
+        try espera(e, "simbolo", "(");
+        var t = nuevo("fn(");
+        if !es(e, "simbolo", ")") {
+            var mas_p = true;
+            while mas_p {
+                let a = try tipo(e);
+                empujar(t, a);
+                mas_p = acepta(e, "simbolo", ",");
+                if mas_p { empujar(t, ", "); }
+            }
+        }
+        try espera(e, "simbolo", ")");
+        empujar(t, ")");
+        if acepta(e, "simbolo", "->") {
+            let r = try tipo(e);
+            empujar(t, " -> ");
+            empujar(t, r);
+        }
+        return t;
+    }
+
     if es(e, "simbolo", "[") {
         avanzar(e);
         let dentro = try tipo(e);

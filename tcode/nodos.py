@@ -34,6 +34,9 @@ class Booleano(Nodo):
 @dataclass
 class Variable(Nodo):
     nombre: str
+    # La pone el comprobador: este nombre no es una variable, es una funcion
+    # usada como valor.
+    es_funcion: bool = False
 
 @dataclass
 class Llamada(Nodo):

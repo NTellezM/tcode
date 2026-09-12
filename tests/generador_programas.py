@@ -542,6 +542,27 @@ class Generador:
             "    return largo(c.dentro);\n"
             "}")
 
+        # Una funcion como valor, y ordenar con el criterio que se le pase.
+        partes.append(
+            "fn antes_n(a: &usize, b: &usize) -> bool {\n"
+            "    return a < b;\n"
+            "}")
+        partes.append(
+            "fn antes_rev(a: &usize, b: &usize) -> bool {\n"
+            "    return a > b;\n"
+            "}")
+        partes.append(
+            "fn con_criterio(xs: &lista<usize>, antes: fn(&usize, &usize) -> bool)\n"
+            "        -> usize {\n"
+            "    var mejor = 0;\n"
+            "    var i = 1;\n"
+            "    while i < largo(xs) {\n"
+            "        if antes(xs[i], xs[mejor]) { mejor = i; }\n"
+            "        i = i + 1;\n"
+            "    }\n"
+            "    return mejor;\n"
+            "}")
+
         # Genericas: una plantilla, una copia por cada juego de tipos. Se usan
         # con un tipo que posee memoria y con uno que no, que es donde las
         # reglas de propiedad cambian de respuesta con el mismo cuerpo.
@@ -629,6 +650,9 @@ class Generador:
         lineas.append("    let g_caja_n = en_caja(g_ns);")
         lineas.append("    imprimir(cuantas_en(g_caja));")
         lineas.append("    imprimir(cuantas_en(g_caja_n));")
+        lineas.append("    imprimir(con_criterio(g_ns, antes_n));")
+        lineas.append("    let g_criterio = antes_rev;")
+        lineas.append("    imprimir(con_criterio(g_ns, g_criterio));")
         lineas.append("    imprimir(total(g_ns));")
         lineas.append(f'    let g_aguja = nuevo("{self.palabra()}");')
         lineas.append("    imprimir(esta(g_ss, g_aguja));")

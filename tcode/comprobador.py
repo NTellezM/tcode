@@ -138,6 +138,11 @@ def sin_prestamo(t):
 COPIABLES = ENTEROS | {"bool", "view", LITERAL, UNIDAD}
 
 
+def es_copiable(t):
+    """Lo que se puede sacar de un prestamo: no posee nada detras."""
+    return t in COPIABLES or es_funcion(t)
+
+
 def sustituir_tipo(t, ligaduras):
     """Cambia los parametros de tipo por lo que se les ligo: con `{T: "str"}`,
     `lista<T>` pasa a ser `lista<str>`."""
@@ -193,6 +198,48 @@ def unificar_tipo(patron, concreto, params, ligaduras, instancias=None):
         return all(unificar_tipo(a, c, params, ligaduras, instancias)
                    for a, c in zip(args, de_donde[1]))
     return False
+
+
+def es_funcion(t):
+    return isinstance(t, str) and t.startswith("fn(")
+
+
+def partes_funcion(t):
+    """`fn(usize, str) -> bool` -> (["usize", "str"], "bool").
+
+    Sin captura: un valor de este tipo es el nombre de una funcion, nada mas.
+    Por eso no posee memoria y se copia como un numero.
+    """
+    hondura = 0
+    for i, ch in enumerate(t):
+        if ch == "(":
+            hondura += 1
+        elif ch == ")":
+            hondura -= 1
+            if hondura == 0:
+                dentro = t[3:i]
+                resto = t[i + 1:].strip()
+                retorno = resto[2:].strip() if resto.startswith("->") else UNIDAD
+                return (partir_tipos(dentro) if dentro.strip() else []), retorno
+    return [], UNIDAD
+
+
+def tipo_de_parametro(p):
+    """El tipo de un parametro tal como se escribe en una firma: el prestamo
+    se guarda aparte en el nodo, pero en un tipo de funcion tiene que verse."""
+    if p.mutable:
+        return f"&mut {p.tipo}"
+    if p.compartido:
+        return f"&{p.tipo}"
+    return p.tipo
+
+
+def firma_funcion(params, retorno):
+    """El tipo que le corresponde a una funcion, tal como se escribe."""
+    dentro = ", ".join(params)
+    if retorno in (None, UNIDAD):
+        return f"fn({dentro})"
+    return f"fn({dentro}) -> {retorno}"
 
 
 def partir_tipos(dentro):
@@ -260,7 +307,7 @@ def encaja(esperado, dado):
     # De un prestamo se puede leer, pero no sacar: si lo que se pide es un
     # tipo que posee memoria, aceptarlo aqui seria moverlo fuera del duenio.
     if (es_referencia(dado) and not es_referencia(esperado)
-            and esperado in COPIABLES):
+            and es_copiable(esperado)):
         return encaja(esperado, apuntado(dado))
     return False
 
@@ -521,8 +568,8 @@ class Comprobador:
 
     def posee(self, tipo, visitados=None):
         """True si un valor de este tipo es duenio de memoria del heap."""
-        if es_referencia(tipo):
-            return False        # presta; el duenio es otro
+        if es_referencia(tipo) or es_funcion(tipo):
+            return False        # presta, o es solo un nombre de funcion
         if tipo == "str":
             return True
         if es_mapa(tipo):
@@ -550,10 +597,14 @@ class Comprobador:
 
     def tipo_existe(self, t):
         if es_referencia(t):
-            # Solo tiene sentido prestar algo con partes: un escalar se copia
-            # y ya esta.
-            interno = apuntado(t)
-            return self.tipo_existe(interno) and self.es_compuesto(interno)
+            # Prestar un escalar no aporta nada escrito a mano, pero en una
+            # generica `&T` tiene que valer para todo `T`: si no, `fn(&T, &T)`
+            # no se podria usar con numeros.
+            return self.tipo_existe(apuntado(t))
+        if es_funcion(t):
+            params, retorno = partes_funcion(t)
+            return (all(self.tipo_existe(x) for x in params)
+                    and (retorno == UNIDAD or self.tipo_existe(retorno)))
         if t in ENTEROS or t in {"str", "view", "bool"} or t in self.structs:
             return True
         if es_arreglo(t):
@@ -1446,6 +1497,23 @@ class Comprobador:
         if isinstance(e, Variable):
             sim = self.buscar(e.nombre)
             if sim is None:
+                # El nombre de una funcion, sin parentesis detras, es un valor:
+                # el puntero a esa funcion. Sin captura, asi que no posee nada.
+                f = self.funciones.get(e.nombre)
+                if f is not None:
+                    if f.falible:
+                        self.error(e, f"`{e.nombre}` puede fallar, y en v0 una "
+                                      f"funcion que se pasa como valor no "
+                                      f"puede: quitale el `!` o envuelvela")
+                        return None
+                    e.es_funcion = True
+                    return firma_funcion([tipo_de_parametro(p)
+                                          for p in f.params], f.retorno)
+                if e.nombre in self.genericas:
+                    self.error(e, f"`{e.nombre}` es generica: hay una funcion "
+                                  f"por cada juego de tipos, y aqui no se sabe "
+                                  f"cual. Envuelvela en una funcion normal")
+                    return None
                 self.error(e, f"`{e.nombre}` no esta declarada")
                 return None
             if mover_variables and self.posee(sim.tipo):
@@ -1839,6 +1907,10 @@ class Comprobador:
         if ti is None or td is None:
             return None
 
+        # Un prestamo se lee como lo que presta: `a > b` con dos `&usize`
+        # compara los numeros, no las direcciones.
+        ti, td = sin_prestamo(ti), sin_prestamo(td)
+
         if ti == LITERAL and td in ENTEROS:
             ti = td
         elif td == LITERAL and ti in ENTEROS:
@@ -1897,6 +1969,36 @@ class Comprobador:
                               f"detras de `try`, o con `sino <valor>` para dar un "
                               f"valor cuando falle")
             return self.interna(e)
+
+        # Una variable que guarda una funcion se llama como cualquier otra.
+        sim_valor = self.buscar(nombre)
+        if sim_valor is not None and es_funcion(sim_valor.tipo):
+            self.usar(e, sim_valor)
+            params, retorno = partes_funcion(sim_valor.tipo)
+            if len(e.args) != len(params):
+                self.error(e, f"`{nombre}` es `{sim_valor.tipo}` y espera "
+                              f"{len(params)} argumento(s), recibio "
+                              f"{len(e.args)}")
+            for arg, esperado_t in zip(e.args, params):
+                # Un `&X` en la firma presta: se le pasa el sitio, no el valor.
+                presta = es_referencia(esperado_t)
+                interno = apuntado(esperado_t) if presta else esperado_t
+                t = self.expresion(arg, destino=interno,
+                                   mover_variables=(not presta
+                                                    and self.posee(interno)))
+                if presta:
+                    base = self.variable_base(arg)
+                    sim_base = self.buscar(base) if base else None
+                    if sim_base is not None:
+                        if es_referencia_mutable(esperado_t):
+                            self.mutar(arg, sim_base)
+                        else:
+                            self.usar(arg, sim_base)
+                if t is not None and not encaja(interno, sin_prestamo(t)):
+                    if not (interno == "view" and sin_prestamo(t) == "str"):
+                        self.error(e, f"`{nombre}` toma `{esperado_t}` ahi y "
+                                      f"recibio `{t}`")
+            return retorno
 
         if nombre in self.genericas:
             # Se elige la copia por los tipos que llegan, y a partir de aqui
