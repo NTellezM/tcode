@@ -4,16 +4,20 @@ from dataclasses import dataclass
 
 PALABRAS = {
     "fn", "let", "var", "mut", "if", "else", "while", "return",
-    "true", "false", "str", "view", "usize", "i64", "bool", "lista", "struct",
+    "true", "false", "str", "view", "bool", "lista", "struct",
     "usar", "try", "sino", "falla", "mapa",
     "for", "en", "break", "continue",
+    # Enteros: el ancho va en el nombre, menos en `usize`, que mide cosas de
+    # la maquina y por eso vale lo que valga ahi.
+    "u8", "u16", "u32", "u64", "usize",
+    "i8", "i16", "i32", "i64",
 }
 
 # Los de mas caracteres primero: "+?" tiene que ganarle a "+".
 SIMBOLOS = [
-    "+?", "-?", "*?", "->", "==", "!=", "<=", ">=", "&&", "||",
+    "<<", ">>", "+?", "-?", "*?", "->", "==", "!=", "<=", ">=", "&&", "||",
     "(", ")", "{", "}", "[", "]", ",", ";", ":", ".", "=", "+", "-", "*", "/",
-    "%", "<", ">", "!", "&", "$",
+    "%", "<", ">", "!", "&", "|", "^", "~", "?", "$",
 ]
 
 
@@ -95,6 +99,18 @@ def tokenizar(fuente: str, archivo: str = "<entrada>") -> list:
                     if i + 1 >= n:
                         raise ErrorLexico(f"{archivo}:{l0}: escape sin cerrar")
                     esc = fuente[i + 1]
+                    if esc == "x":
+                        # `\xNN`: un byte escrito en hexadecimal. Hace falta
+                        # para poner en una cadena lo que no es texto.
+                        hexa = fuente[i + 2:i + 4]
+                        if len(hexa) < 2 or any(
+                                c not in "0123456789abcdefABCDEF" for c in hexa):
+                            raise ErrorLexico(
+                                f"{archivo}:{linea}: `\\x` lleva dos digitos "
+                                f"hexadecimales detras, como `\\x0a`")
+                        partes.append(chr(0xDC00 + int(hexa, 16)))
+                        i += 4
+                        continue
                     mapa = {"n": "\n", "t": "\t", "\\": "\\", '"': '"',
                             "0": "\0", "{": "{", "}": "}"}
                     if esc not in mapa:
@@ -123,6 +139,16 @@ def tokenizar(fuente: str, archivo: str = "<entrada>") -> list:
                     if i + 1 >= n:
                         raise ErrorLexico(f"{archivo}:{l0}: escape sin cerrar")
                     esc = fuente[i + 1]
+                    if esc == "x":
+                        hexa = fuente[i + 2:i + 4]
+                        if len(hexa) < 2 or any(
+                                c not in "0123456789abcdefABCDEF" for c in hexa):
+                            raise ErrorLexico(
+                                f"{archivo}:{linea}: `\\x` lleva dos digitos "
+                                f"hexadecimales detras, como `\\x0a`")
+                        partes.append(chr(0xDC00 + int(hexa, 16)))
+                        i += 4
+                        continue
                     mapa = {"n": "\n", "t": "\t", "\\": "\\", '"': '"', "0": "\0"}
                     if esc not in mapa:
                         raise ErrorLexico(

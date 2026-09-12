@@ -146,8 +146,8 @@ cualquier sitio donde haya un compilador de C17.
 comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
-Sobre los veinte `.t` del repositorio —incluido el suyo propio— produce
-**10.014 tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+Sobre los veintidós `.t` del repositorio —incluido el suyo propio— produce
+**11.561 tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -169,8 +169,8 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 
 `ejemplos/lexer/parser.t` son 626 líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
-de abajo arriba. Acepta y rechaza **exactamente** los mismos veinte
-archivos que el parser del compilador, y sobre ellos produce 5.176 nodos:
+de abajo arriba. Acepta y rechaza **exactamente** los mismos veintidós
+archivos que el parser del compilador, y sobre ellos produce 5.991 nodos:
 
 ```
 $ ./ejemplos/lexer/parser ejemplos/lexer/parser.t --callado
@@ -352,6 +352,15 @@ Y **structs genéricos**: `struct Pila<T>`, `struct Par<A, B>`, y
 mismo. `std/par` es un contenedor escrito en Tcode del que el compilador no
 sabe nada: es lo que separa "un lenguaje con dos colecciones" de un lenguaje.
 
+Y **enteros de ancho fijo** —`u8`, `u16`, `u32`, `u64`, `i8`, `i16`, `i32`,
+`i64`, `usize`— con la aritmética comprobada en todos ellos; **operaciones de
+bits** (`&`, `|`, `^`, `<<`, `>>`, `~`) que atan más que las comparaciones,
+no menos que ellas como en C; conversión `como` que aborta si el valor no
+cabe (`como?` para salirse a propósito); y **bytes crudos**: `\xNN` en una
+cadena, `empujar_byte`, y `std/bytes` con enteros en orden de red y hex.
+`ejemplos/binario.t` escribe y lee un formato binario con suma de
+verificación — lo que antes de esto no se podía escribir en Tcode.
+
 Y **espacios de nombres**: los nombres se resuelven por archivo, como en
 Python. Dos módulos pueden declarar `contar` sin estorbarse; sólo choca si un
 mismo archivo los trae a los dos de forma llana, y entonces el error dice
@@ -359,7 +368,8 @@ cómo arreglarlo con `usar "..." como algo;`. El renombrado interno sólo
 ocurre donde de verdad choca: mientras `palabras` sea de un solo módulo, en
 el C generado se sigue llamando `palabras`.
 
-No hay: comprobación del cuerpo genérico una sola vez contra la restricción
+No hay: números con decimales, funciones como valor, comprobación del cuerpo
+genérico una sola vez contra la restricción
 (eso es Rust, y es más), `lista`/`mapa` fuera del compilador —falta poder
 reservar memoria desde Tcode—, E/S incremental ni el propio compilador
 escrito en Tcode. Tampoco: campos `view` dentro de un
@@ -368,7 +378,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-242 casos, 0 fallas
+253 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

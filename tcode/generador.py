@@ -14,7 +14,7 @@ import re
 
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
-    Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
+    Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
@@ -28,11 +28,27 @@ from tcode.comprobador import (
 TIPOS_C = {
     "str": "SafeString",
     "view": "SafeView",
-    "usize": "size_t",
-    "i64": "int64_t",
     "bool": "bool",
+    "usize": "size_t",
+    "u8": "uint8_t", "u16": "uint16_t", "u32": "uint32_t", "u64": "uint64_t",
+    "i8": "int8_t", "i16": "int16_t", "i32": "int32_t", "i64": "int64_t",
     None: "void",
     UNIDAD: "void",
+}
+
+# Por cada entero: el sufijo de sus funciones de aritmetica comprobada, el
+# tipo de C, y sus limites. `usize` no lleva ancho escrito porque mide cosas
+# de la maquina; los demas valen lo mismo en todas.
+ARITMETICA = {
+    "usize": ("usize", "size_t",  "SIZE_MAX",   None),
+    "u8":    ("u8",    "uint8_t", "UINT8_MAX",  None),
+    "u16":   ("u16",   "uint16_t","UINT16_MAX", None),
+    "u32":   ("u32",   "uint32_t","UINT32_MAX", None),
+    "u64":   ("u64",   "uint64_t","UINT64_MAX", None),
+    "i8":    ("i8",    "int8_t",  "INT8_MAX",   "INT8_MIN"),
+    "i16":   ("i16",   "int16_t", "INT16_MAX",  "INT16_MIN"),
+    "i32":   ("i32",   "int32_t", "INT32_MAX",  "INT32_MIN"),
+    "i64":   ("i64",   "int64_t", "INT64_MAX",  "INT64_MIN"),
 }
 
 CABECERA = r'''/* Generado por el compilador de Tcode. No editar a mano. */
@@ -73,6 +89,15 @@ CABECERA = r'''/* Generado por el compilador de Tcode. No editar a mano. */
 /* Aritmetica comprobada: en Tcode el desbordamiento no es silencioso.
    Aborta diciendo donde, en vez de seguir con un valor equivocado. */
 SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
+static void ss_lang_no_cabe_(const char* de, const char* a,
+                             const char* archivo, int linea)
+{
+    fprintf(stderr, "%s:%d: el valor no cabe en `%s` viniendo de `%s`\n",
+            archivo, linea, a, de);
+    abort();
+}
+
+SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
 static void ss_lang_desborde_(const char* op, const char* archivo, int linea)
 {
     fprintf(stderr, "%s:%d: desbordamiento en `%s`\n", archivo, linea, op);
@@ -97,86 +122,109 @@ static void ss_lang_division_cero_(const char* archivo, int linea)
 #  define SS_LANG_HAY_BUILTINS 1
 #endif
 
-#define SS_LANG_DEFINIR_ARIT(sufijo, tipo, tmax, tmin)                        \
-SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
-static tipo ss_lang_suma_##sufijo(tipo a, tipo b, const char* ar, int ln)     \
-{                                                                             \
-    tipo r;                                                                   \
-    if (ss_lang_suma_desborda_##sufijo(a, b, &r))                             \
-        ss_lang_desborde_("+", ar, ln);                                       \
-    return r;                                                                 \
-}                                                                             \
-SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
-static tipo ss_lang_resta_##sufijo(tipo a, tipo b, const char* ar, int ln)    \
-{                                                                             \
-    tipo r;                                                                   \
-    if (ss_lang_resta_desborda_##sufijo(a, b, &r))                            \
-        ss_lang_desborde_("-", ar, ln);                                       \
-    return r;                                                                 \
-}                                                                             \
-SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
-static tipo ss_lang_mul_##sufijo(tipo a, tipo b, const char* ar, int ln)      \
-{                                                                             \
-    tipo r;                                                                   \
-    if (ss_lang_mul_desborda_##sufijo(a, b, &r))                              \
-        ss_lang_desborde_("*", ar, ln);                                       \
-    return r;                                                                 \
-}
-
+/* Deteccion de desborde. Con los builtins del compilador es una instruccion;
+   sin ellos, la formula portable, que comprueba ANTES de operar porque en los
+   con signo desbordar ya es comportamiento indefinido. */
 #ifdef SS_LANG_HAY_BUILTINS
-
-#  define ss_lang_suma_desborda_u(a, b, r)  __builtin_add_overflow((a), (b), (r))
-#  define ss_lang_resta_desborda_u(a, b, r) __builtin_sub_overflow((a), (b), (r))
-#  define ss_lang_mul_desborda_u(a, b, r)   __builtin_mul_overflow((a), (b), (r))
-#  define ss_lang_suma_desborda_i(a, b, r)  __builtin_add_overflow((a), (b), (r))
-#  define ss_lang_resta_desborda_i(a, b, r) __builtin_sub_overflow((a), (b), (r))
-#  define ss_lang_mul_desborda_i(a, b, r)   __builtin_mul_overflow((a), (b), (r))
-
-#else   /* portable: mas caro, sobre todo al multiplicar */
-
-static int ss_lang_suma_desborda_u(size_t a, size_t b, size_t* r)
-{ *r = a + b; return a > SIZE_MAX - b; }
-
-static int ss_lang_resta_desborda_u(size_t a, size_t b, size_t* r)
-{ *r = a - b; return a < b; }
-
-static int ss_lang_mul_desborda_u(size_t a, size_t b, size_t* r)
-{ *r = a * b; return a != 0 && b > SIZE_MAX / a; }
-
-static int ss_lang_suma_desborda_i(int64_t a, int64_t b, int64_t* r)
-{
-    if ((b > 0 && a > INT64_MAX - b) || (b < 0 && a < INT64_MIN - b)) return 1;
-    *r = a + b; return 0;
-}
-
-static int ss_lang_resta_desborda_i(int64_t a, int64_t b, int64_t* r)
-{
-    if ((b < 0 && a > INT64_MAX + b) || (b > 0 && a < INT64_MIN + b)) return 1;
-    *r = a - b; return 0;
-}
-
-static int ss_lang_mul_desborda_i(int64_t a, int64_t b, int64_t* r)
-{
-    if (a != 0 && b != 0)
-    {
-        if (a > 0 ? (b > 0 ? a > INT64_MAX / b : b < INT64_MIN / a)
-                  : (b > 0 ? a < INT64_MIN / b : a < INT64_MAX / b))
-            return 1;
-    }
-    *r = a * b; return 0;
-}
-
+#  define SS_LANG_DESB_SUMA_U(a, b, r, tmax)  __builtin_add_overflow((a), (b), (r))
+#  define SS_LANG_DESB_RESTA_U(a, b, r, tmax) __builtin_sub_overflow((a), (b), (r))
+#  define SS_LANG_DESB_MUL_U(a, b, r, tmax)   __builtin_mul_overflow((a), (b), (r))
+#  define SS_LANG_DESB_SUMA_I(a, b, r, tmax, tmin)  __builtin_add_overflow((a), (b), (r))
+#  define SS_LANG_DESB_RESTA_I(a, b, r, tmax, tmin) __builtin_sub_overflow((a), (b), (r))
+#  define SS_LANG_DESB_MUL_I(a, b, r, tmax, tmin)   __builtin_mul_overflow((a), (b), (r))
+#else
+#  define SS_LANG_DESB_SUMA_U(a, b, r, tmax)                                  \
+     ((a) > (tmax) - (b) ? 1 : (*(r) = (a) + (b), 0))
+#  define SS_LANG_DESB_RESTA_U(a, b, r, tmax)                                 \
+     ((a) < (b) ? 1 : (*(r) = (a) - (b), 0))
+#  define SS_LANG_DESB_MUL_U(a, b, r, tmax)                                   \
+     (((a) != 0 && (b) > (tmax) / (a)) ? 1 : (*(r) = (a) * (b), 0))
+#  define SS_LANG_DESB_SUMA_I(a, b, r, tmax, tmin)                            \
+     ((((b) > 0 && (a) > (tmax) - (b)) || ((b) < 0 && (a) < (tmin) - (b)))     \
+      ? 1 : (*(r) = (a) + (b), 0))
+#  define SS_LANG_DESB_RESTA_I(a, b, r, tmax, tmin)                           \
+     ((((b) < 0 && (a) > (tmax) + (b)) || ((b) > 0 && (a) < (tmin) + (b)))     \
+      ? 1 : (*(r) = (a) - (b), 0))
+#  define SS_LANG_DESB_MUL_I(a, b, r, tmax, tmin)                             \
+     (((a) != 0 && (b) != 0 &&                                                \
+       ((a) > 0 ? ((b) > 0 ? (a) > (tmax) / (b) : (b) < (tmin) / (a))          \
+                : ((b) > 0 ? (a) < (tmin) / (b) : (a) < (tmax) / (b))))        \
+      ? 1 : (*(r) = (a) * (b), 0))
 #endif
 
-SS_LANG_DEFINIR_ARIT(u, size_t, SIZE_MAX, 0)
-SS_LANG_DEFINIR_ARIT(i, int64_t, INT64_MAX, INT64_MIN)
+/* Una familia por ancho de entero. Solo se emiten los anchos que el programa
+   usa: un programa con `usize` no carga con las nueve. */
+#define SS_LANG_ARIT_U(sufijo, tipo, tmax)                                    \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_suma_##sufijo(tipo a, tipo b, const char* ar, int ln)     \
+{ tipo r = 0;                                                              \
+  if (SS_LANG_DESB_SUMA_U(a, b, &r, tmax))                    \
+      { ss_lang_desborde_("+", ar, ln); }                    \
+  return r; }                             \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_resta_##sufijo(tipo a, tipo b, const char* ar, int ln)    \
+{ tipo r = 0;                                                              \
+  if (SS_LANG_DESB_RESTA_U(a, b, &r, tmax))                    \
+      { ss_lang_desborde_("-", ar, ln); }                    \
+  return r; }                             \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_mul_##sufijo(tipo a, tipo b, const char* ar, int ln)      \
+{ tipo r = 0;                                                              \
+  if (SS_LANG_DESB_MUL_U(a, b, &r, tmax))                    \
+      { ss_lang_desborde_("*", ar, ln); }                    \
+  return r; }                             \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_desp_izq_##sufijo(tipo a, size_t n, const char* ar, int ln)\
+{ if (n >= sizeof(tipo) * 8) { ss_lang_desborde_("<<", ar, ln); }             \
+  return (tipo) (a << n); }                                                   \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_desp_der_##sufijo(tipo a, size_t n, const char* ar, int ln)\
+{ if (n >= sizeof(tipo) * 8) { ss_lang_desborde_(">>", ar, ln); }             \
+  return (tipo) (a >> n); }
 
-#define SS_LANG_SUMA_U(a, b, ar, ln)  ss_lang_suma_u((a), (b), ar, ln)
-#define SS_LANG_RESTA_U(a, b, ar, ln) ss_lang_resta_u((a), (b), ar, ln)
-#define SS_LANG_MUL_U(a, b, ar, ln)   ss_lang_mul_u((a), (b), ar, ln)
-#define SS_LANG_SUMA_I(a, b, ar, ln)  ss_lang_suma_i((a), (b), ar, ln)
-#define SS_LANG_RESTA_I(a, b, ar, ln) ss_lang_resta_i((a), (b), ar, ln)
-#define SS_LANG_MUL_I(a, b, ar, ln)   ss_lang_mul_i((a), (b), ar, ln)
+#define SS_LANG_ARIT_I(sufijo, tipo, utipo, tmax, tmin)                       \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_suma_##sufijo(tipo a, tipo b, const char* ar, int ln)     \
+{ tipo r = 0;                                                              \
+  if (SS_LANG_DESB_SUMA_I(a, b, &r, tmax, tmin))                    \
+      { ss_lang_desborde_("+", ar, ln); }                    \
+  return r; }                             \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_resta_##sufijo(tipo a, tipo b, const char* ar, int ln)    \
+{ tipo r = 0;                                                              \
+  if (SS_LANG_DESB_RESTA_I(a, b, &r, tmax, tmin))                    \
+      { ss_lang_desborde_("-", ar, ln); }                    \
+  return r; }                             \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_mul_##sufijo(tipo a, tipo b, const char* ar, int ln)      \
+{ tipo r = 0;                                                              \
+  if (SS_LANG_DESB_MUL_I(a, b, &r, tmax, tmin))                    \
+      { ss_lang_desborde_("*", ar, ln); }                    \
+  return r; }                             \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_desp_izq_##sufijo(tipo a, size_t n, const char* ar, int ln)\
+{ if (n >= sizeof(tipo) * 8) { ss_lang_desborde_("<<", ar, ln); }             \
+  /* desplazar un negativo es indefinido en C: se hace sobre los bits. */     \
+  return (tipo) ((utipo) ((utipo) a << n)); }                                 \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_desp_der_##sufijo(tipo a, size_t n, const char* ar, int ln)\
+{ if (n >= sizeof(tipo) * 8) { ss_lang_desborde_(">>", ar, ln); }             \
+  return (tipo) (a >> n); }
+
+/* Conversion entre anchos. La comprobacion es de ida y vuelta: se convierte,
+   se vuelve a convertir al tipo de origen, y si no sale lo mismo es que no
+   cabia. Vale para cualquier pareja, con signo o sin el, y no se apoya en
+   comparar limites de tipos distintos, que es de donde salen los avisos del
+   compilador de C y los errores sutiles. `como?` no pasa por aqui. */
+#define SS_LANG_CONV(destino, tipo_d, origen, tipo_o)                         \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
+        tipo_o v, const char* ar, int ln)                                     \
+{                                                                             \
+    tipo_d r = (tipo_d) v;                                                    \
+    if ((tipo_o) r != v) { ss_lang_no_cabe_(#origen, #destino, ar, ln); }      \
+    return r;                                                                 \
+}
 
 #define SS_LANG_DIV(a, b, arch, ln) \
     (((b) == 0) ? (ss_lang_division_cero_(arch, ln), 0) : ((a) / (b)))
@@ -232,6 +280,14 @@ static void ss_lang_sin_memoria_(const char* archivo, int linea)
 /* Agrega texto a un `str` y aborta si no hay memoria. Lo usan las cadenas
    interpoladas, donde no hay un sitio razonable al que devolver el fallo. */
 SS_LANG_QUIZA_SIN_USAR
+static void ss_lang_empujar_byte_(SafeString* s, uint8_t b,
+                                  const char* archivo, int linea)
+{
+    char c = (char) b;
+    if (!ss_append_len(s, &c, 1)) ss_lang_sin_memoria_(archivo, linea);
+}
+
+SS_LANG_QUIZA_SIN_USAR
 static void ss_lang_agregar_texto_(SafeString* s, SafeView v,
                                    const char* archivo, int linea)
 {
@@ -267,6 +323,19 @@ static SafeString ss_lang_texto_view_(SafeView valor, const char* ar, int ln)
 '''
 
 
+def bytes_de(texto):
+    """Los bytes que representa una cadena de la fuente. Lo normal es UTF-8;
+    lo marcado con `\\xNN` es ese byte y nada mas."""
+    salida = bytearray()
+    for ch in texto:
+        o = ord(ch)
+        if 0xDC00 <= o <= 0xDCFF:
+            salida.append(o - 0xDC00)
+        else:
+            salida.extend(ch.encode("utf-8"))
+    return bytes(salida)
+
+
 def hondura_tipo(t):
     """Cuanto anida un tipo: `lista<lista<str>>` mas que `lista<str>`."""
     return t.count("<") + t.count("[")
@@ -297,6 +366,8 @@ class Generador:
         # pila de bloques: cada uno con los `str` declarados que hay que liberar
         self.pila = []
         self.copiadores = {}    # tipo -> nombre del copiador generado
+        self.aritmeticas = set()  # anchos de entero cuya aritmetica hace falta
+        self.conversiones = set()  # (destino, origen) de cada `como`
         self.tmp = 0
         # El generador lleva su propia tabla: los ambitos del comprobador ya
         # se cerraron cuando llegamos aqui.
@@ -601,18 +672,33 @@ class Generador:
 
     @staticmethod
     def literal_c(texto):
-        """Un literal de C con el mismo contenido, escapado."""
-        return '"' + (texto.replace("\\", "\\\\").replace('"', '\\"')
-                           .replace("\n", "\\n").replace("\t", "\\t")
-                           .replace("\0", "\\0")) + '"'
+        """Un literal de C con los mismos BYTES, escapado.
+
+        Un `\\xNN` de la fuente llega marcado como U+DC00+NN (la convencion
+        de sustitutos): asi un byte crudo no se confunde con el caracter
+        Unicode del mismo numero, que en UTF-8 ocuparia dos bytes."""
+        salida = ['"']
+        for b in bytes_de(texto):
+            if b == 0x5C: salida.append("\\\\")
+            elif b == 0x22: salida.append('\\"')
+            elif b == 0x0A: salida.append("\\n")
+            elif b == 0x09: salida.append("\\t")
+            elif 0x20 <= b < 0x7F: salida.append(chr(b))
+            else: salida.append(f"\\{b:03o}")
+        salida.append('"')
+        return "".join(salida)
 
     def texto_de(self, expresion_c, tipo, nodo):
         """El `str` que representa un valor. Mismas reglas que `texto`."""
         pos = f"{self.arch(nodo)}, {nodo.linea}"
         if tipo == "usize":
             return f"ss_lang_texto_usize_({expresion_c}, {pos})"
-        if tipo == "i64":
-            return f"ss_lang_texto_i64_({expresion_c}, {pos})"
+        if tipo in ARITMETICA:
+            # Un ancho fijo se ensancha al mayor de su signo: una funcion de
+            # conversion por signo, no una por ancho.
+            if tipo.startswith("u"):
+                return f"ss_lang_texto_usize_((size_t) {expresion_c}, {pos})"
+            return f"ss_lang_texto_i64_((int64_t) {expresion_c}, {pos})"
         if tipo == "bool":
             return (f"ss_lang_texto_view_(({expresion_c}) ? sv(\"true\") "
                     f": sv(\"false\"), {pos})")
@@ -1060,6 +1146,7 @@ class Generador:
         # Copiadores. Se descubren generando las funciones, asi que el hueco
         # se reserva aqui y se rellena al final: un copiador puede necesitar
         # otro, y los prototipos van todos delante.
+        hueco_aritmetica = len(self.lineas)
         hueco_copiadores = len(self.lineas)
 
         for f in funciones:
@@ -1090,6 +1177,24 @@ class Generador:
         for tipo, nombre in copiadores:
             cuerpo.extend(self.cuerpo_copiador(tipo, nombre))
         self.lineas[hueco_copiadores:hueco_copiadores] = cuerpo
+
+        # Solo los anchos que el programa usa, y solo las conversiones que
+        # aparecen: un programa de `usize` no carga con las nueve familias.
+        arit = []
+        for t in sorted(self.aritmeticas):
+            suf, tc, tmax, tmin = ARITMETICA[t]
+            if tmin is None:
+                arit.append(f"SS_LANG_ARIT_U({suf}, {tc}, {tmax})")
+            else:
+                sin_signo = TIPOS_C[t.replace("i", "u", 1)]
+                arit.append(f"SS_LANG_ARIT_I({suf}, {tc}, {sin_signo}, "
+                            f"{tmax}, {tmin})")
+        for destino, origen in sorted(self.conversiones):
+            arit.append(f"SS_LANG_CONV({destino}, {TIPOS_C[destino]}, "
+                        f"{origen}, {TIPOS_C[origen]})")
+        if arit:
+            arit.append("")
+        self.lineas[hueco_aritmetica:hueco_aritmetica] = arit
 
         return "\n".join(self.lineas)
 
@@ -1614,6 +1719,8 @@ class Generador:
                 return INTERNAS[e.nombre]["retorno"]
             f = self.c.funciones.get(e.nombre)
             return f.retorno if f else "usize"
+        if isinstance(e, Conversion):
+            return e.a_tipo
         if isinstance(e, Try):
             return self._tipo_de(e.expr)
         if isinstance(e, Sino):
@@ -1648,6 +1755,8 @@ class Generador:
             return self._tipo_de(e.izq)
         if isinstance(e, Unaria):
             return "bool" if e.op == "!" else self._tipo_de(e.valor)
+        if isinstance(e, Conversion):
+            return e.a_tipo
         return "usize"
 
     # ---------- expresiones ----------
@@ -1663,10 +1772,8 @@ class Generador:
             return f"(size_t){e.valor}{sufijo}"
 
         if isinstance(e, Cadena):
-            lit = (e.valor.replace("\\", "\\\\").replace('"', '\\"')
-                          .replace("\n", "\\n").replace("\t", "\\t")
-                          .replace("\0", "\\0"))
-            return f'sv_len("{lit}", {len(e.valor.encode("utf-8"))})'
+            return (f"sv_len({self.literal_c(e.valor)}, "
+                    f"{len(bytes_de(e.valor))})")
 
         if isinstance(e, Booleano):
             return "true" if e.valor else "false"
@@ -1684,7 +1791,7 @@ class Generador:
                 if trozo:
                     lit = self.literal_c(trozo)
                     self.emitir(f"ss_lang_agregar_texto_(&{tmp}, "
-                                f"sv_len({lit}, {len(trozo.encode('utf-8'))}), "
+                                f"sv_len({lit}, {len(bytes_de(trozo))}), "
                                 f"{self.arch(e)}, {e.linea});")
                 if k < len(e.expresiones):
                     x = e.expresiones[k]
@@ -1716,6 +1823,8 @@ class Generador:
             return e.nombre
 
         if isinstance(e, Unaria):
+            if e.op == "~":
+                return self.unaria_bits(e, esperado)
             return f"({e.op}{self.expr(e.valor, esperado)})"
 
         if isinstance(e, Try):
@@ -1794,6 +1903,9 @@ class Generador:
             partes = ", ".join(self.expr(x, elem) for x in e.elementos)
             return f"({self.tipo_c(t)}){{{{ {partes} }}}}"
 
+        if isinstance(e, Conversion):
+            return self.conversion(e)
+
         if isinstance(e, Binaria):
             return self.binaria(e, esperado)
 
@@ -1823,28 +1935,71 @@ class Generador:
                     f"[ss_lang_indice_({idx}, {n}, {self.arch(e)}, {e.linea})]")
         return self.expr(e, None)
 
+    def unaria_bits(self, e, esperado):
+        t = self._tipo_de(e.valor)
+        if t not in ARITMETICA:
+            t = esperado if esperado in ARITMETICA else "usize"
+        return f"(({self.tipo_c(t)}) ~{self.expr(e.valor, t)})"
+
     def binaria(self, e: Binaria, esperado):
         t = self._tipo_de(e.izq)
-        if t not in {"usize", "i64"}:
+        if t not in ARITMETICA:
             t = self._tipo_de(e.der)
-        sufijo = "I" if t == "i64" else "U"
-        izq = self.expr(e.izq, t)
-        der = self.expr(e.der, t)
+        if t not in ARITMETICA:
+            t = esperado if esperado in ARITMETICA else "usize"
         pos = f"{self.arch(e)}, {e.linea}"
 
+        # El desplazamiento tiene dos tipos: lo que se mueve y cuanto se mueve.
+        if e.op in {"<<", ">>"}:
+            self.usar_aritmetica(t)
+            izq = self.expr(e.izq, t)
+            der = self.expr(e.der, "usize")
+            fn = "izq" if e.op == "<<" else "der"
+            return f"ss_lang_desp_{fn}_{ARITMETICA[t][0]}({izq}, {der}, {pos})"
+
+        izq = self.expr(e.izq, t)
+        der = self.expr(e.der, t)
+
         if e.op in {"+", "-", "*"}:
-            macro = {"+": "SUMA", "-": "RESTA", "*": "MUL"}[e.op]
-            return f"SS_LANG_{macro}_{sufijo}({izq}, {der}, {pos})"
+            self.usar_aritmetica(t)
+            nombre = {"+": "suma", "-": "resta", "*": "mul"}[e.op]
+            return f"ss_lang_{nombre}_{ARITMETICA[t][0]}({izq}, {der}, {pos})"
 
         if e.op in {"+?", "-?", "*?"}:
-            return f"({izq} {e.op[0]} {der})"      # envolvente, pedida a proposito
+            # Envolvente, pedida a proposito. El molde deja claro que el
+            # resultado no se ensancha por el camino.
+            return f"(({self.tipo_c(t)}) ({izq} {e.op[0]} {der}))"
 
         if e.op == "/":
             return f"SS_LANG_DIV({izq}, {der}, {pos})"
         if e.op == "%":
             return f"SS_LANG_MOD({izq}, {der}, {pos})"
+        if e.op in {"&", "|", "^"}:
+            return f"(({self.tipo_c(t)}) ({izq} {e.op} {der}))"
 
         return f"({izq} {e.op} {der})"
+
+    def conversion(self, e):
+        origen = sin_prestamo(self._tipo_de(e.valor) or "usize")
+        if origen not in ARITMETICA:
+            origen = "usize"
+        destino = e.a_tipo
+        valor = self.expr(e.valor, origen)
+        if origen == destino:
+            return valor
+        if e.envolviendo:
+            # Pedida a proposito: se queda con los bits de abajo.
+            return f"(({self.tipo_c(destino)}) {valor})"
+        self.conversiones.add((destino, origen))
+        return (f"ss_lang_conv_{destino}_de_{origen}({valor}, "
+                f"{self.arch(e)}, {e.linea})")
+
+    def usar_aritmetica(self, tipo):
+        """Anota que el programa necesita las operaciones de este ancho. Solo
+        se emiten las que se usan: un programa con `usize` no carga con las
+        nueve familias."""
+        if tipo in ARITMETICA:
+            self.aritmeticas.add(tipo)
 
     def llamada(self, e: Llamada):
         n = e.nombre
@@ -1892,6 +2047,9 @@ class Generador:
         if n == "empujar":
             return (f"ss_append_view({self.dir_de(e.args[0])}, "
                     f"{self.como_vista(e.args[1])})")
+        if n == "empujar_byte":
+            return (f"ss_lang_empujar_byte_({self.dir_de(e.args[0])}, "
+                    f"{self.expr(e.args[1], 'u8')}, {self.arch(e)}, {e.linea})")
         if n == "imprimir":
             return self.imprimir(e.args[0])
         if n == "anadir":
@@ -1924,8 +2082,11 @@ class Generador:
             pos = f"{self.arch(e)}, {e.linea}"
             if t == "usize":
                 return f"ss_lang_texto_usize_({self.expr(a, t)}, {pos})"
-            if t == "i64":
-                return f"ss_lang_texto_i64_({self.expr(a, t)}, {pos})"
+            if t in ARITMETICA:
+                if t.startswith("u"):
+                    return (f"ss_lang_texto_usize_((size_t) "
+                            f"{self.expr(a, t)}, {pos})")
+                return f"ss_lang_texto_i64_((int64_t) {self.expr(a, t)}, {pos})"
             if t == "bool":
                 v = self.expr(a, t)
                 return f"ss_lang_texto_view_(({v}) ? sv(\"true\") : sv(\"false\"), {pos})"
@@ -2060,8 +2221,12 @@ class Generador:
             return f'{f}SV_FMT, SV_ARG({self.como_vista(a)}))'
         if t == "usize":
             return f'{f}"%zu", {self.expr(a, "usize")})'
-        if t == "i64":
-            return f'{f}"%lld", (long long){self.expr(a, "i64")})'
+        if t in ARITMETICA:
+            # Un ancho fijo se ensancha al mayor para imprimirlo: asi hay un
+            # solo formato por signo y no nueve.
+            if t.startswith("u"):
+                return f'{f}"%llu", (unsigned long long){self.expr(a, t)})'
+            return f'{f}"%lld", (long long){self.expr(a, t)})'
         if t == "bool":
             return f'{f}"%s", ({self.expr(a, "bool")}) ? "true" : "false")'
         return f'{f}"%s", "?")'

@@ -111,6 +111,14 @@ fn acepta(e: mut Estado, tipo: view, valor: view) -> bool {
 }
 
 fn espera(e: mut Estado, tipo: view, valor: view) -> str ! {
+    // `lista<lista<str>>` acaba en dos `>` pegados, que el lexer lee como el
+    // desplazamiento `>>`. Donde se espera cerrar un tipo, se parte en dos.
+    if igual(valor, ">") {
+        if es(e, "simbolo", ">>") {
+            e.toks[e.i].valor = nuevo(">");
+            return nuevo(">");
+        }
+    }
     let v = nuevo(valor_en(e, 0));
     if !es(e, tipo, valor) {
         falla "no era el token que tocaba";
@@ -321,7 +329,7 @@ fn unario(e: mut Estado) -> Nodo ! {
         anadir(n.hijos, dentro);
         return n;
     }
-    if es(e, "simbolo", "!") || es(e, "simbolo", "-") {
+    if es(e, "simbolo", "!") || es(e, "simbolo", "-") || es(e, "simbolo", "~") {
         let op = nuevo(valor_en(e, 0));
         avanzar(e);
         var n = rama("unaria", l);
@@ -376,9 +384,36 @@ fn siguiente_nivel(e: mut Estado, grado: usize) -> Nodo ! {
     if grado == 0 { return try nivel(e, "&& ||", 1); }
     if grado == 1 { return try nivel(e, "== !=", 2); }
     if grado == 2 { return try nivel(e, "< <= > >=", 3); }
-    if grado == 3 { return try nivel(e, "+ - +? -?", 4); }
-    if grado == 4 { return try nivel(e, "* / % *?", 5); }
-    return try unario(e);
+    // Los bits atan MAS que las comparaciones, no menos: `a & b == c` es
+    // `(a & b) == c`, no lo que hace C.
+    if grado == 3 { return try nivel(e, "|", 4); }
+    if grado == 4 { return try nivel(e, "^", 5); }
+    if grado == 5 { return try nivel(e, "&", 6); }
+    if grado == 6 { return try nivel(e, "<< >>", 7); }
+    if grado == 7 { return try nivel(e, "+ - +? -?", 8); }
+    if grado == 8 { return try nivel(e, "* / % *?", 9); }
+    return try conversion(e);
+}
+
+// `x como u8`, `x como? u8`: ata mas que cualquier binario.
+fn conversion(e: mut Estado) -> Nodo ! {
+    var izq = try unario(e);
+    var sigue = true;
+    while sigue {
+        if !igual(valor_en(e, 0), "como") {
+            sigue = false;
+        } else {
+            let l = linea_actual(e);
+            avanzar(e);
+            var n = rama("conversion", l);
+            if acepta(e, "simbolo", "?") { empujar(n.texto, "?"); }
+            let t = try tipo(e);
+            empujar(n.texto, t);
+            anadir(n.hijos, izq);
+            izq = n;
+        }
+    }
+    return izq;
 }
 
 fn expresion(e: mut Estado) -> Nodo ! {

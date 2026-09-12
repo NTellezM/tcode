@@ -62,6 +62,14 @@ class LiteralArreglo(Nodo):
     elementos: list
 
 @dataclass
+class Conversion(Nodo):
+    """`x como u8`. Con `envolviendo` (`como?`) se queda con los bits de
+    abajo en vez de abortar; es el mismo `?` de `+?`."""
+    valor: Nodo
+    a_tipo: str
+    envolviendo: bool = False
+
+@dataclass
 class Try(Nodo):
     """`try f(..)`: si falla, la falla sube al que llamo."""
     expr: Nodo
