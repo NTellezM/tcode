@@ -38,6 +38,7 @@ fn palabras_reservadas() -> mapa<str, usize> {
     poner(m, "u64", 1);      poner(m, "usize", 1);
     poner(m, "i8", 1);       poner(m, "i16", 1);      poner(m, "i32", 1);
     poner(m, "i64", 1);
+    poner(m, "f32", 1);      poner(m, "f64", 1);
     return m;
 }
 
@@ -47,6 +48,7 @@ fn simbolo_doble(a: usize, b: usize) -> bool {
     if a == 43 && b == 63 { return true; }     // +?
     if a == 45 && b == 63 { return true; }     // -?
     if a == 42 && b == 63 { return true; }     // *?
+    if a == 47 && b == 63 { return true; }     // /?
     if a == 45 && b == 62 { return true; }     // ->
     if a == 61 && b == 61 { return true; }     // ==
     if a == 33 && b == 61 { return true; }     // !=
@@ -180,7 +182,41 @@ fn analizar(fuente: view) -> lista<Token> ! {
                                         || byte(fuente, j) == 95) {
                 j = j + 1;
             }
-            agregar(salida, "entero", rebanar(fuente, i, j), linea);
+            // Decimal: el punto lleva un digito a cada lado, y luego puede
+            // venir un exponente.
+            var decimal = false;
+            if j + 1 < largo(fuente) && byte(fuente, j) == 46 {
+                if es_digito(byte(fuente, j + 1)) {
+                    decimal = true;
+                    j = j + 1;
+                    while j < largo(fuente) && (es_digito(byte(fuente, j))
+                                                || byte(fuente, j) == 95) {
+                        j = j + 1;
+                    }
+                }
+            }
+            if j < largo(fuente) {
+                if byte(fuente, j) == 101 || byte(fuente, j) == 69 {
+                    var k = j + 1;
+                    if k < largo(fuente) {
+                        if byte(fuente, k) == 43 || byte(fuente, k) == 45 {
+                            k = k + 1;
+                        }
+                    }
+                    if k < largo(fuente) {
+                        if es_digito(byte(fuente, k)) {
+                            decimal = true;
+                            j = k;
+                            while j < largo(fuente) && es_digito(byte(fuente, j)) {
+                                j = j + 1;
+                            }
+                        }
+                    }
+                }
+            }
+            var clase = nuevo("entero");
+            if decimal { clase = nuevo("decimal"); }
+            agregar(salida, vista(clase), rebanar(fuente, i, j), linea);
             i = j;
             continue;
         }

@@ -352,6 +352,15 @@ Y **structs genéricos**: `struct Pila<T>`, `struct Par<A, B>`, y
 mismo. `std/par` es un contenedor escrito en Tcode del que el compilador no
 sabe nada: es lo que separa "un lenguaje con dos colecciones" de un lenguaje.
 
+Y **decimales** (`f64`, `f32`) con una decisión que no toma ningún lenguaje
+grande: **una operación que no da un número detiene el programa donde
+aparece.** `0.0/0.0`, `1.0/0.0` y el desborde a infinito paran, igual que ya
+paraba un desbordamiento entero; `+?`, `-?`, `*?` y `/?` devuelven el IEEE de
+siempre si lo pides. El problema del NaN no es que exista: es que nace en el
+paso 3 y se descubre en el paso 900. Además, `==` entre decimales avisa (Rust
+necesita clippy para eso), `3.7 como usize` para en vez de truncar en
+silencio como hace `as` en Rust, y un `f64` que vale 1 se imprime `1.0`.
+
 Y **funciones como valor**: el nombre de una función es un puntero a
 función, de coste cero y sin dueño. `fn ordenadas_por<T>(xs: &lista<T>,
 antes: fn(&T, &T) -> bool)` ordena con el criterio que se le pase. Sin
@@ -374,8 +383,8 @@ cómo arreglarlo con `usar "..." como algo;`. El renombrado interno sólo
 ocurre donde de verdad choca: mientras `palabras` sea de un solo módulo, en
 el C generado se sigue llamando `palabras`.
 
-No hay: números con decimales, clausuras con captura, comprobación del cuerpo
-genérico una sola vez contra la restricción
+No hay: clausuras con captura, comprobación del cuerpo genérico una sola vez
+contra la restricción
 (eso es Rust, y es más), `lista`/`mapa` fuera del compilador —falta poder
 reservar memoria desde Tcode—, E/S incremental ni el propio compilador
 escrito en Tcode. Tampoco: campos `view` dentro de un
@@ -384,7 +393,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-258 casos, 0 fallas
+267 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

@@ -1142,10 +1142,90 @@ libremente, y copia una sola vez en ese orden. Intercambiar dos elementos
 dueños dentro de una lista dejaría un hueco sin dueño, y el compilador no lo
 permite; así son *n* copias en vez de *n* log *n* intercambios imposibles.
 
+## Decimales: un NaN para el programa donde aparece
+
+`f64` y `f32`. Literales con punto o exponente: `3.5`, `1e-3`. Un número
+escrito sin punto no decide su tipo, así que `let x: f64 = 1;` vale.
+
+### La decisión
+
+**Una operación que no da un número detiene el programa ahí mismo.**
+
+```
+ejemplo.t:4: `/` no dio un numero (NaN o infinito). Si lo querias,
+             escribe `/?`.
+```
+
+Eso cubre los tres casos de una sola comprobación —`isfinite` sobre el
+resultado—: `0.0/0.0` (NaN), `1.0/0.0` (infinito) y el desborde a infinito.
+`+?`, `-?`, `*?` y `/?` devuelven el IEEE de siempre, dicho a propósito, con
+el mismo `?` que ya significaba "me salgo de la comprobación" en los enteros.
+
+Esto es lo que hacen los demás:
+
+| | `0.0/0.0` | `1.0/0.0` | `1e308 * 10` |
+|---|---|---|---|
+| C, Go, Rust, Swift, Java | NaN, en silencio | infinito, en silencio | infinito, en silencio |
+| Python | **lanza** | **lanza** | lanza (OverflowError) |
+| **Tcode** | **para** | **para** | **para** |
+
+El problema no es que exista el NaN: es que se propaga. Un NaN que nace en el
+paso 3 contamina todo lo que toca y se descubre en el paso 900, con el
+contexto ya perdido. Es exactamente el mismo argumento que justifica que un
+desbordamiento entero pare, y la misma solución. Python es el único que hace
+algo parecido, y sólo para la división.
+
+El coste es una comparación por operación, que el compilador de C aprovecha
+porque ya tiene el resultado en un registro.
+
+### `==` avisa
+
+```
+aviso: ejemplo.t:6: `==` entre decimales compara bit a bit: `0.1 + 0.2` no es
+       `0.3`. Si querias 'aproximadamente', usa `cerca(a, b, tolerancia)` de
+       `std/numero`
+```
+
+No se prohíbe —comparar con `0.0` exacto a veces es justo lo que se quiere—
+pero se dice. Rust necesita clippy para esto; aquí lo dice el compilador.
+
+### Conversión
+
+`como` entre enteros y decimales se comprueba de ida y vuelta, igual que
+entre anchos:
+
+```tcode
+let x = n como f64;          // 7 -> 7.0
+let k = exacto como usize;   // 3.0 -> 3, vale
+let m = f como usize;        // 3.7 -> para: el valor no cabe
+```
+
+**Rust trunca aquí en silencio** (`3.7 as usize` da `3`). Esa es su parte
+menos defendida, y aquí no pasa. Si lo que quieres es truncar, dilo:
+`piso(f) como usize`.
+
+Por eso `como?` de un decimal a un entero **no existe**: "quedarse con los
+bits de abajo" no significa nada ahí. Hay que decir qué se hace con la parte
+fraccionaria, y el error lo nombra: `piso`, `techo` o `redondear`.
+
+### Al imprimir
+
+Un `f64` que vale 1 se escribe `1.0`, no `1`. C y Go escriben `1`, y eso
+hace que una salida no diga de qué tipo era el número. Un detalle pequeño
+que se agradece leyendo un informe.
+
+### Lo que trae `std`
+
+`raiz`, `piso`, `techo`, `redondear`, `absoluto` son internas (viven en
+`libm`). En `std/numero`: `cerca`, `porcentaje_exacto`, `acotar_decimal`,
+`media_decimal`.
+
+`%` sobre decimales **no existe**: es el resto de una división entera y con
+decimales no tiene un significado único.
+
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: números con decimales, clausuras con captura,
-comprobación del cuerpo genérico una sola vez contra la restricción (eso es
+Es un v0 honesto. No hay: clausuras con captura, comprobación del cuerpo genérico una sola vez contra la restricción (eso es
 Rust, y es más), `lista`/`mapa` fuera del compilador —falta poder reservar
 memoria desde Tcode—, `if` como expresión, E/S incremental, aritmética de
 punteros ni recolector.

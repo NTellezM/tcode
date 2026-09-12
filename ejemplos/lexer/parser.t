@@ -274,6 +274,11 @@ fn primario(e: mut Estado) -> Nodo ! {
         try espera(e, "simbolo", "]");
         return n;
     }
+    if es(e, "decimal", "") {
+        let v = try espera(e, "decimal", "");
+        return hoja("decimal", v, l);
+    }
+
     if es(e, "ident", "") {
         var nombre = try espera(e, "ident", "");
 
@@ -424,7 +429,7 @@ fn siguiente_nivel(e: mut Estado, grado: usize) -> Nodo ! {
     if grado == 5 { return try nivel(e, "&", 6); }
     if grado == 6 { return try nivel(e, "<< >>", 7); }
     if grado == 7 { return try nivel(e, "+ - +? -?", 8); }
-    if grado == 8 { return try nivel(e, "* / % *?", 9); }
+    if grado == 8 { return try nivel(e, "* / % *? /?", 9); }
     return try conversion(e);
 }
 

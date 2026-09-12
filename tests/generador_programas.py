@@ -620,6 +620,19 @@ class Generador:
         lineas.append(f'    anadir(g_ss, nuevo("{self.palabra()}"));')
         # Copia profunda: de una lista de textos, de una anidada y de un
         # escalar. Cada copia es memoria nueva que alguien tiene que soltar.
+        # Decimales. Los valores se eligen para que ninguna operacion salga
+        # de los numeros: lo que se prueba es que el C sale limpio.
+        lineas.append(f"    let d_a: f64 = {self.r.randint(1, 900)}.5;")
+        lineas.append(f"    let d_b: f64 = {self.r.randint(1, 90)}.25;")
+        lineas.append("    imprimir(d_a + d_b);")
+        lineas.append("    imprimir(d_a / d_b);")
+        lineas.append("    imprimir(raiz(d_a));")
+        lineas.append("    imprimir(piso(d_a) como usize);")
+        lineas.append("    imprimir(redondear(d_b));")
+        lineas.append("    imprimir(absoluto(d_b -? d_a));")
+        lineas.append(f"    imprimir({self.r.randint(0, 99)} como f64);")
+        lineas.append("    imprimir(d_a < d_b);")
+
         # Anchos fijos, bits y conversiones. Todo acotado para que no aborte:
         # lo que se prueba es que el C sale limpio y la memoria tambien.
         a = self.r.randint(0, 255)

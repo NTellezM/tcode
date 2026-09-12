@@ -18,6 +18,10 @@ class Entero(Nodo):
     valor: int
 
 @dataclass
+class Decimal(Nodo):
+    valor: str          # tal como se escribio: el C lo lee igual
+
+@dataclass
 class Cadena(Nodo):
     valor: str
 

@@ -12,6 +12,7 @@ from tcode.parser import RESTRICCIONES
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
+    Decimal,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
@@ -24,6 +25,16 @@ from tcode.nodos import (
 SIN_SIGNO = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": None}
 CON_SIGNO = {"i8": 8, "i16": 16, "i32": 32, "i64": 64}
 ENTEROS = set(SIN_SIGNO) | set(CON_SIGNO)
+# Decimales. La diferencia con todos los demas lenguajes esta en el generador:
+# aqui un NaN o un infinito detienen el programa donde aparecen, igual que un
+# desbordamiento entero. `+?`, `-?`, `*?` y `/?` dejan el comportamiento IEEE
+# de siempre, para quien lo quiera y lo diga.
+DECIMALES = {"f32", "f64"}
+NUMERICOS = ENTEROS | DECIMALES
+# Un numero escrito sin punto no decide su tipo: cuadra con cualquier entero,
+# y tambien con un decimal, que es lo que hace natural escribir `0` en vez de
+# `0.0` donde el contexto ya lo dice.
+LITERAL_DECIMAL = "{decimal}"
 UNIDAD = "()"
 
 # Un literal entero todavia no tiene ancho: lo toma del contexto. Solo si
@@ -32,13 +43,13 @@ LITERAL = "{entero}"
 
 # Tipos con un orden natural evidente. Un struct no lo tiene: cual de sus
 # campos manda es una decision del programa, no del lenguaje.
-ORDENABLES = ENTEROS | {"bool", "str"}
+ORDENABLES = NUMERICOS | {"bool", "str"}
 # Lo que `igual` y `menor` saben comparar. Son tipos sin partes: comparar dos
 # structs o dos listas exigiria decidir que significa, y eso no se decide por
 # la persona en silencio.
-IGUALABLES = ENTEROS | {"bool", "str", "view"}
-COMPARABLES = ENTEROS | {"str", "view"}
-NUMEROS = set(ENTEROS)
+IGUALABLES = NUMERICOS | {"bool", "str", "view"}
+COMPARABLES = NUMERICOS | {"str", "view"}
+NUMEROS = set(NUMERICOS)
 
 # De donde sale la memoria a la que apunta una vista. Es lo unico que hace
 # falta saber para decidir si esa vista puede sobrevivir a la funcion.
@@ -135,7 +146,7 @@ def sin_prestamo(t):
 
 # Tipos que no son duenios de nada: se copian al leerlos, sin quitarle
 # memoria a nadie. Son los unicos que se pueden sacar de un prestamo.
-COPIABLES = ENTEROS | {"bool", "view", LITERAL, UNIDAD}
+COPIABLES = NUMERICOS | {"bool", "view", LITERAL, LITERAL_DECIMAL, UNIDAD}
 
 
 def es_copiable(t):
@@ -302,7 +313,9 @@ def encaja(esperado, dado):
     """True si un valor de tipo `dado` sirve donde se pide `esperado`."""
     if esperado == dado:
         return True
-    if dado == LITERAL and esperado in ENTEROS:
+    if dado == LITERAL and esperado in NUMERICOS:
+        return True            # un numero escrito cuadra con cualquiera
+    if dado == LITERAL_DECIMAL and esperado in DECIMALES:
         return True
     # De un prestamo se puede leer, pero no sacar: si lo que se pide es un
     # tipo que posee memoria, aceptarlo aqui seria moverlo fuera del duenio.
@@ -605,7 +618,7 @@ class Comprobador:
             params, retorno = partes_funcion(t)
             return (all(self.tipo_existe(x) for x in params)
                     and (retorno == UNIDAD or self.tipo_existe(retorno)))
-        if t in ENTEROS or t in {"str", "view", "bool"} or t in self.structs:
+        if t in NUMERICOS or t in {"str", "view", "bool"} or t in self.structs:
             return True
         if es_arreglo(t):
             return self.tipo_existe(elem_de(t))
@@ -807,6 +820,8 @@ class Comprobador:
             return "view"
         if isinstance(e, Entero):
             return "usize"
+        if isinstance(e, Decimal):
+            return "f64"
         if isinstance(e, Booleano):
             return "bool"
         if isinstance(e, Interpolada):
@@ -1478,6 +1493,8 @@ class Comprobador:
     def expresion(self, e, destino=None, mover_variables=False):
         if isinstance(e, Entero):
             return LITERAL
+        if isinstance(e, Decimal):
+            return LITERAL_DECIMAL
         if isinstance(e, Cadena):
             # Un literal es texto estatico: una vista sin dueño.
             return "view"
@@ -1543,6 +1560,10 @@ class Comprobador:
                 # `-9` es un numero escrito, y un numero escrito negativo solo
                 # cabe en `i64`. Antes esto no compilaba en ningun sitio.
                 return "i64"
+            if t == LITERAL_DECIMAL:
+                return LITERAL_DECIMAL
+            if t in DECIMALES:
+                return t
             if t is not None and t not in ENTEROS:
                 self.error(e, f"`-` necesita un entero, recibio `{t}`")
             if t == "usize":
@@ -1551,12 +1572,21 @@ class Comprobador:
 
         if isinstance(e, Conversion):
             t = sin_prestamo(self.expresion(e.valor) or "")
-            if e.a_tipo not in ENTEROS:
-                self.error(e, f"`como` convierte entre enteros, y `{e.a_tipo}` "
+            if e.a_tipo not in NUMERICOS:
+                self.error(e, f"`como` convierte entre numeros, y `{e.a_tipo}` "
                               f"no es uno")
-            elif t and t != LITERAL and t not in ENTEROS:
-                self.error(e, f"`como` convierte entre enteros, y `{t}` no es "
+            elif t and t not in (LITERAL, LITERAL_DECIMAL) and t not in NUMERICOS:
+                self.error(e, f"`como` convierte entre numeros, y `{t}` no es "
                               f"uno")
+            elif (e.envolviendo and e.a_tipo in ENTEROS
+                    and (t in DECIMALES or t == LITERAL_DECIMAL)):
+                # `como?` se queda con los bits de abajo, y de un decimal a un
+                # entero eso no significa nada: no hay bits que recortar, hay
+                # que decidir que se hace con la parte fraccionaria.
+                self.error(e, f"`como?` de un decimal a `{e.a_tipo}` no tiene "
+                              f"sentido: di que quieres con la parte decimal "
+                              f"—`piso`, `techo` o `redondear` de "
+                              f"`std/numero`— y luego `como {e.a_tipo}`")
             elif t == e.a_tipo:
                 self.aviso(e, f"`como {e.a_tipo}` sobre algo que ya es "
                               f"`{e.a_tipo}`: no hace nada")
@@ -1911,9 +1941,14 @@ class Comprobador:
         # compara los numeros, no las direcciones.
         ti, td = sin_prestamo(ti), sin_prestamo(td)
 
-        if ti == LITERAL and td in ENTEROS:
+        # Un numero escrito toma el tipo del otro lado.
+        if ti in (LITERAL, LITERAL_DECIMAL) and td in NUMERICOS:
             ti = td
-        elif td == LITERAL and ti in ENTEROS:
+        elif td in (LITERAL, LITERAL_DECIMAL) and ti in NUMERICOS:
+            td = ti
+        if ti == LITERAL and td == LITERAL_DECIMAL:
+            ti = td
+        elif td == LITERAL and ti == LITERAL_DECIMAL:
             td = ti
 
         if e.op in {"==", "!="}:
@@ -1922,10 +1957,18 @@ class Comprobador:
             if ti == "str":
                 self.error(e, "no se comparan `str` con `==`: usa "
                               "`igual(vista(a), vista(b))`")
+            if ti in DECIMALES:
+                # No se prohibe: comparar con `0.0` exacto a veces es lo que
+                # se quiere. Pero casi nunca, y el aviso lo dice una vez.
+                self.aviso(e, f"`{e.op}` entre decimales compara bit a bit: "
+                              f"`0.1 + 0.2` no es `0.3`. Si querias "
+                              f"'aproximadamente', usa `cerca(a, b, tolerancia)` "
+                              f"de `std/numero`")
             return "bool"
 
         if e.op in {"<", "<=", ">", ">="}:
-            if ti != LITERAL and (ti not in ENTEROS or td not in ENTEROS):
+            if ti not in (LITERAL, LITERAL_DECIMAL) and (
+                    ti not in NUMERICOS or td not in NUMERICOS):
                 self.error(e, f"`{e.op}` necesita enteros, recibio `{ti}` y `{td}`")
             elif ti != td:
                 self.error(e, f"`{ti}` y `{td}` no se mezclan sin conversion "
@@ -1949,9 +1992,13 @@ class Comprobador:
             return ti
 
         # aritmetica
-        if ti == LITERAL and td == LITERAL:
-            return LITERAL
-        if ti not in ENTEROS or td not in ENTEROS:
+        if ti in (LITERAL, LITERAL_DECIMAL) and td in (LITERAL, LITERAL_DECIMAL):
+            return LITERAL_DECIMAL if LITERAL_DECIMAL in (ti, td) else LITERAL
+        if e.op == "%" and (ti in DECIMALES or td in DECIMALES):
+            self.error(e, "`%` es el resto de una division entera; con "
+                          "decimales no tiene un significado unico")
+            return None
+        if ti not in NUMERICOS or td not in NUMERICOS:
             self.error(e, f"`{e.op}` necesita enteros, recibio `{ti}` y `{td}`")
             return None
         if ti != td:
@@ -2137,6 +2184,32 @@ class Comprobador:
                     self.error(e, f"`{nombre}` compara dos valores del mismo "
                                   f"tipo, y recibio `{ta}` y `{tb}`")
             return "bool"
+
+        if nombre in ("raiz", "piso", "techo", "redondear", "absoluto"):
+            if len(e.args) != 1:
+                self.error(e, f"`{nombre}` espera 1 argumento y recibio "
+                              f"{len(e.args)}")
+                for a in e.args:
+                    self.expresion(a)
+                return None
+            t = sin_prestamo(self.expresion(e.args[0]) or "")
+            if t == LITERAL_DECIMAL:
+                return "f64"
+            if nombre == "absoluto":
+                if t == LITERAL:
+                    return "i64"
+                if t not in DECIMALES and t not in CON_SIGNO:
+                    self.error(e, f"`absoluto` necesita un numero con signo, "
+                                  f"recibio `{t}`")
+                    return None
+                return t
+            if t == LITERAL:
+                return "f64"
+            if t not in DECIMALES:
+                self.error(e, f"`{nombre}` trabaja sobre decimales, recibio "
+                              f"`{t}`")
+                return None
+            return t
 
         if nombre == "copiar":
             if len(e.args) != 1:
@@ -2356,6 +2429,13 @@ INTERNAS = {
     "texto":    {"params": ["@escalar"],              "retorno": "str"},
     # Copia profunda. El tipo sale del argumento, en `interna`.
     "copiar":   {"params": ["@copiable"],             "retorno": None},
+    # Decimales. Devuelven lo mismo que reciben; `raiz` de un negativo daria
+    # NaN, y eso detiene el programa como cualquier otro NaN.
+    "raiz":     {"params": ["@decimal"],              "retorno": None},
+    "piso":     {"params": ["@decimal"],              "retorno": None},
+    "techo":    {"params": ["@decimal"],              "retorno": None},
+    "redondear": {"params": ["@decimal"],             "retorno": None},
+    "absoluto": {"params": ["@con_signo"],            "retorno": None},
     "byte":     {"params": ["view", "usize"],         "retorno": "usize"},
     "n_argumentos": {"params": [],                    "retorno": "usize"},
     "argumento":    {"params": ["usize"],             "retorno": "view"},

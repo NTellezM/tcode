@@ -156,7 +156,7 @@ def probar_programa(semilla, tmp):
         ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
          "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
          f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
-         "-o", binario],
+         "-o", binario, "-lm"],
         capture_output=True, text=True)
     if r.returncode != 0:
         falla("P1 C limpio", semilla, r.stderr, fuente)
@@ -314,7 +314,7 @@ def probar_modulos(semilla):
             ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
              "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
              f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
-             "-o", binario],
+             "-o", binario, "-lm"],
             capture_output=True, text=True)
         if r.returncode != 0:
             falla("P9 modulos", semilla, r.stderr, fuente)

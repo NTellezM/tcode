@@ -2,7 +2,7 @@
 
 from tcode.lexer import tokenizar, Token
 from tcode.nodos import (
-    Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
+    Entero, Decimal, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
@@ -10,15 +10,18 @@ from tcode.nodos import (
 )
 
 ENTEROS = {"u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64"}
-TIPOS = {"str", "view", "bool"} | ENTEROS
+DECIMALES = {"f32", "f64"}
+TIPOS = {"str", "view", "bool"} | ENTEROS | DECIMALES
 
 # Conjuntos de tipos con nombre. Una restriccion no es una interfaz que haya
 # que implementar: es la lista de tipos que valen, y por eso no hace falta
 # escribir nada en ningun sitio para que un tipo la cumpla.
 RESTRICCIONES = {
-    "numero":    set(ENTEROS),
-    "igualable": ENTEROS | {"bool", "str", "view"},
-    "ordenable": ENTEROS | {"str", "view"},
+    "numero":    ENTEROS | DECIMALES,
+    "entero":    set(ENTEROS),
+    "decimal":   set(DECIMALES),
+    "igualable": ENTEROS | DECIMALES | {"bool", "str", "view"},
+    "ordenable": ENTEROS | DECIMALES | {"str", "view"},
     "texto":     {"str", "view"},
 }
 
@@ -441,7 +444,7 @@ class Parser:
         return self._binaria_izq(self.producto, {"+", "-", "+?", "-?"})
 
     def producto(self):
-        return self._binaria_izq(self.conversion, {"*", "/", "%", "*?"})
+        return self._binaria_izq(self.conversion, {"*", "/", "%", "*?", "/?"})
 
     def conversion(self):
         """`x como u8`, `x como? u8`. Ata mas que cualquier operador binario:
@@ -572,6 +575,10 @@ class Parser:
         if t.tipo == "entero":
             self.i += 1
             return Entero(int(t.valor), linea=t.linea)
+
+        if t.tipo == "decimal":
+            self.i += 1
+            return Decimal(t.valor, linea=t.linea)
 
         if t.tipo == "interpolada":
             self.i += 1
