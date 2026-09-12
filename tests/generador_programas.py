@@ -636,6 +636,18 @@ class Generador:
         lineas.append(f'    anadir(g_ss, nuevo("{self.palabra()}"));')
         # Copia profunda: de una lista de textos, de una anidada y de un
         # escalar. Cada copia es memoria nueva que alguien tiene que soltar.
+        # Memoria cruda: un bloque que crece y encoge, y valores que entran
+        # y salen de el sin dejar huecos.
+        lineas.append("    var b_txt: bloque<str> = reservar(2);")
+        lineas.append(f'    b_txt[0] = nuevo("{self.palabra()}");')
+        lineas.append("    redimensionar(b_txt, 5);")
+        lineas.append(f'    b_txt[4] = nuevo("{self.palabra()}");')
+        lineas.append("    imprimir(largo(b_txt));")
+        lineas.append("    let b_sacado = intercambiar(b_txt[0], vacio());")
+        lineas.append("    imprimir(largo(vista(b_sacado)));")
+        lineas.append("    redimensionar(b_txt, 1);")
+        lineas.append("    imprimir(largo(b_txt));")
+
         # Decimales. Los valores se eligen para que ninguna operacion salga
         # de los numeros: lo que se prueba es que el C sale limpio.
         lineas.append(f"    let d_a: f64 = {self.r.randint(1, 900)}.5;")

@@ -23,6 +23,7 @@ from tcode.nodos import (
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
     es_lista, elem_lista, es_mapa, partes_mapa, ORDENABLES,
+    es_bloque, elem_bloque,
     es_referencia, es_referencia_mutable, apuntado, sin_prestamo,
     es_funcion, partes_funcion,
 )
@@ -427,6 +428,8 @@ def mangle(t):
     if es_mapa(t):
         k, v = partes_mapa(t)
         return f"mapa_{mangle(k)}_{mangle(v)}"
+    if es_bloque(t):
+        return f"bloque_{mangle(elem_bloque(t))}"
     if es_lista(t):
         return f"lista_{mangle(elem_lista(t))}"
     return t.replace("()", "nada")
@@ -445,6 +448,7 @@ class Generador:
         self.conversiones = set()  # (destino, origen) de cada `como`
         self.tipos_funcion = {}   # tipo de funcion -> nombre de su typedef
         self.decimales = set()    # anchos decimales cuya comprobacion hace falta
+        self.bloques = {}         # tipo bloque -> nombre de su struct en C
         self.tmp = 0
         # El generador lleva su propia tabla: los ambitos del comprobador ya
         # se cerraron cuando llegamos aqui.
@@ -490,6 +494,8 @@ class Generador:
             # que el propio compilador de C impide escribir por el.
             interno = self.tipo_c(apuntado(t))
             return f"{interno}*" if es_referencia_mutable(t) else f"const {interno}*"
+        if es_bloque(t):
+            return self.registrar_bloque(t)
         if es_mapa(t):
             return self.registrar_mapa(t)
         if es_lista(t):
@@ -549,7 +555,9 @@ class Generador:
         if tipo == "str" or not self.c.posee(tipo) or tipo in self.copiadores:
             return
         self.copiadores[tipo] = f"ss_copia_{mangle(tipo)}"
-        if es_lista(tipo):
+        if es_bloque(tipo):
+            self.necesita_copiador(elem_bloque(tipo))
+        elif es_lista(tipo):
             self.necesita_copiador(elem_lista(tipo))
         elif es_mapa(tipo):
             self.necesita_copiador(partes_mapa(tipo)[1])
@@ -579,7 +587,20 @@ class Generador:
         tc = self.tipo_c(tipo)
         lineas = ["SS_LANG_QUIZA_SIN_USAR",
                   f"static {tc} {nombre}(const {tc}* p)", "{"]
-        if es_lista(tipo):
+        if es_bloque(tipo):
+            elem = elem_bloque(tipo)
+            te = self.tipo_c(elem)
+            lineas += [
+                f"    {tc} r = {{ NULL, 0 }};",
+                "    if (p->n == 0) return r;",
+                f"    r.e = ({te}*) calloc(p->n, sizeof({te}));",
+                "    if (r.e == NULL) ss_lang_sin_memoria_(__FILE__, __LINE__);",
+                "    r.n = p->n;",
+                "    for (size_t i = 0; i < p->n; i++)",
+                f"        r.e[i] = {self.copia_de('p->e[i]', elem)};",
+                "    return r;",
+            ]
+        elif es_lista(tipo):
             elem = elem_lista(tipo)
             te = self.tipo_c(elem)
             lineas += [
@@ -636,6 +657,12 @@ class Generador:
             return v
         return "view" if v == "str" else f"&{v}"
 
+    def registrar_bloque(self, t):
+        if t not in self.bloques:
+            self.bloques[t] = f"ss_{mangle(t)}"
+            self.tipo_c(elem_bloque(t))
+        return self.bloques[t]
+
     def registrar_mapa(self, t):
         if t not in self.mapas:
             k, v = partes_mapa(t)
@@ -663,6 +690,9 @@ class Generador:
         def mirar(t):
             if t and es_arreglo(t):
                 self.registrar_arreglo(t)
+            elif t and es_bloque(t):
+                self.registrar_bloque(t)
+                mirar(elem_bloque(t))
             elif t and es_mapa(t):
                 self.registrar_mapa(t)
             elif t and es_lista(t):
@@ -836,6 +866,17 @@ class Generador:
 
         # Tipos de lista, de dentro hacia fuera. El elemento puede estar aun
         # incompleto porque aqui solo aparece detras de un puntero.
+        # Bloques: memoria reservada de una pieza, con su tamaño al lado.
+        # Nacen a ceros, y en Tcode un valor a ceros es siempre uno valido y
+        # vacio: un `str` a ceros es el texto vacio, una lista a ceros es la
+        # lista vacia. Por eso no hay ranuras sin inicializar que temer.
+        for t in sorted(self.bloques, key=lambda x: x.count("<")):
+            self.lineas.append(
+                f"typedef struct {{ {self.tipo_c(elem_bloque(t))}* e; "
+                f"size_t n; }} {self.bloques[t]};")
+        if self.bloques:
+            self.lineas.append("")
+
         for t in sorted(self.listas, key=lambda x: x.count("lista<")):
             elem = elem_lista(t)
             self.lineas.append(
@@ -967,6 +1008,54 @@ class Generador:
             ])
 
         # Una funcion de crecimiento por cada T concreto. No hay `void*` en
+        # Bloques: reservar y cambiar de tamaño. Siempre a ceros, y al
+        # encoger se libera lo que se queda fuera antes de soltar la memoria.
+        for t, nombre in self.bloques.items():
+            elem = elem_bloque(t)
+            tc_elem = self.tipo_c(elem)
+            m = mangle(t)
+            self.lineas.extend([
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static {nombre} ss_lang_bloque_nuevo_{m}(size_t n,",
+                "        const char* archivo, int linea)",
+                "{",
+                f"    {nombre} b = {{ NULL, 0 }};",
+                "    if (n == 0) return b;",
+                f"    if (n > SIZE_MAX / sizeof({tc_elem}))",
+                "        ss_lang_sin_memoria_(archivo, linea);",
+                f"    b.e = ({tc_elem}*) calloc(n, sizeof({tc_elem}));",
+                "    if (b.e == NULL) ss_lang_sin_memoria_(archivo, linea);",
+                "    b.n = n;",
+                "    return b;",
+                "}",
+                "",
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static void ss_lang_bloque_cambiar_{m}({nombre}* p, size_t n,",
+                "        const char* archivo, int linea)",
+                "{",
+                "    if (n == p->n) return;",
+                *( ["    if (n < p->n)",
+                    "        for (size_t i = n; i < p->n; i++)",
+                    "        {",
+                    *self.lineas_liberacion("p->e[i]", elem, 3),
+                    "        }"] if self.c.posee(elem) else []),
+                "    if (n == 0)",
+                "    {",
+                "        free(p->e); p->e = NULL; p->n = 0; return;",
+                "    }",
+                f"    if (n > SIZE_MAX / sizeof({tc_elem}))",
+                "        ss_lang_sin_memoria_(archivo, linea);",
+                f"    void* memoria = realloc(p->e, n * sizeof({tc_elem}));",
+                "    if (memoria == NULL) ss_lang_sin_memoria_(archivo, linea);",
+                f"    p->e = ({tc_elem}*) memoria;",
+                "    /* Lo nuevo nace a ceros, que en Tcode es un valor valido. */",
+                "    if (n > p->n)",
+                f"        memset(p->e + p->n, 0, (n - p->n) * sizeof({tc_elem}));",
+                "    p->n = n;",
+                "}",
+                "",
+            ])
+
         # la interfaz generada: el compilador de C tambien comprueba el tipo.
         for t, nombre in self.listas.items():
             elem = elem_lista(t)
@@ -1404,6 +1493,22 @@ class Generador:
             self.emitir(f"ss_mapa_libre_{mangle(tipo)}(&{expr_c});")
             return
 
+        if es_bloque(tipo):
+            elem = elem_bloque(tipo)
+            if self.c.posee(elem):
+                self.bucle += 1
+                i = f"ss_i{self.bucle}"
+                self.emitir(f"for (size_t {i} = 0; {i} < {expr_c}.n; {i}++)")
+                self.emitir("{")
+                self.sangria += 1
+                self.liberacion(f"{expr_c}.e[{i}]", elem)
+                self.sangria -= 1
+                self.emitir("}")
+            self.emitir(f"free({expr_c}.e);")
+            self.emitir(f"{expr_c}.e = NULL;")
+            self.emitir(f"{expr_c}.n = 0;")
+            return
+
         if es_lista(tipo):
             elem = elem_lista(tipo)
             if self.c.posee(elem):
@@ -1828,6 +1933,8 @@ class Generador:
                 return t if t in DECIMALES else "f64"
             if e.nombre == "absoluto" and e.args:
                 return sin_prestamo(self._tipo_de(e.args[0]) or "f64")
+            if e.nombre == "intercambiar" and e.args:
+                return sin_prestamo(self._tipo_de(e.args[0]) or "usize")
             if e.nombre == "copiar" and e.args:
                 # Una copia tiene el tipo de lo copiado, ya sin el prestamo.
                 t = sin_prestamo(self._tipo_de(e.args[0]) or "usize")
@@ -1856,9 +1963,11 @@ class Generador:
                         return c.tipo
             return "usize"
         if isinstance(e, Indice):
-            base = self._tipo_de(e.arreglo)
+            base = sin_prestamo(self._tipo_de(e.arreglo) or "")
             if es_arreglo(base):
                 return elem_de(base)
+            if es_bloque(base):
+                return elem_bloque(base)
             if es_lista(base):
                 return elem_lista(base)
             return "usize"
@@ -2087,7 +2196,7 @@ class Generador:
             return self.binaria(e, esperado)
 
         if isinstance(e, Llamada):
-            return self.llamada(e)
+            return self.llamada(e, esperado)
 
         raise AssertionError(type(e).__name__)
 
@@ -2124,6 +2233,9 @@ class Generador:
             base = self._tipo_de(e.arreglo)
             idx = self.expr(e.indice, "usize")
             sitio = self.como_lugar(e.arreglo)
+            if es_bloque(base):
+                return (f"{sitio}.e[ss_lang_indice_({idx}, {sitio}.n, "
+                        f"{self.arch(e)}, {e.linea})]")
             if es_lista(base):
                 return (f"{sitio}.e[ss_lang_indice_({idx}, {sitio}.length, "
                         f"{self.arch(e)}, {e.linea})]")
@@ -2213,7 +2325,7 @@ class Generador:
         if tipo in ARITMETICA:
             self.aritmeticas.add(tipo)
 
-    def llamada(self, e: Llamada):
+    def llamada(self, e: Llamada, esperado=None):
         n = e.nombre
 
         if n == "vacio":
@@ -2225,6 +2337,8 @@ class Generador:
         if n == "largo":
             t = self._tipo_de(e.args[0])
             t = apuntado(t) if es_referencia(t) else t
+            if es_bloque(t):
+                return f"({self.como_lugar(e.args[0])}.n)"
             if es_mapa(t):
                 return f"({self.lugar(e.args[0])}.largo)"
             if es_lista(t):
@@ -2294,6 +2408,36 @@ class Generador:
             self.usar_aritmetica(t)
             return (f"ss_lang_abs_{ARITMETICA[t][0]}({valor}, "
                     f"{self.arch(e)}, {e.linea})")
+
+        if n == "reservar":
+            t = esperado if esperado and es_bloque(esperado) else None
+            if t is None:
+                t = self._tipo_de(e) or "bloque<usize>"
+            nombre = self.registrar_bloque(t)
+            te = self.tipo_c(elem_bloque(t))
+            return (f"ss_lang_bloque_nuevo_{mangle(t)}("
+                    f"{self.expr(e.args[0], 'usize')}, {self.arch(e)}, {e.linea})")
+
+        if n == "redimensionar":
+            t = self._tipo_de(e.args[0]) or "bloque<usize>"
+            t = apuntado(t) if es_referencia(t) else t
+            self.registrar_bloque(t)
+            return (f"ss_lang_bloque_cambiar_{mangle(t)}({self.dir_de(e.args[0])}, "
+                    f"{self.expr(e.args[1], 'usize')}, {self.arch(e)}, {e.linea})")
+
+        if n == "intercambiar":
+            destino_nodo, valor_nodo = e.args
+            t = self._tipo_de(destino_nodo) or "usize"
+            sitio = self.lugar(destino_nodo)
+            nuevo = self.expr(valor_nodo, t)
+            self.reclamar(nuevo)
+            tmp = self.nuevo_tmp()
+            # Se saca primero y se pone despues: si el valor nuevo viniera
+            # del mismo sitio, hacerlo al reves lo perderia.
+            self.emitir(f"{self.tipo_c(t)} {tmp} = {sitio};")
+            self.declarar(tmp, t)
+            self.emitir(f"{sitio} = {nuevo};")
+            return tmp
 
         if n == "copiar":
             a = e.args[0]

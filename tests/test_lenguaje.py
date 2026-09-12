@@ -586,6 +586,61 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("una lista dinamica escrita entera en Tcode, sobre `bloque<T>`",
+     '''usar "std/vector";
+        fn main() -> usize ! {
+            var v: Vector<str> = Vector { datos: reservar(0), largo: 0 };
+            agregar(v, nuevo("uno"));
+            agregar(v, nuevo("dos"));
+            agregar(v, nuevo("tres"));
+            imprimir($"{cuantos(v)} de {capacidad(v)}: {try copia_de(v, 1)}");
+            let ultimo = try sacar(v, vacio());
+            ajustar(v);
+            imprimir($" | {ultimo} | {cuantos(v)} de {capacidad(v)}");
+
+            var n: Vector<usize> = Vector { datos: reservar(0), largo: 0 };
+            var i = 0;
+            while i < 100 { agregar(n, i * i); i = i + 1; }
+            imprimir($" | {cuantos(n)} {try copia_de(n, 99)}\\n");
+            return 0;
+        }''',
+     "3 de 8: dos | tres | 2 de 2 | 100 9801\n"),
+
+    ("un bloque nace a ceros, y a ceros todo tipo es valido",
+     '''fn main() -> usize {
+            var b: bloque<str> = reservar(3);
+            imprimir($"{largo(b)} [{b[0]}]");
+            b[0] = nuevo("hola");
+            b[2] = nuevo("mundo");
+            redimensionar(b, 5);
+            imprimir($" | {largo(b)} {b[0]} {b[2]} [{b[4]}]");
+            redimensionar(b, 1);
+            imprimir($" | {largo(b)} {b[0]}\\n");
+        }''',
+     "3 [] | 5 hola mundo [] | 1 hola\n"),
+
+    ("`intercambiar` saca de un sitio sin dejar hueco",
+     '''fn invertir_texto(xs: mut lista<str>) {
+            if largo(xs) == 0 { return; }
+            var i = 0;
+            var j = largo(xs) - 1;
+            while i < j {
+                let a = intercambiar(xs[i], vacio());
+                let b = intercambiar(xs[j], a);
+                intercambiar(xs[i], b);
+                i = i + 1;
+                j = j - 1;
+            }
+        }
+        fn main() -> usize {
+            var xs: lista<str> = [];
+            anadir(xs, nuevo("a")); anadir(xs, nuevo("b")); anadir(xs, nuevo("c"));
+            invertir_texto(xs);
+            for x en xs { imprimir($"{x} "); }
+            imprimir("\\n");
+        }''',
+     "c b a \n"),
+
     ("una clausura captura por valor, incluso lo que tiene duenio",
      '''usar "std/lista";
         usar "std/texto";

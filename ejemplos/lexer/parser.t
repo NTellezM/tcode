@@ -141,6 +141,19 @@ fn tipo(e: mut Estado) -> str ! {
         empujar(t, dentro);
         return t;
     }
+    // `bloque<T>`: no es palabra reservada, se reconoce por el `<`.
+    if es(e, "ident", "bloque") {
+        if igual(valor_en(e, 1), "<") {
+        avanzar(e);
+        try espera(e, "simbolo", "<");
+        let dentro = try tipo(e);
+        try espera(e, "simbolo", ">");
+        var t = nuevo("bloque<");
+        empujar(t, dentro);
+        empujar(t, ">");
+        return t;
+        }
+    }
     if es(e, "palabra", "lista") {
         avanzar(e);
         try espera(e, "simbolo", "<");
