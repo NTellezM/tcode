@@ -90,6 +90,12 @@ fn apuntado(t: view) -> view {
     return rebanar(t, 1, largo(t));
 }
 
+// Quita el prestamo si lo hay: `&Cosa` -> `Cosa`, `usize` -> `usize`.
+fn apuntado_si(t: view) -> str {
+    if es_referencia(t) { return nuevo(apuntado(t)); }
+    return nuevo(t);
+}
+
 fn elemento(t: view) -> str {
     if es_arreglo(t) {
         // `[usize; 4]`: lo que va antes del `;`
