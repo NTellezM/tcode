@@ -96,6 +96,19 @@ def tokenizar(fuente: str, archivo: str = "<entrada>",
                     raise ErrorLexico(
                         f"{archivo}:{l0}: cadena interpolada sin cerrar; "
                         f"falta la comilla, o falta `}}` en algun hueco")
+                # `{{` y `}}` son una llave escrita, no un hueco: no cuentan
+                # para la hondura ni cierran nada.
+                # `{{` y `}}` son una llave escrita, pero solo FUERA de un
+                # hueco: dentro, `}}` puede ser el cierre de un bloque y el
+                # del hueco, como en `$"{if c { a } else { b }}"`.
+                if prof == 0 and (fuente.startswith("{{", i)
+                                  or fuente.startswith("}}", i)):
+                    # Se pasan tal cual: quien las convierte en una llave
+                    # suelta es el parser, al partir los huecos.
+                    partes.append(fuente[i])
+                    partes.append(fuente[i + 1])
+                    i += 2
+                    continue
                 if fuente[i] == "{":
                     prof += 1
                 elif fuente[i] == "}" and prof:

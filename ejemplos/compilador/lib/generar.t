@@ -622,3 +622,335 @@ fn es_interna(nombre: view) -> bool {
     if igual(nombre, "ordenar") || igual(nombre, "reservar") { return true; }
     return false;
 }
+
+// ------------------------------------------------------------------
+// Sentencias, y la liberacion automatica
+// ------------------------------------------------------------------
+//
+// Aqui esta lo que hace que Tcode sea Tcode: nadie escribe un `ss_free`, y
+// al cerrar un bloque se devuelve lo que nacio dentro, en orden inverso al
+// que se declaro. En una funcion, lo que se devuelve no se libera.
+//
+// Se cubre el subconjunto sin banderas: funciones donde ningun valor se
+// mueve a otro sitio. Una bandera hace falta cuando un valor se entrega solo
+// por algunos caminos, y eso es la parte dificil, no esta.
+
+struct Cuerpo {
+    lineas: lista<str>,
+    // Lo declarado en cada bloque abierto: `nombre: tipo`, del mas de fuera
+    // al mas de dentro.
+    bloques: lista<lista<str>>,
+    sangria: usize,
+    temporal: usize,
+    // La ultima posicion marcada con `#line`, para no repetirla.
+    ultima_linea: usize,
+}
+
+fn cuerpo() -> Cuerpo {
+    return Cuerpo { lineas: [], bloques: [], sangria: 1, temporal: 0,
+        ultima_linea: 0 };
+}
+
+fn sangrar(b: &Cuerpo) -> str {
+    var s = vacio();
+    var i = 0;
+    while i < b.sangria {
+        empujar(s, "    ");
+        i = i + 1;
+    }
+    return s;
+}
+
+fn emitir(b: mut Cuerpo, texto_linea: view) {
+    var l = sangrar(b);
+    empujar(l, texto_linea);
+    anadir(b.lineas, l);
+}
+
+fn emitir_crudo(b: mut Cuerpo, texto_linea: view) {
+    anadir(b.lineas, nuevo(texto_linea));
+}
+
+// `#line`: le dice al compilador de C de que linea de Tcode viene lo que
+// sigue. Va pegada al margen, que una directiva sangrada no es directiva.
+fn marcar(b: mut Cuerpo, s: &Sitio, linea: usize) {
+    if linea == 0 || linea == b.ultima_linea { return; }
+    b.ultima_linea = linea;
+    var l = nuevo("#line ");
+    empujar(l, texto(linea));
+    empujar(l, " \"");
+    empujar(l, vista(s.archivo));
+    empujar(l, "\"");
+    emitir_crudo(b, vista(l));
+}
+
+fn nuevo_temporal(b: mut Cuerpo) -> str {
+    b.temporal = b.temporal + 1;
+    var s = nuevo("ss_tmp");
+    empujar(s, texto(b.temporal));
+    return s;
+}
+
+fn abrir_bloque(b: mut Cuerpo) {
+    let vacio_bloque: lista<str> = [];
+    anadir(b.bloques, vacio_bloque);
+}
+
+fn anotar_duenio(b: mut Cuerpo, nombre: view, tipo: view) {
+    if largo(b.bloques) == 0 { abrir_bloque(b); }
+    var junto = nuevo(nombre);
+    empujar(junto, ": ");
+    empujar(junto, tipo);
+    let ultimo = largo(b.bloques) - 1;
+    anadir(b.bloques[ultimo], junto);
+}
+
+// Suelta lo del bloque de dentro, en orden inverso, y lo quita de la pila.
+fn cerrar_bloque(b: mut Cuerpo) {
+    if largo(b.bloques) == 0 { return; }
+    let ultimo = largo(b.bloques) - 1;
+    liberar_uno(b, ultimo, "");
+    quitar_ultimo_bloque(b);
+}
+
+fn quitar_ultimo_bloque(b: mut Cuerpo) {
+    var quedan: lista<lista<str>> = [];
+    var i = 0;
+    while i + 1 < largo(b.bloques) {
+        var copia: lista<str> = [];
+        for x en b.bloques[i] { anadir(copia, copiar(x)); }
+        anadir(quedan, copia);
+        i = i + 1;
+    }
+    b.bloques = quedan;
+}
+
+// Todo lo vivo, de dentro hacia fuera: es lo que hace falta antes de un
+// `return`, donde no se cierra un bloque sino todos.
+fn liberar_todo(b: mut Cuerpo, excepto: view) {
+    var i = largo(b.bloques);
+    while i > 0 {
+        i = i - 1;
+        liberar_uno(b, i, excepto);
+    }
+}
+
+fn liberar_uno(b: mut Cuerpo, cual: usize, excepto: view) {
+    var j = largo(b.bloques[cual]);
+    while j > 0 {
+        j = j - 1;
+        let entrada = copiar(b.bloques[cual][j]);
+        let nombre = antes_de_dos_puntos(vista(entrada));
+        if igual(vista(nombre), excepto) { continue; }
+        let tipo = despues_de_dos_puntos(vista(entrada));
+        liberacion(b, vista(nombre), vista(tipo));
+    }
+}
+
+fn liberacion(b: mut Cuerpo, nombre: view, tipo: view) {
+    if igual(tipo, "str") {
+        var l = nuevo("ss_free(&");
+        empujar(l, nombre);
+        empujar(l, ");");
+        emitir(b, vista(l));
+    }
+}
+
+fn antes_de_dos_puntos(t: view) -> str {
+    var i = 0;
+    while i < largo(t) {
+        if byte(t, i) == 58 { return nuevo(rebanar(t, 0, i)); }
+        i = i + 1;
+    }
+    return nuevo(t);
+}
+
+fn despues_de_dos_puntos(t: view) -> str {
+    var i = 0;
+    while i + 1 < largo(t) {
+        if byte(t, i) == 58 {
+            return nuevo(rebanar(t, i + 2, largo(t)));
+        }
+        i = i + 1;
+    }
+    return vacio();
+}
+
+// Una sentencia. Devuelve false si esta capa no la sabe hacer: entonces la
+// funcion entera se descarta, porque media funcion generada no vale nada.
+fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: mut I.Contexto, retorno: view) -> bool {
+    let clase = vista(n.clase);
+    marcar(b, s, n.linea);
+
+    if igual(clase, "declaracion") {
+        if largo(n.hijos) != 1 { return false; }
+        let nombre = nombre_declarado(vista(n.texto));
+        var tipo = tipo_escrito(vista(n.texto));
+        if largo(tipo) == 0 { tipo = I.tipo_de(tipos, n.hijos[0]); }
+        if largo(tipo) == 0 { return false; }
+        let valor = expresion_c(s, n.hijos[0], vista(tipo), tipos);
+        if es_desconocido(vista(valor)) { return false; }
+
+        var l = nuevo("SS_LANG_QUIZA_SIN_USAR ");
+        empujar(l, tipo_c(vista(tipo)));
+        empujar(l, " ");
+        empujar(l, vista(nombre));
+        empujar(l, " = ");
+        empujar(l, vista(valor));
+        empujar(l, ";");
+        emitir(b, vista(l));
+
+        I.declarar(tipos, vista(nombre), vista(tipo));
+        if igual(vista(tipo), "str") {
+            anotar_duenio(b, vista(nombre), vista(tipo));
+        }
+        return true;
+    }
+
+    if igual(clase, "retorno") {
+        if largo(n.hijos) == 0 {
+            liberar_todo(b, "");
+            emitir(b, "return;");
+            return true;
+        }
+        // Devolver una variable entera no necesita temporal: no hay nada
+        // que calcular, y liberar lo demas no la toca.
+        if igual(vista(n.hijos[0].clase), "variable") {
+            let quien = vista(n.hijos[0].texto);
+            liberar_todo(b, quien);
+            var r = nuevo("return ");
+            empujar(r, expresion_c(s, n.hijos[0], retorno, tipos));
+            empujar(r, ";");
+            emitir(b, vista(r));
+            return true;
+        }
+
+        let valor = expresion_c(s, n.hijos[0], retorno, tipos);
+        if es_desconocido(vista(valor)) { return false; }
+        // El valor se guarda antes de soltar nada: puede leer justo lo que
+        // se va a liberar.
+        let tmp = nuevo_temporal(b);
+        var l = nuevo(tipo_c(retorno));
+        empujar(l, " ");
+        empujar(l, vista(tmp));
+        empujar(l, " = ");
+        empujar(l, vista(valor));
+        empujar(l, ";");
+        emitir(b, vista(l));
+        // Lo que se entrega no se libera.
+        var entregada = vacio();
+        if igual(vista(n.hijos[0].clase), "variable") {
+            entregada = nuevo(vista(n.hijos[0].texto));
+        }
+        liberar_todo(b, vista(entregada));
+        var r = nuevo("return ");
+        empujar(r, vista(tmp));
+        empujar(r, ";");
+        emitir(b, vista(r));
+        return true;
+    }
+
+    if igual(clase, "si") {
+        if largo(n.hijos) < 2 { return false; }
+        let cond = expresion_c(s, n.hijos[0], "bool", tipos);
+        if es_desconocido(vista(cond)) { return false; }
+        var l = nuevo("if (");
+        empujar(l, vista(cond));
+        empujar(l, ")");
+        emitir(b, vista(l));
+        if !bloque_c(b, s, n.hijos[1], tipos, retorno) { return false; }
+        if largo(n.hijos) > 2 {
+            emitir(b, "else");
+            if !bloque_c(b, s, n.hijos[2], tipos, retorno) { return false; }
+        }
+        return true;
+    }
+
+    if igual(clase, "mientras") {
+        if largo(n.hijos) != 2 { return false; }
+        let cond = expresion_c(s, n.hijos[0], "bool", tipos);
+        if es_desconocido(vista(cond)) { return false; }
+        var l = nuevo("while (");
+        empujar(l, vista(cond));
+        empujar(l, ")");
+        emitir(b, vista(l));
+        return bloque_c(b, s, n.hijos[1], tipos, retorno);
+    }
+
+    if igual(clase, "asignacion") {
+        if largo(n.hijos) != 2 { return false; }
+        if !igual(vista(n.hijos[0].clase), "variable") { return false; }
+        let nombre = vista(n.hijos[0].texto);
+        let tipo = I.buscar(tipos, nombre);
+        // Asignar a algo con duenio pide soltar lo viejo: otra capa.
+        if igual(vista(tipo), "str") { return false; }
+        let valor = expresion_c(s, n.hijos[1], vista(tipo), tipos);
+        if es_desconocido(vista(valor)) { return false; }
+        var l = nuevo(nombre);
+        empujar(l, " = ");
+        empujar(l, vista(valor));
+        empujar(l, ";");
+        emitir(b, vista(l));
+        return true;
+    }
+
+    if igual(clase, "romper") { emitir(b, "break;"); return true; }
+    if igual(clase, "continuar") { emitir(b, "continue;"); return true; }
+
+    return false;
+}
+
+fn bloque_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: mut I.Contexto,
+    retorno: view) -> bool {
+    emitir(b, "{");
+    b.sangria = b.sangria + 1;
+    abrir_bloque(b);
+    I.abrir(tipos);
+    var bien = true;
+    for h en n.hijos {
+        if bien { bien = sentencia_c(b, s, h, tipos, retorno); }
+    }
+    if bien && !termina_saliendo(n) { cerrar_bloque(b); }
+    else { quitar_ultimo_bloque(b); }
+    I.cerrar(tipos);
+    b.sangria = b.sangria - 1;
+    emitir(b, "}");
+    return bien;
+}
+
+// Un bloque que acaba en `return` no cierra nada: ya se solto todo alli.
+fn termina_saliendo(n: &P.Nodo) -> bool {
+    if largo(n.hijos) == 0 { return false; }
+    let ultimo = largo(n.hijos) - 1;
+    let c = vista(n.hijos[ultimo].clase);
+    return igual(c, "retorno") || igual(c, "romper") || igual(c, "continuar");
+}
+
+fn nombre_declarado(texto: view) -> str {
+    var desde = 0;
+    var i = 0;
+    while i < largo(texto) {
+        if byte(texto, i) == 32 { desde = i + 1; break; }
+        i = i + 1;
+    }
+    var j = desde;
+    while j < largo(texto) {
+        if byte(texto, j) == 58 { return nuevo(rebanar(texto, desde, j)); }
+        j = j + 1;
+    }
+    return nuevo(rebanar(texto, desde, largo(texto)));
+}
+
+fn tipo_escrito(texto: view) -> str {
+    var i = 0;
+    while i + 1 < largo(texto) {
+        if byte(texto, i) == 58 {
+            if byte(texto, i + 1) == 32 {
+                return nuevo(recortar(rebanar(texto, i + 2, largo(texto))));
+            }
+        }
+        i = i + 1;
+    }
+    return vacio();
+}

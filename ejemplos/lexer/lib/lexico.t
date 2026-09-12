@@ -102,6 +102,15 @@ fn fin_de_cadena(fuente: view, desde: usize, interpolada: bool) -> usize ! {
             continue;
         }
         if interpolada {
+            // `{{` y `}}` son una llave escrita, pero solo fuera de un
+            // hueco: dentro, `}}` puede cerrar un bloque y el hueco.
+            if hondura == 0 && i + 1 < largo(fuente) {
+                let sig = byte(fuente, i + 1);
+                if (b == 123 && sig == 123) || (b == 125 && sig == 125) {
+                    i = i + 2;
+                    continue;
+                }
+            }
             if b == 123 { hondura = hondura + 1; }
             if b == 125 && hondura > 0 { hondura = hondura - 1; }
         }

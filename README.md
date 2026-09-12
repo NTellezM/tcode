@@ -195,13 +195,16 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
   expresión que se devuelve: **206 de 401 expresiones, carácter por
   carácter**, las mismas que emite el generador de Python. Lo que aún no
   cubre sale marcado y no se compara; la suite exige un mínimo en vez de
-  hacer como que están todas.
+  hacer como que están todas. Y **la función entera** —firma, cuerpo, y los
+  `ss_free` puestos solos donde tocan—: **32 funciones idénticas**, línea por
+  línea, normalizando sólo los números de temporal.
 
 Las dos se comparan contra el comprobador de Python en cada ejecución de la
 suite, sobre el código real del repositorio.
 
-Falta el cuerpo del generador —las sentencias, las expresiones y la
-inserción de `ss_free`— para que Tcode se compile a sí mismo.
+Falta lo que lleva banderas de propiedad —un valor que se entrega sólo por
+algunos caminos—, los fallos (`try`, `sino`) y las colecciones, para que
+Tcode se compile a sí mismo.
 Pero el análisis ya no es una promesa: son 884 líneas de Tcode que hacen el
 trabajo del frontend y coinciden con el original, comprobado en cada
 ejecución de la suite.
@@ -466,7 +469,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-533 casos, 0 fallas
+576 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

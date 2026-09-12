@@ -2337,6 +2337,7 @@ _PROPIEDAD_PENDIENTES = {
     "ejemplos/compilador/tipos.t",
     "ejemplos/compilador/firmas.t",
     "ejemplos/compilador/expresiones.t",
+    "ejemplos/compilador/cuerpos.t",
 }
 
 def _propiedad_esperada(ruta):
@@ -2633,6 +2634,105 @@ try:
                       f"al menos {_MINIMO_CUBIERTAS}")
             print(f"    {cubiertas} de {vistas} expresiones, mismo C que el "
                   f"generador de Python")
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+print("=== CUERPOS: la funcion entera en C, escrita por Tcode ===")
+# Tercera pieza del generador en su propio lenguaje, y la que de verdad
+# cuenta: la firma, el cuerpo, y los `ss_free` puestos solos donde tocan.
+# Se compara con lo que emite el generador de Python, linea por linea.
+#
+# Lo unico que se normaliza son los numeros de temporal: el original los
+# cuenta por archivo y esta capa por funcion, asi que se renumeran en los dos
+# por orden de aparicion. Todo lo demas tiene que salir identico.
+#
+# Una funcion que esta capa no sabe hacer entera no se emite a medias: se
+# descarta. Se cuentan las que salen, y se exige un minimo.
+import re as _re_cuerpos
+
+def _normaliza_tmp(texto):
+    visto, n = {}, [0]
+    def cambia(m):
+        k = m.group(0)
+        if k not in visto:
+            n[0] += 1
+            visto[k] = f"ss_tmp{n[0]}"
+        return visto[k]
+    return _re_cuerpos.sub(r"ss_tmp\d+", cambia, texto)
+
+_MINIMO_CUERPOS = 30
+
+tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
+try:
+    total += 1
+    codigo, errores = compilar_archivo(
+        os.path.join(RAIZ, "ejemplos", "compilador", "cuerpos.t"))
+    if errores:
+        falla("cuerpos en Tcode", "\n".join(errores))
+    else:
+        ruta_c = os.path.join(tmp, "cuerpos.c")
+        binario = os.path.join(tmp, "cuerpos")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            falla("cuerpos en Tcode compila", r.stderr[:600])
+        else:
+            from tcode.parser import parsear as _p_cuerpos
+            archivos = sorted(
+                glob.glob(os.path.join(RAIZ, "std", "*.t"))
+                + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
+                            recursive=True))
+            iguales = 0
+            for archivo in archivos:
+                try:
+                    arbol = _p_cuerpos(open(archivo, encoding="utf-8").read(),
+                                       archivo, set())
+                except Exception:
+                    continue
+                codigo_f, errores_f, comp = compilar_archivo(
+                    archivo, devolver_comp=True)
+                if errores_f:
+                    continue
+                total += 1
+                e = subprocess.run([binario, archivo], capture_output=True,
+                                   text=True, timeout=180)
+                if "Sanitizer" in e.stderr:
+                    falla("cuerpos en Tcode",
+                          f"{os.path.basename(archivo)}: sanitizer\n"
+                          f"{e.stderr[:400]}")
+                    continue
+                for bloque in e.stdout.split("@@ ")[1:]:
+                    nombre, _, cuerpo = bloque.partition("\n")
+                    nombre = nombre.strip()
+                    d = next((x for x in arbol
+                              if isinstance(x, _Fn_t) and x.nombre == nombre
+                              and not x.tipo_params), None)
+                    if d is None:
+                        continue
+                    g = _Gen(comp, archivo)
+                    g.funcion(d)
+                    esperado = _normaliza_tmp("\n".join(g.lineas)).strip()
+                    dado = _normaliza_tmp(cuerpo).strip()
+                    if dado == esperado:
+                        iguales += 1
+                    else:
+                        falla("cuerpos en Tcode",
+                              f"{os.path.relpath(archivo, RAIZ)} :: {nombre}\n"
+                              f"--- Tcode ---\n{dado}\n--- Python ---\n"
+                              f"{esperado}")
+            if iguales < _MINIMO_CUERPOS:
+                total += 1
+                falla("cuerpos en Tcode",
+                      f"solo {iguales} funciones enteras, se esperaban al "
+                      f"menos {_MINIMO_CUERPOS}")
+            print(f"    {iguales} funciones enteras, mismo C que el generador "
+                  f"de Python")
 finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
