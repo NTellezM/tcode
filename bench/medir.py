@@ -31,16 +31,28 @@ REPS = 5
 
 
 def sin_comprobaciones(codigo):
-    """El mismo C, con las comprobaciones convertidas en la operacion cruda."""
-    for op, simbolo in (("SUMA", "+"), ("RESTA", "-"), ("MUL", "*")):
-        for t, c in (("U", "size_t"), ("I", "int64_t")):
-            codigo, n = re.subn(
-                rf"#define SS_LANG_{op}_{t}\(a, b, ar, ln\)\s+ss_lang_\w+\(.*\)",
-                f"#define SS_LANG_{op}_{t}(a, b, ar, ln) "
-                f"(({c})((a) {simbolo} (b)))",
-                codigo)
-            assert n == 1, f"no pude anular SS_LANG_{op}_{t}"
-    codigo, n = re.subn(r"    if \(SS_LANG_RARO\(i >= n\)\)\n    \{(?:.*\n)*?    \}\n", "", codigo)
+    """El mismo C con las comprobaciones quitadas, para medir lo que cuestan.
+
+    Las funciones de aritmetica las genera un macro por cada ancho que el
+    programa usa, asi que no estan escritas en el C: lo que se cambia es
+    quien decide si hubo desborde, que pasa a decir siempre que no. Todo lo
+    demas —los tipos, las llamadas, el codigo del programa— queda igual, que
+    es lo que hace que la comparacion signifique algo.
+    """
+    anular = "\n".join(
+        f"#undef SS_LANG_DESB_{op}_U\n"
+        f"#define SS_LANG_DESB_{op}_U(a, b, r, tmax) (*(r) = (a) {simbolo} (b), 0)\n"
+        f"#undef SS_LANG_DESB_{op}_I\n"
+        f"#define SS_LANG_DESB_{op}_I(a, b, r, tmax, tmin) "
+        f"(*(r) = (a) {simbolo} (b), 0)"
+        for op, simbolo in (("SUMA", "+"), ("RESTA", "-"), ("MUL", "*")))
+
+    ancla = "#define SS_LANG_ARIT_U("
+    assert ancla in codigo, "no encuentro donde anular la aritmetica comprobada"
+    codigo = codigo.replace(ancla, anular + "\n\n" + ancla, 1)
+
+    codigo, n = re.subn(
+        r"    if \(SS_LANG_RARO\(i >= n\)\)\n    \{(?:.*\n)*?    \}\n", "", codigo)
     assert n == 1, "no pude anular la comprobacion de indice"
     return codigo
 
