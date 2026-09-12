@@ -40,3 +40,9 @@ ejemplos/modulos/*.c
 
 # binario de ejemplos/binario.t
 ejemplos/binario
+
+# binarios de los ejemplos nuevos
+ejemplos/pruebas
+ejemplos/compilador/tipos
+ejemplos/compilador/*.c
+ejemplos/lexer/sintaxis

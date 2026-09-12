@@ -84,6 +84,61 @@ def renombrar_en_arbol(nodo, mapa):
             renombrar_en_arbol(valor, mapa)
 
 
+# Palabras que en C significan algo. En Tcode no, asi que `union` o `enum`
+# son nombres legales — pero el C generado no compilaria. Se renombran todas
+# de una vez: como el cambio es el mismo en todas partes, el programa
+# significa exactamente lo mismo, y el mensaje de error sigue diciendo el
+# nombre que se escribio.
+PALABRAS_C = {
+    "auto", "break", "case", "char", "const", "continue", "default", "do",
+    "double", "else", "enum", "extern", "float", "for", "goto", "if",
+    "inline", "int", "long", "register", "restrict", "return", "short",
+    "signed", "sizeof", "static", "struct", "switch", "typedef", "union",
+    "unsigned", "void", "volatile", "while",
+    # `bool`, `true` y `false` NO: son de Tcode tambien, y significan lo
+    # mismo en los dos lados.
+    "complex", "imaginary", "noreturn", "alignas", "alignof", "thread_local",
+    "static_assert", "generic",
+    # de la biblioteca de C, que tambien esta incluida
+    "malloc", "free", "calloc", "realloc", "memcpy", "memset", "strlen",
+    "printf", "fprintf", "sprintf", "snprintf", "abort", "exit", "stdin",
+    "stdout", "stderr", "main", "NULL", "size_t", "errno",
+}
+
+
+def renombrar_identificadores(nodo, mapa):
+    """Cambia un identificador en todas partes: declaraciones, usos, campos y
+    tipos. Al ser el mismo cambio en todos lados, nada mas se entera."""
+    from dataclasses import fields, is_dataclass
+    if isinstance(nodo, (list, tuple)):
+        for x in nodo:
+            renombrar_identificadores(x, mapa)
+        return
+    if not is_dataclass(nodo):
+        return
+    for campo in fields(nodo):
+        valor = getattr(nodo, campo.name)
+        if isinstance(valor, str):
+            if campo.name in ("nombre", "variable", "clave"):
+                setattr(nodo, campo.name, mapa.get(valor, valor))
+            elif campo.name in ("tipo", "retorno"):
+                setattr(nodo, campo.name, renombrar_tipo(valor, mapa))
+        elif campo.name == "campos" and isinstance(valor, list):
+            nuevos = []
+            for c in valor:
+                if isinstance(c, tuple) and len(c) == 2:
+                    nuevos.append((mapa.get(c[0], c[0]), c[1]))
+                    renombrar_identificadores(c[1], mapa)
+                else:
+                    renombrar_identificadores(c, mapa)
+                    nuevos.append(c)
+            setattr(nodo, campo.name, nuevos)
+        elif campo.name == "capturas" and isinstance(valor, list):
+            setattr(nodo, campo.name, [mapa.get(x, x) for x in valor])
+        else:
+            renombrar_identificadores(valor, mapa)
+
+
 def prefijo_de(ruta):
     """Un nombre corto y legible para el modulo: `std/texto.t` -> `texto`."""
     base = os.path.splitext(os.path.basename(ruta))[0]
@@ -237,4 +292,11 @@ def cargar(ruta_principal, nombres_bonitos=None):
     decls = []
     for real in orden:
         decls.extend(modulos[real]["decls"])
+
+    # `main` se deja en paz: es el nombre que espera el generador.
+    mapa_c = {p: f"ss_id_{p}" for p in PALABRAS_C if p != "main"}
+    renombrar_identificadores(decls, mapa_c)
+    if nombres_bonitos is not None:
+        for original, nuevo in mapa_c.items():
+            nombres_bonitos[nuevo] = original
     return decls

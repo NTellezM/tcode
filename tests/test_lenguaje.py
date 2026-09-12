@@ -2324,6 +2324,7 @@ EJEMPLOS = [
     ("ejemplos/informe/informe.t", []),
     ("ejemplos/modulos/escalas.t", []),
     ("ejemplos/binario.t", []),
+    ("ejemplos/pruebas.t", []),
     ("ejemplos/lexer/lexer.t", ["ejemplos/hola.t"]),
     ("ejemplos/lexer/parser.t", ["ejemplos/hola.t"]),
 ]
