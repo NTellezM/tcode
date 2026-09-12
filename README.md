@@ -177,7 +177,13 @@ $ ./ejemplos/lexer/parser ejemplos/lexer/parser.t --callado
 ejemplos/lexer/parser.t: 2082 nodos, hondura 15
 ```
 
-Falta el comprobador y el generador para que Tcode se compile a sí mismo.
+La tercera capa ya está empezada: `ejemplos/compilador/lib/tipos.t` responde
+en Tcode las dos preguntas de las que cuelga el comprobador —¿este tipo es
+dueño de memoria?, ¿se puede guardar un valor suyo?— y la suite le pregunta
+lo mismo que al comprobador de Python sobre **cada tipo que aparece en el
+repositorio**: 26 archivos, 117 tipos, las mismas respuestas.
+
+Falta el resto del comprobador y el generador para que Tcode se compile a sí mismo.
 Pero el análisis ya no es una promesa: son 884 líneas de Tcode que hacen el
 trabajo del frontend y coinciden con el original, comprobado en cada
 ejecución de la suite.
@@ -411,7 +417,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-279 casos, 0 fallas
+312 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 

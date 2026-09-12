@@ -1289,7 +1289,9 @@ class Comprobador:
             return
 
         if isinstance(s, Para):
-            tipo = self.expresion(s.coleccion)
+            # Recorrer algo prestado es recorrer lo que presta: la coleccion
+            # no se toca, solo se lee.
+            tipo = sin_prestamo(self.expresion(s.coleccion) or "") or None
             elem = tipo_valor = None
 
             if tipo is not None and es_mapa(tipo):
