@@ -766,6 +766,13 @@ cualquier otra.
 | `std/lista` | `suma`, `maximo`, `minimo`, `media`, `invertir` sobre `lista<usize>`; `incluye`, `posicion`, `primeras`, `invertida` sobre `lista<str>` |
 | `std/numero` | `dividir`, `resto`, `porcentaje`, `menor_de`, `mayor_de`, `acotar` |
 | `std/cuenta` | `contar` y `mayores` — lo que en Python es `Counter` y `most_common` |
+| `std/mapa` | `acumular`, `obtener_o`, `claves_ordenadas`, `completar`, `cuantas_claves` |
+| `std/conjunto` | `Conjunto` sobre un mapa: `union`, `interseccion`, `diferencia` |
+| `std/par` | `Par<A, B>`: dos valores juntos, para cuando uno no basta |
+| `std/bytes` | enteros en orden de red, `a_hex`, `de_hex` |
+| `std/vector` | `Vector<T>` sobre `bloque<T>`, escrito entero en Tcode |
+| `std/formato` | `con_decimales`, `con_millares`, tablas alineadas |
+| `std/prueba` | afirmaciones y resumen: probar Tcode desde Tcode |
 
 Dos nombres piden explicación. `palabras` parte por espacios y `terminos`
 por cualquier cosa que no sea letra ni dígito: lo primero es lo que quiere
