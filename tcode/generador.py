@@ -23,6 +23,7 @@ from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
     es_lista, elem_lista, es_mapa, partes_mapa, ORDENABLES,
     es_referencia, es_referencia_mutable, apuntado, sin_prestamo,
+    es_funcion, partes_funcion,
 )
 
 TIPOS_C = {
@@ -336,6 +337,24 @@ def bytes_de(texto):
     return bytes(salida)
 
 
+class _ParamSuelto:
+    """Un parametro sacado de un tipo de funcion, para que la generacion de
+    argumentos no tenga que saber si detras hay una declaracion o una
+    variable."""
+    __slots__ = ("tipo", "prestado")
+
+    def __init__(self, tipo, prestado):
+        self.tipo = tipo
+        self.prestado = prestado
+
+
+class _FirmaSuelta:
+    __slots__ = ("params",)
+
+    def __init__(self, params):
+        self.params = params
+
+
 def hondura_tipo(t):
     """Cuanto anida un tipo: `lista<lista<str>>` mas que `lista<str>`."""
     return t.count("<") + t.count("[")
@@ -343,6 +362,10 @@ def hondura_tipo(t):
 
 def mangle(t):
     """Nombre C valido para un tipo: `[usize; 3]` -> `arr_usize_3`."""
+    if es_funcion(t):
+        params, retorno = partes_funcion(t)
+        piezas = "_".join(mangle(x) for x in params) or "nada"
+        return f"fn_{piezas}_a_{mangle(retorno)}"
     if es_referencia(t):
         marca = "refmut" if es_referencia_mutable(t) else "ref"
         return f"{marca}_{mangle(apuntado(t))}"
@@ -354,7 +377,7 @@ def mangle(t):
         return f"mapa_{mangle(k)}_{mangle(v)}"
     if es_lista(t):
         return f"lista_{mangle(elem_lista(t))}"
-    return t
+    return t.replace("()", "nada")
 
 
 class Generador:
@@ -368,6 +391,7 @@ class Generador:
         self.copiadores = {}    # tipo -> nombre del copiador generado
         self.aritmeticas = set()  # anchos de entero cuya aritmetica hace falta
         self.conversiones = set()  # (destino, origen) de cada `como`
+        self.tipos_funcion = {}   # tipo de funcion -> nombre de su typedef
         self.tmp = 0
         # El generador lleva su propia tabla: los ambitos del comprobador ya
         # se cerraron cuando llegamos aqui.
@@ -404,6 +428,8 @@ class Generador:
         devolver: se degrada a puntero. Envolverlo en un struct le devuelve la
         semantica de valor que el lenguaje promete.
         """
+        if es_funcion(t):
+            return self.registrar_funcion_tipo(t)
         if es_arreglo(t):
             return self.registrar_arreglo(t)
         if es_referencia(t):
@@ -446,6 +472,21 @@ class Generador:
         salida = self.lineas
         self.lineas, self.sangria = guardadas, sangria_previa
         return salida
+
+    def registrar_funcion_tipo(self, t):
+        """Un tipo de funcion necesita su `typedef`: en C el puntero a funcion
+        no se puede escribir dentro de otra declaracion sin volverse ilegible."""
+        if t in self.tipos_funcion:
+            return self.tipos_funcion[t]
+        nombre = f"ss_{mangle(t)}"
+        self.tipos_funcion[t] = nombre
+        params, retorno = partes_funcion(t)
+        for x in params:
+            if es_funcion(x):
+                self.registrar_funcion_tipo(x)
+        if es_funcion(retorno):
+            self.registrar_funcion_tipo(retorno)
+        return nombre
 
     def necesita_copiador(self, tipo):
         """Anota que hace falta un copiador para este tipo, y para lo que
@@ -1146,6 +1187,7 @@ class Generador:
         # Copiadores. Se descubren generando las funciones, asi que el hueco
         # se reserva aqui y se rellena al final: un copiador puede necesitar
         # otro, y los prototipos van todos delante.
+        hueco_funciones = len(self.lineas)
         hueco_aritmetica = len(self.lineas)
         hueco_copiadores = len(self.lineas)
 
@@ -1195,6 +1237,16 @@ class Generador:
         if arit:
             arit.append("")
         self.lineas[hueco_aritmetica:hueco_aritmetica] = arit
+
+        tipos_fn = []
+        for t, nombre in self.tipos_funcion.items():
+            params, retorno = partes_funcion(t)
+            firma = ", ".join(self.tipo_c(x) for x in params) or "void"
+            tipos_fn.append(f"typedef {self.tipo_c(retorno)} "
+                            f"(*{nombre})({firma});")
+        if tipos_fn:
+            tipos_fn.append("")
+        self.lineas[hueco_funciones:hueco_funciones] = tipos_fn
 
         return "\n".join(self.lineas)
 
@@ -1814,6 +1866,9 @@ class Generador:
                                 f"{self.arch(e)}, {e.linea});")
             return tmp
 
+        if isinstance(e, Variable) and getattr(e, "es_funcion", False):
+            return e.nombre
+
         if isinstance(e, Variable):
             if getattr(e, "mueve", False) and e.nombre in self.con_bandera:
                 self.pendientes.append(e.nombre)
@@ -1914,6 +1969,26 @@ class Generador:
 
         raise AssertionError(type(e).__name__)
 
+    def como_lugar(self, e):
+        """Un sitio del que tomar campos o elementos.
+
+        Una llamada no es un sitio: `hacer()[1]` tiene que guardar lo que
+        devuelve antes de indexarlo. Si no, la llamada se evalua una vez por
+        cada vez que aparece en el C (dos: el elemento y el largo) y lo que
+        devuelve no lo libera nadie.
+        """
+        if isinstance(e, (Variable, Campo, Indice)):
+            return self.lugar(e)
+        t = self._tipo_de(e) or "usize"
+        tmp = self.nuevo_tmp()
+        valor = self.expr(e, t)
+        self.reclamar(valor)
+        self.emitir(f"{self.tipo_c(t)} {tmp} = {valor};")
+        self.declarar(tmp, t)
+        if self.c.posee(t):
+            self.temporales.append(tmp)
+        return tmp
+
     def lugar(self, e):
         """C para un sitio al que se puede leer y escribir."""
         if isinstance(e, Variable):
@@ -1921,17 +1996,17 @@ class Generador:
         if isinstance(e, Campo):
             base = self._tipo_de(e.objeto)
             if es_referencia(base):
-                return f"{self.lugar(e.objeto)}->{e.nombre}"
-            return f"{self.lugar(e.objeto)}.{e.nombre}"
+                return f"{self.como_lugar(e.objeto)}->{e.nombre}"
+            return f"{self.como_lugar(e.objeto)}.{e.nombre}"
         if isinstance(e, Indice):
             base = self._tipo_de(e.arreglo)
             idx = self.expr(e.indice, "usize")
+            sitio = self.como_lugar(e.arreglo)
             if es_lista(base):
-                lista = self.lugar(e.arreglo)
-                return (f"{lista}.e[ss_lang_indice_({idx}, {lista}.length, "
+                return (f"{sitio}.e[ss_lang_indice_({idx}, {sitio}.length, "
                         f"{self.arch(e)}, {e.linea})]")
             n = largo_arreglo(base) if es_arreglo(base) else 0
-            return (f"{self.lugar(e.arreglo)}.e"
+            return (f"{sitio}.e"
                     f"[ss_lang_indice_({idx}, {n}, {self.arch(e)}, {e.linea})]")
         return self.expr(e, None)
 
@@ -2143,8 +2218,15 @@ class Generador:
         if n == "leer_archivo":
             return f"ss_lang_leer_archivo_({self.como_vista(e.args[0])})"
 
-        # funcion del usuario
+        # funcion del usuario, o una variable que guarda una
         f = self.c.funciones.get(n)
+        if f is None:
+            tv = self.tipo_var(n) or ""
+            if es_funcion(tv):
+                f = _FirmaSuelta([
+                    _ParamSuelto(apuntado(x) if es_referencia(x) else x,
+                                 es_referencia(x))
+                    for x in partes_funcion(tv)[0]])
         args = []
         for i, a in enumerate(e.args):
             p = f.params[i] if f and i < len(f.params) else None

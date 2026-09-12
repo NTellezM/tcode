@@ -26,6 +26,24 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    ("una funcion falible no se puede pasar como valor en v0",
+     'fn r(n: usize) -> usize ! { if n == 0 { falla "cero"; } return n; }'
+     ' fn f(g: fn(usize) -> usize) -> usize { return g(1); }'
+     ' fn main() -> usize { return f(r); }',
+     "no puede: quitale el `!`"),
+
+    ("una generica no se puede pasar como valor: no se sabe cual",
+     'fn cual<T>(x: T) -> T { return x; }'
+     ' fn f(g: fn(usize) -> usize) -> usize { return g(1); }'
+     ' fn main() -> usize { return f(cual); }',
+     "es generica"),
+
+    ("una funcion como valor comprueba sus argumentos",
+     'fn doble(n: usize) -> usize { return n * 2; }'
+     ' fn main() -> usize { let g = doble; let s = nuevo("a");'
+     ' return g(s); }',
+     "toma `usize` ahi y recibio `str`"),
+
     ("los anchos no se mezclan solos",
      'fn main() -> usize { let a: u8 = 1; let b: u32 = 2; imprimir(a + b); return 0; }',
      "no se mezclan sin conversion explicita"),
@@ -530,6 +548,50 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("indexar lo que devuelve una llamada no la evalua dos veces ni filtra",
+     '''fn hacer() -> lista<usize> {
+            var xs: lista<usize> = [];
+            anadir(xs, 7); anadir(xs, 9);
+            return xs;
+        }
+        struct Caja { dentro: str }
+        fn caja() -> Caja { return Caja { dentro: nuevo("hola") }; }
+        fn main() -> usize {
+            imprimir($"{hacer()[1]} {caja().dentro}\\n");
+        }''',
+     "9 hola\n"),
+
+    ("una funcion es un valor: se pasa, se guarda y se llama",
+     '''usar "std/lista";
+
+        struct Cosa { nombre: str, n: usize }
+
+        fn por_n(a: &Cosa, b: &Cosa) -> bool { return a.n < b.n; }
+        fn al_reves(a: &usize, b: &usize) -> bool { return a > b; }
+        fn doble(n: usize) -> usize { return n * 2; }
+
+        fn aplicar(xs: &lista<usize>, f: fn(usize) -> usize) -> lista<usize> {
+            var salida: lista<usize> = [];
+            for x en xs { anadir(salida, f(x)); }
+            return salida;
+        }
+
+        fn main() -> usize {
+            var cs: lista<Cosa> = [];
+            anadir(cs, Cosa { nombre: nuevo("c"), n: 9 });
+            anadir(cs, Cosa { nombre: nuevo("a"), n: 2 });
+            for c en ordenadas_por(cs, por_n) { imprimir($"{c.n}"); }
+
+            var ns: lista<usize> = [];
+            anadir(ns, 3); anadir(ns, 9); anadir(ns, 1);
+            imprimir(" ");
+            for n en ordenadas_por(ns, al_reves) { imprimir($"{n}"); }
+
+            let g = doble;
+            imprimir($" {aplicar(ns, doble)[1]} {g(10)}\\n");
+        }''',
+     "29 931 18 20\n"),
+
     ("anchos fijos, bits y conversiones",
      '''fn main() -> usize {
             let a: u8 = 200;

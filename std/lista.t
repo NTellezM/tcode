@@ -64,6 +64,49 @@ fn aplanar<T>(xss: &lista<lista<T>>) -> lista<T> {
     return salida;
 }
 
+// Ordena con el criterio que se le pase. `antes(a, b)` dice si `a` va antes.
+//
+// No ordena en el sitio: ordena las POSICIONES, que son numeros y se pueden
+// mover libremente, y luego copia una sola vez en ese orden. Intercambiar
+// elementos duenios dentro de la lista dejaria un hueco sin duenio, y el
+// compilador no lo permite; asi son n copias en vez de n log n intercambios
+// imposibles.
+fn ordenadas_por<T>(xs: &lista<T>, antes: fn(&T, &T) -> bool) -> lista<T> {
+    var orden: lista<usize> = [];
+    var i = 0;
+    while i < largo(xs) {
+        anadir(orden, i);
+        i = i + 1;
+    }
+
+    // Insercion sobre las posiciones: estable, y con listas pequeñas —que es
+    // para lo que esta— gana a cosas mas listas.
+    var j = 1;
+    while j < largo(orden) {
+        let actual = orden[j];
+        var k = j;
+        var sigue = true;
+        while sigue {
+            if k == 0 {
+                sigue = false;
+            } else {
+                if antes(xs[actual], xs[orden[k - 1]]) {
+                    orden[k] = orden[k - 1];
+                    k = k - 1;
+                } else {
+                    sigue = false;
+                }
+            }
+        }
+        orden[k] = actual;
+        j = j + 1;
+    }
+
+    var salida: lista<T> = [];
+    for p en orden { anadir(salida, copiar(xs[p])); }
+    return salida;
+}
+
 // ---------- hace falta poder comparar ----------
 
 fn incluye<T: igualable>(xs: &lista<T>, aguja: &T) -> bool {

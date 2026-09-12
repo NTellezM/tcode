@@ -1096,9 +1096,55 @@ verificación: escribirlo, leerlo, y detectar un byte cambiado.
 En Rust `as` trunca sin avisar, que es su parte menos defendida; aquí lo que
 se escribe corto (`como`) es lo seguro, y salirse cuesta un carácter más.
 
+## Funciones como valor
+
+El nombre de una función, sin paréntesis detrás, es un valor. Su tipo se
+escribe como su firma:
+
+```tcode
+fn por_n(a: &Cosa, b: &Cosa) -> bool { return a.n < b.n; }
+
+fn ordenadas_por<T>(xs: &lista<T>, antes: fn(&T, &T) -> bool) -> lista<T>
+```
+
+Eso es un puntero a función: **coste cero, y no posee nada**, así que se
+copia como un número y no hay que liberarlo.
+
+**No hay capturas.** Una clausura que se lleva variables consigo obliga a
+decidir qué posee y cuánto vive, y eso es un diseño entero —en Rust son tres
+traits— que v0 no tiene. Lo que hay es lo que basta para pasar un criterio,
+y se dice en la firma.
+
+Tampoco se puede pasar como valor una función que **puede fallar**, ni una
+**genérica** (hay una por cada juego de tipos, y ahí no se sabe cuál). Las
+dos cosas las dice el compilador cuando pasan.
+
+### Qué se tomó de dónde
+
+| lenguaje | cómo lo hace | qué nos llevamos |
+|---|---|---|
+| **C** | punteros a función, sintaxis que hay que leer en espiral | el modelo de coste; no la sintaxis |
+| **Rust** | `fn` como puntero, más `Fn`/`FnMut`/`FnOnce` para clausuras | la separación: el puntero sin captura es su propio tipo, simple y barato |
+| **Go** | clausuras con captura, y un recolector detrás que las sostiene | lo que no podemos permitirnos sin recolector |
+| **Zig** | punteros a función, sin clausuras | la misma decisión, y por la misma razón |
+
+### `ordenadas_por`
+
+`std/lista` lo usa para lo que antes no se podía escribir:
+
+```tcode
+for c en ordenadas_por(cosas, por_n) { ... }
+for n en ordenadas_por(numeros, al_reves) { ... }
+```
+
+No ordena en el sitio: ordena las **posiciones**, que son números y se mueven
+libremente, y copia una sola vez en ese orden. Intercambiar dos elementos
+dueños dentro de una lista dejaría un hueco sin dueño, y el compilador no lo
+permite; así son *n* copias en vez de *n* log *n* intercambios imposibles.
+
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: números con decimales, funciones como valor,
+Es un v0 honesto. No hay: números con decimales, clausuras con captura,
 comprobación del cuerpo genérico una sola vez contra la restricción (eso es
 Rust, y es más), `lista`/`mapa` fuera del compilador —falta poder reservar
 memoria desde Tcode—, `if` como expresión, E/S incremental, aritmética de
