@@ -90,6 +90,36 @@ fn apuntado(t: view) -> view {
     return rebanar(t, 1, largo(t));
 }
 
+// `fn(usize, str) -> bool` da ["usize", "str", "bool"]: los argumentos y,
+// al final, lo que devuelve. Sin flecha, el retorno es `()`.
+fn partes_de_funcion(t: view) -> lista<str> {
+    var hondura = 0;
+    var cierre = 0;
+    var i = 0;
+    while i < largo(t) {
+        let b = byte(t, i);
+        if b == 40 { hondura = hondura + 1; }
+        if b == 41 {
+            hondura = hondura - 1;
+            if hondura == 0 { cierre = i; break; }
+        }
+        i = i + 1;
+    }
+    var salida: lista<str> = [];
+    if cierre == 0 { return salida; }
+    let dentro = rebanar(t, 3, cierre);
+    if largo(recortar(dentro)) > 0 {
+        for x en partir_tipos(dentro) { anadir(salida, copiar(x)); }
+    }
+    let resto = recortar(rebanar(t, cierre + 1, largo(t)));
+    if empieza_con(resto, "->") {
+        anadir(salida, nuevo(recortar(rebanar(resto, 2, largo(resto)))));
+    } else {
+        anadir(salida, nuevo("()"));
+    }
+    return salida;
+}
+
 // Quita el prestamo si lo hay: `&Cosa` -> `Cosa`, `usize` -> `usize`.
 fn apuntado_si(t: view) -> str {
     if es_referencia(t) { return nuevo(apuntado(t)); }
