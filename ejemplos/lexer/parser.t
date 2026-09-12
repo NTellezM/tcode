@@ -274,6 +274,24 @@ fn primario(e: mut Estado) -> Nodo ! {
         try espera(e, "simbolo", "]");
         return n;
     }
+    // `if c { a } else { b }` como valor: cada rama es una expresion suelta.
+    if es(e, "palabra", "if") {
+        avanzar(e);
+        var n = rama("si_expr", l);
+        let c = try expresion(e);
+        anadir(n.hijos, c);
+        try espera(e, "simbolo", "{");
+        let a = try expresion(e);
+        anadir(n.hijos, a);
+        try espera(e, "simbolo", "}");
+        try espera(e, "palabra", "else");
+        try espera(e, "simbolo", "{");
+        let b = try expresion(e);
+        anadir(n.hijos, b);
+        try espera(e, "simbolo", "}");
+        return n;
+    }
+
     if es(e, "decimal", "") {
         let v = try espera(e, "decimal", "");
         return hoja("decimal", v, l);

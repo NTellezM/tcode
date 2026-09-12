@@ -15,7 +15,7 @@ import re
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
-    Decimal,
+    Decimal, SiExpr,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
@@ -1838,6 +1838,9 @@ class Generador:
             return f.retorno if f else "usize"
         if isinstance(e, Conversion):
             return e.a_tipo
+        if isinstance(e, SiExpr):
+            t = self._tipo_de(e.entonces)
+            return t if t not in (None, "usize") else self._tipo_de(e.sino_)
         if isinstance(e, Try):
             return self._tipo_de(e.expr)
         if isinstance(e, Sino):
@@ -2031,6 +2034,32 @@ class Generador:
             elem = elem_de(t)
             partes = ", ".join(self.expr(x, elem) for x in e.elementos)
             return f"({self.tipo_c(t)}){{{{ {partes} }}}}"
+
+        if isinstance(e, SiExpr):
+            # Se baja a una variable y un `if`, no al `?:` de C: cada rama
+            # puede necesitar emitir lineas propias (un temporal, una
+            # bandera), y dentro de `?:` no caben.
+            t = self._tipo_de(e) or "usize"
+            tmp = self.nuevo_tmp()
+            self.emitir(f"{self.tipo_c(t)} {tmp};")
+            self.declarar(tmp, t)
+            self.emitir(f"if ({self.expr(e.cond, 'bool')})")
+            self.emitir("{")
+            self.sangria += 1
+            with self.camino():
+                self.emitir(f"{tmp} = {self.expr(e.entonces, t)};")
+            self.sangria -= 1
+            self.emitir("}")
+            self.emitir("else")
+            self.emitir("{")
+            self.sangria += 1
+            with self.camino():
+                self.emitir(f"{tmp} = {self.expr(e.sino_, t)};")
+            self.sangria -= 1
+            self.emitir("}")
+            if self.c.posee(t):
+                self.temporales.append(tmp)
+            return tmp
 
         if isinstance(e, Conversion):
             return self.conversion(e)

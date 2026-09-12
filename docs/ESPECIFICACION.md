@@ -1223,12 +1223,34 @@ que se agradece leyendo un informe.
 `%` sobre decimales **no existe**: es el resto de una división entera y con
 decimales no tiene un significado único.
 
+## `if` como valor
+
+```tcode
+let x = if n > 3 { 1 } else { 2 };
+return if n > 100 { nuevo("grande") } else { nuevo("pequeno") };
+```
+
+Cada rama es **una expresión**, no un bloque, y el `else` es obligatorio.
+
+Esa es la diferencia con Rust, donde `if` es una expresión porque un bloque
+entero vale lo que vale su última expresión *sin punto y coma*. Eso es
+elegante pero arrastra una regla sutil —añadir un `;` cambia el valor del
+bloque— que hay que aprender y que muerde. Aquí no hay nada que aprender:
+donde se espera un valor, las llaves llevan un valor.
+
+Y no baja al `?:` de C: baja a una variable y un `if`, porque cada rama puede
+necesitar emitir líneas propias —un temporal, una bandera de propiedad— y
+dentro de `?:` no caben. El compilador de C lo vuelve a juntar.
+
+Las dos ramas se comprueban como caminos que se excluyen, igual que el `if`
+sentencia: lo que una mueve, la otra no lo ha movido.
+
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: clausuras con captura, comprobación del cuerpo genérico una sola vez contra la restricción (eso es
-Rust, y es más), `lista`/`mapa` fuera del compilador —falta poder reservar
-memoria desde Tcode—, `if` como expresión, E/S incremental, aritmética de
-punteros ni recolector.
+Es un v0 honesto. No hay: clausuras con captura, comprobación del cuerpo
+genérico una sola vez contra la restricción (eso es Rust, y es más),
+`lista`/`mapa` fuera del compilador —falta poder reservar memoria desde
+Tcode—, E/S incremental, aritmética de punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

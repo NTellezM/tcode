@@ -352,6 +352,10 @@ Y **structs genéricos**: `struct Pila<T>`, `struct Par<A, B>`, y
 mismo. `std/par` es un contenedor escrito en Tcode del que el compilador no
 sabe nada: es lo que separa "un lenguaje con dos colecciones" de un lenguaje.
 
+Y **`if` como valor**: `let x = if n > 3 { 1 } else { 2 };`. Cada rama es una
+expresión y el `else` es obligatorio — así no hay que aprender la regla sutil
+de Rust, donde añadir un `;` cambia lo que vale un bloque.
+
 Y **decimales** (`f64`, `f32`) con una decisión que no toma ningún lenguaje
 grande: **una operación que no da un número detiene el programa donde
 aparece.** `0.0/0.0`, `1.0/0.0` y el desborde a infinito paran, igual que ya
@@ -393,7 +397,7 @@ de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
 ```
 $ make check
-267 casos, 0 fallas
+270 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 
