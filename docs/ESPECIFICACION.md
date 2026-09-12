@@ -1017,12 +1017,92 @@ Eso es lo que separa "un lenguaje con dos colecciones" de un lenguaje:
 `lista<T>` y `mapa<K, V>` siguen dentro del compilador, pero ya no hacen
 falta para escribir un contenedor.
 
+## Enteros de ancho fijo, bits y bytes
+
+`u8`, `u16`, `u32`, `u64`, `usize`, `i8`, `i16`, `i32`, `i64`. El ancho va en
+el nombre, menos en `usize`, que mide cosas de la máquina y por eso vale lo
+que valga ahí.
+
+**La aritmética comprobada vale para todos.** Un `u8` que se pasa de 255
+detiene el programa igual que un `usize` que se pasa de `SIZE_MAX`:
+
+```
+ejemplo.t:3: desbordamiento en `+`
+```
+
+Sólo se emiten las familias de operaciones que el programa usa: uno que sólo
+maneja `usize` no carga con las nueve.
+
+### Conversión: `como`
+
+```tcode
+let ancho = a como u32;     // aborta si el valor no cabe
+let corto = v como? u8;     // se queda con los bits de abajo, a propósito
+```
+
+El `?` es el mismo de `+?`: *quiero salirme de la comprobación y lo digo*.
+La comprobación es **de ida y vuelta** —se convierte, se vuelve a convertir
+al tipo de origen, y si no sale lo mismo es que no cabía— así que vale para
+cualquier pareja, con signo o sin él, sin comparar límites de tipos distintos.
+
+```
+ejemplo.t:2: el valor no cabe en `u8` viniendo de `u32`
+```
+
+### Bits
+
+`&`, `|`, `^`, `<<`, `>>`, y `~` delante.
+
+**Atan más que las comparaciones.** En C, `a & b == c` significa
+`a & (b == c)`, que no es lo que nadie quiere y lleva cuarenta años obligando
+a poner paréntesis. Aquí, como en Rust y en Go, es `(a & b) == c`.
+
+Desplazar más que el ancho del tipo **detiene el programa** en vez de ser
+comportamiento indefinido, y desplazar un negativo a la izquierda se hace
+sobre los bits, no sobre el valor.
+
+Un efecto de todo esto: `lista<lista<str>>` acaba en dos `>` pegados, que el
+lexer lee como `>>`. Donde toca cerrar un tipo, el token se parte en dos. Es
+lo mismo que hizo C++11 después de veinte años obligando a escribir `> >`
+con un espacio en medio.
+
+### Bytes
+
+Un `str` guarda **bytes**, no texto. Puede llevar un cero dentro:
+
+```tcode
+let crudo = "\xde\xad\xbe\xef";    // 4 bytes
+let cero  = "a\x00b";                // 3 bytes
+let texto = "camión";                // 7 bytes, UTF-8 intacto
+```
+
+`\xNN` es un byte y nada más: no se confunde con el carácter Unicode del
+mismo número, que en UTF-8 ocuparía dos. `empujar_byte(s, b)` añade uno.
+
+Con eso, `std/bytes` hace lo que hasta ahora no se podía escribir en Tcode:
+`poner_u16`/`poner_u32`/`poner_u64` y sus `leer_*` en orden de red, más
+`a_hex` y `de_hex`. `ejemplos/binario.t` lo usa para un formato con suma de
+verificación: escribirlo, leerlo, y detectar un byte cambiado.
+
+### Qué se tomó de dónde
+
+| lenguaje | cómo lo hace | qué nos llevamos |
+|---|---|---|
+| **Rust** | anchos explícitos, sin mezclas implícitas, `as` trunca | los anchos y la prohibición de mezclar |
+| **Zig** | `@intCast` revienta si se pierde información | que **el caso por defecto sea el comprobado**: aquí `como` aborta y `como?` es la excepción declarada |
+| **Go** | anchos fijos, conversión explícita, pero desborda en silencio | los anchos; no el silencio |
+| **C** | promociones implícitas, `&` con menos precedencia que `==` | los dos contraejemplos: ninguna promoción automática, y los bits atan más |
+
+En Rust `as` trunca sin avisar, que es su parte menos defendida; aquí lo que
+se escribe corto (`como`) es lo seguro, y salirse cuesta un carácter más.
+
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: comprobación del cuerpo genérico una sola vez
-contra la restricción (eso es Rust, y es más), `lista`/`mapa` fuera del
-compilador, espacios de
-nombres, préstamos mutables de una variable suelta (sólo desde un mapa), E/S incremental, aritmética de punteros ni recolector.
+Es un v0 honesto. No hay: números con decimales, funciones como valor,
+comprobación del cuerpo genérico una sola vez contra la restricción (eso es
+Rust, y es más), `lista`/`mapa` fuera del compilador —falta poder reservar
+memoria desde Tcode—, `if` como expresión, E/S incremental, aritmética de
+punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

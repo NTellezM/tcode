@@ -26,6 +26,18 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    ("los anchos no se mezclan solos",
+     'fn main() -> usize { let a: u8 = 1; let b: u32 = 2; imprimir(a + b); return 0; }',
+     "no se mezclan sin conversion explicita"),
+
+    ("`como` es entre enteros, no un molde universal",
+     'fn main() -> usize { let s = nuevo("a"); imprimir(s como u8); return 0; }',
+     "`como` convierte entre enteros"),
+
+    ("los bits no operan sobre texto",
+     'fn main() -> usize { let s = nuevo("a"); imprimir(s & 1); return 0; }',
+     "trabaja sobre los bits de un entero"),
+
     ("un literal de struct generico cuyos campos no dicen el tipo",
      'struct Par<A, B> { a: A, b: B }'
      ' fn cual<T>(x: T) -> T { return x; }'
@@ -518,6 +530,48 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("anchos fijos, bits y conversiones",
+     '''fn main() -> usize {
+            let a: u8 = 200;
+            let b: u8 = 55;
+            let c: i32 = 100000;
+            let mascara: u32 = 4278190080;
+            let v: u32 = 3735928559;
+            // Los bits atan mas que las comparaciones: esto es `(v & m) == x`,
+            // no `v & (m == x)` como seria en C.
+            let alto = (v & mascara) >> 24 == 222;
+            imprimir($"{a + b} {c * 2} {v ^ v} {~a} {alto}");
+            imprimir($" {v como? u8} {a como u32}\\n");
+        }''',
+     "255 200000 0 55 true 239 200\n"),
+
+    ("un `str` guarda bytes, no texto",
+     '''usar "std/bytes";
+        fn main() -> usize {
+            let crudo = "\\xde\\xad\\xbe\\xef";
+            let acentos = "camión";
+            let cero = "a\\x00b";
+            imprimir($"{largo(crudo)} {a_hex(crudo)} {largo(acentos)}");
+            imprimir($" {acentos} {largo(cero)} {a_hex(cero)}\\n");
+        }''',
+     "4 deadbeef 7 camión 3 610062\n"),
+
+    ("enteros que van y vuelven de un buffer",
+     '''usar "std/bytes";
+        fn main() -> usize ! {
+            var buf = vacio();
+            poner_u32(buf, 3735928559);
+            poner_u16(buf, 513);
+            poner_u64(buf, 72057594037927936);
+            imprimir($"{a_hex(vista(buf))}\\n");
+            imprimir($"{try leer_u32(vista(buf), 0)} {try leer_u16(vista(buf), 4)}");
+            imprimir($" {try leer_u64(vista(buf), 6)}");
+            let vuelta = try de_hex("deadbeef");
+            imprimir($" {largo(vuelta)} {leer_u8(vista(buf), 999) sino 0}\\n");
+            return 0;
+        }''',
+     "deadbeef02010100000000000000\n3735928559 513 72057594037927936 4 0\n"),
+
     ("un contenedor propio, escrito en Tcode y no en el compilador",
      '''struct Pila<T> { cosas: lista<T> }
 
@@ -1924,6 +1978,7 @@ EJEMPLOS = [
     ("ejemplos/frecuencia.t", ["README.md"]),
     ("ejemplos/informe/informe.t", []),
     ("ejemplos/modulos/escalas.t", []),
+    ("ejemplos/binario.t", []),
     ("ejemplos/lexer/lexer.t", ["ejemplos/hola.t"]),
     ("ejemplos/lexer/parser.t", ["ejemplos/hola.t"]),
 ]

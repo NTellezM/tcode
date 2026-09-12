@@ -32,8 +32,12 @@ fn palabras_reservadas() -> mapa<str, usize> {
     poner(m, "struct", 1);   poner(m, "usar", 1);     poner(m, "try", 1);
     poner(m, "sino", 1);     poner(m, "falla", 1);    poner(m, "lista", 1);
     poner(m, "mapa", 1);     poner(m, "str", 1);      poner(m, "view", 1);
-    poner(m, "usize", 1);    poner(m, "i64", 1);      poner(m, "bool", 1);
+    poner(m, "bool", 1);
     poner(m, "true", 1);     poner(m, "false", 1);
+    poner(m, "u8", 1);       poner(m, "u16", 1);      poner(m, "u32", 1);
+    poner(m, "u64", 1);      poner(m, "usize", 1);
+    poner(m, "i8", 1);       poner(m, "i16", 1);      poner(m, "i32", 1);
+    poner(m, "i64", 1);
     return m;
 }
 
@@ -50,6 +54,8 @@ fn simbolo_doble(a: usize, b: usize) -> bool {
     if a == 62 && b == 61 { return true; }     // >=
     if a == 38 && b == 38 { return true; }     // &&
     if a == 124 && b == 124 { return true; }   // ||
+    if a == 60 && b == 60 { return true; }     // <<
+    if a == 62 && b == 62 { return true; }     // >>
     return false;
 }
 
@@ -60,6 +66,7 @@ fn es_simbolo(b: usize) -> bool {
     if b == 61 || b == 43 || b == 45 || b == 42 { return true; }    // = + - *
     if b == 47 || b == 37 || b == 33 || b == 38 { return true; }    // / % ! &
     if b == 124 || b == 36 { return true; }                        // | $
+    if b == 94 || b == 126 || b == 63 { return true; }             // ^ ~ ?
     return false;
 }
 

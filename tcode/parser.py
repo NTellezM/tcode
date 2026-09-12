@@ -3,21 +3,22 @@
 from tcode.lexer import tokenizar, Token
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
-    Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
+    Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Parametro, Funcion, CampoDef, Struct, Usar, Para, Romper, Continuar,
 )
 
-TIPOS = {"str", "view", "usize", "i64", "bool"}
+ENTEROS = {"u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64"}
+TIPOS = {"str", "view", "bool"} | ENTEROS
 
 # Conjuntos de tipos con nombre. Una restriccion no es una interfaz que haya
 # que implementar: es la lista de tipos que valen, y por eso no hace falta
 # escribir nada en ningun sitio para que un tipo la cumpla.
 RESTRICCIONES = {
-    "numero":    {"usize", "i64"},
-    "igualable": {"usize", "i64", "bool", "str", "view"},
-    "ordenable": {"usize", "i64", "str", "view"},
+    "numero":    set(ENTEROS),
+    "igualable": ENTEROS | {"bool", "str", "view"},
+    "ordenable": ENTEROS | {"str", "view"},
     "texto":     {"str", "view"},
 }
 
@@ -70,6 +71,15 @@ class Parser:
         return None
 
     def espera(self, tipo, valor=None) -> Token:
+        # `lista<lista<str>>` acaba en dos `>` pegados, que el lexer lee como
+        # el desplazamiento `>>`. Donde se espera cerrar un tipo, se parte en
+        # dos: es lo mismo que hizo C++11 despues de veinte años obligando a
+        # escribir `> >` con un espacio en medio.
+        if (tipo, valor) == ("simbolo", ">") and self.es("simbolo", ">>"):
+            t = self.actual
+            suelto = Token("simbolo", ">", t.linea, t.col)
+            self.toks[self.i] = suelto
+            return suelto
         t = self.acepta(tipo, valor)
         if t is None:
             que = valor if valor is not None else tipo
@@ -393,20 +403,47 @@ class Parser:
         return self._binaria_izq(self.comparacion, {"==", "!="})
 
     def comparacion(self):
-        return self._binaria_izq(self.suma, {"<", "<=", ">", ">="})
+        return self._binaria_izq(self.bits_o, {"<", "<=", ">", ">="})
+
+    # Los operadores de bits atan MAS que las comparaciones, no menos. En C
+    # `a & b == c` significa `a & (b == c)`, que no es lo que nadie quiere y
+    # lleva cuarenta años obligando a poner parentesis. Aqui, como en Rust y
+    # en Go, `a & b == c` es `(a & b) == c`.
+    def bits_o(self):
+        return self._binaria_izq(self.bits_x, {"|"})
+
+    def bits_x(self):
+        return self._binaria_izq(self.bits_y, {"^"})
+
+    def bits_y(self):
+        return self._binaria_izq(self.desplazamiento, {"&"})
+
+    def desplazamiento(self):
+        return self._binaria_izq(self.suma, {"<<", ">>"})
 
     def suma(self):
         return self._binaria_izq(self.producto, {"+", "-", "+?", "-?"})
 
     def producto(self):
-        return self._binaria_izq(self.unario, {"*", "/", "%", "*?"})
+        return self._binaria_izq(self.conversion, {"*", "/", "%", "*?"})
+
+    def conversion(self):
+        """`x como u8`, `x como? u8`. Ata mas que cualquier operador binario:
+        `a + b como u8` es `a + (b como u8)`, que es lo que se lee."""
+        e = self.unario()
+        while self.actual.tipo == "ident" and self.actual.valor == "como":
+            tok = self.actual
+            self.i += 1
+            envolviendo = self.acepta("simbolo", "?") is not None
+            e = Conversion(e, self.tipo(), envolviendo, linea=tok.linea)
+        return e
 
     def unario(self):
         if self.es("palabra", "try"):
             tok = self.actual
             self.i += 1
             return Try(self.unario(), linea=tok.linea)
-        if self.actual.tipo == "simbolo" and self.actual.valor in {"!", "-"}:
+        if self.actual.tipo == "simbolo" and self.actual.valor in {"!", "-", "~"}:
             op = self.actual
             self.i += 1
             return Unaria(op.valor, self.unario(), linea=op.linea)

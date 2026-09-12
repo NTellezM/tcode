@@ -52,6 +52,18 @@ fn invertida<T>(xs: &lista<T>) -> lista<T> {
     return salida;
 }
 
+// Aplana una lista de listas en una sola. El tipo anidado hace que la firma
+// acabe en `>>`, que el lexer lee como un desplazamiento: es el mismo
+// problema que a C++ le costo veinte años de `> >` con espacio en medio, y
+// aqui se parte el token donde toca cerrar un tipo.
+fn aplanar<T>(xss: &lista<lista<T>>) -> lista<T> {
+    var salida: lista<T> = [];
+    for xs en xss {
+        for x en xs { anadir(salida, copiar(x)); }
+    }
+    return salida;
+}
+
 // ---------- hace falta poder comparar ----------
 
 fn incluye<T: igualable>(xs: &lista<T>, aguja: &T) -> bool {

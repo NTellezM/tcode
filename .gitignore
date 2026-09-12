@@ -37,3 +37,6 @@ ejemplos/frec/
 # binarios del ejemplo de modulos
 ejemplos/modulos/escalas
 ejemplos/modulos/*.c
+
+# binario de ejemplos/binario.t
+ejemplos/binario

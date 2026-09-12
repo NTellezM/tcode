@@ -11,13 +11,19 @@ import re
 from tcode.parser import RESTRICCIONES
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
-    Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla,
+    Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
 )
 
-ENTEROS = {"usize", "i64"}
+# Enteros de ancho fijo, mas `usize`, que es el que mide cosas de la maquina
+# y por eso no lleva ancho escrito. El ancho `None` significa "el de la
+# maquina": no se puede saber al compilar, y el C generado lo resuelve con
+# `SIZE_MAX`.
+SIN_SIGNO = {"u8": 8, "u16": 16, "u32": 32, "u64": 64, "usize": None}
+CON_SIGNO = {"i8": 8, "i16": 16, "i32": 32, "i64": 64}
+ENTEROS = set(SIN_SIGNO) | set(CON_SIGNO)
 UNIDAD = "()"
 
 # Un literal entero todavia no tiene ancho: lo toma del contexto. Solo si
@@ -26,13 +32,13 @@ LITERAL = "{entero}"
 
 # Tipos con un orden natural evidente. Un struct no lo tiene: cual de sus
 # campos manda es una decision del programa, no del lenguaje.
-ORDENABLES = {"usize", "i64", "bool", "str"}
+ORDENABLES = ENTEROS | {"bool", "str"}
 # Lo que `igual` y `menor` saben comparar. Son tipos sin partes: comparar dos
 # structs o dos listas exigiria decidir que significa, y eso no se decide por
 # la persona en silencio.
-IGUALABLES = {"usize", "i64", "bool", "str", "view"}
-COMPARABLES = {"usize", "i64", "str", "view"}
-NUMEROS = {"usize", "i64"}
+IGUALABLES = ENTEROS | {"bool", "str", "view"}
+COMPARABLES = ENTEROS | {"str", "view"}
+NUMEROS = set(ENTEROS)
 
 # De donde sale la memoria a la que apunta una vista. Es lo unico que hace
 # falta saber para decidir si esa vista puede sobrevivir a la funcion.
@@ -548,7 +554,7 @@ class Comprobador:
             # y ya esta.
             interno = apuntado(t)
             return self.tipo_existe(interno) and self.es_compuesto(interno)
-        if t in {"str", "view", "usize", "i64", "bool"} or t in self.structs:
+        if t in ENTEROS or t in {"str", "view", "bool"} or t in self.structs:
             return True
         if es_arreglo(t):
             return self.tipo_existe(elem_de(t))
@@ -1454,6 +1460,13 @@ class Comprobador:
 
         if isinstance(e, Unaria):
             t = self.expresion(e.valor)
+            if e.op == "~":
+                if t == LITERAL:
+                    return "usize"
+                if t is not None and t not in ENTEROS:
+                    self.error(e, f"`~` da la vuelta a los bits de un entero, "
+                                  f"recibio `{t}`")
+                return t
             if e.op == "!":
                 if t is not None and t != "bool":
                     self.error(e, f"`!` necesita un `bool`, recibio `{t}`")
@@ -1467,6 +1480,19 @@ class Comprobador:
             if t == "usize":
                 self.error(e, "`usize` no tiene signo: no se puede negar")
             return t
+
+        if isinstance(e, Conversion):
+            t = sin_prestamo(self.expresion(e.valor) or "")
+            if e.a_tipo not in ENTEROS:
+                self.error(e, f"`como` convierte entre enteros, y `{e.a_tipo}` "
+                              f"no es uno")
+            elif t and t != LITERAL and t not in ENTEROS:
+                self.error(e, f"`como` convierte entre enteros, y `{t}` no es "
+                              f"uno")
+            elif t == e.a_tipo:
+                self.aviso(e, f"`como {e.a_tipo}` sobre algo que ya es "
+                              f"`{e.a_tipo}`: no hace nada")
+            return e.a_tipo
 
         if isinstance(e, Try):
             if not self.falible_actual:
@@ -1834,6 +1860,22 @@ class Comprobador:
                               f"explicita")
             return "bool"
 
+        if e.op in {"&", "|", "^", "<<", ">>"}:
+            if ti == LITERAL and td == LITERAL:
+                return LITERAL
+            if ti not in ENTEROS or td not in ENTEROS:
+                self.error(e, f"`{e.op}` trabaja sobre los bits de un entero, "
+                              f"recibio `{ti}` y `{td}`")
+                return None
+            if e.op in {"<<", ">>"}:
+                # Lo que se desplaza y cuanto se desplaza son cosas distintas:
+                # `x << 3` no pide que el 3 sea del tipo de x.
+                return ti
+            if ti != td:
+                self.error(e, f"`{ti}` y `{td}` no se mezclan sin conversion "
+                              f"explicita")
+            return ti
+
         # aritmetica
         if ti == LITERAL and td == LITERAL:
             return LITERAL
@@ -2097,7 +2139,7 @@ class Comprobador:
                     self.expresion(a)
                 return "str"
             t = sin_prestamo(self.expresion(e.args[0]) or "")
-            if t and t not in {LITERAL, "usize", "i64", "bool", "view", "str"}:
+            if t and t not in ENTEROS | {LITERAL, "bool", "view", "str"}:
                 self.error(e, f"`texto` convierte escalares o texto, recibio `{t}`")
             return "str"
 
@@ -2199,6 +2241,9 @@ INTERNAS = {
     "nuevo":    {"params": ["view"],                  "retorno": "str"},
     "vista":    {"params": ["@presta"],               "retorno": "view"},
     "empujar":  {"params": ["@mut", "view"],          "retorno": UNIDAD},
+    # Un byte crudo, no texto. Es lo que permite construir un buffer binario
+    # y no solo leerlo.
+    "empujar_byte": {"params": ["@mut", "u8"],        "retorno": UNIDAD},
     "largo":    {"params": ["@dimensionable"],        "retorno": "usize"},
     # El tipo sale de los argumentos, en `interna`: comparan cualquier par
     # de valores del mismo tipo sin partes.

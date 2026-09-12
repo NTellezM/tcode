@@ -105,8 +105,10 @@ class Generador:
         n = [0]
 
         def nombre(p):
+            # Con guion: `u8` e `i8` son tipos, y un nombre como `u8` dejo de
+            # ser legal cuando llegaron los anchos fijos.
             n[0] += 1
-            return f"{p}{n[0]}"
+            return f"{p}_{n[0]}"
 
         # --- fase 1: declarar ---
         for _ in range(self.r.randint(1, 4)):
@@ -597,6 +599,25 @@ class Generador:
         lineas.append(f'    anadir(g_ss, nuevo("{self.palabra()}"));')
         # Copia profunda: de una lista de textos, de una anidada y de un
         # escalar. Cada copia es memoria nueva que alguien tiene que soltar.
+        # Anchos fijos, bits y conversiones. Todo acotado para que no aborte:
+        # lo que se prueba es que el C sale limpio y la memoria tambien.
+        a = self.r.randint(0, 255)
+        lineas.append(f"    let w_a: u8 = {a};")
+        lineas.append(f"    let w_b: u32 = {self.r.randint(0, 4294967295)};")
+        lineas.append(f"    let w_c: i32 = {self.r.randint(0, 1000000)};")
+        lineas.append(f"    let w_d = (w_b >> {self.r.randint(0, 24)}) & 255;")
+        lineas.append("    imprimir(w_d);")
+        lineas.append(f"    imprimir(w_b ^ {self.r.randint(0, 65535)});")
+        lineas.append("    imprimir(~w_a);")
+        lineas.append(f"    imprimir(w_c *? {self.r.randint(1, 3)});")
+        lineas.append("    imprimir(w_a como u32);")
+        lineas.append("    imprimir(w_b como? u8);")
+        lineas.append("    imprimir(w_d como u8);")
+        # Y bytes crudos en un buffer.
+        lineas.append("    var w_buf = vacio();")
+        lineas.append("    empujar_byte(w_buf, w_a);")
+        lineas.append(f'    empujar(w_buf, "\\x00\\xff");')
+        lineas.append("    imprimir(largo(w_buf));")
         lineas.append("    let g_copia = copiar(g_ss);")
         lineas.append("    var g_hondo: lista<lista<str>> = [];")
         lineas.append("    anadir(g_hondo, copiar(g_ss));")
