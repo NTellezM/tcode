@@ -2443,6 +2443,11 @@ print("=== FIRMAS: la cara en C de cada funcion, dicha por Tcode ===")
 from tcode.generador import Generador as _Gen
 
 def _firmas_esperadas(ruta):
+    # Que funciones lleva el archivo, y en que orden, lo dice el arbol recien
+    # parseado. Pero la firma se saca de la funcion que dejo el comprobador:
+    # el alias con el que se escribio un tipo de otro modulo —`P.Nodo`— lo
+    # resuelve el cargador y en C no queda, asi que el arbol crudo daria una
+    # firma que ni siquiera compila.
     from tcode.parser import parsear as _p
     try:
         arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set())
@@ -2451,9 +2456,21 @@ def _firmas_esperadas(ruta):
     codigo, errores, comp = compilar_archivo(ruta, devolver_comp=True)
     if errores:
         return None
-    g = _Gen(comp, ruta)
-    return [g.prototipo(d) for d in arbol
-            if isinstance(d, _Fn_t) and not d.tipo_params]
+    propio = os.path.relpath(ruta, RAIZ)
+    g = _Gen(comp, propio)
+    escritas = [d.nombre for d in arbol
+                if isinstance(d, _Fn_t) and not d.tipo_params]
+    salida = []
+    for nombre in escritas:
+        d = comp.funciones.get(nombre)
+        if d is None:
+            d = next((f for k, f in comp.funciones.items()
+                      if k == "ss_id_" + nombre or k.endswith("__" + nombre)),
+                     None)
+        if d is None:
+            return None
+        salida.append(g.prototipo(d))
+    return salida
 
 tmp = tempfile.mkdtemp(prefix="tcode-firmas-")
 try:
@@ -2571,7 +2588,7 @@ def _expresiones_esperadas(ruta):
             fuera.append(f"{d.nombre}\t{r.linea}\t{c}")
     return fuera
 
-_MINIMO_CUBIERTAS = 340
+_MINIMO_CUBIERTAS = 480
 
 tmp = tempfile.mkdtemp(prefix="tcode-expr-")
 try:
@@ -2665,7 +2682,7 @@ def _normaliza_tmp(texto):
         texto = renumera(texto, prefijo)
     return texto
 
-_MINIMO_CUERPOS = 46
+_MINIMO_CUERPOS = 51
 
 tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
 try:

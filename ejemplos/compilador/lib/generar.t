@@ -78,7 +78,8 @@ fn mangle(t: view) -> str {
     }
     // `()` no es un nombre valido en C.
     if igual(t, "()") { return nuevo("nada"); }
-    return nuevo(t);
+    // El alias del modulo —`P.Nodo`— es cosa de quien lee el archivo.
+    return I.sin_modulo(t);
 }
 
 // El `4` de `[usize; 4]`.
@@ -132,8 +133,9 @@ fn tipo_c(t: view) -> str {
         empujar(s, vista(m));
         return s;
     }
-    // Un struct se llama igual en los dos lados.
-    return nuevo(t);
+    // Un struct se llama igual en los dos lados. El alias con el que se
+    // escribio —`P.Nodo`— es cosa de quien lee el archivo: en C no queda.
+    return I.sin_modulo(t);
 }
 
 // El `T !` de Tcode es un struct: `motivo == NULL` significa que fue bien.
@@ -150,6 +152,42 @@ fn tipo_resultado(t: view) -> str {
 
 // La firma en C de una funcion. `main` es el unico nombre que cambia: el de
 // verdad lo pone el generador para poder recoger los argumentos.
+// C tiene palabras que Tcode no: un `fn union(...)` es legitimo en Tcode y
+// no lo es en C. El cargador le pone `ss_id_` delante, y esta capa dice lo
+// mismo. `bool`, `true` y `false` no entran: significan lo mismo en los dos.
+fn choca_con_c(n: view) -> bool {
+    if igual(n, "auto") || igual(n, "break") || igual(n, "case") { return true; }
+    if igual(n, "char") || igual(n, "const") || igual(n, "continue") { return true; }
+    if igual(n, "default") || igual(n, "do") || igual(n, "double") { return true; }
+    if igual(n, "else") || igual(n, "enum") || igual(n, "extern") { return true; }
+    if igual(n, "float") || igual(n, "for") || igual(n, "goto") { return true; }
+    if igual(n, "if") || igual(n, "inline") || igual(n, "int") { return true; }
+    if igual(n, "long") || igual(n, "register") || igual(n, "restrict") { return true; }
+    if igual(n, "return") || igual(n, "short") || igual(n, "signed") { return true; }
+    if igual(n, "sizeof") || igual(n, "static") || igual(n, "struct") { return true; }
+    if igual(n, "switch") || igual(n, "typedef") || igual(n, "union") { return true; }
+    if igual(n, "unsigned") || igual(n, "void") || igual(n, "volatile") { return true; }
+    if igual(n, "while") || igual(n, "complex") || igual(n, "imaginary") { return true; }
+    if igual(n, "noreturn") || igual(n, "alignas") || igual(n, "alignof") { return true; }
+    if igual(n, "thread_local") || igual(n, "static_assert") { return true; }
+    if igual(n, "generic") { return true; }
+    // de la biblioteca de C, que tambien esta incluida
+    if igual(n, "malloc") || igual(n, "free") || igual(n, "calloc") { return true; }
+    if igual(n, "realloc") || igual(n, "memcpy") || igual(n, "memset") { return true; }
+    if igual(n, "strlen") || igual(n, "printf") || igual(n, "fprintf") { return true; }
+    if igual(n, "sprintf") || igual(n, "snprintf") || igual(n, "abort") { return true; }
+    if igual(n, "exit") || igual(n, "stdin") || igual(n, "stdout") { return true; }
+    if igual(n, "stderr") || igual(n, "NULL") || igual(n, "size_t") { return true; }
+    return igual(n, "errno");
+}
+
+fn nombre_en_c(n: view) -> str {
+    if !choca_con_c(n) { return nuevo(n); }
+    var s = nuevo("ss_id_");
+    empujar(s, n);
+    return s;
+}
+
 fn prototipo(nombre: view, params: &lista<str>, marcas: &lista<str>,
     retorno: view, falible: bool) -> str {
     if igual(nombre, "main") && !falible {
@@ -166,7 +204,10 @@ fn prototipo(nombre: view, params: &lista<str>, marcas: &lista<str>,
     }
     empujar(salida, " ");
     if igual(nombre, "main") { empujar(salida, "ss_main_"); }
-    else { empujar(salida, nombre); }
+    else {
+        let en_c = nombre_en_c(nombre);
+        empujar(salida, vista(en_c));
+    }
     empujar(salida, "(");
 
     if largo(params) == 0 {
@@ -320,6 +361,21 @@ fn expresion_c(s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str
         return llamada_c(s, n, tipos);
     }
 
+    if igual(clase, "campo") {
+        // `sitio_c` ya devuelve el valor, no el puntero: un prestamo sale
+        // como `(*x)`, asi que aqui siempre es un punto.
+        let base = sitio_c(s, n.hijos[0], tipos);
+        if es_desconocido(vista(base)) { return no_se(); }
+        var r = copiar(base);
+        empujar(r, ".");
+        empujar(r, vista(n.texto));
+        return r;
+    }
+
+    if igual(clase, "indice") {
+        return indice_c(s, n, tipos);
+    }
+
     if igual(clase, "binaria") {
         return binaria_c(s, n, esperado, tipos);
     }
@@ -339,6 +395,61 @@ fn expresion_c(s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str
     }
 
     return no_se();
+}
+
+// Un sitio del que tomar campos o elementos. Una llamada no es un sitio:
+// `hacer()[1]` tendria que guardar lo que devuelve antes de indexarlo, o la
+// llamada se evaluaria una vez por cada vez que aparece en el C —dos: el
+// elemento y el largo— y lo que devuelve no lo liberaria nadie.
+fn sitio_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let clase = vista(n.clase);
+    if igual(clase, "variable") || igual(clase, "campo")
+    || igual(clase, "indice") {
+        return expresion_c(s, n, "", tipos);
+    }
+    return no_se();
+}
+
+// Indexar comprueba el limite: es la comprobacion que C no hace y por la que
+// existe medio Tcode. Va en el C, no en el comprobador, porque el indice se
+// sabe al correr.
+fn indice_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    if largo(n.hijos) != 2 { return no_se(); }
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    let base = T.apuntado_si(vista(suyo));
+    let sitio = sitio_c(s, n.hijos[0], tipos);
+    if es_desconocido(vista(sitio)) { return no_se(); }
+    let idx = expresion_c(s, n.hijos[1], "usize", tipos);
+    if es_desconocido(vista(idx)) { return no_se(); }
+
+    var cuantos = vacio();
+    if T.es_lista(vista(base)) {
+        cuantos = copiar(sitio);
+        empujar(cuantos, ".length");
+    } else {
+        if T.es_bloque(vista(base)) {
+            cuantos = copiar(sitio);
+            empujar(cuantos, ".n");
+        } else {
+            if T.es_arreglo(vista(base)) {
+                cuantos = cuantos_de_arreglo(vista(base));
+            } else {
+                return no_se();
+            }
+        }
+    }
+
+    var r = copiar(sitio);
+    empujar(r, ".e[ss_lang_indice_(");
+    empujar(r, vista(idx));
+    empujar(r, ", ");
+    empujar(r, vista(cuantos));
+    empujar(r, ", \"");
+    empujar(r, vista(s.archivo));
+    empujar(r, "\", ");
+    empujar(r, texto(n.linea));
+    empujar(r, ")]");
+    return r;
 }
 
 fn binaria_c(s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Contexto) -> str {
@@ -522,6 +633,28 @@ fn interna_pura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     return no_se();
 }
 
+// La direccion de un sitio con nombre: `&x`, `&p.campo`, `&v.e[i]`. Prestar
+// algo recien hecho pediria un temporal del que tomar la direccion, y ese
+// temporal habria que soltarlo al acabar la sentencia: otra capa.
+fn direccion_del_sitio(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let clase = vista(n.clase);
+    if igual(clase, "variable") {
+        // Un `&T` ya ES la direccion: pedirsela otra vez sobra.
+        if tiene(s.punteros, vista(n.texto)) { return nuevo(vista(n.texto)); }
+        var r = nuevo("&");
+        empujar(r, vista(n.texto));
+        return r;
+    }
+    if igual(clase, "campo") || igual(clase, "indice") {
+        let donde = expresion_c(s, n, "", tipos);
+        if es_desconocido(vista(donde)) { return no_se(); }
+        var r = nuevo("&");
+        empujar(r, vista(donde));
+        return r;
+    }
+    return no_se();
+}
+
 // `ss_view(&x)`, o `ss_view(x)` si `x` ya es un puntero.
 fn direccion_de(s: &Sitio, nombre: view, envoltura: view) -> str {
     var r = nuevo(envoltura);
@@ -599,13 +732,10 @@ fn llamada_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             let m = vista(marcados[i]);
             presta_el = empieza_con(m, "&") || empieza_con(m, "mut ");
         }
-        if presta_el && igual(vista(h.clase), "variable") {
-            if tiene(s.punteros, vista(h.texto)) {
-                empujar(v, vista(h.texto));
-            } else {
-                empujar(v, "&");
-                empujar(v, vista(h.texto));
-            }
+        if presta_el {
+            let dir = direccion_del_sitio(s, h, tipos);
+            if es_desconocido(vista(dir)) { return no_se(); }
+            empujar(v, vista(dir));
             i = i + 1;
             continue;
         }
@@ -779,6 +909,12 @@ struct Cuerpo {
     ultima_linea: usize,
     // Cuantos bucles se han abierto: cada uno lleva su propio indice.
     bucle: usize,
+}
+
+fn nombre_de_indice(n: usize) -> str {
+    var s = nuevo("ss_k");
+    empujar(s, texto(n));
+    return s;
 }
 
 fn nombre_de_bucle(n: usize) -> str {
@@ -1012,13 +1148,23 @@ fn apagar_las_de(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) {
     apagar(b, vivas);
 }
 
+// `for k, v en m` lleva dos nombres separados por coma.
+fn lleva_coma(t: view) -> bool {
+    var i = 0;
+    while i < largo(t) {
+        if byte(t, i) == 44 { return true; }
+        i = i + 1;
+    }
+    return false;
+}
+
 fn mueve_algo(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     var salen: lista<str> = [];
     movidas_en(s.punteros, n, tipos, salen);
     return largo(salen) > 0;
 }
 
-fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
     let clase = vista(n.clase);
     marcar(b, s, n.linea);
@@ -1224,11 +1370,65 @@ fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         if !igual(vista(n.hijos[0].clase), "variable") { return false; }
         let nombre = vista(n.hijos[0].texto);
         let tipo = I.buscar(tipos, nombre);
-        // Asignar a algo con duenio pide soltar lo viejo: otra capa.
-        if igual(vista(tipo), "str") { return false; }
         let valor = expresion_c(s, n.hijos[1], vista(tipo), tipos);
         if es_desconocido(vista(valor)) { return false; }
-        var l = nuevo(nombre);
+        let destino = expresion_c(s, n.hijos[0], vista(tipo), tipos);
+        if es_desconocido(vista(destino)) { return false; }
+
+        // Asignar a algo con duenio pide soltar lo viejo. Solo lo que
+        // `liberacion` sabe soltar entero: un mapa se iria sin liberar.
+        if tiene_duenio(vista(tipo)) {
+            if !igual(vista(tipo), "str") && !T.es_lista(vista(tipo)) {
+                return false;
+            }
+            // El valor se guarda antes de soltar lo viejo, porque en C lo
+            // que cuenta no es donde se calculo la expresion sino donde
+            // queda escrita: `s = nuevo(rebanar(vista(s), 0, 6))` leeria
+            // `s` despues de haberlo soltado.
+            let tmp = nuevo_temporal(b);
+            var g = nuevo(tipo_c(vista(tipo)));
+            empujar(g, " ");
+            empujar(g, vista(tmp));
+            empujar(g, " = ");
+            empujar(g, vista(valor));
+            empujar(g, ";");
+            emitir(b, vista(g));
+
+            if tiene(s.pide_bandera, nombre) {
+                // Si ya se lo llevaron, aqui no hay nada que devolver:
+                // soltarlo seria soltarlo dos veces.
+                var w = nuevo("if (ss_vivo_");
+                empujar(w, nombre);
+                empujar(w, ")");
+                emitir(b, vista(w));
+                emitir(b, "{");
+                b.sangria = b.sangria + 1;
+                liberacion(b, vista(destino), vista(tipo));
+                b.sangria = b.sangria - 1;
+                emitir(b, "}");
+                var a = copiar(destino);
+                empujar(a, " = ");
+                empujar(a, vista(tmp));
+                empujar(a, ";");
+                emitir(b, vista(a));
+                var enciende = nuevo("ss_vivo_");
+                empujar(enciende, nombre);
+                empujar(enciende, " = true;");
+                emitir(b, vista(enciende));
+                apagar_las_de(b, s, n, tipos);
+                return true;
+            }
+            liberacion(b, vista(destino), vista(tipo));
+            var a = copiar(destino);
+            empujar(a, " = ");
+            empujar(a, vista(tmp));
+            empujar(a, ";");
+            emitir(b, vista(a));
+            apagar_las_de(b, s, n, tipos);
+            return true;
+        }
+
+        var l = copiar(destino);
         empujar(l, " = ");
         empujar(l, vista(valor));
         empujar(l, ";");
@@ -1237,13 +1437,86 @@ fn sentencia_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         return true;
     }
 
+    if igual(clase, "para") {
+        if largo(n.hijos) != 2 { return false; }
+        // `for k, v en mapa`: recorrer una tabla es otra capa.
+        if lleva_coma(vista(n.texto)) { return false; }
+        // La coleccion tiene que ser una variable: `for x en f(...)` se
+        // calcula una sola vez y eso pide un temporal que soltar al final.
+        if !igual(vista(n.hijos[0].clase), "variable") { return false; }
+        let suyo = I.tipo_de(tipos, n.hijos[0]);
+        let sobre = T.apuntado_si(vista(suyo));
+        if !T.es_lista(vista(sobre)) { return false; }
+        let lugar = expresion_c(s, n.hijos[0], vista(sobre), tipos);
+        if es_desconocido(vista(lugar)) { return false; }
+
+        b.bucle = b.bucle + 1;
+        let i = nombre_de_indice(b.bucle);
+        var f = nuevo("for (size_t ");
+        empujar(f, vista(i));
+        empujar(f, " = 0; ");
+        empujar(f, vista(i));
+        empujar(f, " < ");
+        empujar(f, vista(lugar));
+        empujar(f, ".length; ");
+        empujar(f, vista(i));
+        empujar(f, "++)");
+        emitir(b, vista(f));
+        emitir(b, "{");
+        b.sangria = b.sangria + 1;
+        abrir_bloque(b);
+        I.abrir(tipos);
+
+        // El elemento se presta, no se copia: un `str` copiado tendria dos
+        // duenios. Los escalares van por valor, que no hay nada que duplicar.
+        let elem = T.elemento(vista(sobre));
+        let quien = vista(n.texto);
+        var acceso = copiar(lugar);
+        empujar(acceso, ".e[");
+        empujar(acceso, vista(i));
+        empujar(acceso, "]");
+        var d = nuevo("SS_LANG_QUIZA_SIN_USAR ");
+        let presta = tiene_duenio(vista(elem));
+        if presta {
+            empujar(d, "const ");
+            empujar(d, tipo_c(vista(elem)));
+            empujar(d, "* ");
+            empujar(d, quien);
+            empujar(d, " = &");
+        } else {
+            empujar(d, tipo_c(vista(elem)));
+            empujar(d, " ");
+            empujar(d, quien);
+            empujar(d, " = ");
+        }
+        empujar(d, vista(acceso));
+        empujar(d, ";");
+        emitir(b, vista(d));
+        I.declarar(tipos, quien, vista(elem));
+        let ya_era = tiene(s.punteros, quien);
+        if presta { poner(s.punteros, quien, 1); }
+
+        var bien = true;
+        for st en n.hijos[1].hijos {
+            if bien { bien = sentencia_c(b, s, st, tipos, retorno, falible); }
+        }
+        if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s); }
+        else { quitar_ultimo_bloque(b); }
+
+        if presta && !ya_era { quitar(s.punteros, quien); }
+        I.cerrar(tipos);
+        b.sangria = b.sangria - 1;
+        emitir(b, "}");
+        return bien;
+    }
+
     if igual(clase, "romper") { emitir(b, "break;"); return true; }
     if igual(clase, "continuar") { emitir(b, "continue;"); return true; }
 
     return false;
 }
 
-fn bloque_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: mut I.Contexto,
+fn bloque_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     retorno: view, falible: bool) -> bool {
     emitir(b, "{");
     b.sangria = b.sangria + 1;

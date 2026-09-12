@@ -164,7 +164,9 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
     var banderas: mapa<str, usize> = [];
     for nm en movidas { poner(banderas, vista(nm), 1); }
 
-    let sitio = G.Sitio { archivo: nuevo(ruta), tipos: de_tipo,
+    // El `for` presta el elemento que recorre: mientras dura, el nombre es
+    // un puntero mas del sitio.
+    var sitio = G.Sitio { archivo: nuevo(ruta), tipos: de_tipo,
         punteros: puntos, pide_bandera: banderas };
     var b = G.cuerpo();
     // La directiva de la funcion la pone el que imprime, antes de la firma;
