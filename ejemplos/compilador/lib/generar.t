@@ -339,6 +339,10 @@ fn expresion_c(s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str
     if igual(clase, "entero") { return literal_entero(vista(n.texto), esperado); }
     if igual(clase, "booleano") { return nuevo(vista(n.texto)); }
 
+    // Una cadena escrita es una vista de si misma: no reserva nada, y vive
+    // lo que vive el programa.
+    if igual(clase, "cadena") { return como_vista(s, n, tipos); }
+
     if igual(clase, "expresion") {
         if largo(n.hijos) == 1 {
             return expresion_c(s, n.hijos[0], esperado, tipos);
