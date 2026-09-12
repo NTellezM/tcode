@@ -96,8 +96,8 @@ RECHAZO = [
 
     ("un literal de struct generico cuyos campos no dicen el tipo",
      'struct Par<A, B> { a: A, b: B }'
-     ' fn cual<T>(x: T) -> T { return x; }'
-     ' fn main() -> usize { let p = Par { a: cual(1), b: 2 }; return 0; }',
+     ' fn vacia<T>() -> lista<T> { var s: lista<T> = []; return s; }'
+     ' fn main() -> usize { let p = Par { a: vacia(), b: 2 }; return 0; }',
      "Escribe el tipo en la declaracion"),
 
     ("un struct generico con el numero de tipos equivocado",
@@ -586,6 +586,20 @@ RECHAZO = [
 
 
 ACEPTA = [
+    ("la inferencia atraviesa una llamada a una generica",
+     '''usar "std/par";
+        struct Caja<T> { dentro: lista<T> }
+        fn cuantos<T>(c: &Caja<T>) -> usize { return largo(c.dentro); }
+        fn main() -> usize {
+            var c: Caja<str> = Caja { dentro: [] };
+            anadir(c.dentro, nuevo("x"));
+            // `cuantos(c)` es una generica: para saber que devuelve hay que
+            // elegir su copia, y eso pasa antes de deducir `A` y `B`.
+            let p = par(cuantos(c), nuevo("fin"));
+            imprimir($"{p.primero} {p.segundo}\\n");
+        }''',
+     "1 fin\n"),
+
     ("una lista dinamica escrita entera en Tcode, sobre `bloque<T>`",
      '''usar "std/vector";
         fn main() -> usize ! {

@@ -905,7 +905,21 @@ class Comprobador:
             if e.nombre in INTERNAS:
                 return INTERNAS[e.nombre].get("retorno")
             f = self.funciones.get(e.nombre)
-            return f.retorno if f is not None else None
+            if f is not None:
+                return f.retorno
+            plantilla = self.genericas.get(e.nombre)
+            if plantilla is not None:
+                # Para saber que devuelve hay que elegir la copia. Se intenta
+                # en silencio: si no sale, el error lo dara la llamada de
+                # verdad, con su sitio y su contexto.
+                marca = len(self.errores)
+                copia = self.instanciar(e, plantilla)
+                if copia is None or len(self.errores) > marca:
+                    del self.errores[marca:]
+                    return None
+                e.nombre = copia
+                return self.funciones[copia].retorno
+            return None
         return None
 
     def instanciar(self, e, plantilla):
