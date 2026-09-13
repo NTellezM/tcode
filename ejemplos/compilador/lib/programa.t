@@ -121,8 +121,13 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
             }
         }
         if es_de_c {
-            poner(c.externas, vista(n.texto), 1);
-            if igual(vista(retorno), "cadena_c") { retorno = nuevo("str"); }
+            // 2 si devuelve `cadena_c`: la llamada se queda una copia.
+            if igual(vista(retorno), "cadena_c") {
+                poner(c.externas, vista(n.texto), 2);
+                retorno = nuevo("str");
+            } else {
+                poner(c.externas, vista(n.texto), 1);
+            }
             // Una funcion de C presta lo que recibe: no se queda con nada.
             var prestados: lista<str> = [];
             for _m en marcados { anadir(prestados, nuevo("&")); }
@@ -191,7 +196,10 @@ fn copiar_firma(de: &I.Contexto, a: mut I.Contexto, suyo: view, como: view) {
         let tp = I.lista_de(de.tipo_params, suyo) sino [];
         poner(a.tipo_params, como, tp);
     }
-    if tiene(de.externas, suyo) { poner(a.externas, como, 1); }
+    if tiene(de.externas, suyo) {
+        let marca_e = obtener(de.externas, suyo) sino 1;
+        poner(a.externas, como, marca_e);
+    }
 }
 
 // `ejemplos/compilador/tipar.t` -> `tipar`. Lo mismo que hace el cargador:

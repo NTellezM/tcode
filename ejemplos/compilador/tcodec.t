@@ -97,7 +97,7 @@ fn sin_cadenas(l: view) -> str {
 fn necesita_lo_que_falta(l: view) -> bool {
     if contiene(l, "ss_bloque_") { return true; }
     if contiene(l, "ss_fn_") { return true; }
-    if contiene(l, "ss_cierre_") || contiene(l, "ss_lang_cstr_") { return true; }
+    if contiene(l, "ss_cierre_") { return true; }
     if contiene(l, "ss_lang_escribir_") {
         return true;
     }
@@ -1163,6 +1163,45 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
 }
 
 // ------------------------------------------------------------------
+// Externo
+// ------------------------------------------------------------------
+
+// La firma en C de una funcion que escribio otro: un `str` entra como
+// `const char*`, y `cadena_c` sale como tal.
+fn prototipo_externo(nombre: view, tipos_p: &lista<str>, nombres_p: &lista<str>,
+    retorno: view) -> str {
+    var tc = G.tipo_c(retorno);
+    if igual(retorno, "cadena_c") { tc = nuevo("const char*"); }
+    if largo(tipos_p) == 0 { return $"{tc} {nombre}(void)"; }
+    var partes = vacio();
+    var i = 0;
+    while i < largo(tipos_p) {
+        var t = G.tipo_c(vista(tipos_p[i]));
+        if igual(vista(tipos_p[i]), "str") { t = nuevo("const char*"); }
+        if i > 0 { empujar(partes, ", "); }
+        let pieza = $"{t} {nombres_p[i]}";
+        empujar(partes, vista(pieza));
+        i = i + 1;
+    }
+    return $"{tc} {nombre}({partes})";
+}
+
+// Cada linea de un texto, sin el salto final.
+fn anadir_lineas(texto_c: view, salida: mut lista<str>) {
+    var fin = largo(texto_c);
+    if fin > 0 && byte(texto_c, fin - 1) == 10 { fin = fin - 1; }
+    var desde = 0;
+    var i = 0;
+    while i <= fin {
+        if i == fin || byte(texto_c, i) == 10 {
+            anadir(salida, nuevo(rebanar(texto_c, desde, i)));
+            desde = i + 1;
+        }
+        i = i + 1;
+    }
+}
+
+// ------------------------------------------------------------------
 // Genericas
 // ------------------------------------------------------------------
 //
@@ -1337,6 +1376,10 @@ fn main() -> usize ! {
     var st_campos: lista<lista<str>> = [];
     var st_tipos: lista<lista<str>> = [];
     var st_indice: mapa<str, usize> = [];
+    // Las funciones de los bloques `externo`: de que cabecera salen y su
+    // prototipo en C.
+    var ext_cabeceras: lista<str> = [];
+    var ext_protos: lista<str> = [];
     // Los enums: cada variante, y lo que lleva cada una como `T1\tT2`.
     var en_nombres: lista<str> = [];
     var en_indice: mapa<str, usize> = [];
@@ -1384,6 +1427,27 @@ fn main() -> usize ! {
                 anadir(st_nombres, nuevo(vista(d.texto)));
                 anadir(st_campos, campos);
                 anadir(st_tipos, tipos_campo);
+                continue;
+            }
+            if igual(clase, "externo") {
+                for f en d.hijos {
+                    if !igual(vista(f.clase), "fn") { continue; }
+                    var ps: lista<str> = [];
+                    var pn: lista<str> = [];
+                    var ret = vacio();
+                    for h en f.hijos {
+                        if igual(vista(h.clase), "param") {
+                            let tp = F.tipo_pelado(vista(h.texto));
+                            anadir(ps, I.sin_alias_tipo(vista(tp)));
+                            anadir(pn, F.nombre_de(vista(h.texto)));
+                        }
+                        if igual(vista(h.clase), "retorno_tipo") {
+                            ret = nuevo(vista(h.texto));
+                        }
+                    }
+                    anadir(ext_cabeceras, nuevo(vista(d.texto)));
+                    anadir(ext_protos, prototipo_externo(vista(f.texto), ps, pn, vista(ret)));
+                }
                 continue;
             }
             if igual(clase, "enum") {
@@ -1985,10 +2049,41 @@ fn main() -> usize ! {
     // blanco detras.
     var todas: lista<str> = [];
     anadir(todas, cabecera);
+    // Las cabeceras que piden los `externo`, cada una una vez. Un `.c` no se
+    // incluye: se compila aparte y se enlaza.
+    var incluidas: lista<str> = [];
+    for h en ext_cabeceras {
+        if termina_con(vista(h), ".c") || esta_en(incluidas, vista(h)) { continue; }
+        anadir(incluidas, copiar(h));
+    }
+    if largo(incluidas) > 0 {
+        anadir(todas, nuevo("/* de los bloques `externo` */"));
+        for h en incluidas {
+            if contiene(vista(h), "/") || empieza_con(vista(h), ".") {
+                anadir(todas, $"#include \"{h}\"");
+            } else {
+                anadir(todas, $"#include <{h}>");
+            }
+        }
+        anadir(todas, vacio());
+    }
+    if largo(ext_protos) > 0 {
+        let cstr = try leer_archivo($"{raiz}/runtime/cstr.inc");
+        anadir_lineas(vista(cstr), todas);
+        anadir(todas, vacio());
+    }
     for x en partes { anadir(todas, copiar(x)); }
     for a en arit { anadir(todas, copiar(a)); }
     for x en bloque_copias { anadir(todas, copiar(x)); }
     for p en protos { anadir(todas, copiar(p)); }
+    // Una externa con cabecera ya trae su firma; la de un `.c` la pone Tcode.
+    var k_ext = 0;
+    while k_ext < largo(ext_protos) {
+        if termina_con(vista(ext_cabeceras[k_ext]), ".c") {
+            anadir(todas, $"{ext_protos[k_ext]};");
+        }
+        k_ext = k_ext + 1;
+    }
     anadir(todas, vacio());
     for l en cuerpos { anadir(todas, copiar(l)); }
 

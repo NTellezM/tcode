@@ -2958,7 +2958,7 @@ def _normaliza_tmp(texto):
         texto = renumera(texto, prefijo)
     return texto
 
-_MINIMO_CUERPOS = 405
+_MINIMO_CUERPOS = 408
 
 tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
 try:
@@ -3057,7 +3057,7 @@ print("=== PROGRAMA: el archivo C entero, escrito por Tcode ===")
 # el generador de Python. Lo que `tcodec` no sabe escribir entero lo rechaza
 # sin escribir medio archivo; se cuentan los programas identicos y se exige un
 # minimo.
-_MINIMO_PROGRAMAS = 21
+_MINIMO_PROGRAMAS = 22
 
 tmp = tempfile.mkdtemp(prefix="tcode-programa-")
 _cwd_antes = os.getcwd()

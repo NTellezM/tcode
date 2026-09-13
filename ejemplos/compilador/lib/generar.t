@@ -1562,6 +1562,42 @@ fn cuantos_bytes(crudo: view) -> usize {
     return largo(vista(t));
 }
 
+// Una llamada a C: la misma que escribiria un programa en C, sin nada que
+// traducir salvo la cadena, que pasa a `const char*` comprobando que no
+// lleve un cero en medio. Lo que devuelve `cadena_c` sigue siendo de C:
+// Tcode se queda una copia, que ya se suelta sola.
+fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let nombre = vista(n.texto);
+    let firmados = I.lista_de(tipos.params, nombre) sino [];
+    if largo(firmados) != largo(n.hijos) { return no_se(); }
+    var v = I.sin_modulo(nombre);
+    empujar(v, "(");
+    var i = 0;
+    for h en n.hijos {
+        if i > 0 { empujar(v, ", "); }
+        if igual(vista(firmados[i]), "str") {
+            let sitio = sitio_c(b, s, h, tipos);
+            if es_desconocido(vista(sitio)) { return no_se(); }
+            let pieza = $"ss_lang_cstr_(&{sitio}, \"{s.archivo}\", {n.linea})";
+            empujar(v, vista(pieza));
+        } else {
+            let arg = expresion_c(b, s, h, vista(firmados[i]), tipos);
+            if es_desconocido(vista(arg)) { return no_se(); }
+            empujar(v, vista(arg));
+        }
+        i = i + 1;
+    }
+    empujar(v, ")");
+    let marca = obtener(tipos.externas, nombre) sino 1;
+    if marca == 2 {
+        let tmp = nuevo_temporal(b);
+        emitir(b, $"SafeString {tmp} = ss_from({v});");
+        apuntar_temporal(b, vista(tmp), "str");
+        return tmp;
+    }
+    return v;
+}
+
 fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let nombre = vista(n.texto);
     let pura = interna_pura(b, s, n, tipos);
@@ -1576,7 +1612,7 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if !tiene(tipos.retornos, nombre) { return no_se(); }
     // Una llamada a C pide convertir el `str` a `const char*` comprobando el
     // cero de en medio. Esta capa todavia no lo hace, asi que no la emite.
-    if tiene(tipos.externas, nombre) { return no_se(); }
+    if tiene(tipos.externas, nombre) { return llamada_externa_c(b, s, n, tipos); }
     if tiene(tipos.repetidas, nombre) { return no_se(); }
 
     var firmados = I.lista_de(tipos.params, nombre) sino [];
