@@ -65,7 +65,7 @@ fn fila_aritmetica(t: view) -> str {
 // Lo que este hito todavia no sabe emitir: cada uno pide una seccion propia
 // del archivo (typedefs, tablas, ayudantes), y sin ella el C no compila.
 fn necesita_lo_que_falta(l: view) -> bool {
-    if contiene(l, "ss_mapa_") || contiene(l, "ss_copia_") { return true; }
+    if contiene(l, "ss_copia_") { return true; }
     if contiene(l, "ss_bloque_") { return true; }
     if contiene(l, "ss_arr_") || contiene(l, "ss_fn_") { return true; }
     if contiene(l, "ss_cierre_") || contiene(l, "ss_lang_cstr_") { return true; }
@@ -328,31 +328,120 @@ fn interior_lista(t: view) -> str {
     return nuevo(rebanar(t, 6, largo(t) - 1));
 }
 
-// Lo que este hito no sabe escribir todavia: mapas, bloques y arreglos.
-fn es_otra_coleccion(t: view) -> bool {
-    return contiene(t, "mapa<") || contiene(t, "bloque<") || contiene(t, "[");
+// Bloques y arreglos: este hito todavia no los escribe.
+fn es_bloque_o_arreglo(t: view) -> bool {
+    return contiene(t, "bloque<") || contiene(t, "[");
 }
 
-// Registra `t` si es una lista, la de dentro primero. Falso si es algo que
-// este hito todavia no escribe.
-fn mirar_tipo(t: view, listas: mut lista<str>, vistas: mut mapa<str, usize>) -> bool {
-    if es_otra_coleccion(t) {
+fn es_mapa_t(t: view) -> bool { return empieza_con(t, "mapa<"); }
+
+// La clave y el valor de un `mapa<K, V>`, cortando por la coma de fuera.
+fn partes_mapa(t: view) -> lista<str> {
+    var salida: lista<str> = [];
+    let dentro = rebanar(t, 5, largo(t) - 1);
+    var hondura = 0;
+    var i = 0;
+    while i < largo(dentro) {
+        let b = byte(dentro, i);
+        if b == 60 || b == 91 || b == 40 { hondura = hondura + 1; }
+        if (b == 62 || b == 93 || b == 41) && hondura > 0 { hondura = hondura - 1; }
+        if b == 44 && hondura == 0 {
+            anadir(salida, nuevo(rebanar(dentro, 0, i)));
+            var j = i + 1;
+            while j < largo(dentro) && byte(dentro, j) == 32 { j = j + 1; }
+            anadir(salida, nuevo(rebanar(dentro, j, largo(dentro))));
+            return salida;
+        }
+        i = i + 1;
+    }
+    return salida;
+}
+
+// Lo que el recorrido previo registra, en el orden en que lo registra el
+// original: cada coleccion concreta y cada tipo resultado. Un mapa registra
+// al pasar la lista de sus claves y los resultados de `obtener`, asi que
+// los tres van en el mismo recorrido y no en tres.
+struct Registro {
+    listas: lista<str>,
+    mapas: lista<str>,
+    resultados: lista<str>,
+    vistos: mapa<str, usize>,
+    res_vistos: mapa<str, usize>,
+}
+
+fn registro() -> Registro {
+    return Registro { listas: [], mapas: [], resultados: [], vistos: [],
+        res_vistos: [] };
+}
+
+fn registrar_resultado(reg: mut Registro, t: view) {
+    var clave = nuevo(t);
+    if igual(t, "()") { clave = vacio(); }
+    if tiene(reg.res_vistos, vista(clave)) { return; }
+    poner(reg.res_vistos, vista(clave), 1);
+    anadir(reg.resultados, clave);
+}
+
+// Tiene partes: se puede leer un campo o modificarlo en el sitio.
+fn es_compuesto_t(t: view, structs: &mapa<str, usize>) -> bool {
+    if igual(t, "str") || es_lista_t(t) || es_mapa_t(t) { return true; }
+    if empieza_con(t, "[") { return true; }
+    return tiene(structs, t);
+}
+
+// Lo que devuelve `obtener` para un mapa cuyo valor es `v`.
+fn tipo_obtener(v: view, global: &I.Contexto) -> str {
+    if !I.posee_con_formas(global, v) { return nuevo(v); }
+    if igual(v, "str") { return nuevo("view"); }
+    return $"&{v}";
+}
+
+// Registra `t` si es una lista o un mapa, lo de dentro primero. Falso si
+// es algo que este hito todavia no escribe.
+fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
+    structs: &mapa<str, usize>) -> bool {
+    if es_bloque_o_arreglo(t) {
         // Un prestamo no registra nada, como en el original.
         return empieza_con(t, "&");
     }
-    if !es_lista_t(t) { return true; }
-    if tiene(vistas, t) { return true; }
-    let dentro = interior_lista(t);
-    if es_lista_t(vista(dentro)) {
-        if !mirar_tipo(vista(dentro), listas, vistas) { return false; }
+    if tiene(reg.vistos, t) { return true; }
+    if es_lista_t(t) {
+        // Una lista de mapas registraria el mapa al pedir su nombre en C,
+        // fuera del recorrido, y ese orden no se reproduce aqui.
+        if contiene(t, "mapa<") { return false; }
+        let dentro = interior_lista(t);
+        if es_lista_t(vista(dentro)) {
+            if !mirar_tipo(vista(dentro), reg, global, structs) { return false; }
+        }
+        poner(reg.vistos, t, 1);
+        anadir(reg.listas, nuevo(t));
+        return true;
     }
-    poner(vistas, t, 1);
-    anadir(listas, nuevo(t));
+    if !es_mapa_t(t) { return true; }
+    let partes = partes_mapa(t);
+    if largo(partes) != 2 { return false; }
+    // El nombre en C de la clave y del valor, la lista que devuelve
+    // `claves`, y los resultados de `obtener` y de `obtener_mut`.
+    for x en partes {
+        if es_lista_t(vista(x)) || es_mapa_t(vista(x)) {
+            if !mirar_tipo(vista(x), reg, global, structs) { return false; }
+        }
+    }
+    let de_claves = $"lista<{partes[0]}>";
+    if !mirar_tipo(vista(de_claves), reg, global, structs) { return false; }
+    let obt = tipo_obtener(vista(partes[1]), global);
+    registrar_resultado(reg, vista(obt));
+    if es_compuesto_t(vista(partes[1]), structs) {
+        let con_mut = $"&mut {partes[1]}";
+        registrar_resultado(reg, vista(con_mut));
+    }
+    poner(reg.vistos, t, 1);
+    anadir(reg.mapas, nuevo(t));
     return true;
 }
 
-fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, listas: mut lista<str>,
-    vistas: mut mapa<str, usize>) -> bool {
+fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
+    global: &I.Contexto, structs: &mapa<str, usize>) -> bool {
     I.abrir(tipos);
     var bien = true;
     for st en n.hijos {
@@ -362,57 +451,72 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, listas: mut lista<str>,
             var escrito = G.tipo_escrito(vista(st.texto));
             if largo(escrito) == 0 { escrito = I.tipo_de(tipos, st.hijos[0]); }
             let t = I.sin_alias_tipo(vista(escrito));
-            if bien { bien = mirar_tipo(vista(t), listas, vistas); }
+            if bien { bien = mirar_tipo(vista(t), reg, global, structs); }
             I.declarar(tipos, vista(nombre), vista(t));
         }
         if igual(clase, "si") {
             var k = 1;
             while k < largo(st.hijos) {
-                if bien { bien = mirar_bloque(st.hijos[k], tipos, listas, vistas); }
+                if bien {
+                    bien = mirar_bloque(st.hijos[k], tipos, reg, global, structs);
+                }
                 k = k + 1;
             }
         }
         if igual(clase, "mientras") && largo(st.hijos) == 2 {
-            if bien { bien = mirar_bloque(st.hijos[1], tipos, listas, vistas); }
+            if bien {
+                bien = mirar_bloque(st.hijos[1], tipos, reg, global, structs);
+            }
         }
     }
     I.cerrar(tipos);
     return bien;
 }
 
-fn mirar_funcion(d: &P.Nodo, tipos: mut I.Contexto, listas: mut lista<str>,
-    vistas: mut mapa<str, usize>) -> bool {
+fn mirar_funcion(d: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
+    global: &I.Contexto, structs: &mapa<str, usize>) -> bool {
     let r = retorno_de(d);
-    if !mirar_tipo(vista(r), listas, vistas) { return false; }
+    if !mirar_tipo(vista(r), reg, global, structs) { return false; }
+    if es_falible(d) { registrar_resultado(reg, vista(r)); }
     I.abrir(tipos);
     var bien = true;
     for h en d.hijos {
         if igual(vista(h.clase), "param") {
             let pelado = F.tipo_pelado(vista(h.texto));
             let t = I.sin_alias_tipo(vista(pelado));
-            if bien { bien = mirar_tipo(vista(t), listas, vistas); }
+            if bien { bien = mirar_tipo(vista(t), reg, global, structs); }
             let pn = F.nombre_de(vista(h.texto));
             I.declarar(tipos, vista(pn), vista(t));
         }
     }
     for h en d.hijos {
         if igual(vista(h.clase), "bloque") && bien {
-            bien = mirar_bloque(h, tipos, listas, vistas);
+            bien = mirar_bloque(h, tipos, reg, global, structs);
         }
     }
     I.cerrar(tipos);
     return bien;
 }
 
-fn poner_typedef_lista(t: view, vistas: &mapa<str, usize>,
-    puestos: mut mapa<str, usize>, salida: mut lista<str>) {
-    if tiene(puestos, t) || !tiene(vistas, t) { return; }
+// Los typedefs de listas y mapas van juntos, ordenados por el tipo escrito,
+// cada uno despues de los que lleva dentro.
+fn poner_typedef(t: view, reg: &Registro, puestos: mut mapa<str, usize>,
+    salida: mut lista<str>) {
+    if tiene(puestos, t) || !tiene(reg.vistos, t) { return; }
     poner(puestos, t, 1);
-    let dentro = interior_lista(t);
-    poner_typedef_lista(vista(dentro), vistas, puestos, salida);
-    let te = G.tipo_c(vista(dentro));
     let tc = G.tipo_c(t);
-    anadir(salida, $"typedef struct {{ {te}* e; size_t length; size_t capacity; }} {tc};");
+    if es_lista_t(t) {
+        let dentro = interior_lista(t);
+        poner_typedef(vista(dentro), reg, puestos, salida);
+        let te = G.tipo_c(vista(dentro));
+        anadir(salida, $"typedef struct {{ {te}* e; size_t length; size_t capacity; }} {tc};");
+        return;
+    }
+    let partes = partes_mapa(t);
+    for x en partes { poner_typedef(vista(x), reg, puestos, salida); }
+    let tk = G.tipo_c(vista(partes[0]));
+    let tv = G.tipo_c(vista(partes[1]));
+    anadir(salida, $"typedef struct {{ {tk}* claves; {tv}* valores; size_t largo; size_t capacidad; }} {tc};");
 }
 
 fn ordenable(t: view) -> bool {
@@ -481,6 +585,253 @@ fn funcion_ordenar(t: view, salida: mut lista<str>) {
     anadir(salida, vacio());
 }
 
+// Las lineas que sueltan `donde`, con la misma cuenta que el resto: una
+// lista dentro de un valor gasta indice de bucle.
+fn lineas_liberacion(global: &I.Contexto, donde: view, tipo: view,
+    sangria: usize, cta: mut F.Cuenta, salida: mut lista<str>) {
+    var b = G.cuerpo();
+    b.temporal = cta.temporal;
+    b.bucle = cta.bucle;
+    b.sangria = sangria;
+    G.liberacion(b, global, donde, tipo);
+    for l en b.lineas { anadir(salida, copiar(l)); }
+    cta.temporal = b.temporal;
+    cta.bucle = b.bucle;
+}
+
+// Un juego de funciones por cada `mapa<K, V>` concreto: tabla de
+// direccionamiento abierto con sondeo lineal, y borrado sin lapidas.
+fn funcion_mapa(t: view, global: &I.Contexto, structs: &mapa<str, usize>,
+    cta: mut F.Cuenta, salida: mut lista<str>) {
+    let partes = partes_mapa(t);
+    let k = copiar(partes[0]);
+    let v = copiar(partes[1]);
+    let m = G.mangle(t);
+    let nombre = G.tipo_c(t);
+    let tc_k = G.tipo_c(vista(k));
+    let tc_v = G.tipo_c(vista(v));
+    let de_claves = $"lista<{k}>";
+    let lista_k = G.tipo_c(vista(de_claves));
+    let m_claves = G.mangle(vista(de_claves));
+    let obt = tipo_obtener(vista(v), global);
+    let res_v = G.tipo_resultado(vista(obt));
+    let posee = I.posee_con_formas(global, vista(v));
+
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static size_t ss_mapa_sitio_{m}(const {nombre}* p, SafeView clave)");
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    /* La capacidad es potencia de dos, asi que el resto es"));
+    anadir(salida, nuevo("       una mascara. Sondeo lineal: bueno con la cache y sin"));
+    anadir(salida, nuevo("       lapidas, porque en v0 no se borra. */"));
+    anadir(salida, nuevo("    size_t mascara = p->capacidad - 1;"));
+    anadir(salida, nuevo("    size_t i = (size_t) sv_hash(clave) & mascara;"));
+    anadir(salida, nuevo("    while (p->claves[i].data != NULL)"));
+    anadir(salida, nuevo("    {"));
+    anadir(salida, nuevo("        if (sv_equals(ss_view(&p->claves[i]), clave)) return i;"));
+    anadir(salida, nuevo("        i = (i + 1) & mascara;"));
+    anadir(salida, nuevo("    }"));
+    anadir(salida, nuevo("    return i;   /* celda libre: aqui iria */"));
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static void ss_mapa_crecer_{m}({nombre}* p, const char* archivo, int linea)");
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    size_t nueva = p->capacidad == 0 ? 16 : p->capacidad * 2;"));
+    anadir(salida, nuevo("    if (nueva < p->capacidad) ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, $"    if (nueva > SIZE_MAX / sizeof({tc_k})");
+    anadir(salida, $"        || nueva > SIZE_MAX / sizeof({tc_v}))");
+    anadir(salida, nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, vacio());
+    anadir(salida, $"    {nombre} nuevo;");
+    anadir(salida, $"    nuevo.claves = ({tc_k}*) calloc(nueva, sizeof({tc_k}));");
+    if posee {
+        anadir(salida, $"    nuevo.valores = ({tc_v}*) calloc(nueva, sizeof({tc_v}));");
+    } else {
+        anadir(salida, $"    nuevo.valores = ({tc_v}*) malloc(nueva * sizeof({tc_v}));");
+    }
+    anadir(salida, nuevo("    if (nuevo.claves == NULL || nuevo.valores == NULL)"));
+    anadir(salida, nuevo("    {"));
+    anadir(salida, nuevo("        free(nuevo.claves); free(nuevo.valores);"));
+    anadir(salida, nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, nuevo("    }"));
+    anadir(salida, nuevo("    nuevo.largo = p->largo;"));
+    anadir(salida, nuevo("    nuevo.capacidad = nueva;"));
+    anadir(salida, vacio());
+    anadir(salida, nuevo("    /* Se reubican las claves tal cual: nadie copia texto. */"));
+    anadir(salida, nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
+    anadir(salida, nuevo("    {"));
+    anadir(salida, nuevo("        if (p->claves[i].data == NULL) continue;"));
+    anadir(salida, $"        size_t j = ss_mapa_sitio_{m}(&nuevo, ss_view(&p->claves[i]));");
+    anadir(salida, nuevo("        nuevo.claves[j] = p->claves[i];"));
+    anadir(salida, nuevo("        nuevo.valores[j] = p->valores[i];"));
+    anadir(salida, nuevo("    }"));
+    anadir(salida, nuevo("    free(p->claves); free(p->valores);"));
+    anadir(salida, nuevo("    *p = nuevo;"));
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static void ss_mapa_poner_{m}({nombre}* p, SafeView clave, {tc_v} valor,");
+    anadir(salida, nuevo("        const char* archivo, int linea)"));
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    /* Se crece al 70% de ocupacion: por encima, el sondeo"));
+    anadir(salida, nuevo("       lineal empieza a formar cadenas largas. */"));
+    anadir(salida, nuevo("    if (p->capacidad == 0 || (p->largo + 1) * 10 >= p->capacidad * 7)"));
+    anadir(salida, $"        ss_mapa_crecer_{m}(p, archivo, linea);");
+    anadir(salida, vacio());
+    anadir(salida, $"    size_t i = ss_mapa_sitio_{m}(p, clave);");
+    anadir(salida, nuevo("    if (p->claves[i].data != NULL)"));
+    anadir(salida, nuevo("    {"));
+    if posee {
+        anadir(salida, nuevo("        /* el valor viejo era nuestro */"));
+        lineas_liberacion(global, "p->valores[i]", vista(v), 2, cta, salida);
+    }
+    anadir(salida, nuevo("        p->valores[i] = valor;   /* ya estaba: se reemplaza */"));
+    anadir(salida, nuevo("        return;"));
+    anadir(salida, nuevo("    }"));
+    anadir(salida, nuevo("    p->claves[i] = ss_from_view(clave);"));
+    anadir(salida, nuevo("    if (!ss_ok(&p->claves[i])) ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, nuevo("    p->valores[i] = valor;"));
+    anadir(salida, nuevo("    p->largo++;"));
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static bool ss_mapa_tiene_{m}(const {nombre}* p, SafeView clave)");
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    if (p->capacidad == 0) return false;"));
+    anadir(salida, $"    return p->claves[ss_mapa_sitio_{m}(p, clave)].data != NULL;");
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static {res_v} ss_mapa_obtener_{m}(const {nombre}* p, SafeView clave)");
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    if (p->capacidad == 0)"));
+    anadir(salida, $"        return ({res_v}){{ .motivo = \"la clave no esta en el mapa\" }};");
+    anadir(salida, $"    size_t i = ss_mapa_sitio_{m}(p, clave);");
+    anadir(salida, nuevo("    if (p->claves[i].data == NULL)"));
+    anadir(salida, $"        return ({res_v}){{ .motivo = \"la clave no esta en el mapa\" }};");
+    if igual(vista(v), "str") {
+        anadir(salida, $"    return ({res_v}){{ .motivo = NULL, .valor = ss_view(&p->valores[i]) }};");
+    } else {
+        if posee {
+            anadir(salida, $"    return ({res_v}){{ .motivo = NULL, .valor = &p->valores[i] }};");
+        } else {
+            anadir(salida, $"    return ({res_v}){{ .motivo = NULL, .valor = p->valores[i] }};");
+        }
+    }
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static {lista_k} ss_mapa_claves_{m}(const {nombre}* p,");
+    anadir(salida, nuevo("        const char* archivo, int linea)"));
+    anadir(salida, nuevo("{"));
+    anadir(salida, $"    {lista_k} salida = {{ NULL, 0, 0 }};");
+    anadir(salida, nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
+    anadir(salida, nuevo("    {"));
+    anadir(salida, nuevo("        if (p->claves[i].data == NULL) continue;"));
+    anadir(salida, $"        {tc_k} copia = ss_clone(&p->claves[i]);");
+    anadir(salida, nuevo("        if (!ss_ok(&copia)) ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, $"        ss_push_{m_claves}(&salida, copia, archivo, linea);");
+    anadir(salida, nuevo("    }"));
+    anadir(salida, nuevo("    return salida;"));
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+
+    if es_compuesto_t(vista(v), structs) {
+        let con_mut = $"&mut {v}";
+        let rm = G.tipo_resultado(vista(con_mut));
+        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        anadir(salida, $"static {rm} ss_mapa_obtener_mut_{m}({nombre}* p, SafeView clave)");
+        anadir(salida, nuevo("{"));
+        anadir(salida, nuevo("    if (p->capacidad == 0)"));
+        anadir(salida, $"        return ({rm}){{ .motivo = \"la clave no esta en el mapa\" }};");
+        anadir(salida, $"    size_t i = ss_mapa_sitio_{m}(p, clave);");
+        anadir(salida, nuevo("    if (p->claves[i].data == NULL)"));
+        anadir(salida, $"        return ({rm}){{ .motivo = \"la clave no esta en el mapa\" }};");
+        anadir(salida, $"    return ({rm}){{ .motivo = NULL, .valor = &p->valores[i] }};");
+        anadir(salida, nuevo("}"));
+        anadir(salida, vacio());
+    }
+
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static bool ss_mapa_quitar_{m}({nombre}* p, SafeView clave)");
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    if (p->capacidad == 0) return false;"));
+    anadir(salida, nuevo("    size_t mascara = p->capacidad - 1;"));
+    anadir(salida, $"    size_t i = ss_mapa_sitio_{m}(p, clave);");
+    anadir(salida, nuevo("    if (p->claves[i].data == NULL) return false;"));
+    anadir(salida, vacio());
+    anadir(salida, nuevo("    ss_free(&p->claves[i]);"));
+    anadir(salida, nuevo("    p->claves[i] = ss_new();"));
+    if posee {
+        lineas_liberacion(global, "p->valores[i]", vista(v), 1, cta, salida);
+        anadir(salida, $"    memset(&p->valores[i], 0, sizeof({tc_v}));");
+    }
+    anadir(salida, nuevo("    p->largo--;"));
+    anadir(salida, vacio());
+    anadir(salida, nuevo("    /* Sin lapidas: se cierra el hueco arrastrando hacia atras"));
+    anadir(salida, nuevo("       las entradas del mismo grupo que quedarian inalcanzables."));
+    anadir(salida, nuevo("       Es lo que permite que la busqueda pueda parar en la"));
+    anadir(salida, nuevo("       primera celda libre. */"));
+    anadir(salida, nuevo("    size_t j = i;"));
+    anadir(salida, nuevo("    for (;;)"));
+    anadir(salida, nuevo("    {"));
+    anadir(salida, nuevo("        j = (j + 1) & mascara;"));
+    anadir(salida, nuevo("        if (p->claves[j].data == NULL) break;"));
+    anadir(salida, nuevo("        size_t k = (size_t) sv_hash(ss_view(&p->claves[j])) & mascara;"));
+    anadir(salida, nuevo("        bool mover = (i <= j) ? (k <= i || k > j)"));
+    anadir(salida, nuevo("                              : (k <= i && k > j);"));
+    anadir(salida, nuevo("        if (mover)"));
+    anadir(salida, nuevo("        {"));
+    anadir(salida, nuevo("            p->claves[i] = p->claves[j];"));
+    anadir(salida, nuevo("            p->valores[i] = p->valores[j];"));
+    anadir(salida, nuevo("            p->claves[j] = ss_new();"));
+    anadir(salida, nuevo("            i = j;"));
+    anadir(salida, nuevo("        }"));
+    anadir(salida, nuevo("    }"));
+    anadir(salida, nuevo("    return true;"));
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static void ss_mapa_libre_{m}({nombre}* p)");
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
+    anadir(salida, nuevo("        if (p->claves[i].data != NULL)"));
+    anadir(salida, nuevo("        {"));
+    anadir(salida, nuevo("            ss_free(&p->claves[i]);"));
+    if posee {
+        lineas_liberacion(global, "p->valores[i]", vista(v), 3, cta, salida);
+    }
+    anadir(salida, nuevo("        }"));
+    anadir(salida, nuevo("    free(p->claves); free(p->valores);"));
+    anadir(salida, nuevo("    p->claves = NULL; p->valores = NULL;"));
+    anadir(salida, nuevo("    p->largo = 0; p->capacidad = 0;"));
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+}
+
+// El tipo de mapa al que se refiere un nombre de C: `ss_mapa_poner_mapa_x`
+// y `ss_mapa_x` hablan del mismo.
+fn tipo_de_nombre_mapa(u: view) -> str {
+    let resto = rebanar(u, 8, largo(u));
+    if empieza_con(resto, "obtener_mut_") { return $"ss_{rebanar(resto, 12, largo(resto))}"; }
+    if empieza_con(resto, "obtener_") { return $"ss_{rebanar(resto, 8, largo(resto))}"; }
+    if empieza_con(resto, "sitio_") || empieza_con(resto, "poner_")
+    || empieza_con(resto, "tiene_") || empieza_con(resto, "libre_") {
+        return $"ss_{rebanar(resto, 6, largo(resto))}";
+    }
+    if empieza_con(resto, "crecer_") || empieza_con(resto, "claves_")
+    || empieza_con(resto, "quitar_") {
+        return $"ss_{rebanar(resto, 7, largo(resto))}";
+    }
+    return nuevo(u);
+}
+
 // Los nombres de C que empiezan por `prefijo`: `ss_lista_str` en una linea.
 fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
     var i = buscar_desde(t, prefijo, 0);
@@ -545,9 +896,9 @@ fn main() -> usize ! {
                     if igual(vista(h.clase), "campo_def") {
                         let tp = F.tipo_pelado(vista(h.texto));
                         let t = I.sin_alias_tipo(vista(tp));
-                        if es_otra_coleccion(vista(t)) || (contiene(vista(t), "<")
-                            && !es_lista_t(vista(t))) {
-                            return rechazo("mapas, bloques ni arreglos en un struct");
+                        if es_bloque_o_arreglo(vista(t)) || (contiene(vista(t), "<")
+                            && !es_lista_t(vista(t)) && !es_mapa_t(vista(t))) {
+                            return rechazo("bloques, arreglos o genericos en un struct");
                         }
                         anadir(campos, F.nombre_de(vista(h.texto)));
                         anadir(tipos_campo, t);
@@ -570,8 +921,7 @@ fn main() -> usize ! {
 
     // Las listas, con el mismo recorrido que el original: en orden de
     // declaracion, campos de struct y funciones entremezclados.
-    var listas: lista<str> = [];
-    var vistas: mapa<str, usize> = [];
+    var reg = registro();
     var im = 0;
     while im < largo(arboles) {
         for d en arboles[im].hijos {
@@ -580,14 +930,14 @@ fn main() -> usize ! {
                     if igual(vista(h.clase), "campo_def") {
                         let tp = F.tipo_pelado(vista(h.texto));
                         let t = I.sin_alias_tipo(vista(tp));
-                        if !mirar_tipo(vista(t), listas, vistas) {
+                        if !mirar_tipo(vista(t), reg, global, st_indice) {
                             return rechazo("mapas, bloques ni arreglos");
                         }
                     }
                 }
             }
             if igual(vista(d.clase), "fn") {
-                if !mirar_funcion(d, contextos[im], listas, vistas) {
+                if !mirar_funcion(d, contextos[im], reg, global, st_indice) {
                     return rechazo("mapas, bloques ni arreglos");
                 }
             }
@@ -595,31 +945,12 @@ fn main() -> usize ! {
         im = im + 1;
     }
 
-    // Los tipos resultado, en el orden en que el original los registra: el
-    // de declaracion, recorriendo los modulos en orden.
-    var resultados: lista<str> = [];
-    var ya: mapa<str, usize> = [];
-    for arbol en arboles {
-        for d en arbol.hijos {
-            if igual(vista(d.clase), "fn") && es_falible(d) {
-                var r = retorno_de(d);
-                if igual(vista(r), "()") { r = vacio(); }
-                if !tiene(ya, vista(r)) {
-                    poner(ya, vista(r), 1);
-                    anadir(resultados, r);
-                }
-            }
-        }
-    }
     // Las internas falibles registran el suyo despues, al recorrer todo.
     var usa_leer_archivo = false;
     for arbol en arboles {
         if llama_a(arbol, "leer_archivo") { usa_leer_archivo = true; }
     }
-    if usa_leer_archivo && !tiene(ya, "str") {
-        poner(ya, "str", 1);
-        anadir(resultados, nuevo("str"));
-    }
+    if usa_leer_archivo { registrar_resultado(reg, "str"); }
 
     // Los structs en orden de dependencia, y quien de ellos posee.
     var listos: mapa<str, usize> = [];
@@ -633,11 +964,12 @@ fn main() -> usize ! {
     for n en st_nombres { anadir(partes, $"typedef struct {n} {n};"); }
     if largo(st_nombres) > 0 { anadir(partes, vacio()); }
     var ordenadas: lista<str> = [];
-    for x en listas { anadir(ordenadas, copiar(x)); }
+    for x en reg.listas { anadir(ordenadas, copiar(x)); }
+    for x en reg.mapas { anadir(ordenadas, copiar(x)); }
     ordenar(ordenadas);
     var puestos: mapa<str, usize> = [];
-    for x en ordenadas { poner_typedef_lista(vista(x), vistas, puestos, partes); }
-    if largo(listas) > 0 { anadir(partes, vacio()); }
+    for x en ordenadas { poner_typedef(vista(x), reg, puestos, partes); }
+    if largo(ordenadas) > 0 { anadir(partes, vacio()); }
     for n en orden {
         let k = obtener(st_indice, vista(n)) sino 0;
         anadir(partes, $"struct {n}");
@@ -659,11 +991,14 @@ fn main() -> usize ! {
         }
     }
     if alguno_posee { anadir(partes, vacio()); }
-    for r en resultados { anadir(partes, typedef_resultado(vista(r))); }
-    if largo(resultados) > 0 { anadir(partes, vacio()); }
+    for r en reg.resultados { anadir(partes, typedef_resultado(vista(r))); }
+    if largo(reg.resultados) > 0 { anadir(partes, vacio()); }
     if usa_leer_archivo { ayudante_leer_archivo(partes); }
-    for x en listas { funcion_push(vista(x), partes); }
-    for x en listas { funcion_ordenar(vista(x), partes); }
+    for x en reg.listas { funcion_push(vista(x), partes); }
+    for x en reg.listas { funcion_ordenar(vista(x), partes); }
+    // Los mapas gastan cuenta si sus valores poseen: van antes que los
+    // liberadores de los structs, como en el original.
+    for x en reg.mapas { funcion_mapa(vista(x), global, st_indice, cta, partes); }
 
     // Los liberadores van antes que las funciones tambien en la cuenta: un
     // campo que sea una lista gasta indice de bucle.
@@ -742,13 +1077,42 @@ fn main() -> usize ! {
     var usadas: mapa<str, usize> = [];
     for l en cuerpos { apuntar_nombres(vista(l), "ss_lista_", usadas); }
     var registradas: mapa<str, usize> = [];
-    for x en listas {
+    for x en reg.listas {
         let nombre_c = G.tipo_c(vista(x));
         poner(registradas, vista(nombre_c), 1);
     }
     for u en claves(usadas) {
         if !tiene(registradas, vista(u)) {
             imprimir_error($"tcodec: `{u}` se usa y el recorrido no la registro\n");
+            return 1;
+        }
+    }
+
+    // Lo mismo con los mapas y los tipos resultado.
+    var usados_m: mapa<str, usize> = [];
+    var usados_r: mapa<str, usize> = [];
+    for l en cuerpos {
+        apuntar_nombres(vista(l), "ss_mapa_", usados_m);
+        apuntar_nombres(vista(l), "ss_res_", usados_r);
+    }
+    for x en reg.mapas {
+        let nombre_c = G.tipo_c(vista(x));
+        poner(registradas, vista(nombre_c), 1);
+    }
+    for x en reg.resultados {
+        let nombre_c = G.tipo_resultado(vista(x));
+        poner(registradas, vista(nombre_c), 1);
+    }
+    for u en claves(usados_m) {
+        let tipo = tipo_de_nombre_mapa(vista(u));
+        if !tiene(registradas, vista(tipo)) {
+            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
+            return 1;
+        }
+    }
+    for u en claves(usados_r) {
+        if !tiene(registradas, vista(u)) {
+            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
             return 1;
         }
     }

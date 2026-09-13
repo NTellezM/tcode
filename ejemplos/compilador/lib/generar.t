@@ -1564,9 +1564,30 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             presta_el = empieza_con(m, "&") || empieza_con(m, "mut ");
         }
         if presta_el {
-            let dir = direccion_del_sitio(b, s, h, tipos);
-            if es_desconocido(vista(dir)) { return no_se(); }
-            empujar(v, vista(dir));
+            let clase_h = vista(h.clase);
+            if igual(clase_h, "variable") || igual(clase_h, "campo")
+            || igual(clase_h, "indice") {
+                let dir = direccion_del_sitio(b, s, h, tipos);
+                if es_desconocido(vista(dir)) { return no_se(); }
+                empujar(v, vista(dir));
+                i = i + 1;
+                continue;
+            }
+            // Prestar algo recien hecho: se guarda en un temporal para poder
+            // tomarle la direccion, y se suelta al acabar la sentencia como
+            // cualquier otro valor descartado.
+            if largo(esperado) == 0 { return no_se(); }
+            let tmp = nuevo_temporal(b);
+            let valor = expresion_c(b, s, h, vista(esperado), tipos);
+            if es_desconocido(vista(valor)) { return no_se(); }
+            reclamar(b, vista(valor));
+            let tc = tipo_c(vista(esperado));
+            emitir(b, $"{tc} {tmp} = {valor};");
+            if I.posee_con_formas(tipos, vista(esperado)) {
+                apuntar_temporal(b, vista(tmp), vista(esperado));
+            }
+            empujar(v, "&");
+            empujar(v, vista(tmp));
             i = i + 1;
             continue;
         }
