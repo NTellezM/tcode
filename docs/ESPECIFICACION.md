@@ -1670,12 +1670,62 @@ Punteros crudos, structs a través del borde, `callbacks` de C a Tcode,
 varargs (`printf`), y devolver memoria que haya que liberar. Todo eso se
 envuelve en un `.c` de al lado.
 
+## El sistema: lo que no puede ir por `externo`
+
+`getenv` devuelve un `char*` que no es de nadie. En Tcode la memoria tiene
+dueño, así que estas siete son internas del lenguaje y no una biblioteca: lo
+que devuelven es un `str` de verdad, con su liberación automática.
+
+| | | |
+|---|---|---|
+| `leer_linea() -> str !` | una línea de la entrada, sin el salto | falla al acabarse |
+| `entrada_completa() -> str !` | toda la entrada | |
+| `variable_entorno(v) -> str !` | del entorno | falla si no está |
+| `ahora_ms() -> i64` | reloj de pared, ms desde 1970 | |
+| `monotono_ms() -> i64` | reloj monótono, para durar | |
+| `azar(tope) -> usize` | en `[0, tope)` | aborta con `tope == 0` |
+| `sembrar(semilla)` | fija el azar, para poder repetir | |
+
+En las cinco primeras hay una decisión que C tomó al revés:
+
+**`leer_linea` crece lo que haga falta.** `fgets` corta y deja el resto para
+la vuelta siguiente, que es peor que fallar porque parece que funciona. El
+`bufio.Scanner` de Go deja de leer a los 64 KB y no lo dice. Aquí no hay
+línea demasiado larga, y un `\r\n` de Windows tampoco es parte de la línea.
+
+**El fin de la entrada es un fallo, no una cadena vacía.** Una línea en
+blanco no es lo mismo que no haber nada. Es la diferencia entre el `input()`
+de Python (que levanta `EOFError`) y leer un `""` sin saber cuál de las dos
+cosas pasó.
+
+**`variable_entorno` distingue «no está» de «está vacía».** `getenv` no
+puede: las dos dan algo falso. Go necesitó un `LookupEnv` aparte para esto y
+Rust un `Result`; aquí sale del mismo `!` que ya tiene el lenguaje.
+
+**Hay dos relojes, y el nombre dice cuál es cuál.** Medir una duración con el
+de pared es el error clásico — salta con el NTP y con el cambio de hora. Y el
+`clock()` de C mide tiempo de *CPU* aunque medio mundo lo use para lo otro.
+`monotono_ms` usa `CLOCK_MONOTONIC` donde exista; donde no, cae al de pared,
+que es lo único que hay en C17.
+
+**`azar` no tiene el sesgo de `rand() % n`.** Si el tope no divide al rango,
+los primeros valores saldrían más veces. Se descarta el sobrante, como en
+Rust y en Go. El generador es xoshiro256++, no el `rand()` de C. Sin semilla
+puesta, la elige el reloj; con `sembrar`, sale siempre lo mismo, que es lo
+que hace falta para que una prueba sirva de algo.
+
+Cada una entra en el C generado **sólo si el programa la usa**: quien no lee
+la entrada no carga con el código de leerla.
+
+Está en `ejemplos/sistema.t`.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: clausuras que modifiquen lo capturado
 (`FnMut`), comprobación del cuerpo genérico una sola vez contra la
 restricción (eso es Rust, y es más), enums con parámetros de tipo, patrones
-anidados ni guardas, E/S incremental, punteros crudos ni recolector. La
+anidados ni guardas, escritura incremental (un `escribir_archivo` deja el
+archivo entero), punteros crudos ni recolector. La
 puerta a C existe (`externo`) pero es estrecha a propósito: sin punteros, sin
 structs y sin varargs.
 Todo valor que sale

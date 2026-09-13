@@ -2983,6 +2983,29 @@ INTERNAS = {
     "escribir_archivo": {"params": ["view", "view"], "retorno": UNIDAD,
                          "falible": True},
     "imprimir_error": {"params": ["@cualquiera"],     "retorno": UNIDAD},
+    # ---- el sistema ----
+    #
+    # Lo que no puede pasar por `externo` porque tiene que respetar la
+    # propiedad: lo que devuelven es un `str` de Tcode, con su liberacion.
+    #
+    # Una linea de la entrada, sin el salto. Crece lo que haga falta: no hay
+    # limite ni recorte silencioso como el `bufio.Scanner` de Go, que a los
+    # 64 KB deja de leer y no lo dice. El fin de la entrada es un fallo, no
+    # una cadena vacia, para que no se confunda con una linea en blanco.
+    "leer_linea": {"params": [], "retorno": "str", "falible": True},
+    "entrada_completa": {"params": [], "retorno": "str", "falible": True},
+    # `getenv` no distingue "no esta" de "esta vacia"; esto si, porque una
+    # cosa es un fallo y la otra un valor.
+    "variable_entorno": {"params": ["view"], "retorno": "str",
+                         "falible": True},
+    # Dos relojes, con el nombre diciendo cual es cual. Medir una duracion
+    # con el de pared es el error clasico —salta con el NTP— y el `clock()`
+    # de C mide tiempo de CPU aunque todo el mundo lo use para lo otro.
+    "ahora_ms":    {"params": [],                     "retorno": "i64"},
+    "monotono_ms": {"params": [],                     "retorno": "i64"},
+    # Azar sin el sesgo de `rand() % n`, y con semilla para poder repetir.
+    "azar":     {"params": ["usize"],                 "retorno": "usize"},
+    "sembrar":  {"params": ["u64"],                   "retorno": UNIDAD},
     "menor":    {"params": ["@comparable", "@comparable"], "retorno": "bool"},
     "ordenar":  {"params": ["@lista_mut"],            "retorno": UNIDAD},
     # Mapas. El tipo concreto sale de `interna_mapa`, que mira el mapa real.
