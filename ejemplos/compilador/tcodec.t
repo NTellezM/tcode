@@ -65,7 +65,6 @@ fn fila_aritmetica(t: view) -> str {
 // Lo que este hito todavia no sabe emitir: cada uno pide una seccion propia
 // del archivo (typedefs, tablas, ayudantes), y sin ella el C no compila.
 fn necesita_lo_que_falta(l: view) -> bool {
-    if contiene(l, "ss_copia_") { return true; }
     if contiene(l, "ss_bloque_") { return true; }
     if contiene(l, "ss_arr_") || contiene(l, "ss_fn_") { return true; }
     if contiene(l, "ss_cierre_") || contiene(l, "ss_lang_cstr_") { return true; }
@@ -402,13 +401,18 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     structs: &mapa<str, usize>) -> bool {
     if es_bloque_o_arreglo(t) {
         // Un prestamo no registra nada, como en el original.
-        return empieza_con(t, "&");
+        if empieza_con(t, "&") { return true; }
+        imprimir_error($"tcodec: el tipo `{t}`\n");
+        return false;
     }
     if tiene(reg.vistos, t) { return true; }
     if es_lista_t(t) {
         // Una lista de mapas registraria el mapa al pedir su nombre en C,
         // fuera del recorrido, y ese orden no se reproduce aqui.
-        if contiene(t, "mapa<") { return false; }
+        if contiene(t, "mapa<") {
+            imprimir_error($"tcodec: el tipo `{t}`\n");
+            return false;
+        }
         let dentro = interior_lista(t);
         if es_lista_t(vista(dentro)) {
             if !mirar_tipo(vista(dentro), reg, global, structs) { return false; }
@@ -848,6 +852,135 @@ fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
 // ------------------------------------------------------------------
 
 // ------------------------------------------------------------------
+// Copiadores
+// ------------------------------------------------------------------
+//
+// `copiar` de algo con memoria detras llama a un copiador generado, uno por
+// tipo, espejo de su liberador. Se descubren al escribir las funciones y
+// salen despues de la aritmetica, de dentro hacia fuera.
+
+fn hondura_tipo(t: view) -> usize {
+    var n = 0;
+    var i = 0;
+    while i < largo(t) {
+        let b = byte(t, i);
+        if b == 60 || b == 91 { n = n + 1; }
+        i = i + 1;
+    }
+    return n;
+}
+
+// Apunta el copiador de `t` y el de lo que lleve dentro, en ese orden.
+fn necesita_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
+    st_tipos: &lista<lista<str>>, vistos: mut mapa<str, usize>,
+    salida: mut lista<str>) {
+    if igual(t, "str") || !I.posee_con_formas(global, t) || tiene(vistos, t) {
+        return;
+    }
+    poner(vistos, t, 1);
+    anadir(salida, nuevo(t));
+    if es_lista_t(t) {
+        let dentro = interior_lista(t);
+        necesita_copiador(vista(dentro), global, st_indice, st_tipos, vistos, salida);
+        return;
+    }
+    if es_mapa_t(t) {
+        let partes = partes_mapa(t);
+        if largo(partes) == 2 {
+            necesita_copiador(vista(partes[1]), global, st_indice, st_tipos,
+                vistos, salida);
+        }
+        return;
+    }
+    if tiene(st_indice, t) {
+        let k = obtener(st_indice, t) sino 0;
+        for c en st_tipos[k] {
+            necesita_copiador(vista(c), global, st_indice, st_tipos, vistos, salida);
+        }
+    }
+}
+
+fn copia_de(donde: view, t: view, global: &I.Contexto) -> str {
+    if !I.posee_con_formas(global, t) { return nuevo(donde); }
+    if igual(t, "str") { return $"ss_clone(&{donde})"; }
+    let m = G.mangle(t);
+    return $"ss_copia_{m}(&{donde})";
+}
+
+// Falso si el tipo es de los que este hito todavia no copia.
+fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
+    st_campos: &lista<lista<str>>, st_tipos: &lista<lista<str>>,
+    salida: mut lista<str>) -> bool {
+    let tc = G.tipo_c(t);
+    let m = G.mangle(t);
+    if es_lista_t(t) {
+        let elem = interior_lista(t);
+        let te = G.tipo_c(vista(elem));
+        let cp = copia_de("p->e[i]", vista(elem), global);
+        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
+        anadir(salida, nuevo("{"));
+        anadir(salida, $"    {tc} r = {{ NULL, 0, 0 }};");
+        anadir(salida, nuevo("    if (p->length == 0) return r;"));
+        anadir(salida, $"    r.e = ({te}*) calloc(p->length, sizeof({te}));");
+        anadir(salida, nuevo("    if (r.e == NULL) ss_lang_sin_memoria_(__FILE__, __LINE__);"));
+        anadir(salida, nuevo("    r.capacity = p->length;"));
+        anadir(salida, nuevo("    for (size_t i = 0; i < p->length; i++)"));
+        anadir(salida, $"        r.e[i] = {cp};");
+        anadir(salida, nuevo("    r.length = p->length;"));
+        anadir(salida, nuevo("    return r;"));
+        anadir(salida, nuevo("}"));
+        anadir(salida, vacio());
+        return true;
+    }
+    if es_mapa_t(t) {
+        let partes = partes_mapa(t);
+        if largo(partes) != 2 { return false; }
+        let tck = G.tipo_c(vista(partes[0]));
+        let tcv = G.tipo_c(vista(partes[1]));
+        let cp = copia_de("p->valores[i]", vista(partes[1]), global);
+        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
+        anadir(salida, nuevo("{"));
+        anadir(salida, $"    {tc} r = {{ NULL, NULL, 0, 0 }};");
+        anadir(salida, nuevo("    if (p->capacidad == 0) return r;"));
+        anadir(salida, $"    r.claves = ({tck}*) calloc(p->capacidad, sizeof({tck}));");
+        anadir(salida, $"    r.valores = ({tcv}*) calloc(p->capacidad, sizeof({tcv}));");
+        anadir(salida, nuevo("    if (r.claves == NULL || r.valores == NULL)"));
+        anadir(salida, nuevo("        ss_lang_sin_memoria_(__FILE__, __LINE__);"));
+        anadir(salida, nuevo("    r.capacidad = p->capacidad;"));
+        anadir(salida, nuevo("    r.largo = p->largo;"));
+        anadir(salida, nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
+        anadir(salida, nuevo("    {"));
+        anadir(salida, nuevo("        if (p->claves[i].data == NULL) continue;"));
+        anadir(salida, nuevo("        r.claves[i] = ss_clone(&p->claves[i]);"));
+        anadir(salida, $"        r.valores[i] = {cp};");
+        anadir(salida, nuevo("    }"));
+        anadir(salida, nuevo("    return r;"));
+        anadir(salida, nuevo("}"));
+        anadir(salida, vacio());
+        return true;
+    }
+    if !tiene(st_indice, t) { return false; }
+    let k = obtener(st_indice, t) sino 0;
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
+    anadir(salida, nuevo("{"));
+    anadir(salida, $"    {tc} r;");
+    var j = 0;
+    while j < largo(st_campos[k]) {
+        let donde = $"p->{st_campos[k][j]}";
+        let cp = copia_de(vista(donde), vista(st_tipos[k][j]), global);
+        anadir(salida, $"    r.{st_campos[k][j]} = {cp};");
+        j = j + 1;
+    }
+    anadir(salida, nuevo("    return r;"));
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+    return true;
+}
+
+// ------------------------------------------------------------------
 // Genericas
 // ------------------------------------------------------------------
 //
@@ -983,7 +1116,7 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     }
     for l en lineas {
         if necesita_lo_que_falta(vista(l)) {
-            imprimir_error($"tcodec: `{d.texto}` necesita algo que falta\n");
+            imprimir_error($"tcodec: `{d.texto}` necesita algo que falta: {l}\n");
             return false;
         }
         apuntar_tras(vista(l), "ss_lang_suma_", anchos);
@@ -1311,6 +1444,50 @@ fn main() -> usize ! {
         }
     }
 
+    // Los copiadores, en el orden en que el original los apunta, y de dentro
+    // hacia fuera: el de `lista<Cosa>` llama al de `Cosa`.
+    var apuntados: lista<str> = [];
+    var vistos_c: mapa<str, usize> = [];
+    for t en cta.copias {
+        necesita_copiador(vista(t), global, st_indice, st_tipos, vistos_c, apuntados);
+    }
+    var copiadores: lista<str> = [];
+    var hondo = 0;
+    var quedan = largo(apuntados);
+    while quedan > 0 {
+        for t en apuntados {
+            if hondura_tipo(vista(t)) == hondo {
+                anadir(copiadores, copiar(t));
+                quedan = quedan - 1;
+            }
+        }
+        hondo = hondo + 1;
+    }
+    var bloque_copias: lista<str> = [];
+    var nombres_copia: mapa<str, usize> = [];
+    for t en copiadores {
+        let tc = G.tipo_c(vista(t));
+        let m = G.mangle(vista(t));
+        anadir(bloque_copias, $"static {tc} ss_copia_{m}(const {tc}* p);");
+        let nc = $"ss_copia_{m}";
+        poner(nombres_copia, vista(nc), 1);
+    }
+    anadir(bloque_copias, vacio());
+    for t en copiadores {
+        if !cuerpo_copiador(vista(t), global, st_indice, st_campos, st_tipos,
+            bloque_copias) {
+            return rechazo("copiar bloques, arreglos o enums");
+        }
+    }
+    var usados_c: mapa<str, usize> = [];
+    for l en cuerpos { apuntar_nombres(vista(l), "ss_copia_", usados_c); }
+    for u en claves(usados_c) {
+        if !tiene(nombres_copia, vista(u)) {
+            imprimir_error($"tcodec: `{u}` se usa y no se apunto\n");
+            return 1;
+        }
+    }
+
     // Solo los anchos que el programa usa, en el orden de sus nombres.
     var arit: lista<str> = [];
     var ws = claves(anchos);
@@ -1352,7 +1529,7 @@ fn main() -> usize ! {
     anadir(todas, cabecera);
     for x en partes { anadir(todas, copiar(x)); }
     for a en arit { anadir(todas, copiar(a)); }
-    anadir(todas, vacio());
+    for x en bloque_copias { anadir(todas, copiar(x)); }
     for p en protos { anadir(todas, copiar(p)); }
     anadir(todas, vacio());
     for l en cuerpos { anadir(todas, copiar(l)); }
