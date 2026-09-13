@@ -3017,7 +3017,7 @@ print("=== PROGRAMA: el archivo C entero, escrito por Tcode ===")
 # el generador de Python. Lo que `tcodec` no sabe escribir entero lo rechaza
 # sin escribir medio archivo; se cuentan los programas identicos y se exige un
 # minimo.
-_MINIMO_PROGRAMAS = 11
+_MINIMO_PROGRAMAS = 12
 
 tmp = tempfile.mkdtemp(prefix="tcode-programa-")
 _cwd_antes = os.getcwd()

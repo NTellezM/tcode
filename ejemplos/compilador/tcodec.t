@@ -68,16 +68,7 @@ fn necesita_lo_que_falta(l: view) -> bool {
     if contiene(l, "ss_bloque_") { return true; }
     if contiene(l, "ss_arr_") || contiene(l, "ss_fn_") { return true; }
     if contiene(l, "ss_cierre_") || contiene(l, "ss_lang_cstr_") { return true; }
-    if contiene(l, "ss_lang_leer_linea_") || contiene(l, "ss_lang_escribir_") {
-        return true;
-    }
-    if contiene(l, "ss_lang_entrada_") || contiene(l, "ss_lang_variable_") {
-        return true;
-    }
-    if contiene(l, "ss_lang_ahora_") || contiene(l, "ss_lang_monotono_") {
-        return true;
-    }
-    if contiene(l, "ss_lang_azar_") || contiene(l, "ss_lang_sembrar_") {
+    if contiene(l, "ss_lang_escribir_") {
         return true;
     }
     return contiene(l, "ss_lang_texto_decimal_");
@@ -1275,10 +1266,30 @@ fn main() -> usize ! {
 
     // Las internas falibles registran el suyo despues, al recorrer todo.
     var usa_leer_archivo = false;
+    var da_texto = false;
+    var usa_sistema: mapa<str, usize> = [];
     for arbol en arboles {
         if llama_a(arbol, "leer_archivo") { usa_leer_archivo = true; }
+        if llama_a(arbol, "leer_linea") {
+            da_texto = true;
+            poner(usa_sistema, "leer_linea", 1);
+        }
+        if llama_a(arbol, "entrada_completa") {
+            da_texto = true;
+            poner(usa_sistema, "entrada_completa", 1);
+        }
+        if llama_a(arbol, "variable_entorno") {
+            da_texto = true;
+            poner(usa_sistema, "variable_entorno", 1);
+        }
+        if llama_a(arbol, "ahora_ms") { poner(usa_sistema, "ahora_ms", 1); }
+        if llama_a(arbol, "monotono_ms") { poner(usa_sistema, "monotono_ms", 1); }
+        if llama_a(arbol, "azar") || llama_a(arbol, "sembrar") {
+            poner(usa_sistema, "semilla", 1);
+        }
     }
-    if usa_leer_archivo { registrar_resultado(reg, "str"); }
+    // Todas las que fallan dan un `str`: el tipo resultado es uno.
+    if usa_leer_archivo || da_texto { registrar_resultado(reg, "str"); }
 
     // Los structs en orden de dependencia, y quien de ellos posee.
     var listos: mapa<str, usize> = [];
@@ -1321,6 +1332,35 @@ fn main() -> usize ! {
     if alguno_posee { anadir(partes, vacio()); }
     for r en reg.resultados { anadir(partes, typedef_resultado(vista(r))); }
     if largo(reg.resultados) > 0 { anadir(partes, vacio()); }
+    // Las internas que hablan con el sistema, en un orden fijo: el monotono
+    // cae en el de pared, y el azar sin semilla usa el reloj. Su C vive en
+    // `runtime/sistema`, el mismo que lee el original.
+    let res_texto = G.tipo_resultado("str");
+    var internas_orden: lista<str> = [];
+    anadir(internas_orden, nuevo("ahora_ms"));
+    anadir(internas_orden, nuevo("monotono_ms"));
+    anadir(internas_orden, nuevo("semilla"));
+    anadir(internas_orden, nuevo("leer_linea"));
+    anadir(internas_orden, nuevo("entrada_completa"));
+    anadir(internas_orden, nuevo("variable_entorno"));
+    for interna en internas_orden {
+        if !tiene(usa_sistema, vista(interna)) { continue; }
+        let crudo = try leer_archivo($"{raiz}/runtime/sistema/{interna}.inc");
+        let hecho = try reemplazar(vista(crudo), "@RES_STR@", vista(res_texto));
+        var desde = 0;
+        var k_l = 0;
+        // Sin el salto final: cada linea va a su sitio, y la blanca de detras
+        // la pone el separador.
+        let cuerpo_c = rebanar(vista(hecho), 0, largo(vista(hecho)) - 1);
+        while k_l <= largo(cuerpo_c) {
+            if k_l == largo(cuerpo_c) || byte(cuerpo_c, k_l) == 10 {
+                anadir(partes, nuevo(rebanar(cuerpo_c, desde, k_l)));
+                desde = k_l + 1;
+            }
+            k_l = k_l + 1;
+        }
+        anadir(partes, vacio());
+    }
     if usa_leer_archivo { ayudante_leer_archivo(partes); }
     for x en reg.listas { funcion_push(vista(x), partes); }
     for x en reg.listas { funcion_ordenar(vista(x), partes); }

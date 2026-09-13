@@ -1499,7 +1499,9 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let pura = interna_pura(b, s, n, tipos);
     if !es_desconocido(vista(pura)) { return pura; }
     if igual(nombre, "leer_archivo") || igual(nombre, "leer_linea")
-    || igual(nombre, "entrada_completa") {
+    || igual(nombre, "entrada_completa") || igual(nombre, "variable_entorno")
+    || igual(nombre, "ahora_ms") || igual(nombre, "monotono_ms")
+    || igual(nombre, "sembrar") || igual(nombre, "azar") {
         return interna_del_sistema(b, s, n, tipos);
     }
     if es_interna(nombre) { return no_se(); }
@@ -1816,6 +1818,24 @@ fn interna_del_sistema(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         empujar(r, vista(ruta));
         empujar(r, ")");
         return r;
+    }
+    if igual(nombre, "variable_entorno") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        let v = como_vista(b, s, n.hijos[0], tipos);
+        if es_desconocido(vista(v)) { return no_se(); }
+        return $"ss_lang_variable_entorno_({v})";
+    }
+    if igual(nombre, "sembrar") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        let x = expresion_c(b, s, n.hijos[0], "u64", tipos);
+        if es_desconocido(vista(x)) { return no_se(); }
+        return $"ss_lang_sembrar_({x})";
+    }
+    if igual(nombre, "azar") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        let x = expresion_c(b, s, n.hijos[0], "usize", tipos);
+        if es_desconocido(vista(x)) { return no_se(); }
+        return $"ss_lang_azar_({x}, \"{s.archivo}\", {n.linea})";
     }
     if largo(n.hijos) != 0 { return no_se(); }
     var r = nuevo("ss_lang_");
