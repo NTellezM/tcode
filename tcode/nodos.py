@@ -226,6 +226,52 @@ class Struct(Nodo):
     tipo_params: list = field(default_factory=list)
 
 @dataclass
+class VarianteDef:
+    """Una de las formas que puede tomar un enum: `Circulo(f64)`."""
+    nombre: str
+    tipos: list = field(default_factory=list)   # los del parentesis
+    linea: int = 0
+
+@dataclass
+class Enum(Nodo):
+    """`enum Figura { Punto, Circulo(f64) }`.
+
+    La primera variante es el valor a ceros, y eso no es casualidad: en
+    Tcode todo tipo puesto a ceros tiene que ser un valor valido, que es lo
+    que permite que `reservar(n)` entregue ranuras ya hechas sin que exista
+    un `unsafe` ni un `MaybeUninit`.
+    """
+    nombre: str
+    variantes: list       # [VarianteDef]
+
+@dataclass
+class EnumLit(Nodo):
+    """`Figura.Circulo(2.0)`: construir una de las formas."""
+    tipo: str
+    variante: str
+    args: list = field(default_factory=list)
+
+@dataclass
+class Brazo:
+    """`Figura.Circulo(r) -> ...` dentro de un `match`.
+
+    `variante` a None es el brazo `_`, que vale para todo lo que quede.
+    """
+    variante: str | None
+    nombres: list          # los que atrapa el patron, por posicion
+    cuerpo: list           # sentencias; una expresion suelta es un Retorno
+    es_expresion: bool = False
+    linea: int = 0
+
+@dataclass
+class Match(Nodo):
+    """`match x { ... }`. Como sentencia y como expresion: es lo mismo."""
+    valor: Nodo
+    brazos: list           # [Brazo]
+    tipo: str = ""         # el del enum, puesto por el comprobador
+    resultado: str = ""    # el que dan los brazos, si da alguno
+
+@dataclass
 class Funcion(Nodo):
     nombre: str
     params: list

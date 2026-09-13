@@ -22,8 +22,9 @@ fn main() -> usize ! {
     // Los structs se recogen ANTES de mover los tokens dentro del estado:
     // despues del movimiento ya no serian nuestros. El compilador lo dice.
     let nombres = structs_visibles(ruta, tokens);
+    let formas = enums_visibles(ruta, tokens);
     let sin_alias: mapa<str, usize> = [];
-    var e = Estado { toks: tokens, i: 0, alias: sin_alias, structs: nombres };
+    var e = Estado { toks: tokens, i: 0, alias: sin_alias, structs: nombres, enums: formas };
     let arbol = try programa(e);
 
     var callado = false;

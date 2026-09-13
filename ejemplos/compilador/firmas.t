@@ -75,9 +75,10 @@ fn main() -> usize ! {
     let fuente = try leer_archivo(argumento(1));
     let tokens = try analizar(vista(fuente));
     let nombres = P.structs_visibles(argumento(1), tokens);
+    let formas = P.enums_visibles(argumento(1), tokens);
     let sin_alias: mapa<str, usize> = [];
     var estado = P.Estado { toks: tokens, i: 0, alias: sin_alias,
-        structs: nombres };
+        structs: nombres, enums: formas };
     let arbol = try P.programa(estado);
 
     for d en arbol.hijos {

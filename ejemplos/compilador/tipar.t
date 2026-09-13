@@ -130,6 +130,25 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
         poner(c.campos, vista(n.texto), tipos);
         poner(c.nombres, vista(n.texto), nombres);
     }
+    if igual(vista(n.clase), "enum") {
+        var cuales: lista<str> = [];
+        for h en n.hijos {
+            if igual(vista(h.clase), "variante") {
+                anadir(cuales, nuevo(vista(h.texto)));
+                var lleva: lista<str> = [];
+                for x en h.hijos {
+                    if igual(vista(x.clase), "lleva") {
+                        anadir(lleva, nuevo(vista(x.texto)));
+                    }
+                }
+                var clave = nuevo(vista(n.texto));
+                empujar(clave, ".");
+                empujar(clave, vista(h.texto));
+                poner(c.formas, vista(clave), lleva);
+            }
+        }
+        poner(c.variantes, vista(n.texto), cuales);
+    }
     if igual(vista(n.clase), "fn") {
         var retorno = vacio();
         var sueltos: lista<str> = [];
@@ -202,6 +221,36 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
             while k < largo(n.hijos) {
                 recorrer(n.hijos[k], c, quien, salida, lineas);
                 k = k + 1;
+            }
+            I.cerrar(c);
+        }
+        return;
+    }
+
+    if igual(clase, "match") {
+        // Lo que atrapa cada patron vive solo dentro de su brazo, y se
+        // presta: `Json.Texto(s)` da una `view`, no un `str` que soltar.
+        for h en n.hijos {
+            if !igual(vista(h.clase), "brazo") { continue; }
+            I.abrir(c);
+            let lleva = I.lista_de(c.formas, vista(h.texto)) sino [];
+            var k = 0;
+            for x en h.hijos {
+                if igual(vista(x.clase), "atrapa") {
+                    var t = vacio();
+                    if k < largo(lleva) {
+                        t = I.tipo_atrapado(c, vista(lleva[k]));
+                    }
+                    I.declarar(c, vista(x.texto), vista(t));
+                    anadir(salida, $"{quien}\t{x.texto}\t{t}");
+                    anadir(lineas, x.linea);
+                    k = k + 1;
+                }
+            }
+            for x en h.hijos {
+                if !igual(vista(x.clase), "atrapa") {
+                    recorrer(x, c, quien, salida, lineas);
+                }
             }
             I.cerrar(c);
         }
@@ -471,8 +520,9 @@ fn mirar_modulo(ruta: view, texto: view, c: mut I.Contexto) {
     let toks = analizar(texto) sino [];
     if largo(toks) == 0 { return; }
     let nombres = P.structs_visibles(ruta, toks);
+    let formas = P.enums_visibles(ruta, toks);
     let sin_alias: mapa<str, usize> = [];
-    var e = P.Estado { toks: toks, i: 0, alias: sin_alias, structs: nombres };
+    var e = P.Estado { toks: toks, i: 0, alias: sin_alias, structs: nombres, enums: formas };
     let arbol = programa_o_vacio(e);
     recoger_declaraciones(arbol, c);
     // Y lo que ese modulo trae a su vez, una vuelta mas.
@@ -508,9 +558,10 @@ fn main() -> usize ! {
     let fuente = try leer_archivo(argumento(1));
     let tokens = try analizar(vista(fuente));
     let nombres = P.structs_visibles(argumento(1), tokens);
+    let formas = P.enums_visibles(argumento(1), tokens);
     let sin_alias: mapa<str, usize> = [];
     var estado = P.Estado { toks: tokens, i: 0, alias: sin_alias,
-        structs: nombres };
+        structs: nombres, enums: formas };
     let arbol = try P.programa(estado);
 
     var c = I.contexto();

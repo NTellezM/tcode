@@ -22,6 +22,9 @@ struct Estado {
     // Nombres de struct, recogidos antes de analizar: hacen falta para saber
     // que `Punto { x: 1 }` es un literal y no el inicio de un bloque.
     structs: mapa<str, usize>,
+    // Nombres de enum, por lo mismo: `Color.Rojo` es una forma, no el campo
+    // `Rojo` de una variable `Color`.
+    enums: mapa<str, usize>,
 }
 
 // ------------------------------------------------------------------
@@ -241,8 +244,61 @@ fn tipo(e: mut Estado) -> str ! {
 // Expresiones, de menor a mayor precedencia
 // ------------------------------------------------------------------
 
+fn match_(e: mut Estado) -> Nodo ! {
+    let l = linea_actual(e);
+    try espera(e, "palabra", "match");
+    var n = rama("match", l);
+    let v = try expresion(e);
+    anadir(n.hijos, v);
+    try espera(e, "simbolo", "{");
+    while !es(e, "simbolo", "}") {
+        let bl = linea_actual(e);
+        var b = rama("brazo", bl);
+        if igual(valor_en(e, 0), "_") {
+            avanzar(e);
+        } else {
+            let quien = try espera(e, "ident", "");
+            try espera(e, "simbolo", ".");
+            let cual = try espera(e, "ident", "");
+            empujar(b.texto, quien);
+            empujar(b.texto, ".");
+            empujar(b.texto, cual);
+            if acepta(e, "simbolo", "(") {
+                var mas = true;
+                while mas {
+                    let atrapa = try espera(e, "ident", "");
+                    anadir(b.hijos, hoja("atrapa", vista(atrapa), bl));
+                    mas = acepta(e, "simbolo", ",");
+                }
+                try espera(e, "simbolo", ")");
+            }
+        }
+        try espera(e, "simbolo", "->");
+        if es(e, "simbolo", "{") {
+            let cuerpo = try bloque(e);
+            anadir(b.hijos, cuerpo);
+            anadir(n.hijos, b);
+            let _coma = acepta(e, "simbolo", ",");
+        } else {
+            // Un brazo que da un valor es un `return` de esa expresion: por
+            // dentro es lo mismo que un brazo con bloque, y asi el arbol no
+            // tiene dos formas de decir la misma cosa.
+            let x = try expresion(e);
+            var r = rama("retorno", bl);
+            anadir(r.hijos, x);
+            anadir(b.hijos, r);
+            anadir(n.hijos, b);
+            if !acepta(e, "simbolo", ",") { break; }
+        }
+    }
+    try espera(e, "simbolo", "}");
+    return n;
+}
+
 fn primario(e: mut Estado) -> Nodo ! {
     let l = linea_actual(e);
+
+    if es(e, "palabra", "match") { return try match_(e); }
 
     if es(e, "entero", "") {
         let v = try espera(e, "entero", "");
@@ -375,6 +431,27 @@ fn primario(e: mut Estado) -> Nodo ! {
                 }
             }
             try espera(e, "simbolo", ")");
+            return n;
+        }
+
+        if es(e, "simbolo", ".") && tiene(e.enums, vista(nombre)) {
+            avanzar(e);
+            let cual = try espera(e, "ident", "");
+            var n = rama("enum_lit", l);
+            empujar(n.texto, nombre);
+            empujar(n.texto, ".");
+            empujar(n.texto, cual);
+            if acepta(e, "simbolo", "(") {
+                if !es(e, "simbolo", ")") {
+                    var mas = true;
+                    while mas {
+                        let x = try expresion(e);
+                        anadir(n.hijos, x);
+                        mas = acepta(e, "simbolo", ",");
+                    }
+                }
+                try espera(e, "simbolo", ")");
+            }
             return n;
         }
 
@@ -604,6 +681,15 @@ fn sentencia(e: mut Estado) -> Nodo ! {
         return n;
     }
 
+    // Un `match` suelto mira y hace: no lleva `;` detras, como no lo llevan
+    // `if` ni `while`. El que da un valor va detras de un `return` o un `=`.
+    if es(e, "palabra", "match") {
+        var n = rama("expresion", l);
+        let m = try match_(e);
+        anadir(n.hijos, m);
+        return n;
+    }
+
     if es(e, "palabra", "while") {
         avanzar(e);
         var n = rama("mientras", l);
@@ -716,6 +802,32 @@ fn declaracion(e: mut Estado) -> Nodo ! {
         return n;
     }
 
+    if es(e, "palabra", "enum") {
+        avanzar(e);
+        let nombre = try espera(e, "ident", "");
+        var n = rama("enum", l);
+        empujar(n.texto, nombre);
+        try espera(e, "simbolo", "{");
+        while !es(e, "simbolo", "}") {
+            let vn = try espera(e, "ident", "");
+            var v = rama("variante", linea_actual(e));
+            empujar(v.texto, vn);
+            if acepta(e, "simbolo", "(") {
+                var mas = true;
+                while mas {
+                    let t = try tipo(e);
+                    anadir(v.hijos, hoja("lleva", vista(t), linea_actual(e)));
+                    mas = acepta(e, "simbolo", ",");
+                }
+                try espera(e, "simbolo", ")");
+            }
+            anadir(n.hijos, v);
+            if !acepta(e, "simbolo", ",") { break; }
+        }
+        try espera(e, "simbolo", "}");
+        return n;
+    }
+
     try espera(e, "palabra", "fn");
     let nombre = try espera(e, "ident", "");
     var n = rama("fn", l);
@@ -776,12 +888,21 @@ fn declaracion(e: mut Estado) -> Nodo ! {
 }
 
 fn recoger_structs(toks: &lista<Token>) -> mapa<str, usize> {
+    return recoger_tras(toks, "struct");
+}
+
+fn recoger_enums(toks: &lista<Token>) -> mapa<str, usize> {
+    return recoger_tras(toks, "enum");
+}
+
+// Los nombres que van detras de una palabra: `struct Punto` -> `Punto`.
+fn recoger_tras(toks: &lista<Token>, palabra: view) -> mapa<str, usize> {
     var m: mapa<str, usize> = [];
     var i = 0;
     while i + 1 < largo(toks) {
-        if igual(toks[i].valor, "struct") {
-            if igual(toks[i + 1].tipo, "ident") {
-                poner(m, toks[i + 1].valor, 1);
+        if igual(vista(toks[i].valor), palabra) {
+            if igual(vista(toks[i + 1].tipo), "ident") {
+                poner(m, vista(toks[i + 1].valor), 1);
             }
         }
         i = i + 1;
@@ -806,13 +927,22 @@ fn carpeta(ruta: view) -> str {
 // dependencias directamente. Con una vuelta basta: un struct que llega de
 // tercera mano no se usa como literal sin nombrarlo antes.
 fn structs_visibles(ruta: view, toks: &lista<Token>) -> mapa<str, usize> {
-    var m = recoger_structs(toks);
+    return visibles(ruta, toks, "struct");
+}
+
+fn enums_visibles(ruta: view, toks: &lista<Token>) -> mapa<str, usize> {
+    return visibles(ruta, toks, "enum");
+}
+
+// Los nombres declarados tras `palabra`, aqui y en lo que este archivo usa.
+fn visibles(ruta: view, toks: &lista<Token>, palabra: view) -> mapa<str, usize> {
+    var m = recoger_tras(toks, palabra);
     let dir = carpeta(ruta);
 
     var i = 0;
     while i + 1 < largo(toks) {
-        if igual(toks[i].valor, "usar") {
-            if igual(toks[i + 1].tipo, "cadena") {
+        if igual(vista(toks[i].valor), "usar") {
+            if igual(vista(toks[i + 1].tipo), "cadena") {
                 let pedido = nuevo(toks[i + 1].valor);
                 var candidatos: lista<str> = [];
                 // Junto al archivo que lo pide, y desde donde se ejecuta.
@@ -831,7 +961,7 @@ fn structs_visibles(ruta: view, toks: &lista<Token>) -> mapa<str, usize> {
                     let texto = leer_archivo(vista(c)) sino vacio();
                     if largo(texto) > 0 {
                         let otros = analizar(vista(texto)) sino [];
-                        for nombre en recoger_structs(otros) {
+                        for nombre en recoger_tras(otros, palabra) {
                             poner(m, vista(nombre), 1);
                         }
                         break;
