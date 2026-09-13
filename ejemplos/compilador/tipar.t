@@ -130,6 +130,12 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
         }
         poner(c.campos, vista(n.texto), tipos);
         poner(c.nombres, vista(n.texto), nombres);
+        // Un struct generico: sus parametros, para leer `Par<str, usize>`.
+        var sueltos: lista<str> = [];
+        for h en n.hijos {
+            if igual(vista(h.clase), "tipo_param") { anadir(sueltos, nuevo(vista(h.texto))); }
+        }
+        if largo(sueltos) > 0 { poner(c.struct_params, vista(n.texto), sueltos); }
     }
     if igual(vista(n.clase), "enum") {
         var cuales: lista<str> = [];
@@ -630,6 +636,23 @@ fn main() -> usize ! {
         }
     }
 
-    for l en salida { imprimir($"{l}\n"); }
+    // El tipo se dice como el comprobador: `Par<str, usize>` es
+    // `Par__str_usize`. Solo al escribir, que la propiedad lee el escrito.
+    for l en salida {
+        let partes = partir_por_tab(vista(l));
+        var fila = vacio();
+        var k = 0;
+        while k < largo(partes) {
+            if k > 0 { empujar(fila, "\t"); }
+            if k == 2 {
+                let r = I.nombre_resuelto(vista(partes[k]));
+                empujar(fila, vista(r));
+            } else {
+                empujar(fila, vista(partes[k]));
+            }
+            k = k + 1;
+        }
+        imprimir($"{fila}\n");
+    }
     return 0;
 }

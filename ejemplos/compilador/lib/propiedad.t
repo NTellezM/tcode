@@ -71,6 +71,8 @@ fn destino_de(c: &I.Contexto, v: &Vigilada) -> str {
 }
 
 fn tiene_duenio(c: &I.Contexto, t: view) -> bool {
+    // Un struct generico aplicado posee si posee alguno de sus campos.
+    if I.es_aplicacion(t) { return I.posee_con_formas(c, t); }
     var visitados: mapa<str, usize> = [];
     return T.posee(c.campos, t, visitados) sino false;
 }
@@ -134,6 +136,15 @@ fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
     let m = vista(marcados[i]);
     // Un prestamo no se queda con nada.
     if empieza_con(m, "&") || empieza_con(m, "mut ") { return false; }
+    // En una generica, `a: A` se queda con lo que le den si eso posee, y eso
+    // depende del argumento: lo mira quien llama, con el tipo de lo que pasa.
+    if tiene(c.tipo_params, fn_) {
+        let sueltos = I.lista_de(c.tipo_params, fn_) sino [];
+        var cualquiera: mapa<str, str> = [];
+        for tp en sueltos { poner(cualquiera, vista(tp), nuevo("str")); }
+        let puesto = I.sustituir(m, cualquiera);
+        if !igual(vista(puesto), m) { return true; }
+    }
     return tiene_duenio(c, m);
 }
 

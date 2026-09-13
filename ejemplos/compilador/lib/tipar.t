@@ -44,13 +44,16 @@ struct Contexto {
     // Las que escribio C. Una funcion de C presta lo que recibe y no se
     // queda con nada, asi que sus argumentos no se mueven.
     externas: mapa<str, usize>,
+    // Struct generico -> sus parametros de tipo: `Par` -> [A, B]. Un
+    // `Par<str, usize>` se queda escrito asi, y sus campos se sacan de aqui.
+    struct_params: mapa<str, lista<str>>,
 }
 
 fn contexto() -> Contexto {
     return Contexto { ambitos: [], campos: [], nombres: [], retornos: [],
         tipo_params: [], params: [], params_marcados: [], formas: [],
         variantes: [], externas: [], repetidas: [],
-        renombradas: [] };
+        renombradas: [], struct_params: [] };
 }
 
 fn abrir(c: mut Contexto) {
@@ -241,7 +244,62 @@ fn es_comparacion(op: view) -> bool {
     return igual(op, "&&") || igual(op, "||");
 }
 
+// `Par<str, usize>`: un struct generico aplicado a sus tipos. `lista<...>`,
+// `mapa<...>`, `bloque<...>` y `fn(...)` no, que esos los pone el lenguaje.
+fn es_aplicacion(t: view) -> bool {
+    if largo(t) == 0 || !termina_con(t, ">") { return false; }
+    var i = 0;
+    while i < largo(t) && byte(t, i) != 60 {
+        if !es_de_nombre(byte(t, i)) && byte(t, i) != 46 { return false; }
+        i = i + 1;
+    }
+    if i == 0 || i == largo(t) { return false; }
+    let base = rebanar(t, 0, i);
+    if igual(base, "lista") || igual(base, "mapa") || igual(base, "bloque") {
+        return false;
+    }
+    let primero = byte(t, 0);
+    return (primero >= 65 && primero <= 90) || (primero >= 97 && primero <= 122);
+}
+
+// El struct generico de una aplicacion, sin alias: `t.Par<A, B>` -> `Par`.
+fn base_de_aplicacion(t: view) -> str {
+    var i = 0;
+    while i < largo(t) && byte(t, i) != 60 { i = i + 1; }
+    return sin_alias_tipo(rebanar(t, 0, i));
+}
+
+// Los tipos de los campos de una aplicacion, con sus parametros puestos.
+fn tipos_de_aplicacion(c: &Contexto, t: view) -> lista<str> {
+    var salida: lista<str> = [];
+    let base = base_de_aplicacion(t);
+    if !tiene(c.struct_params, vista(base)) { return salida; }
+    let sueltos = lista_de(c.struct_params, vista(base)) sino [];
+    let dados = T.partir_tipos(T.entre_angulos(t));
+    if largo(dados) != largo(sueltos) { return salida; }
+    var ligaduras: mapa<str, str> = [];
+    var i = 0;
+    while i < largo(sueltos) {
+        poner(ligaduras, vista(sueltos[i]), copiar(dados[i]));
+        i = i + 1;
+    }
+    let crudos = mirar_tipos(c, vista(base)) sino [];
+    for x en crudos { anadir(salida, sustituir(vista(x), ligaduras)); }
+    return salida;
+}
+
 fn tipo_de_campo(c: &Contexto, struct_: view, campo: view) -> str {
+    if es_aplicacion(struct_) {
+        let base = base_de_aplicacion(struct_);
+        let tipos_a = tipos_de_aplicacion(c, struct_);
+        let nombres_a = mirar_nombres(c, vista(base)) sino [];
+        var k = 0;
+        while k < largo(nombres_a) && k < largo(tipos_a) {
+            if igual(vista(nombres_a[k]), campo) { return copiar(tipos_a[k]); }
+            k = k + 1;
+        }
+        return vacio();
+    }
     // `P.Nodo` es `Nodo`: el alias es de quien escribe, no del tipo.
     if !tiene(c.campos, struct_) {
         let corto = sin_modulo(struct_);
@@ -302,6 +360,15 @@ fn tipo_atrapado(c: &Contexto, t: view) -> str {
 // Como `posee_simple`, pero sabiendo ademas de enums: uno posee si alguna
 // de sus formas posee.
 fn posee_con_formas(c: &Contexto, t: view) -> bool {
+    // Un struct generico aplicado posee si posee alguno de sus campos, con
+    // los tipos ya puestos.
+    if es_aplicacion(t) {
+        let tipos_a = tipos_de_aplicacion(c, t);
+        for x en tipos_a {
+            if posee_con_formas(c, vista(x)) { return true; }
+        }
+        return false;
+    }
     // `Q.Vigilada` es `Vigilada`: el alias es de quien escribe, y los tipos
     // se apuntan por su nombre.
     if !tiene(c.variantes, t) && !tiene(c.campos, t) {
@@ -345,6 +412,89 @@ fn tras_el_punto(t: view) -> str {
         i = i + 1;
     }
     return vacio();
+}
+
+// El tipo con cada struct generico aplicado cambiado por el nombre de su
+// copia, a cualquier hondura: `lista<Par<str, usize>>` ->
+// `lista<Par__str_usize>`. Es lo que hace el comprobador de Python antes de
+// generar; aqui el tipo escrito se queda como estaba y esto se usa al
+// escribirlo.
+fn nombre_resuelto(t: view) -> str {
+    if empieza_con(t, "&mut ") {
+        let d = nombre_resuelto(rebanar(t, 5, largo(t)));
+        return $"&mut {d}";
+    }
+    if empieza_con(t, "&") {
+        let d = nombre_resuelto(rebanar(t, 1, largo(t)));
+        return $"&{d}";
+    }
+    if T.es_lista(t) {
+        let e = T.elemento(t);
+        let d = nombre_resuelto(vista(e));
+        return $"lista<{d}>";
+    }
+    if T.es_bloque(t) {
+        let e = T.elemento(t);
+        let d = nombre_resuelto(vista(e));
+        return $"bloque<{d}>";
+    }
+    if T.es_mapa(t) {
+        let partes = T.partir_tipos(T.entre_angulos(t));
+        if largo(partes) != 2 { return nuevo(t); }
+        let k = nombre_resuelto(vista(partes[0]));
+        let v = nombre_resuelto(vista(partes[1]));
+        return $"mapa<{k}, {v}>";
+    }
+    if T.es_arreglo(t) {
+        let e = T.elemento(t);
+        let d = nombre_resuelto(vista(e));
+        let n = cuantos_en_arreglo(t);
+        return $"[{d}; {n}]";
+    }
+    if !es_aplicacion(t) { return nuevo(t); }
+    var r = base_de_aplicacion(t);
+    empujar(r, "__");
+    let args = T.partir_tipos(T.entre_angulos(t));
+    var i = 0;
+    while i < largo(args) {
+        if i > 0 { empujar(r, "_"); }
+        let d = nombre_resuelto(vista(args[i]));
+        let limpio = sanear_nombre(vista(d));
+        empujar(r, vista(limpio));
+        i = i + 1;
+    }
+    return r;
+}
+
+// `[T; N]` -> `N`.
+fn cuantos_en_arreglo(t: view) -> str {
+    var i = largo(t);
+    while i > 0 && byte(t, i - 1) != 32 { i = i - 1; }
+    if largo(t) == 0 { return vacio(); }
+    return nuevo(rebanar(t, i, largo(t) - 1));
+}
+
+// Un nombre de C con lo que no sea letra o cifra cambiado por `_`, sin
+// repetirlo ni dejarlo en los bordes: lo que hace el comprobador con cada
+// tipo que va en el nombre de una copia.
+fn sanear_nombre(t: view) -> str {
+    var r = vacio();
+    var pendiente = false;
+    var i = 0;
+    while i < largo(t) {
+        let c = byte(t, i);
+        let bueno = (c >= 97 && c <= 122) || (c >= 65 && c <= 90)
+        || (c >= 48 && c <= 57);
+        if bueno {
+            if pendiente && largo(r) > 0 { empujar(r, "_"); }
+            pendiente = false;
+            empujar(r, rebanar(t, i, i + 1));
+        } else {
+            pendiente = true;
+        }
+        i = i + 1;
+    }
+    return r;
 }
 
 fn sin_modulo(nombre: view) -> str {

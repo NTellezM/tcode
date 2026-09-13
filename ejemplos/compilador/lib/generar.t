@@ -78,6 +78,7 @@ fn mangle(t: view) -> str {
     }
     // `()` no es un nombre valido en C.
     if igual(t, "()") { return nuevo("nada"); }
+    if I.es_aplicacion(t) { return I.nombre_resuelto(t); }
     // El alias del modulo —`P.Nodo`— es cosa de quien lee el archivo.
     return I.sin_modulo(t);
 }
@@ -133,6 +134,8 @@ fn tipo_c(t: view) -> str {
         empujar(s, vista(m));
         return s;
     }
+    // Un struct generico aplicado se llama en C como su copia.
+    if I.es_aplicacion(t) { return I.nombre_resuelto(t); }
     // Un struct se llama igual en los dos lados. El alias con el que se
     // escribio —`P.Nodo`— es cosa de quien lee el archivo: en C no queda.
     return I.sin_modulo(t);
@@ -379,7 +382,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
     if igual(clase, "conversion") { return conversion_c(b, s, n, tipos); }
 
     if igual(clase, "literal_struct") {
-        return literal_struct_c(b, s, n, tipos);
+        return literal_struct_c(b, s, n, esperado, tipos);
     }
 
     // `Json.Numero(42)`: la etiqueta de la forma y, en su hueco de la union,
@@ -676,9 +679,17 @@ fn agregar_vista(b: mut Cuerpo, s: &Sitio, donde: view, que: view,
 
 // `Punto { x: 1, y: 2 }`. El struct se queda con lo que le pongan: un campo
 // con duenio recibe el valor, no una copia, y desde ahi lo suelta el.
-fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
     tipos: &I.Contexto) -> str {
-    let escrito = vista(n.texto);
+    // `Par { ... }` sin sus tipos, donde se espera un `Par<str, usize>`: es
+    // ese, como deduce el comprobador.
+    var escrito_s = nuevo(vista(n.texto));
+    if !contiene(vista(escrito_s), "<") && I.es_aplicacion(esperado) {
+        let base_e = I.base_de_aplicacion(esperado);
+        let corto_e = I.sin_modulo(vista(escrito_s));
+        if igual(vista(base_e), vista(corto_e)) { escrito_s = nuevo(esperado); }
+    }
+    let escrito = vista(escrito_s);
     var r = nuevo("(");
     // En C no queda el alias del modulo: `P.Nodo` es `Nodo`.
     empujar(r, tipo_c(escrito));
@@ -1652,7 +1663,8 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             let ligado = nuevo(obtener(ligaduras, vista(tp)) sino "");
             if !primero { empujar(en_c, "_"); }
             primero = false;
-            let limpio = sanear(vista(ligado));
+            let ligado_c = I.nombre_resuelto(vista(ligado));
+            let limpio = sanear(vista(ligado_c));
             empujar(en_c, vista(limpio));
         }
         // Lo que hace falta para escribir la copia: de que plantilla sale,
@@ -2461,7 +2473,8 @@ fn liberacion(b: mut Cuerpo, tipos: &I.Contexto, nombre: view,
     // Un struct que posee lleva su liberador generado, que suelta sus campos
     // en orden. El nombre no lleva el alias del modulo: en C no queda.
     if I.posee_con_formas(tipos, tipo) {
-        let corto = I.sin_modulo(tipo);
+        var corto = I.sin_modulo(tipo);
+        if I.es_aplicacion(tipo) { corto = I.nombre_resuelto(tipo); }
         var l = nuevo("ss_drop_");
         empujar(l, vista(corto));
         empujar(l, "(&");
