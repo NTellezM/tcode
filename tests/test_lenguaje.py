@@ -3098,6 +3098,47 @@ try:
                       f"menos {_MINIMO_PROGRAMAS}")
             print(f"    {iguales} programas enteros, mismo C que el generador "
                   f"de Python ({intentados} intentados)")
+
+            # El punto fijo. El `tcodec` que compilo Python escribe su propio
+            # C; ese C, compilado, tiene que volver a escribir exactamente el
+            # mismo. Es la prueba de que el compilador ya no depende de
+            # Python para existir: a partir de aqui se puede construir desde
+            # su propio C, como hacen Go desde 1.5 y Rust desde su primer
+            # `rustc` en Rust.
+            total += 1
+            propio = os.path.join("ejemplos", "compilador", "tcodec.t")
+            e1 = subprocess.run([binario, propio], capture_output=True,
+                                text=True, timeout=600, env=entorno)
+            if e1.returncode != 0 or "Sanitizer" in e1.stderr:
+                falla("punto fijo", f"tcodec no se escribe a si mismo:\n"
+                                    f"{e1.stderr[:400]}")
+            else:
+                ruta_c2 = os.path.join(tmp, "etapa2.c")
+                binario2 = os.path.join(tmp, "etapa2")
+                with open(ruta_c2, "w", encoding="utf-8") as f:
+                    f.write(e1.stdout)
+                r2 = subprocess.run(
+                    ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra",
+                     "-Werror", "-fsanitize=address,undefined",
+                     "-fno-omit-frame-pointer", f"-I{RUNTIME}", ruta_c2,
+                     os.path.join(RUNTIME, "safestr.c"), "-o", binario2,
+                     "-lm"],
+                    capture_output=True, text=True)
+                if r2.returncode != 0:
+                    falla("punto fijo", f"su propio C no compila:\n"
+                                        f"{r2.stderr[:600]}")
+                else:
+                    e2 = subprocess.run([binario2, propio],
+                                        capture_output=True, text=True,
+                                        timeout=600, env=entorno)
+                    if (e2.returncode != 0 or "Sanitizer" in e2.stderr
+                            or e2.stdout != e1.stdout):
+                        falla("punto fijo", "la etapa 2 no reproduce el C "
+                                            f"de la etapa 1\n{e2.stderr[:400]}")
+                    else:
+                        print(f"    punto fijo: tcodec compilado desde su "
+                              f"propio C lo reproduce byte a byte "
+                              f"({len(e1.stdout.encode())} bytes)")
 finally:
     os.chdir(_cwd_antes)
     shutil.rmtree(tmp, ignore_errors=True)
