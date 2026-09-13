@@ -232,6 +232,13 @@ fn es_comparacion(op: view) -> bool {
 }
 
 fn tipo_de_campo(c: &Contexto, struct_: view, campo: view) -> str {
+    // `P.Nodo` es `Nodo`: el alias es de quien escribe, no del tipo.
+    if !tiene(c.campos, struct_) {
+        let corto = sin_modulo(struct_);
+        if tiene(c.campos, vista(corto)) {
+            return tipo_de_campo(c, vista(corto), campo);
+        }
+    }
     if !tiene(c.campos, struct_) { return vacio(); }
     if !tiene(c.nombres, struct_) { return vacio(); }
     let tipos = mirar_tipos(c, struct_) sino [];
