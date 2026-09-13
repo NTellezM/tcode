@@ -382,6 +382,8 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         return literal_struct_c(b, s, n, tipos);
     }
 
+    if igual(clase, "interpolada") { return interpolada_c(b, s, n, tipos); }
+
     if igual(clase, "try") { return try_c(b, s, n, tipos); }
     if igual(clase, "sino") { return sino_c(b, s, n, tipos); }
 
@@ -433,6 +435,159 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
     return no_se();
 }
 
+// `$"van {n} de {total}"`. Se baja a un `str` que se va llenando: cada
+// trozo se agrega tal cual y cada hueco pasa por la misma conversion que
+// `imprimir`. No hay formato en tiempo de ejecucion ni un `printf` con
+// cadena variable: el tipo de cada hueco se sabe al compilar, y por eso no
+// existe aqui el fallo clasico de `%d` con un puntero.
+fn interpolada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    let tmp = nuevo_temporal(b);
+    var abre = nuevo("SafeString ");
+    empujar(abre, vista(tmp));
+    empujar(abre, " = ss_new();");
+    emitir(b, vista(abre));
+    apuntar_temporal(b, vista(tmp), "str");
+
+    let crudo = vista(n.texto);
+    var trozo = vacio();
+    var cual = 0;
+    var i = 0;
+    while i < largo(crudo) {
+        let c = byte(crudo, i);
+        // `{{` y `}}` son una llave escrita, no un hueco.
+        if c == 123 && i + 1 < largo(crudo) && byte(crudo, i + 1) == 123 {
+            empujar(trozo, "{");
+            i = i + 2;
+            continue;
+        }
+        if c == 125 && i + 1 < largo(crudo) && byte(crudo, i + 1) == 125 {
+            empujar(trozo, "}");
+            i = i + 2;
+            continue;
+        }
+        if c != 123 {
+            empujar(trozo, rebanar(crudo, i, i + 1));
+            i = i + 1;
+            continue;
+        }
+
+        if largo(trozo) > 0 {
+            agregar_trozo(b, s, vista(tmp), vista(trozo), n.linea);
+            trozo = vacio();
+        }
+        if cual >= largo(n.hijos) { return no_se(); }
+        let dado = hueco_c(b, s, n.hijos[cual], tipos);
+        if es_desconocido(vista(dado)) { return no_se(); }
+        agregar_vista(b, s, vista(tmp), vista(dado), n.linea);
+        cual = cual + 1;
+
+        // Saltar hasta la llave que cierra, contando las de dentro.
+        var prof = 1;
+        var j = i + 1;
+        while j < largo(crudo) && prof > 0 {
+            if byte(crudo, j) == 123 { prof = prof + 1; }
+            if byte(crudo, j) == 125 { prof = prof - 1; }
+            if prof > 0 { j = j + 1; }
+        }
+        i = j + 1;
+    }
+    if largo(trozo) > 0 {
+        agregar_trozo(b, s, vista(tmp), vista(trozo), n.linea);
+    }
+    return copiar(tmp);
+}
+
+// El texto de un hueco, ya como vista. Un `str` o una `view` se prestan; lo
+// demas se convierte a texto en un temporal.
+fn hueco_c(b: mut Cuerpo, s: &Sitio, x: &P.Nodo, tipos: &I.Contexto) -> str {
+    let t = I.tipo_de(tipos, x);
+    if igual(vista(t), "str") || igual(vista(t), "view") {
+        return como_vista(b, s, x, tipos);
+    }
+    let valor = expresion_c(b, s, x, vista(t), tipos);
+    if es_desconocido(vista(valor)) { return no_se(); }
+    let convertido = texto_de(s, vista(valor), vista(t), x.linea);
+    if es_desconocido(vista(convertido)) { return no_se(); }
+    let pieza = nuevo_temporal(b);
+    var l = nuevo("SafeString ");
+    empujar(l, vista(pieza));
+    empujar(l, " = ");
+    empujar(l, vista(convertido));
+    empujar(l, ";");
+    emitir(b, vista(l));
+    apuntar_temporal(b, vista(pieza), "str");
+    var r = nuevo("ss_view(&");
+    empujar(r, vista(pieza));
+    empujar(r, ")");
+    return r;
+}
+
+// El `str` que representa un valor. Las mismas reglas que `texto`.
+fn texto_de(s: &Sitio, valor: view, t: view, linea: usize) -> str {
+    var r = vacio();
+    if igual(t, "usize") {
+        r = nuevo("ss_lang_texto_usize_(");
+        empujar(r, valor);
+    } else {
+        if igual(t, "f32") || igual(t, "f64") {
+            r = nuevo("ss_lang_texto_view_(sv(ss_lang_texto_decimal_(");
+            empujar(r, valor);
+            empujar(r, "))");
+        } else {
+            if igual(t, "bool") {
+                r = nuevo("ss_lang_texto_view_((");
+                empujar(r, valor);
+                empujar(r, ") ? sv(\"true\") : sv(\"false\")");
+            } else {
+                if es_entero(t) {
+                    // Un ancho fijo se ensancha al mayor de su signo: hay
+                    // una conversion por signo, no una por ancho.
+                    if empieza_con(t, "u") {
+                        r = nuevo("ss_lang_texto_usize_((size_t) ");
+                    } else {
+                        r = nuevo("ss_lang_texto_i64_((int64_t) ");
+                    }
+                    empujar(r, valor);
+                } else {
+                    return no_se();
+                }
+            }
+        }
+    }
+    empujar(r, ", \"");
+    empujar(r, vista(s.archivo));
+    empujar(r, "\", ");
+    empujar(r, texto(linea));
+    empujar(r, ")");
+    return r;
+}
+
+fn agregar_trozo(b: mut Cuerpo, s: &Sitio, donde: view, t: view,
+    linea: usize) {
+    let escrito = literal_c(t);
+    var v = nuevo("sv_len(");
+    empujar(v, vista(escrito));
+    empujar(v, ", ");
+    empujar(v, texto(cuantos_bytes(t)));
+    empujar(v, ")");
+    agregar_vista(b, s, donde, vista(v), linea);
+}
+
+fn agregar_vista(b: mut Cuerpo, s: &Sitio, donde: view, que: view,
+    linea: usize) {
+    var l = nuevo("ss_lang_agregar_texto_(&");
+    empujar(l, donde);
+    empujar(l, ", ");
+    empujar(l, que);
+    empujar(l, ", \"");
+    empujar(l, vista(s.archivo));
+    empujar(l, "\", ");
+    empujar(l, texto(linea));
+    empujar(l, ");");
+    emitir(b, vista(l));
+}
+
 // `Punto { x: 1, y: 2 }`. El struct se queda con lo que le pongan: un campo
 // con duenio recibe el valor, no una copia, y desde ahi lo suelta el.
 fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
@@ -449,6 +604,7 @@ fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         let suyo = I.tipo_de_campo(tipos, escrito, vista(h.texto));
         let valor = expresion_c(b, s, h.hijos[0], vista(suyo), tipos);
         if es_desconocido(vista(valor)) { return no_se(); }
+        reclamar(b, vista(valor)); // el struct se lo queda
         if !primero { empujar(r, ", "); }
         primero = false;
         empujar(r, ".");
@@ -851,6 +1007,7 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         if largo(vista(tv)) == 0 { return no_se(); }
         let valor = expresion_c(b, s, n.hijos[2], vista(tv), tipos);
         if es_desconocido(vista(valor)) { return no_se(); }
+        reclamar(b, vista(valor)); // el mapa se lo queda
         empujar(r, ", ");
         empujar(r, vista(valor));
         empujar(r, ", \"");
@@ -990,55 +1147,11 @@ fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 
 // El literal de C con los mismos bytes. Aqui solo lo que no necesita
 // escaparse raro: si lleva algo mas, no se cubre.
-// El lexer deja las cadenas crudas, con los escapes sin resolver: para el
-// analisis lexico da igual. Aqui no da igual, porque lo que se escribe en el
-// C son BYTES y lo que se cuenta son bytes. Asi que primero se descifra lo
-// que puso quien escribio, y luego se vuelve a escapar para C.
-fn desescapar(t: view) -> str {
-    var r = vacio();
-    var i = 0;
-    while i < largo(t) {
-        let c = byte(t, i);
-        if c != 92 || i + 1 >= largo(t) {
-            empujar(r, rebanar(t, i, i + 1));
-            i = i + 1;
-            continue;
-        }
-        let d = byte(t, i + 1);
-        if d == 110 { empujar_byte(r, 10); i = i + 2; continue; }
-        if d == 116 { empujar_byte(r, 9); i = i + 2; continue; }
-        if d == 48 { empujar_byte(r, 0); i = i + 2; continue; }
-        if d == 120 {
-            // `\xNN`: un byte escrito en hexadecimal.
-            if i + 3 < largo(t) {
-                let alto = de_hex(byte(t, i + 2));
-                let bajo = de_hex(byte(t, i + 3));
-                if alto < 16 && bajo < 16 {
-                    empujar_byte(r, ((alto * 16) + bajo) como ? u8);
-                    i = i + 4;
-                    continue;
-                }
-            }
-        }
-        // `\\`, `\"`, `\{`, `\}`: el segundo tal cual.
-        empujar(r, rebanar(t, i + 1, i + 2));
-        i = i + 2;
-    }
-    return r;
-}
-
-fn de_hex(c: usize) -> usize {
-    if c >= 48 && c <= 57 { return c - 48; }
-    if c >= 97 && c <= 102 { return c - 97 + 10; }
-    if c >= 65 && c <= 70 { return c - 65 + 10; }
-    return 99;
-}
-
 // Un literal de C con los mismos BYTES, escapado. Lo que no sea imprimible
 // va en octal: asi un byte crudo no depende de como lo lea el compilador de
 // C ni de en que juego de caracteres este el archivo.
 fn literal_c(crudo: view) -> str {
-    let bytes = desescapar(crudo);
+    let bytes = P.desescapar(crudo);
     let t = vista(bytes);
     var r = nuevo("\"");
     var i = 0;
@@ -1089,7 +1202,7 @@ fn potencia_ocho(n: usize) -> usize {
 }
 
 fn cuantos_bytes(crudo: view) -> usize {
-    let t = desescapar(crudo);
+    let t = P.desescapar(crudo);
     return largo(vista(t));
 }
 
@@ -1134,6 +1247,19 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             empujar(v, vista(dir));
             i = i + 1;
             continue;
+        }
+
+        // Donde se pide una vista, un `str` se lee prestandolo: escribir
+        // `vista(s)` no le aportaria nada al compilador.
+        if igual(vista(esperado), "view") {
+            let suyo = I.tipo_de(tipos, h);
+            if igual(vista(suyo), "str") {
+                let arg = como_vista(b, s, h, tipos);
+                if es_desconocido(vista(arg)) { return no_se(); }
+                empujar(v, vista(arg));
+                i = i + 1;
+                continue;
+            }
         }
 
         // Pasar una variable con duenio a algo que se la queda es moverla.
@@ -1193,6 +1319,11 @@ fn presta_argumento(tipos: &I.Contexto, nombre: view, i: usize) -> bool {
     // con lo demas. Las otras internas cubiertas toman vistas o escalares.
     if igual(nombre, "anadir") || igual(nombre, "poner") { return i == 0; }
     if es_interna(nombre) { return true; }
+    // Un parametro `view` mira el texto, no se lo queda.
+    let firmados = I.lista_de(tipos.params, nombre) sino [];
+    if i < largo(firmados) {
+        if igual(vista(firmados[i]), "view") { return true; }
+    }
     let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];
     if i >= largo(marcados) { return true; }
     let m = vista(marcados[i]);
@@ -1464,13 +1595,13 @@ fn reclamar(b: mut Cuerpo, valor: view) {
 }
 
 fn soltar_temporales(b: mut Cuerpo, tipos: &I.Contexto) {
-    var i = largo(b.temporales);
-    while i > 0 {
-        i = i - 1;
+    var i = 0;
+    while i < largo(b.temporales) {
         let entrada = copiar(b.temporales[i]);
         let n = antes_de_dos_puntos(vista(entrada));
         let t = despues_de_dos_puntos(vista(entrada));
         liberacion(b, tipos, vista(n), vista(t));
+        i = i + 1;
     }
 }
 
@@ -1750,6 +1881,9 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             }
         }
         if es_desconocido(vista(valor)) { return false; }
+        // La variable se queda con el temporal: deja de soltarse al acabar
+        // la sentencia, porque ahora tiene duenio con nombre.
+        reclamar(b, vista(valor));
 
         var l = nuevo("SS_LANG_QUIZA_SIN_USAR ");
         empujar(l, tipo_c(vista(tipo)));
@@ -1864,6 +1998,8 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
 
         let valor = expresion_c(b, s, n.hijos[0], retorno, tipos);
         if es_desconocido(vista(valor)) { return false; }
+        // Lo que se devuelve no se suelta: se entrega.
+        reclamar(b, vista(valor));
         // El valor se guarda antes de soltar nada: puede leer justo lo que
         // se va a liberar.
         let tmp = nuevo_temporal(b);
@@ -2000,6 +2136,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         if largo(tipo) == 0 { return false; }
         let valor = expresion_c(b, s, n.hijos[1], vista(tipo), tipos);
         if es_desconocido(vista(valor)) { return false; }
+        reclamar(b, vista(valor));
         let destino = expresion_c(b, s, n.hijos[0], vista(tipo), tipos);
         if es_desconocido(vista(destino)) { return false; }
 
@@ -2353,6 +2490,7 @@ fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     }
     let valor = expresion_c(b, s, n.hijos[1], vista(elem), tipos);
     if es_desconocido(vista(valor)) { return false; }
+    reclamar(b, vista(valor)); // la lista se lo queda
 
     var l = nuevo("ss_push_");
     empujar(l, mangle(vista(sobre)));

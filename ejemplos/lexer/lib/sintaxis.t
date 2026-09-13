@@ -295,6 +295,107 @@ fn match_(e: mut Estado) -> Nodo ! {
     return n;
 }
 
+// Analiza lo que hay entre llaves y lo cuelga en orden. `{{` y `}}` son una
+// llave escrita, no un hueco.
+fn huecos_de(e: &Estado, t: view, n: mut Nodo) ! {
+    var i = 0;
+    while i < largo(t) {
+        let c = byte(t, i);
+        if c == 123 && i + 1 < largo(t) && byte(t, i + 1) == 123 {
+            i = i + 2;
+            continue;
+        }
+        if c == 125 && i + 1 < largo(t) && byte(t, i + 1) == 125 {
+            i = i + 2;
+            continue;
+        }
+        if c != 123 {
+            i = i + 1;
+            continue;
+        }
+        var prof = 1;
+        var j = i + 1;
+        while j < largo(t) && prof > 0 {
+            if byte(t, j) == 123 { prof = prof + 1; }
+            if byte(t, j) == 125 { prof = prof - 1; }
+            if prof > 0 { j = j + 1; }
+        }
+        if prof != 0 { falla "falta `}` en una cadena interpolada"; }
+        // Lo de dentro del hueco lleva los escapes crudos, y el sub-lexer
+        // no los entiende: `\"hola\"` tiene que ser `"hola"` antes.
+        let suelto = desescapar(rebanar(t, i + 1, j));
+        let dentro = recortar(vista(suelto));
+        if largo(dentro) == 0 {
+            falla "`{}` vacio en una cadena interpolada";
+        }
+        let suyos = try analizar(dentro);
+        var sub = Estado { toks: suyos, i: 0, alias: copiar(e.alias),
+            structs: copiar(e.structs), enums: copiar(e.enums) };
+        var x = try expresion(sub);
+        // El sub-analisis empieza a contar en la linea 1: lo de dentro de un
+        // hueco esta donde este la cadena, y los errores tienen que decirlo.
+        poner_linea(x, n.linea);
+        anadir(n.hijos, x);
+        i = j + 1;
+    }
+    return;
+}
+
+// El lexer deja las cadenas crudas, con los escapes sin resolver: para el
+// analisis lexico da igual. Aqui no da igual, porque lo que se escribe en el
+// C son BYTES y lo que se cuenta son bytes. Asi que primero se descifra lo
+// que puso quien escribio, y luego se vuelve a escapar para C.
+fn desescapar(t: view) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < largo(t) {
+        let c = byte(t, i);
+        if c != 92 || i + 1 >= largo(t) {
+            empujar(r, rebanar(t, i, i + 1));
+            i = i + 1;
+            continue;
+        }
+        let d = byte(t, i + 1);
+        if d == 110 { empujar_byte(r, 10); i = i + 2; continue; }
+        if d == 116 { empujar_byte(r, 9); i = i + 2; continue; }
+        if d == 48 { empujar_byte(r, 0); i = i + 2; continue; }
+        if d == 120 {
+            // `\xNN`: un byte escrito en hexadecimal.
+            if i + 3 < largo(t) {
+                let alto = de_hex(byte(t, i + 2));
+                let bajo = de_hex(byte(t, i + 3));
+                if alto < 16 && bajo < 16 {
+                    empujar_byte(r, ((alto * 16) + bajo) como ? u8);
+                    i = i + 4;
+                    continue;
+                }
+            }
+        }
+        // `\\`, `\"`, `\{`, `\}`: el segundo tal cual.
+        empujar(r, rebanar(t, i + 1, i + 2));
+        i = i + 2;
+    }
+    return r;
+}
+
+fn de_hex(c: usize) -> usize {
+    if c >= 48 && c <= 57 { return c - 48; }
+    if c >= 97 && c <= 102 { return c - 97 + 10; }
+    if c >= 65 && c <= 70 { return c - 65 + 10; }
+    return 99;
+}
+
+fn poner_linea(n: mut Nodo, l: usize) {
+    n.linea = l;
+    // Por indice y no con `for`: un `for` presta solo para leer, y aqui hay
+    // que cambiar lo que se recorre.
+    var i = 0;
+    while i < largo(n.hijos) {
+        poner_linea(n.hijos[i], l);
+        i = i + 1;
+    }
+}
+
 fn primario(e: mut Estado) -> Nodo ! {
     let l = linea_actual(e);
 
@@ -310,7 +411,13 @@ fn primario(e: mut Estado) -> Nodo ! {
     }
     if es(e, "interpolada", "") {
         let v = try espera(e, "interpolada", "");
-        return hoja("interpolada", v, l);
+        var n = rama("interpolada", l);
+        empujar(n.texto, vista(v));
+        // Los huecos se analizan aqui: dentro de las llaves vale cualquier
+        // expresion. El texto crudo se guarda entero para poder sacar
+        // despues los trozos literales, que no son nodos.
+        try huecos_de(e, vista(v), n);
+        return n;
     }
     if es(e, "palabra", "true") || es(e, "palabra", "false") {
         let v = nuevo(valor_en(e, 0));
