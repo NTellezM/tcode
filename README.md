@@ -210,7 +210,7 @@ funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
 prototipos y todas las funciones. Son **7.849 líneas de Tcode** (lexer,
 parser, tipado, generador y el programa) y el resultado se compara byte a
-byte con el del generador de Python: **16 programas enteros idénticos**,
+byte con el del generador de Python: **21 programas enteros idénticos**,
 entre ellos el lexer, el parser y el propio `tcodec`.
 
 Y el punto fijo:
@@ -224,18 +224,19 @@ igual
 ```
 
 El `tcodec` construido desde su propio C vuelve a escribir exactamente los
-mismos 1.205.047 bytes, también bajo AddressSanitizer y UBSan, y la suite lo
+mismos bytes (1,37 MB), también bajo AddressSanitizer y UBSan, y la suite lo
 comprueba en cada ejecución. A partir de ahí el compilador ya no necesita a
 Python para existir, que es el paso que dieron Go en la 1.5 y Rust con su
 primer `rustc` escrito en Rust. Se escribe a sí mismo en 0,37 s; el de
 Python tarda 0,74 s en lo mismo.
 
 Lo que `tcodec` todavía no escribe lo rechaza diciendo qué es, sin dejar
-medio archivo: `enum` y `match` en el archivo entero, arreglos `[T; N]`,
-`bloque`, clausuras y tipos función, `externo`, `escribir_archivo`, y los
-nombres que se renombran (dos módulos con la misma función, o una palabra de
-C como `union`). Por eso el compilador de referencia sigue siendo el de
-Python: es el que acepta todo el lenguaje.
+medio archivo: structs genéricos (`Par<A, B>`), clausuras y tipos función,
+`bloque`, `externo` y `escribir_archivo`. Ya escribe enums, arreglos
+`[T; N]`, funciones repetidas entre módulos y funciones con nombre de
+palabra de C (`union`). De los 23 programas del repositorio escribe 21;
+faltan `pruebas.t` y `externo/reloj.t`. Por eso el compilador de referencia
+sigue siendo el de Python: es el que acepta todo el lenguaje.
 
 Escribirlo encontró fallos reales en el original, que se arreglaron con su
 prueba: fugas en salidas tempranas, banderas de propiedad por nombre en vez

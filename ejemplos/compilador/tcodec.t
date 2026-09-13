@@ -1356,9 +1356,6 @@ fn main() -> usize ! {
                     poner(plantillas, vista(d.texto), largo(arboles));
                     continue;
                 }
-                if G.choca_con_c(vista(d.texto)) {
-                    return rechazo("nombres que chocan con C");
-                }
                 if igual(vista(d.texto), "main") && !igual(vista(m), vista(principal)) {
                     return rechazo("un `main` en un modulo");
                 }

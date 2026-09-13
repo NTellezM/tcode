@@ -1581,6 +1581,8 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if contiene(nombre, ".") && tiene(tipos.renombradas, vista(en_c)) {
         return no_se();
     }
+    // `union` es legitimo en Tcode y no en C: se llama como se declaro.
+    en_c = nombre_en_c(vista(en_c));
 
     // Una generica: se eligen los tipos mirando los argumentos, igual que el
     // comprobador, y se llama a la copia con ese juego de tipos. El nombre
