@@ -392,7 +392,13 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
         return;
     }
 
-    let firma = G.prototipo(vista(d.texto), tipos_param, marcas,
+    // Una funcion renombrada por el cargador se declara con su nombre de C:
+    // es el mismo que usan las llamadas.
+    var nombre_c = nuevo(vista(d.texto));
+    if tiene(tipos.renombradas, vista(d.texto)) {
+        nombre_c = nuevo(obtener(tipos.renombradas, vista(d.texto)) sino "");
+    }
+    let firma = G.prototipo(vista(nombre_c), tipos_param, marcas,
         vista(retorno), falible);
     // Un separador para que quien compare sepa donde empieza cada funcion.
     imprimir($"@@ {d.texto}\n");
