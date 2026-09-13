@@ -504,6 +504,7 @@ class Comprobador:
     def declarar(self, nodo, nombre, tipo, mutable, decl=None):
         if nombre in self.ambitos[-1]:
             self.error(nodo, f"`{nombre}` ya esta declarada en este bloque")
+
         sim = Simbolo(nombre, tipo, mutable, len(self.ambitos), decl or nodo)
         sim.bucle_al_declarar = self.en_bucle
         self.ambitos[-1][nombre] = sim
