@@ -867,11 +867,10 @@ class Generador:
             res = ""
             if nombre in INTERNAS and INTERNAS[nombre].get("falible"):
                 res = self.tipo_resultado(INTERNAS[nombre]["retorno"])
-            # Solo las falibles llevan hueco; las demas van tal cual, y
-            # formatear su C convertiria cada `{` en un error.
+            # Solo las falibles llevan el marcador del tipo resultado.
             texto = SISTEMA[nombre]
             if res:
-                texto = texto.format(res_str=res)
+                texto = texto.replace("@RES_STR@", res)
             self.lineas.extend(texto.rstrip("\n").split("\n"))
             self.lineas.append("")
 
