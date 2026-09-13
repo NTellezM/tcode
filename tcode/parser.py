@@ -8,6 +8,7 @@ from tcode.nodos import (
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Parametro, Funcion, CampoDef, Struct, Usar, Para, Romper, Continuar,
+    Enum, VarianteDef, EnumLit, Match, Brazo,
 )
 
 ENTEROS = {"u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64"}
@@ -32,7 +33,8 @@ class ErrorSintactico(Exception):
 
 
 class Parser:
-    def __init__(self, toks, archivo="<entrada>", structs_previos=None):
+    def __init__(self, toks, archivo="<entrada>", structs_previos=None,
+                 enums_previos=None):
         self.toks = toks
         self.i = 0
         self.archivo = archivo
@@ -47,10 +49,16 @@ class Parser:
         # nombre, no un campo de una variable llamada `x`.
         self.alias = set()
         self.structs = set(structs_previos or ())
-        self.structs |= {t.valor for j, t in enumerate(toks)
-                        if t.tipo == "palabra" and t.valor == "struct"
-                        and j + 1 < len(toks) and toks[j + 1].tipo == "ident"
-                        for t in [toks[j + 1]]}
+        self.structs |= {toks[j + 1].valor for j, t in enumerate(toks)
+                         if t.tipo == "palabra" and t.valor == "struct"
+                         and j + 1 < len(toks)
+                         and toks[j + 1].tipo == "ident"}
+        # Lo mismo para los enum: `Figura.Circulo` es una variante y no el
+        # campo `Circulo` de una variable `Figura`.
+        self.enums = set(enums_previos or ())
+        self.enums |= {toks[j + 1].valor for j, t in enumerate(toks)
+                       if t.tipo == "palabra" and t.valor == "enum"
+                       and j + 1 < len(toks) and toks[j + 1].tipo == "ident"}
 
     # ---------- utilidades ----------
 
@@ -113,6 +121,8 @@ class Parser:
                 self.error("los `usar` van todos al principio del archivo")
             if self.es("palabra", "struct"):
                 decls.append(self.struct())
+            elif self.es("palabra", "enum"):
+                decls.append(self.enum())
             else:
                 decls.append(self.funcion())
         return decls
@@ -170,6 +180,42 @@ class Parser:
         self.tipo_params = set()
         return Struct(nombre, campos, linea=tok.linea,
                       tipo_params=tipo_params)
+
+    def enum(self) -> Enum:
+        """`enum Figura { Punto, Circulo(f64), Rect(f64, f64) }`.
+
+        Sin parametros de tipo todavia: un `enum Quiza<T>` es util, pero
+        primero tiene que estar bien el caso llano.
+        """
+        tok = self.espera("palabra", "enum")
+        nombre = self.espera("ident").valor
+        self.espera("simbolo", "{")
+        variantes = []
+        vistos = set()
+        while not self.es("simbolo", "}"):
+            if self.es("fin"):
+                self.error("enum sin cerrar")
+            vt = self.actual
+            vn = self.espera("ident").valor
+            if vn in vistos:
+                self.error(f"`{nombre}.{vn}` esta declarada dos veces")
+            vistos.add(vn)
+            tipos = []
+            if self.acepta("simbolo", "("):
+                while True:
+                    tipos.append(self.tipo())
+                    if not self.acepta("simbolo", ","):
+                        break
+                self.espera("simbolo", ")")
+            variantes.append(VarianteDef(vn, tipos, vt.linea))
+            if not self.acepta("simbolo", ","):
+                break
+        self.espera("simbolo", "}")
+        if not variantes:
+            self.error(f"`enum {nombre}` no declara ninguna variante: un "
+                       f"valor que no puede tomar ninguna forma no sirve "
+                       f"para nada")
+        return Enum(nombre, variantes, linea=tok.linea)
 
     def funcion(self) -> Funcion:
         tok = self.espera("palabra", "fn")
@@ -261,8 +307,9 @@ class Parser:
                 return f"{nombre}<{', '.join(args)}>"
             return nombre
 
-        # nombre de struct, con o sin argumentos de tipo
-        if t.tipo == "ident" and t.valor in self.structs:
+        # nombre de struct o de enum, con o sin argumentos de tipo
+        if t.tipo == "ident" and (t.valor in self.structs
+                                  or t.valor in self.enums):
             self.i += 1
             if self.acepta("simbolo", "<"):
                 args = []
@@ -371,6 +418,12 @@ class Parser:
             self.i += 1
             cond = self.expr()
             return Mientras(cond, self.bloque(), linea=t.linea)
+
+        # `match` suelto: mira el valor y hace cosas. No lleva `;` detras,
+        # como no lo llevan `if` ni `while`. El que da un valor va donde van
+        # los valores, detras de un `return` o de un `=`.
+        if self.es("palabra", "match"):
+            return ExprSentencia(self.match_(), linea=t.linea)
 
         if self.es("palabra", "falla"):
             self.i += 1
@@ -537,7 +590,7 @@ class Parser:
             sub.structs = self.structs
             sub.alias = self.alias
             sub.tipo_params = self.tipo_params
-            sub.structs = self.structs
+            sub.enums = self.enums
             expr = sub.expr()
             if not sub.es("fin"):
                 self.error(f"sobra algo despues de la expresion {dentro!r} "
@@ -577,6 +630,58 @@ class Parser:
                     break
         self.espera("simbolo", ")")
         return Llamada(nombre, args, linea=linea)
+
+    def match_(self):
+        """`match x { Figura.Punto -> 0.0, Figura.Circulo(r) -> r *? r }`.
+
+        Un brazo da un valor (`-> expr,`) o hace cosas (`-> { ... }`). Los
+        dos son lo mismo por dentro: el bloque de un brazo que da valor es un
+        `return` de esa expresion.
+
+        Rust y Swift piden `=>` o `case`; aqui el `->` es el mismo de siempre
+        y significa lo mismo: a la izquierda de que, a la derecha lo que da.
+        """
+        tok = self.espera("palabra", "match")
+        valor = self.expr()
+        self.espera("simbolo", "{")
+        brazos = []
+        while not self.es("simbolo", "}"):
+            if self.es("fin"):
+                self.error("match sin cerrar")
+            bt = self.actual
+            variante = None
+            nombres = []
+            if self.acepta("ident", "_"):
+                pass
+            else:
+                enum_nombre = self.espera("ident").valor
+                self.espera("simbolo", ".")
+                variante = self.espera("ident").valor
+                if enum_nombre not in self.enums:
+                    self.error(f"`{enum_nombre}` no es un enum")
+                if self.acepta("simbolo", "("):
+                    if not self.es("simbolo", ")"):
+                        while True:
+                            nombres.append(self.espera("ident").valor)
+                            if not self.acepta("simbolo", ","):
+                                break
+                    self.espera("simbolo", ")")
+            self.espera("simbolo", "->")
+            if self.es("simbolo", "{"):
+                brazos.append(Brazo(variante, nombres, self.bloque(),
+                                    False, bt.linea))
+                self.acepta("simbolo", ",")
+            else:
+                e = self.expr()
+                brazos.append(Brazo(variante, nombres,
+                                    [Retorno(e, linea=bt.linea)],
+                                    True, bt.linea))
+                if not self.acepta("simbolo", ","):
+                    break
+        self.espera("simbolo", "}")
+        if not brazos:
+            self.error("un `match` sin brazos no mira nada")
+        return Match(valor, brazos, linea=tok.linea)
 
     def primario(self):
         t = self.actual
@@ -629,6 +734,9 @@ class Parser:
             self.espera("simbolo", "}")
             return SiExpr(cond, entonces, alterno, linea=t.linea)
 
+        if self.es("palabra", "match"):
+            return self.match_()
+
         if t.tipo == "entero":
             self.i += 1
             return Entero(int(t.valor), linea=t.linea)
@@ -676,6 +784,22 @@ class Parser:
             # literal de struct: solo si el nombre es de un struct conocido
             if t.valor in self.structs and self.es("simbolo", "{"):
                 return self.cuerpo_literal_struct(t.valor, t.linea)
+
+            # `Figura.Circulo(2.0)`: construir una variante. Se distingue de
+            # `p.x` porque el nombre de delante es el de un enum conocido, no
+            # el de una variable.
+            if t.valor in self.enums and self.es("simbolo", "."):
+                self.i += 1
+                variante = self.espera("ident").valor
+                args = []
+                if self.acepta("simbolo", "("):
+                    if not self.es("simbolo", ")"):
+                        while True:
+                            args.append(self.expr())
+                            if not self.acepta("simbolo", ","):
+                                break
+                    self.espera("simbolo", ")")
+                return EnumLit(t.valor, variante, args, linea=t.linea)
 
             if self.acepta("simbolo", "("):
                 return self.cuerpo_llamada(t.valor, t.linea)
@@ -727,11 +851,13 @@ def _marcar(nodo, archivo, vistos=None):
         _marcar(getattr(nodo, f.name), archivo, vistos)
 
 
-def parsear(fuente: str, archivo="<entrada>", structs_previos=None) -> list:
+def parsear(fuente: str, archivo="<entrada>", structs_previos=None,
+            enums_previos=None) -> list:
     """`structs_previos` trae los nombres de struct de los modulos ya
     cargados: hacen falta para saber que `Punto { x: 1 }` es un literal y no
-    el inicio de un bloque."""
+    el inicio de un bloque. `enums_previos` es lo mismo para los enum:
+    `Color.Rojo` es una forma, no el campo `Rojo` de una variable `Color`."""
     decls = Parser(tokenizar(fuente, archivo), archivo,
-                   structs_previos).programa()
+                   structs_previos, enums_previos).programa()
     _marcar(decls, archivo)
     return decls

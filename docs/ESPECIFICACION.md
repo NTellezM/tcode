@@ -420,9 +420,11 @@ vista. Es el mismo modelo que produce los errores, escrito en positivo.
 ## Gramática v0
 
 ```
-programa   := usar* (struct | funcion)*
+programa   := usar* (struct | enum | funcion)*
 usar       := "usar" cadena ";"
 struct     := "struct" ident "{" (ident ":" tipo ",")* "}"
+enum       := "enum" ident "{" (variante ",")* "}"
+variante   := ident ("(" tipo ("," tipo)* ")")?
 funcion    := "fn" ident "(" params? ")" ("->" tipo)? "!"? bloque
 params     := param ("," param)*
 param      := ident ":" ("mut" | "&")? tipo
@@ -440,7 +442,12 @@ sentencia  := "let" ident ":" tipo "=" expr ";"
             | "while" expr bloque
             | "return" expr? ";"
             | "falla" cadena ";"
+            | match
             | expr ";"
+
+match      := "match" expr "{" brazo* "}"
+brazo      := patron "->" (expr "," | bloque ","?)
+patron     := "_" | ident "." ident ("(" ident ("," ident)* ")")?
 
 expr       := o ("sino" o)?
 o          := y ("||" y)*
@@ -453,7 +460,8 @@ unario     := "try" unario | ("!" | "-") unario | postfijo
 postfijo   := primario ("." ident | "[" expr "]")*
 lugar      := ident ("." ident | "[" expr "]")*
 primario   := entero | cadena | interpolada | "true" | "false" | ident
-            | ident "(" args? ")" | "(" expr ")"
+            | ident "(" args? ")" | "(" expr ")" | match
+            | IDENT_ENUM "." ident ("(" args? ")")?
             | IDENT_STRUCT "{" (ident ":" expr ",")* "}"
             | "[" (expr ",")* "]"
 ```
@@ -1446,12 +1454,124 @@ Tres propiedades, en la suite, sobre todos los `.t` del repositorio:
 3. **El repositorio ya está formateado.** Si alguien sube algo sin formatear,
    la suite lo dice y nombra el archivo.
 
+## Tipos suma: `enum` y `match`
+
+Un valor que es una cosa **o** otra, y el compilador obliga a mirar cuál.
+
+```tcode
+enum Json {
+    Nulo,
+    Verdad(bool),
+    Numero(i64),
+    Texto(str),
+    Lista(lista<Json>),
+}
+
+fn escribir(v: &Json) -> str {
+    return match v {
+        Json.Nulo -> nuevo("null"),
+        Json.Numero(n) -> texto(n),
+        Json.Texto(s) -> {
+            var r = nuevo("\"");
+            empujar(r, s);
+            empujar(r, "\"");
+            return r;
+        }
+        _ -> nuevo("?"),
+    };
+}
+```
+
+Un brazo da un valor (`-> expr,`) o hace cosas (`-> { ... }`). Por dentro
+son lo mismo: el cuerpo de un brazo que da valor es un `return` de esa
+expresión. Un `match` suelto, como sentencia, no lleva `;` detrás, igual que
+`if` y `while`.
+
+### Es exhaustivo
+
+Si falta una forma, el error la nombra:
+
+```
+al `match` le faltan formas: `Json.Verdad`, `Json.Lista`. Ponlas, o pon un
+brazo `_` para lo que quede; si no, el día que añadas una variante este
+sitio se quedaría callado
+```
+
+Un brazo repetido y un brazo detrás del `_` también son errores: los dos son
+código que no se ejecuta nunca, y callárselo sería mentir.
+
+### Un `match` mira, no desmonta
+
+Lo que atrapa un patrón **se presta siempre**. Un `str` se ve como `view`;
+cualquier otra cosa con dueño, como `&T`. Nunca hay que escribir `ref`, `&`
+ni `as_ref()`.
+
+Rust deja sacar el valor de dentro, y a cambio tiene que llevar la cuenta de
+un enum medio movido; de ahí vienen `ref`, `ref mut`, `match *x` y los modos
+de ligadura por defecto que costó años añadir. Aquí no hay medias tintas:
+quien quiera quedarse con lo de dentro escribe `copiar(...)`, que es la misma
+regla explícita que el resto del lenguaje.
+
+Es menos potente. Es también menos que aprender, y el error de quedarse con
+un puntero a lo que ya no está no se puede escribir.
+
+### La etiqueta 0 es la primera variante
+
+Siempre, y no es casualidad: en Tcode **todo tipo puesto a ceros es un valor
+válido**, y esa invariante es la que permite que `reservar(n)` entregue
+ranuras ya hechas sin que exista un `unsafe` ni un `MaybeUninit`. Un enum
+tiene que respetarla como todo lo demás, así que el `calloc` de un
+`bloque<Json>` da `Json.Nulo` en cada hueco.
+
+Ni Rust ni Zig garantizan esto.
+
+### Cómo se ve en C
+
+```c
+typedef struct Json Json;
+#define SS_JSON_NULO 0
+#define SS_JSON_VERDAD 1
+...
+struct Json
+{
+    uint32_t etiqueta;
+    union
+    {
+        struct { bool _0; } v_Verdad;
+        struct { int64_t _0; } v_Numero;
+        struct { SafeString _0; } v_Texto;
+        struct { ss_lista_Json _0; } v_Lista;
+    } dato;
+};
+```
+
+El `match` baja a un `switch` sobre `etiqueta`. La liberación y `copiar`
+salen generadas, cada una con su propio `switch`: se suelta o se duplica lo
+que lleve la forma que sea, y las que no llevan nada ni aparecen.
+
+### Comparación
+
+| | tipos suma | exhaustividad | dato del patrón |
+|---|---|---|---|
+| C | `enum` = enteros; unión a mano | no | sin comprobar |
+| Go | no tiene; interfaz + `type switch` | no | asertado |
+| C++ | `std::variant` + `std::visit` | parcial, ilegible | por visitante |
+| Rust | sí | sí | mover o prestar, con `ref`/`&` |
+| Swift | sí | sí | `let` / `case let` |
+| Zig | `union(enum)` | sí | por captura `|x|` |
+| **Tcode** | **sí** | **sí, con las que faltan nombradas** | **prestado siempre** |
+
+Lo que Tcode todavía no tiene: enums con parámetros de tipo
+(`enum Quiza<T>`), patrones anidados, patrones sobre literales o rangos, y
+guardas (`if` dentro de un brazo).
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: clausuras que modifiquen lo capturado
 (`FnMut`), comprobación del cuerpo genérico una sola vez contra la
-restricción (eso es Rust, y es más), E/S incremental, aritmética de punteros
-ni recolector.
+restricción (eso es Rust, y es más), enums con parámetros de tipo, patrones
+anidados ni guardas, E/S incremental, llamadas a C (FFI), aritmética de
+punteros ni recolector.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

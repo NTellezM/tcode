@@ -23,7 +23,8 @@ import re
 
 from tcode.lexer import tokenizar
 from tcode.parser import parsear
-from tcode.nodos import Usar, Struct, Funcion, Llamada, LiteralStruct
+from tcode.nodos import (Usar, Struct, Funcion, Llamada, LiteralStruct,
+                         Enum, EnumLit, Match)
 
 
 def _solo_usar(fuente, archivo):
@@ -69,7 +70,7 @@ def renombrar_en_arbol(nodo, mapa):
         return
     if not is_dataclass(nodo):
         return
-    if isinstance(nodo, (Llamada, LiteralStruct)):
+    if isinstance(nodo, (Llamada, LiteralStruct, EnumLit, Match)):
         clave = nodo.nombre if isinstance(nodo, Llamada) else nodo.tipo
         if clave in mapa:
             if isinstance(nodo, Llamada):
@@ -182,6 +183,7 @@ def cargar(ruta_principal, nombres_bonitos=None):
     orden = []
     pila = []
     structs = set()
+    enums = set()
 
     def cargar_uno(ruta, quien=None, linea=0):
         real = os.path.realpath(ruta)
@@ -222,8 +224,13 @@ def cargar(ruta_principal, nombres_bonitos=None):
             destinos[id(d)] = os.path.realpath(destino)
         pila.pop()
 
-        propias = parsear(fuente, mostrada, structs)
-        structs.update(d.nombre for d in propias if isinstance(d, Struct))
+        propias = parsear(fuente, mostrada, structs, enums)
+        # Los nombres de tipo van juntos —un enum tambien es un tipo— pero
+        # los enum ademas por separado: el archivo que los usa tiene que
+        # saber que `Color.Rojo` es una forma y no el campo de una variable.
+        structs.update(d.nombre for d in propias
+                       if isinstance(d, (Struct, Enum)))
+        enums.update(d.nombre for d in propias if isinstance(d, Enum))
 
         modulos[real] = {
             "decls": [d for d in propias if not isinstance(d, Usar)],
@@ -239,7 +246,7 @@ def cargar(ruta_principal, nombres_bonitos=None):
     duenios = {}        # nombre -> [real]
     for real, m in modulos.items():
         propios = {d.nombre: d for d in m["decls"]
-                   if isinstance(d, (Funcion, Struct))}
+                   if isinstance(d, (Funcion, Struct, Enum))}
         declara[real] = propios
         for n in propios:
             duenios.setdefault(n, []).append(real)
@@ -283,7 +290,7 @@ def cargar(ruta_principal, nombres_bonitos=None):
         # Las declaraciones propias cambian de nombre; las referencias, todas.
         renombrar_en_arbol(m["decls"], visible)
         for d in m["decls"]:
-            if isinstance(d, (Funcion, Struct)):
+            if isinstance(d, (Funcion, Struct, Enum)):
                 nuevo = interno[(real, d.nombre)]
                 if nuevo != d.nombre and nombres_bonitos is not None:
                     nombres_bonitos[nuevo] = d.nombre

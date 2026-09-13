@@ -405,6 +405,14 @@ tipos con nombre, sin `impl` y sin coherencia. Sirven para que el error salga
 en la llamada y diga qué se pedía, en vez de salir de tres niveles más
 adentro del cuerpo.
 
+Y **tipos suma**: `enum Json { Nulo, Numero(i64), Texto(str), Lista(lista<Json>) }`
+con `match` **exhaustivo** —si falta una forma, el error la nombra— y sin
+`ref` ni `&` en los patrones, porque un `match` mira y no desmonta: lo que
+atrapa el patrón se presta siempre, y quien quiera quedarse con lo de dentro
+escribe `copiar(...)`. La etiqueta 0 es la primera variante, así que un enum
+a ceros sigue siendo un valor válido y cabe en la memoria que da `reservar`
+sin ningún `unsafe`; ni Rust ni Zig garantizan eso. Está en `ejemplos/json.t`.
+
 Y **structs genéricos**: `struct Pila<T>`, `struct Par<A, B>`, y
 `struct Nodo<T> { valor: T, hijos: lista<Nodo<T>> }`, que se contiene a sí
 mismo. `std/par` es un contenedor escrito en Tcode del que el compilador no

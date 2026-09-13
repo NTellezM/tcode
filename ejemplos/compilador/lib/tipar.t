@@ -31,11 +31,17 @@ struct Contexto {
     // Los mismos parametros pero con su marca (`&`, `mut`): hace falta para
     // saber si una llamada se queda con el valor o solo lo mira.
     params_marcados: mapa<str, lista<str>>,
+    // `Enum.Variante` -> lo que lleva esa forma, en orden. Un enum no tiene
+    // campos: tiene formas, y solo una a la vez.
+    formas: mapa<str, lista<str>>,
+    // Enum -> los nombres de sus formas, para saber si un tipo es un enum.
+    variantes: mapa<str, lista<str>>,
 }
 
 fn contexto() -> Contexto {
     return Contexto { ambitos: [], campos: [], nombres: [], retornos: [],
-        tipo_params: [], params: [], params_marcados: [] };
+        tipo_params: [], params: [], params_marcados: [], formas: [],
+        variantes: [] };
 }
 
 fn abrir(c: mut Contexto) {
@@ -98,6 +104,24 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
     if igual(clase, "booleano") { return nuevo("bool"); }
 
     if igual(clase, "variable") { return buscar(c, vista(n.texto)); }
+
+    // `Color.Rojo` es un `Color`.
+    if igual(clase, "enum_lit") { return antes_del_punto(vista(n.texto)); }
+
+    // Un `match` vale lo que valgan sus brazos. Basta con mirar el primero
+    // que de algo: el comprobador ya exige que todos den lo mismo.
+    if igual(clase, "match") {
+        for h en n.hijos {
+            if igual(vista(h.clase), "brazo") {
+                for x en h.hijos {
+                    if igual(vista(x.clase), "retorno") {
+                        if largo(x.hijos) > 0 { return tipo_de(c, x.hijos[0]); }
+                    }
+                }
+            }
+        }
+        return vacio();
+    }
 
     if igual(clase, "expresion") {
         if largo(n.hijos) > 0 { return tipo_de(c, n.hijos[0]); }
@@ -232,6 +256,57 @@ fn tipo_fijo(nombre: view) -> str {
 
 // `T.apuntado_si` se declara como `apuntado_si`: el nombre del modulo es de
 // quien llama, no de la funcion.
+// Lo que atrapa un patron de `match` se presta, nunca se posee: un `str`
+// se ve como `view`, y lo demas con duenio como `&T`. Es lo que hace que no
+// hagan falta ni `ref` ni `&` en los patrones.
+fn tipo_atrapado(c: &Contexto, t: view) -> str {
+    if igual(t, "str") { return nuevo("view"); }
+    if !posee_con_formas(c, t) { return nuevo(t); }
+    var r = nuevo("&");
+    empujar(r, t);
+    return r;
+}
+
+// Como `posee_simple`, pero sabiendo ademas de enums: uno posee si alguna
+// de sus formas posee.
+fn posee_con_formas(c: &Contexto, t: view) -> bool {
+    if tiene(c.variantes, t) {
+        let cuales = lista_de(c.variantes, t) sino [];
+        for v en cuales {
+            var clave = nuevo(t);
+            empujar(clave, ".");
+            empujar(clave, vista(v));
+            let lleva = lista_de(c.formas, vista(clave)) sino [];
+            for x en lleva {
+                if posee_con_formas(c, vista(x)) { return true; }
+            }
+        }
+        return false;
+    }
+    return posee_simple(c, t);
+}
+
+// `Color.Rojo` -> `Color`.
+fn antes_del_punto(t: view) -> str {
+    var i = 0;
+    while i < largo(t) {
+        if byte(t, i) == 46 { return nuevo(rebanar(t, 0, i)); }
+        i = i + 1;
+    }
+    return nuevo(t);
+}
+
+fn tras_el_punto(t: view) -> str {
+    var i = 0;
+    while i < largo(t) {
+        if byte(t, i) == 46 {
+            return nuevo(rebanar(t, i + 1, largo(t)));
+        }
+        i = i + 1;
+    }
+    return vacio();
+}
+
 fn sin_modulo(nombre: view) -> str {
     var i = 0;
     while i < largo(nombre) {

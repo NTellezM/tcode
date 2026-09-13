@@ -32,6 +32,7 @@ fn palabras_reservadas() -> mapa<str, usize> {
     poner(m, "sino", 1); poner(m, "falla", 1); poner(m, "lista", 1);
     poner(m, "mapa", 1); poner(m, "str", 1); poner(m, "view", 1);
     poner(m, "bool", 1);
+    poner(m, "enum", 1); poner(m, "match", 1);
     poner(m, "true", 1); poner(m, "false", 1);
     poner(m, "u8", 1); poner(m, "u16", 1); poner(m, "u32", 1);
     poner(m, "u64", 1); poner(m, "usize", 1);

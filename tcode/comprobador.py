@@ -16,6 +16,7 @@ from tcode.nodos import (
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
+    Enum, VarianteDef, EnumLit, Match, Brazo,
 )
 
 # Enteros de ancho fijo, mas `usize`, que es el que mide cosas de la maquina
@@ -404,6 +405,9 @@ class Comprobador:
         self.archivo = archivo
         self.ambitos = []          # lista de dicts nombre -> Simbolo
         self.structs = {}
+        # nombre -> Enum. Un enum no es un struct: no tiene campos, tiene
+        # formas, y solo una a la vez.
+        self.enums = {}
         self.funciones = {}
         # `fn f<T>(...)`: la plantilla, sin comprobar. De cada una salen
         # copias con los tipos ya puestos, una por juego de tipos usado.
@@ -628,20 +632,25 @@ class Comprobador:
             return True
         if es_arreglo(tipo):
             return self.posee(elem_de(tipo), visitados)
-        st = self.structs.get(tipo)
-        if st is None:
-            return False
         visitados = visitados or set()
         if tipo in visitados:
             return False                      # ciclo: ya se reporto como error
-        visitados = visitados | {tipo}
-        return any(self.posee(c.tipo, visitados) for c in st.campos)
+        en = self.enums.get(tipo)
+        if en is not None:
+            # Un enum posee si ALGUNA de sus formas posee: en tiempo de
+            # ejecucion solo hay una, pero cual sea no se sabe aqui.
+            return any(self.posee(t, visitados | {tipo})
+                       for v in en.variantes for t in v.tipos)
+        st = self.structs.get(tipo)
+        if st is None:
+            return False
+        return any(self.posee(c.tipo, visitados | {tipo}) for c in st.campos)
 
     def es_compuesto(self, t):
         """Tiene partes: se puede leer un campo o modificarlo en el sitio.
         Un escalar no lo es; prestarlo no aporta nada sobre copiarlo."""
         return (t == "str" or es_lista(t) or es_mapa(t) or es_arreglo(t)
-                or t in self.structs)
+                or t in self.structs or t in self.enums)
 
     def tipo_existe(self, t):
         if es_referencia(t):
@@ -653,7 +662,8 @@ class Comprobador:
             params, retorno = partes_funcion(t)
             return (all(self.tipo_existe(x) for x in params)
                     and (retorno == UNIDAD or self.tipo_existe(retorno)))
-        if t in NUMERICOS or t in {"str", "view", "bool"} or t in self.structs:
+        if (t in NUMERICOS or t in {"str", "view", "bool"}
+                or t in self.structs or t in self.enums):
             return True
         if es_arreglo(t):
             return self.tipo_existe(elem_de(t))
@@ -683,14 +693,17 @@ class Comprobador:
             # La lista contiene un puntero, no el elemento por valor: corta el
             # ciclo de tamaño (y permite arboles como lista<Nodo>).
             return False
-        st = self.structs.get(tipo)
-        if st is None:
-            return False
         visitados = visitados or set()
         if tipo in visitados:
             return False
-        visitados = visitados | {tipo}
-        return any(self.contiene_a(c.tipo, buscado, visitados)
+        en = self.enums.get(tipo)
+        if en is not None:
+            return any(self.contiene_a(t, buscado, visitados | {tipo})
+                       for v in en.variantes for t in v.tipos)
+        st = self.structs.get(tipo)
+        if st is None:
+            return False
+        return any(self.contiene_a(c.tipo, buscado, visitados | {tipo})
                    for c in st.campos)
 
     # ---------- structs genericos ----------
@@ -749,6 +762,40 @@ class Comprobador:
             c.tipo = self.resolver_tipo(sustituir_tipo(c.tipo, ligaduras), nodo)
         self.structs_instanciados.append(copia)
         return nombre
+
+    def comprobar_enums(self, enums):
+        """Registra los enum y comprueba que sus variantes tienen sentido.
+
+        Va antes que los structs porque un struct puede llevar un enum
+        dentro, y para saber si ese struct posee memoria hay que saber ya si
+        el enum la posee.
+        """
+        for en in enums:
+            previo = self.enums.get(en.nombre) or self.structs.get(en.nombre)
+            if previo is not None:
+                self.error(en, f"`{en.nombre}` ya esta definido en "
+                               f"{previo.archivo or '<entrada>'}:{previo.linea}")
+            self.enums[en.nombre] = en
+        for en in enums:
+            for v in en.variantes:
+                for i, t in enumerate(v.tipos):
+                    v.tipos[i] = self.resolver_tipo(t, en)
+                    if not self.tipo_existe(v.tipos[i]):
+                        self.error(en, f"`{en.nombre}.{v.nombre}` lleva un "
+                                       f"`{v.tipos[i]}`, que no es un tipo")
+                    # Un enum que se contiene a si mismo por valor tendria
+                    # tamaño infinito, igual que un struct.
+                    if self.contiene_a(v.tipos[i], en.nombre):
+                        self.error(en, f"`{en.nombre}.{v.nombre}` contiene un "
+                                       f"`{en.nombre}`: el tamaño no seria "
+                                       f"finito. Metelo en una `lista`, que "
+                                       f"guarda un puntero")
+
+    def variante_de(self, tipo, nombre):
+        en = self.enums.get(tipo)
+        if en is None:
+            return None
+        return next((v for v in en.variantes if v.nombre == nombre), None)
 
     def comprobar_structs(self, structs):
         concretos = []
@@ -819,7 +866,9 @@ class Comprobador:
 
     def comprobar_programa(self, funciones):
         structs = [d for d in funciones if isinstance(d, Struct)]
+        enums = [d for d in funciones if isinstance(d, Enum)]
         funciones = [d for d in funciones if isinstance(d, Funcion)]
+        self.comprobar_enums(enums)
         self.comprobar_structs(structs)
         for f in funciones:
             if not f.tipo_params:
@@ -1124,6 +1173,124 @@ class Comprobador:
         return {id(sim): (sim.movida, sim.movida_en, sim.entregada_en,
                           sim.reasignada_directo, sim)
                 for sim in self._simbolos_vivos()}
+
+    def match(self, e, destino=None, mover_variables=True):
+        """`match x { ... }`: mirar que forma tiene un enum.
+
+        Tres cosas que no todos los lenguajes hacen:
+
+        - Es exhaustivo. Si falta una forma, el error la nombra. Rust, Swift,
+          Zig y los ML lo hacen; Go no tiene con que, y el `switch` de C ni
+          se entera. Sin esto, anadir una variante es un fallo silencioso en
+          todos los sitios donde ya se miraba.
+        - Lo que atrapa el patron se presta o se posee segun el valor que se
+          mira. Si el `match` es sobre un `&Figura`, el `s` de
+          `Figura.Texto(s)` es una vista prestada, y no hay que escribir
+          `ref`, `&`, ni `as_ref()`: en Rust esto costo anios de `match *x`
+          y `ref mut` hasta que llegaron los modos de ligadura por defecto.
+        - Cada brazo es un camino que excluye a los demas, asi que lo que uno
+          mueve no lo han movido los otros. Es la misma regla del `if`, y la
+          que hace que las banderas de propiedad salgan bien solas.
+        """
+        tv = self.expresion(e.valor, mover_variables=False)
+        if tv is None:
+            return None
+        base = sin_prestamo(tv)
+        en = self.enums.get(base)
+        if en is None:
+            self.error(e, f"`match` mira las formas de un enum, y `{tv}` no "
+                          f"es uno")
+            return None
+        e.tipo = base
+
+        antes = self._foto()
+        fotos = []
+        vistas = {}
+        tipo_comun = None
+        hay_comodin = False
+        for b in e.brazos:
+            if hay_comodin:
+                self.error(e, "hay brazos detras del `_`, y no se miran "
+                              "nunca: el `_` vale para todo lo que quede")
+                break
+            self._restaurar(antes)
+            if b.variante is None:
+                hay_comodin = True
+                if b.nombres:
+                    self.error(e, "el brazo `_` no atrapa nada")
+            else:
+                v = self.variante_de(base, b.variante)
+                if v is None:
+                    cuales = ", ".join(f"`{base}.{x.nombre}`"
+                                       for x in en.variantes)
+                    self.error(e, f"`{base}` no tiene la forma "
+                                  f"`{b.variante}`; tiene {cuales}")
+                    continue
+                if b.variante in vistas:
+                    self.error(e, f"`{base}.{b.variante}` se mira dos veces; "
+                                  f"el segundo brazo no se ejecuta nunca")
+                vistas[b.variante] = True
+                if len(b.nombres) != len(v.tipos):
+                    cuantos = (f"{len(v.tipos)} valor"
+                               + ("es" if len(v.tipos) != 1 else ""))
+                    self.error(e, f"`{base}.{b.variante}` lleva {cuantos}, y "
+                                  f"el patron atrapa {len(b.nombres)}")
+                    continue
+
+            self.abrir()
+            self.en_condicional += 1
+            if b.variante is not None:
+                v = self.variante_de(base, b.variante)
+                for nombre, t in zip(b.nombres, v.tipos):
+                    # Un `match` MIRA, no desmonta: lo que atrapa el patron
+                    # se presta siempre. Rust deja sacar el valor de dentro,
+                    # y a cambio tiene que llevar la cuenta de un enum medio
+                    # movido; aqui no hay medias tintas, y quien quiera
+                    # quedarse con lo de dentro escribe `copiar(...)`, que es
+                    # la misma regla explicita del resto del lenguaje.
+                    # Un `str` prestado es una `view`, que es lo que ya
+                    # significa en todas partes.
+                    if self.posee(t):
+                        tp = "view" if t == "str" else f"&{t}"
+                    else:
+                        tp = t
+                    self.declarar(e, nombre, tp, False)
+            t = None
+            for i, st in enumerate(b.cuerpo):
+                if b.es_expresion and isinstance(st, Retorno) and st.valor is not None:
+                    t = self.expresion(st.valor, destino=destino,
+                                       mover_variables=mover_variables)
+                else:
+                    self.sentencia(st)
+            self.en_condicional -= 1
+            self.cerrar()
+            fotos.append(self._foto())
+            if b.es_expresion:
+                if t not in (None, LITERAL, LITERAL_DECIMAL):
+                    if tipo_comun is None:
+                        tipo_comun = t
+                    elif not encaja(t, tipo_comun) and not encaja(tipo_comun, t):
+                        self.error(e, f"los brazos de un `match` tienen que "
+                                      f"dar el mismo tipo, y dan "
+                                      f"`{tipo_comun}` y `{t}`")
+
+        # La union de todos los caminos: movido en uno cuenta como movido.
+        if fotos:
+            juntas = fotos[0]
+            for otra in fotos[1:]:
+                self._juntar_ramas(juntas, otra)
+                juntas = self._foto()
+
+        if not hay_comodin:
+            faltan = [v.nombre for v in en.variantes if v.nombre not in vistas]
+            if faltan:
+                lista_f = ", ".join(f"`{base}.{x}`" for x in faltan)
+                self.error(e, f"al `match` le faltan formas: {lista_f}. "
+                              f"Ponlas, o pon un brazo `_` para lo que quede; "
+                              f"si no, el dia que anadas una variante este "
+                              f"sitio se quedaria callado")
+        e.resultado = tipo_comun or ""
+        return tipo_comun
 
     def _juntar_ramas(self, tras_a, tras_b):
         """Lo que sobrevive a dos caminos que se excluyen: movido en uno o en
@@ -1678,6 +1845,37 @@ class Comprobador:
             if ta in (None, LITERAL, LITERAL_DECIMAL):
                 return tb if tb is not None else ta
             return ta
+
+        if isinstance(e, EnumLit):
+            en = self.enums.get(e.tipo)
+            if en is None:
+                self.error(e, f"`{e.tipo}` no es un enum")
+                return None
+            v = self.variante_de(e.tipo, e.variante)
+            if v is None:
+                cuales = ", ".join(f"`{e.tipo}.{x.nombre}`"
+                                   for x in en.variantes)
+                self.error(e, f"`{e.tipo}` no tiene la forma `{e.variante}`; "
+                              f"tiene {cuales}")
+                return None
+            if len(e.args) != len(v.tipos):
+                cuantos = (f"{len(v.tipos)} valor"
+                           + ("es" if len(v.tipos) != 1 else ""))
+                self.error(e, f"`{e.tipo}.{e.variante}` lleva {cuantos}, y se "
+                              f"le dieron {len(e.args)}")
+                return None
+            for arg, t in zip(e.args, v.tipos):
+                # La variante se queda con lo que le dan: entregarselo es un
+                # movimiento, igual que meterlo en un struct.
+                ta = self.expresion(arg, destino=t,
+                                    mover_variables=self.posee(t))
+                if ta is not None and not encaja(t, ta):
+                    self.error(e, f"`{e.tipo}.{e.variante}` lleva un `{t}` y "
+                                  f"se le dio un `{ta}`")
+            return e.tipo
+
+        if isinstance(e, Match):
+            return self.match(e, destino, mover_variables)
 
         if isinstance(e, Conversion):
             t = sin_prestamo(self.expresion(e.valor) or "")

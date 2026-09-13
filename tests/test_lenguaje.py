@@ -26,6 +26,57 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    # ---- enum y match ----
+    ("a un `match` no le puede faltar una forma",
+     'enum E { A, B(usize), C(str) } '
+     'fn f(e: &E) -> usize { return match e { E.A -> 0, E.B(n) -> n, }; }'
+     ' fn main() { }',
+     "le faltan formas: `E.C`"),
+
+    ("un brazo repetido no se ejecuta nunca",
+     'enum E { A, B(usize), C(str) } '
+     'fn f(e: &E) -> usize { return match e { E.A -> 0, E.A -> 1, _ -> 2, }; }'
+     ' fn main() { }',
+     "se mira dos veces"),
+
+    ("detras del `_` no queda nada que mirar",
+     'enum E { A, B(usize), C(str) } '
+     'fn f(e: &E) -> usize { return match e { _ -> 0, E.A -> 1, }; }'
+     ' fn main() { }',
+     "detras del `_`"),
+
+    ("no se puede mirar una forma que no existe",
+     'enum E { A, B(usize), C(str) } '
+     'fn f(e: &E) -> usize { return match e { E.Z -> 1, _ -> 0, }; }'
+     ' fn main() { }',
+     "no tiene la forma `Z`"),
+
+    ("el patron atrapa lo que la forma lleva, ni mas ni menos",
+     'enum E { A, B(usize), C(str) } '
+     'fn f(e: &E) -> usize { return match e { E.A(x) -> x, _ -> 0, }; }'
+     ' fn main() { }',
+     "lleva 0 valores, y el patron atrapa 1"),
+
+    ("construir una forma pide el tipo que lleva",
+     'enum E { A, B(usize), C(str) } '
+     'fn f() -> E { return E.B(nuevo("x")); } fn main() { }',
+     "lleva un `usize` y se le dio un `str`"),
+
+    ("un enum que se contiene a si mismo no tiene tamaño",
+     'enum E { A, B(E) } fn main() { }',
+     "el tamaño no seria finito"),
+
+    ("`match` mira enums, no cualquier cosa",
+     'enum E { A } fn f(n: usize) -> usize { return match n { E.A -> 0, }; }'
+     ' fn main() { }',
+     "y `usize` no es uno"),
+
+    ("lo que atrapa un patron se presta, no se posee",
+     'enum E { A, B(usize), C(str) } '
+     'fn f(e: &E) -> str { return match e { E.C(s) -> s, _ -> nuevo(""), }; }'
+     ' fn main() { }',
+     "devuelve `str`"),
+
     ("una clausura no cabe en un puntero a funcion",
      'fn usar_fn(f: fn(usize) -> usize) -> usize { return f(1); }'
      ' fn main() -> usize { let n = 2;'
@@ -2330,6 +2381,7 @@ print("=== PROPIEDAD: que le pasa a cada valor, dicho por Tcode ===")
 # un archivo que hoy coincide deja de hacerlo, la suite lo dice.
 _PROPIEDAD_PENDIENTES = {
     # nombre repetido en bloques distintos
+    "ejemplos/json.t",
     "ejemplos/compilador/lib/propiedad.t",
     "ejemplos/compilador/lib/tipar.t",
     "ejemplos/compilador/lib/generar.t",
@@ -2588,7 +2640,7 @@ def _expresiones_esperadas(ruta):
             fuera.append(f"{d.nombre}\t{r.linea}\t{c}")
     return fuera
 
-_MINIMO_CUBIERTAS = 495
+_MINIMO_CUBIERTAS = 510
 
 tmp = tempfile.mkdtemp(prefix="tcode-expr-")
 try:
@@ -2682,7 +2734,7 @@ def _normaliza_tmp(texto):
         texto = renumera(texto, prefijo)
     return texto
 
-_MINIMO_CUERPOS = 56
+_MINIMO_CUERPOS = 60
 
 tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
 try:

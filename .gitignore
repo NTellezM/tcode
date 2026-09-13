@@ -43,6 +43,17 @@ ejemplos/binario
 
 # binarios de los ejemplos nuevos
 ejemplos/pruebas
-ejemplos/compilador/tipos
 ejemplos/compilador/*.c
 ejemplos/lexer/sintaxis
+
+# Los binarios se llaman como su `.t` sin la extension, asi que no hay
+# patron que los distinga de una carpeta: van uno a uno. Tres se colaron en
+# el repositorio antes de que estuvieran aqui.
+ejemplos/banderas
+ejemplos/bucle_vista
+ejemplos/json
+ejemplos/compilador/tipos
+ejemplos/compilador/tipar
+ejemplos/compilador/firmas
+ejemplos/compilador/expresiones
+ejemplos/compilador/cuerpos

@@ -19,6 +19,7 @@ from tcode.nodos import (
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
+    Enum, EnumLit, Match,
 )
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
@@ -569,6 +570,11 @@ class Generador:
             for c in self.c.structs[tipo].campos:
                 self.necesita_copiador(c.tipo)
 
+    @staticmethod
+    def etiqueta(enum_, variante):
+        """El nombre en C de una forma: `SS_FIGURA_CIRCULO`."""
+        return f"SS_{enum_.upper()}_{variante.upper()}"
+
     def copia_de(self, expr_c, tipo):
         """Una expresion C que es una copia independiente de `expr_c`.
 
@@ -644,6 +650,26 @@ class Generador:
                 f"        r.e[i] = {self.copia_de('p->e[i]', elem)};",
                 "    return r;",
             ]
+        elif tipo in self.c.enums:
+            en = self.c.enums[tipo]
+            lineas += [f"    {tc} r = *p;"]
+            hay = [v for v in en.variantes
+                   if any(self.c.posee(t) for t in v.tipos)]
+            if hay:
+                lineas.append("    switch (p->etiqueta)")
+                lineas.append("    {")
+                for v in hay:
+                    lineas.append(f"    case {self.etiqueta(tipo, v.nombre)}:")
+                    for i, t in enumerate(v.tipos):
+                        if self.c.posee(t):
+                            origen = f"p->dato.v_{v.nombre}._{i}"
+                            lineas.append(
+                                f"        r.dato.v_{v.nombre}._{i} = "
+                                f"{self.copia_de(origen, t)};")
+                    lineas.append("        break;")
+                lineas.append("    default: break;")
+                lineas.append("    }")
+            lineas.append("    return r;")
         else:
             lineas.append(f"    {tc} r;")
             for c in self.c.structs[tipo].campos:
@@ -883,6 +909,7 @@ class Generador:
         decls += list(getattr(self.c, "instanciadas", ()))
 
         structs = [d for d in decls if isinstance(d, Struct)]
+        enums = [d for d in decls if isinstance(d, Enum)]
         funciones = [d for d in decls if isinstance(d, Funcion)]
 
         self.lineas.append(CABECERA)
@@ -893,6 +920,19 @@ class Generador:
         for st in structs:
             self.lineas.append(f"typedef struct {st.nombre} {st.nombre};")
         if structs:
+            self.lineas.append("")
+
+        # Un enum es una etiqueta y, a su lado, sitio para la forma que
+        # tenga. La etiqueta 0 es la PRIMERA variante, y eso importa: en
+        # Tcode todo valor a ceros tiene que ser valido, que es lo que
+        # permite que `reservar(n)` entregue ranuras ya hechas sin que exista
+        # un `unsafe`. Rust no garantiza esto y Zig tampoco.
+        for en in enums:
+            self.lineas.append(f"typedef struct {en.nombre} {en.nombre};")
+            for i, v in enumerate(en.variantes):
+                self.lineas.append(
+                    f"#define {self.etiqueta(en.nombre, v.nombre)} {i}")
+        if enums:
             self.lineas.append("")
 
         # Bloques, listas y mapas son `typedef` de structs sin nombre, asi
@@ -939,6 +979,23 @@ class Generador:
         if agregados:
             self.lineas.append("")
 
+        for en in enums:
+            self.lineas.append(f"struct {en.nombre}")
+            self.lineas.append("{")
+            self.lineas.append("    uint32_t etiqueta;")
+            con_datos = [v for v in en.variantes if v.tipos]
+            if con_datos:
+                self.lineas.append("    union")
+                self.lineas.append("    {")
+                for v in con_datos:
+                    campos = " ".join(
+                        f"{self.tipo_c(t)} _{i};" for i, t in enumerate(v.tipos))
+                    self.lineas.append(
+                        f"        struct {{ {campos} }} v_{v.nombre};")
+                self.lineas.append("    } dato;")
+            self.lineas.append("};")
+            self.lineas.append("")
+
         # structs, en orden de dependencia
         for st in self.orden_structs(structs):
             self.lineas.append(f"struct {st.nombre}")
@@ -953,7 +1010,11 @@ class Generador:
         for st in self.orden_structs(structs):
             if self.c.posee(st.nombre):
                 self.lineas.append(f"static void ss_drop_{st.nombre}({st.nombre}* p);")
-        if any(self.c.posee(st.nombre) for st in structs):
+        for en in enums:
+            if self.c.posee(en.nombre):
+                self.lineas.append(f"static void ss_drop_{en.nombre}({en.nombre}* p);")
+        if (any(self.c.posee(st.nombre) for st in structs)
+                or any(self.c.posee(en.nombre) for en in enums)):
             self.lineas.append("")
 
         # envoltorios de arreglo, de dentro hacia fuera
@@ -1371,6 +1432,35 @@ class Generador:
             self.lineas.append("}")
             self.lineas.append("")
 
+        # Liberadores de los enum: se mira la etiqueta y se suelta lo que
+        # lleve esa forma. Las que no llevan nada no aparecen.
+        for en in enums:
+            if not self.c.posee(en.nombre):
+                continue
+            self.lineas.append("SS_LANG_QUIZA_SIN_USAR")
+            self.lineas.append(f"static void ss_drop_{en.nombre}({en.nombre}* p)")
+            self.lineas.append("{")
+            self.sangria = 1
+            self.emitir("switch (p->etiqueta)")
+            self.emitir("{")
+            for v in en.variantes:
+                if not any(self.c.posee(t) for t in v.tipos):
+                    continue
+                self.emitir(f"case {self.etiqueta(en.nombre, v.nombre)}:")
+                self.emitir("{")
+                self.sangria += 1
+                for i, t in enumerate(v.tipos):
+                    if self.c.posee(t):
+                        self.liberacion(f"p->dato.v_{v.nombre}._{i}", t)
+                self.emitir("break;")
+                self.sangria -= 1
+                self.emitir("}")
+            self.emitir("default: break;")
+            self.emitir("}")
+            self.sangria = 0
+            self.lineas.append("}")
+            self.lineas.append("")
+
         # Copiadores. Se descubren generando las funciones, asi que el hueco
         # se reserva aqui y se rellena al final: un copiador puede necesitar
         # otro, y los prototipos van todos delante.
@@ -1583,8 +1673,93 @@ class Generador:
             self.emitir("}")
             return
 
-        if tipo in self.c.structs and self.c.posee(tipo):
+        if (tipo in self.c.structs or tipo in self.c.enums) \
+                and self.c.posee(tipo):
             self.emitir(f"ss_drop_{tipo}(&{expr_c});")
+
+    def match_c(self, e, destino=None):
+        """El `switch` de un `match`.
+
+        `destino` es la variable de C donde dejar el valor, o None si este
+        `match` no da ninguno. Cada brazo es un bloque propio: lo que nazca
+        dentro se suelta al salir, como en cualquier otro bloque.
+        """
+        base = sin_prestamo(self._tipo_de(e.valor) or e.tipo)
+        sitio = self.como_lugar(e.valor)
+        self.emitir(f"switch ({sitio}.etiqueta)")
+        self.emitir("{")
+        for b in e.brazos:
+            if b.variante is None:
+                self.emitir("default:")
+            else:
+                self.emitir(f"case {self.etiqueta(base, b.variante)}:")
+            self.emitir("{")
+            self.sangria += 1
+            self.pila.append([])
+            self.vars.append({})
+            with self.camino():
+                if b.variante is not None:
+                    v = self.c.variante_de(base, b.variante)
+                    for i, (nombre, t) in enumerate(zip(b.nombres, v.tipos)):
+                        dentro = f"{sitio}.dato.v_{b.variante}._{i}"
+                        if t == "str":
+                            # Un `str` prestado se ve como `view`.
+                            self.emitir(f"SS_LANG_QUIZA_SIN_USAR SafeView "
+                                        f"{nombre} = ss_view(&{dentro});")
+                            self.declarar(nombre, "view")
+                        elif self.c.posee(t):
+                            self.emitir(f"SS_LANG_QUIZA_SIN_USAR const "
+                                        f"{self.tipo_c(t)}* {nombre} = "
+                                        f"&{dentro};")
+                            self.declarar(nombre, t, True)
+                        else:
+                            self.emitir(f"SS_LANG_QUIZA_SIN_USAR "
+                                        f"{self.tipo_c(t)} {nombre} = "
+                                        f"{dentro};")
+                            self.declarar(nombre, t)
+
+                if b.es_expresion:
+                    st = b.cuerpo[0]
+                    anteriores = self.temporales
+                    self.temporales = []
+                    self.marcar(st)
+                    valor = self.expr(st.valor, self._tipo_de(st.valor))
+                    if destino is not None:
+                        self.reclamar(valor)
+                        self.emitir(f"{destino} = {valor};")
+                    for t in self.temporales:
+                        self.liberacion(t, self.tipo_var(t))
+                    self.temporales = anteriores
+                    self.liberar_bloque(self.pila[-1])
+                else:
+                    for st in b.cuerpo:
+                        self.sentencia(st)
+                    if not self._termina_en_retorno(b.cuerpo):
+                        self.liberar_bloque(self.pila[-1])
+            self.emitir("break;")
+            self.pila.pop()
+            self.vars.pop()
+            self.sangria -= 1
+            self.emitir("}")
+        # Un `match` es exhaustivo, asi que este `default` no se alcanza
+        # nunca. Esta para que el compilador de C no tenga que adivinarlo.
+        if all(b.variante is not None for b in e.brazos):
+            self.emitir("default: break;")
+        self.emitir("}")
+
+    def match_valor(self, e):
+        """El `match` usado como valor: un temporal y el `switch` encima."""
+        tipo = e.resultado or "usize"
+        tmp = self.nuevo_tmp()
+        # A ceros: en Tcode todo valor a ceros es valido, asi que el
+        # compilador de C no tiene de que quejarse aunque no sepa que el
+        # `switch` cubre todos los casos.
+        self.emitir(f"{self.tipo_c(tipo)} {tmp} = {{0}};")
+        self.declarar(tmp, tipo)
+        if self.c.posee(tipo):
+            self.temporales.append(tmp)
+        self.match_c(e, tmp)
+        return tmp
 
     def liberar_bloque(self, nombres, excepto=None):
         excepciones = excepto if isinstance(excepto, set) else {excepto}
@@ -1963,6 +2138,12 @@ class Generador:
                 self.temporales = []
             return
 
+        if isinstance(s, ExprSentencia) and isinstance(s.expr, Match):
+            # Un `match` suelto mira y hace, no da valor: el `switch` va tal
+            # cual, sin temporal donde dejar nada.
+            self.match_c(s.expr, None)
+            return
+
         if isinstance(s, ExprSentencia):
             c = self.expr(s.expr, None)
             tipo = self._tipo_de(s.expr)
@@ -1995,6 +2176,10 @@ class Generador:
         raise AssertionError(type(s).__name__)
 
     def _tipo_de(self, e):
+        if isinstance(e, EnumLit):
+            return e.tipo
+        if isinstance(e, Match):
+            return e.resultado or UNIDAD
         if isinstance(e, Entero):
             return "usize"
         if isinstance(e, Decimal):
@@ -2205,6 +2390,18 @@ class Generador:
             self.sangria -= 1
             self.emitir("}")
             return elegido
+
+        if isinstance(e, EnumLit):
+            v = self.c.variante_de(e.tipo, e.variante)
+            partes = [f".etiqueta = {self.etiqueta(e.tipo, e.variante)}"]
+            for i, (arg, t) in enumerate(zip(e.args, v.tipos)):
+                valor = self.expr(arg, t)
+                self.reclamar(valor)      # la variante se lo queda
+                partes.append(f".dato.v_{e.variante}._{i} = {valor}")
+            return f"({e.tipo}){{ {', '.join(partes)} }}"
+
+        if isinstance(e, Match):
+            return self.match_valor(e)
 
         if isinstance(e, (Campo, Indice)):
             return self.lugar(e)
