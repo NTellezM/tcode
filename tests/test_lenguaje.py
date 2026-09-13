@@ -2660,6 +2660,18 @@ def _retornos(nodo, fuera):
     for campo in _f(nodo):
         _retornos(getattr(nodo, campo.name), fuera)
 
+import re as _re_expr
+
+def _renumera_tmp(texto):
+    visto, n = {}, [0]
+    def cambia(m):
+        k = m.group(0)
+        if k not in visto:
+            n[0] += 1
+            visto[k] = f"ss_tmp{n[0]}"
+        return visto[k]
+    return _re_expr.sub(r"ss_tmp\d+", cambia, texto)
+
 def _expresiones_esperadas(ruta):
     from tcode.parser import parsear as _p
     try:
@@ -2689,7 +2701,7 @@ def _expresiones_esperadas(ruta):
             fuera.append(f"{d.nombre}\t{r.linea}\t{c}")
     return fuera
 
-_MINIMO_CUBIERTAS = 655
+_MINIMO_CUBIERTAS = 690
 
 tmp = tempfile.mkdtemp(prefix="tcode-expr-")
 try:
@@ -2739,7 +2751,12 @@ try:
                     vistas += 1
                     if a.endswith("\t?"):
                         continue        # esta capa no la cubre todavia
-                    if a != b:
+                    # Los numeros de temporal se renumeran por orden de
+                    # aparicion, como en CUERPOS y por lo mismo: el original
+                    # arrastra el contador entre las expresiones de una
+                    # funcion y esta capa empieza cada una de cero. El numero
+                    # dice en que orden se genero, no que C sale.
+                    if _renumera_tmp(a) != _renumera_tmp(b):
                         falla("expresiones en Tcode",
                               f"{os.path.relpath(archivo, RAIZ)}:\n"
                               f"  Tcode:  {a!r}\n  Python: {b!r}")
@@ -2783,7 +2800,7 @@ def _normaliza_tmp(texto):
         texto = renumera(texto, prefijo)
     return texto
 
-_MINIMO_CUERPOS = 319
+_MINIMO_CUERPOS = 339
 
 tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
 try:

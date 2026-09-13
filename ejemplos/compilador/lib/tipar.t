@@ -111,6 +111,13 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
 
     if igual(clase, "variable") { return buscar(c, vista(n.texto)); }
 
+    // `if c { a } else { b }` vale lo que valga su primera rama: el
+    // comprobador ya exige que las dos den lo mismo.
+    if igual(clase, "si_expr") {
+        if largo(n.hijos) == 3 { return tipo_de(c, n.hijos[1]); }
+        return vacio();
+    }
+
     // `Color.Rojo` es un `Color`.
     if igual(clase, "enum_lit") { return antes_del_punto(vista(n.texto)); }
 
