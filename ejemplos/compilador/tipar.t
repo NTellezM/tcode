@@ -124,7 +124,8 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
         for h en n.hijos {
             if igual(vista(h.clase), "campo_def") {
                 anadir(nombres, nombre_de(vista(h.texto)));
-                anadir(tipos, tipo_desnudo(vista(h.texto)));
+                let tipo_campo = tipo_desnudo(vista(h.texto));
+                anadir(tipos, I.sin_alias_tipo(vista(tipo_campo)));
             }
         }
         poner(c.campos, vista(n.texto), tipos);
@@ -157,7 +158,7 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
         var marcados: lista<str> = [];
         for h en n.hijos {
             if igual(vista(h.clase), "retorno_tipo") {
-                retorno = nuevo(vista(h.texto));
+                retorno = I.sin_alias_tipo(vista(h.texto));
             }
             // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
             // existe en el borde: lo que ve Tcode es un `str` suyo.
@@ -166,8 +167,10 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
                 anadir(sueltos, nuevo(vista(h.texto)));
             }
             if igual(vista(h.clase), "param") {
-                anadir(tipos_param, tipo_desnudo(vista(h.texto)));
-                anadir(marcados, tipo_con_marca(vista(h.texto)));
+                let tipo_param = tipo_desnudo(vista(h.texto));
+                anadir(tipos_param, I.sin_alias_tipo(vista(tipo_param)));
+                let con_marca = tipo_con_marca(vista(h.texto));
+                anadir(marcados, I.sin_alias_tipo(vista(con_marca)));
             }
         }
         if es_de_c {
@@ -207,6 +210,11 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
         let nombre = nombre_declarado(vista(n.texto));
         I.declarar(c, vista(nombre), vista(tipo));
         anadir(salida, $"{quien}\t{nombre}\t{tipo}");
+        // Cada fila lleva su linea, en la misma posicion: la propiedad las
+        // empareja por el indice. Sin esta, un `for` posterior dejaba su
+        // linea en el hueco de la declaracion, y la variable parecia
+        // declarada despues de usarse.
+        anadir(lineas, n.linea);
         return;
     }
 

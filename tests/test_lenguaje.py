@@ -2428,14 +2428,12 @@ print("=== PROPIEDAD: que le pasa a cada valor, dicho por Tcode ===")
 _PROPIEDAD_PENDIENTES = {
     # nombre repetido en bloques distintos
     "ejemplos/json.t",
-    "ejemplos/compilador/lib/propiedad.t",
+    "ejemplos/compilador/tcodec.t",
     "ejemplos/compilador/lib/tipar.t",
     "ejemplos/compilador/lib/generar.t",
-    # llamada repartida en varias lineas
-    "ejemplos/compilador/tipos.t",
-    "ejemplos/compilador/firmas.t",
-    "ejemplos/compilador/expresiones.t",
-    "ejemplos/compilador/cuerpos.t",
+    # un `return` dentro de un `if` cuenta para el camino que sigue: Python no
+    # junta una rama que ya salio con la continuacion, y esta capa si
+    "ejemplos/compilador/lib/programa.t",
 }
 
 def _propiedad_esperada(ruta):
@@ -2890,6 +2888,82 @@ try:
             print(f"    {iguales} funciones enteras, mismo C que el generador "
                   f"de Python")
 finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+
+print("=== PROGRAMA: el archivo C entero, escrito por Tcode ===")
+# El paso que separa "piezas que coinciden" de "un compilador": el `.c`
+# completo —cabecera, aritmetica, prototipos y todas las funciones, `main`
+# incluida— escrito por `tcodec.t` y comparado byte a byte con el que escribe
+# el generador de Python. Lo que `tcodec` no sabe escribir entero lo rechaza
+# sin escribir medio archivo; se cuentan los programas identicos y se exige un
+# minimo.
+_MINIMO_PROGRAMAS = 1
+
+tmp = tempfile.mkdtemp(prefix="tcode-programa-")
+_cwd_antes = os.getcwd()
+try:
+    os.chdir(RAIZ)
+    total += 1
+    codigo, errores = compilar_archivo(
+        os.path.join("ejemplos", "compilador", "tcodec.t"))
+    if errores:
+        falla("tcodec en Tcode", "\n".join(errores))
+    else:
+        ruta_c = os.path.join(tmp, "tcodec.c")
+        binario = os.path.join(tmp, "tcodec")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            falla("tcodec en Tcode compila", r.stderr[:600])
+        else:
+            entorno = dict(os.environ, TCODE_RAIZ=RAIZ)
+            iguales = intentados = 0
+            for archivo in sorted(
+                    glob.glob(os.path.join("std", "*.t"))
+                    + glob.glob(os.path.join("ejemplos", "**", "*.t"),
+                                recursive=True)):
+                with open(archivo, encoding="utf-8") as f:
+                    if "fn main(" not in f.read():
+                        continue
+                esperado, errores_f = compilar_archivo(archivo)
+                if errores_f:
+                    continue
+                e = subprocess.run([binario, archivo], capture_output=True,
+                                   text=True, timeout=180, env=entorno)
+                if "Sanitizer" in e.stderr:
+                    total += 1
+                    falla("tcodec en Tcode", f"{archivo}: sanitizer\n"
+                                            f"{e.stderr[:400]}")
+                    continue
+                if e.returncode != 0:
+                    continue        # lo rechazo: todavia no lo escribe entero
+                intentados += 1
+                total += 1
+                if e.stdout != esperado:
+                    dado, bueno = e.stdout.splitlines(), esperado.splitlines()
+                    n = next((i for i, (x, y) in enumerate(zip(dado, bueno))
+                              if x != y), min(len(dado), len(bueno)))
+                    falla("tcodec en Tcode",
+                          f"{archivo}, linea {n + 1}:\n"
+                          f"  Tcode:  {dado[n] if n < len(dado) else '(fin)'!r}\n"
+                          f"  Python: {bueno[n] if n < len(bueno) else '(fin)'!r}")
+                else:
+                    iguales += 1
+            if iguales < _MINIMO_PROGRAMAS:
+                total += 1
+                falla("tcodec en Tcode",
+                      f"solo {iguales} programas enteros, se esperaban al "
+                      f"menos {_MINIMO_PROGRAMAS}")
+            print(f"    {iguales} programas enteros, mismo C que el generador "
+                  f"de Python ({intentados} intentados)")
+finally:
+    os.chdir(_cwd_antes)
     shutil.rmtree(tmp, ignore_errors=True)
 
 print("=== FORMATO: un estilo, y el repositorio ya lo tiene ===")
