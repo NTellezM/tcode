@@ -68,6 +68,8 @@ _RUNTIME = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
                         "runtime")
 with open(os.path.join(_RUNTIME, "cabecera.inc"), encoding="utf-8") as _f:
     CABECERA = _f.read()
+with open(os.path.join(_RUNTIME, "cstr.inc"), encoding="utf-8") as _f:
+    CSTR = _f.read()
 
 
 def bytes_de(texto):
@@ -682,29 +684,10 @@ class Generador:
             self.lineas.append("")
 
         if any(f.externa for f in funciones):
-            self.lineas.extend([
-                "/* Un `str` de Tcode acaba siempre en `\\0`, asi que vale como",
-                "   `const char*`. Lo que no puede llevar es un `\\0` EN MEDIO: C",
-                "   leeria hasta ahi y creeria que la cadena acaba antes. Eso no",
-                "   es un fallo de memoria, es una verdad a medias, y Tcode para",
-                "   el programa donde esta en vez de pasarsela a nadie. */",
-                "SS_LANG_QUIZA_SIN_USAR",
-                "static const char* ss_lang_cstr_(const SafeString* s,",
-                "                                 const char* archivo, int linea)",
-                "{",
-                "    const char* p = ss_cstr(s);",
-                "    size_t n = ss_len(s);",
-                "    if (n != 0 && memchr(p, 0, n) != NULL)",
-                "    {",
-                "        fprintf(stderr, \"%s:%d: esta cadena lleva un cero en \"",
-                "                \"medio y va a una funcion de C, que la leeria \"",
-                "                \"cortada\\n\", archivo, linea);",
-                "        abort();",
-                "    }",
-                "    return p;",
-                "}",
-                "",
-            ])
+            # El C vive en `runtime/cstr.inc`: lo lee tambien el compilador
+            # escrito en Tcode.
+            self.lineas.extend(CSTR.rstrip("\n").split("\n"))
+            self.lineas.append("")
 
         self.recolectar_tipos(decls)
 
