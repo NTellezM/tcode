@@ -874,6 +874,22 @@ fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
 // tipo, espejo de su liberador. Se descubren al escribir las funciones y
 // salen despues de la aritmetica, de dentro hacia fuera.
 
+// `a\tb` -> [a, b]; la cadena vacia no lleva nada.
+fn partir_tab(t: view) -> lista<str> {
+    var salida: lista<str> = [];
+    if largo(t) == 0 { return salida; }
+    var desde = 0;
+    var i = 0;
+    while i <= largo(t) {
+        if i == largo(t) || byte(t, i) == 9 {
+            anadir(salida, nuevo(rebanar(t, desde, i)));
+            desde = i + 1;
+        }
+        i = i + 1;
+    }
+    return salida;
+}
+
 fn hondura_tipo(t: view) -> usize {
     var n = 0;
     var i = 0;
@@ -925,9 +941,56 @@ fn copia_de(donde: view, t: view, global: &I.Contexto) -> str {
 // Falso si el tipo es de los que este hito todavia no copia.
 fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
     st_campos: &lista<lista<str>>, st_tipos: &lista<lista<str>>,
-    salida: mut lista<str>) -> bool {
+    en_indice: &mapa<str, usize>, en_variantes: &lista<lista<str>>,
+    en_lleva: &lista<lista<str>>, salida: mut lista<str>) -> bool {
     let tc = G.tipo_c(t);
     let m = G.mangle(t);
+    // Un enum se copia entero y luego se duplica lo que lleve con dueno la
+    // forma que tenga.
+    if tiene(en_indice, t) {
+        let ke = obtener(en_indice, t) sino 0;
+        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
+        anadir(salida, nuevo("{"));
+        anadir(salida, $"    {tc} r = *p;");
+        var hay: lista<usize> = [];
+        var iv = 0;
+        while iv < largo(en_variantes[ke]) {
+            let tipos_v = partir_tab(vista(en_lleva[ke][iv]));
+            var alguna = false;
+            for tt en tipos_v {
+                if I.posee_con_formas(global, vista(tt)) { alguna = true; }
+            }
+            if alguna { anadir(hay, iv); }
+            iv = iv + 1;
+        }
+        if largo(hay) > 0 {
+            anadir(salida, nuevo("    switch (p->etiqueta)"));
+            anadir(salida, nuevo("    {"));
+            for cual en hay {
+                let vn = copiar(en_variantes[ke][cual]);
+                let etq = G.etiqueta(t, vista(vn));
+                anadir(salida, $"    case {etq}:");
+                let tipos_v = partir_tab(vista(en_lleva[ke][cual]));
+                var q = 0;
+                while q < largo(tipos_v) {
+                    if I.posee_con_formas(global, vista(tipos_v[q])) {
+                        let origen = $"p->dato.v_{vn}._{q}";
+                        let cp = copia_de(vista(origen), vista(tipos_v[q]), global);
+                        anadir(salida, $"        r.dato.v_{vn}._{q} = {cp};");
+                    }
+                    q = q + 1;
+                }
+                anadir(salida, nuevo("        break;"));
+            }
+            anadir(salida, nuevo("    default: break;"));
+            anadir(salida, nuevo("    }"));
+        }
+        anadir(salida, nuevo("    return r;"));
+        anadir(salida, nuevo("}"));
+        anadir(salida, vacio());
+        return true;
+    }
     if es_lista_t(t) {
         let elem = interior_lista(t);
         let te = G.tipo_c(vista(elem));
@@ -1170,6 +1233,11 @@ fn main() -> usize ! {
     var st_campos: lista<lista<str>> = [];
     var st_tipos: lista<lista<str>> = [];
     var st_indice: mapa<str, usize> = [];
+    // Los enums: cada variante, y lo que lleva cada una como `T1\tT2`.
+    var en_nombres: lista<str> = [];
+    var en_indice: mapa<str, usize> = [];
+    var en_variantes: lista<lista<str>> = [];
+    var en_lleva: lista<lista<str>> = [];
     // Cada generica, con el indice del modulo que la declara.
     var plantillas: mapa<str, usize> = [];
     for m en modulos {
@@ -1217,6 +1285,35 @@ fn main() -> usize ! {
                 anadir(st_tipos, tipos_campo);
                 continue;
             }
+            if igual(clase, "enum") {
+                if tiene(en_indice, vista(d.texto)) || tiene(st_indice, vista(d.texto)) {
+                    return rechazo("un enum repetido entre modulos");
+                }
+                var vs: lista<str> = [];
+                var ls: lista<str> = [];
+                for h en d.hijos {
+                    if !igual(vista(h.clase), "variante") { continue; }
+                    anadir(vs, nuevo(vista(h.texto)));
+                    var junto = vacio();
+                    var primero_t = true;
+                    for x en h.hijos {
+                        if !igual(vista(x.clase), "lleva") { continue; }
+                        let t = I.sin_alias_tipo(vista(x.texto));
+                        if es_bloque_o_arreglo(vista(t)) {
+                            return rechazo("bloques o arreglos en un enum");
+                        }
+                        if !primero_t { empujar(junto, "\t"); }
+                        primero_t = false;
+                        empujar(junto, vista(t));
+                    }
+                    anadir(ls, junto);
+                }
+                poner(en_indice, vista(d.texto), largo(en_nombres));
+                anadir(en_nombres, nuevo(vista(d.texto)));
+                anadir(en_variantes, vs);
+                anadir(en_lleva, ls);
+                continue;
+            }
             return rechazo($"`{clase}`");
         }
         anadir(arboles, arbol);
@@ -1225,6 +1322,11 @@ fn main() -> usize ! {
     if largo(claves(global.repetidas)) > 0 {
         return rechazo("nombres repetidos entre modulos");
     }
+
+    // Lo que tiene partes, para `obtener_mut`: structs y enums.
+    var con_partes: mapa<str, usize> = [];
+    for n en st_nombres { poner(con_partes, vista(n), 1); }
+    for n en en_nombres { poner(con_partes, vista(n), 1); }
 
     // Las copias de las genericas, en el orden en que las crea el original.
     // Se descubren antes del recorrido de tipos porque el original ya las
@@ -1266,14 +1368,14 @@ fn main() -> usize ! {
                     if igual(vista(h.clase), "campo_def") {
                         let tp = F.tipo_pelado(vista(h.texto));
                         let t = I.sin_alias_tipo(vista(tp));
-                        if !mirar_tipo(vista(t), reg, global, st_indice) {
+                        if !mirar_tipo(vista(t), reg, global, con_partes) {
                             return rechazo("mapas, bloques ni arreglos");
                         }
                     }
                 }
             }
             if igual(vista(d.clase), "fn") && !F.es_generica(d) {
-                if !mirar_funcion(d, contextos[im], reg, global, st_indice) {
+                if !mirar_funcion(d, contextos[im], reg, global, con_partes) {
                     return rechazo("mapas, bloques ni arreglos");
                 }
             }
@@ -1283,7 +1385,7 @@ fn main() -> usize ! {
     var k_mira = 0;
     while k_mira < largo(instancias) {
         if !mirar_funcion(instancias[k_mira], contextos[modulo_de[k_mira]], reg,
-            global, st_indice) {
+            global, con_partes) {
             return rechazo("mapas, bloques ni arreglos");
         }
         k_mira = k_mira + 1;
@@ -1324,7 +1426,7 @@ fn main() -> usize ! {
         if es_mapa_t(vista(e)) && !tiene(reg.vistos, vista(e)) { anadir(diferidos, e); }
     }
     for e en diferidos {
-        if !mirar_tipo(vista(e), reg, global, st_indice) {
+        if !mirar_tipo(vista(e), reg, global, con_partes) {
             return rechazo("mapas, bloques ni arreglos");
         }
     }
@@ -1340,6 +1442,19 @@ fn main() -> usize ! {
     var partes: lista<str> = [];
     for n en st_nombres { anadir(partes, $"typedef struct {n} {n};"); }
     if largo(st_nombres) > 0 { anadir(partes, vacio()); }
+    // Cada enum con la etiqueta de cada forma: la 0 es la primera.
+    var ie_t = 0;
+    while ie_t < largo(en_nombres) {
+        anadir(partes, $"typedef struct {en_nombres[ie_t]} {en_nombres[ie_t]};");
+        var iv_t = 0;
+        while iv_t < largo(en_variantes[ie_t]) {
+            let etq = G.etiqueta(vista(en_nombres[ie_t]), vista(en_variantes[ie_t][iv_t]));
+            anadir(partes, $"#define {etq} {iv_t}");
+            iv_t = iv_t + 1;
+        }
+        ie_t = ie_t + 1;
+    }
+    if largo(en_nombres) > 0 { anadir(partes, vacio()); }
     var ordenadas: lista<str> = [];
     for x en reg.listas { anadir(ordenadas, copiar(x)); }
     for x en reg.mapas { anadir(ordenadas, copiar(x)); }
@@ -1347,6 +1462,43 @@ fn main() -> usize ! {
     var puestos: mapa<str, usize> = [];
     for x en ordenadas { poner_typedef(vista(x), reg, puestos, partes); }
     if largo(ordenadas) > 0 { anadir(partes, vacio()); }
+    // Los enums van antes que los structs: una etiqueta y una union.
+    var ie_s = 0;
+    while ie_s < largo(en_nombres) {
+        let en_n = copiar(en_nombres[ie_s]);
+        anadir(partes, $"struct {en_n}");
+        anadir(partes, nuevo("{"));
+        anadir(partes, nuevo("    uint32_t etiqueta;"));
+        var hay_datos = false;
+        for ll en en_lleva[ie_s] {
+            if largo(ll) > 0 { hay_datos = true; }
+        }
+        if hay_datos {
+            anadir(partes, nuevo("    union"));
+            anadir(partes, nuevo("    {"));
+            var iv = 0;
+            while iv < largo(en_variantes[ie_s]) {
+                let tipos_v = partir_tab(vista(en_lleva[ie_s][iv]));
+                if largo(tipos_v) > 0 {
+                    var campos_c = vacio();
+                    var q = 0;
+                    while q < largo(tipos_v) {
+                        let tc = G.tipo_c(vista(tipos_v[q]));
+                        if q > 0 { empujar(campos_c, " "); }
+                        let pieza = $"{tc} _{q};";
+                        empujar(campos_c, vista(pieza));
+                        q = q + 1;
+                    }
+                    anadir(partes, $"        struct {{ {campos_c} }} v_{en_variantes[ie_s][iv]};");
+                }
+                iv = iv + 1;
+            }
+            anadir(partes, nuevo("    } dato;"));
+        }
+        anadir(partes, nuevo("};"));
+        anadir(partes, vacio());
+        ie_s = ie_s + 1;
+    }
     for n en orden {
         let k = obtener(st_indice, vista(n)) sino 0;
         anadir(partes, $"struct {n}");
@@ -1362,6 +1514,12 @@ fn main() -> usize ! {
     }
     var alguno_posee = false;
     for n en orden {
+        if I.posee_con_formas(global, vista(n)) {
+            anadir(partes, $"static void ss_drop_{n}({n}* p);");
+            alguno_posee = true;
+        }
+    }
+    for n en en_nombres {
         if I.posee_con_formas(global, vista(n)) {
             anadir(partes, $"static void ss_drop_{n}({n}* p);");
             alguno_posee = true;
@@ -1404,7 +1562,7 @@ fn main() -> usize ! {
     for x en reg.listas { funcion_ordenar(vista(x), partes); }
     // Los mapas gastan cuenta si sus valores poseen: van antes que los
     // liberadores de los structs, como en el original.
-    for x en reg.mapas { funcion_mapa(vista(x), global, st_indice, cta, partes); }
+    for x en reg.mapas { funcion_mapa(vista(x), global, con_partes, cta, partes); }
 
     // Los liberadores van antes que las funciones tambien en la cuenta: un
     // campo que sea una lista gasta indice de bucle.
@@ -1428,6 +1586,50 @@ fn main() -> usize ! {
         anadir(partes, vacio());
         cta.temporal = b.temporal;
         cta.bucle = b.bucle;
+    }
+
+    // Los liberadores de los enums: se mira la etiqueta y se suelta lo que
+    // lleve esa forma. Las formas que no llevan nada con dueno no salen.
+    var ie_d = 0;
+    while ie_d < largo(en_nombres) {
+        let en_n = copiar(en_nombres[ie_d]);
+        if I.posee_con_formas(global, vista(en_n)) {
+            anadir(partes, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+            anadir(partes, $"static void ss_drop_{en_n}({en_n}* p)");
+            anadir(partes, nuevo("{"));
+            anadir(partes, nuevo("    switch (p->etiqueta)"));
+            anadir(partes, nuevo("    {"));
+            var iv = 0;
+            while iv < largo(en_variantes[ie_d]) {
+                let tipos_v = partir_tab(vista(en_lleva[ie_d][iv]));
+                var alguna = false;
+                for tt en tipos_v {
+                    if I.posee_con_formas(global, vista(tt)) { alguna = true; }
+                }
+                if alguna {
+                    let etq = G.etiqueta(vista(en_n), vista(en_variantes[ie_d][iv]));
+                    anadir(partes, $"    case {etq}:");
+                    anadir(partes, nuevo("    {"));
+                    var q = 0;
+                    while q < largo(tipos_v) {
+                        if I.posee_con_formas(global, vista(tipos_v[q])) {
+                            let donde = $"p->dato.v_{en_variantes[ie_d][iv]}._{q}";
+                            lineas_liberacion(global, vista(donde), vista(tipos_v[q]), 2,
+                                cta, partes);
+                        }
+                        q = q + 1;
+                    }
+                    anadir(partes, nuevo("        break;"));
+                    anadir(partes, nuevo("    }"));
+                }
+                iv = iv + 1;
+            }
+            anadir(partes, nuevo("    default: break;"));
+            anadir(partes, nuevo("    }"));
+            anadir(partes, nuevo("}"));
+            anadir(partes, vacio());
+        }
+        ie_d = ie_d + 1;
     }
 
     // Las funciones de todos los modulos, en orden, con la misma cuenta.
@@ -1556,8 +1758,8 @@ fn main() -> usize ! {
     anadir(bloque_copias, vacio());
     for t en copiadores {
         if !cuerpo_copiador(vista(t), global, st_indice, st_campos, st_tipos,
-            bloque_copias) {
-            return rechazo("copiar bloques, arreglos o enums");
+            en_indice, en_variantes, en_lleva, bloque_copias) {
+            return rechazo("copiar bloques o arreglos");
         }
     }
     var usados_c: mapa<str, usize> = [];
