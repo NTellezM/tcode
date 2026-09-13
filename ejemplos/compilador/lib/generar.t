@@ -384,6 +384,8 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
 
     if igual(clase, "interpolada") { return interpolada_c(b, s, n, tipos); }
 
+    if igual(clase, "si_expr") { return si_expr_c(b, s, n, tipos); }
+
     if igual(clase, "try") { return try_c(b, s, n, tipos); }
     if igual(clase, "sino") { return sino_c(b, s, n, tipos); }
 
@@ -1223,6 +1225,96 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         return texto_de(s, vista(valor), vista(t), n.linea);
     }
 
+    // `raiz`, `piso`, `techo`, `redondear` y `absoluto`. Sobre un decimal
+    // pasan por la comprobacion de finitud: `raiz` de un negativo da NaN, y
+    // eso para donde aparece como cualquier otro NaN. Sobre un entero con
+    // signo, `absoluto` del minimo no cabe en el tipo: es el unico caso.
+    if igual(nombre, "raiz") || igual(nombre, "piso") || igual(nombre, "techo")
+    || igual(nombre, "redondear") || igual(nombre, "absoluto") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        let crudo = I.tipo_de(tipos, n.hijos[0]);
+        var t = T.apuntado_si(vista(crudo));
+        if !es_aritmetico(vista(t)) { t = nuevo("f64"); }
+        let valor = expresion_c(b, s, n.hijos[0], vista(t), tipos);
+        if es_desconocido(vista(valor)) { return no_se(); }
+        if igual(vista(t), "f32") || igual(vista(t), "f64") {
+            var fn_c = nuevo("fabs");
+            if igual(nombre, "raiz") { fn_c = nuevo("sqrt"); }
+            if igual(nombre, "piso") { fn_c = nuevo("floor"); }
+            if igual(nombre, "techo") { fn_c = nuevo("ceil"); }
+            if igual(nombre, "redondear") { fn_c = nuevo("round"); }
+            var r = nuevo("ss_lang_fin_");
+            empujar(r, vista(t));
+            empujar(r, "(");
+            empujar(r, vista(fn_c));
+            if igual(vista(t), "f32") { empujar(r, "f"); }
+            empujar(r, "(");
+            empujar(r, vista(valor));
+            empujar(r, "), \"");
+            empujar(r, nombre);
+            empujar(r, "\", \"");
+            if igual(nombre, "raiz") {
+                empujar(r, "Comprueba el signo antes: la raiz de un negativo ");
+                empujar(r, "no es un numero.");
+            } else {
+                empujar(r, "Comprueba el valor antes de operar con el.");
+            }
+            empujar(r, "\", \"");
+            empujar(r, vista(s.archivo));
+            empujar(r, "\", ");
+            empujar(r, texto(n.linea));
+            empujar(r, ")");
+            return r;
+        }
+        if !igual(nombre, "absoluto") { return no_se(); }
+        var r = nuevo("ss_lang_abs_");
+        empujar(r, vista(t));
+        empujar(r, "(");
+        empujar(r, vista(valor));
+        empujar(r, ", \"");
+        empujar(r, vista(s.archivo));
+        empujar(r, "\", ");
+        empujar(r, texto(n.linea));
+        empujar(r, ")");
+        return r;
+    }
+
+    // `ordenar(xs)`: cada tipo de lista lleva su propia ordenacion generada.
+    if igual(nombre, "ordenar") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        let crudo = I.tipo_de(tipos, n.hijos[0]);
+        let t = T.apuntado_si(vista(crudo));
+        if !T.es_lista(vista(t)) { return no_se(); }
+        let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+        if es_desconocido(vista(donde)) { return no_se(); }
+        var r = nuevo("ss_ordenar_");
+        empujar(r, mangle(vista(t)));
+        empujar(r, "(");
+        empujar(r, vista(donde));
+        empujar(r, ")");
+        return r;
+    }
+
+    // `empujar_byte(s, b)`: un byte crudo, no texto. Es lo que permite
+    // construir un buffer binario y no solo leerlo.
+    if igual(nombre, "empujar_byte") {
+        if largo(n.hijos) != 2 { return no_se(); }
+        let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+        if es_desconocido(vista(donde)) { return no_se(); }
+        let valor = expresion_c(b, s, n.hijos[1], "u8", tipos);
+        if es_desconocido(vista(valor)) { return no_se(); }
+        var r = nuevo("ss_lang_empujar_byte_(");
+        empujar(r, vista(donde));
+        empujar(r, ", ");
+        empujar(r, vista(valor));
+        empujar(r, ", \"");
+        empujar(r, vista(s.archivo));
+        empujar(r, "\", ");
+        empujar(r, texto(n.linea));
+        empujar(r, ")");
+        return r;
+    }
+
     if igual(nombre, "rebanar") {
         if largo(n.hijos) != 3 { return no_se(); }
         let v = como_vista(b, s, n.hijos[0], tipos);
@@ -1982,6 +2074,36 @@ fn liberacion(b: mut Cuerpo, tipos: &I.Contexto, nombre: view,
     }
     // Una lista suelta su memoria y se queda vacia. Si sus elementos tienen
     // duenio, cada uno se suelta antes: la lista era su unica duenia.
+    // Un arreglo no tiene memoria propia que devolver: vive entero donde se
+    // declaro. Lo que haya que soltar son sus elementos, si poseen, uno a uno.
+    if T.es_arreglo(tipo) {
+        let elem = T.elemento(tipo);
+        if !I.posee_con_formas(tipos, vista(elem)) { return; }
+        b.bucle = b.bucle + 1;
+        let i = nombre_de_bucle(b.bucle);
+        let cuantos = cuantos_de_arreglo(tipo);
+        var f = nuevo("for (size_t ");
+        empujar(f, vista(i));
+        empujar(f, " = 0; ");
+        empujar(f, vista(i));
+        empujar(f, " < ");
+        empujar(f, vista(cuantos));
+        empujar(f, "; ");
+        empujar(f, vista(i));
+        empujar(f, "++)");
+        emitir(b, vista(f));
+        emitir(b, "{");
+        b.sangria = b.sangria + 1;
+        var dentro = nuevo(nombre);
+        empujar(dentro, ".e[");
+        empujar(dentro, vista(i));
+        empujar(dentro, "]");
+        liberacion(b, tipos, vista(dentro), vista(elem));
+        b.sangria = b.sangria - 1;
+        emitir(b, "}");
+        return;
+    }
+
     // Un mapa suelta su tabla, sus claves y sus valores de una vez: lleva
     // su propio liberador generado, como cada tipo de mapa lleva el suyo.
     if T.es_mapa(tipo) {
@@ -2079,6 +2201,26 @@ fn apagar_las_de(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) {
         if lleva_bandera(b, s, vista(nm)) { anadir(vivas, copiar(nm)); }
     }
     apagar(b, vivas);
+}
+
+fn primer_nombre(t: view) -> str {
+    var i = 0;
+    while i < largo(t) {
+        if byte(t, i) == 44 { return nuevo(recortar(rebanar(t, 0, i))); }
+        i = i + 1;
+    }
+    return nuevo(recortar(t));
+}
+
+fn segundo_nombre(t: view) -> str {
+    var i = 0;
+    while i < largo(t) {
+        if byte(t, i) == 44 {
+            return nuevo(recortar(rebanar(t, i + 1, largo(t))));
+        }
+        i = i + 1;
+    }
+    return vacio();
 }
 
 // `for k, v en m` lleva dos nombres separados por coma.
@@ -2181,6 +2323,15 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             var l = copiar(hecha);
             empujar(l, ";");
             emitir(b, vista(l));
+            apagar_las_de(b, s, n, tipos);
+            return true;
+        }
+        // Un `match` suelto mira y hace: el `switch` va tal cual, sin
+        // temporal donde dejar nada.
+        if igual(vista(n.hijos[0].clase), "match") {
+            if !match_c(b, s, n.hijos[0], tipos, retorno, falible) {
+                return false;
+            }
             apagar_las_de(b, s, n, tipos);
             return true;
         }
@@ -2490,15 +2641,19 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
 
     if igual(clase, "para") {
         if largo(n.hijos) != 2 { return false; }
-        // `for k, v en mapa`: recorrer una tabla es otra capa.
-        if lleva_coma(vista(n.texto)) { return false; }
+        // `for x en ...` o, sobre un mapa, `for clave, valor en m`.
+        let uno = primer_nombre(vista(n.texto));
+        let dos = segundo_nombre(vista(n.texto));
         // Un sitio con nombre: variable, campo o elemento. `for x en f(...)`
         // no, que se calcula una sola vez y eso pide un temporal que soltar
         // al final.
         let que = vista(n.hijos[0].clase);
         let suyo = I.tipo_de(tipos, n.hijos[0]);
         let sobre = T.apuntado_si(vista(suyo));
-        if !T.es_lista(vista(sobre)) { return false; }
+        let es_mapa_ = T.es_mapa(vista(sobre));
+        let es_arreglo_ = T.es_arreglo(vista(sobre));
+        if !T.es_lista(vista(sobre)) && !es_mapa_ && !es_arreglo_ { return false; }
+        if largo(dos) > 0 && !es_mapa_ { return false; }
         var lugar = vacio();
         if igual(que, "variable") || igual(que, "campo") || igual(que, "indice") {
             lugar = sitio_c(b, s, n.hijos[0], tipos);
@@ -2529,24 +2684,48 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         empujar(f, " = 0; ");
         empujar(f, vista(i));
         empujar(f, " < ");
-        empujar(f, vista(lugar));
-        empujar(f, ".length; ");
+        if es_arreglo_ {
+            let cuantos = cuantos_de_arreglo(vista(sobre));
+            empujar(f, vista(cuantos));
+            empujar(f, "; ");
+        } else {
+            empujar(f, vista(lugar));
+            // Una tabla se recorre por sus celdas, y se saltan las vacias.
+            if es_mapa_ { empujar(f, ".capacidad; "); }
+            else { empujar(f, ".length; "); }
+        }
         empujar(f, vista(i));
         empujar(f, "++)");
         emitir(b, vista(f));
         emitir(b, "{");
         b.sangria = b.sangria + 1;
+        if es_mapa_ {
+            var salta = nuevo("if (");
+            empujar(salta, vista(lugar));
+            empujar(salta, ".claves[");
+            empujar(salta, vista(i));
+            empujar(salta, "].data == NULL) continue;");
+            emitir(b, vista(salta));
+        }
         abrir_bloque(b);
         anadir(b.bucles, largo(b.bloques) - 1);
         I.abrir(tipos);
 
         // El elemento se presta, no se copia: un `str` copiado tendria dos
         // duenios. Los escalares van por valor, que no hay nada que duplicar.
-        let elem = T.elemento(vista(sobre));
-        let quien = vista(n.texto);
+        // Sobre un mapa lo que se recorre son las claves, y nadie copia una:
+        // se presta la que ya esta en la tabla.
+        var elem = T.elemento(vista(sobre));
+        if es_mapa_ {
+            let partes = T.partir_tipos(T.entre_angulos(vista(sobre)));
+            if largo(partes) != 2 { return false; }
+            elem = copiar(partes[0]);
+        }
+        let quien = vista(uno);
         let elem_posee = I.posee_con_formas(tipos, vista(elem));
         var acceso = copiar(lugar);
-        empujar(acceso, ".e[");
+        if es_mapa_ { empujar(acceso, ".claves["); }
+        else { empujar(acceso, ".e["); }
         empujar(acceso, vista(i));
         empujar(acceso, "]");
         var d = nuevo("SS_LANG_QUIZA_SIN_USAR ");
@@ -2567,6 +2746,22 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         empujar(d, ";");
         emitir(b, vista(d));
         I.declarar(tipos, quien, vista(elem));
+        if largo(dos) > 0 {
+            // El valor va tal cual: un escalar se copia solo.
+            let tv = T.valor_de_mapa(vista(sobre)) sino vacio();
+            if largo(tv) == 0 { return false; }
+            var dv = nuevo("SS_LANG_QUIZA_SIN_USAR ");
+            empujar(dv, tipo_c(vista(tv)));
+            empujar(dv, " ");
+            empujar(dv, vista(dos));
+            empujar(dv, " = ");
+            empujar(dv, vista(lugar));
+            empujar(dv, ".valores[");
+            empujar(dv, vista(i));
+            empujar(dv, "];");
+            emitir(b, vista(dv));
+            I.declarar(tipos, vista(dos), vista(tv));
+        }
         let ya_era = tiene(s.punteros, quien);
         if presta { poner(s.punteros, quien, 1); }
 
@@ -2815,6 +3010,185 @@ fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     empujar(l, texto(n.linea));
     empujar(l, ");");
     emitir(b, vista(l));
+    return true;
+}
+
+// `if c { a } else { b }` como valor. Se baja a una variable y un `if`, no
+// al `?:` de C: cada rama puede necesitar emitir lineas propias, y dentro
+// de `?:` no caben.
+fn si_expr_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    if largo(n.hijos) != 3 { return no_se(); }
+    var t = I.tipo_de(tipos, n);
+    if largo(t) == 0 { t = nuevo("usize"); }
+    let tmp = nuevo_temporal(b);
+    var d = nuevo(tipo_c(vista(t)));
+    empujar(d, " ");
+    empujar(d, vista(tmp));
+    empujar(d, ";");
+    emitir(b, vista(d));
+    let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
+    if es_desconocido(vista(cond)) { return no_se(); }
+    var l = nuevo("if (");
+    empujar(l, vista(cond));
+    empujar(l, ")");
+    emitir(b, vista(l));
+    var k = 1;
+    while k < 3 {
+        if k == 2 { emitir(b, "else"); }
+        emitir(b, "{");
+        b.sangria = b.sangria + 1;
+        let rama_c = expresion_c(b, s, n.hijos[k], vista(t), tipos);
+        if es_desconocido(vista(rama_c)) { return no_se(); }
+        var pone = copiar(tmp);
+        empujar(pone, " = ");
+        empujar(pone, vista(rama_c));
+        empujar(pone, ";");
+        emitir(b, vista(pone));
+        b.sangria = b.sangria - 1;
+        emitir(b, "}");
+        k = k + 1;
+    }
+    if I.posee_con_formas(tipos, vista(t)) {
+        apuntar_temporal(b, vista(tmp), vista(t));
+    }
+    return copiar(tmp);
+}
+
+// `SS_FIGURA_CIRCULO`: el nombre en C de una forma.
+fn etiqueta(enum_: view, variante: view) -> str {
+    let a = mayusculas(enum_);
+    let v = mayusculas(variante);
+    var r = nuevo("SS_");
+    empujar(r, vista(a));
+    empujar(r, "_");
+    empujar(r, vista(v));
+    return r;
+}
+
+fn mayusculas(t: view) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < largo(t) {
+        let c = byte(t, i);
+        if c >= 97 && c <= 122 { empujar_byte(r, (c - 32) como ? u8); }
+        else { empujar(r, rebanar(t, i, i + 1)); }
+        i = i + 1;
+    }
+    return r;
+}
+
+// El `switch` de un `match` suelto. Cada brazo es un bloque propio: lo que
+// nazca dentro se suelta al salir. Lo que atrapa el patron se presta
+// siempre —un `match` mira, no desmonta—, asi que un `str` se ve como
+// `view` y lo demas con duenio como un puntero.
+fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
+    retorno: view, falible: bool) -> bool {
+    if largo(n.hijos) < 2 { return false; }
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    let apuntado = T.apuntado_si(vista(crudo));
+    let base = I.sin_modulo(vista(apuntado));
+    if !tiene(tipos.variantes, vista(base)) { return false; }
+    let sitio = sitio_c(b, s, n.hijos[0], tipos);
+    if es_desconocido(vista(sitio)) { return false; }
+
+    var sw = nuevo("switch (");
+    empujar(sw, vista(sitio));
+    empujar(sw, ".etiqueta)");
+    emitir(b, vista(sw));
+    emitir(b, "{");
+    var todos = true;
+    var k = 1;
+    while k < largo(n.hijos) {
+        if !igual(vista(n.hijos[k].clase), "brazo") { return false; }
+        let variante = I.tras_el_punto(vista(n.hijos[k].texto));
+        if largo(vista(n.hijos[k].texto)) == 0 {
+            todos = false;
+            emitir(b, "default:");
+        } else {
+            let et = etiqueta(vista(base), vista(variante));
+            var c = nuevo("case ");
+            empujar(c, vista(et));
+            empujar(c, ":");
+            emitir(b, vista(c));
+        }
+        emitir(b, "{");
+        b.sangria = b.sangria + 1;
+        abrir_bloque(b);
+        I.abrir(tipos);
+
+        var clave = copiar(base);
+        empujar(clave, ".");
+        empujar(clave, vista(variante));
+        let lleva = I.lista_de(tipos.formas, vista(clave)) sino [];
+        var i = 0;
+        var bien = true;
+        for h en n.hijos[k].hijos {
+            let que = vista(h.clase);
+            if igual(que, "atrapa") {
+                if i >= largo(lleva) { return false; }
+                let t = vista(lleva[i]);
+                var dentro = copiar(sitio);
+                empujar(dentro, ".dato.v_");
+                empujar(dentro, vista(variante));
+                empujar(dentro, "._");
+                empujar(dentro, texto(i));
+                var l = nuevo("SS_LANG_QUIZA_SIN_USAR ");
+                if igual(t, "str") {
+                    empujar(l, "SafeView ");
+                    empujar(l, vista(h.texto));
+                    empujar(l, " = ss_view(&");
+                    empujar(l, vista(dentro));
+                    empujar(l, ");");
+                    I.declarar(tipos, vista(h.texto), "view");
+                } else {
+                    if I.posee_con_formas(tipos, t) {
+                        empujar(l, "const ");
+                        empujar(l, tipo_c(t));
+                        empujar(l, "* ");
+                        empujar(l, vista(h.texto));
+                        empujar(l, " = &");
+                        empujar(l, vista(dentro));
+                        empujar(l, ";");
+                        var ref = nuevo("&");
+                        empujar(ref, t);
+                        I.declarar(tipos, vista(h.texto), vista(ref));
+                    } else {
+                        empujar(l, tipo_c(t));
+                        empujar(l, " ");
+                        empujar(l, vista(h.texto));
+                        empujar(l, " = ");
+                        empujar(l, vista(dentro));
+                        empujar(l, ";");
+                        I.declarar(tipos, vista(h.texto), t);
+                    }
+                }
+                emitir(b, vista(l));
+                i = i + 1;
+            }
+            if igual(que, "bloque") {
+                for st en h.hijos {
+                    if bien {
+                        bien = sentencia_c(b, s, st, tipos, retorno, falible);
+                        if !bien { apuntar_fallo(b, st); }
+                    }
+                }
+                if !bien { return false; }
+                if termina_saliendo(h) { quitar_ultimo_bloque(b); }
+                else { cerrar_bloque(b, s, tipos); }
+            }
+            // Un brazo que da un valor no cabe en un `match` suelto.
+            if igual(que, "retorno") { return false; }
+        }
+        emitir(b, "break;");
+        I.cerrar(tipos);
+        b.sangria = b.sangria - 1;
+        emitir(b, "}");
+        k = k + 1;
+    }
+    // Un `match` es exhaustivo, asi que este `default` no se alcanza nunca.
+    // Esta para que el compilador de C no tenga que adivinarlo.
+    if todos { emitir(b, "default: break;"); }
+    emitir(b, "}");
     return true;
 }
 

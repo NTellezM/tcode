@@ -290,15 +290,17 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
     // primera sentencia esta en la misma linea.
     b.ultima_linea = d.linea;
     G.abrir_bloque(b);
-    // Un parametro con duenio es de la funcion: se libera al salir.
+    // Un parametro con duenio es de la funcion: se libera al salir. Da igual
+    // que sea un `str`, una lista, un struct o un arreglo de structs: lo que
+    // cuenta es que posea y que no llegue prestado.
     var k = 0;
     while k < largo(tipos_param) {
-        if igual(vista(tipos_param[k]), "str") {
+        if I.posee_con_formas(tipos, vista(tipos_param[k])) {
             if largo(G.marca_sola(vista(marcas[k]))) == 0 {
                 let pn = G.nombre_de_param(vista(marcas[k]));
                 // Un parametro se apunta con la linea 0.
                 let clave = G.clave_de(vista(pn), 0);
-                G.anotar_duenio(b, vista(pn), "str", vista(clave));
+                G.anotar_duenio(b, vista(pn), vista(tipos_param[k]), vista(clave));
             }
         }
         k = k + 1;
@@ -306,7 +308,7 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
     // Las banderas de los parametros abren el cuerpo, en orden de firma.
     var q = 0;
     while q < largo(tipos_param) {
-        if igual(vista(tipos_param[q]), "str") {
+        if I.posee_con_formas(tipos, vista(tipos_param[q])) {
             if largo(G.marca_sola(vista(marcas[q]))) == 0 {
                 let pn = G.nombre_de_param(vista(marcas[q]));
                 let clave = G.clave_de(vista(pn), 0);
