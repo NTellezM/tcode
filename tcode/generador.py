@@ -570,6 +570,28 @@ class Generador:
             return False
         return bool(v[1]) or es_referencia(v[0] or "")
 
+    def _bandera(self, nombre):
+        """Si la declaracion que se ve desde aqui lleva bandera.
+
+        Por declaracion y no por nombre: tres `t` en tres bloques son tres
+        variables. Con un conjunto de nombres, que un `t` se entregara hacia
+        que cualquier otro `t` de la funcion preguntara por `ss_vivo_t`: si
+        esa bandera era de un bloque hermano el C no compilaba, y si era de
+        un bloque de fuera que ya la habia apagado, el `t` de dentro se
+        quedaba sin liberar sin que nadie lo dijera.
+        """
+        v = self.buscar(nombre)
+        return bool(v and v[2] is not None and id(v[2]) in self.con_bandera)
+
+    def _en_marco(self, marco, nombre):
+        """La declaracion de `nombre` en ese bloque abierto, y no la que se vea
+        desde aqui: al soltar un bloque de fuera, un nombre repetido dentro
+        tapa al que hay que soltar."""
+        for bloque, ambito in zip(self.pila, self.vars):
+            if bloque is marco and nombre in ambito:
+                return ambito[nombre]
+        return self.buscar(nombre)
+
     def fue_movida(self, nombre):
         """Si el valor se movio a otro sitio, aqui ya no somos duenios."""
         v = self.buscar(nombre)
@@ -1364,7 +1386,7 @@ class Generador:
             self.declarar(p.nombre, p.tipo, p.prestado, decl=p)
         for p in f.params:
             if p.movida and self.c.posee(p.tipo) and not p.prestado:
-                self.con_bandera.add(p.nombre)
+                self.con_bandera.add(id(p))
                 self.emitir(f"bool ss_vivo_{p.nombre} = true;")
 
         for s in f.cuerpo:
@@ -1575,18 +1597,21 @@ class Generador:
         for n in reversed(nombres):
             if n in excepciones:
                 continue
-            if n in self.con_bandera:
+            v = self._en_marco(nombres, n)
+            tipo = v[0] if v else self.tipo_var(n)
+            decl = v[2] if v else None
+            if decl is not None and id(decl) in self.con_bandera:
                 # se movio en algun camino: lo decide la bandera
                 self.emitir(f"if (ss_vivo_{n})")
                 self.emitir("{")
                 self.sangria += 1
-                self.liberacion(n, self.tipo_var(n))
+                self.liberacion(n, tipo)
                 self.sangria -= 1
                 self.emitir("}")
                 continue
-            if self.fue_movida(n):
+            if decl is not None and getattr(decl, "movida", False):
                 continue
-            self.liberacion(n, self.tipo_var(n))
+            self.liberacion(n, tipo)
 
     def liberar_todo(self, excepto=None):
         """Todo lo que esta vivo aqui: los temporales de la sentencia en curso
@@ -1739,7 +1764,7 @@ class Generador:
             if self.c.posee(s.tipo):
                 self.pila[-1].append(s.nombre)
                 if s.movida:
-                    self.con_bandera.add(s.nombre)
+                    self.con_bandera.add(id(s))
                     self.emitir(f"bool ss_vivo_{s.nombre} = true;")
             return
 
@@ -1762,7 +1787,7 @@ class Generador:
                 self.declarar(guardado, tipo)
                 valor_c = guardado
                 con_bandera = (isinstance(s.lugar, Variable)
-                               and s.lugar.nombre in self.con_bandera)
+                               and self._bandera(s.lugar.nombre))
                 if con_bandera:
                     # Si ya se lo llevaron, aqui no hay nada que devolver:
                     # liberarlo seria soltarlo dos veces.
@@ -1975,7 +2000,7 @@ class Generador:
             # Una variable con bandera se entrega solo en algunos caminos
             # (la alternativa de un `sino`, por ejemplo). Excluirla aqui la
             # dejaria sin liberar en los demas: quien decide es la bandera.
-            entregadas -= self.con_bandera
+            entregadas = {n for n in entregadas if not self._bandera(n)}
             if devuelta is not None:
                 entregadas.add(devuelta)
             valor = self.expr(s.valor, self.func.retorno if self.func else None)
@@ -2197,7 +2222,7 @@ class Generador:
             return e.nombre
 
         if isinstance(e, Variable):
-            if getattr(e, "mueve", False) and e.nombre in self.con_bandera:
+            if getattr(e, "mueve", False) and self._bandera(e.nombre):
                 self.pendientes.append(e.nombre)
             # un parametro `mut str` llega como puntero
             if self.es_puntero(e.nombre):

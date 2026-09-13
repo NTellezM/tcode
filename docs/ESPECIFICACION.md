@@ -160,6 +160,23 @@ sin `return`
 Toda variable se inicializa en su declaración. `let` es inmutable; `var` es
 mutable. La inmutabilidad es lo normal.
 
+Un nombre no se puede declarar dos veces en el mismo bloque, ni tapar a una
+variable de un bloque que envuelve al actual. Dos bloques hermanos sí pueden
+usar el mismo nombre, y una clausura puede llamar a su parámetro como a una
+variable de quien la crea, porque es otra función.
+
+- **Rust y Go** dejan tapar. En Rust es cómodo para transformar un valor sin
+  inventar nombres (`let x = x.trim()`); en Go es una fuente conocida de
+  fallos (`err` tapado dentro de un `if`), tanto que `go vet` tiene un
+  analizador solo para eso.
+- **Zig, C# y Java** lo prohíben. Tcode hace lo mismo: leer un nombre sin
+  saber a cuál de las dos variables se refiere es donde nacen los fallos.
+- Hay además una razón de implementación: en el C generado la variable de
+  fuera se vuelve innombrable dentro, y una salida temprana desde ahí no
+  podría liberarla.
+- **Peor que Rust:** a veces hay que inventar un segundo nombre. Medido antes
+  de decidir, ningún programa del repositorio tapaba variables.
+
 ### 5. Tipos compuestos: propiedad recursiva y límites comprobados
 
 Un `struct` es dueño de lo que sus campos poseen; un arreglo, de lo que

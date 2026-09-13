@@ -504,6 +504,14 @@ class Comprobador:
     def declarar(self, nodo, nombre, tipo, mutable, decl=None):
         if nombre in self.ambitos[-1]:
             self.error(nodo, f"`{nombre}` ya esta declarada en este bloque")
+        elif any(nombre in a for a in self.ambitos[:-1]):
+            # Tapar una variable de un bloque que envuelve a este es un error,
+            # como en Zig, C# y Java (Rust y Go lo dejan). Leer el codigo sin
+            # saber a cual de las dos se refiere un nombre es donde nacen los
+            # fallos, y en C la de fuera se vuelve innombrable: una salida
+            # temprana desde dentro no podria liberarla.
+            self.error(nodo, f"`{nombre}` tapa a una variable del mismo nombre "
+                             f"de un bloque de fuera. Usa otro nombre")
 
         sim = Simbolo(nombre, tipo, mutable, len(self.ambitos), decl or nodo)
         sim.bucle_al_declarar = self.en_bucle

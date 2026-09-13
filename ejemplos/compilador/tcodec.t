@@ -65,10 +65,8 @@ fn fila_aritmetica(t: view) -> str {
 // Lo que este hito todavia no sabe emitir: cada uno pide una seccion propia
 // del archivo (typedefs, tablas, ayudantes), y sin ella el C no compila.
 fn necesita_lo_que_falta(l: view) -> bool {
-    if contiene(l, "ss_lista_") { return true; }
-    if contiene(l, "ss_mapa_") || contiene(l, "ss_push_") { return true; }
-    if contiene(l, "ss_copia_") { return true; }
-    if contiene(l, "ss_ordenar_") || contiene(l, "ss_bloque_") { return true; }
+    if contiene(l, "ss_mapa_") || contiene(l, "ss_copia_") { return true; }
+    if contiene(l, "ss_bloque_") { return true; }
     if contiene(l, "ss_arr_") || contiene(l, "ss_fn_") { return true; }
     if contiene(l, "ss_cierre_") || contiene(l, "ss_lang_cstr_") { return true; }
     if contiene(l, "ss_lang_leer_") || contiene(l, "ss_lang_escribir_") {
@@ -262,6 +260,186 @@ fn rechazo(que: view) -> usize {
 }
 
 // ------------------------------------------------------------------
+// Listas
+// ------------------------------------------------------------------
+//
+// Cada `lista<T>` concreta lleva su typedef y sus funciones propias: no hay
+// `void*` ni tamanios pasados a mano. Los typedefs salen ordenados por
+// nombre; las funciones, en el orden en que el original registro cada tipo,
+// que es el de su recorrido previo: campos de struct, retorno, parametros y
+// declaraciones, entrando en `if` y `while` pero no en `for` ni `match`.
+
+fn es_lista_t(t: view) -> bool { return empieza_con(t, "lista<"); }
+
+fn interior_lista(t: view) -> str {
+    return nuevo(rebanar(t, 6, largo(t) - 1));
+}
+
+// Lo que este hito no sabe escribir todavia: mapas, bloques y arreglos.
+fn es_otra_coleccion(t: view) -> bool {
+    return contiene(t, "mapa<") || contiene(t, "bloque<") || contiene(t, "[");
+}
+
+// Registra `t` si es una lista, la de dentro primero. Falso si es algo que
+// este hito todavia no escribe.
+fn mirar_tipo(t: view, listas: mut lista<str>, vistas: mut mapa<str, usize>) -> bool {
+    if es_otra_coleccion(t) {
+        // Un prestamo no registra nada, como en el original.
+        return empieza_con(t, "&");
+    }
+    if !es_lista_t(t) { return true; }
+    if tiene(vistas, t) { return true; }
+    let dentro = interior_lista(t);
+    if es_lista_t(vista(dentro)) {
+        if !mirar_tipo(vista(dentro), listas, vistas) { return false; }
+    }
+    poner(vistas, t, 1);
+    anadir(listas, nuevo(t));
+    return true;
+}
+
+fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, listas: mut lista<str>,
+    vistas: mut mapa<str, usize>) -> bool {
+    I.abrir(tipos);
+    var bien = true;
+    for st en n.hijos {
+        let clase = vista(st.clase);
+        if igual(clase, "declaracion") && largo(st.hijos) == 1 {
+            let nombre = G.nombre_declarado(vista(st.texto));
+            var escrito = G.tipo_escrito(vista(st.texto));
+            if largo(escrito) == 0 { escrito = I.tipo_de(tipos, st.hijos[0]); }
+            let t = I.sin_alias_tipo(vista(escrito));
+            if bien { bien = mirar_tipo(vista(t), listas, vistas); }
+            I.declarar(tipos, vista(nombre), vista(t));
+        }
+        if igual(clase, "si") {
+            var k = 1;
+            while k < largo(st.hijos) {
+                if bien { bien = mirar_bloque(st.hijos[k], tipos, listas, vistas); }
+                k = k + 1;
+            }
+        }
+        if igual(clase, "mientras") && largo(st.hijos) == 2 {
+            if bien { bien = mirar_bloque(st.hijos[1], tipos, listas, vistas); }
+        }
+    }
+    I.cerrar(tipos);
+    return bien;
+}
+
+fn mirar_funcion(d: &P.Nodo, tipos: mut I.Contexto, listas: mut lista<str>,
+    vistas: mut mapa<str, usize>) -> bool {
+    let r = retorno_de(d);
+    if !mirar_tipo(vista(r), listas, vistas) { return false; }
+    I.abrir(tipos);
+    var bien = true;
+    for h en d.hijos {
+        if igual(vista(h.clase), "param") {
+            let pelado = F.tipo_pelado(vista(h.texto));
+            let t = I.sin_alias_tipo(vista(pelado));
+            if bien { bien = mirar_tipo(vista(t), listas, vistas); }
+            let pn = F.nombre_de(vista(h.texto));
+            I.declarar(tipos, vista(pn), vista(t));
+        }
+    }
+    for h en d.hijos {
+        if igual(vista(h.clase), "bloque") && bien {
+            bien = mirar_bloque(h, tipos, listas, vistas);
+        }
+    }
+    I.cerrar(tipos);
+    return bien;
+}
+
+fn poner_typedef_lista(t: view, vistas: &mapa<str, usize>,
+    puestos: mut mapa<str, usize>, salida: mut lista<str>) {
+    if tiene(puestos, t) || !tiene(vistas, t) { return; }
+    poner(puestos, t, 1);
+    let dentro = interior_lista(t);
+    poner_typedef_lista(vista(dentro), vistas, puestos, salida);
+    let te = G.tipo_c(vista(dentro));
+    let tc = G.tipo_c(t);
+    anadir(salida, $"typedef struct {{ {te}* e; size_t length; size_t capacity; }} {tc};");
+}
+
+fn ordenable(t: view) -> bool {
+    if igual(t, "str") || igual(t, "bool") { return true; }
+    if igual(t, "usize") || igual(t, "u8") || igual(t, "u16") { return true; }
+    if igual(t, "u32") || igual(t, "u64") || igual(t, "i8") { return true; }
+    if igual(t, "i16") || igual(t, "i32") || igual(t, "i64") { return true; }
+    return igual(t, "f32") || igual(t, "f64");
+}
+
+fn funcion_push(t: view, salida: mut lista<str>) {
+    let dentro = interior_lista(t);
+    let te = G.tipo_c(vista(dentro));
+    let tc = G.tipo_c(t);
+    let m = G.mangle(t);
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static void ss_push_{m}({tc}* p, {te} valor,");
+    anadir(salida, nuevo("        const char* archivo, int linea)"));
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    if (p->length == p->capacity)"));
+    anadir(salida, nuevo("    {"));
+    anadir(salida, nuevo("        if (p->length == SIZE_MAX)"));
+    anadir(salida, nuevo("            ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, nuevo("        size_t nueva = p->capacity == 0 ? 8 : p->capacity;"));
+    anadir(salida, nuevo("        if (nueva < p->length + 1)"));
+    anadir(salida, nuevo("        {"));
+    anadir(salida, nuevo("            nueva = nueva > SIZE_MAX / 2 ? SIZE_MAX : nueva * 2;"));
+    anadir(salida, nuevo("            if (nueva < p->length + 1) nueva = p->length + 1;"));
+    anadir(salida, nuevo("        }"));
+    anadir(salida, nuevo("        if (nueva > SIZE_MAX / sizeof(*p->e))"));
+    anadir(salida, nuevo("            ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, nuevo("        void* memoria = realloc(p->e, nueva * sizeof(*p->e));"));
+    anadir(salida, nuevo("        if (memoria == NULL) ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, $"        p->e = ({te}*) memoria;");
+    anadir(salida, nuevo("        p->capacity = nueva;"));
+    anadir(salida, nuevo("    }"));
+    anadir(salida, nuevo("    p->e[p->length++] = valor;"));
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+}
+
+fn funcion_ordenar(t: view, salida: mut lista<str>) {
+    let dentro = interior_lista(t);
+    if !ordenable(vista(dentro)) { return; }
+    let te = G.tipo_c(vista(dentro));
+    let tc = G.tipo_c(t);
+    let m = G.mangle(t);
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static int ss_cmp_{m}(const void* a, const void* b)");
+    anadir(salida, nuevo("{"));
+    if igual(vista(dentro), "str") {
+        anadir(salida, nuevo("    return ss_cmp((const SafeString*) a, (const SafeString*) b);"));
+    } else {
+        anadir(salida, $"    {te} x = *(const {te}*) a;");
+        anadir(salida, $"    {te} y = *(const {te}*) b;");
+        anadir(salida, nuevo("    return (x > y) - (x < y);"));
+    }
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static void ss_ordenar_{m}({tc}* p)");
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    if (p->length > 1)"));
+    anadir(salida, $"        qsort(p->e, p->length, sizeof(*p->e), ss_cmp_{m});");
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+}
+
+// Los nombres de C que empiezan por `prefijo`: `ss_lista_str` en una linea.
+fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
+    var i = buscar_desde(t, prefijo, 0);
+    while i < largo(t) {
+        var j = i + largo(prefijo);
+        while j < largo(t) && I.es_de_nombre(byte(t, j)) { j = j + 1; }
+        poner(salida, rebanar(t, i, j), 1);
+        i = buscar_desde(t, prefijo, j);
+    }
+}
+
+// ------------------------------------------------------------------
 // El archivo
 // ------------------------------------------------------------------
 
@@ -314,8 +492,9 @@ fn main() -> usize ! {
                     if igual(vista(h.clase), "campo_def") {
                         let tp = F.tipo_pelado(vista(h.texto));
                         let t = I.sin_alias_tipo(vista(tp));
-                        if contiene(vista(t), "<") || empieza_con(vista(t), "[") {
-                            return rechazo("colecciones ni arreglos en un struct");
+                        if es_otra_coleccion(vista(t)) || (contiene(vista(t), "<")
+                            && !es_lista_t(vista(t))) {
+                            return rechazo("mapas, bloques ni arreglos en un struct");
                         }
                         anadir(campos, F.nombre_de(vista(h.texto)));
                         anadir(tipos_campo, t);
@@ -334,6 +513,33 @@ fn main() -> usize ! {
     }
     if largo(claves(global.repetidas)) > 0 {
         return rechazo("nombres repetidos entre modulos");
+    }
+
+    // Las listas, con el mismo recorrido que el original: en orden de
+    // declaracion, campos de struct y funciones entremezclados.
+    var listas: lista<str> = [];
+    var vistas: mapa<str, usize> = [];
+    var im = 0;
+    while im < largo(arboles) {
+        for d en arboles[im].hijos {
+            if igual(vista(d.clase), "struct") {
+                for h en d.hijos {
+                    if igual(vista(h.clase), "campo_def") {
+                        let tp = F.tipo_pelado(vista(h.texto));
+                        let t = I.sin_alias_tipo(vista(tp));
+                        if !mirar_tipo(vista(t), listas, vistas) {
+                            return rechazo("mapas, bloques ni arreglos");
+                        }
+                    }
+                }
+            }
+            if igual(vista(d.clase), "fn") {
+                if !mirar_funcion(d, contextos[im], listas, vistas) {
+                    return rechazo("mapas, bloques ni arreglos");
+                }
+            }
+        }
+        im = im + 1;
     }
 
     // Los tipos resultado, en el orden en que el original los registra: el
@@ -364,6 +570,12 @@ fn main() -> usize ! {
     var partes: lista<str> = [];
     for n en st_nombres { anadir(partes, $"typedef struct {n} {n};"); }
     if largo(st_nombres) > 0 { anadir(partes, vacio()); }
+    var ordenadas: lista<str> = [];
+    for x en listas { anadir(ordenadas, copiar(x)); }
+    ordenar(ordenadas);
+    var puestos: mapa<str, usize> = [];
+    for x en ordenadas { poner_typedef_lista(vista(x), vistas, puestos, partes); }
+    if largo(listas) > 0 { anadir(partes, vacio()); }
     for n en orden {
         let k = obtener(st_indice, vista(n)) sino 0;
         anadir(partes, $"struct {n}");
@@ -387,6 +599,8 @@ fn main() -> usize ! {
     if alguno_posee { anadir(partes, vacio()); }
     for r en resultados { anadir(partes, typedef_resultado(vista(r))); }
     if largo(resultados) > 0 { anadir(partes, vacio()); }
+    for x en listas { funcion_push(vista(x), partes); }
+    for x en listas { funcion_ordenar(vista(x), partes); }
 
     // Los liberadores van antes que las funciones tambien en la cuenta: un
     // campo que sea una lista gasta indice de bucle.
@@ -458,6 +672,22 @@ fn main() -> usize ! {
             anadir(cuerpos, vacio());
         }
         i = i + 1;
+    }
+
+    // Toda lista que aparezca en un cuerpo tiene que tener su typedef: si el
+    // recorrido no la registro, el C no compilaria. Mejor no escribirlo.
+    var usadas: mapa<str, usize> = [];
+    for l en cuerpos { apuntar_nombres(vista(l), "ss_lista_", usadas); }
+    var registradas: mapa<str, usize> = [];
+    for x en listas {
+        let nombre_c = G.tipo_c(vista(x));
+        poner(registradas, vista(nombre_c), 1);
+    }
+    for u en claves(usadas) {
+        if !tiene(registradas, vista(u)) {
+            imprimir_error($"tcodec: `{u}` se usa y el recorrido no la registro\n");
+            return 1;
+        }
     }
 
     // Solo los anchos que el programa usa, en el orden de sus nombres.
