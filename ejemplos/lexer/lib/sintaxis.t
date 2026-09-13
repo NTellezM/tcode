@@ -965,6 +965,64 @@ fn carpeta(ruta: view) -> str {
 // El parser de Python los recibe del cargador de modulos; aqui se leen las
 // dependencias directamente. Con una vuelta basta: un struct que llega de
 // tercera mano no se usa como literal sin nombrarlo antes.
+// Un modulo que este archivo usa, ya leido, con el alias que le dio quien
+// lo usa: `usar "lib/tipar.t" como I;` -> alias `I`, y sus funciones se
+// llaman `I.algo` desde aqui.
+struct Usado {
+    alias: str,
+    arbol: Nodo,
+}
+
+// Los modulos que este archivo pide, analizados. Un solo nivel: lo que usen
+// ellos a su vez no se sigue, porque desde aqui no se nombra.
+fn modulos_usados(ruta: view, toks: &lista<Token>) -> lista<Usado> {
+    var salida: lista<Usado> = [];
+    let dir = carpeta(ruta);
+    var i = 0;
+    while i + 1 < largo(toks) {
+        if igual(vista(toks[i].valor), "usar") {
+            if igual(vista(toks[i + 1].tipo), "cadena") {
+                let pedido = nuevo(toks[i + 1].valor);
+                var alias = vacio();
+                if i + 3 < largo(toks) {
+                    if igual(vista(toks[i + 2].valor), "como") {
+                        alias = nuevo(toks[i + 3].valor);
+                    }
+                }
+                var candidatos: lista<str> = [];
+                var junto = nuevo(vista(dir));
+                if largo(junto) > 0 { empujar(junto, "/"); }
+                empujar(junto, vista(pedido));
+                anadir(candidatos, copiar(junto));
+                empujar(junto, ".t");
+                anadir(candidatos, junto);
+                anadir(candidatos, copiar(pedido));
+                var suelto = copiar(pedido);
+                empujar(suelto, ".t");
+                anadir(candidatos, suelto);
+
+                for c en candidatos {
+                    let texto = leer_archivo(vista(c)) sino vacio();
+                    if largo(texto) == 0 { continue; }
+                    let otros = analizar(vista(texto)) sino [];
+                    if largo(otros) == 0 { break; }
+                    let nombres = visibles(vista(c), otros, "struct");
+                    let formas = visibles(vista(c), otros, "enum");
+                    let sin_alias: mapa<str, usize> = [];
+                    var e = Estado { toks: otros, i: 0, alias: sin_alias,
+                        structs: nombres, enums: formas };
+                    let arbol = programa(e) sino rama("programa", 1);
+                    anadir(salida, Usado { alias: copiar(alias),
+                            arbol: arbol });
+                    break;
+                }
+            }
+        }
+        i = i + 1;
+    }
+    return salida;
+}
+
 fn structs_visibles(ruta: view, toks: &lista<Token>) -> mapa<str, usize> {
     return visibles(ruta, toks, "struct");
 }

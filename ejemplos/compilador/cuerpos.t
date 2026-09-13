@@ -103,6 +103,41 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
     for h en n.hijos { recoger_firmas(h, c); }
 }
 
+// Las firmas de otro modulo se apuntan dos veces: con su nombre a secas y
+// con el alias que le puso quien lo usa (`I.tipo_de`), porque asi es como se
+// escribe la llamada. Si el nombre a secas lo trae mas de un modulo, el
+// cargador de verdad lo renombra y esta capa no sabe a que: se marca como
+// repetido para no emitir una llamada al que no es.
+fn recoger_de_modulo(m: &P.Usado, c: mut I.Contexto) {
+    var suyas = I.contexto();
+    recoger_firmas(m.arbol, suyas);
+    for nombre en claves(suyas.retornos) {
+        if tiene(c.retornos, vista(nombre)) {
+            poner(c.repetidas, vista(nombre), 1);
+        }
+        copiar_firma(suyas, c, vista(nombre), vista(nombre));
+        if largo(m.alias) > 0 {
+            var con_alias = copiar(m.alias);
+            empujar(con_alias, ".");
+            empujar(con_alias, vista(nombre));
+            copiar_firma(suyas, c, vista(nombre), vista(con_alias));
+        }
+    }
+}
+
+fn copiar_firma(de: &I.Contexto, a: mut I.Contexto, suyo: view, como: view) {
+    poner(a.retornos, como, nuevo(obtener(de.retornos, suyo) sino ""));
+    let ps = I.lista_de(de.params, suyo) sino [];
+    poner(a.params, como, ps);
+    let ms = I.lista_de(de.params_marcados, suyo) sino [];
+    poner(a.params_marcados, como, ms);
+    if tiene(de.tipo_params, suyo) {
+        let tp = I.lista_de(de.tipo_params, suyo) sino [];
+        poner(a.tipo_params, como, tp);
+    }
+    if tiene(de.externas, suyo) { poner(a.externas, como, 1); }
+}
+
 fn main() -> usize ! {
     if n_argumentos() < 2 {
         imprimir_error($"uso: {argumento(0)} <archivo.t>\n");
@@ -114,12 +149,21 @@ fn main() -> usize ! {
     let tokens = try analizar(vista(fuente));
     let nombres = P.structs_visibles(ruta, tokens);
     let formas = P.enums_visibles(ruta, tokens);
+    var tipos = I.contexto();
+    // Lo que traen los modulos que este archivo usa, antes de nada: sin
+    // esto, una llamada a `empieza_con` de `std/texto` no se sabe que
+    // devuelve, y la funcion entera se descarta. Va aqui porque los tokens
+    // pasan a ser del `Estado` en cuanto se construye.
+    for m en P.modulos_usados(ruta, tokens) {
+        recoger_de_modulo(m, tipos);
+    }
+
     let sin_alias: mapa<str, usize> = [];
     var estado = P.Estado { toks: tokens, i: 0, alias: sin_alias,
         structs: nombres, enums: formas };
     let arbol = try P.programa(estado);
 
-    var tipos = I.contexto();
+    // Y las suyas, que mandan sobre las de fuera.
     recoger_firmas(arbol, tipos);
 
     for d en arbol.hijos {
@@ -219,6 +263,7 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
                 if bien {
                     bien = G.sentencia_c(b, sitio, st, tipos, vista(retorno),
                         falible);
+                    if !bien { G.apuntar_fallo(b, st); }
                 }
             }
             if bien && !G.termina_saliendo(h) {
@@ -231,7 +276,10 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
         }
     }
     I.cerrar(tipos);
-    if !bien { return; }
+    if !bien {
+        imprimir_error($"!! {d.texto}\t{b.fallo_linea}\t{b.fallo_clase}\n");
+        return;
+    }
 
     let firma = G.prototipo(vista(d.texto), tipos_param, marcas,
         vista(retorno), falible);
