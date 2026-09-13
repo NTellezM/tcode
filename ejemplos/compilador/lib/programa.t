@@ -79,6 +79,11 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
         }
         poner(c.campos, vista(n.texto), suyos);
         poner(c.nombres, vista(n.texto), como_se_llaman);
+        var sueltos_st: lista<str> = [];
+        for h en n.hijos {
+            if igual(vista(h.clase), "tipo_param") { anadir(sueltos_st, nuevo(vista(h.texto))); }
+        }
+        if largo(sueltos_st) > 0 { poner(c.struct_params, vista(n.texto), sueltos_st); }
     }
     if igual(vista(n.clase), "enum") {
         var cuales: lista<str> = [];
@@ -160,6 +165,10 @@ fn recoger_de_modulo(m: &P.Usado, c: mut I.Contexto) {
         poner(c.campos, vista(st), cs);
         let ns = I.lista_de(suyas.nombres, vista(st)) sino [];
         poner(c.nombres, vista(st), ns);
+        if tiene(suyas.struct_params, vista(st)) {
+            let sp = I.lista_de(suyas.struct_params, vista(st)) sino [];
+            poner(c.struct_params, vista(st), sp);
+        }
     }
     for en_ en claves(suyas.variantes) {
         let vs = I.lista_de(suyas.variantes, vista(en_)) sino [];

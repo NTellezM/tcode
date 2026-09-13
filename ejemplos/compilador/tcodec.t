@@ -460,7 +460,7 @@ fn registro() -> Registro {
 }
 
 fn registrar_resultado(reg: mut Registro, t: view) {
-    var clave = nuevo(t);
+    var clave = I.nombre_resuelto(t);
     if igual(t, "()") { clave = vacio(); }
     if tiene(reg.res_vistos, vista(clave)) { return; }
     poner(reg.res_vistos, vista(clave), 1);
@@ -485,6 +485,12 @@ fn tipo_obtener(v: view, global: &I.Contexto) -> str {
 // es algo que este hito todavia no escribe.
 fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     structs: &mapa<str, usize>) -> bool {
+    if contiene(t, "<") {
+        let resuelto = I.nombre_resuelto(t);
+        if !igual(vista(resuelto), t) {
+            return mirar_tipo(vista(resuelto), reg, global, structs);
+        }
+    }
     if empieza_con(t, "[") {
         let pa = partes_arreglo(t);
         if largo(pa) != 2 { return false; }
@@ -1163,6 +1169,184 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
 }
 
 // ------------------------------------------------------------------
+// Structs genericos
+// ------------------------------------------------------------------
+//
+// Cada `Par<str, usize>` escrito es una copia, `Par__str_usize`, que se
+// escribe como un struct mas. El tipado en Tcode trabaja con el tipo escrito;
+// aqui se crean las copias en el orden en que las crea el comprobador de
+// Python: primero los campos de los structs, despues los tipos escritos en
+// cada funcion, y los de cada generica al instanciarla.
+
+// Lo de dentro de `Base<a, b>`, cortado por las comas de fuera.
+fn partir_args(t: view) -> lista<str> {
+    var salida: lista<str> = [];
+    var ini = 0;
+    while ini < largo(t) && byte(t, ini) != 60 { ini = ini + 1; }
+    if ini + 1 >= largo(t) { return salida; }
+    let dentro = rebanar(t, ini + 1, largo(t) - 1);
+    var hondura = 0;
+    var desde = 0;
+    var i = 0;
+    while i <= largo(dentro) {
+        var corta = i == largo(dentro);
+        if !corta {
+            let b = byte(dentro, i);
+            if b == 60 || b == 91 || b == 40 { hondura = hondura + 1; }
+            if (b == 62 || b == 93 || b == 41) && hondura > 0 { hondura = hondura - 1; }
+            corta = b == 44 && hondura == 0;
+        }
+        if corta {
+            var j = desde;
+            while j < i && byte(dentro, j) == 32 { j = j + 1; }
+            anadir(salida, nuevo(rebanar(dentro, j, i)));
+            desde = i + 1;
+        }
+        i = i + 1;
+    }
+    return salida;
+}
+
+// Como `resolver_tipo` del comprobador: el tipo con cada aplicacion cambiada
+// por su copia, creando la copia la primera vez. Una copia se apunta despues
+// de resolver sus campos, asi que las que pide un campo van antes.
+fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
+    p_params: &lista<lista<str>>, p_campos: &lista<lista<str>>,
+    p_tipos: &lista<lista<str>>, en_curso: mut mapa<str, usize>,
+    st_nombres: mut lista<str>, st_indice: mut mapa<str, usize>,
+    st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>,
+    global: mut I.Contexto) -> str {
+    if !contiene(t, "<") && !contiene(t, "[") { return nuevo(t); }
+    if empieza_con(t, "&mut ") {
+        let d = resolver_reg(rebanar(t, 5, largo(t)), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+        return $"&mut {d}";
+    }
+    if empieza_con(t, "&") {
+        let d = resolver_reg(rebanar(t, 1, largo(t)), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+        return $"&{d}";
+    }
+    if es_lista_t(t) {
+        let e = interior_lista(t);
+        let d = resolver_reg(vista(e), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+        return $"lista<{d}>";
+    }
+    if empieza_con(t, "bloque<") {
+        let e = nuevo(rebanar(t, 7, largo(t) - 1));
+        let d = resolver_reg(vista(e), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+        return $"bloque<{d}>";
+    }
+    if es_mapa_t(t) {
+        let partes = partes_mapa(t);
+        if largo(partes) != 2 { return nuevo(t); }
+        let k = resolver_reg(vista(partes[0]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+        let v = resolver_reg(vista(partes[1]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+        return $"mapa<{k}, {v}>";
+    }
+    if empieza_con(t, "[") {
+        let pa = partes_arreglo(t);
+        if largo(pa) != 2 { return nuevo(t); }
+        let d = resolver_reg(vista(pa[0]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+        return $"[{d}; {pa[1]}]";
+    }
+    if !I.es_aplicacion(t) { return nuevo(t); }
+    let base = I.base_de_aplicacion(t);
+    if !tiene(plantillas_st, vista(base)) { return nuevo(t); }
+    let kp = obtener(plantillas_st, vista(base)) sino 0;
+    let dados = partir_args(t);
+    if largo(dados) != largo(p_params[kp]) { return nuevo(t); }
+    var ligaduras: mapa<str, str> = [];
+    var nombre = copiar(base);
+    empujar(nombre, "__");
+    var i = 0;
+    while i < largo(dados) {
+        let d = resolver_reg(vista(dados[i]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+        if i > 0 { empujar(nombre, "_"); }
+        let limpio = G.sanear(vista(d));
+        empujar(nombre, vista(limpio));
+        poner(ligaduras, vista(p_params[kp][i]), d);
+        i = i + 1;
+    }
+    if tiene(st_indice, vista(nombre)) || tiene(en_curso, vista(nombre)) { return nombre; }
+    poner(en_curso, vista(nombre), 1);
+    var tipos_c: lista<str> = [];
+    let crudos = copiar(p_tipos[kp]);
+    for x en crudos {
+        let puesto = I.sustituir(vista(x), ligaduras);
+        anadir(tipos_c, resolver_reg(vista(puesto), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+                st_nombres, st_indice, st_campos, st_tipos, global));
+    }
+    poner(st_indice, vista(nombre), largo(st_nombres));
+    anadir(st_nombres, copiar(nombre));
+    anadir(st_campos, copiar(p_campos[kp]));
+    poner(global.campos, vista(nombre), copiar(tipos_c));
+    poner(global.nombres, vista(nombre), copiar(p_campos[kp]));
+    anadir(st_tipos, tipos_c);
+    return nombre;
+}
+
+// Los tipos escritos en una funcion, en el orden en que los resuelve el
+// comprobador: parametros, retorno y cuerpo.
+fn resolver_en_nodo(n: &P.Nodo, plantillas_st: &mapa<str, usize>,
+    p_params: &lista<lista<str>>, p_campos: &lista<lista<str>>,
+    p_tipos: &lista<lista<str>>, en_curso: mut mapa<str, usize>,
+    st_nombres: mut lista<str>, st_indice: mut mapa<str, usize>,
+    st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>,
+    global: mut I.Contexto) {
+    let clase = vista(n.clase);
+    if igual(clase, "param") {
+        let tp = F.tipo_pelado(vista(n.texto));
+        let t = I.sin_alias_tipo(vista(tp));
+        let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+    }
+    if igual(clase, "retorno_tipo") || igual(clase, "literal_struct") {
+        let t = I.sin_alias_tipo(vista(n.texto));
+        let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+    }
+    if igual(clase, "declaracion") {
+        let escrito = G.tipo_escrito(vista(n.texto));
+        if largo(escrito) > 0 {
+            let t = I.sin_alias_tipo(vista(escrito));
+            let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+                st_nombres, st_indice, st_campos, st_tipos, global);
+        }
+    }
+    for h en n.hijos { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            st_nombres, st_indice, st_campos, st_tipos, global); }
+}
+
+// Una copia de generica resuelve primero su retorno, luego sus parametros y
+// luego el cuerpo.
+fn resolver_instancia(d: &P.Nodo, plantillas_st: &mapa<str, usize>,
+    p_params: &lista<lista<str>>, p_campos: &lista<lista<str>>,
+    p_tipos: &lista<lista<str>>, en_curso: mut mapa<str, usize>,
+    st_nombres: mut lista<str>, st_indice: mut mapa<str, usize>,
+    st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>,
+    global: mut I.Contexto) {
+    for h en d.hijos {
+        if igual(vista(h.clase), "retorno_tipo") { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
+                st_nombres, st_indice, st_campos, st_tipos, global); }
+    }
+    for h en d.hijos {
+        if igual(vista(h.clase), "param") { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
+                st_nombres, st_indice, st_campos, st_tipos, global); }
+    }
+    for h en d.hijos {
+        if igual(vista(h.clase), "bloque") { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
+                st_nombres, st_indice, st_campos, st_tipos, global); }
+    }
+}
+
+// ------------------------------------------------------------------
 // Externo
 // ------------------------------------------------------------------
 
@@ -1287,11 +1471,12 @@ fn nodo_instancia(p: view, arboles: &lista<P.Nodo>,
 fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
     contextos: mut lista<I.Contexto>, modulos: &lista<str>,
     plantillas: &mapa<str, usize>, vistos: mut mapa<str, usize>,
-    orden: mut lista<str>) -> bool {
+    orden: mut lista<str>, creados: mut lista<str>) -> bool {
     for p en pedidos {
         let en_c = campo_pedido(vista(p), 1);
         if tiene(vistos, vista(en_c)) { continue; }
         poner(vistos, vista(en_c), 1);
+        anadir(creados, copiar(p));
         let plantilla = campo_pedido(vista(p), 0);
         if !tiene(plantillas, vista(plantilla)) {
             imprimir_error($"tcodec: `{plantilla}` no es una generica conocida\n");
@@ -1306,7 +1491,7 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
             return false;
         }
         if !descubrir(borrador.instancias, arboles, contextos, modulos, plantillas,
-            vistos, orden) {
+            vistos, orden, creados) {
             return false;
         }
         anadir(orden, copiar(p));
@@ -1376,6 +1561,12 @@ fn main() -> usize ! {
     var st_campos: lista<lista<str>> = [];
     var st_tipos: lista<lista<str>> = [];
     var st_indice: mapa<str, usize> = [];
+    // Los structs genericos: sus parametros de tipo, y sus campos escritos.
+    var stp_nombres: lista<str> = [];
+    var stp_indice: mapa<str, usize> = [];
+    var stp_params: lista<lista<str>> = [];
+    var stp_campos: lista<lista<str>> = [];
+    var stp_tipos: lista<lista<str>> = [];
     // Las funciones de los bloques `externo`: de que cabecera salen y su
     // prototipo en C.
     var ext_cabeceras: lista<str> = [];
@@ -1405,7 +1596,28 @@ fn main() -> usize ! {
                 continue;
             }
             if igual(clase, "struct") {
-                if tiene_tipo_param(d) { return rechazo("structs genericos"); }
+                if tiene_tipo_param(d) {
+                    if tiene(stp_indice, vista(d.texto)) {
+                        return rechazo("un struct generico repetido entre modulos");
+                    }
+                    var tps: lista<str> = [];
+                    var cs: lista<str> = [];
+                    var ts: lista<str> = [];
+                    for h en d.hijos {
+                        if igual(vista(h.clase), "tipo_param") { anadir(tps, nuevo(vista(h.texto))); }
+                        if igual(vista(h.clase), "campo_def") {
+                            anadir(cs, F.nombre_de(vista(h.texto)));
+                            let tp = F.tipo_pelado(vista(h.texto));
+                            anadir(ts, I.sin_alias_tipo(vista(tp)));
+                        }
+                    }
+                    poner(stp_indice, vista(d.texto), largo(stp_nombres));
+                    anadir(stp_nombres, nuevo(vista(d.texto)));
+                    anadir(stp_params, tps);
+                    anadir(stp_campos, cs);
+                    anadir(stp_tipos, ts);
+                    continue;
+                }
                 if tiene(st_indice, vista(d.texto)) {
                     return rechazo("un struct repetido entre modulos");
                 }
@@ -1415,9 +1627,8 @@ fn main() -> usize ! {
                     if igual(vista(h.clase), "campo_def") {
                         let tp = F.tipo_pelado(vista(h.texto));
                         let t = I.sin_alias_tipo(vista(tp));
-                        if contiene(vista(t), "bloque<") || (contiene(vista(t), "<")
-                            && !es_lista_t(vista(t)) && !es_mapa_t(vista(t))) {
-                            return rechazo("bloques o genericos en un struct");
+                        if contiene(vista(t), "bloque<") {
+                            return rechazo("bloques en un struct");
                         }
                         anadir(campos, F.nombre_de(vista(h.texto)));
                         anadir(tipos_campo, t);
@@ -1528,6 +1739,64 @@ fn main() -> usize ! {
         mr = mr + 1;
     }
 
+    // Los tipos son de todo el programa: una copia de `par` se escribe en el
+    // modulo de `std/par`, y ahi tiene que saberse que un `Caja<str>` de
+    // quien la llama posee memoria. El comprobador de Python los ve todos.
+    var k_ctx = 0;
+    while k_ctx < largo(contextos) {
+        for st en claves(global.campos) {
+            if tiene(contextos[k_ctx].campos, vista(st)) { continue; }
+            let cs_g = I.lista_de(global.campos, vista(st)) sino [];
+            poner(contextos[k_ctx].campos, vista(st), cs_g);
+            let ns_g = I.lista_de(global.nombres, vista(st)) sino [];
+            poner(contextos[k_ctx].nombres, vista(st), ns_g);
+        }
+        for sp en claves(global.struct_params) {
+            if tiene(contextos[k_ctx].struct_params, vista(sp)) { continue; }
+            let ps_g = I.lista_de(global.struct_params, vista(sp)) sino [];
+            poner(contextos[k_ctx].struct_params, vista(sp), ps_g);
+        }
+        for en_g en claves(global.variantes) {
+            if tiene(contextos[k_ctx].variantes, vista(en_g)) { continue; }
+            let vs_g = I.lista_de(global.variantes, vista(en_g)) sino [];
+            poner(contextos[k_ctx].variantes, vista(en_g), vs_g);
+        }
+        for fk en claves(global.formas) {
+            if tiene(contextos[k_ctx].formas, vista(fk)) { continue; }
+            let fs_g = I.lista_de(global.formas, vista(fk)) sino [];
+            poner(contextos[k_ctx].formas, vista(fk), fs_g);
+        }
+        k_ctx = k_ctx + 1;
+    }
+
+    // Las copias de los structs genericos: primero las que piden los campos
+    // de los structs, luego las de los tipos escritos en cada funcion.
+    var en_curso_st: mapa<str, usize> = [];
+    let n_concretos = largo(st_nombres);
+    var k_st = 0;
+    while k_st < n_concretos {
+        var nuevos_t: lista<str> = [];
+        let viejos_t = copiar(st_tipos[k_st]);
+        for vt en viejos_t {
+            anadir(nuevos_t, resolver_reg(vista(vt), stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
+                    st_nombres, st_indice, st_campos, st_tipos, global));
+        }
+        let nombre_st = copiar(st_nombres[k_st]);
+        poner(global.campos, vista(nombre_st), copiar(nuevos_t));
+        st_tipos[k_st] = nuevos_t;
+        k_st = k_st + 1;
+    }
+    var k_fn = 0;
+    while k_fn < largo(arboles) {
+        for d en arboles[k_fn].hijos {
+            if igual(vista(d.clase), "fn") && !F.es_generica(d) {
+                resolver_en_nodo(d, stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
+                    st_nombres, st_indice, st_campos, st_tipos, global);
+            }
+        }
+        k_fn = k_fn + 1;
+    }
+
     // Lo que tiene partes, para `obtener_mut`: structs y enums.
     var con_partes: mapa<str, usize> = [];
     for n en st_nombres { poner(con_partes, vista(n), 1); }
@@ -1538,6 +1807,7 @@ fn main() -> usize ! {
     // tiene cuando registra: sus firmas tambien cuentan.
     var vistas_inst: mapa<str, usize> = [];
     var orden_inst: lista<str> = [];
+    var creados_inst: lista<str> = [];
     var k_desc = 0;
     while k_desc < largo(arboles) {
         for d en arboles[k_desc].hijos {
@@ -1548,12 +1818,20 @@ fn main() -> usize ! {
             // Si no se sabe escribir, lo dira la pasada de verdad.
             if largo(escritas) == 0 { continue; }
             if !descubrir(borrador.instancias, arboles, contextos, modulos,
-                plantillas, vistas_inst, orden_inst) {
+                plantillas, vistas_inst, orden_inst, creados_inst) {
                 return 1;
             }
         }
         k_desc = k_desc + 1;
     }
+    // Cada copia resuelve sus tipos al crearse, antes de su cuerpo.
+    for p en creados_inst {
+        let copia_r = nodo_instancia(vista(p), arboles, plantillas);
+        resolver_instancia(copia_r, stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+    }
+    for n en st_nombres { poner(con_partes, vista(n), 1); }
+
     var instancias: lista<P.Nodo> = [];
     var modulo_de: lista<usize> = [];
     for p en orden_inst {
@@ -1568,7 +1846,7 @@ fn main() -> usize ! {
     var im = 0;
     while im < largo(arboles) {
         for d en arboles[im].hijos {
-            if igual(vista(d.clase), "struct") {
+            if igual(vista(d.clase), "struct") && !tiene_tipo_param(d) {
                 for h en d.hijos {
                     if igual(vista(h.clase), "campo_def") {
                         let tp = F.tipo_pelado(vista(h.texto));
@@ -1586,6 +1864,17 @@ fn main() -> usize ! {
             }
         }
         im = im + 1;
+    }
+    // Las copias de structs genericos van detras de lo declarado.
+    var k_ist = n_concretos;
+    while k_ist < largo(st_nombres) {
+        let tipos_ist = copiar(st_tipos[k_ist]);
+        for tt en tipos_ist {
+            if !mirar_tipo(vista(tt), reg, global, con_partes) {
+                return rechazo("mapas, bloques ni arreglos");
+            }
+        }
+        k_ist = k_ist + 1;
     }
     var k_mira = 0;
     while k_mira < largo(instancias) {
@@ -1971,7 +2260,8 @@ fn main() -> usize ! {
     var apuntados: lista<str> = [];
     var vistos_c: mapa<str, usize> = [];
     for t en cta.copias {
-        necesita_copiador(vista(t), global, st_indice, st_tipos, vistos_c, apuntados);
+        let tr = I.nombre_resuelto(vista(t));
+        necesita_copiador(vista(tr), global, st_indice, st_tipos, vistos_c, apuntados);
     }
     var copiadores: lista<str> = [];
     var hondo = 0;
