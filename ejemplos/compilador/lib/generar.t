@@ -718,6 +718,9 @@ fn llamada_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if es_interna(nombre) { return no_se(); }
     if !tiene(tipos.retornos, nombre) { return no_se(); }
     if tiene(tipos.tipo_params, nombre) { return no_se(); }
+    // Una llamada a C pide convertir el `str` a `const char*` comprobando el
+    // cero de en medio. Esta capa todavia no lo hace, asi que no la emite.
+    if tiene(tipos.externas, nombre) { return no_se(); }
 
     let firmados = I.lista_de(tipos.params, nombre) sino [];
     let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];

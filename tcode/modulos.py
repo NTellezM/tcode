@@ -27,6 +27,13 @@ from tcode.nodos import (Usar, Struct, Funcion, Llamada, LiteralStruct,
                          Enum, EnumLit, Match)
 
 
+def _externas(decls):
+    """Los nombres declarados en un `externo`. Esos NO se renombran nunca:
+    son el nombre de la funcion de C, y cambiarlo seria llamar a otra."""
+    return {d.nombre for d in decls
+            if isinstance(d, Funcion) and d.externa}
+
+
 def _solo_usar(fuente, archivo):
     """Los `usar` de un archivo, sin analizarlo entero.
 
@@ -246,7 +253,8 @@ def cargar(ruta_principal, nombres_bonitos=None):
     duenios = {}        # nombre -> [real]
     for real, m in modulos.items():
         propios = {d.nombre: d for d in m["decls"]
-                   if isinstance(d, (Funcion, Struct, Enum))}
+                   if isinstance(d, (Funcion, Struct, Enum))
+                   and not getattr(d, "externa", False)}
         declara[real] = propios
         for n in propios:
             duenios.setdefault(n, []).append(real)
@@ -290,6 +298,8 @@ def cargar(ruta_principal, nombres_bonitos=None):
         # Las declaraciones propias cambian de nombre; las referencias, todas.
         renombrar_en_arbol(m["decls"], visible)
         for d in m["decls"]:
+            if getattr(d, "externa", False):
+                continue        # el nombre es el de C: no se toca
             if isinstance(d, (Funcion, Struct, Enum)):
                 nuevo = interno[(real, d.nombre)]
                 if nuevo != d.nombre and nombres_bonitos is not None:
@@ -300,8 +310,11 @@ def cargar(ruta_principal, nombres_bonitos=None):
     for real in orden:
         decls.extend(modulos[real]["decls"])
 
-    # `main` se deja en paz: es el nombre que espera el generador.
-    mapa_c = {p: f"ss_id_{p}" for p in PALABRAS_C if p != "main"}
+    # `main` se deja en paz: es el nombre que espera el generador. Y lo que
+    # declara un `externo` tambien: `strlen` tiene que seguir llamandose
+    # `strlen`, o se estaria llamando a otra funcion.
+    intocables = _externas(decls) | {"main"}
+    mapa_c = {p: f"ss_id_{p}" for p in PALABRAS_C if p not in intocables}
     renombrar_identificadores(decls, mapa_c)
     if nombres_bonitos is not None:
         for original, nuevo in mapa_c.items():

@@ -19,7 +19,7 @@ from tcode.nodos import (
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
-    Enum, EnumLit, Match,
+    Enum, EnumLit, Match, Externo,
 )
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
@@ -570,6 +570,17 @@ class Generador:
             for c in self.c.structs[tipo].campos:
                 self.necesita_copiador(c.tipo)
 
+    def prototipo_externo(self, f):
+        """La firma en C de una funcion que escribio otro."""
+        tc = "const char*" if f.devuelve_cstr else self.tipo_c(f.retorno)
+        if not f.params:
+            return f"{tc} {f.nombre}(void)"
+        partes = []
+        for p in f.params:
+            t = "const char*" if p.tipo == "str" else self.tipo_c(p.tipo)
+            partes.append(f"{t} {p.nombre}")
+        return f"{tc} {f.nombre}({', '.join(partes)})"
+
     @staticmethod
     def etiqueta(enum_, variante):
         """El nombre en C de una forma: `SS_FIGURA_CIRCULO`."""
@@ -913,6 +924,49 @@ class Generador:
         funciones = [d for d in decls if isinstance(d, Funcion)]
 
         self.lineas.append(CABECERA)
+
+        # Las cabeceras que pidan los `externo`. Un `.c` no se incluye: se
+        # compila aparte y se enlaza, y de eso se encarga la orden `tcode`.
+        cabeceras = []
+        for f in funciones:
+            if f.externa and f.cabecera and not f.cabecera.endswith(".c"):
+                if f.cabecera not in cabeceras:
+                    cabeceras.append(f.cabecera)
+        if cabeceras:
+            self.lineas.append("/* de los bloques `externo` */")
+            for h in cabeceras:
+                # Entre `<>` lo del sistema, entre comillas lo de al lado.
+                if "/" in h or h.startswith("."):
+                    self.lineas.append(f'#include "{h}"')
+                else:
+                    self.lineas.append(f"#include <{h}>")
+            self.lineas.append("")
+
+        if any(f.externa for f in funciones):
+            self.lineas.extend([
+                "/* Un `str` de Tcode acaba siempre en `\\0`, asi que vale como",
+                "   `const char*`. Lo que no puede llevar es un `\\0` EN MEDIO: C",
+                "   leeria hasta ahi y creeria que la cadena acaba antes. Eso no",
+                "   es un fallo de memoria, es una verdad a medias, y Tcode para",
+                "   el programa donde esta en vez de pasarsela a nadie. */",
+                "SS_LANG_QUIZA_SIN_USAR",
+                "static const char* ss_lang_cstr_(const SafeString* s,",
+                "                                 const char* archivo, int linea)",
+                "{",
+                "    const char* p = ss_cstr(s);",
+                "    size_t n = ss_len(s);",
+                "    if (n != 0 && memchr(p, 0, n) != NULL)",
+                "    {",
+                "        fprintf(stderr, \"%s:%d: esta cadena lleva un cero en \"",
+                "                \"medio y va a una funcion de C, que la leeria \"",
+                "                \"cortada\\n\", archivo, linea);",
+                "        abort();",
+                "    }",
+                "    return p;",
+                "}",
+                "",
+            ])
+
         self.recolectar_tipos(decls)
 
         # Las listas solo guardan un puntero a sus elementos. Declarar antes
@@ -1469,11 +1523,19 @@ class Generador:
         hueco_copiadores = len(self.lineas)
 
         for f in funciones:
-            if f.nombre != "main":
+            if f.nombre != "main" and not f.externa:
                 self.lineas.append(self.prototipo(f) + ";")
+        # Una externa con cabecera ya trae su firma de ahi, y repetirla
+        # podria chocar. Una que viene de un `.c` de al lado no tiene
+        # cabecera ninguna, asi que la firma la pone Tcode.
+        for f in funciones:
+            if f.externa and f.cabecera.endswith(".c"):
+                self.lineas.append(self.prototipo_externo(f) + ";")
         self.lineas.append("")
 
         for f in funciones:
+            if f.externa:
+                continue        # el cuerpo lo escribio otro
             self.funcion(f)
             self.lineas.append("")
 
@@ -2833,6 +2895,8 @@ class Generador:
 
         # funcion del usuario, o una variable que guarda una
         f = self.c.funciones.get(n)
+        if f is not None and getattr(f, "externa", False):
+            return self.llamada_externa(e, f)
         if f is None:
             tv = self.tipo_var(n) or ""
             if es_funcion(tv):
@@ -2870,6 +2934,30 @@ class Generador:
                 args.append(arg_c)
         destino = "ss_main_" if n == "main" else n
         return f"{destino}({', '.join(args)})"
+
+    def llamada_externa(self, e, f):
+        """Una llamada a C. Es la misma llamada que escribiria un programa en
+        C: sin envoltorio, sin coste, y sin nada que traducir salvo la
+        cadena, que pasa de `SafeString` a `const char*`."""
+        args = []
+        for a, p in zip(e.args, f.params):
+            if p.tipo == "str":
+                sitio = self.como_lugar(a)
+                args.append(f"ss_lang_cstr_(&{sitio}, "
+                            f"{self.arch(e)}, {e.linea})")
+            else:
+                args.append(self.expr(a, p.tipo))
+        llamada = f"{f.nombre}({', '.join(args)})"
+        if f.devuelve_cstr:
+            # C da un `char*` que sigue siendo suyo: Tcode se queda una
+            # copia, que ya es un `str` normal y se libera como los demas.
+            # Un NULL da la cadena vacia, que es lo que `ss_from` hace.
+            tmp = self.nuevo_tmp()
+            self.emitir(f"SafeString {tmp} = ss_from({llamada});")
+            self.declarar(tmp, "str")
+            self.temporales.append(tmp)
+            return tmp
+        return llamada
 
     def dir_de(self, a):
         """La direccion de un sitio con nombre: `&x`, `&p.campo`, `&v.e[i]`."""

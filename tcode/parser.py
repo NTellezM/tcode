@@ -8,7 +8,7 @@ from tcode.nodos import (
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Parametro, Funcion, CampoDef, Struct, Usar, Para, Romper, Continuar,
-    Enum, VarianteDef, EnumLit, Match, Brazo,
+    Enum, VarianteDef, EnumLit, Match, Brazo, Externo,
 )
 
 ENTEROS = {"u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64"}
@@ -123,6 +123,8 @@ class Parser:
                 decls.append(self.struct())
             elif self.es("palabra", "enum"):
                 decls.append(self.enum())
+            elif self.es("palabra", "externo"):
+                decls.extend(self.externo())
             else:
                 decls.append(self.funcion())
         return decls
@@ -180,6 +182,50 @@ class Parser:
         self.tipo_params = set()
         return Struct(nombre, campos, linea=tok.linea,
                       tipo_params=tipo_params)
+
+    def externo(self) -> list:
+        """`externo "math.h" { fn sqrt(x: f64) -> f64; }`.
+
+        La cabecera se incluye en el C generado. Si acaba en `.c`, se compila
+        y se enlaza junto al programa: asi cualquier cosa que no quepa en el
+        borde se envuelve en dos lineas de C propias, sin salir del `tcode`.
+
+        Las firmas no llevan cuerpo. El cuerpo lo escribio otro.
+        """
+        tok = self.espera("palabra", "externo")
+        cabecera = self.espera("cadena").valor
+        self.espera("simbolo", "{")
+        salida = []
+        while not self.es("simbolo", "}"):
+            if self.es("fin"):
+                self.error("`externo` sin cerrar")
+            ft = self.espera("palabra", "fn")
+            nombre = self.espera("ident").valor
+            if self.es("simbolo", "<"):
+                self.error("una funcion de C no puede ser generica: C no "
+                           "tiene con que", ft)
+            self.espera("simbolo", "(")
+            params = []
+            if not self.es("simbolo", ")"):
+                while True:
+                    pn = self.espera("ident").valor
+                    self.espera("simbolo", ":")
+                    params.append(Parametro(pn, self.tipo(), False, False))
+                    if not self.acepta("simbolo", ","):
+                        break
+            self.espera("simbolo", ")")
+            retorno = self.tipo() if self.acepta("simbolo", "->") else None
+            if self.es("simbolo", "!"):
+                self.error("una funcion de C no falla como las de Tcode: "
+                           "devuelve lo que devuelva y lo miras tu", ft)
+            self.espera("simbolo", ";")
+            salida.append(Funcion(nombre, params, retorno, [],
+                                  linea=ft.linea, externa=True,
+                                  cabecera=cabecera))
+        self.espera("simbolo", "}")
+        if not salida:
+            self.error("un `externo` vacio no trae nada", tok)
+        return salida
 
     def enum(self) -> Enum:
         """`enum Figura { Punto, Circulo(f64), Rect(f64, f64) }`.
@@ -306,6 +352,12 @@ class Parser:
                 self.espera("simbolo", ">")
                 return f"{nombre}<{', '.join(args)}>"
             return nombre
+
+        # `cadena_c`: un `char*` de C que Tcode copia. Solo tiene sentido en
+        # un `externo`, y el comprobador lo rechaza en cualquier otro sitio.
+        if t.tipo == "ident" and t.valor == "cadena_c":
+            self.i += 1
+            return "cadena_c"
 
         # nombre de struct o de enum, con o sin argumentos de tipo
         if t.tipo == "ident" and (t.valor in self.structs

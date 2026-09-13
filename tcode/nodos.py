@@ -226,6 +226,19 @@ class Struct(Nodo):
     tipo_params: list = field(default_factory=list)
 
 @dataclass
+class Externo(Nodo):
+    """`externo "math.h" { fn sqrt(x: f64) -> f64; }`.
+
+    La unica puerta a C, y se ve desde lejos: un bloque, con su cabecera y
+    las firmas dentro. No hay `unsafe` por llamada como en Rust, porque no
+    hace falta: en el borde solo caben los tipos que significan lo mismo a
+    los dos lados, y de eso se encarga el comprobador. Lo que pueda hacer
+    mal la funcion de C es cosa de C, y aqui esta dicho su nombre.
+    """
+    cabecera: str          # `math.h`, o un `.c` propio que se compila junto
+    funciones: list        # [Funcion], todas con `externa = True`
+
+@dataclass
 class VarianteDef:
     """Una de las formas que puede tomar un enum: `Circulo(f64)`."""
     nombre: str
@@ -286,3 +299,8 @@ class Funcion(Nodo):
     # `fn f<T: numero>`: que se le exige a cada parametro de tipo. Lo que no
     # aparece aqui no se le exige nada.
     restricciones: dict = field(default_factory=dict)
+    # Declarada dentro de un `externo`: no tiene cuerpo, la escribio C.
+    externa: bool = False
+    cabecera: str = ""
+    # Declarada `-> cadena_c`: C da un `char*` y Tcode lo copia a un `str`.
+    devuelve_cstr: bool = False

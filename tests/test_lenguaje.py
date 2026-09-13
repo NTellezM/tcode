@@ -26,6 +26,32 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    # ---- el borde con C ----
+    ("una vista no acaba en cero, y C leeria de mas",
+     'externo "x.h" { fn f(s: view) -> usize; } fn main() { }',
+     "puede apuntar a la mitad de una cadena"),
+
+    ("una coleccion no significa lo mismo en C",
+     'externo "x.h" { fn f(xs: lista<usize>) -> usize; } fn main() { }',
+     "no significa lo mismo en C"),
+
+    ("un struct tampoco",
+     'struct P { x: usize } externo "x.h" { fn f(p: P) -> usize; }'
+     ' fn main() { }',
+     "no significa lo mismo en C"),
+
+    ("C no puede fabricar un `str`",
+     'externo "x.h" { fn f() -> str; } fn main() { }',
+     "C no puede fabricar uno"),
+
+    ("a C no se le presta, se le pasa por valor",
+     'externo "x.h" { fn f(s: &str) -> usize; } fn main() { }',
+     "no se prestan ni se mutan"),
+
+    ("`cadena_c` solo vale en el borde",
+     'fn f() -> cadena_c { return 0; } fn main() { }',
+     "que no se puede almacenar"),
+
     # ---- enum y match ----
     ("a un `match` no le puede faltar una forma",
      'enum E { A, B(usize), C(str) } '
@@ -2510,8 +2536,11 @@ def _firmas_esperadas(ruta):
         return None
     propio = os.path.relpath(ruta, RAIZ)
     g = _Gen(comp, propio)
+    # Una funcion de un bloque `externo` no lleva prototipo en el C
+    # generado: su firma esta en su cabecera. No hay nada que comparar.
     escritas = [d.nombre for d in arbol
-                if isinstance(d, _Fn_t) and not d.tipo_params]
+                if isinstance(d, _Fn_t) and not d.tipo_params
+                and not d.externa]
     salida = []
     for nombre in escritas:
         d = comp.funciones.get(nombre)

@@ -763,6 +763,55 @@ class Comprobador:
         self.structs_instanciados.append(copia)
         return nombre
 
+    # ---------- el borde con C ----------
+    #
+    # En el borde solo caben los tipos que significan EXACTAMENTE lo mismo a
+    # los dos lados. Es lo que permite que no haya `unsafe` por llamada como
+    # en Rust: no hay nada que marcar, porque desde Tcode no se puede
+    # escribir una llamada que rompa la memoria. Lo que haga la funcion de C
+    # es cosa de C, y su nombre esta escrito en el `externo`.
+    #
+    # `str` entra como `const char*` porque el runtime garantiza el `\0`
+    # final. `view` NO: una vista puede apuntar a la mitad de una cadena y
+    # no termina en nada. Es la comprobacion que Rust deja en manos de
+    # `CString::new` y que aqui hace el compilador.
+
+    BORDE_ENTRADA = set(NUMERICOS) | {"bool", "str"}
+    BORDE_SALIDA = set(NUMERICOS) | {"bool", "cadena_c", UNIDAD}
+
+    def comprobar_externa(self, f):
+        for p in f.params:
+            t = tipo_de_parametro(p)
+            if p.mutable or p.compartido or es_referencia(t):
+                self.error(f, f"`{f.nombre}` es de C: sus parametros no se "
+                              f"prestan ni se mutan, se pasan por valor")
+            elif t == "view":
+                self.error(f, f"`{f.nombre}.{p.nombre}` es una `view`, y una "
+                              f"vista puede apuntar a la mitad de una cadena: "
+                              f"no acaba en `\\0` y C leeria de mas. Pasa un "
+                              f"`str`, que si acaba, o haz `nuevo(v)` antes")
+            elif t not in self.BORDE_ENTRADA:
+                self.error(f, f"`{f.nombre}.{p.nombre}` es `{t}`, y eso no "
+                              f"significa lo mismo en C. En el borde caben "
+                              f"los numeros, `bool` y `str`; para lo demas, "
+                              f"envuelvelo en una funcion de C tuya")
+        r = f.retorno or UNIDAD
+        if r not in self.BORDE_SALIDA:
+            if r == "str":
+                self.error(f, f"`{f.nombre}` devuelve `str`, y un `str` es de "
+                              f"Tcode: C no puede fabricar uno. Si devuelve un "
+                              f"`char*` que no hay que liberar, dilo con "
+                              f"`cadena_c` y Tcode lo copia")
+            else:
+                self.error(f, f"`{f.nombre}` devuelve `{r}`, y eso no "
+                              f"significa lo mismo en C. En el borde caben "
+                              f"los numeros, `bool`, `cadena_c` y nada")
+        # De aqui en adelante `cadena_c` ya no existe: lo que ve Tcode es un
+        # `str` suyo, con su liberacion y todo. La copia la hace la llamada.
+        if r == "cadena_c":
+            f.devuelve_cstr = True
+            f.retorno = "str"
+
     def comprobar_enums(self, enums):
         """Registra los enum y comprueba que sus variantes tienen sentido.
 
@@ -875,6 +924,9 @@ class Comprobador:
                 self._resolver_en_arbol(f, f)
 
         for f in funciones:
+            if f.externa:
+                self.comprobar_externa(f)
+        for f in funciones:
             previa = self.funciones.get(f.nombre) or self.genericas.get(f.nombre)
             if previa is not None:
                 self.error(f, f"la funcion `{f.nombre}` ya esta definida en "
@@ -886,8 +938,9 @@ class Comprobador:
 
         # Una generica no se comprueba tal cual: sus tipos no existen todavia.
         # Se comprueba cada copia, cuando se sabe con que tipos se usa.
+        # Una externa no tiene cuerpo que comprobar: solo su borde.
         for f in funciones:
-            if not f.tipo_params:
+            if not f.tipo_params and not f.externa:
                 self.comprobar_funcion(f)
 
         return self.errores
@@ -2529,7 +2582,9 @@ class Comprobador:
                     prestados_lec[base] = param.nombre
                 continue
 
-            mueve = self.posee(param.tipo)
+            # Una funcion de C recibe un `const char*`: mira la cadena, no
+            # se la queda. Tcode se la presta y la sigue teniendo.
+            mueve = self.posee(param.tipo) and not f.externa
             if mueve and isinstance(arg, Variable):
                 sim_arg = self.buscar(arg.nombre)
                 if sim_arg is not None:
