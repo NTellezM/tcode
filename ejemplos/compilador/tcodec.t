@@ -205,6 +205,28 @@ fn usar_de(fuente: view) -> lista<str> ! {
     return salida;
 }
 
+// Los `usar` del principio con su alias: `ruta\talias`, alias vacio si no
+// lleva.
+fn usar_con_alias(fuente: view) -> lista<str> ! {
+    let toks = try analizar(fuente);
+    var salida: lista<str> = [];
+    var i = 0;
+    while i + 1 < largo(toks) {
+        if !igual(vista(toks[i].valor), "usar") { break; }
+        if !igual(vista(toks[i + 1].tipo), "cadena") { break; }
+        var junto = copiar(toks[i + 1].valor);
+        empujar(junto, "\t");
+        i = i + 2;
+        if i + 1 < largo(toks) && igual(vista(toks[i].valor), "como") {
+            empujar(junto, vista(toks[i + 1].valor));
+            i = i + 2;
+        }
+        anadir(salida, junto);
+        i = i + 1; // el `;`
+    }
+    return salida;
+}
+
 // Primero las dependencias, en el orden de los `usar`, y cada modulo una sola
 // vez: el mismo recorrido que el cargador, que es el orden en que salen las
 // funciones en el C.
@@ -1401,8 +1423,48 @@ fn main() -> usize ! {
         anadir(arboles, arbol);
         anadir(contextos, tipos);
     }
-    if largo(claves(global.repetidas)) > 0 {
-        return rechazo("nombres repetidos entre modulos");
+    // Un nombre de funcion que declaran dos modulos se llama en C con el del
+    // archivo delante, en los dos: `celsius__nombre`. Cada archivo lo ve con
+    // el nombre o el alias con que lo pide, como en el cargador.
+    for g en claves(plantillas) {
+        if tiene(global.repetidas, vista(g)) {
+            return rechazo("una generica repetida entre modulos");
+        }
+    }
+    var mr = 0;
+    while mr < largo(arboles) {
+        let base = F.prefijo_de(vista(modulos[mr]));
+        for d en arboles[mr].hijos {
+            if igual(vista(d.clase), "fn") && tiene(global.repetidas, vista(d.texto)) {
+                let otro = $"{base}__{d.texto}";
+                poner(contextos[mr].renombradas, vista(d.texto), otro);
+                quitar(contextos[mr].repetidas, vista(d.texto));
+            }
+        }
+        let fuente_m = try leer_archivo(vista(modulos[mr]));
+        let pedidos_m = try usar_con_alias(vista(fuente_m));
+        let dir_m = P.carpeta(vista(modulos[mr]));
+        for pedido en pedidos_m {
+            let ruta_p = campo_pedido(vista(pedido), 0);
+            let alias_p = campo_pedido(vista(pedido), 1);
+            let destino = try resolver(vista(ruta_p), vista(dir_m), vista(raiz));
+            var jm = 0;
+            while jm < largo(modulos) && !igual(vista(modulos[jm]), vista(destino)) {
+                jm = jm + 1;
+            }
+            if jm == largo(modulos) { return rechazo("un modulo que no se cargo"); }
+            let base_d = F.prefijo_de(vista(destino));
+            for d en arboles[jm].hijos {
+                if !igual(vista(d.clase), "fn") { continue; }
+                if !tiene(global.repetidas, vista(d.texto)) { continue; }
+                var clave = copiar(d.texto);
+                if largo(alias_p) > 0 { clave = $"{alias_p}.{d.texto}"; }
+                let otro = $"{base_d}__{d.texto}";
+                poner(contextos[mr].renombradas, vista(clave), otro);
+                quitar(contextos[mr].repetidas, vista(clave));
+            }
+        }
+        mr = mr + 1;
     }
 
     // Lo que tiene partes, para `obtener_mut`: structs y enums.
