@@ -1784,6 +1784,7 @@ ACEPTA = [
 
     ("la biblioteca estandar: contar y mayores",
      '''usar "std/cuenta";
+        usar "std/texto";
         fn main() {
             let texto = nuevo("uno dos uno tres dos uno");
             let cuenta = contar(palabras(minusculas(texto)));
@@ -3016,7 +3017,7 @@ print("=== PROGRAMA: el archivo C entero, escrito por Tcode ===")
 # el generador de Python. Lo que `tcodec` no sabe escribir entero lo rechaza
 # sin escribir medio archivo; se cuentan los programas identicos y se exige un
 # minimo.
-_MINIMO_PROGRAMAS = 4
+_MINIMO_PROGRAMAS = 5
 
 tmp = tempfile.mkdtemp(prefix="tcode-programa-")
 _cwd_antes = os.getcwd()
@@ -3259,6 +3260,19 @@ MODULOS = [
       "a.t": 'usar "x.t";\nfn dos() -> usize { return 3; }\n'
                'fn main() -> usize { return dos(); }'},
      "a.t", "llega de dos sitios", None),
+
+    ("lo que usa un modulo usado no se ve sin pedirlo",
+     {"hondo.t": 'fn doble(n: usize) -> usize { return n * 2; }',
+      "medio.t": 'usar "hondo.t"; fn cuatro(n: usize) -> usize { return doble(doble(n)); }',
+      "app.t": 'usar "medio.t"; fn main() { imprimir($"{doble(cuatro(1))}\\n"); }'},
+     "app.t", "que este archivo no usa", None),
+
+    ("una variable local con el nombre de una funcion de otro modulo",
+     {"hondo.t": 'fn doble(n: usize) -> usize { return n * 2; }',
+      "medio.t": 'usar "hondo.t"; fn cuatro(n: usize) -> usize { return doble(doble(n)); }',
+      "app.t": 'usar "medio.t"; fn main() { let doble = fn(n: usize) -> usize { return n + n; };'
+               ' imprimir($"{doble(cuatro(1))}\\n"); }'},
+     "app.t", None, "8\n"),
 
     ("dos modulos con el mismo nombre no se estorban si no se cruzan",
      {"uno.t": 'fn contar(xs: &lista<str>) -> usize { return largo(xs); }',

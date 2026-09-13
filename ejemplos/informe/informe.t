@@ -5,6 +5,7 @@
 
 usar "lib/articulo.t";
 usar "std/numero";
+usar "std/texto";
 
 fn main() -> usize ! {
     var inv = [

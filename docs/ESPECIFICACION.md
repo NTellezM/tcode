@@ -305,6 +305,21 @@ módulo, no el del archivo.
 Los nombres se resuelven **por archivo**: cada uno ve lo que él mismo
 importa, y nada más. Dos módulos pueden declarar `contar` sin estorbarse.
 
+Lo que importa un módulo importado **no** se ve: si `contar.t` usa
+`std/texto`, y `std/texto` usa `std/caracter`, `contar.t` no puede llamar a
+`es_blanco` sin su propio `usar "std/caracter"`.
+
+```
+error: contar.t:29: `es_blanco` esta en std/caracter.t, que este archivo no
+       usa. Se veia porque lo usa otro modulo, pero cada archivo tiene que
+       pedir lo suyo: añade `usar "...";`
+```
+
+Es la regla de Python, Go y Rust. C hace lo contrario: un `#include` arrastra
+los suyos, y un archivo compila por lo que incluye un tercero hasta que ese
+tercero deja de incluirlo. Medido al introducir la regla, tres ejemplos del
+repositorio dependían de ese arrastre sin saberlo.
+
 ```tcode
 usar "lib/celsius.t" como c;
 usar "lib/fahrenheit.t" como f;

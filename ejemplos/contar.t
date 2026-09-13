@@ -7,6 +7,7 @@
 //     ./contar README.md
 
 usar "std/texto";
+usar "std/caracter";
 
 fn main() -> usize ! {
     if n_argumentos() < 2 {

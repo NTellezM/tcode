@@ -958,6 +958,22 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
 
     if igual(nombre, "vacio") { return nuevo("ss_new()"); }
 
+    if igual(nombre, "n_argumentos") { return nuevo("ss_lang_n_argumentos_()"); }
+
+    if igual(nombre, "argumento") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        let i = expresion_c(b, s, n.hijos[0], "usize", tipos);
+        if es_desconocido(vista(i)) { return no_se(); }
+        var r = nuevo("ss_lang_argumento_(");
+        empujar(r, vista(i));
+        empujar(r, ", \"");
+        empujar(r, vista(s.archivo));
+        empujar(r, "\", ");
+        empujar(r, texto(n.linea));
+        empujar(r, ")");
+        return r;
+    }
+
     if igual(nombre, "largo") {
         if largo(n.hijos) != 1 { return no_se(); }
         let sobre = I.tipo_de(tipos, n.hijos[0]);
