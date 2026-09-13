@@ -420,11 +420,13 @@ vista. Es el mismo modelo que produce los errores, escrito en positivo.
 ## Gramática v0
 
 ```
-programa   := usar* (struct | enum | funcion)*
+programa   := usar* (struct | enum | externo | funcion)*
 usar       := "usar" cadena ";"
 struct     := "struct" ident "{" (ident ":" tipo ",")* "}"
 enum       := "enum" ident "{" (variante ",")* "}"
 variante   := ident ("(" tipo ("," tipo)* ")")?
+externo    := "externo" cadena "{" firma* "}"
+firma      := "fn" ident "(" params? ")" ("->" tipo)? ";"
 funcion    := "fn" ident "(" params? ")" ("->" tipo)? "!"? bloque
 params     := param ("," param)*
 param      := ident ":" ("mut" | "&")? tipo
@@ -1565,13 +1567,117 @@ Lo que Tcode todavía no tiene: enums con parámetros de tipo
 (`enum Quiza<T>`), patrones anidados, patrones sobre literales o rangos, y
 guardas (`if` dentro de un brazo).
 
+## La puerta a C: `externo`
+
+Tcode compila a C17, así que llamar a una función de C no cuesta nada: es la
+misma llamada que escribiría un programa en C, sin envoltorio y sin nada que
+traducir. Comparado con cgo (que cambia de pila, unos 100 ns por llamada) o
+con ctypes (que lo resuelve al ejecutar), eso ya es gratis.
+
+Lo interesante no es el coste. Es que el borde sigue siendo seguro.
+
+```tcode
+externo "math.h" {
+    fn sqrt(x: f64) -> f64;
+    fn pow(base: f64, exponente: f64) -> f64;
+}
+
+externo "stdlib.h" {
+    fn getenv(nombre: str) -> cadena_c;
+}
+
+externo "sistema.c" {          // se compila y se enlaza junto al programa
+    fn ahora_segundos() -> i64;
+}
+```
+
+### No hay `unsafe` por llamada, y no hace falta
+
+Rust marca cada llamada a C con `unsafe`. Aquí no, porque **desde Tcode no se
+puede escribir una llamada que rompa la memoria**: en el borde sólo caben los
+tipos que significan exactamente lo mismo a los dos lados, y de eso se
+encarga el comprobador. Lo que pueda hacer mal la función de C es cosa de C
+— y su nombre está escrito en el bloque, que se ve desde lejos y se busca con
+un `grep`.
+
+### Qué cabe en el borde
+
+| | entrada | salida |
+|---|---|---|
+| `u8`…`u64`, `usize`, `i8`…`i64` | sí | sí |
+| `f32`, `f64`, `bool` | sí | sí |
+| `str` | sí, como `const char*` | no |
+| `cadena_c` | no | sí, Tcode copia |
+| nada (`()`) | — | sí |
+| `view`, `lista`, `mapa`, structs, enums | no | no |
+
+Un **`str` entra como `const char*`** porque el runtime garantiza el `\0`
+final. Una **`view` no**: puede apuntar a la mitad de una cadena y no termina
+en nada, así que C leería de más. Es la comprobación que Rust deja en manos
+de `CString::new` y que aquí hace el compilador:
+
+```
+`f.s` es una `view`, y una vista puede apuntar a la mitad de una cadena:
+no acaba en `\0` y C leería de más. Pasa un `str`, que sí acaba, o haz
+`nuevo(v)` antes
+```
+
+Y si un `str` lleva un cero **en medio**, el programa **para en la línea donde
+se entrega**, en vez de pasarle a C una cadena cortada. No es un fallo de
+memoria; es una verdad a medias, y se trata igual que el desbordamiento o el
+NaN. Rust devuelve un `Result` que hay que mirar; C trunca y calla.
+
+Una función de C **presta** lo que recibe: `getenv(clave)` no se queda con
+`clave`, así que `clave` sigue viva después y se libera como siempre.
+
+`cadena_c` es un `char*` que **sigue siendo de C** (una literal, un `getenv`,
+un `strerror`). Tcode se queda una copia, que ya es un `str` normal. Un
+`char*` que hay que liberar —`strdup`— no cabe todavía: se envuelve.
+
+### El escape completo: un `.c` de al lado
+
+Lo que no cabe se envuelve en dos líneas de C propias. Si la cadena del
+bloque acaba en `.c`, ese archivo **se compila y se enlaza** junto al
+programa, y Tcode pone su prototipo:
+
+```c
+/* sistema.c */
+#include <time.h>
+long long ahora_segundos(void) { return (long long) time(NULL); }
+```
+
+`time(NULL)` pide un puntero y no cabe en el borde; envuelto, sí. No hace
+falta un Makefile ni salir de la orden `tcode`.
+
+### Comparación
+
+| | coste por llamada | marca | tipos comprobados |
+|---|---|---|---|
+| Go (cgo) | ~100 ns, cambia de pila | `import "C"` | por cgo |
+| Python (ctypes) | alto, al ejecutar | ninguna | ninguno |
+| Rust | cero | `unsafe` en cada llamada | por firma, y punteros crudos |
+| Zig | cero | ninguna | lee la cabecera de verdad |
+| **Tcode** | **cero** | **el bloque `externo`** | **sólo lo que significa lo mismo** |
+
+Zig gana en comodidad: `@cImport` lee la cabecera y no hay que declarar nada.
+Tcode no puede — no sabe leer C —, así que la firma se escribe a mano, y si
+no coincide con la de verdad lo dice el compilador de C. Es la deuda honesta
+de este diseño.
+
+### Lo que no hay
+
+Punteros crudos, structs a través del borde, `callbacks` de C a Tcode,
+varargs (`printf`), y devolver memoria que haya que liberar. Todo eso se
+envuelve en un `.c` de al lado.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: clausuras que modifiquen lo capturado
 (`FnMut`), comprobación del cuerpo genérico una sola vez contra la
 restricción (eso es Rust, y es más), enums con parámetros de tipo, patrones
-anidados ni guardas, E/S incremental, llamadas a C (FFI), aritmética de
-punteros ni recolector.
+anidados ni guardas, E/S incremental, punteros crudos ni recolector. La
+puerta a C existe (`externo`) pero es estrecha a propósito: sin punteros, sin
+structs y sin varargs.
 Todo valor que sale
 de su bloque sin ser devuelto ni movido se libera automáticamente, a
 cualquier hondura.

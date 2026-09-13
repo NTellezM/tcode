@@ -36,12 +36,15 @@ struct Contexto {
     formas: mapa<str, lista<str>>,
     // Enum -> los nombres de sus formas, para saber si un tipo es un enum.
     variantes: mapa<str, lista<str>>,
+    // Las que escribio C. Una funcion de C presta lo que recibe y no se
+    // queda con nada, asi que sus argumentos no se mueven.
+    externas: mapa<str, usize>,
 }
 
 fn contexto() -> Contexto {
     return Contexto { ambitos: [], campos: [], nombres: [], retornos: [],
         tipo_params: [], params: [], params_marcados: [], formas: [],
-        variantes: [] };
+        variantes: [], externas: [] };
 }
 
 fn abrir(c: mut Contexto) {

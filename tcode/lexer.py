@@ -8,6 +8,8 @@ PALABRAS = {
     "usar", "try", "sino", "falla", "mapa",
     # Un valor que es una cosa U otra, y el compilador obliga a mirar cual.
     "enum", "match",
+    # La puerta a C. Es la unica, y se ve desde lejos.
+    "externo",
     "for", "en", "break", "continue",
     # Enteros: el ancho va en el nombre, menos en `usize`, que mide cosas de
     # la maquina y por eso vale lo que valga ahi.

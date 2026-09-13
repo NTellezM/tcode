@@ -151,6 +151,7 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
     }
     if igual(vista(n.clase), "fn") {
         var retorno = vacio();
+        var es_de_c = false;
         var sueltos: lista<str> = [];
         var tipos_param: lista<str> = [];
         var marcados: lista<str> = [];
@@ -158,6 +159,9 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
             if igual(vista(h.clase), "retorno_tipo") {
                 retorno = nuevo(vista(h.texto));
             }
+            // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
+            // existe en el borde: lo que ve Tcode es un `str` suyo.
+            if igual(vista(h.clase), "externa") { es_de_c = true; }
             if igual(vista(h.clase), "tipo_param") {
                 anadir(sueltos, nuevo(vista(h.texto)));
             }
@@ -165,6 +169,14 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
                 anadir(tipos_param, tipo_desnudo(vista(h.texto)));
                 anadir(marcados, tipo_con_marca(vista(h.texto)));
             }
+        }
+        if es_de_c {
+            poner(c.externas, vista(n.texto), 1);
+            if igual(vista(retorno), "cadena_c") { retorno = nuevo("str"); }
+            // Una funcion de C presta lo que recibe: no se queda con nada.
+            var prestados: lista<str> = [];
+            for _m en marcados { anadir(prestados, nuevo("&")); }
+            marcados = prestados;
         }
         poner(c.retornos, vista(n.texto), retorno);
         poner(c.params, vista(n.texto), tipos_param);

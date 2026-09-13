@@ -413,6 +413,17 @@ escribe `copiar(...)`. La etiqueta 0 es la primera variante, así que un enum
 a ceros sigue siendo un valor válido y cabe en la memoria que da `reservar`
 sin ningún `unsafe`; ni Rust ni Zig garantizan eso. Está en `ejemplos/json.t`.
 
+Y **la puerta a C**: `externo "math.h" { fn sqrt(x: f64) -> f64; }`. Compila a
+C17, así que la llamada no cuesta nada —es la misma que escribiría un
+programa en C—, y no lleva `unsafe` por llamada como en Rust porque no hace
+falta: en el borde sólo caben los tipos que significan exactamente lo mismo a
+los dos lados. Un `str` entra como `const char*` porque siempre acaba en
+`\0`; una `view` no, y el compilador lo dice. Si un `str` lleva un cero *en
+medio*, el programa para en esa línea en vez de darle a C una cadena cortada.
+Y si la cabecera acaba en `.c`, se compila y se enlaza junto al programa: lo
+que no cabe en el borde se envuelve en dos líneas de C, sin salir de `tcode`.
+Está en `ejemplos/externo/`.
+
 Y **structs genéricos**: `struct Pila<T>`, `struct Par<A, B>`, y
 `struct Nodo<T> { valor: T, hijos: lista<Nodo<T>> }`, que se contiene a sí
 mismo. `std/par` es un contenedor escrito en Tcode del que el compilador no

@@ -180,8 +180,28 @@ def main(argv=None):
         with open(ruta_c, "w", encoding="utf-8") as f:
             f.write(codigo)
 
+        # Un `externo "algo.c"` no se incluye: se compila y se enlaza junto
+        # al programa. Es la salida completa: lo que no cabe en el borde se
+        # envuelve en dos lineas de C propias, sin salir de `tcode`.
+        acompanan, faltan = [], []
+        for f in comp.funciones.values():
+            if not getattr(f, "externa", False):
+                continue
+            if not f.cabecera.endswith(".c"):
+                continue
+            junto = os.path.join(os.path.dirname(f.archivo or "."), f.cabecera)
+            if junto in acompanan or junto in faltan:
+                continue
+            (acompanan if os.path.isfile(junto) else faltan).append(junto)
+        if faltan:
+            for x in faltan:
+                print(f"tcode: `externo` pide `{x}` y ese archivo no esta.",
+                      file=sys.stderr)
+            return 2
+
         orden = [args.cc, "-std=c17", f"-O{args.optimizacion}", "-Wall", "-Wextra",
                  f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+                 *acompanan,
                  "-o", base,
                  # `raiz`, `piso` y compania viven en libm. En glibc moderna
                  # ya va dentro de libc, pero enlazarla no estorba y hace
@@ -189,8 +209,14 @@ def main(argv=None):
                  "-lm"]
         r = subprocess.run(orden, capture_output=True, text=True)
         if r.returncode != 0:
-            print("tcode: el C generado no compilo. Es un fallo del "
-                  "compilador, no de tu programa.", file=sys.stderr)
+            if any(getattr(f, "externa", False)
+                   for f in comp.funciones.values()):
+                print("tcode: el C generado no compilo. Con bloques "
+                      "`externo` de por medio, lo mas probable es que una "
+                      "firma no coincida con la de C.", file=sys.stderr)
+            else:
+                print("tcode: el C generado no compilo. Es un fallo del "
+                      "compilador, no de tu programa.", file=sys.stderr)
             print(r.stderr, file=sys.stderr)
             return 1
         if r.stderr.strip():

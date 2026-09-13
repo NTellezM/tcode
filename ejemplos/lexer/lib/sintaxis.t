@@ -802,6 +802,45 @@ fn declaracion(e: mut Estado) -> Nodo ! {
         return n;
     }
 
+    // `externo "math.h" { fn sqrt(x: f64) -> f64; }`: la puerta a C. Las
+    // firmas no llevan cuerpo, y cada una sale como una `fn` mas, marcada.
+    if es(e, "palabra", "externo") {
+        avanzar(e);
+        let cabecera = try espera(e, "cadena", "");
+        var n = rama("externo", l);
+        empujar(n.texto, cabecera);
+        try espera(e, "simbolo", "{");
+        while !es(e, "simbolo", "}") {
+            let fl = linea_actual(e);
+            try espera(e, "palabra", "fn");
+            let nombre = try espera(e, "ident", "");
+            var f = rama("fn", fl);
+            empujar(f.texto, nombre);
+            anadir(f.hijos, hoja("externa", vista(cabecera), fl));
+            try espera(e, "simbolo", "(");
+            while !es(e, "simbolo", ")") {
+                let pn = try espera(e, "ident", "");
+                try espera(e, "simbolo", ":");
+                let pt = try tipo(e);
+                var pp = rama("param", fl);
+                empujar(pp.texto, pn);
+                empujar(pp.texto, ": ");
+                empujar(pp.texto, vista(pt));
+                anadir(f.hijos, pp);
+                if !acepta(e, "simbolo", ",") { break; }
+            }
+            try espera(e, "simbolo", ")");
+            if acepta(e, "simbolo", "->") {
+                let r = try tipo(e);
+                anadir(f.hijos, hoja("retorno_tipo", vista(r), fl));
+            }
+            try espera(e, "simbolo", ";");
+            anadir(n.hijos, f);
+        }
+        try espera(e, "simbolo", "}");
+        return n;
+    }
+
     if es(e, "palabra", "enum") {
         avanzar(e);
         let nombre = try espera(e, "ident", "");
