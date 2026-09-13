@@ -2485,9 +2485,14 @@ class Generador:
             return f"ss_lang_{nombre}_{ARITMETICA[t][0]}({izq}, {der}, {pos})"
 
         if e.op in {"+?", "-?", "*?"}:
-            # Envolvente, pedida a proposito. El molde deja claro que el
-            # resultado no se ensancha por el camino.
-            return f"(({self.tipo_c(t)}) ({izq} {e.op[0]} {der}))"
+            # Envolvente, pedida a proposito. Se opera en `uint64_t`, donde C
+            # SI define la vuelta, y se recorta al ancho: con el tipo con
+            # signo, `INT64_MAX + 1` es comportamiento indefinido, y un `u16`
+            # por otro `u16` se promociona a `int` y tambien puede serlo.
+            # Pasar de vuelta a un tipo con signo lo define gcc y clang como
+            # modulo, que es lo que se pide.
+            return (f"(({self.tipo_c(t)}) ((uint64_t) ({izq}) {e.op[0]} "
+                    f"(uint64_t) ({der})))")
 
         if e.op == "/":
             return f"SS_LANG_DIV({izq}, {der}, {pos})"

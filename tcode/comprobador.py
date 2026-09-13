@@ -936,6 +936,13 @@ class Comprobador:
             if f.externa:
                 self.comprobar_externa(f)
         for f in funciones:
+            if f.nombre in INTERNAS:
+                # La interna ganaria siempre, y en silencio: la funcion propia
+                # no se llamaria nunca. Go deja tapar `len` y es fuente de
+                # sustos; Zig lo evita marcando las suyas con `@`. Aqui se dice.
+                self.error(f, f"`{f.nombre}` es una funcion interna del "
+                              f"lenguaje: una funcion propia con ese nombre no "
+                              f"se llamaria nunca. Ponle otro nombre")
             previa = self.funciones.get(f.nombre) or self.genericas.get(f.nombre)
             if previa is not None:
                 self.error(f, f"la funcion `{f.nombre}` ya esta definida en "
