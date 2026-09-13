@@ -237,10 +237,12 @@ struct Cuenta {
     temporal: usize,
     bucle: usize,
     ultima_linea: usize,
+    // Las copias de genericas que han pedido las funciones escritas.
+    instancias: lista<str>,
 }
 
 fn cuenta_nueva() -> Cuenta {
-    return Cuenta { temporal: 0, bucle: 0, ultima_linea: 0 };
+    return Cuenta { temporal: 0, bucle: 0, ultima_linea: 0, instancias: [] };
 }
 
 // Lee y analiza un archivo, y deja en `tipos` todo lo que hace falta saber
@@ -443,5 +445,6 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     cta.temporal = b.temporal;
     cta.bucle = b.bucle;
     cta.ultima_linea = b.ultima_linea;
+    for x en b.instancias { anadir(cta.instancias, copiar(x)); }
     return salida;
 }

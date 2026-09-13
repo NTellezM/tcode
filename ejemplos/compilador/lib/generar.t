@@ -1524,6 +1524,7 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     // Una generica: se eligen los tipos mirando los argumentos, igual que el
     // comprobador, y se llama a la copia con ese juego de tipos. El nombre
     // de la copia lleva los tipos dentro, saneados para que sean C.
+    var pedido = vacio();
     if tiene(tipos.tipo_params, nombre) {
         let sueltos = I.lista_de(tipos.tipo_params, nombre) sino [];
         var ligaduras: mapa<str, str> = [];
@@ -1543,6 +1544,20 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             primero = false;
             let limpio = sanear(vista(ligado));
             empujar(en_c, vista(limpio));
+        }
+        // Lo que hace falta para escribir la copia: de que plantilla sale,
+        // como se llama y que tipo va en cada parametro. Sin el alias del
+        // modulo: la copia se escribe en el modulo de la plantilla.
+        pedido = I.sin_modulo(nombre);
+        empujar(pedido, "\t");
+        empujar(pedido, vista(en_c));
+        for tp en sueltos {
+            let ligado = obtener(ligaduras, vista(tp)) sino "";
+            let sin_alias = I.sin_alias_tipo(ligado);
+            empujar(pedido, "\t");
+            empujar(pedido, vista(tp));
+            empujar(pedido, "=");
+            empujar(pedido, vista(sin_alias));
         }
         var puestos: lista<str> = [];
         for f en firmados { anadir(puestos, I.sustituir(vista(f), ligaduras)); }
@@ -1615,6 +1630,9 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         empujar(v, vista(arg));
         i = i + 1;
     }
+    // Despues de los argumentos: una generica que se llama dentro de otro
+    // argumento se crea antes, como en el original.
+    if largo(pedido) > 0 { anadir(b.instancias, pedido); }
     empujar(v, ")");
     return v;
 }
@@ -1868,6 +1886,9 @@ struct Cuerpo {
     // sin tener que adivinarlo contando nodos.
     fallo_linea: usize,
     fallo_clase: str,
+    // Las copias de genericas que piden las llamadas, en el orden en que se
+    // terminan de escribir: `plantilla\tnombre_c\tT=tipo...`.
+    instancias: lista<str>,
 }
 
 // Lo apunta el sitio mas hondo, y solo la primera vez: si un `if` falla
@@ -1893,7 +1914,7 @@ fn nombre_de_bucle(n: usize) -> str {
 fn cuerpo() -> Cuerpo {
     return Cuerpo { lineas: [], bloques: [], claves: [], sangria: 1, temporal: 0,
         ultima_linea: 0, bucle: 0, bucles: [], temporales: [], fuera: [], bucles_t: [],
-        fallo_linea: 0, fallo_clase: vacio() };
+        fallo_linea: 0, fallo_clase: vacio(), instancias: [] };
 }
 
 fn sangrar(b: &Cuerpo) -> str {
