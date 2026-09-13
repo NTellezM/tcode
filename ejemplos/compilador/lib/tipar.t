@@ -39,6 +39,8 @@ struct Contexto {
     // Nombres que traen dos modulos a la vez. El cargador de verdad los
     // renombra, y esta capa no sabe a cual: mejor no emitir la llamada.
     repetidas: mapa<str, usize>,
+    // Los propios que chocaban con un modulo, y como quedan en C.
+    renombradas: mapa<str, str>,
     // Las que escribio C. Una funcion de C presta lo que recibe y no se
     // queda con nada, asi que sus argumentos no se mueven.
     externas: mapa<str, usize>,
@@ -47,7 +49,8 @@ struct Contexto {
 fn contexto() -> Contexto {
     return Contexto { ambitos: [], campos: [], nombres: [], retornos: [],
         tipo_params: [], params: [], params_marcados: [], formas: [],
-        variantes: [], externas: [], repetidas: [] };
+        variantes: [], externas: [], repetidas: [],
+        renombradas: [] };
 }
 
 fn abrir(c: mut Contexto) {

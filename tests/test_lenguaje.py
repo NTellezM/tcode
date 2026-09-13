@@ -2701,7 +2701,7 @@ def _expresiones_esperadas(ruta):
             fuera.append(f"{d.nombre}\t{r.linea}\t{c}")
     return fuera
 
-_MINIMO_CUBIERTAS = 690
+_MINIMO_CUBIERTAS = 700
 
 tmp = tempfile.mkdtemp(prefix="tcode-expr-")
 try:
@@ -2800,7 +2800,7 @@ def _normaliza_tmp(texto):
         texto = renumera(texto, prefijo)
     return texto
 
-_MINIMO_CUERPOS = 341
+_MINIMO_CUERPOS = 345
 
 tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
 try:

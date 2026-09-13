@@ -1486,16 +1486,52 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     }
     if es_interna(nombre) { return no_se(); }
     if !tiene(tipos.retornos, nombre) { return no_se(); }
-    if tiene(tipos.tipo_params, nombre) { return no_se(); }
     // Una llamada a C pide convertir el `str` a `const char*` comprobando el
     // cero de en medio. Esta capa todavia no lo hace, asi que no la emite.
     if tiene(tipos.externas, nombre) { return no_se(); }
     if tiene(tipos.repetidas, nombre) { return no_se(); }
 
-    let firmados = I.lista_de(tipos.params, nombre) sino [];
+    var firmados = I.lista_de(tipos.params, nombre) sino [];
     let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];
     // En C no queda el alias del modulo: `I.tipo_de` se llama `tipo_de`.
-    let en_c = I.sin_modulo(nombre);
+    var en_c = I.sin_modulo(nombre);
+    // Un nombre propio que tambien traia un modulo: el cargador le pone el
+    // nombre del archivo delante. Llamado con el alias del modulo seria el
+    // otro, y ese no se sabe como quedo: no se emite.
+    if tiene(tipos.renombradas, nombre) {
+        en_c = nuevo(obtener(tipos.renombradas, nombre) sino "");
+    }
+    if contiene(nombre, ".") && tiene(tipos.renombradas, vista(en_c)) {
+        return no_se();
+    }
+
+    // Una generica: se eligen los tipos mirando los argumentos, igual que el
+    // comprobador, y se llama a la copia con ese juego de tipos. El nombre
+    // de la copia lleva los tipos dentro, saneados para que sean C.
+    if tiene(tipos.tipo_params, nombre) {
+        let sueltos = I.lista_de(tipos.tipo_params, nombre) sino [];
+        var ligaduras: mapa<str, str> = [];
+        var k = 0;
+        while k < largo(firmados) && k < largo(n.hijos) {
+            let dado = I.tipo_de(tipos, n.hijos[k]);
+            let limpio = T.apuntado_si(vista(dado));
+            I.unificar(vista(firmados[k]), vista(limpio), sueltos, ligaduras);
+            k = k + 1;
+        }
+        empujar(en_c, "__");
+        var primero = true;
+        for tp en sueltos {
+            if !tiene(ligaduras, vista(tp)) { return no_se(); }
+            let ligado = nuevo(obtener(ligaduras, vista(tp)) sino "");
+            if !primero { empujar(en_c, "_"); }
+            primero = false;
+            let limpio = sanear(vista(ligado));
+            empujar(en_c, vista(limpio));
+        }
+        var puestos: lista<str> = [];
+        for f en firmados { anadir(puestos, I.sustituir(vista(f), ligaduras)); }
+        firmados = puestos;
+    }
     var v = copiar(en_c);
     empujar(v, "(");
     var i = 0;
@@ -3239,6 +3275,28 @@ fn match_valor(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     }
     if !match_c(b, s, n, tipos, retorno, falible, vista(tmp)) { return no_se(); }
     return copiar(tmp);
+}
+
+// Un tipo hecho nombre de C: cada racha de lo que no sea letra o cifra pasa
+// a ser un `_`, y sin `_` en los bordes. `lista<str>` da `lista_str`.
+fn sanear(t: view) -> str {
+    var r = vacio();
+    var pendiente = false;
+    var i = 0;
+    while i < largo(t) {
+        let c = byte(t, i);
+        let bueno = (c >= 97 && c <= 122) || (c >= 65 && c <= 90)
+        || (c >= 48 && c <= 57);
+        if bueno {
+            if pendiente && largo(r) > 0 { empujar(r, "_"); }
+            pendiente = false;
+            empujar(r, rebanar(t, i, i + 1));
+        } else {
+            pendiente = true;
+        }
+        i = i + 1;
+    }
+    return r;
 }
 
 // De que tipo es lo que da una expresion suelta. Una llamada del programa

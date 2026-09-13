@@ -196,6 +196,40 @@ fn copiar_firma(de: &I.Contexto, a: mut I.Contexto, suyo: view, como: view) {
     if tiene(de.externas, suyo) { poner(a.externas, como, 1); }
 }
 
+// `ejemplos/compilador/tipar.t` -> `tipar`. Lo mismo que hace el cargador:
+// el nombre del archivo sin extension, y lo que no sea letra, cifra o `_`
+// pasa a ser `_`.
+fn prefijo_de(ruta: view) -> str {
+    var desde = 0;
+    var i = 0;
+    while i < largo(ruta) {
+        if byte(ruta, i) == 47 { desde = i + 1; }
+        i = i + 1;
+    }
+    var hasta = largo(ruta);
+    var j = largo(ruta);
+    while j > desde {
+        j = j - 1;
+        if byte(ruta, j) == 46 {
+            hasta = j;
+            break;
+        }
+    }
+    var r = vacio();
+    var k = desde;
+    while k < hasta {
+        let c = byte(ruta, k);
+        if (c >= 97 && c <= 122) || (c >= 65 && c <= 90) || (c >= 48 && c <= 57)
+        || c == 95 {
+            empujar(r, rebanar(ruta, k, k + 1));
+        } else {
+            empujar(r, "_");
+        }
+        k = k + 1;
+    }
+    return r;
+}
+
 fn main() -> usize ! {
     if n_argumentos() < 2 {
         imprimir_error($"uso: {argumento(0)} <archivo.t>\n");
@@ -223,6 +257,19 @@ fn main() -> usize ! {
 
     // Y las suyas, que mandan sobre las de fuera.
     recoger_firmas(arbol, tipos);
+    // Un nombre propio que tambien trae un modulo usado no es ambiguo: desde
+    // aqui es el propio. El cargador lo renombra con el nombre de este
+    // archivo delante, y asi se llama en C.
+    let base = prefijo_de(ruta);
+    for d en arbol.hijos {
+        if igual(vista(d.clase), "fn") && tiene(tipos.repetidas, vista(d.texto)) {
+            var otro = copiar(base);
+            empujar(otro, "__");
+            empujar(otro, vista(d.texto));
+            poner(tipos.renombradas, vista(d.texto), otro);
+            quitar(tipos.repetidas, vista(d.texto));
+        }
+    }
 
     for d en arbol.hijos {
         if igual(vista(d.clase), "fn") && !es_generica(d) {
