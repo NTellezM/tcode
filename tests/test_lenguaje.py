@@ -2800,7 +2800,7 @@ def _normaliza_tmp(texto):
         texto = renumera(texto, prefijo)
     return texto
 
-_MINIMO_CUERPOS = 345
+_MINIMO_CUERPOS = 346
 
 tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
 try:
@@ -2858,9 +2858,16 @@ try:
                     # anotar no tendria tipo y el original saldria mal.
                     d = comp.funciones.get(nombre)
                     if d is None:
-                        d = next((f for k, f in comp.funciones.items()
-                                  if k.endswith("__" + nombre)
-                                  or k == "ss_id_" + nombre), None)
+                        # Renombrada por el cargador. Si el mismo nombre lo
+                        # declaran dos modulos, hay que quedarse con la de
+                        # este archivo: la primera que aparezca puede ser la
+                        # del otro, y entonces la funcion se saltaba callando.
+                        candidatas = [f for k, f in comp.funciones.items()
+                                      if k.endswith("__" + nombre)
+                                      or k == "ss_id_" + nombre]
+                        d = next((f for f in candidatas
+                                  if (f.archivo or propio) == propio),
+                                 candidatas[0] if candidatas else None)
                     if (d is None or (d.archivo or propio) != propio
                             or d.tipo_params):
                         continue
