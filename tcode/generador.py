@@ -818,6 +818,10 @@ class Generador:
                 f"{self.arreglos[t]};")
         if self.arreglos:
             self.lineas.append("")
+        # Un arreglo que solo aparece al escribir un cuerpo —`for x en [1, 2]`
+        # no declara nada que el recorrido previo mire— llega tarde a esta
+        # seccion. Se apunta que ya esta, y los que falten van al hueco.
+        arreglos_puestos = set(self.arreglos)
 
         for t, nombre in self.resultados.items():
             if t is UNIDAD or t == UNIDAD:
@@ -1340,6 +1344,17 @@ class Generador:
         if tipos_fn:
             tipos_fn.append("")
         self.lineas[hueco_funciones:hueco_funciones] = tipos_fn
+
+        tardios = sorted((t for t in self.arreglos if t not in arreglos_puestos),
+                         key=lambda x: x.count("["))
+        envoltorios = []
+        for t in tardios:
+            elem, n = partes_arreglo(t)
+            envoltorios.append(f"typedef struct {{ {self.tipo_c(elem)} e[{n}]; }} "
+                               f"{self.arreglos[t]};")
+        if envoltorios:
+            envoltorios.append("")
+        self.lineas[hueco_funciones:hueco_funciones] = envoltorios
 
         return "\n".join(self.lineas)
 

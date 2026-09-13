@@ -710,6 +710,19 @@ ACEPTA = [
         }''',
      "6\n"),
 
+    # Lo encontro escribir el compilador en Tcode: el typedef del arreglo
+    # salia antes de escribir los cuerpos, y este solo aparece dentro de uno.
+    ("recorrer un arreglo literal sin nombre",
+     '''fn main() {
+            for x en ["uno", "dos", "tres"] {
+                imprimir($"{x}\\n");
+            }
+            var n = 0;
+            for k en [1, 2, 3] { n = n + k; }
+            imprimir($"{n}\\n");
+        }''',
+     "uno\ndos\ntres\n6\n"),
+
     # ---- temporales en las salidas tempranas ----
     #
     # Los cinco los encontro ejecutar bajo AddressSanitizer el compilador
