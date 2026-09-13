@@ -606,6 +606,17 @@ class Generador:
         self.necesita_copiador(tipo)
         return f"{self.copiadores[tipo]}(&{expr_c})"
 
+    def copia_desde(self, dir_c, tipo):
+        """Como `copia_de`, pero partiendo de una DIRECCION en vez de un
+        valor. Evita el `&(*&x)` que salia de envolver un puntero en `(*...)`
+        para volver a tomarle la direccion justo despues."""
+        if not self.c.posee(tipo):
+            return f"(*{dir_c})"
+        if tipo == "str":
+            return f"ss_clone({dir_c})"
+        self.necesita_copiador(tipo)
+        return f"{self.copiadores[tipo]}({dir_c})"
+
     def cuerpo_copiador(self, tipo, nombre):
         """El copiador de un tipo compuesto, ya con su nombre de C."""
         tc = self.tipo_c(tipo)
@@ -1935,7 +1946,14 @@ class Generador:
 
     @staticmethod
     def _termina_en_retorno(sentencias):
-        return bool(sentencias) and isinstance(sentencias[-1], Retorno)
+        """Si el bloque no sigue: lo que venga detras no se ejecuta.
+
+        `break` y `continue` cuentan igual que `return`: ya soltaron lo que
+        habia que soltar antes de saltar, y emitir el cierre del bloque
+        detras solo pondria un `ss_free` que no se alcanza nunca.
+        """
+        return bool(sentencias) and isinstance(
+            sentencias[-1], (Retorno, Romper, Continuar))
 
     # ---------- propiedad que depende del camino ----------
     #
@@ -2852,12 +2870,12 @@ class Generador:
             if not self.c.posee(t):
                 return self.expr(a, t)      # un escalar se copia solo
             if isinstance(a, (Variable, Campo, Indice)):
-                return self.copia_de(f"(*{self.dir_de(a)})", t)
+                return self.copia_desde(self.dir_de(a), t)
             crudo = self._tipo_de(a) or t
             if es_referencia(crudo):
                 # Llega prestado y en C eso es un puntero: se copia lo que
                 # hay al otro lado, no el puntero.
-                return self.copia_de(f"(*{self.expr(a, crudo)})", t)
+                return self.copia_desde(self.expr(a, crudo), t)
             # Lo que no vive en ningun sitio hay que guardarlo para poder
             # tomarle la direccion; y como ya es nuestro, se libera al acabar.
             tmp = self.nuevo_tmp()
@@ -2866,7 +2884,7 @@ class Generador:
             self.emitir(f"{self.tipo_c(t)} {tmp} = {valor};")
             self.declarar(tmp, t)
             self.temporales.append(tmp)
-            return self.copia_de(tmp, t)
+            return self.copia_desde(f"&{tmp}", t)
 
         if n == "texto":
             a = e.args[0]

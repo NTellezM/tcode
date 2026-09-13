@@ -321,7 +321,7 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
                 }
             }
             if bien && !G.termina_saliendo(h) {
-                G.liberar_todo(b, sitio, "");
+                G.liberar_todo(b, sitio, tipos, "");
                 if falible {
                     // Una falible que llega al final salio bien.
                     G.emitir_final_bien(b, vista(retorno));
