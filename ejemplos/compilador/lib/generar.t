@@ -365,6 +365,8 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         return llamada_c(b, s, n, tipos);
     }
 
+    if igual(clase, "conversion") { return conversion_c(b, s, n, tipos); }
+
     if igual(clase, "campo") {
         // `sitio_c` ya devuelve el valor, no el puntero: un prestamo sale
         // como `(*x)`, asi que aqui siempre es un punto.
@@ -399,6 +401,54 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
     }
 
     return no_se();
+}
+
+// `x como u32`. Convertir de verdad comprueba que el valor cabe: si no
+// cabe, el programa para donde esta. `como?` es la otra: pedir a proposito
+// que se quede con los bits de abajo, que es lo que C hace siempre y sin
+// avisar. Las dos se escriben distinto porque son dos intenciones distintas.
+fn conversion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    if largo(n.hijos) != 1 { return no_se(); }
+    let escrito = vista(n.texto);
+    var envolviendo = false;
+    var destino = nuevo(escrito);
+    if empieza_con(escrito, "?") {
+        envolviendo = true;
+        destino = nuevo(rebanar(escrito, 1, largo(escrito)));
+    }
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    var origen = T.apuntado_si(vista(suyo));
+    if !es_aritmetico(vista(origen)) { origen = nuevo("usize"); }
+    let valor = expresion_c(b, s, n.hijos[0], vista(origen), tipos);
+    if es_desconocido(vista(valor)) { return no_se(); }
+    if igual(vista(origen), vista(destino)) { return valor; }
+
+    if envolviendo {
+        var r = nuevo("((");
+        empujar(r, tipo_c(vista(destino)));
+        empujar(r, ") ");
+        empujar(r, vista(valor));
+        empujar(r, ")");
+        return r;
+    }
+    var r = nuevo("ss_lang_conv_");
+    empujar(r, vista(destino));
+    empujar(r, "_de_");
+    empujar(r, vista(origen));
+    empujar(r, "(");
+    empujar(r, vista(valor));
+    empujar(r, ", \"");
+    empujar(r, vista(s.archivo));
+    empujar(r, "\", ");
+    empujar(r, texto(n.linea));
+    empujar(r, ")");
+    return r;
+}
+
+fn es_aritmetico(t: view) -> bool {
+    if igual(t, "f32") || igual(t, "f64") { return true; }
+    return es_entero(t);
 }
 
 // Un sitio del que tomar campos o elementos. Una llamada no es un sitio:
@@ -472,8 +522,51 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Co
 
     let t = tipo_operando(s, n, tipos);
     if largo(t) == 0 { return no_se(); }
-    // Los decimales tienen su propia comprobacion; no se cubre aqui.
-    if igual(vista(t), "f32") || igual(vista(t), "f64") { return no_se(); }
+
+    // Los decimales no desbordan: se van a infinito o a NaN, callando. En
+    // Tcode eso para el programa donde aparece, asi que cada operacion pasa
+    // por una comprobacion de que el resultado sigue siendo un numero. El
+    // que quiera lo de IEEE lo pide con `+?`, `-?`, `*?` o `/?`.
+    if igual(vista(t), "f32") || igual(vista(t), "f64") {
+        let izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
+        let der = expresion_c(b, s, n.hijos[1], vista(t), tipos);
+        if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
+            return no_se();
+        }
+        if empieza_con(op, "+?") || empieza_con(op, "-?")
+        || empieza_con(op, "*?") || empieza_con(op, "/?") {
+            var v = nuevo("(");
+            empujar(v, vista(izq));
+            empujar(v, " ");
+            empujar(v, rebanar(op, 0, 1));
+            empujar(v, " ");
+            empujar(v, vista(der));
+            empujar(v, ")");
+            return v;
+        }
+        if !igual(op, "+") && !igual(op, "-") && !igual(op, "*")
+        && !igual(op, "/") {
+            return no_se();
+        }
+        var v = nuevo("ss_lang_fin_");
+        empujar(v, vista(t));
+        empujar(v, "((");
+        empujar(v, vista(izq));
+        empujar(v, " ");
+        empujar(v, op);
+        empujar(v, " ");
+        empujar(v, vista(der));
+        empujar(v, "), \"");
+        empujar(v, op);
+        empujar(v, "\", \"Si lo querias, escribe `");
+        empujar(v, op);
+        empujar(v, "?`.\", \"");
+        empujar(v, vista(s.archivo));
+        empujar(v, "\", ");
+        empujar(v, texto(n.linea));
+        empujar(v, ")");
+        return v;
+    }
 
     let fam = familia(op);
     if largo(fam) > 0 {
@@ -541,9 +634,9 @@ fn junta(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, op: view,
 // El tipo con el que operar los dos lados: el del primero que se sepa.
 fn tipo_operando(_s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let a = I.tipo_de(tipos, n.hijos[0]);
-    if es_entero(vista(a)) { return a; }
-    let b = I.tipo_de(tipos, n.hijos[1]);
-    if es_entero(vista(b)) { return b; }
+    if es_aritmetico(vista(a)) { return a; }
+    let otro = I.tipo_de(tipos, n.hijos[1]);
+    if es_aritmetico(vista(otro)) { return otro; }
     return nuevo("usize");
 }
 
@@ -755,10 +848,13 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     // Una llamada a C pide convertir el `str` a `const char*` comprobando el
     // cero de en medio. Esta capa todavia no lo hace, asi que no la emite.
     if tiene(tipos.externas, nombre) { return no_se(); }
+    if tiene(tipos.repetidas, nombre) { return no_se(); }
 
     let firmados = I.lista_de(tipos.params, nombre) sino [];
     let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];
-    var v = nuevo(nombre);
+    // En C no queda el alias del modulo: `I.tipo_de` se llama `tipo_de`.
+    let en_c = I.sin_modulo(nombre);
+    var v = copiar(en_c);
     empujar(v, "(");
     var i = 0;
     for h en n.hijos {
@@ -950,6 +1046,19 @@ struct Cuerpo {
     ultima_linea: usize,
     // Cuantos bucles se han abierto: cada uno lleva su propio indice.
     bucle: usize,
+    // La primera sentencia que esta capa no supo hacer, y de que clase era.
+    // No cambia nada de lo que se emite: sirve para poder decir que falta
+    // sin tener que adivinarlo contando nodos.
+    fallo_linea: usize,
+    fallo_clase: str,
+}
+
+// Lo apunta el sitio mas hondo, y solo la primera vez: si un `if` falla
+// porque falla algo de dentro, lo que interesa es lo de dentro.
+fn apuntar_fallo(b: mut Cuerpo, n: &P.Nodo) {
+    if b.fallo_linea != 0 { return; }
+    b.fallo_linea = n.linea;
+    b.fallo_clase = nuevo(vista(n.clase));
 }
 
 fn nombre_de_indice(n: usize) -> str {
@@ -966,7 +1075,7 @@ fn nombre_de_bucle(n: usize) -> str {
 
 fn cuerpo() -> Cuerpo {
     return Cuerpo { lineas: [], bloques: [], sangria: 1, temporal: 0,
-        ultima_linea: 0, bucle: 0 };
+        ultima_linea: 0, bucle: 0, fallo_linea: 0, fallo_clase: vacio() };
 }
 
 fn sangrar(b: &Cuerpo) -> str {
@@ -1450,7 +1559,10 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         emitir(b, "}");
         var bien = true;
         for st en n.hijos[1].hijos {
-            if bien { bien = sentencia_c(b, s, st, tipos, retorno, falible); }
+            if bien {
+                bien = sentencia_c(b, s, st, tipos, retorno, falible);
+                if !bien { apuntar_fallo(b, st); }
+            }
         }
         if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s); }
         else { quitar_ultimo_bloque(b); }
@@ -1536,13 +1648,18 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         if largo(n.hijos) != 2 { return false; }
         // `for k, v en mapa`: recorrer una tabla es otra capa.
         if lleva_coma(vista(n.texto)) { return false; }
-        // La coleccion tiene que ser una variable: `for x en f(...)` se
-        // calcula una sola vez y eso pide un temporal que soltar al final.
-        if !igual(vista(n.hijos[0].clase), "variable") { return false; }
+        // Un sitio con nombre: variable, campo o elemento. `for x en f(...)`
+        // no, que se calcula una sola vez y eso pide un temporal que soltar
+        // al final.
+        let que = vista(n.hijos[0].clase);
+        if !igual(que, "variable") && !igual(que, "campo")
+        && !igual(que, "indice") {
+            return false;
+        }
         let suyo = I.tipo_de(tipos, n.hijos[0]);
         let sobre = T.apuntado_si(vista(suyo));
         if !T.es_lista(vista(sobre)) { return false; }
-        let lugar = expresion_c(b, s, n.hijos[0], vista(sobre), tipos);
+        let lugar = sitio_c(b, s, n.hijos[0], tipos);
         if es_desconocido(vista(lugar)) { return false; }
 
         b.bucle = b.bucle + 1;
@@ -1593,7 +1710,10 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
 
         var bien = true;
         for st en n.hijos[1].hijos {
-            if bien { bien = sentencia_c(b, s, st, tipos, retorno, falible); }
+            if bien {
+                bien = sentencia_c(b, s, st, tipos, retorno, falible);
+                if !bien { apuntar_fallo(b, st); }
+            }
         }
         if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s); }
         else { quitar_ultimo_bloque(b); }
@@ -1619,7 +1739,10 @@ fn bloque_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     I.abrir(tipos);
     var bien = true;
     for h en n.hijos {
-        if bien { bien = sentencia_c(b, s, h, tipos, retorno, falible); }
+        if bien {
+            bien = sentencia_c(b, s, h, tipos, retorno, falible);
+            if !bien { apuntar_fallo(b, h); }
+        }
     }
     if bien && !termina_saliendo(n) { cerrar_bloque(b, s); }
     else { quitar_ultimo_bloque(b); }
