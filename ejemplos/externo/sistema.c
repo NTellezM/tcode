@@ -23,7 +23,7 @@ long long al_azar(long long tope)
     return (long long) (rand() % tope);
 }
 
-void sembrar(long long semilla)
+void sembrar_rand(long long semilla)
 {
     srand((unsigned) semilla);
 }

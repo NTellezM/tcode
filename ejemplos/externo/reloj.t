@@ -43,7 +43,7 @@ externo "stdlib.h" {
 externo "sistema.c" {
     fn ahora_segundos() -> i64;
     fn al_azar(tope: i64) -> i64;
-    fn sembrar(semilla: i64);
+    fn sembrar_rand(semilla: i64);
 }
 
 fn main() {
@@ -55,7 +55,7 @@ fn main() {
     imprimir($"PATH tiene     {largo(vista(valor))} bytes\n");
 
     // Semilla fija: el ejemplo tiene que dar siempre lo mismo.
-    sembrar(1);
+    sembrar_rand(1);
     var suma: i64 = 0;
     var i: i64 = 0;
     while i < 5 {

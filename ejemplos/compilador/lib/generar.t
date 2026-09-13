@@ -907,8 +907,19 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Co
     // Bits, y aritmetica envolvente pedida a proposito. El molde deja claro
     // que el resultado no se ensancha por el camino: en C, `u8 & u8` da un
     // `int`.
-    if igual(op, "&") || igual(op, "|") || igual(op, "^")
-    || igual(op, "+?") || igual(op, "-?") || igual(op, "*?") {
+    // La envolvente se opera en `uint64_t`, donde C define la vuelta: con
+    // signo, `INT64_MAX + 1` es comportamiento indefinido.
+    if igual(op, "+?") || igual(op, "-?") || igual(op, "*?") {
+        let izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
+        let der = expresion_c(b, s, n.hijos[1], vista(t), tipos);
+        if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
+            return no_se();
+        }
+        let tc = tipo_c(vista(t));
+        let signo = rebanar(op, 0, 1);
+        return $"(({tc}) ((uint64_t) ({izq}) {signo} (uint64_t) ({der})))";
+    }
+    if igual(op, "&") || igual(op, "|") || igual(op, "^") {
         let izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
         let der = expresion_c(b, s, n.hijos[1], vista(t), tipos);
         if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {

@@ -632,6 +632,14 @@ RECHAZO = [
      'fn f() { let a: usize = 1; let a: usize = 2; }',
      "ya esta declarada"),
 
+    ("una funcion con el nombre de una interna no se llamaria nunca",
+     'fn sembrar(n: u64) {} fn main() { sembrar(1); }',
+     "es una funcion interna"),
+
+    ("tampoco una externa",
+     'externo "stdlib.h" { fn azar(n: usize) -> usize; } fn main() {}',
+     "es una funcion interna"),
+
     ("tapar una variable de un bloque de fuera",
      'fn f(c: bool) { let t: usize = 1; if c { let t: usize = 2; } }',
      "tapa a una variable"),
@@ -680,6 +688,25 @@ RECHAZO = [
 
 
 ACEPTA = [
+    # ---- aritmetica envolvente ----
+    #
+    # `+?` se generaba con el operador del propio tipo: con signo, dar la
+    # vuelta es comportamiento indefinido en C, y un `u16 * u16` pasa por
+    # `int`. UBSan lo paraba.
+    ("la envolvente da la vuelta sin comportamiento indefinido",
+     '''fn main() {
+            var x: i64 = 9223372036854775807;
+            x = x +? 1;
+            var m: u16 = 65535;
+            m = m *? 65535;
+            var c: i32 = 2147483647;
+            c = c +? 2;
+            var u: u8 = 0;
+            u = u -? 1;
+            imprimir($"{x} {m} {c} {u}\\n");
+        }''',
+     "-9223372036854775808 1 -2147483647 255\n"),
+
     # ---- banderas de soltar, una por declaracion ----
     #
     # Dos bloques hermanos pueden declarar el mismo nombre. La bandera de
