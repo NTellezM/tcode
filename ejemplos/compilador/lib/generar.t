@@ -289,6 +289,15 @@ struct Sitio {
     retorno: str,
 }
 
+// Que nombres son un puntero en el C generado: los parametros prestados, y
+// tambien un local cuyo tipo es un prestamo. `let xs = try obtener(m, k)` da
+// un `&lista<str>`, y eso en C es un puntero como cualquier otro.
+fn es_puntero(s: &Sitio, tipos: &I.Contexto, nombre: view) -> bool {
+    if tiene(s.punteros, nombre) { return true; }
+    let t = I.buscar(tipos, nombre);
+    return T.es_referencia(vista(t));
+}
+
 fn no_se() -> str { return nuevo("?"); }
 
 fn es_desconocido(c: view) -> bool { return igual(c, "?"); }
@@ -354,7 +363,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
 
     if igual(clase, "variable") {
         let nombre = vista(n.texto);
-        if tiene(s.punteros, nombre) {
+        if es_puntero(s, tipos, nombre) {
             var v = nuevo("(*");
             empujar(v, nombre);
             empujar(v, ")");
@@ -908,7 +917,9 @@ fn direccion_del_sitio(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto)
     let clase = vista(n.clase);
     if igual(clase, "variable") {
         // Un `&T` ya ES la direccion: pedirsela otra vez sobra.
-        if tiene(s.punteros, vista(n.texto)) { return nuevo(vista(n.texto)); }
+        if es_puntero(s, tipos, vista(n.texto)) {
+            return nuevo(vista(n.texto));
+        }
         var r = nuevo("&");
         empujar(r, vista(n.texto));
         return r;
@@ -945,8 +956,33 @@ fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     }
     let t = I.tipo_de(tipos, n);
     if igual(vista(t), "str") {
-        if !igual(vista(n.clase), "variable") { return no_se(); }
-        return direccion_de(s, vista(n.texto), "ss_view(");
+        let clase = vista(n.clase);
+        if igual(clase, "variable") || igual(clase, "campo")
+        || igual(clase, "indice") {
+            let donde = direccion_del_sitio(b, s, n, tipos);
+            if es_desconocido(vista(donde)) { return no_se(); }
+            var r = nuevo("ss_view(");
+            empujar(r, vista(donde));
+            empujar(r, ")");
+            return r;
+        }
+        // Un `str` recien hecho no tiene sitio del que tomar la direccion:
+        // se guarda en un temporal, que se suelta al acabar la sentencia.
+        let valor = expresion_c(b, s, n, "str", tipos);
+        if es_desconocido(vista(valor)) { return no_se(); }
+        reclamar(b, vista(valor));
+        let tmp = nuevo_temporal(b);
+        var l = nuevo("SafeString ");
+        empujar(l, vista(tmp));
+        empujar(l, " = ");
+        empujar(l, vista(valor));
+        empujar(l, ";");
+        emitir(b, vista(l));
+        apuntar_temporal(b, vista(tmp), "str");
+        var r = nuevo("ss_view(&");
+        empujar(r, vista(tmp));
+        empujar(r, ")");
+        return r;
     }
     if igual(vista(t), "view") { return expresion_c(b, s, n, "view", tipos); }
     return no_se();
@@ -1061,6 +1097,10 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let nombre = vista(n.texto);
     let pura = interna_pura(b, s, n, tipos);
     if !es_desconocido(vista(pura)) { return pura; }
+    if igual(nombre, "leer_archivo") || igual(nombre, "leer_linea")
+    || igual(nombre, "entrada_completa") {
+        return interna_del_sistema(b, s, n, tipos);
+    }
     if es_interna(nombre) { return no_se(); }
     if !tiene(tipos.retornos, nombre) { return no_se(); }
     if tiene(tipos.tipo_params, nombre) { return no_se(); }
@@ -1237,6 +1277,19 @@ fn movidas_hondo(punteros: &mapa<str, usize>, bloque: &P.Nodo,
     I.cerrar(tipos);
 }
 
+// Las que hablan con el sistema y pueden fallar. No llevan argumentos que
+// convertir, asi que su C es el nombre y ya.
+fn interna_del_sistema(_b: mut Cuerpo, _s: &Sitio, n: &P.Nodo,
+    _tipos: &I.Contexto) -> str {
+    let nombre = vista(n.texto);
+    if igual(nombre, "leer_archivo") { return no_se(); }
+    if largo(n.hijos) != 0 { return no_se(); }
+    var r = nuevo("ss_lang_");
+    empujar(r, nombre);
+    empujar(r, "_()");
+    return r;
+}
+
 fn es_interna(nombre: view) -> bool {
     if igual(nombre, "byte") { return true; }
     if igual(nombre, "largo") || igual(nombre, "nuevo") { return true; }
@@ -1275,6 +1328,11 @@ struct Cuerpo {
     ultima_linea: usize,
     // Cuantos bucles se han abierto: cada uno lleva su propio indice.
     bucle: usize,
+    // Lo que nace a mitad de una sentencia y no tiene nombre: el `str` que
+    // devuelve `tipo_c(t)` dentro de `empujar(s, tipo_c(t))`. Vive hasta el
+    // final de la sentencia, y se suelta ahi. Van como `nombre: tipo`, igual
+    // que los bloques.
+    temporales: lista<str>,
     // Cuantos bloques habia abiertos al empezar el bucle mas de dentro.
     // Salir de un bucle salta el cierre de los bloques de dentro, asi que
     // hay que soltarlos a mano; los de fuera siguen vivos.
@@ -1308,8 +1366,8 @@ fn nombre_de_bucle(n: usize) -> str {
 
 fn cuerpo() -> Cuerpo {
     return Cuerpo { lineas: [], bloques: [], sangria: 1, temporal: 0,
-        ultima_linea: 0, bucle: 0, bucles: [], fallo_linea: 0,
-        fallo_clase: vacio() };
+        ultima_linea: 0, bucle: 0, bucles: [], temporales: [],
+        fallo_linea: 0, fallo_clase: vacio() };
 }
 
 fn sangrar(b: &Cuerpo) -> str {
@@ -1386,6 +1444,42 @@ fn recortar_lineas(b: mut Cuerpo, hasta: usize) {
     b.lineas = quedan;
 }
 
+// Un temporal de sentencia: nace aqui y se suelta al acabar la sentencia,
+// salvo que alguien se quede con el.
+fn apuntar_temporal(b: mut Cuerpo, nombre: view, tipo: view) {
+    var junto = nuevo(nombre);
+    empujar(junto, ": ");
+    empujar(junto, tipo);
+    anadir(b.temporales, junto);
+}
+
+// Quien se queda con un temporal lo dice, y deja de soltarse aqui.
+fn reclamar(b: mut Cuerpo, valor: view) {
+    var quedan: lista<str> = [];
+    for t en b.temporales {
+        let n = antes_de_dos_puntos(vista(t));
+        if !igual(vista(n), valor) { anadir(quedan, copiar(t)); }
+    }
+    b.temporales = quedan;
+}
+
+fn soltar_temporales(b: mut Cuerpo, tipos: &I.Contexto) {
+    var i = largo(b.temporales);
+    while i > 0 {
+        i = i - 1;
+        let entrada = copiar(b.temporales[i]);
+        let n = antes_de_dos_puntos(vista(entrada));
+        let t = despues_de_dos_puntos(vista(entrada));
+        liberacion(b, tipos, vista(n), vista(t));
+    }
+}
+
+// Lo que ya se solto al salir no se suelta otra vez.
+fn olvidar_temporales(b: mut Cuerpo) {
+    let vacia: lista<str> = [];
+    b.temporales = vacia;
+}
+
 fn quitar_ultimo_bucle(b: mut Cuerpo) {
     if largo(b.bucles) == 0 { return; }
     var quedan: lista<usize> = [];
@@ -1413,6 +1507,10 @@ fn quitar_ultimo_bloque(b: mut Cuerpo) {
 // `return`, donde no se cierra un bloque sino todos.
 fn liberar_todo(b: mut Cuerpo, s: &Sitio, tipos: &I.Contexto,
     excepto: view) {
+    // Los de la sentencia en curso primero: `return $"{rellenar(v, 8)}"`
+    // dejaria el `str` de `rellenar` sin soltar, porque la limpieza de fin
+    // de sentencia se emite DESPUES del `return` y no se ejecuta nunca.
+    soltar_temporales(b, tipos);
     var i = largo(b.bloques);
     while i > 0 {
         i = i - 1;
@@ -1599,7 +1697,23 @@ fn mueve_algo(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     return largo(salen) > 0;
 }
 
+// Cada sentencia tiene sus propios temporales, y al acabar se sueltan. Los
+// de fuera se guardan y se devuelven: una sentencia puede llevar otras
+// dentro, y las de dentro no heredan lo que quedo a medias fuera.
 fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
+    tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
+    var antes: lista<str> = [];
+    for t en b.temporales { anadir(antes, copiar(t)); }
+    let vacia: lista<str> = [];
+    b.temporales = vacia;
+
+    let bien = una_sentencia(b, s, n, tipos, retorno, falible);
+    if bien { soltar_temporales(b, tipos); }
+    b.temporales = antes;
+    return bien;
+}
+
+fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
     let clase = vista(n.clase);
     marcar(b, s, n.linea);
@@ -1707,6 +1821,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         empujar(l, literal_c(vista(n.texto)));
         empujar(l, " };");
         emitir(b, vista(l));
+        olvidar_temporales(b);
         return true;
     }
 
@@ -1718,9 +1833,11 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
                 empujar(l, tipo_resultado(retorno));
                 empujar(l, "){ .motivo = NULL };");
                 emitir(b, vista(l));
+                olvidar_temporales(b);
                 return true;
             }
             emitir(b, "return;");
+            olvidar_temporales(b);
             return true;
         }
         // Devolver una variable entera no necesita temporal: no hay nada
@@ -1741,6 +1858,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
                 empujar(r, ";");
             }
             emitir(b, vista(r));
+            olvidar_temporales(b);
             return true;
         }
 
@@ -1780,6 +1898,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             empujar(r, ";");
         }
         emitir(b, vista(r));
+        olvidar_temporales(b);
         return true;
     }
 
@@ -2107,13 +2226,27 @@ fn tipo_escrito(texto: view) -> str {
 
 // `try f(...)`: deja el resultado en un temporal, sale si trae motivo, y
 // devuelve el C que lee el valor.
+// Lo que da una llamada que puede fallar cuando sale bien. Una del programa
+// lo dice su firma; una interna como `obtener` sale del tipo del mapa.
+fn tipo_si_va_bien(n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let llamado = vista(n.texto);
+    if tiene(tipos.retornos, llamado) {
+        return nuevo(obtener(tipos.retornos, llamado) sino "");
+    }
+    if igual(llamado, "obtener") || igual(llamado, "leer_archivo")
+    || igual(llamado, "leer_linea") || igual(llamado, "entrada_completa")
+    || igual(llamado, "variable_entorno") {
+        return I.tipo_de(tipos, n);
+    }
+    return vacio();
+}
+
 fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let retorno = vista(s.retorno);
     if largo(n.hijos) != 1 { return no_se(); }
     if !igual(vista(n.hijos[0].clase), "llamada") { return no_se(); }
-    let llamado = vista(n.hijos[0].texto);
-    if !tiene(tipos.retornos, llamado) { return no_se(); }
-    let suyo = nuevo(obtener(tipos.retornos, llamado) sino "");
+    let suyo = tipo_si_va_bien(n.hijos[0], tipos);
+    if largo(vista(suyo)) == 0 { return no_se(); }
 
     let c = llamada_c(b, s, n.hijos[0], tipos);
     if es_desconocido(vista(c)) { return no_se(); }
@@ -2154,9 +2287,7 @@ fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 fn sino_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if largo(n.hijos) != 2 { return no_se(); }
     if !igual(vista(n.hijos[0].clase), "llamada") { return no_se(); }
-    let llamado = vista(n.hijos[0].texto);
-    if !tiene(tipos.retornos, llamado) { return no_se(); }
-    let suyo = nuevo(obtener(tipos.retornos, llamado) sino "");
+    let suyo = tipo_si_va_bien(n.hijos[0], tipos);
     if largo(vista(suyo)) == 0 { return no_se(); }
 
     let c = llamada_c(b, s, n.hijos[0], tipos);
