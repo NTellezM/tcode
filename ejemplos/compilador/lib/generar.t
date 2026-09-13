@@ -382,6 +382,30 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         return literal_struct_c(b, s, n, tipos);
     }
 
+    // `Json.Numero(42)`: la etiqueta de la forma y, en su hueco de la union,
+    // lo que lleve. La variante se queda con lo que recibe.
+    if igual(clase, "enum_lit") {
+        let en_t = I.antes_del_punto(vista(n.texto));
+        let cual = I.tras_el_punto(vista(n.texto));
+        // Con el alias de un modulo delante no se sabe como quedo el nombre.
+        if contiene(vista(cual), ".") { return no_se(); }
+        let lleva = I.lista_de(tipos.formas, vista(n.texto)) sino [];
+        if largo(lleva) != largo(n.hijos) { return no_se(); }
+        let etq = etiqueta(vista(en_t), vista(cual));
+        var r = $"({en_t}){{ .etiqueta = {etq}";
+        var i = 0;
+        for h en n.hijos {
+            let valor = expresion_c(b, s, h, vista(lleva[i]), tipos);
+            if es_desconocido(vista(valor)) { return no_se(); }
+            reclamar(b, vista(valor));
+            let pieza = $", .dato.v_{cual}._{i} = {valor}";
+            empujar(r, vista(pieza));
+            i = i + 1;
+        }
+        empujar(r, " }");
+        return r;
+    }
+
     if igual(clase, "interpolada") { return interpolada_c(b, s, n, tipos); }
 
     if igual(clase, "si_expr") { return si_expr_c(b, s, n, tipos); }
@@ -1737,6 +1761,14 @@ fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
     if igual(clase, "asignacion") && largo(n.hijos) == 2 {
         if entrega_suelta(punteros, n.hijos[1], tipos) {
             apuntar_movida(salida, vista(n.hijos[1].texto));
+        }
+    }
+
+    if igual(clase, "enum_lit") {
+        for h en n.hijos {
+            if entrega_suelta(punteros, h, tipos) {
+                apuntar_movida(salida, vista(h.texto));
+            }
         }
     }
 
