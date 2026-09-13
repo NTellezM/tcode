@@ -168,9 +168,11 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
             for x en h.hijos {
                 let quien = variable_suelta(x);
                 if largo(quien) > 0 {
-                    let t = tipo_vigilado(vs, vista(quien), n.linea);
+                    let t = tipo_vigilado(vs, vista(quien), x.linea);
                     if tiene_duenio(c, vista(t)) {
-                        marcar_movida(vs, vista(quien), n.linea);
+                        // En la linea del valor, no en la del literal: un literal
+                        // de struct suele ocupar varias lineas.
+                        marcar_movida(vs, vista(quien), x.linea);
                     }
                 }
                 mirar(c, x, vs);

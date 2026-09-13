@@ -479,6 +479,30 @@ fn sustituir(t: view, ligaduras: &mapa<str, str>) -> str {
     return salida;
 }
 
+// `lista<P.Nodo>` -> `lista<Nodo>`. El alias de un modulo es de quien lo
+// escribe: visto desde otro archivo no significa nada, y el cargador de
+// verdad reescribe el arbol entero sin ellos.
+fn sin_alias_tipo(t: view) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < largo(t) {
+        if es_de_nombre(byte(t, i)) {
+            var j = i;
+            while j < largo(t) && es_de_nombre(byte(t, j)) { j = j + 1; }
+            if j < largo(t) && byte(t, j) == 46 {
+                i = j + 1; // `P.` fuera
+                continue;
+            }
+            empujar(r, rebanar(t, i, j));
+            i = j;
+            continue;
+        }
+        empujar(r, rebanar(t, i, i + 1));
+        i = i + 1;
+    }
+    return r;
+}
+
 fn es_de_nombre(b: usize) -> bool {
     if b >= 97 && b <= 122 { return true; }
     if b >= 65 && b <= 90 { return true; }
