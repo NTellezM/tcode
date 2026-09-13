@@ -285,6 +285,8 @@ struct Sitio {
     // nombres que se entregan por algun camino: su liberacion la decide una
     // bandera `ss_vivo_X` en vez de hacerse siempre
     pide_bandera: mapa<str, usize>,
+    // lo que devuelve la funcion que se esta generando: `try` sale por ahi
+    retorno: str,
 }
 
 fn no_se() -> str { return nuevo("?"); }
@@ -367,6 +369,25 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
 
     if igual(clase, "conversion") { return conversion_c(b, s, n, tipos); }
 
+    if igual(clase, "literal_struct") {
+        return literal_struct_c(b, s, n, tipos);
+    }
+
+    if igual(clase, "try") { return try_c(b, s, n, tipos); }
+    if igual(clase, "sino") { return sino_c(b, s, n, tipos); }
+
+    // `[]` donde se espera un mapa: la tabla no nace hasta el primer
+    // `poner`, que es donde el coste se ve.
+    if igual(clase, "literal_lista") {
+        if largo(n.hijos) != 0 { return no_se(); }
+        if !T.es_mapa(esperado) { return no_se(); }
+        var r = nuevo("(");
+        empujar(r, tipo_c(esperado));
+        empujar(r, "){ .claves = NULL, .valores = NULL, .largo = 0, ");
+        empujar(r, ".capacidad = 0 }");
+        return r;
+    }
+
     if igual(clase, "campo") {
         // `sitio_c` ya devuelve el valor, no el puntero: un prestamo sale
         // como `(*x)`, asi que aqui siempre es un punto.
@@ -401,6 +422,33 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
     }
 
     return no_se();
+}
+
+// `Punto { x: 1, y: 2 }`. El struct se queda con lo que le pongan: un campo
+// con duenio recibe el valor, no una copia, y desde ahi lo suelta el.
+fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    let escrito = vista(n.texto);
+    var r = nuevo("(");
+    // En C no queda el alias del modulo: `P.Nodo` es `Nodo`.
+    empujar(r, tipo_c(escrito));
+    empujar(r, "){ ");
+    var primero = true;
+    for h en n.hijos {
+        if !igual(vista(h.clase), "campo") { return no_se(); }
+        if largo(h.hijos) != 1 { return no_se(); }
+        let suyo = I.tipo_de_campo(tipos, escrito, vista(h.texto));
+        let valor = expresion_c(b, s, h.hijos[0], vista(suyo), tipos);
+        if es_desconocido(vista(valor)) { return no_se(); }
+        if !primero { empujar(r, ", "); }
+        primero = false;
+        empujar(r, ".");
+        empujar(r, vista(h.texto));
+        empujar(r, " = ");
+        empujar(r, vista(valor));
+    }
+    empujar(r, " }");
+    return r;
 }
 
 // `x como u32`. Convertir de verdad comprueba que el valor cabe: si no
@@ -1053,6 +1101,16 @@ fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
         }
     }
 
+    if igual(clase, "literal_struct") {
+        for h en n.hijos {
+            for x en h.hijos {
+                if entrega_suelta(punteros, x, tipos) {
+                    apuntar_movida(salida, vista(x.texto));
+                }
+            }
+        }
+    }
+
     if igual(clase, "llamada") {
         var i = 0;
         for h en n.hijos {
@@ -1432,7 +1490,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             // `try f(...)`: se guarda el resultado, y si trae motivo se sale
             // por el mismo camino sin tocar lo que ya esta vivo.
             if !falible { return false; }
-            valor = try_c(b, s, n.hijos[0], tipos, retorno);
+            valor = try_c(b, s, n.hijos[0], tipos);
         } else {
             if igual(cual, "literal_lista") && largo(n.hijos[0].hijos) == 0 {
                 // Una lista vacia no reserva nada: nace en el primer
@@ -1890,8 +1948,8 @@ fn tipo_escrito(texto: view) -> str {
 
 // `try f(...)`: deja el resultado en un temporal, sale si trae motivo, y
 // devuelve el C que lee el valor.
-fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
-    retorno: view) -> str {
+fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let retorno = vista(s.retorno);
     if largo(n.hijos) != 1 { return no_se(); }
     if !igual(vista(n.hijos[0].clase), "llamada") { return no_se(); }
     let llamado = vista(n.hijos[0].texto);
@@ -1929,6 +1987,64 @@ fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
     var leer = copiar(tmp);
     empujar(leer, ".valor");
     return leer;
+}
+
+// `f(x) sino otra_cosa`: si falla, el valor de al lado. Es la unica forma
+// de que un fallo no se propague, y por eso se escribe: en Tcode no hay
+// forma callada de ignorar uno.
+fn sino_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    if largo(n.hijos) != 2 { return no_se(); }
+    if !igual(vista(n.hijos[0].clase), "llamada") { return no_se(); }
+    let llamado = vista(n.hijos[0].texto);
+    if !tiene(tipos.retornos, llamado) { return no_se(); }
+    let suyo = nuevo(obtener(tipos.retornos, llamado) sino "");
+    if largo(vista(suyo)) == 0 { return no_se(); }
+
+    let c = llamada_c(b, s, n.hijos[0], tipos);
+    if es_desconocido(vista(c)) { return no_se(); }
+
+    let tmp = nuevo_temporal(b);
+    var l = nuevo(tipo_resultado(vista(suyo)));
+    empujar(l, " ");
+    empujar(l, vista(tmp));
+    empujar(l, " = ");
+    empujar(l, vista(c));
+    empujar(l, ";");
+    emitir(b, vista(l));
+
+    let elegido = nuevo_temporal(b);
+    var d = nuevo(tipo_c(vista(suyo)));
+    empujar(d, " ");
+    empujar(d, vista(elegido));
+    empujar(d, ";");
+    emitir(b, vista(d));
+
+    var cond = nuevo("if (");
+    empujar(cond, vista(tmp));
+    empujar(cond, ".motivo != NULL)");
+    emitir(b, vista(cond));
+    emitir(b, "{");
+    b.sangria = b.sangria + 1;
+    let alt = expresion_c(b, s, n.hijos[1], vista(suyo), tipos);
+    if es_desconocido(vista(alt)) { return no_se(); }
+    var pone = copiar(elegido);
+    empujar(pone, " = ");
+    empujar(pone, vista(alt));
+    empujar(pone, ";");
+    emitir(b, vista(pone));
+    b.sangria = b.sangria - 1;
+    emitir(b, "}");
+    emitir(b, "else");
+    emitir(b, "{");
+    b.sangria = b.sangria + 1;
+    var otro = copiar(elegido);
+    empujar(otro, " = ");
+    empujar(otro, vista(tmp));
+    empujar(otro, ".valor;");
+    emitir(b, vista(otro));
+    b.sangria = b.sangria - 1;
+    emitir(b, "}");
+    return elegido;
 }
 
 // `anadir(xs, v)`: la lista se queda con el valor.

@@ -157,8 +157,15 @@ fn main() -> usize ! {
             // Esta capa mira expresiones sueltas, no caminos: sin caminos
             // no hay nada que una bandera pueda decidir.
             let sin_banderas: mapa<str, usize> = [];
+            var lo_que_devuelve = vacio();
+            for h en d.hijos {
+                if igual(vista(h.clase), "retorno_tipo") {
+                    lo_que_devuelve = nuevo(vista(h.texto));
+                }
+            }
             let sitio = G.Sitio { archivo: nuevo(ruta), tipos: de_tipo,
-                punteros: puntos, pide_bandera: sin_banderas };
+                punteros: puntos, pide_bandera: sin_banderas,
+                retorno: lo_que_devuelve };
 
             var lineas: lista<usize> = [];
             var nodos: lista<P.Nodo> = [];
