@@ -175,7 +175,14 @@ fn main() -> usize ! {
             }
             var k = 0;
             while k < largo(nodos) {
-                let c = G.expresion_c(sitio, nodos[k], vista(esperado), tipos);
+                // Una expresion puede necesitar lineas propias —`byte`
+                // guarda la vista en un temporal antes de indexarla—, y esta
+                // capa compara solo la expresion. Las lineas se generan
+                // igual, en un cuerpo que se tira: lo que importa es que el
+                // contador de temporales avance como en el original.
+                var hueco = G.cuerpo();
+                let c = G.expresion_c(hueco, sitio, nodos[k],
+                    vista(esperado), tipos);
                 imprimir($"{d.texto}\t{lineas[k]}\t{c}\n");
                 k = k + 1;
             }

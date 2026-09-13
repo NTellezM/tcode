@@ -333,7 +333,7 @@ fn familia(op: view) -> str {
     return vacio();
 }
 
-fn expresion_c(s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str {
+fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str {
     let clase = vista(n.clase);
 
     if igual(clase, "entero") { return literal_entero(vista(n.texto), esperado); }
@@ -341,11 +341,11 @@ fn expresion_c(s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str
 
     // Una cadena escrita es una vista de si misma: no reserva nada, y vive
     // lo que vive el programa.
-    if igual(clase, "cadena") { return como_vista(s, n, tipos); }
+    if igual(clase, "cadena") { return como_vista(b, s, n, tipos); }
 
     if igual(clase, "expresion") {
         if largo(n.hijos) == 1 {
-            return expresion_c(s, n.hijos[0], esperado, tipos);
+            return expresion_c(b, s, n.hijos[0], esperado, tipos);
         }
         return no_se();
     }
@@ -362,13 +362,13 @@ fn expresion_c(s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str
     }
 
     if igual(clase, "llamada") {
-        return llamada_c(s, n, tipos);
+        return llamada_c(b, s, n, tipos);
     }
 
     if igual(clase, "campo") {
         // `sitio_c` ya devuelve el valor, no el puntero: un prestamo sale
         // como `(*x)`, asi que aqui siempre es un punto.
-        let base = sitio_c(s, n.hijos[0], tipos);
+        let base = sitio_c(b, s, n.hijos[0], tipos);
         if es_desconocido(vista(base)) { return no_se(); }
         var r = copiar(base);
         empujar(r, ".");
@@ -377,11 +377,11 @@ fn expresion_c(s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str
     }
 
     if igual(clase, "indice") {
-        return indice_c(s, n, tipos);
+        return indice_c(b, s, n, tipos);
     }
 
     if igual(clase, "binaria") {
-        return binaria_c(s, n, esperado, tipos);
+        return binaria_c(b, s, n, esperado, tipos);
     }
 
     if igual(clase, "unaria") {
@@ -389,7 +389,7 @@ fn expresion_c(s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str
         if largo(n.hijos) != 1 { return no_se(); }
         // `~` lleva molde para que el resultado no se ensanche por el camino.
         if igual(op, "~") { return no_se(); }
-        let dentro = expresion_c(s, n.hijos[0], esperado, tipos);
+        let dentro = expresion_c(b, s, n.hijos[0], esperado, tipos);
         if es_desconocido(vista(dentro)) { return no_se(); }
         var v = nuevo("(");
         empujar(v, op);
@@ -405,11 +405,11 @@ fn expresion_c(s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str
 // `hacer()[1]` tendria que guardar lo que devuelve antes de indexarlo, o la
 // llamada se evaluaria una vez por cada vez que aparece en el C —dos: el
 // elemento y el largo— y lo que devuelve no lo liberaria nadie.
-fn sitio_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+fn sitio_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let clase = vista(n.clase);
     if igual(clase, "variable") || igual(clase, "campo")
     || igual(clase, "indice") {
-        return expresion_c(s, n, "", tipos);
+        return expresion_c(b, s, n, "", tipos);
     }
     return no_se();
 }
@@ -417,13 +417,13 @@ fn sitio_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 // Indexar comprueba el limite: es la comprobacion que C no hace y por la que
 // existe medio Tcode. Va en el C, no en el comprobador, porque el indice se
 // sabe al correr.
-fn indice_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+fn indice_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if largo(n.hijos) != 2 { return no_se(); }
     let suyo = I.tipo_de(tipos, n.hijos[0]);
     let base = T.apuntado_si(vista(suyo));
-    let sitio = sitio_c(s, n.hijos[0], tipos);
+    let sitio = sitio_c(b, s, n.hijos[0], tipos);
     if es_desconocido(vista(sitio)) { return no_se(); }
-    let idx = expresion_c(s, n.hijos[1], "usize", tipos);
+    let idx = expresion_c(b, s, n.hijos[1], "usize", tipos);
     if es_desconocido(vista(idx)) { return no_se(); }
 
     var cuantos = vacio();
@@ -456,18 +456,18 @@ fn indice_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     return r;
 }
 
-fn binaria_c(s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Contexto) -> str {
+fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Contexto) -> str {
     if largo(n.hijos) != 2 { return no_se(); }
     let op = vista(n.texto);
 
     // Lo logico y lo comparativo salen tal cual: en C significan lo mismo.
     if igual(op, "&&") || igual(op, "||") {
-        return junta(s, n, "bool", op, tipos);
+        return junta(b, s, n, "bool", op, tipos);
     }
     if igual(op, "==") || igual(op, "!=") || igual(op, "<") || igual(op, "<=")
     || igual(op, ">") || igual(op, ">=") {
         let t = tipo_operando(s, n, tipos);
-        return junta(s, n, vista(t), op, tipos);
+        return junta(b, s, n, vista(t), op, tipos);
     }
 
     let t = tipo_operando(s, n, tipos);
@@ -477,8 +477,8 @@ fn binaria_c(s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Contexto) -> str 
 
     let fam = familia(op);
     if largo(fam) > 0 {
-        let izq = expresion_c(s, n.hijos[0], vista(t), tipos);
-        let der = expresion_c(s, n.hijos[1], vista(t), tipos);
+        let izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
+        let der = expresion_c(b, s, n.hijos[1], vista(t), tipos);
         if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
             return no_se();
         }
@@ -499,8 +499,8 @@ fn binaria_c(s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Contexto) -> str 
     }
 
     if igual(op, "/") || igual(op, "%") {
-        let izq = expresion_c(s, n.hijos[0], vista(t), tipos);
-        let der = expresion_c(s, n.hijos[1], vista(t), tipos);
+        let izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
+        let der = expresion_c(b, s, n.hijos[1], vista(t), tipos);
         if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
             return no_se();
         }
@@ -521,10 +521,10 @@ fn binaria_c(s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Contexto) -> str 
 }
 
 // `(izq OP der)`, que es como salen los operadores que C ya tiene.
-fn junta(s: &Sitio, n: &P.Nodo, esperado: view, op: view,
+fn junta(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, op: view,
     tipos: &I.Contexto) -> str {
-    let izq = expresion_c(s, n.hijos[0], esperado, tipos);
-    let der = expresion_c(s, n.hijos[1], esperado, tipos);
+    let izq = expresion_c(b, s, n.hijos[0], esperado, tipos);
+    let der = expresion_c(b, s, n.hijos[1], esperado, tipos);
     if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
         return no_se();
     }
@@ -559,7 +559,7 @@ fn es_entero(t: view) -> bool {
 // Las internas que no necesitan emitir nada aparte: se bajan a una llamada
 // del runtime y ya. `byte` no esta porque necesita guardar la vista en un
 // temporal antes de indexarla.
-fn interna_pura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let nombre = vista(n.texto);
 
     if igual(nombre, "vacio") { return nuevo("ss_new()"); }
@@ -574,7 +574,7 @@ fn interna_pura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             empujar(r, ".length)");
             return r;
         }
-        let v = como_vista(s, n.hijos[0], tipos);
+        let v = como_vista(b, s, n.hijos[0], tipos);
         if es_desconocido(vista(v)) { return no_se(); }
         var r = nuevo("sv_len_of(");
         empujar(r, vista(v));
@@ -584,7 +584,7 @@ fn interna_pura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 
     if igual(nombre, "nuevo") {
         if largo(n.hijos) != 1 { return no_se(); }
-        let v = como_vista(s, n.hijos[0], tipos);
+        let v = como_vista(b, s, n.hijos[0], tipos);
         if es_desconocido(vista(v)) { return no_se(); }
         var r = nuevo("ss_from_view(");
         empujar(r, vista(v));
@@ -600,36 +600,70 @@ fn interna_pura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 
     if igual(nombre, "igual") || igual(nombre, "menor") {
         if largo(n.hijos) != 2 { return no_se(); }
-        let a = como_vista(s, n.hijos[0], tipos);
-        let b = como_vista(s, n.hijos[1], tipos);
-        if es_desconocido(vista(a)) || es_desconocido(vista(b)) {
+        let uno = como_vista(b, s, n.hijos[0], tipos);
+        let dos = como_vista(b, s, n.hijos[1], tipos);
+        if es_desconocido(vista(uno)) || es_desconocido(vista(dos)) {
             return no_se();
         }
         var r = nuevo("sv_equals(");
         if igual(nombre, "menor") { r = nuevo("(sv_cmp("); }
-        empujar(r, vista(a));
+        empujar(r, vista(uno));
         empujar(r, ", ");
-        empujar(r, vista(b));
+        empujar(r, vista(dos));
         if igual(nombre, "menor") { empujar(r, ") < 0)"); }
         else { empujar(r, ")"); }
         return r;
     }
 
+    // `byte(v, i)` no cabe en una sola expresion de C: hay que guardar la
+    // vista en un temporal y luego indexarla, porque si no se calcularia dos
+    // veces —una para el elemento y otra para el largo— y `byte(f(), 0)`
+    // llamaria a `f` dos veces. Es la primera interna que necesita emitir
+    // una linea propia, y por eso esta capa recibe el cuerpo.
+    if igual(nombre, "byte") {
+        if largo(n.hijos) != 2 { return no_se(); }
+        let v = como_vista(b, s, n.hijos[0], tipos);
+        let i = expresion_c(b, s, n.hijos[1], "usize", tipos);
+        if es_desconocido(vista(v)) || es_desconocido(vista(i)) {
+            return no_se();
+        }
+        let tmp = nuevo_temporal(b);
+        var l = nuevo("SafeView ");
+        empujar(l, vista(tmp));
+        empujar(l, " = ");
+        empujar(l, vista(v));
+        empujar(l, ";");
+        emitir(b, vista(l));
+
+        var r = nuevo("((size_t)(unsigned char)");
+        empujar(r, vista(tmp));
+        empujar(r, ".ptr[ss_lang_indice_(");
+        empujar(r, vista(i));
+        empujar(r, ", ");
+        empujar(r, vista(tmp));
+        empujar(r, ".len, \"");
+        empujar(r, vista(s.archivo));
+        empujar(r, "\", ");
+        empujar(r, texto(n.linea));
+        empujar(r, ")])");
+        return r;
+    }
+
     if igual(nombre, "rebanar") {
         if largo(n.hijos) != 3 { return no_se(); }
-        let v = como_vista(s, n.hijos[0], tipos);
-        let a = expresion_c(s, n.hijos[1], "usize", tipos);
-        let b = expresion_c(s, n.hijos[2], "usize", tipos);
-        if es_desconocido(vista(v)) || es_desconocido(vista(a))
-        || es_desconocido(vista(b)) {
+        let v = como_vista(b, s, n.hijos[0], tipos);
+        let desde = expresion_c(b, s, n.hijos[1], "usize", tipos);
+        let hasta = expresion_c(b, s, n.hijos[2], "usize", tipos);
+        if es_desconocido(vista(v)) || es_desconocido(vista(desde))
+        || es_desconocido(vista(hasta)) {
             return no_se();
         }
         var r = nuevo("sv_slice(");
         empujar(r, vista(v));
         empujar(r, ", ");
-        empujar(r, vista(a));
+        empujar(r, vista(desde));
         empujar(r, ", ");
-        empujar(r, vista(b));
+        empujar(r, vista(hasta));
         empujar(r, ")");
         return r;
     }
@@ -640,7 +674,7 @@ fn interna_pura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 // La direccion de un sitio con nombre: `&x`, `&p.campo`, `&v.e[i]`. Prestar
 // algo recien hecho pediria un temporal del que tomar la direccion, y ese
 // temporal habria que soltarlo al acabar la sentencia: otra capa.
-fn direccion_del_sitio(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+fn direccion_del_sitio(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let clase = vista(n.clase);
     if igual(clase, "variable") {
         // Un `&T` ya ES la direccion: pedirsela otra vez sobra.
@@ -650,7 +684,7 @@ fn direccion_del_sitio(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         return r;
     }
     if igual(clase, "campo") || igual(clase, "indice") {
-        let donde = expresion_c(s, n, "", tipos);
+        let donde = expresion_c(b, s, n, "", tipos);
         if es_desconocido(vista(donde)) { return no_se(); }
         var r = nuevo("&");
         empujar(r, vista(donde));
@@ -670,7 +704,7 @@ fn direccion_de(s: &Sitio, nombre: view, envoltura: view) -> str {
 
 // Un argumento donde se pide una vista: un `view` va tal cual, un `str` se
 // presta, y un literal es su propia vista.
-fn como_vista(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if igual(vista(n.clase), "cadena") {
         var r = nuevo("sv_len(");
         empujar(r, literal_c(vista(n.texto)));
@@ -684,7 +718,7 @@ fn como_vista(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         if !igual(vista(n.clase), "variable") { return no_se(); }
         return direccion_de(s, vista(n.texto), "ss_view(");
     }
-    if igual(vista(t), "view") { return expresion_c(s, n, "view", tipos); }
+    if igual(vista(t), "view") { return expresion_c(b, s, n, "view", tipos); }
     return no_se();
 }
 
@@ -711,9 +745,9 @@ fn cuantos_bytes(t: view) -> usize {
     return largo(t);
 }
 
-fn llamada_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let nombre = vista(n.texto);
-    let pura = interna_pura(s, n, tipos);
+    let pura = interna_pura(b, s, n, tipos);
     if !es_desconocido(vista(pura)) { return pura; }
     if es_interna(nombre) { return no_se(); }
     if !tiene(tipos.retornos, nombre) { return no_se(); }
@@ -740,7 +774,7 @@ fn llamada_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             presta_el = empieza_con(m, "&") || empieza_con(m, "mut ");
         }
         if presta_el {
-            let dir = direccion_del_sitio(s, h, tipos);
+            let dir = direccion_del_sitio(b, s, h, tipos);
             if es_desconocido(vista(dir)) { return no_se(); }
             empujar(v, vista(dir));
             i = i + 1;
@@ -752,7 +786,7 @@ fn llamada_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         if !presta_el && entrega_variable(s, h, tipos) {
             if !tiene(s.pide_bandera, vista(h.texto)) { return no_se(); }
         }
-        let arg = expresion_c(s, h, vista(esperado), tipos);
+        let arg = expresion_c(b, s, h, vista(esperado), tipos);
         if es_desconocido(vista(arg)) { return no_se(); }
         empujar(v, vista(arg));
         i = i + 1;
@@ -997,6 +1031,18 @@ fn cerrar_bloque(b: mut Cuerpo, s: &Sitio) {
     quitar_ultimo_bloque(b);
 }
 
+// Deja el cuerpo como estaba en `hasta` lineas. Lo usa el `while` cuya
+// condicion hay que rehacer dentro del bucle.
+fn recortar_lineas(b: mut Cuerpo, hasta: usize) {
+    var quedan: lista<str> = [];
+    var i = 0;
+    while i < hasta {
+        anadir(quedan, copiar(b.lineas[i]));
+        i = i + 1;
+    }
+    b.lineas = quedan;
+}
+
 fn quitar_ultimo_bloque(b: mut Cuerpo) {
     var quedan: lista<lista<str>> = [];
     var i = 0;
@@ -1204,7 +1250,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
                 emitir(b, vista(l));
                 valor = copiar(tmp);
             } else {
-                valor = expresion_c(s, n.hijos[0], vista(tipo), tipos);
+                valor = expresion_c(b, s, n.hijos[0], vista(tipo), tipos);
             }
         }
         if es_desconocido(vista(valor)) { return false; }
@@ -1244,7 +1290,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         if !tiene(tipos.retornos, quien) { return false; }
         let devuelve = nuevo(obtener(tipos.retornos, quien) sino "?");
         if largo(vista(devuelve)) > 0 { return false; }
-        let hecha = llamada_c(s, n.hijos[0], tipos);
+        let hecha = llamada_c(b, s, n.hijos[0], tipos);
         if es_desconocido(vista(hecha)) { return false; }
         var l = copiar(hecha);
         empujar(l, ";");
@@ -1284,7 +1330,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         if igual(vista(n.hijos[0].clase), "variable") {
             let quien = vista(n.hijos[0].texto);
             liberar_todo(b, s, quien);
-            let c = expresion_c(s, n.hijos[0], retorno, tipos);
+            let c = expresion_c(b, s, n.hijos[0], retorno, tipos);
             var r = nuevo("return ");
             if falible {
                 empujar(r, "(");
@@ -1300,7 +1346,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             return true;
         }
 
-        let valor = expresion_c(s, n.hijos[0], retorno, tipos);
+        let valor = expresion_c(b, s, n.hijos[0], retorno, tipos);
         if es_desconocido(vista(valor)) { return false; }
         // El valor se guarda antes de soltar nada: puede leer justo lo que
         // se va a liberar.
@@ -1342,7 +1388,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     if igual(clase, "si") {
         if largo(n.hijos) < 2 { return false; }
         if mueve_algo(s, n.hijos[0], tipos) { return false; }
-        let cond = expresion_c(s, n.hijos[0], "bool", tipos);
+        let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
         if es_desconocido(vista(cond)) { return false; }
         var l = nuevo("if (");
         empujar(l, vista(cond));
@@ -1363,13 +1409,55 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     if igual(clase, "mientras") {
         if largo(n.hijos) != 2 { return false; }
         if mueve_algo(s, n.hijos[0], tipos) { return false; }
-        let cond = expresion_c(s, n.hijos[0], "bool", tipos);
+
+        // Casi toda condicion sale entera en una expresion de C y va donde
+        // va. Pero alguna necesita lineas propias —`byte` guarda la vista en
+        // un temporal antes de indexarla— y esas lineas tienen que correr en
+        // CADA vuelta: dejarlas fuera del bucle seria mirar, en la segunda,
+        // algo calculado antes de que el cuerpo lo cambiara.
+        let marca = largo(b.lineas);
+        let temporal_antes = b.temporal;
+        let bucle_antes = b.bucle;
+        let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
         if es_desconocido(vista(cond)) { return false; }
-        var l = nuevo("while (");
-        empujar(l, vista(cond));
-        empujar(l, ")");
-        emitir(b, vista(l));
-        return bloque_c(b, s, n.hijos[1], tipos, retorno, falible);
+        if largo(b.lineas) == marca {
+            var l = nuevo("while (");
+            empujar(l, vista(cond));
+            empujar(l, ")");
+            emitir(b, vista(l));
+            return bloque_c(b, s, n.hijos[1], tipos, retorno, falible);
+        }
+
+        // Dejo lineas: se deshace y se rehace dentro.
+        recortar_lineas(b, marca);
+        b.temporal = temporal_antes;
+        b.bucle = bucle_antes;
+        emitir(b, "while (true)");
+        emitir(b, "{");
+        b.sangria = b.sangria + 1;
+        abrir_bloque(b);
+        I.abrir(tipos);
+        let dentro = expresion_c(b, s, n.hijos[0], "bool", tipos);
+        if es_desconocido(vista(dentro)) { return false; }
+        var g = nuevo("if (!(");
+        empujar(g, vista(dentro));
+        empujar(g, "))");
+        emitir(b, vista(g));
+        emitir(b, "{");
+        b.sangria = b.sangria + 1;
+        emitir(b, "break;");
+        b.sangria = b.sangria - 1;
+        emitir(b, "}");
+        var bien = true;
+        for st en n.hijos[1].hijos {
+            if bien { bien = sentencia_c(b, s, st, tipos, retorno, falible); }
+        }
+        if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s); }
+        else { quitar_ultimo_bloque(b); }
+        I.cerrar(tipos);
+        b.sangria = b.sangria - 1;
+        emitir(b, "}");
+        return bien;
     }
 
     if igual(clase, "asignacion") {
@@ -1377,9 +1465,9 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         if !igual(vista(n.hijos[0].clase), "variable") { return false; }
         let nombre = vista(n.hijos[0].texto);
         let tipo = I.buscar(tipos, nombre);
-        let valor = expresion_c(s, n.hijos[1], vista(tipo), tipos);
+        let valor = expresion_c(b, s, n.hijos[1], vista(tipo), tipos);
         if es_desconocido(vista(valor)) { return false; }
-        let destino = expresion_c(s, n.hijos[0], vista(tipo), tipos);
+        let destino = expresion_c(b, s, n.hijos[0], vista(tipo), tipos);
         if es_desconocido(vista(destino)) { return false; }
 
         // Asignar a algo con duenio pide soltar lo viejo. Solo lo que
@@ -1454,7 +1542,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         let suyo = I.tipo_de(tipos, n.hijos[0]);
         let sobre = T.apuntado_si(vista(suyo));
         if !T.es_lista(vista(sobre)) { return false; }
-        let lugar = expresion_c(s, n.hijos[0], vista(sobre), tipos);
+        let lugar = expresion_c(b, s, n.hijos[0], vista(sobre), tipos);
         if es_desconocido(vista(lugar)) { return false; }
 
         b.bucle = b.bucle + 1;
@@ -1587,7 +1675,7 @@ fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
     if !tiene(tipos.retornos, llamado) { return no_se(); }
     let suyo = nuevo(obtener(tipos.retornos, llamado) sino "");
 
-    let c = llamada_c(s, n.hijos[0], tipos);
+    let c = llamada_c(b, s, n.hijos[0], tipos);
     if es_desconocido(vista(c)) { return no_se(); }
 
     let tmp = nuevo_temporal(b);
@@ -1634,7 +1722,7 @@ fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     if entrega_variable(s, n.hijos[1], tipos) {
         if !tiene(s.pide_bandera, vista(n.hijos[1].texto)) { return false; }
     }
-    let valor = expresion_c(s, n.hijos[1], vista(elem), tipos);
+    let valor = expresion_c(b, s, n.hijos[1], vista(elem), tipos);
     if es_desconocido(vista(valor)) { return false; }
 
     var l = nuevo("ss_push_");

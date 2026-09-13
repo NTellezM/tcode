@@ -1762,6 +1762,22 @@ class Generador:
                 and self.c.posee(tipo):
             self.emitir(f"ss_drop_{tipo}(&{expr_c});")
 
+    @staticmethod
+    def _se_llama_a_si_misma(valor, nombre):
+        """Si la expresion llama a una funcion que se llama como la variable
+        que se esta declarando."""
+        from dataclasses import fields, is_dataclass
+        pendientes = [valor]
+        while pendientes:
+            x = pendientes.pop()
+            if isinstance(x, Llamada) and x.nombre == nombre:
+                return True
+            if isinstance(x, (list, tuple)):
+                pendientes.extend(x)
+            elif is_dataclass(x):
+                pendientes.extend(getattr(x, f.name) for f in fields(x))
+        return False
+
     def match_c(self, e, destino=None):
         """El `switch` de un `match`.
 
@@ -1986,6 +2002,15 @@ class Generador:
             # de gcc apuntaria a este C, que el usuario no escribio.
             valor_c = self.expr(s.valor, s.tipo)
             self.reclamar(valor_c)      # la variable se queda con el temporal
+            # En C una variable ya esta en ambito DENTRO de su propio
+            # inicializador, asi que `var cuerpo = cuerpo();` se leeria como
+            # llamar a la variable, no a la funcion. En Tcode son cosas
+            # distintas y el programa es correcto: se calcula antes.
+            if self._se_llama_a_si_misma(s.valor, s.nombre):
+                previo = self.nuevo_tmp()
+                self.emitir(f"{tc} {previo} = {valor_c};")
+                self.declarar(previo, s.tipo)
+                valor_c = previo
             self.emitir(f"SS_LANG_QUIZA_SIN_USAR {tc} {s.nombre} = {valor_c};")
             self.declarar(s.nombre, s.tipo, decl=s)
             if self.c.posee(s.tipo):
