@@ -171,6 +171,13 @@ class Generador:
         # Profundidad de la pila de bloques donde empieza el bucle actual:
         # `break` y `continue` tienen que liberar desde ahi hacia dentro.
         self.bucles = []
+        # Los temporales de las sentencias que envuelven a la actual, de fuera
+        # hacia dentro. Una salida temprana tiene que soltarlos todos: la
+        # limpieza de fin de cada una se emite despues y no se alcanza.
+        self.temporales_fuera = []
+        # Cuantos habia al abrir cada bucle: `break` y `continue` sueltan solo
+        # los de las sentencias de dentro del bucle, no los del propio bucle.
+        self.bucles_tmp = []
 
     # ---------- utilidades ----------
 
@@ -1596,6 +1603,12 @@ class Generador:
         """
         for t in self.temporales:
             self.liberacion(t, self.tipo_var(t) or "str")
+        # Y los de las sentencias que la envuelven: en `if largo(claves(m)) >
+        # 0 { return 1; }` la lista de `claves` es de la condicion del `if`,
+        # no del `return`, y sin esto se escapaba por ese camino.
+        for lista in reversed(self.temporales_fuera):
+            for t in lista:
+                self.liberacion(t, self.tipo_var(t) or "str")
         for marco in reversed(self.pila):
             self.liberar_bloque(marco, excepto)
 
@@ -1694,6 +1707,7 @@ class Generador:
     def sentencia(self, s):
         self.marcar(s)
         anteriores = self.temporales
+        self.temporales_fuera.append(anteriores)
         self.temporales = []
         with self.camino():
             self._sentencia(s)
@@ -1702,6 +1716,7 @@ class Generador:
             # segun lo que sea, no siempre con `ss_free`.
             self.liberacion(t, self.tipo_var(t) or "str")
         self.temporales = anteriores
+        self.temporales_fuera.pop()
 
     def _sentencia(self, s):
         if isinstance(s, Declaracion):
@@ -1812,6 +1827,7 @@ class Generador:
             self.pila.append([])
             self.vars.append({})
             self.bucles.append(len(self.pila))
+            self.bucles_tmp.append(len(self.temporales_fuera))
 
             # El elemento se presta, no se copia: un `str` copiado tendria dos
             # duenios. Los escalares van por valor porque no hay nada que
@@ -1843,6 +1859,7 @@ class Generador:
             if not self._termina_en_retorno(s.cuerpo):
                 self.liberar_bloque(self.pila[-1])
             self.bucles.pop()
+            self.bucles_tmp.pop()
             self.pila.pop()
             self.vars.pop()
             self.sangria -= 1
@@ -1853,6 +1870,15 @@ class Generador:
             # Salir del bucle salta el cierre de los bloques de dentro, asi
             # que hay que liberarlos aqui. Los de fuera siguen vivos.
             self._apagar_ahora()
+            # Los temporales de las sentencias de dentro del bucle —la
+            # condicion de un `if` que contiene el `break`— no llegan a su
+            # limpieza de fin. Los del propio bucle si: siguen haciendo falta.
+            for t in self.temporales:
+                self.liberacion(t, self.tipo_var(t) or "str")
+            if self.bucles_tmp:
+                for lista in reversed(self.temporales_fuera[self.bucles_tmp[-1] + 1:]):
+                    for t in lista:
+                        self.liberacion(t, self.tipo_var(t) or "str")
             desde = self.bucles[-1] - 1 if self.bucles else 0
             for marco in reversed(self.pila[desde:]):
                 self.liberar_bloque(marco)
@@ -1861,6 +1887,7 @@ class Generador:
 
         if isinstance(s, Mientras):
             self.bucles.append(len(self.pila) + 1)
+            self.bucles_tmp.append(len(self.temporales_fuera))
             # Casi todas las condiciones salen enteras en una expresion de C
             # y van donde van. Pero algunas necesitan lineas propias —`byte`
             # guarda la vista en un temporal antes de indexarla— y esas
@@ -1876,6 +1903,7 @@ class Generador:
                 self.emitir(f"while ({cond})")
                 self.bloque(s.cuerpo)
                 self.bucles.pop()
+                self.bucles_tmp.pop()
                 return
 
             # La condicion dejo lineas: se deshace y se rehace dentro.
@@ -1887,7 +1915,23 @@ class Generador:
             self.sangria += 1
             self.pila.append([])
             self.vars.append({})
+            # Cuantos habia antes de rehacer la condicion. Un numero, no la
+            # lista: `temporales_antes` acaba de pasar a ser la lista viva, y
+            # su largo crece con ella.
+            base = len(self.temporales)
             cond = self.expr(s.cond, "bool")
+            # Si la condicion dejo temporales con duenio, se sueltan en cada
+            # vuelta, antes de decidir: dejarlos para el final de la
+            # sentencia los liberaria fuera del bucle, donde ya no existen, y
+            # se escaparia uno por vuelta.
+            nuevos = self.temporales[base:]
+            if nuevos:
+                vale = self.nuevo_tmp()
+                self.emitir(f"bool {vale} = {cond};")
+                for t in nuevos:
+                    self.liberacion(t, self.tipo_var(t) or "str")
+                del self.temporales[base:]
+                cond = vale
             self.emitir(f"if (!({cond}))")
             self.emitir("{")
             self.sangria += 1
@@ -1903,6 +1947,7 @@ class Generador:
             self.sangria -= 1
             self.emitir("}")
             self.bucles.pop()
+            self.bucles_tmp.pop()
             return
 
         if isinstance(s, Falla):

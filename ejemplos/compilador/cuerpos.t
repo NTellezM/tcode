@@ -26,7 +26,9 @@ fn main() -> usize ! {
     for d en arbol.hijos {
         if igual(vista(d.clase), "fn") && !F.es_generica(d)
         && !igual(vista(d.texto), "main") {
-            let lineas = F.generar_funcion(d, tipos, ruta);
+            // Cada funcion de cero: el oraculo renumera los contadores.
+            var cta = F.cuenta_nueva();
+            let lineas = F.generar_funcion(d, tipos, ruta, cta);
             if largo(lineas) > 0 {
                 // Un separador a principio de linea, para que quien compare
                 // sepa donde empieza cada funcion.

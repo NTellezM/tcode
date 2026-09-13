@@ -228,6 +228,21 @@ fn prefijo_de(ruta: view) -> str {
     return r;
 }
 
+// Lo que el generador cuenta para el archivo entero y no por funcion: los
+// temporales, los indices de bucle y la ultima linea marcada siguen contando
+// de una funcion a la siguiente, tambien entre modulos. Quien compara
+// funcion a funcion empieza cada una de cero; quien escribe el archivo
+// entero pasa la misma de una a otra.
+struct Cuenta {
+    temporal: usize,
+    bucle: usize,
+    ultima_linea: usize,
+}
+
+fn cuenta_nueva() -> Cuenta {
+    return Cuenta { temporal: 0, bucle: 0, ultima_linea: 0 };
+}
+
 // Lee y analiza un archivo, y deja en `tipos` todo lo que hace falta saber
 // para generarlo: sus firmas, las de los modulos que usa y los nombres que
 // el cargador renombra. Devuelve el arbol.
@@ -269,7 +284,8 @@ fn preparar(ruta: view, tipos: mut I.Contexto) -> P.Nodo ! {
 // si es `main` falible, el envoltorio que informa del fallo al salir. Vacia
 // si esta capa no la sabe generar entera: media funcion no vale nada, y la
 // razon va por la salida de error.
-fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) -> lista<str> {
+fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
+    cta: mut Cuenta) -> lista<str> {
     let ninguna: lista<str> = [];
     var puntos: mapa<str, usize> = [];
     var de_tipo: mapa<str, str> = [];
@@ -315,6 +331,8 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) -> lista<str> 
         punteros: puntos, pide_bandera: banderas,
         retorno: copiar(retorno) };
     var b = G.cuerpo();
+    b.temporal = cta.temporal;
+    b.bucle = cta.bucle;
     // La directiva de la funcion va antes de la firma; aqui solo hay que
     // saber que ya esta puesta, para no repetirla si la primera sentencia
     // esta en la misma linea.
@@ -390,7 +408,10 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) -> lista<str> 
         nombre_c = nuevo(obtener(tipos.renombradas, vista(d.texto)) sino "");
     }
     var salida: lista<str> = [];
-    anadir(salida, $"#line {d.linea} \"{ruta}\"");
+    // La directiva de la funcion, salvo que la ultima marcada ya fuera esa.
+    if cta.ultima_linea != d.linea {
+        anadir(salida, $"#line {d.linea} \"{ruta}\"");
+    }
     anadir(salida, G.prototipo(vista(nombre_c), tipos_param, marcas,
             vista(retorno), falible));
     anadir(salida, nuevo("{"));
@@ -419,5 +440,8 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) -> lista<str> 
         }
         anadir(salida, nuevo("}"));
     }
+    cta.temporal = b.temporal;
+    cta.bucle = b.bucle;
+    cta.ultima_linea = b.ultima_linea;
     return salida;
 }

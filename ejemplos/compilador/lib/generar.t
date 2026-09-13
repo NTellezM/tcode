@@ -1395,10 +1395,10 @@ fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         }
         // Un `str` recien hecho no tiene sitio del que tomar la direccion:
         // se guarda en un temporal, que se suelta al acabar la sentencia.
+        let tmp = nuevo_temporal(b);
         let valor = expresion_c(b, s, n, "str", tipos);
         if es_desconocido(vista(valor)) { return no_se(); }
         reclamar(b, vista(valor));
-        let tmp = nuevo_temporal(b);
         var l = nuevo("SafeString ");
         empujar(l, vista(tmp));
         empujar(l, " = ");
@@ -1815,10 +1815,17 @@ struct Cuerpo {
     // final de la sentencia, y se suelta ahi. Van como `nombre: tipo`, igual
     // que los bloques.
     temporales: lista<str>,
+    // Los temporales de las sentencias que envuelven a la actual, de fuera
+    // hacia dentro. Una salida temprana tiene que soltarlos todos: la
+    // limpieza de fin de cada una se emite despues y no se alcanza.
+    fuera: lista<lista<str>>,
     // Cuantos bloques habia abiertos al empezar el bucle mas de dentro.
     // Salir de un bucle salta el cierre de los bloques de dentro, asi que
     // hay que soltarlos a mano; los de fuera siguen vivos.
     bucles: lista<usize>,
+    // Cuantas listas de `fuera` habia al abrir cada bucle: `break` y
+    // `continue` sueltan solo las de las sentencias de dentro del bucle.
+    bucles_t: lista<usize>,
     // La primera sentencia que esta capa no supo hacer, y de que clase era.
     // No cambia nada de lo que se emite: sirve para poder decir que falta
     // sin tener que adivinarlo contando nodos.
@@ -1848,7 +1855,7 @@ fn nombre_de_bucle(n: usize) -> str {
 
 fn cuerpo() -> Cuerpo {
     return Cuerpo { lineas: [], bloques: [], claves: [], sangria: 1, temporal: 0,
-        ultima_linea: 0, bucle: 0, bucles: [], temporales: [],
+        ultima_linea: 0, bucle: 0, bucles: [], temporales: [], fuera: [], bucles_t: [],
         fallo_linea: 0, fallo_clase: vacio() };
 }
 
@@ -2012,6 +2019,13 @@ fn quitar_ultimo_bucle(b: mut Cuerpo) {
         i = i + 1;
     }
     b.bucles = quedan;
+    var quedan_t: lista<usize> = [];
+    var j = 0;
+    while j + 1 < largo(b.bucles_t) {
+        anadir(quedan_t, b.bucles_t[j]);
+        j = j + 1;
+    }
+    b.bucles_t = quedan_t;
 }
 
 fn quitar_ultimo_bloque(b: mut Cuerpo) {
@@ -2039,11 +2053,42 @@ fn liberar_todo(b: mut Cuerpo, s: &Sitio, tipos: &I.Contexto,
     // dejaria el `str` de `rellenar` sin soltar, porque la limpieza de fin
     // de sentencia se emite DESPUES del `return` y no se ejecuta nunca.
     soltar_temporales(b, tipos);
+    // Y los de las sentencias que la envuelven: en `if largo(claves(m)) > 0
+    // { return 1; }` la lista de `claves` es de la condicion del `if`, no del
+    // `return`, y sin esto se escapaba por ese camino.
+    soltar_fuera_desde(b, tipos, 0);
     var i = largo(b.bloques);
     while i > 0 {
         i = i - 1;
         liberar_uno(b, s, tipos, i, excepto);
     }
+}
+
+// Las listas de `fuera` desde `desde`, de dentro hacia fuera. Se sueltan
+// sin quitarlas: el camino que no sale tiene que soltarlas igual al acabar
+// cada sentencia.
+fn soltar_fuera_desde(b: mut Cuerpo, tipos: &I.Contexto, desde: usize) {
+    var k = largo(b.fuera);
+    while k > desde {
+        k = k - 1;
+        let copia = copiar(b.fuera[k]);
+        for entrada en copia {
+            let n = antes_de_dos_puntos(vista(entrada));
+            let t = despues_de_dos_puntos(vista(entrada));
+            liberacion(b, tipos, vista(n), vista(t));
+        }
+    }
+}
+
+fn quitar_ultima_fuera(b: mut Cuerpo) {
+    if largo(b.fuera) == 0 { return; }
+    var quedan: lista<lista<str>> = [];
+    var i = 0;
+    while i + 1 < largo(b.fuera) {
+        anadir(quedan, copiar(b.fuera[i]));
+        i = i + 1;
+    }
+    b.fuera = quedan;
 }
 
 fn liberar_uno(b: mut Cuerpo, s: &Sitio, tipos: &I.Contexto,
@@ -2282,12 +2327,16 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
     var antes: lista<str> = [];
     for t en b.temporales { anadir(antes, copiar(t)); }
+    var de_fuera: lista<str> = [];
+    for t en antes { anadir(de_fuera, copiar(t)); }
+    anadir(b.fuera, de_fuera);
     let vacia: lista<str> = [];
     b.temporales = vacia;
 
     let bien = una_sentencia(b, s, n, tipos, retorno, falible);
     if bien { soltar_temporales(b, tipos); }
     b.temporales = antes;
+    quitar_ultima_fuera(b);
     return bien;
 }
 
@@ -2554,6 +2603,8 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         let marca = largo(b.lineas);
         let temporal_antes = b.temporal;
         let bucle_antes = b.bucle;
+        var temporales_antes: lista<str> = [];
+        for t en b.temporales { anadir(temporales_antes, copiar(t)); }
         let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
         if es_desconocido(vista(cond)) { return false; }
         if largo(b.lineas) == marca {
@@ -2562,6 +2613,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             empujar(l, ")");
             emitir(b, vista(l));
             anadir(b.bucles, largo(b.bloques));
+            anadir(b.bucles_t, largo(b.fuera));
             let salio = bloque_c(b, s, n.hijos[1], tipos, retorno, falible);
             quitar_ultimo_bucle(b);
             return salio;
@@ -2571,14 +2623,46 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         recortar_lineas(b, marca);
         b.temporal = temporal_antes;
         b.bucle = bucle_antes;
+        b.temporales = temporales_antes;
         emitir(b, "while (true)");
         emitir(b, "{");
         b.sangria = b.sangria + 1;
         abrir_bloque(b);
         anadir(b.bucles, largo(b.bloques) - 1);
+        anadir(b.bucles_t, largo(b.fuera));
         I.abrir(tipos);
-        let dentro = expresion_c(b, s, n.hijos[0], "bool", tipos);
+        let base = largo(b.temporales);
+        var dentro = expresion_c(b, s, n.hijos[0], "bool", tipos);
         if es_desconocido(vista(dentro)) { return false; }
+        // Si la condicion dejo temporales con duenio, se sueltan en cada
+        // vuelta, antes de decidir: dejarlos para el final de la sentencia
+        // los liberaria fuera del bucle, donde ya no existen, y se escaparia
+        // uno por vuelta.
+        if largo(b.temporales) > base {
+            let vale = nuevo_temporal(b);
+            var cap = nuevo("bool ");
+            empujar(cap, vista(vale));
+            empujar(cap, " = ");
+            empujar(cap, vista(dentro));
+            empujar(cap, ";");
+            emitir(b, vista(cap));
+            var k = base;
+            while k < largo(b.temporales) {
+                let entrada = copiar(b.temporales[k]);
+                let nt = antes_de_dos_puntos(vista(entrada));
+                let tt = despues_de_dos_puntos(vista(entrada));
+                liberacion(b, tipos, vista(nt), vista(tt));
+                k = k + 1;
+            }
+            var quedan: lista<str> = [];
+            var q = 0;
+            while q < base {
+                anadir(quedan, copiar(b.temporales[q]));
+                q = q + 1;
+            }
+            b.temporales = quedan;
+            dentro = copiar(vale);
+        }
         var g = nuevo("if (!(");
         empujar(g, vista(dentro));
         empujar(g, "))");
@@ -2752,6 +2836,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         }
         abrir_bloque(b);
         anadir(b.bucles, largo(b.bloques) - 1);
+        anadir(b.bucles_t, largo(b.fuera));
         I.abrir(tipos);
 
         // El elemento se presta, no se copia: un `str` copiado tendria dos
@@ -2827,6 +2912,13 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     }
 
     if igual(clase, "romper") || igual(clase, "continuar") {
+        // Los temporales de las sentencias de dentro del bucle —la condicion
+        // de un `if` que contiene el `break`— no llegan a su limpieza de fin.
+        // Los del propio bucle si: siguen haciendo falta.
+        soltar_temporales(b, tipos);
+        if largo(b.bucles_t) > 0 {
+            soltar_fuera_desde(b, tipos, b.bucles_t[largo(b.bucles_t) - 1] + 1);
+        }
         // Lo que nacio dentro del bucle no lo cierra nadie si se sale por
         // aqui: se suelta ahora, de dentro hacia fuera.
         var desde = 0;
@@ -2930,10 +3022,12 @@ fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         return no_se();
     }
 
+    // El temporal se reserva antes de generar la llamada, como el original:
+    // la llamada puede reservar los suyos, y el orden decide los numeros.
+    let tmp = nuevo_temporal(b);
     let c = llamada_c(b, s, n.hijos[0], tipos);
     if es_desconocido(vista(c)) { return no_se(); }
 
-    let tmp = nuevo_temporal(b);
     var l = nuevo(tipo_resultado(vista(suyo)));
     empujar(l, " ");
     empujar(l, vista(tmp));
@@ -2974,10 +3068,12 @@ fn sino_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let suyo = tipo_si_va_bien(n.hijos[0], tipos);
     if largo(vista(suyo)) == 0 { return no_se(); }
 
+    // El temporal se reserva antes de generar la llamada, como el original:
+    // la llamada puede reservar los suyos, y el orden decide los numeros.
+    let tmp = nuevo_temporal(b);
     let c = llamada_c(b, s, n.hijos[0], tipos);
     if es_desconocido(vista(c)) { return no_se(); }
 
-    let tmp = nuevo_temporal(b);
     var l = nuevo(tipo_resultado(vista(suyo)));
     empujar(l, " ");
     empujar(l, vista(tmp));
