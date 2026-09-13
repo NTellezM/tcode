@@ -66,6 +66,41 @@ fn es_generica(d: &P.Nodo) -> bool {
 }
 
 fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
+    // Los campos de cada struct: hacen falta para saber si un tipo posee
+    // memoria, y de eso depende si el elemento de un `for` se presta o se
+    // copia. Un struct de otro modulo se llama igual en C, asi que no lleva
+    // alias.
+    if igual(vista(n.clase), "struct") {
+        var suyos: lista<str> = [];
+        var como_se_llaman: lista<str> = [];
+        for h en n.hijos {
+            if igual(vista(h.clase), "campo_def") {
+                anadir(como_se_llaman, nombre_de(vista(h.texto)));
+                anadir(suyos, tipo_pelado(vista(h.texto)));
+            }
+        }
+        poner(c.campos, vista(n.texto), suyos);
+        poner(c.nombres, vista(n.texto), como_se_llaman);
+    }
+    if igual(vista(n.clase), "enum") {
+        var cuales: lista<str> = [];
+        for h en n.hijos {
+            if igual(vista(h.clase), "variante") {
+                anadir(cuales, nuevo(vista(h.texto)));
+                var lleva: lista<str> = [];
+                for x en h.hijos {
+                    if igual(vista(x.clase), "lleva") {
+                        anadir(lleva, nuevo(vista(x.texto)));
+                    }
+                }
+                var clave = nuevo(vista(n.texto));
+                empujar(clave, ".");
+                empujar(clave, vista(h.texto));
+                poner(c.formas, vista(clave), lleva);
+            }
+        }
+        poner(c.variantes, vista(n.texto), cuales);
+    }
     if igual(vista(n.clase), "fn") {
         var retorno = vacio();
         var es_de_c = false;
@@ -111,6 +146,24 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
 fn recoger_de_modulo(m: &P.Usado, c: mut I.Contexto) {
     var suyas = I.contexto();
     recoger_firmas(m.arbol, suyas);
+    // Los tipos de otro modulo se llaman igual en C: van tal cual.
+    for st en claves(suyas.campos) {
+        let cs = I.lista_de(suyas.campos, vista(st)) sino [];
+        poner(c.campos, vista(st), cs);
+        let ns = I.lista_de(suyas.nombres, vista(st)) sino [];
+        poner(c.nombres, vista(st), ns);
+    }
+    for en_ en claves(suyas.variantes) {
+        let vs = I.lista_de(suyas.variantes, vista(en_)) sino [];
+        for v en vs {
+            var clave = nuevo(vista(en_));
+            empujar(clave, ".");
+            empujar(clave, vista(v));
+            let lleva = I.lista_de(suyas.formas, vista(clave)) sino [];
+            poner(c.formas, vista(clave), lleva);
+        }
+        poner(c.variantes, vista(en_), vs);
+    }
     for nombre en claves(suyas.retornos) {
         if tiene(c.retornos, vista(nombre)) {
             poner(c.repetidas, vista(nombre), 1);

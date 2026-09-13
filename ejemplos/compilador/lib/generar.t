@@ -661,9 +661,10 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         if largo(n.hijos) != 1 { return no_se(); }
         let sobre = I.tipo_de(tipos, n.hijos[0]);
         if T.es_lista(vista(sobre)) {
-            if !igual(vista(n.hijos[0].clase), "variable") { return no_se(); }
+            let donde = sitio_c(b, s, n.hijos[0], tipos);
+            if es_desconocido(vista(donde)) { return no_se(); }
             var r = nuevo("(");
-            empujar(r, vista(n.hijos[0].texto));
+            empujar(r, vista(donde));
             empujar(r, ".length)");
             return r;
         }
@@ -687,8 +688,12 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
 
     if igual(nombre, "vista") {
         if largo(n.hijos) != 1 { return no_se(); }
-        if !igual(vista(n.hijos[0].clase), "variable") { return no_se(); }
-        return direccion_de(s, vista(n.hijos[0].texto), "ss_view(");
+        let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+        if es_desconocido(vista(donde)) { return no_se(); }
+        var r = nuevo("ss_view(");
+        empujar(r, vista(donde));
+        empujar(r, ")");
+        return r;
     }
 
     if igual(nombre, "igual") || igual(nombre, "menor") {
@@ -817,16 +822,78 @@ fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 
 // El literal de C con los mismos bytes. Aqui solo lo que no necesita
 // escaparse raro: si lleva algo mas, no se cubre.
-fn literal_c(t: view) -> str {
+// El lexer deja las cadenas crudas, con los escapes sin resolver: para el
+// analisis lexico da igual. Aqui no da igual, porque lo que se escribe en el
+// C son BYTES y lo que se cuenta son bytes. Asi que primero se descifra lo
+// que puso quien escribio, y luego se vuelve a escapar para C.
+fn desescapar(t: view) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < largo(t) {
+        let c = byte(t, i);
+        if c != 92 || i + 1 >= largo(t) {
+            empujar(r, rebanar(t, i, i + 1));
+            i = i + 1;
+            continue;
+        }
+        let d = byte(t, i + 1);
+        if d == 110 { empujar_byte(r, 10); i = i + 2; continue; }
+        if d == 116 { empujar_byte(r, 9); i = i + 2; continue; }
+        if d == 48 { empujar_byte(r, 0); i = i + 2; continue; }
+        if d == 120 {
+            // `\xNN`: un byte escrito en hexadecimal.
+            if i + 3 < largo(t) {
+                let alto = de_hex(byte(t, i + 2));
+                let bajo = de_hex(byte(t, i + 3));
+                if alto < 16 && bajo < 16 {
+                    empujar_byte(r, ((alto * 16) + bajo) como ? u8);
+                    i = i + 4;
+                    continue;
+                }
+            }
+        }
+        // `\\`, `\"`, `\{`, `\}`: el segundo tal cual.
+        empujar(r, rebanar(t, i + 1, i + 2));
+        i = i + 2;
+    }
+    return r;
+}
+
+fn de_hex(c: usize) -> usize {
+    if c >= 48 && c <= 57 { return c - 48; }
+    if c >= 97 && c <= 102 { return c - 97 + 10; }
+    if c >= 65 && c <= 70 { return c - 65 + 10; }
+    return 99;
+}
+
+// Un literal de C con los mismos BYTES, escapado. Lo que no sea imprimible
+// va en octal: asi un byte crudo no depende de como lo lea el compilador de
+// C ni de en que juego de caracteres este el archivo.
+fn literal_c(crudo: view) -> str {
+    let bytes = desescapar(crudo);
+    let t = vista(bytes);
     var r = nuevo("\"");
     var i = 0;
     while i < largo(t) {
-        let b = byte(t, i);
-        if b == 34 || b == 92 { return no_se(); }
-        if b == 10 { empujar(r, "\\n"); }
+        let c = byte(t, i);
+        if c == 92 { empujar(r, "\\\\"); }
         else {
-            if b == 9 { empujar(r, "\\t"); }
-            else { empujar(r, rebanar(t, i, i + 1)); }
+            if c == 34 { empujar(r, "\\\""); }
+            else {
+                if c == 10 { empujar(r, "\\n"); }
+                else {
+                    if c == 9 { empujar(r, "\\t"); }
+                    else {
+                        if c >= 32 && c < 127 {
+                            empujar(r, rebanar(t, i, i + 1));
+                        } else {
+                            let oct = en_octal(c);
+                            empujar(r, "\\");
+                            empujar(r, vista(oct));
+                        }
+                    }
+                }
+            }
         }
         i = i + 1;
     }
@@ -834,8 +901,28 @@ fn literal_c(t: view) -> str {
     return r;
 }
 
-fn cuantos_bytes(t: view) -> usize {
-    return largo(t);
+// Tres digitos siempre: `\1` seguido de un `2` seria `\12`, otro byte.
+fn en_octal(c: usize) -> str {
+    var r = vacio();
+    var d = 0;
+    while d < 3 {
+        let peso = potencia_ocho(2 - d);
+        let cifra = (c / peso) % 8;
+        empujar(r, texto(cifra));
+        d = d + 1;
+    }
+    return r;
+}
+
+fn potencia_ocho(n: usize) -> usize {
+    if n == 0 { return 1; }
+    if n == 1 { return 8; }
+    return 64;
+}
+
+fn cuantos_bytes(crudo: view) -> usize {
+    let t = desescapar(crudo);
+    return largo(vista(t));
 }
 
 fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
@@ -1390,6 +1477,10 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             apagar_las_de(b, s, n, tipos);
             return true;
         }
+        if empujar_c(b, s, n.hijos[0], tipos) {
+            apagar_las_de(b, s, n, tipos);
+            return true;
+        }
         // Una llamada suelta a una funcion que no devuelve nada. Si
         // devolviera algo con duenio habria que soltarlo aqui mismo, y eso
         // es otra capa: por ahora se descarta la funcion entera.
@@ -1574,9 +1665,17 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
 
     if igual(clase, "asignacion") {
         if largo(n.hijos) != 2 { return false; }
-        if !igual(vista(n.hijos[0].clase), "variable") { return false; }
-        let nombre = vista(n.hijos[0].texto);
-        let tipo = I.buscar(tipos, nombre);
+        let a_que = vista(n.hijos[0].clase);
+        if !igual(a_que, "variable") && !igual(a_que, "campo")
+        && !igual(a_que, "indice") {
+            return false;
+        }
+        // Solo una variable entera lleva bandera: un campo se apunta por su
+        // struct, y eso es otra capa.
+        var nombre = vacio();
+        if igual(a_que, "variable") { nombre = nuevo(vista(n.hijos[0].texto)); }
+        let tipo = I.tipo_de(tipos, n.hijos[0]);
+        if largo(tipo) == 0 { return false; }
         let valor = expresion_c(b, s, n.hijos[1], vista(tipo), tipos);
         if es_desconocido(vista(valor)) { return false; }
         let destino = expresion_c(b, s, n.hijos[0], vista(tipo), tipos);
@@ -1601,11 +1700,11 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             empujar(g, ";");
             emitir(b, vista(g));
 
-            if tiene(s.pide_bandera, nombre) {
+            if tiene(s.pide_bandera, vista(nombre)) {
                 // Si ya se lo llevaron, aqui no hay nada que devolver:
                 // soltarlo seria soltarlo dos veces.
                 var w = nuevo("if (ss_vivo_");
-                empujar(w, nombre);
+                empujar(w, vista(nombre));
                 empujar(w, ")");
                 emitir(b, vista(w));
                 emitir(b, "{");
@@ -1619,7 +1718,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
                 empujar(a, ";");
                 emitir(b, vista(a));
                 var enciende = nuevo("ss_vivo_");
-                empujar(enciende, nombre);
+                empujar(enciende, vista(nombre));
                 empujar(enciende, " = true;");
                 emitir(b, vista(enciende));
                 apagar_las_de(b, s, n, tipos);
@@ -1683,12 +1782,13 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // duenios. Los escalares van por valor, que no hay nada que duplicar.
         let elem = T.elemento(vista(sobre));
         let quien = vista(n.texto);
+        let elem_posee = I.posee_con_formas(tipos, vista(elem));
         var acceso = copiar(lugar);
         empujar(acceso, ".e[");
         empujar(acceso, vista(i));
         empujar(acceso, "]");
         var d = nuevo("SS_LANG_QUIZA_SIN_USAR ");
-        let presta = tiene_duenio(vista(elem));
+        let presta = elem_posee;
         if presta {
             empujar(d, "const ");
             empujar(d, tipo_c(vista(elem)));
@@ -1859,6 +1959,25 @@ fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     empujar(l, vista(s.archivo));
     empujar(l, "\", ");
     empujar(l, texto(n.linea));
+    empujar(l, ");");
+    emitir(b, vista(l));
+    return true;
+}
+
+// `empujar(s, v)`: pegar texto al final de un `str`. No mueve nada, porque
+// lo que se pega se copia: la vista de origen sigue siendo de quien era.
+fn empujar_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
+    if !igual(vista(n.clase), "llamada") { return false; }
+    if !igual(vista(n.texto), "empujar") { return false; }
+    if largo(n.hijos) != 2 { return false; }
+    let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(vista(donde)) { return false; }
+    let que = como_vista(b, s, n.hijos[1], tipos);
+    if es_desconocido(vista(que)) { return false; }
+    var l = nuevo("ss_append_view(");
+    empujar(l, vista(donde));
+    empujar(l, ", ");
+    empujar(l, vista(que));
     empujar(l, ");");
     emitir(b, vista(l));
     return true;
