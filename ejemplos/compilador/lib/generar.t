@@ -1143,6 +1143,64 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         return r;
     }
 
+    // `imprimir` va a la salida; `imprimir_error`, al diagnostico. Separarlos
+    // es lo que permite encauzar la salida de una herramienta sin que se le
+    // cuelen los mensajes de uso. El formato sale del tipo, que se sabe al
+    // compilar: no hay `%d` con un puntero que valga.
+    if igual(nombre, "imprimir") || igual(nombre, "imprimir_error") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        var r = nuevo("printf(");
+        if igual(nombre, "imprimir_error") { r = nuevo("fprintf(stderr, "); }
+        let t = I.tipo_de(tipos, n.hijos[0]);
+        let clase = vista(n.hijos[0].clase);
+        if igual(vista(t), "str") && (igual(clase, "variable")
+            || igual(clase, "campo") || igual(clase, "indice")) {
+            let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+            if es_desconocido(vista(donde)) { return no_se(); }
+            empujar(r, "\"%s\", ss_cstr(");
+            empujar(r, vista(donde));
+            empujar(r, "))");
+            return r;
+        }
+        if igual(vista(t), "str") || igual(vista(t), "view") {
+            let v = como_vista(b, s, n.hijos[0], tipos);
+            if es_desconocido(vista(v)) { return no_se(); }
+            empujar(r, "SV_FMT, SV_ARG(");
+            empujar(r, vista(v));
+            empujar(r, "))");
+            return r;
+        }
+        let valor = expresion_c(b, s, n.hijos[0], vista(t), tipos);
+        if es_desconocido(vista(valor)) { return no_se(); }
+        if igual(vista(t), "usize") {
+            empujar(r, "\"%zu\", ");
+        } else {
+            if igual(vista(t), "f32") || igual(vista(t), "f64") {
+                empujar(r, "\"%s\", ss_lang_texto_decimal_(");
+                empujar(r, vista(valor));
+                empujar(r, "))");
+                return r;
+            }
+            if igual(vista(t), "bool") {
+                empujar(r, "\"%s\", (");
+                empujar(r, vista(valor));
+                empujar(r, ") ? \"true\" : \"false\")");
+                return r;
+            }
+            if !es_entero(vista(t)) { return no_se(); }
+            // Un ancho fijo se ensancha al mayor para imprimirlo: un formato
+            // por signo y no nueve.
+            if empieza_con(vista(t), "u") {
+                empujar(r, "\"%llu\", (unsigned long long)");
+            } else {
+                empujar(r, "\"%lld\", (long long)");
+            }
+        }
+        empujar(r, vista(valor));
+        empujar(r, ")");
+        return r;
+    }
+
     // `texto(x)`: el `str` que representa un valor, con las mismas reglas
     // que un hueco de una cadena interpolada.
     if igual(nombre, "texto") {
@@ -1385,7 +1443,7 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         // Pasar una variable con duenio a algo que se la queda es moverla.
         // La bandera la apaga la sentencia; aqui basta con que exista.
         if !presta_el && entrega_variable(s, h, tipos) {
-            if !tiene(s.pide_bandera, vista(h.texto)) { return no_se(); }
+            if !lleva_bandera(b, s, vista(h.texto)) { return no_se(); }
         }
         let arg = expresion_c(b, s, h, vista(esperado), tipos);
         if es_desconocido(vista(arg)) { return no_se(); }
@@ -1409,8 +1467,10 @@ fn entrega_suelta(punteros: &mapa<str, usize>, n: &P.Nodo,
     if !igual(vista(n.clase), "variable") { return false; }
     if tiene(punteros, vista(n.texto)) { return false; }
     let t = I.tipo_de(tipos, n);
-    if igual(vista(t), "str") { return true; }
-    return T.es_lista(vista(t)) || T.es_mapa(vista(t)) || T.es_bloque(vista(t));
+    // Un struct que posee se mueve igual que un `str`: si solo se miraran
+    // las colecciones, pasar un `Nodo` a quien se lo queda no pediria
+    // bandera y se soltaria dos veces.
+    return I.posee_con_formas(tipos, vista(t));
 }
 
 // ------------------------------------------------------------------
@@ -1437,7 +1497,10 @@ fn entrega_suelta(punteros: &mapa<str, usize>, n: &P.Nodo,
 fn presta_argumento(tipos: &I.Contexto, nombre: view, i: usize) -> bool {
     // `anadir(xs, v)` y `poner(m, k, v)` prestan la coleccion y se quedan
     // con lo demas. Las otras internas cubiertas toman vistas o escalares.
-    if igual(nombre, "anadir") || igual(nombre, "poner") { return i == 0; }
+    if igual(nombre, "anadir") { return i == 0; }
+    // La clave se copia dentro de la tabla: se presta. Solo el valor se
+    // queda en el mapa.
+    if igual(nombre, "poner") { return i < 2; }
     if es_interna(nombre) { return true; }
     // Un parametro `view` mira el texto, no se lo queda.
     let firmados = I.lista_de(tipos.params, nombre) sino [];
@@ -1508,32 +1571,67 @@ fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
 // nadie a quien mentirle.
 fn movidas_hondo(punteros: &mapa<str, usize>, bloque: &P.Nodo,
     tipos: mut I.Contexto, salida: mut lista<str>) {
+    let ninguna: lista<str> = [];
+    movidas_hondo_en(punteros, bloque, tipos, salida, ninguna);
+}
+
+// `visibles` son las declaraciones que se ven desde aqui, como
+// `nombre@linea`. Cada bloque trabaja sobre su propia copia: lo que se
+// declara dentro no se ve fuera, y asi no hace falta deshacer nada.
+fn movidas_hondo_en(punteros: &mapa<str, usize>, bloque: &P.Nodo,
+    tipos: mut I.Contexto, salida: mut lista<str>, visibles: &lista<str>) {
+    var mias: lista<str> = [];
+    for x en visibles { anadir(mias, copiar(x)); }
     I.abrir(tipos);
     for st en bloque.hijos {
+        // Lo que entrega esta sentencia se mira ANTES de declarar lo que
+        // declara: `let y = x;` entrega la `x` de fuera.
+        var salen: lista<str> = [];
+        movidas_en(punteros, st, tipos, salen);
+        for nm en salen {
+            let k = visible_en(mias, vista(nm));
+            apuntar_movida(salida, vista(k));
+        }
         if igual(vista(st.clase), "declaracion") && largo(st.hijos) == 1 {
             let nombre = nombre_declarado(vista(st.texto));
             var tipo = tipo_escrito(vista(st.texto));
             if largo(tipo) == 0 { tipo = I.tipo_de(tipos, st.hijos[0]); }
-            movidas_en(punteros, st, tipos, salida);
             I.declarar(tipos, vista(nombre), vista(tipo));
-        } else {
-            movidas_en(punteros, st, tipos, salida);
+            anadir(mias, clave_de(vista(nombre), st.linea));
         }
         for h en st.hijos {
             if igual(vista(h.clase), "bloque") {
-                movidas_hondo(punteros, h, tipos, salida);
+                movidas_hondo_en(punteros, h, tipos, salida, mias);
             }
         }
     }
     I.cerrar(tipos);
 }
 
+fn visible_en(visibles: &lista<str>, nombre: view) -> str {
+    var i = largo(visibles);
+    while i > 0 {
+        i = i - 1;
+        let n = antes_de_arroba(vista(visibles[i]));
+        if igual(vista(n), nombre) { return copiar(visibles[i]); }
+    }
+    return clave_de(nombre, 0);
+}
+
 // Las que hablan con el sistema y pueden fallar. No llevan argumentos que
 // convertir, asi que su C es el nombre y ya.
-fn interna_del_sistema(_b: mut Cuerpo, _s: &Sitio, n: &P.Nodo,
-    _tipos: &I.Contexto) -> str {
+fn interna_del_sistema(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
     let nombre = vista(n.texto);
-    if igual(nombre, "leer_archivo") { return no_se(); }
+    if igual(nombre, "leer_archivo") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        let ruta = como_vista(b, s, n.hijos[0], tipos);
+        if es_desconocido(vista(ruta)) { return no_se(); }
+        var r = nuevo("ss_lang_leer_archivo_(");
+        empujar(r, vista(ruta));
+        empujar(r, ")");
+        return r;
+    }
     if largo(n.hijos) != 0 { return no_se(); }
     var r = nuevo("ss_lang_");
     empujar(r, nombre);
@@ -1573,6 +1671,11 @@ struct Cuerpo {
     // Lo declarado en cada bloque abierto: `nombre: tipo`, del mas de fuera
     // al mas de dentro.
     bloques: lista<lista<str>>,
+    // La misma forma que `bloques`, con `nombre@linea` de cada declaracion.
+    // Las banderas se deciden por declaracion y no por nombre: tres `r` en
+    // tres bloques son tres variables, y que una se entregue no dice nada
+    // de las otras dos.
+    claves: lista<lista<str>>,
     sangria: usize,
     temporal: usize,
     // La ultima posicion marcada con `#line`, para no repetirla.
@@ -1616,7 +1719,7 @@ fn nombre_de_bucle(n: usize) -> str {
 }
 
 fn cuerpo() -> Cuerpo {
-    return Cuerpo { lineas: [], bloques: [], sangria: 1, temporal: 0,
+    return Cuerpo { lineas: [], bloques: [], claves: [], sangria: 1, temporal: 0,
         ultima_linea: 0, bucle: 0, bucles: [], temporales: [],
         fallo_linea: 0, fallo_clase: vacio() };
 }
@@ -1664,15 +1767,56 @@ fn nuevo_temporal(b: mut Cuerpo) -> str {
 fn abrir_bloque(b: mut Cuerpo) {
     let vacio_bloque: lista<str> = [];
     anadir(b.bloques, vacio_bloque);
+    let vacias: lista<str> = [];
+    anadir(b.claves, vacias);
 }
 
-fn anotar_duenio(b: mut Cuerpo, nombre: view, tipo: view) {
+// `clave` es `nombre@linea` de la declaracion: la bandera se busca por ella.
+fn anotar_duenio(b: mut Cuerpo, nombre: view, tipo: view, clave: view) {
     if largo(b.bloques) == 0 { abrir_bloque(b); }
     var junto = nuevo(nombre);
     empujar(junto, ": ");
     empujar(junto, tipo);
     let ultimo = largo(b.bloques) - 1;
     anadir(b.bloques[ultimo], junto);
+    anadir(b.claves[ultimo], nuevo(clave));
+}
+
+fn clave_de(nombre: view, linea: usize) -> str {
+    var k = nuevo(nombre);
+    empujar(k, "@");
+    empujar(k, texto(linea));
+    return k;
+}
+
+fn antes_de_arroba(t: view) -> str {
+    var i = largo(t);
+    while i > 0 {
+        i = i - 1;
+        if byte(t, i) == 64 { return nuevo(rebanar(t, 0, i)); }
+    }
+    return nuevo(t);
+}
+
+// La declaracion visible de un nombre, de dentro hacia fuera. Si no la hay,
+// es un parametro: esos se apuntan con la linea 0.
+fn clave_visible(b: &Cuerpo, nombre: view) -> str {
+    var i = largo(b.bloques);
+    while i > 0 {
+        i = i - 1;
+        var j = largo(b.bloques[i]);
+        while j > 0 {
+            j = j - 1;
+            let n = antes_de_dos_puntos(vista(b.bloques[i][j]));
+            if igual(vista(n), nombre) { return copiar(b.claves[i][j]); }
+        }
+    }
+    return clave_de(nombre, 0);
+}
+
+fn lleva_bandera(b: &Cuerpo, s: &Sitio, nombre: view) -> bool {
+    let k = clave_visible(b, nombre);
+    return tiene(s.pide_bandera, vista(k));
 }
 
 // Suelta lo del bloque de dentro, en orden inverso, y lo quita de la pila.
@@ -1744,14 +1888,19 @@ fn quitar_ultimo_bucle(b: mut Cuerpo) {
 
 fn quitar_ultimo_bloque(b: mut Cuerpo) {
     var quedan: lista<lista<str>> = [];
+    var sus_claves: lista<lista<str>> = [];
     var i = 0;
     while i + 1 < largo(b.bloques) {
         var copia: lista<str> = [];
         for x en b.bloques[i] { anadir(copia, copiar(x)); }
         anadir(quedan, copia);
+        var ks: lista<str> = [];
+        for x en b.claves[i] { anadir(ks, copiar(x)); }
+        anadir(sus_claves, ks);
         i = i + 1;
     }
     b.bloques = quedan;
+    b.claves = sus_claves;
 }
 
 // Todo lo vivo, de dentro hacia fuera: es lo que hace falta antes de un
@@ -1780,7 +1929,7 @@ fn liberar_uno(b: mut Cuerpo, s: &Sitio, tipos: &I.Contexto,
         let tipo = despues_de_dos_puntos(vista(entrada));
         // Si se entrega por algun camino, quien decide es la bandera: aqui
         // no se sabe por cual se vino.
-        if tiene(s.pide_bandera, vista(nombre)) {
+        if tiene(s.pide_bandera, vista(b.claves[cual][j])) {
             var g = nuevo("if (ss_vivo_");
             empujar(g, vista(nombre));
             empujar(g, ")");
@@ -1927,7 +2076,7 @@ fn apagar_las_de(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) {
     movidas_en(s.punteros, n, tipos, salen);
     var vivas: lista<str> = [];
     for nm en salen {
-        if tiene(s.pide_bandera, vista(nm)) { anadir(vivas, copiar(nm)); }
+        if lleva_bandera(b, s, vista(nm)) { anadir(vivas, copiar(nm)); }
     }
     apagar(b, vivas);
 }
@@ -2003,8 +2152,9 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
 
         I.declarar(tipos, vista(nombre), vista(tipo));
         if I.posee_con_formas(tipos, vista(tipo)) {
-            anotar_duenio(b, vista(nombre), vista(tipo));
-            if tiene(s.pide_bandera, vista(nombre)) {
+            let clave = clave_de(vista(nombre), n.linea);
+            anotar_duenio(b, vista(nombre), vista(tipo), vista(clave));
+            if tiene(s.pide_bandera, vista(clave)) {
                 nace_bandera(b, vista(nombre));
             }
         }
@@ -2034,20 +2184,43 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             apagar_las_de(b, s, n, tipos);
             return true;
         }
-        // Una llamada suelta a una funcion que no devuelve nada. Si
-        // devolviera algo con duenio habria que soltarlo aqui mismo, y eso
-        // es otra capa: por ahora se descarta la funcion entera.
-        if !igual(vista(n.hijos[0].clase), "llamada") { return false; }
-        let quien = vista(n.hijos[0].texto);
-        if es_interna(quien) { return false; }
-        if !tiene(tipos.retornos, quien) { return false; }
-        let devuelve = nuevo(obtener(tipos.retornos, quien) sino "?");
-        if largo(vista(devuelve)) > 0 { return false; }
-        let hecha = llamada_c(b, s, n.hijos[0], tipos);
+        // Cualquier otra expresion suelta. Descarta su valor, y si ese valor
+        // tenia duenio, este es el sitio donde se devuelve: `try espera(...)`
+        // como sentencia tira el `str` que devuelve, y nadie mas lo iba a
+        // soltar.
+        let x = vista(n.hijos[0].clase);
+        let hecha = expresion_c(b, s, n.hijos[0], "", tipos);
         if es_desconocido(vista(hecha)) { return false; }
-        var l = copiar(hecha);
-        empujar(l, ";");
-        emitir(b, vista(l));
+        let t = tipo_suelto(n.hijos[0], tipos);
+        if largo(hecha) > 0 && largo(vista(t)) > 0 && !igual(vista(t), "()")
+        && I.posee_con_formas(tipos, vista(t)) {
+            reclamar(b, vista(hecha));
+            var suelto = copiar(hecha);
+            // `liberacion` toma la direccion de lo que suelta, y el
+            // resultado de una llamada no tiene direccion: `f();` a secas
+            // daria `ss_free(&f())`, que ni siquiera es C. Se guarda antes.
+            if !es_identificador(vista(hecha)) {
+                let tmp = nuevo_temporal(b);
+                var g = nuevo(tipo_c(vista(t)));
+                empujar(g, " ");
+                empujar(g, vista(tmp));
+                empujar(g, " = ");
+                empujar(g, vista(hecha));
+                empujar(g, ";");
+                emitir(b, vista(g));
+                suelto = copiar(tmp);
+            }
+            liberacion(b, tipos, vista(suelto), vista(t));
+            apagar_las_de(b, s, n, tipos);
+            return true;
+        }
+        // `try f();` y `f() sino x;` ya emitieron todo su trabajo: lo que
+        // devuelven es el valor, y como sentencia no haria nada.
+        if largo(hecha) > 0 && !igual(x, "try") && !igual(x, "sino") {
+            var l = copiar(hecha);
+            empujar(l, ";");
+            emitir(b, vista(l));
+        }
         apagar_las_de(b, s, n, tipos);
         return true;
     }
@@ -2085,6 +2258,15 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // que calcular, y liberar lo demas no la toca.
         if igual(vista(n.hijos[0].clase), "variable") {
             let quien = vista(n.hijos[0].texto);
+            // Si lleva bandera porque se entrega por otro camino, al
+            // devolverla tambien se entrega: se apaga antes de salir, o la
+            // liberacion la veria encendida.
+            if lleva_bandera(b, s, quien) {
+                var apaga = nuevo("ss_vivo_");
+                empujar(apaga, quien);
+                empujar(apaga, " = false;");
+                emitir(b, vista(apaga));
+            }
             liberar_todo(b, s, tipos, quien);
             let c = expresion_c(b, s, n.hijos[0], retorno, tipos);
             var r = nuevo("return ");
@@ -2247,12 +2429,9 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         let destino = expresion_c(b, s, n.hijos[0], vista(tipo), tipos);
         if es_desconocido(vista(destino)) { return false; }
 
-        // Asignar a algo con duenio pide soltar lo viejo. Solo lo que
-        // `liberacion` sabe soltar entero: un mapa se iria sin liberar.
-        if tiene_duenio(vista(tipo)) {
-            if !igual(vista(tipo), "str") && !T.es_lista(vista(tipo)) {
-                return false;
-            }
+        // Asignar a algo con duenio pide soltar lo viejo. `liberacion` ya sabe
+        // soltar cualquier cosa que posea: `str`, listas, mapas y structs.
+        if I.posee_con_formas(tipos, vista(tipo)) {
             // El valor se guarda antes de soltar lo viejo, porque en C lo
             // que cuenta no es donde se calculo la expresion sino donde
             // queda escrita: `s = nuevo(rebanar(vista(s), 0, 6))` leeria
@@ -2266,7 +2445,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             empujar(g, ";");
             emitir(b, vista(g));
 
-            if tiene(s.pide_bandera, vista(nombre)) {
+            if lleva_bandera(b, s, vista(nombre)) {
                 // Si ya se lo llevaron, aqui no hay nada que devolver:
                 // soltarlo seria soltarlo dos veces.
                 var w = nuevo("if (ss_vivo_");
@@ -2506,7 +2685,12 @@ fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if largo(n.hijos) != 1 { return no_se(); }
     if !igual(vista(n.hijos[0].clase), "llamada") { return no_se(); }
     let suyo = tipo_si_va_bien(n.hijos[0], tipos);
-    if largo(vista(suyo)) == 0 { return no_se(); }
+    // Vacio puede ser "no la conozco" o "no devuelve nada": solo lo segundo
+    // vale, y lo dice que este en las firmas.
+    if largo(vista(suyo)) == 0
+    && !tiene(tipos.retornos, vista(n.hijos[0].texto)) {
+        return no_se();
+    }
 
     let c = llamada_c(b, s, n.hijos[0], tipos);
     if es_desconocido(vista(c)) { return no_se(); }
@@ -2536,6 +2720,8 @@ fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     b.sangria = b.sangria - 1;
     emitir(b, "}");
 
+    // Sin valor no hay nada que leer: el trabajo ya esta emitido.
+    if largo(vista(suyo)) == 0 || igual(vista(suyo), "()") { return vacio(); }
     var leer = copiar(tmp);
     empujar(leer, ".valor");
     return leer;
@@ -2602,24 +2788,25 @@ fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     if !igual(vista(n.clase), "llamada") { return false; }
     if !igual(vista(n.texto), "anadir") { return false; }
     if largo(n.hijos) != 2 { return false; }
-    if !igual(vista(n.hijos[0].clase), "variable") { return false; }
-    let sobre = I.tipo_de(tipos, n.hijos[0]);
+    let suya = I.tipo_de(tipos, n.hijos[0]);
+    let sobre = T.apuntado_si(vista(suya));
     if !T.es_lista(vista(sobre)) { return false; }
     let elem = T.elemento(vista(sobre));
     // Meter una variable con duenio en una lista la mueve: la lista se la
     // queda y desde aqui la suelta ella.
     if entrega_variable(s, n.hijos[1], tipos) {
-        if !tiene(s.pide_bandera, vista(n.hijos[1].texto)) { return false; }
+        if !lleva_bandera(b, s, vista(n.hijos[1].texto)) { return false; }
     }
     let valor = expresion_c(b, s, n.hijos[1], vista(elem), tipos);
     if es_desconocido(vista(valor)) { return false; }
     reclamar(b, vista(valor)); // la lista se lo queda
 
+    let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(vista(donde)) { return false; }
     var l = nuevo("ss_push_");
     empujar(l, mangle(vista(sobre)));
     empujar(l, "(");
-    if !tiene(s.punteros, vista(n.hijos[0].texto)) { empujar(l, "&"); }
-    empujar(l, vista(n.hijos[0].texto));
+    empujar(l, vista(donde));
     empujar(l, ", ");
     empujar(l, vista(valor));
     empujar(l, ", \"");
@@ -2628,6 +2815,32 @@ fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     empujar(l, texto(n.linea));
     empujar(l, ");");
     emitir(b, vista(l));
+    return true;
+}
+
+// De que tipo es lo que da una expresion suelta. Una llamada del programa
+// lo dice su firma; un `try` o un `sino`, lo que da cuando va bien.
+fn tipo_suelto(n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let clase = vista(n.clase);
+    if (igual(clase, "try") || igual(clase, "sino")) && largo(n.hijos) > 0 {
+        return tipo_si_va_bien(n.hijos[0], tipos);
+    }
+    if igual(clase, "llamada") && tiene(tipos.retornos, vista(n.texto)) {
+        return nuevo(obtener(tipos.retornos, vista(n.texto)) sino "");
+    }
+    return I.tipo_de(tipos, n);
+}
+
+fn es_identificador(v: view) -> bool {
+    if largo(v) == 0 { return false; }
+    var i = 0;
+    while i < largo(v) {
+        let c = byte(v, i);
+        let letra = (c >= 97 && c <= 122) || (c >= 65 && c <= 90) || c == 95;
+        let cifra = c >= 48 && c <= 57;
+        if !letra && ! (cifra && i > 0) { return false; }
+        i = i + 1;
+    }
     return true;
 }
 
