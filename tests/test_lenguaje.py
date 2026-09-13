@@ -2800,7 +2800,7 @@ def _normaliza_tmp(texto):
         texto = renumera(texto, prefijo)
     return texto
 
-_MINIMO_CUERPOS = 339
+_MINIMO_CUERPOS = 341
 
 tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
 try:

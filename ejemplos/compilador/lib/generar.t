@@ -2329,7 +2329,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // Un `match` suelto mira y hace: el `switch` va tal cual, sin
         // temporal donde dejar nada.
         if igual(vista(n.hijos[0].clase), "match") {
-            if !match_c(b, s, n.hijos[0], tipos, retorno, falible) {
+            if !match_c(b, s, n.hijos[0], tipos, retorno, falible, "") {
                 return false;
             }
             apagar_las_de(b, s, n, tipos);
@@ -2436,7 +2436,14 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             return true;
         }
 
-        let valor = expresion_c(b, s, n.hijos[0], retorno, tipos);
+        // Un `match` que da valor puede llevar brazos con sentencias, y eso
+        // solo se genera desde aqui, donde el sitio se puede modificar.
+        var valor = vacio();
+        if igual(vista(n.hijos[0].clase), "match") {
+            valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible);
+        } else {
+            valor = expresion_c(b, s, n.hijos[0], retorno, tipos);
+        }
         if es_desconocido(vista(valor)) { return false; }
         // Lo que se devuelve no se suelta: se entrega.
         reclamar(b, vista(valor));
@@ -3081,8 +3088,10 @@ fn mayusculas(t: view) -> str {
 // nazca dentro se suelta al salir. Lo que atrapa el patron se presta
 // siempre —un `match` mira, no desmonta—, asi que un `str` se ve como
 // `view` y lo demas con duenio como un puntero.
+// `destino` es la variable de C donde dejar el valor si el `match` da uno,
+// o vacio si es suelto.
 fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
-    retorno: view, falible: bool) -> bool {
+    retorno: view, falible: bool, destino: view) -> bool {
     if largo(n.hijos) < 2 { return false; }
     let crudo = I.tipo_de(tipos, n.hijos[0]);
     let apuntado = T.apuntado_si(vista(crudo));
@@ -3176,8 +3185,28 @@ fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
                 if termina_saliendo(h) { quitar_ultimo_bloque(b); }
                 else { cerrar_bloque(b, s, tipos); }
             }
-            // Un brazo que da un valor no cabe en un `match` suelto.
-            if igual(que, "retorno") { return false; }
+            // Un brazo que da un valor: se deja en el destino. Sus
+            // temporales son suyos y se sueltan aqui, antes de salir del
+            // brazo, igual que los de una sentencia.
+            if igual(que, "retorno") {
+                if largo(destino) == 0 || largo(h.hijos) != 1 { return false; }
+                marcar(b, s, h.linea);
+                var antes: lista<str> = [];
+                for x en b.temporales { anadir(antes, copiar(x)); }
+                olvidar_temporales(b);
+                let tv = I.tipo_de(tipos, h.hijos[0]);
+                let valor = expresion_c(b, s, h.hijos[0], vista(tv), tipos);
+                if es_desconocido(vista(valor)) { return false; }
+                reclamar(b, vista(valor));
+                var pone = nuevo(destino);
+                empujar(pone, " = ");
+                empujar(pone, vista(valor));
+                empujar(pone, ";");
+                emitir(b, vista(pone));
+                soltar_temporales(b, tipos);
+                b.temporales = antes;
+                cerrar_bloque(b, s, tipos);
+            }
         }
         emitir(b, "break;");
         I.cerrar(tipos);
@@ -3190,6 +3219,26 @@ fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     if todos { emitir(b, "default: break;"); }
     emitir(b, "}");
     return true;
+}
+
+// El `match` usado como valor: un temporal a ceros y el `switch` encima. A
+// ceros porque en Tcode todo valor a ceros es valido, asi que el compilador
+// de C no tiene de que quejarse aunque no sepa que el `switch` lo cubre todo.
+fn match_valor(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
+    retorno: view, falible: bool) -> str {
+    var t = I.tipo_de(tipos, n);
+    if largo(t) == 0 { t = nuevo("usize"); }
+    let tmp = nuevo_temporal(b);
+    var d = nuevo(tipo_c(vista(t)));
+    empujar(d, " ");
+    empujar(d, vista(tmp));
+    empujar(d, " = {0};");
+    emitir(b, vista(d));
+    if I.posee_con_formas(tipos, vista(t)) {
+        apuntar_temporal(b, vista(tmp), vista(t));
+    }
+    if !match_c(b, s, n, tipos, retorno, falible, vista(tmp)) { return no_se(); }
+    return copiar(tmp);
 }
 
 // De que tipo es lo que da una expresion suelta. Una llamada del programa
