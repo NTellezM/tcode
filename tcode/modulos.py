@@ -157,6 +157,72 @@ class ErrorDeModulo(Exception):
     pass
 
 
+def _nodos(x):
+    """Todo lo que cuelga de `x`, a cualquier hondura."""
+    from dataclasses import fields, is_dataclass
+    if isinstance(x, (list, tuple)):
+        for y in x:
+            yield from _nodos(y)
+        return
+    if not is_dataclass(x):
+        return
+    yield x
+    for campo in fields(x):
+        yield from _nodos(getattr(x, campo.name))
+
+
+def _locales(funcion):
+    """Los nombres que una funcion declara dentro: parametros, variables,
+    los de un `for`, los que atrapa un `match` y los de sus clausuras."""
+    from tcode.nodos import Declaracion, Para, Brazo, Cierre, Parametro
+    salida = set()
+    for n in _nodos(funcion):
+        if isinstance(n, (Declaracion, Parametro)):
+            salida.add(n.nombre)
+        elif isinstance(n, Para):
+            salida.add(n.variable)
+            if n.valor:
+                salida.add(n.valor)
+        elif isinstance(n, Brazo):
+            salida.update(n.nombres)
+    return salida
+
+
+def _sin_usar_directo(m, visible, duenios, modulos):
+    """Un archivo solo ve lo que el mismo usa. Sin esta comprobacion, como
+    todo acaba en un unico C, se veia tambien lo que usaban sus modulos:
+    quitar un `usar` de `std/texto` rompia a quien nunca lo habia pedido.
+    Python, Go y Rust lo prohiben igual; C lo deja pasar con los `#include`
+    que arrastran otros `#include`, y es un clasico de C que un archivo
+    compile solo por lo que incluye un tercero."""
+    from tcode.comprobador import INTERNAS
+    for d in m["decls"]:
+        if not isinstance(d, Funcion) or d.externa:
+            continue
+        locales = None
+        for n in _nodos(d.cuerpo):
+            if isinstance(n, Llamada):
+                nombre = n.nombre
+            elif isinstance(n, (LiteralStruct, EnumLit)):
+                nombre = IDENTIFICADOR.match(n.tipo or "")
+                nombre = nombre.group(0) if nombre else ""
+            else:
+                continue
+            if (nombre in visible or nombre not in duenios
+                    or nombre in INTERNAS):
+                continue
+            if locales is None:
+                locales = _locales(d)
+            if nombre in locales:
+                continue
+            donde = ", ".join(modulos[r]["mostrada"] for r in duenios[nombre])
+            raise ErrorDeModulo(
+                f"{m['mostrada']}:{n.linea}: `{nombre}` esta en {donde}, que "
+                f"este archivo no usa. Se veia porque lo usa otro modulo, "
+                f"pero cada archivo tiene que pedir lo suyo: añade "
+                f"`usar \"...\";`")
+
+
 # Donde vive la biblioteca estandar: junto al compilador, no junto al programa.
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ESTANDAR = os.path.join(RAIZ, "std")
@@ -294,6 +360,8 @@ def cargar(ruta_principal, nombres_bonitos=None):
             for nombre in declara[destino_real]:
                 clave = f"{d.alias}.{nombre}" if d.alias else nombre
                 anotar(clave, destino_real, nombre, d)
+
+        _sin_usar_directo(m, visible, duenios, modulos)
 
         # Las declaraciones propias cambian de nombre; las referencias, todas.
         renombrar_en_arbol(m["decls"], visible)

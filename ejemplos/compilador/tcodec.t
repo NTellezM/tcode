@@ -69,7 +69,7 @@ fn necesita_lo_que_falta(l: view) -> bool {
     if contiene(l, "ss_bloque_") { return true; }
     if contiene(l, "ss_arr_") || contiene(l, "ss_fn_") { return true; }
     if contiene(l, "ss_cierre_") || contiene(l, "ss_lang_cstr_") { return true; }
-    if contiene(l, "ss_lang_leer_") || contiene(l, "ss_lang_escribir_") {
+    if contiene(l, "ss_lang_leer_linea_") || contiene(l, "ss_lang_escribir_") {
         return true;
     }
     if contiene(l, "ss_lang_entrada_") || contiene(l, "ss_lang_variable_") {
@@ -220,6 +220,59 @@ fn visitar_struct(nombre: view, indice: &mapa<str, usize>,
         visitar_struct(vista(t), indice, tipos_de, listos, salida);
     }
     anadir(salida, nuevo(nombre));
+}
+
+// Si en algun sitio de `n` se llama a la interna `nombre`.
+fn llama_a(n: &P.Nodo, nombre: view) -> bool {
+    if igual(vista(n.clase), "llamada") && igual(vista(n.texto), nombre) {
+        return true;
+    }
+    for h en n.hijos {
+        if llama_a(h, nombre) { return true; }
+    }
+    return false;
+}
+
+// `leer_archivo` solo entra en el programa que lo usa.
+fn ayudante_leer_archivo(salida: mut lista<str>) {
+    let res = G.tipo_resultado("str");
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static {res} ss_lang_leer_archivo_(SafeView ruta)");
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    if (ruta.len != 0 && memchr(ruta.ptr, 0, ruta.len) != NULL)"));
+    anadir(salida, $"        return ({res}){{ .motivo = \"la ruta contiene un byte cero\" }};");
+    anadir(salida, nuevo("    SafeString nombre = ss_from_view(ruta);"));
+    anadir(salida, nuevo("    if (!ss_ok(&nombre))"));
+    anadir(salida, nuevo("    {"));
+    anadir(salida, nuevo("        ss_free(&nombre);"));
+    anadir(salida, $"        return ({res}){{ .motivo = \"sin memoria para la ruta\" }};");
+    anadir(salida, nuevo("    }"));
+    anadir(salida, nuevo("    FILE* f = fopen(ss_cstr(&nombre), \"rb\");"));
+    anadir(salida, nuevo("    ss_free(&nombre);"));
+    anadir(salida, nuevo("    if (f == NULL)"));
+    anadir(salida, $"        return ({res}){{ .motivo = \"no se pudo abrir el archivo\" }};");
+    anadir(salida, nuevo("    SafeString contenido = ss_new();"));
+    anadir(salida, nuevo("    unsigned char bloque[8192];"));
+    anadir(salida, nuevo("    size_t n;"));
+    anadir(salida, nuevo("    while ((n = fread(bloque, 1, sizeof(bloque), f)) != 0)"));
+    anadir(salida, nuevo("    {"));
+    anadir(salida, nuevo("        if (!ss_append_len(&contenido, (const char*) bloque, n))"));
+    anadir(salida, nuevo("        {"));
+    anadir(salida, nuevo("            fclose(f);"));
+    anadir(salida, nuevo("            ss_free(&contenido);"));
+    anadir(salida, $"            return ({res}){{ .motivo = \"sin memoria al leer el archivo\" }};");
+    anadir(salida, nuevo("        }"));
+    anadir(salida, nuevo("    }"));
+    anadir(salida, nuevo("    bool fallo_lectura = ferror(f) != 0;"));
+    anadir(salida, nuevo("    if (fclose(f) != 0) fallo_lectura = true;"));
+    anadir(salida, nuevo("    if (fallo_lectura)"));
+    anadir(salida, nuevo("    {"));
+    anadir(salida, nuevo("        ss_free(&contenido);"));
+    anadir(salida, $"        return ({res}){{ .motivo = \"fallo al leer el archivo\" }};");
+    anadir(salida, nuevo("    }"));
+    anadir(salida, $"    return ({res}){{ .motivo = NULL, .valor = contenido }};");
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
 }
 
 fn typedef_resultado(t: view) -> str {
@@ -558,6 +611,15 @@ fn main() -> usize ! {
             }
         }
     }
+    // Las internas falibles registran el suyo despues, al recorrer todo.
+    var usa_leer_archivo = false;
+    for arbol en arboles {
+        if llama_a(arbol, "leer_archivo") { usa_leer_archivo = true; }
+    }
+    if usa_leer_archivo && !tiene(ya, "str") {
+        poner(ya, "str", 1);
+        anadir(resultados, nuevo("str"));
+    }
 
     // Los structs en orden de dependencia, y quien de ellos posee.
     var listos: mapa<str, usize> = [];
@@ -599,6 +661,7 @@ fn main() -> usize ! {
     if alguno_posee { anadir(partes, vacio()); }
     for r en resultados { anadir(partes, typedef_resultado(vista(r))); }
     if largo(resultados) > 0 { anadir(partes, vacio()); }
+    if usa_leer_archivo { ayudante_leer_archivo(partes); }
     for x en listas { funcion_push(vista(x), partes); }
     for x en listas { funcion_ordenar(vista(x), partes); }
 
