@@ -202,12 +202,45 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
 Las dos se comparan contra el comprobador de Python en cada ejecución de la
 suite, sobre el código real del repositorio.
 
-Falta lo que lleva banderas de propiedad —un valor que se entrega sólo por
-algunos caminos—, los fallos (`try`, `sino`) y las colecciones, para que
-Tcode se compile a sí mismo.
-Pero el análisis ya no es una promesa: son 884 líneas de Tcode que hacen el
-trabajo del frontend y coinciden con el original, comprobado en cada
-ejecución de la suite.
+## Tcode se compila a sí mismo
+
+`ejemplos/compilador/tcodec.t` junta todo lo anterior y escribe **el archivo
+C entero** de un programa: cabecera, structs, listas y mapas con sus
+funciones, tipos resultado, liberadores, copiadores, las copias de cada
+genérica, los ayudantes del sistema, la aritmética que hace falta, los
+prototipos y todas las funciones. Son **7.849 líneas de Tcode** (lexer,
+parser, tipado, generador y el programa) y el resultado se compara byte a
+byte con el del generador de Python: **16 programas enteros idénticos**,
+entre ellos el lexer, el parser y el propio `tcodec`.
+
+Y el punto fijo:
+
+```
+$ python3 -m tcode ejemplos/compilador/tcodec.t          # etapa 1, con Python
+$ TCODE_RAIZ=. ./ejemplos/compilador/tcodec ejemplos/compilador/tcodec.t > etapa1.c
+$ cc -std=c17 -O2 -Iruntime etapa1.c runtime/safestr.c -o etapa2 -lm
+$ TCODE_RAIZ=. ./etapa2 ejemplos/compilador/tcodec.t | cmp - etapa1.c && echo igual
+igual
+```
+
+El `tcodec` construido desde su propio C vuelve a escribir exactamente los
+mismos 1.205.047 bytes, también bajo AddressSanitizer y UBSan, y la suite lo
+comprueba en cada ejecución. A partir de ahí el compilador ya no necesita a
+Python para existir, que es el paso que dieron Go en la 1.5 y Rust con su
+primer `rustc` escrito en Rust. Se escribe a sí mismo en 0,37 s; el de
+Python tarda 0,74 s en lo mismo.
+
+Lo que `tcodec` todavía no escribe lo rechaza diciendo qué es, sin dejar
+medio archivo: `enum` y `match` en el archivo entero, arreglos `[T; N]`,
+`bloque`, clausuras y tipos función, `externo`, `escribir_archivo`, y los
+nombres que se renombran (dos módulos con la misma función, o una palabra de
+C como `union`). Por eso el compilador de referencia sigue siendo el de
+Python: es el que acepta todo el lenguaje.
+
+Escribirlo encontró fallos reales en el original, que se arreglaron con su
+prueba: fugas en salidas tempranas, banderas de propiedad por nombre en vez
+de por declaración (C que no compilaba), `for x en [1, 2]` sin su typedef, y
+un archivo que veía funciones de módulos que no importaba.
 
 ## Formato
 
@@ -492,7 +525,7 @@ el C generado se sigue llamando `palabras`.
 
 No hay: clausuras que modifiquen lo capturado, comprobación del cuerpo
 genérico una sola vez contra la restricción (eso es Rust, y es más), E/S
-incremental ni el propio compilador escrito en Tcode. Tampoco: campos `view` dentro de un
+incremental. Tampoco: campos `view` dentro de un
 struct (el muro real: exige la vida útil en el tipo), movimientos parciales
 de un campo o elemento, ni devolver una vista de un parámetro prestado.
 
