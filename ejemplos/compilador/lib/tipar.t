@@ -285,6 +285,14 @@ fn tipo_atrapado(c: &Contexto, t: view) -> str {
 // Como `posee_simple`, pero sabiendo ademas de enums: uno posee si alguna
 // de sus formas posee.
 fn posee_con_formas(c: &Contexto, t: view) -> bool {
+    // `Q.Vigilada` es `Vigilada`: el alias es de quien escribe, y los tipos
+    // se apuntan por su nombre.
+    if !tiene(c.variantes, t) && !tiene(c.campos, t) {
+        let corto = sin_modulo(t);
+        if tiene(c.variantes, vista(corto)) || tiene(c.campos, vista(corto)) {
+            return posee_con_formas(c, vista(corto));
+        }
+    }
     if tiene(c.variantes, t) {
         let cuales = lista_de(c.variantes, t) sino [];
         for v en cuales {
