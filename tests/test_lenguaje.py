@@ -2689,7 +2689,7 @@ def _expresiones_esperadas(ruta):
             fuera.append(f"{d.nombre}\t{r.linea}\t{c}")
     return fuera
 
-_MINIMO_CUBIERTAS = 640
+_MINIMO_CUBIERTAS = 655
 
 tmp = tempfile.mkdtemp(prefix="tcode-expr-")
 try:
@@ -2783,7 +2783,7 @@ def _normaliza_tmp(texto):
         texto = renumera(texto, prefijo)
     return texto
 
-_MINIMO_CUERPOS = 284
+_MINIMO_CUERPOS = 319
 
 tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
 try:
@@ -2828,7 +2828,12 @@ try:
                           f"{os.path.basename(archivo)}: sanitizer\n"
                           f"{e.stderr[:400]}")
                     continue
-                for bloque in e.stdout.split("@@ ")[1:]:
+                # El separador va a principio de linea: el C que se compara
+                # puede llevar `@@ ` dentro de un literal —el propio
+                # `cuerpos.t` lo imprime—, y partir por cualquier aparicion
+                # cortaba la funcion por la mitad.
+                for bloque in _re_cuerpos.split(r"^@@ ", e.stdout,
+                                                flags=_re_cuerpos.M)[1:]:
                     nombre, _, cuerpo = bloque.partition("\n")
                     nombre = nombre.strip()
                     # La funcion tal como la dejo el comprobador: con los

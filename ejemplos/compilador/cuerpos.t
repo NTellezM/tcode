@@ -130,6 +130,11 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
             for _m en marcados { anadir(prestados, nuevo("&")); }
             marcados = prestados;
         }
+        // Si un modulo usado ya declaraba este nombre, el cargador de verdad
+        // renombra los dos, y esta capa no sabe a que: no se emite la llamada.
+        if tiene(c.retornos, vista(n.texto)) {
+            poner(c.repetidas, vista(n.texto), 1);
+        }
         poner(c.retornos, vista(n.texto), retorno);
         poner(c.params, vista(n.texto), tipos_param);
         poner(c.params_marcados, vista(n.texto), marcados);
@@ -290,8 +295,10 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
     while k < largo(tipos_param) {
         if igual(vista(tipos_param[k]), "str") {
             if largo(G.marca_sola(vista(marcas[k]))) == 0 {
-                G.anotar_duenio(b, G.nombre_de_param(vista(marcas[k])),
-                    "str");
+                let pn = G.nombre_de_param(vista(marcas[k]));
+                // Un parametro se apunta con la linea 0.
+                let clave = G.clave_de(vista(pn), 0);
+                G.anotar_duenio(b, vista(pn), "str", vista(clave));
             }
         }
         k = k + 1;
@@ -302,7 +309,8 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view) {
         if igual(vista(tipos_param[q]), "str") {
             if largo(G.marca_sola(vista(marcas[q]))) == 0 {
                 let pn = G.nombre_de_param(vista(marcas[q]));
-                if tiene(sitio.pide_bandera, vista(pn)) {
+                let clave = G.clave_de(vista(pn), 0);
+                if tiene(sitio.pide_bandera, vista(clave)) {
                     G.nace_bandera(b, vista(pn));
                 }
             }
