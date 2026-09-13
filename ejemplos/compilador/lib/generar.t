@@ -717,7 +717,21 @@ fn sitio_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     || igual(clase, "indice") {
         return expresion_c(b, s, n, "", tipos);
     }
-    return no_se();
+    // Una llamada no es un sitio: `claves(m).length` la evaluaria una vez
+    // por cada aparicion en el C, y lo que devuelve no lo soltaria nadie. Se
+    // guarda en un temporal, que se suelta al acabar la sentencia.
+    var t = I.tipo_de(tipos, n);
+    if largo(t) == 0 { t = nuevo("usize"); }
+    let tmp = nuevo_temporal(b);
+    let valor = expresion_c(b, s, n, vista(t), tipos);
+    if es_desconocido(vista(valor)) { return no_se(); }
+    reclamar(b, vista(valor));
+    let tc = tipo_c(vista(t));
+    emitir(b, $"{tc} {tmp} = {valor};");
+    if I.posee_con_formas(tipos, vista(t)) {
+        apuntar_temporal(b, vista(tmp), vista(t));
+    }
+    return tmp;
 }
 
 // Indexar comprueba el limite: es la comprobacion que C no hace y por la que
@@ -1786,11 +1800,35 @@ fn movidas_hondo_en(punteros: &mapa<str, usize>, bloque: &P.Nodo,
             I.declarar(tipos, vista(nombre), vista(tipo));
             anadir(mias, clave_de(vista(nombre), st.linea));
         }
+        // Un `for` declara su variable para el cuerpo. Sin ella, lo que se
+        // calcula a partir de ella —`var p = copiar(l)`— no tiene tipo, y no
+        // se sabria que `p` posee ni que se entrega.
+        let es_para = igual(vista(st.clase), "para") && largo(st.hijos) == 2;
+        if es_para {
+            I.abrir(tipos);
+            let suyo = I.tipo_de(tipos, st.hijos[0]);
+            let sobre = T.apuntado_si(vista(suyo));
+            let uno = primer_nombre(vista(st.texto));
+            let dos = segundo_nombre(vista(st.texto));
+            if T.es_mapa(vista(sobre)) {
+                let partes = T.partir_tipos(T.entre_angulos(vista(sobre)));
+                if largo(partes) == 2 {
+                    I.declarar(tipos, vista(uno), vista(partes[0]));
+                    if largo(dos) > 0 {
+                        I.declarar(tipos, vista(dos), vista(partes[1]));
+                    }
+                }
+            } else {
+                let elem = T.elemento(vista(sobre));
+                I.declarar(tipos, vista(uno), vista(elem));
+            }
+        }
         for h en st.hijos {
             if igual(vista(h.clase), "bloque") {
                 movidas_hondo_en(punteros, h, tipos, salida, mias);
             }
         }
+        if es_para { I.cerrar(tipos); }
     }
     I.cerrar(tipos);
 }

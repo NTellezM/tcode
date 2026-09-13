@@ -64,6 +64,36 @@ fn fila_aritmetica(t: view) -> str {
 
 // Lo que este hito todavia no sabe emitir: cada uno pide una seccion propia
 // del archivo (typedefs, tablas, ayudantes), y sin ella el C no compila.
+// La linea sin lo que va entre comillas: un literal que diga `ss_lista_`
+// no es un uso, y un compilador lleva muchos literales asi.
+fn sin_cadenas(l: view) -> str {
+    var r = vacio();
+    var dentro = false;
+    var desde = 0;
+    var i = 0;
+    while i < largo(l) {
+        let c = byte(l, i);
+        if dentro {
+            if c == 92 {
+                i = i + 2;
+                continue;
+            }
+            if c == 34 {
+                dentro = false;
+                desde = i;
+            }
+        } else {
+            if c == 34 {
+                empujar(r, rebanar(l, desde, i + 1));
+                dentro = true;
+            }
+        }
+        i = i + 1;
+    }
+    if !dentro { empujar(r, rebanar(l, desde, largo(l))); }
+    return r;
+}
+
 fn necesita_lo_que_falta(l: view) -> bool {
     if contiene(l, "ss_bloque_") { return true; }
     if contiene(l, "ss_arr_") || contiene(l, "ss_fn_") { return true; }
@@ -71,7 +101,7 @@ fn necesita_lo_que_falta(l: view) -> bool {
     if contiene(l, "ss_lang_escribir_") {
         return true;
     }
-    return contiene(l, "ss_lang_texto_decimal_");
+    return false;
 }
 
 // ------------------------------------------------------------------
@@ -398,12 +428,6 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     }
     if tiene(reg.vistos, t) { return true; }
     if es_lista_t(t) {
-        // Una lista de mapas registraria el mapa al pedir su nombre en C,
-        // fuera del recorrido, y ese orden no se reproduce aqui.
-        if contiene(t, "mapa<") {
-            imprimir_error($"tcodec: el tipo `{t}`\n");
-            return false;
-        }
         let dentro = interior_lista(t);
         if es_lista_t(vista(dentro)) {
             if !mirar_tipo(vista(dentro), reg, global, structs) { return false; }
@@ -1106,18 +1130,19 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
         }
     }
     for l en lineas {
-        if necesita_lo_que_falta(vista(l)) {
+        let limpia = sin_cadenas(vista(l));
+        if necesita_lo_que_falta(vista(limpia)) {
             imprimir_error($"tcodec: `{d.texto}` necesita algo que falta: {l}\n");
             return false;
         }
-        apuntar_tras(vista(l), "ss_lang_suma_", anchos);
-        apuntar_tras(vista(l), "ss_lang_resta_", anchos);
-        apuntar_tras(vista(l), "ss_lang_mul_", anchos);
-        apuntar_tras(vista(l), "ss_lang_abs_", anchos);
-        apuntar_tras(vista(l), "ss_lang_desp_izq_", anchos);
-        apuntar_tras(vista(l), "ss_lang_desp_der_", anchos);
-        apuntar_tras(vista(l), "ss_lang_fin_", decimales);
-        apuntar_tras(vista(l), "ss_lang_conv_", conversiones);
+        apuntar_tras(vista(limpia), "ss_lang_suma_", anchos);
+        apuntar_tras(vista(limpia), "ss_lang_resta_", anchos);
+        apuntar_tras(vista(limpia), "ss_lang_mul_", anchos);
+        apuntar_tras(vista(limpia), "ss_lang_abs_", anchos);
+        apuntar_tras(vista(limpia), "ss_lang_desp_izq_", anchos);
+        apuntar_tras(vista(limpia), "ss_lang_desp_der_", anchos);
+        apuntar_tras(vista(limpia), "ss_lang_fin_", decimales);
+        apuntar_tras(vista(limpia), "ss_lang_conv_", conversiones);
         anadir(cuerpos, copiar(l));
     }
     anadir(cuerpos, vacio());
@@ -1291,6 +1316,19 @@ fn main() -> usize ! {
     // Todas las que fallan dan un `str`: el tipo resultado es uno.
     if usa_leer_archivo || da_texto { registrar_resultado(reg, "str"); }
 
+    // Una lista de mapas no registra su mapa al recorrer: el original lo
+    // registra al escribir el typedef de la lista, despues de todo lo demas.
+    var diferidos: lista<str> = [];
+    for x en reg.listas {
+        let e = interior_lista(vista(x));
+        if es_mapa_t(vista(e)) && !tiene(reg.vistos, vista(e)) { anadir(diferidos, e); }
+    }
+    for e en diferidos {
+        if !mirar_tipo(vista(e), reg, global, st_indice) {
+            return rechazo("mapas, bloques ni arreglos");
+        }
+    }
+
     // Los structs en orden de dependencia, y quien de ellos posee.
     var listos: mapa<str, usize> = [];
     var orden: lista<str> = [];
@@ -1429,7 +1467,10 @@ fn main() -> usize ! {
     // Toda lista que aparezca en un cuerpo tiene que tener su typedef: si el
     // recorrido no la registro, el C no compilaria. Mejor no escribirlo.
     var usadas: mapa<str, usize> = [];
-    for l en cuerpos { apuntar_nombres(vista(l), "ss_lista_", usadas); }
+    // Lo que se busca en los cuerpos, sin sus literales.
+    var limpios: lista<str> = [];
+    for l en cuerpos { anadir(limpios, sin_cadenas(vista(l))); }
+    for l en limpios { apuntar_nombres(vista(l), "ss_lista_", usadas); }
     var registradas: mapa<str, usize> = [];
     for x en reg.listas {
         let nombre_c = G.tipo_c(vista(x));
@@ -1445,7 +1486,7 @@ fn main() -> usize ! {
     // Lo mismo con los mapas y los tipos resultado.
     var usados_m: mapa<str, usize> = [];
     var usados_r: mapa<str, usize> = [];
-    for l en cuerpos {
+    for l en limpios {
         apuntar_nombres(vista(l), "ss_mapa_", usados_m);
         apuntar_nombres(vista(l), "ss_res_", usados_r);
     }
@@ -1475,7 +1516,7 @@ fn main() -> usize ! {
     for g en claves(plantillas) {
         var usadas_g: mapa<str, usize> = [];
         let prefijo = $"{g}__";
-        for l en cuerpos { apuntar_nombres(vista(l), vista(prefijo), usadas_g); }
+        for l en limpios { apuntar_nombres(vista(l), vista(prefijo), usadas_g); }
         for u en claves(usadas_g) {
             if !tiene(vistas_inst, vista(u)) {
                 imprimir_error($"tcodec: la copia `{u}` se usa y no se escribio\n");
@@ -1520,7 +1561,7 @@ fn main() -> usize ! {
         }
     }
     var usados_c: mapa<str, usize> = [];
-    for l en cuerpos { apuntar_nombres(vista(l), "ss_copia_", usados_c); }
+    for l en limpios { apuntar_nombres(vista(l), "ss_copia_", usados_c); }
     for u en claves(usados_c) {
         if !tiene(nombres_copia, vista(u)) {
             imprimir_error($"tcodec: `{u}` se usa y no se apunto\n");
