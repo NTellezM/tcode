@@ -672,6 +672,87 @@ RECHAZO = [
 
 
 ACEPTA = [
+    # ---- temporales en las salidas tempranas ----
+    #
+    # Los cinco los encontro ejecutar bajo AddressSanitizer el compilador
+    # escrito en Tcode: el generador perdia memoria, o escribia un C que no
+    # compilaba, cuando se salia de una sentencia antes de su limpieza de fin.
+    ("un return dentro de un if suelta el temporal de la condicion",
+     '''fn f() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+            poner(m, "b", 2);
+            if largo(claves(m)) > 0 {
+                return 1;
+            }
+            return 0;
+        }
+        fn main() { imprimir($"{f()}\\n"); }''',
+     "1\n"),
+
+    ("y un return dentro de dos if suelta los de las dos condiciones",
+     '''fn f() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+            if largo(claves(m)) > 0 {
+                if largo(claves(m)) < 10 {
+                    return 1;
+                }
+            }
+            return 0;
+        }
+        fn main() { imprimir($"{f()}\\n"); }''',
+     "1\n"),
+
+    ("un break dentro de un if suelta el temporal de la condicion",
+     '''fn f() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+            var n = 0;
+            while n < 3 {
+                n = n + 1;
+                if largo(claves(m)) > 0 {
+                    break;
+                }
+            }
+            return n;
+        }
+        fn main() { imprimir($"{f()}\\n"); }''',
+     "1\n"),
+
+    ("un continue lo suelta en cada vuelta",
+     '''fn f() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+            var n = 0;
+            while n < 3 {
+                n = n + 1;
+                if largo(claves(m)) > 5 {
+                    n = n + 0;
+                } else {
+                    if largo(claves(m)) > 0 {
+                        continue;
+                    }
+                }
+            }
+            return n;
+        }
+        fn main() { imprimir($"{f()}\\n"); }''',
+     "3\n"),
+
+    ("la condicion de un while con temporal propio se suelta en cada vuelta",
+     '''fn f() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+            var n = 0;
+            while largo(claves(m)) > n {
+                n = n + 1;
+            }
+            return n;
+        }
+        fn main() { imprimir($"{f()}\\n"); }''',
+     "1\n"),
+
     ("asignar a una variable algo que la presta no la lee despues de soltarla",
      '''fn main() -> usize {
             var s = nuevo("lista<P.Nodo>");
@@ -2798,7 +2879,7 @@ def _normaliza_tmp(texto):
         texto = renumera(texto, prefijo)
     return texto
 
-_MINIMO_CUERPOS = 346
+_MINIMO_CUERPOS = 367
 
 tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
 try:
@@ -2897,7 +2978,7 @@ print("=== PROGRAMA: el archivo C entero, escrito por Tcode ===")
 # el generador de Python. Lo que `tcodec` no sabe escribir entero lo rechaza
 # sin escribir medio archivo; se cuentan los programas identicos y se exige un
 # minimo.
-_MINIMO_PROGRAMAS = 1
+_MINIMO_PROGRAMAS = 2
 
 tmp = tempfile.mkdtemp(prefix="tcode-programa-")
 _cwd_antes = os.getcwd()
@@ -2922,7 +3003,10 @@ try:
         if r.returncode != 0:
             falla("tcodec en Tcode compila", r.stderr[:600])
         else:
-            entorno = dict(os.environ, TCODE_RAIZ=RAIZ)
+            # Desde la raiz y con la raiz relativa: `tcodec` todavia no sabe
+            # preguntar por el directorio de trabajo, y los `#line` son
+            # relativos a el.
+            entorno = dict(os.environ, TCODE_RAIZ=".")
             iguales = intentados = 0
             for archivo in sorted(
                     glob.glob(os.path.join("std", "*.t"))
