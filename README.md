@@ -413,6 +413,16 @@ escribe `copiar(...)`. La etiqueta 0 es la primera variante, así que un enum
 a ceros sigue siendo un valor válido y cabe en la memoria que da `reservar`
 sin ningún `unsafe`; ni Rust ni Zig garantizan eso. Está en `ejemplos/json.t`.
 
+Y **lo que el programa le pide a la máquina**, que no puede ir por `externo`
+porque devuelve memoria y la memoria tiene dueño: `leer_linea`,
+`entrada_completa`, `variable_entorno`, dos relojes (`ahora_ms` de pared y
+`monotono_ms` para medir duraciones, con el nombre diciendo cuál es cuál), y
+`azar`/`sembrar` sin el sesgo de `rand() % n`. `leer_linea` crece lo que haga
+falta —el `bufio.Scanner` de Go deja de leer a los 64 KB y no lo dice—, el fin
+de la entrada es un fallo y no una cadena vacía, y `variable_entorno`
+distingue «no está» de «está vacía», que `getenv` no puede. Está en
+`ejemplos/sistema.t`.
+
 Y **la puerta a C**: `externo "math.h" { fn sqrt(x: f64) -> f64; }`. Compila a
 C17, así que la llamada no cuesta nada —es la misma que escribiría un
 programa en C—, y no lleva `unsafe` por llamada como en Rust porque no hace

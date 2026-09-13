@@ -26,6 +26,15 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    # ---- el sistema ----
+    ("el fin de la entrada es un fallo, no una cadena",
+     'fn main() -> usize { let l = leer_linea(); return 0; }',
+     "puede fallar"),
+
+    ("una variable de entorno que no esta es un fallo",
+     'fn main() -> usize { let v = variable_entorno("X"); return 0; }',
+     "puede fallar"),
+
     # ---- el borde con C ----
     ("una vista no acaba en cero, y C leeria de mas",
      'externo "x.h" { fn f(s: view) -> usize; } fn main() { }',
@@ -1829,6 +1838,17 @@ AVISA = [
 
 # Programas que compilan pero deben ABORTAR en tiempo de ejecucion.
 ABORTA = [
+    ("`azar(0)` pide un numero de un rango vacio",
+     'fn main() -> usize { let n = 0; imprimir(azar(n)); return 0; }',
+     "rango vacio"),
+
+    ("un cero en medio de un `str` no va a C cortado",
+     'usar "std/texto";'
+     ' externo "string.h" { fn strlen(s: str) -> usize; }'
+     ' fn main() -> usize { var s = nuevo("HO"); empujar_byte(s, 0);'
+     ' empujar(s, "LA"); imprimir(strlen(s)); return 0; }',
+     "cero en medio"),
+
     ("un NaN no sigue adelante: para donde aparece",
      'fn main() -> usize { let z: f64 = 0; let a: f64 = 0;'
      ' imprimir(a / z); return 0; }',

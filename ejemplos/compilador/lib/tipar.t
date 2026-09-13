@@ -248,6 +248,15 @@ fn tipo_fijo(nombre: view) -> str {
     if igual(nombre, "vista") || igual(nombre, "rebanar") { return nuevo("view"); }
     if igual(nombre, "argumento") { return nuevo("view"); }
     if igual(nombre, "leer_archivo") { return nuevo("str"); }
+    // Las que hablan con el sistema. Las tres que devuelven memoria dan un
+    // `str` de Tcode, no un prestamo: por eso son internas y no `externo`.
+    if igual(nombre, "leer_linea") { return nuevo("str"); }
+    if igual(nombre, "entrada_completa") { return nuevo("str"); }
+    if igual(nombre, "variable_entorno") { return nuevo("str"); }
+    if igual(nombre, "ahora_ms") || igual(nombre, "monotono_ms") {
+        return nuevo("i64");
+    }
+    if igual(nombre, "azar") { return nuevo("usize"); }
     if igual(nombre, "largo") || igual(nombre, "byte") { return nuevo("usize"); }
     if igual(nombre, "n_argumentos") { return nuevo("usize"); }
     if igual(nombre, "igual") || igual(nombre, "menor") { return nuevo("bool"); }

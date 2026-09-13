@@ -12,6 +12,7 @@ mano, que son justo donde se equivoca:
 import contextlib
 import re
 
+from tcode.sistema import SISTEMA, TRAE as TRAE_SISTEMA, ORDEN as ORDEN_SISTEMA
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
@@ -66,6 +67,7 @@ CABECERA = r'''/* Generado por el compilador de Tcode. No editar a mano. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "safestr.h"
 
 /* Este archivo lo escribe el compilador, no una persona. Un aviso sobre una
@@ -462,6 +464,9 @@ class Generador:
         self.resultados = {}   # tipo Tcode -> nombre del typedef de resultado
         self.usa_leer_archivo = False
         self.usa_escribir_archivo = False
+        # Las internas del sistema que se usan, y solo esas: un programa que
+        # no toca la entrada no carga con el codigo de leerla.
+        self.usa_sistema = set()
         self.bucle = 0         # contador para variables de bucle de liberacion
         self.func = None       # funcion que se esta generando
         # Variables que se mueven en algun punto: llevan una bandera en
@@ -763,6 +768,10 @@ class Generador:
             if isinstance(x, Llamada) and x.nombre == "escribir_archivo":
                 self.usa_escribir_archivo = True
                 self.tipo_resultado(UNIDAD)
+            if isinstance(x, Llamada) and x.nombre in TRAE_SISTEMA:
+                self.usa_sistema.update(TRAE_SISTEMA[x.nombre])
+                if INTERNAS[x.nombre].get("falible"):
+                    self.tipo_resultado(INTERNAS[x.nombre]["retorno"])
             if isinstance(x, (list, tuple)):
                 for y in x:
                     recorrer(y)
@@ -1121,6 +1130,20 @@ class Generador:
                 "}",
                 "",
             ])
+
+        for nombre in ORDEN_SISTEMA:
+            if nombre not in self.usa_sistema:
+                continue
+            res = ""
+            if nombre in INTERNAS and INTERNAS[nombre].get("falible"):
+                res = self.tipo_resultado(INTERNAS[nombre]["retorno"])
+            # Solo las falibles llevan hueco; las demas van tal cual, y
+            # formatear su C convertiria cada `{` en un error.
+            texto = SISTEMA[nombre]
+            if res:
+                texto = texto.format(res_str=res)
+            self.lineas.extend(texto.rstrip("\n").split("\n"))
+            self.lineas.append("")
 
         if self.usa_leer_archivo:
             res = self.tipo_resultado("str")
@@ -2892,6 +2915,18 @@ class Generador:
 
         if n == "leer_archivo":
             return f"ss_lang_leer_archivo_({self.como_vista(e.args[0])})"
+
+        if n in ("leer_linea", "entrada_completa"):
+            return f"ss_lang_{n}_()"
+        if n == "variable_entorno":
+            return f"ss_lang_variable_entorno_({self.como_vista(e.args[0])})"
+        if n in ("ahora_ms", "monotono_ms"):
+            return f"ss_lang_{n}_()"
+        if n == "sembrar":
+            return f"ss_lang_sembrar_({self.expr(e.args[0], 'u64')})"
+        if n == "azar":
+            return (f"ss_lang_azar_({self.expr(e.args[0], 'usize')}, "
+                    f"{self.arch(e)}, {e.linea})")
 
         # funcion del usuario, o una variable que guarda una
         f = self.c.funciones.get(n)
