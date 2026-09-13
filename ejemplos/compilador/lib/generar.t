@@ -1153,6 +1153,8 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
             empujar(r, ")");
             return r;
         }
+        // El copiador se escribe aparte, al final: se apunta que hace falta.
+        anadir(b.copias, I.sin_alias_tipo(vista(t)));
         var r = nuevo("ss_copia_");
         empujar(r, mangle(vista(t)));
         empujar(r, "(");
@@ -1889,6 +1891,8 @@ struct Cuerpo {
     // Las copias de genericas que piden las llamadas, en el orden en que se
     // terminan de escribir: `plantilla\tnombre_c\tT=tipo...`.
     instancias: lista<str>,
+    // Los tipos que se copian con un copiador generado, en orden.
+    copias: lista<str>,
 }
 
 // Lo apunta el sitio mas hondo, y solo la primera vez: si un `if` falla
@@ -1914,7 +1918,7 @@ fn nombre_de_bucle(n: usize) -> str {
 fn cuerpo() -> Cuerpo {
     return Cuerpo { lineas: [], bloques: [], claves: [], sangria: 1, temporal: 0,
         ultima_linea: 0, bucle: 0, bucles: [], temporales: [], fuera: [], bucles_t: [],
-        fallo_linea: 0, fallo_clase: vacio(), instancias: [] };
+        fallo_linea: 0, fallo_clase: vacio(), instancias: [], copias: [] };
 }
 
 fn sangrar(b: &Cuerpo) -> str {

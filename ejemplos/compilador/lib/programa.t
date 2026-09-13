@@ -239,10 +239,13 @@ struct Cuenta {
     ultima_linea: usize,
     // Las copias de genericas que han pedido las funciones escritas.
     instancias: lista<str>,
+    // Los tipos que han pedido copiador, en el orden en que se pidieron.
+    copias: lista<str>,
 }
 
 fn cuenta_nueva() -> Cuenta {
-    return Cuenta { temporal: 0, bucle: 0, ultima_linea: 0, instancias: [] };
+    return Cuenta { temporal: 0, bucle: 0, ultima_linea: 0, instancias: [],
+        copias: [] };
 }
 
 // Lee y analiza un archivo, y deja en `tipos` todo lo que hace falta saber
@@ -446,5 +449,6 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     cta.bucle = b.bucle;
     cta.ultima_linea = b.ultima_linea;
     for x en b.instancias { anadir(cta.instancias, copiar(x)); }
+    for x en b.copias { anadir(cta.copias, copiar(x)); }
     return salida;
 }
