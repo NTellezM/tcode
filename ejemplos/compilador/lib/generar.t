@@ -795,6 +795,90 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         return r;
     }
 
+    // Los mapas. El nombre de cada operacion lleva dentro el tipo del mapa,
+    // porque cada uno tiene su propia tabla generada: no hay una funcion
+    // generica que reciba tamanios y punteros a void.
+    if igual(nombre, "poner") || igual(nombre, "obtener")
+    || igual(nombre, "obtener_mut") || igual(nombre, "tiene")
+    || igual(nombre, "claves") || igual(nombre, "quitar") {
+        if largo(n.hijos) == 0 { return no_se(); }
+        let suyo = I.tipo_de(tipos, n.hijos[0]);
+        let tm = T.apuntado_si(vista(suyo));
+        if !T.es_mapa(vista(tm)) { return no_se(); }
+        let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+        if es_desconocido(vista(donde)) { return no_se(); }
+
+        var r = nuevo("ss_mapa_");
+        empujar(r, nombre);
+        empujar(r, "_");
+        empujar(r, mangle(vista(tm)));
+        empujar(r, "(");
+        empujar(r, vista(donde));
+
+        if igual(nombre, "claves") {
+            if largo(n.hijos) != 1 { return no_se(); }
+            empujar(r, ", \"");
+            empujar(r, vista(s.archivo));
+            empujar(r, "\", ");
+            empujar(r, texto(n.linea));
+            empujar(r, ")");
+            return r;
+        }
+
+        if largo(n.hijos) < 2 { return no_se(); }
+        let clave = como_vista(b, s, n.hijos[1], tipos);
+        if es_desconocido(vista(clave)) { return no_se(); }
+        empujar(r, ", ");
+        empujar(r, vista(clave));
+
+        if !igual(nombre, "poner") {
+            if largo(n.hijos) != 2 { return no_se(); }
+            empujar(r, ")");
+            return r;
+        }
+
+        if largo(n.hijos) != 3 { return no_se(); }
+        let tv = T.valor_de_mapa(vista(tm)) sino vacio();
+        if largo(vista(tv)) == 0 { return no_se(); }
+        let valor = expresion_c(b, s, n.hijos[2], vista(tv), tipos);
+        if es_desconocido(vista(valor)) { return no_se(); }
+        empujar(r, ", ");
+        empujar(r, vista(valor));
+        empujar(r, ", \"");
+        empujar(r, vista(s.archivo));
+        empujar(r, "\", ");
+        empujar(r, texto(n.linea));
+        empujar(r, ")");
+        return r;
+    }
+
+    // `copiar(x)`: una copia independiente, hasta el fondo. Cada tipo lleva
+    // su copiador generado, espejo exacto de su liberacion.
+    if igual(nombre, "copiar") {
+        if largo(n.hijos) != 1 { return no_se(); }
+        let crudo = I.tipo_de(tipos, n.hijos[0]);
+        let t = T.apuntado_si(vista(crudo));
+        if largo(vista(t)) == 0 { return no_se(); }
+        if !I.posee_con_formas(tipos, vista(t)) {
+            // Un escalar se copia solo.
+            return expresion_c(b, s, n.hijos[0], vista(t), tipos);
+        }
+        let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+        if es_desconocido(vista(donde)) { return no_se(); }
+        if igual(vista(t), "str") {
+            var r = nuevo("ss_clone(");
+            empujar(r, vista(donde));
+            empujar(r, ")");
+            return r;
+        }
+        var r = nuevo("ss_copia_");
+        empujar(r, mangle(vista(t)));
+        empujar(r, "(");
+        empujar(r, vista(donde));
+        empujar(r, ")");
+        return r;
+    }
+
     if igual(nombre, "rebanar") {
         if largo(n.hijos) != 3 { return no_se(); }
         let v = como_vista(b, s, n.hijos[0], tipos);
@@ -1191,6 +1275,10 @@ struct Cuerpo {
     ultima_linea: usize,
     // Cuantos bucles se han abierto: cada uno lleva su propio indice.
     bucle: usize,
+    // Cuantos bloques habia abiertos al empezar el bucle mas de dentro.
+    // Salir de un bucle salta el cierre de los bloques de dentro, asi que
+    // hay que soltarlos a mano; los de fuera siguen vivos.
+    bucles: lista<usize>,
     // La primera sentencia que esta capa no supo hacer, y de que clase era.
     // No cambia nada de lo que se emite: sirve para poder decir que falta
     // sin tener que adivinarlo contando nodos.
@@ -1220,7 +1308,8 @@ fn nombre_de_bucle(n: usize) -> str {
 
 fn cuerpo() -> Cuerpo {
     return Cuerpo { lineas: [], bloques: [], sangria: 1, temporal: 0,
-        ultima_linea: 0, bucle: 0, fallo_linea: 0, fallo_clase: vacio() };
+        ultima_linea: 0, bucle: 0, bucles: [], fallo_linea: 0,
+        fallo_clase: vacio() };
 }
 
 fn sangrar(b: &Cuerpo) -> str {
@@ -1278,10 +1367,10 @@ fn anotar_duenio(b: mut Cuerpo, nombre: view, tipo: view) {
 }
 
 // Suelta lo del bloque de dentro, en orden inverso, y lo quita de la pila.
-fn cerrar_bloque(b: mut Cuerpo, s: &Sitio) {
+fn cerrar_bloque(b: mut Cuerpo, s: &Sitio, tipos: &I.Contexto) {
     if largo(b.bloques) == 0 { return; }
     let ultimo = largo(b.bloques) - 1;
-    liberar_uno(b, s, ultimo, "");
+    liberar_uno(b, s, tipos, ultimo, "");
     quitar_ultimo_bloque(b);
 }
 
@@ -1295,6 +1384,17 @@ fn recortar_lineas(b: mut Cuerpo, hasta: usize) {
         i = i + 1;
     }
     b.lineas = quedan;
+}
+
+fn quitar_ultimo_bucle(b: mut Cuerpo) {
+    if largo(b.bucles) == 0 { return; }
+    var quedan: lista<usize> = [];
+    var i = 0;
+    while i + 1 < largo(b.bucles) {
+        anadir(quedan, b.bucles[i]);
+        i = i + 1;
+    }
+    b.bucles = quedan;
 }
 
 fn quitar_ultimo_bloque(b: mut Cuerpo) {
@@ -1311,15 +1411,17 @@ fn quitar_ultimo_bloque(b: mut Cuerpo) {
 
 // Todo lo vivo, de dentro hacia fuera: es lo que hace falta antes de un
 // `return`, donde no se cierra un bloque sino todos.
-fn liberar_todo(b: mut Cuerpo, s: &Sitio, excepto: view) {
+fn liberar_todo(b: mut Cuerpo, s: &Sitio, tipos: &I.Contexto,
+    excepto: view) {
     var i = largo(b.bloques);
     while i > 0 {
         i = i - 1;
-        liberar_uno(b, s, i, excepto);
+        liberar_uno(b, s, tipos, i, excepto);
     }
 }
 
-fn liberar_uno(b: mut Cuerpo, s: &Sitio, cual: usize, excepto: view) {
+fn liberar_uno(b: mut Cuerpo, s: &Sitio, tipos: &I.Contexto,
+    cual: usize, excepto: view) {
     var j = largo(b.bloques[cual]);
     while j > 0 {
         j = j - 1;
@@ -1336,12 +1438,12 @@ fn liberar_uno(b: mut Cuerpo, s: &Sitio, cual: usize, excepto: view) {
             emitir(b, vista(g));
             emitir(b, "{");
             b.sangria = b.sangria + 1;
-            liberacion(b, vista(nombre), vista(tipo));
+            liberacion(b, tipos, vista(nombre), vista(tipo));
             b.sangria = b.sangria - 1;
             emitir(b, "}");
             continue;
         }
-        liberacion(b, vista(nombre), vista(tipo));
+        liberacion(b, tipos, vista(nombre), vista(tipo));
     }
 }
 
@@ -1371,7 +1473,8 @@ fn tiene_duenio(t: view) -> bool {
     return T.es_lista(t) || T.es_mapa(t) || T.es_bloque(t);
 }
 
-fn liberacion(b: mut Cuerpo, nombre: view, tipo: view) {
+fn liberacion(b: mut Cuerpo, tipos: &I.Contexto, nombre: view,
+    tipo: view) {
     if igual(tipo, "str") {
         var l = nuevo("ss_free(&");
         empujar(l, nombre);
@@ -1381,9 +1484,21 @@ fn liberacion(b: mut Cuerpo, nombre: view, tipo: view) {
     }
     // Una lista suelta su memoria y se queda vacia. Si sus elementos tienen
     // duenio, cada uno se suelta antes: la lista era su unica duenia.
+    // Un mapa suelta su tabla, sus claves y sus valores de una vez: lleva
+    // su propio liberador generado, como cada tipo de mapa lleva el suyo.
+    if T.es_mapa(tipo) {
+        var l = nuevo("ss_mapa_libre_");
+        empujar(l, mangle(tipo));
+        empujar(l, "(&");
+        empujar(l, nombre);
+        empujar(l, ");");
+        emitir(b, vista(l));
+        return;
+    }
+
     if T.es_lista(tipo) {
         let elem = T.elemento(tipo);
-        if tiene_duenio(vista(elem)) {
+        if I.posee_con_formas(tipos, vista(elem)) {
             b.bucle = b.bucle + 1;
             let i = nombre_de_bucle(b.bucle);
             var f = nuevo("for (size_t ");
@@ -1402,7 +1517,7 @@ fn liberacion(b: mut Cuerpo, nombre: view, tipo: view) {
             empujar(dentro, ".e[");
             empujar(dentro, vista(i));
             empujar(dentro, "]");
-            liberacion(b, vista(dentro), vista(elem));
+            liberacion(b, tipos, vista(dentro), vista(elem));
             b.sangria = b.sangria - 1;
             emitir(b, "}");
         }
@@ -1419,6 +1534,19 @@ fn liberacion(b: mut Cuerpo, nombre: view, tipo: view) {
         var d = nuevo(nombre);
         empujar(d, ".capacity = 0;");
         emitir(b, vista(d));
+        return;
+    }
+
+    // Un struct que posee lleva su liberador generado, que suelta sus campos
+    // en orden. El nombre no lleva el alias del modulo: en C no queda.
+    if I.posee_con_formas(tipos, tipo) {
+        let corto = I.sin_modulo(tipo);
+        var l = nuevo("ss_drop_");
+        empujar(l, vista(corto));
+        empujar(l, "(&");
+        empujar(l, nombre);
+        empujar(l, ");");
+        emitir(b, vista(l));
     }
 }
 
@@ -1519,7 +1647,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         emitir(b, vista(l));
 
         I.declarar(tipos, vista(nombre), vista(tipo));
-        if igual(vista(tipo), "str") || T.es_lista(vista(tipo)) {
+        if I.posee_con_formas(tipos, vista(tipo)) {
             anotar_duenio(b, vista(nombre), vista(tipo));
             if tiene(s.pide_bandera, vista(nombre)) {
                 nace_bandera(b, vista(nombre));
@@ -1536,6 +1664,18 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             return true;
         }
         if empujar_c(b, s, n.hijos[0], tipos) {
+            apagar_las_de(b, s, n, tipos);
+            return true;
+        }
+        // `poner(m, k, v)` devuelve algo que casi nadie mira: como sentencia
+        // se escribe la llamada y se tira el valor, como en C.
+        if igual(vista(n.hijos[0].clase), "llamada")
+        && igual(vista(n.hijos[0].texto), "poner") {
+            let hecha = interna_pura(b, s, n.hijos[0], tipos);
+            if es_desconocido(vista(hecha)) { return false; }
+            var l = copiar(hecha);
+            empujar(l, ";");
+            emitir(b, vista(l));
             apagar_las_de(b, s, n, tipos);
             return true;
         }
@@ -1560,7 +1700,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     if igual(clase, "falla") {
         // Salir por el camino malo: se suelta todo y se devuelve el motivo.
         if !falible { return false; }
-        liberar_todo(b, s, "");
+        liberar_todo(b, s, tipos, "");
         var l = nuevo("return (");
         empujar(l, tipo_resultado(retorno));
         empujar(l, "){ .motivo = ");
@@ -1572,7 +1712,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
 
     if igual(clase, "retorno") {
         if largo(n.hijos) == 0 {
-            liberar_todo(b, s, "");
+            liberar_todo(b, s, tipos, "");
             if falible {
                 var l = nuevo("return (");
                 empujar(l, tipo_resultado(retorno));
@@ -1587,7 +1727,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // que calcular, y liberar lo demas no la toca.
         if igual(vista(n.hijos[0].clase), "variable") {
             let quien = vista(n.hijos[0].texto);
-            liberar_todo(b, s, quien);
+            liberar_todo(b, s, tipos, quien);
             let c = expresion_c(b, s, n.hijos[0], retorno, tipos);
             var r = nuevo("return ");
             if falible {
@@ -1625,7 +1765,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         if igual(vista(n.hijos[0].clase), "variable") {
             entregada = nuevo(vista(n.hijos[0].texto));
         }
-        liberar_todo(b, s, vista(entregada));
+        liberar_todo(b, s, tipos, vista(entregada));
         var r = nuevo("return ");
         if falible {
             // En una falible lo que se devuelve va envuelto: `motivo` a
@@ -1683,7 +1823,10 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             empujar(l, vista(cond));
             empujar(l, ")");
             emitir(b, vista(l));
-            return bloque_c(b, s, n.hijos[1], tipos, retorno, falible);
+            anadir(b.bucles, largo(b.bloques));
+            let salio = bloque_c(b, s, n.hijos[1], tipos, retorno, falible);
+            quitar_ultimo_bucle(b);
+            return salio;
         }
 
         // Dejo lineas: se deshace y se rehace dentro.
@@ -1694,6 +1837,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         emitir(b, "{");
         b.sangria = b.sangria + 1;
         abrir_bloque(b);
+        anadir(b.bucles, largo(b.bloques) - 1);
         I.abrir(tipos);
         let dentro = expresion_c(b, s, n.hijos[0], "bool", tipos);
         if es_desconocido(vista(dentro)) { return false; }
@@ -1713,8 +1857,9 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
                 if !bien { apuntar_fallo(b, st); }
             }
         }
-        if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s); }
+        if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s, tipos); }
         else { quitar_ultimo_bloque(b); }
+        quitar_ultimo_bucle(b);
         I.cerrar(tipos);
         b.sangria = b.sangria - 1;
         emitir(b, "}");
@@ -1767,7 +1912,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
                 emitir(b, vista(w));
                 emitir(b, "{");
                 b.sangria = b.sangria + 1;
-                liberacion(b, vista(destino), vista(tipo));
+                liberacion(b, tipos, vista(destino), vista(tipo));
                 b.sangria = b.sangria - 1;
                 emitir(b, "}");
                 var a = copiar(destino);
@@ -1782,7 +1927,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
                 apagar_las_de(b, s, n, tipos);
                 return true;
             }
-            liberacion(b, vista(destino), vista(tipo));
+            liberacion(b, tipos, vista(destino), vista(tipo));
             var a = copiar(destino);
             empujar(a, " = ");
             empujar(a, vista(tmp));
@@ -1834,6 +1979,7 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         emitir(b, "{");
         b.sangria = b.sangria + 1;
         abrir_bloque(b);
+        anadir(b.bucles, largo(b.bloques) - 1);
         I.abrir(tipos);
 
         // El elemento se presta, no se copia: un `str` copiado tendria dos
@@ -1873,18 +2019,31 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
                 if !bien { apuntar_fallo(b, st); }
             }
         }
-        if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s); }
+        if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s, tipos); }
         else { quitar_ultimo_bloque(b); }
 
         if presta && !ya_era { quitar(s.punteros, quien); }
+        quitar_ultimo_bucle(b);
         I.cerrar(tipos);
         b.sangria = b.sangria - 1;
         emitir(b, "}");
         return bien;
     }
 
-    if igual(clase, "romper") { emitir(b, "break;"); return true; }
-    if igual(clase, "continuar") { emitir(b, "continue;"); return true; }
+    if igual(clase, "romper") || igual(clase, "continuar") {
+        // Lo que nacio dentro del bucle no lo cierra nadie si se sale por
+        // aqui: se suelta ahora, de dentro hacia fuera.
+        var desde = 0;
+        if largo(b.bucles) > 0 { desde = b.bucles[largo(b.bucles) - 1]; }
+        var i = largo(b.bloques);
+        while i > desde {
+            i = i - 1;
+            liberar_uno(b, s, tipos, i, "");
+        }
+        if igual(clase, "romper") { emitir(b, "break;"); }
+        else { emitir(b, "continue;"); }
+        return true;
+    }
 
     return false;
 }
@@ -1902,7 +2061,7 @@ fn bloque_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
             if !bien { apuntar_fallo(b, h); }
         }
     }
-    if bien && !termina_saliendo(n) { cerrar_bloque(b, s); }
+    if bien && !termina_saliendo(n) { cerrar_bloque(b, s, tipos); }
     else { quitar_ultimo_bloque(b); }
     I.cerrar(tipos);
     b.sangria = b.sangria - 1;
@@ -1974,7 +2133,7 @@ fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     emitir(b, vista(cond));
     emitir(b, "{");
     b.sangria = b.sangria + 1;
-    liberar_todo(b, s, "");
+    liberar_todo(b, s, tipos, "");
     var sale = nuevo("return (");
     empujar(sale, tipo_resultado(retorno));
     empujar(sale, "){ .motivo = ");
