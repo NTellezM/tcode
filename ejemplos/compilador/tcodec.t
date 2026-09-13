@@ -847,6 +847,159 @@ fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
 // El archivo
 // ------------------------------------------------------------------
 
+// ------------------------------------------------------------------
+// Genericas
+// ------------------------------------------------------------------
+//
+// Una generica no se escribe: se escriben las copias que pide cada llamada,
+// con los tipos puestos, detras de todo lo demas. El original crea cada copia
+// al comprobar la llamada y comprueba su cuerpo antes de apuntarla, asi que
+// las que pide una copia salen antes que ella. Aqui se descubren igual:
+// escribiendo cada funcion una vez en borrador y siguiendo lo que piden sus
+// llamadas.
+
+// Un campo de un pedido `plantilla\tnombre_c\tT=tipo...`.
+fn campo_pedido(p: view, cual: usize) -> str {
+    var k = 0;
+    var desde = 0;
+    var i = 0;
+    while i <= largo(p) {
+        if i == largo(p) || byte(p, i) == 9 {
+            if k == cual { return nuevo(rebanar(p, desde, i)); }
+            k = k + 1;
+            desde = i + 1;
+        }
+        i = i + 1;
+    }
+    return vacio();
+}
+
+fn ligaduras_de(p: view) -> mapa<str, str> {
+    var salida: mapa<str, str> = [];
+    var k = 2;
+    var pieza = campo_pedido(p, k);
+    while largo(pieza) > 0 {
+        let corte = buscar_desde(vista(pieza), "=", 0);
+        let tp = nuevo(rebanar(vista(pieza), 0, corte));
+        let puesto = nuevo(rebanar(vista(pieza), corte + 1, largo(vista(pieza))));
+        poner(salida, vista(tp), puesto);
+        k = k + 1;
+        pieza = campo_pedido(p, k);
+    }
+    return salida;
+}
+
+// Los nodos cuyo texto lleva tipos escritos.
+fn lleva_tipo(clase: view) -> bool {
+    if igual(clase, "param") || igual(clase, "retorno_tipo") { return true; }
+    if igual(clase, "declaracion") || igual(clase, "conversion") { return true; }
+    return igual(clase, "literal_struct") || igual(clase, "cierre");
+}
+
+fn copiar_sustituido(n: &P.Nodo, lig: &mapa<str, str>) -> P.Nodo {
+    var r = P.rama(vista(n.clase), n.linea);
+    if lleva_tipo(vista(n.clase)) {
+        r.texto = I.sustituir(vista(n.texto), lig);
+    } else {
+        r.texto = copiar(n.texto);
+    }
+    for h en n.hijos {
+        if igual(vista(h.clase), "tipo_param") { continue; }
+        anadir(r.hijos, copiar_sustituido(h, lig));
+    }
+    return r;
+}
+
+// La copia de una generica con los tipos de un pedido.
+fn nodo_instancia(p: view, arboles: &lista<P.Nodo>,
+    plantillas: &mapa<str, usize>) -> P.Nodo {
+    let plantilla = campo_pedido(p, 0);
+    let en_c = campo_pedido(p, 1);
+    let lig = ligaduras_de(p);
+    let im = obtener(plantillas, vista(plantilla)) sino 0;
+    var r = P.rama("vacio", 0);
+    for d en arboles[im].hijos {
+        if igual(vista(d.clase), "fn") && igual(vista(d.texto), vista(plantilla)) {
+            r = copiar_sustituido(d, lig);
+            r.texto = copiar(en_c);
+            break;
+        }
+    }
+    return r;
+}
+
+// Escribe en borrador cada copia pedida que no se haya visto, primero las
+// que pide ella, y la apunta en `orden` al terminar.
+fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
+    contextos: mut lista<I.Contexto>, modulos: &lista<str>,
+    plantillas: &mapa<str, usize>, vistos: mut mapa<str, usize>,
+    orden: mut lista<str>) -> bool {
+    for p en pedidos {
+        let en_c = campo_pedido(vista(p), 1);
+        if tiene(vistos, vista(en_c)) { continue; }
+        poner(vistos, vista(en_c), 1);
+        let plantilla = campo_pedido(vista(p), 0);
+        if !tiene(plantillas, vista(plantilla)) {
+            imprimir_error($"tcodec: `{plantilla}` no es una generica conocida\n");
+            return false;
+        }
+        let de = obtener(plantillas, vista(plantilla)) sino 0;
+        let copia = nodo_instancia(vista(p), arboles, plantillas);
+        var borrador = F.cuenta_nueva();
+        let lineas = F.generar_funcion(copia, contextos[de], vista(modulos[de]), borrador);
+        if largo(lineas) == 0 {
+            imprimir_error($"tcodec: no se escribir la copia `{en_c}`\n");
+            return false;
+        }
+        if !descubrir(borrador.instancias, arboles, contextos, modulos, plantillas,
+            vistos, orden) {
+            return false;
+        }
+        anadir(orden, copiar(p));
+    }
+    return true;
+}
+
+// Una funcion al archivo: su prototipo, su cuerpo y lo que su cuerpo pide
+// de la aritmetica. Falso si no la sabe escribir entera.
+fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
+    cta: mut F.Cuenta, protos: mut lista<str>, cuerpos: mut lista<str>,
+    anchos: mut mapa<str, usize>, decimales: mut mapa<str, usize>,
+    conversiones: mut mapa<str, usize>) -> bool {
+    let lineas = F.generar_funcion(d, tipos, ruta, cta);
+    if largo(lineas) == 0 {
+        imprimir_error($"tcodec: no se escribir `{d.texto}` entera\n");
+        return false;
+    }
+    if !igual(vista(d.texto), "main") {
+        for l en lineas {
+            if !empieza_con(vista(l), "#line") {
+                var p = copiar(l);
+                empujar(p, ";");
+                anadir(protos, p);
+                break;
+            }
+        }
+    }
+    for l en lineas {
+        if necesita_lo_que_falta(vista(l)) {
+            imprimir_error($"tcodec: `{d.texto}` necesita algo que falta\n");
+            return false;
+        }
+        apuntar_tras(vista(l), "ss_lang_suma_", anchos);
+        apuntar_tras(vista(l), "ss_lang_resta_", anchos);
+        apuntar_tras(vista(l), "ss_lang_mul_", anchos);
+        apuntar_tras(vista(l), "ss_lang_abs_", anchos);
+        apuntar_tras(vista(l), "ss_lang_desp_izq_", anchos);
+        apuntar_tras(vista(l), "ss_lang_desp_der_", anchos);
+        apuntar_tras(vista(l), "ss_lang_fin_", decimales);
+        apuntar_tras(vista(l), "ss_lang_conv_", conversiones);
+        anadir(cuerpos, copiar(l));
+    }
+    anadir(cuerpos, vacio());
+    return true;
+}
+
 fn main() -> usize ! {
     if n_argumentos() < 2 {
         imprimir_error($"uso: {argumento(0)} <archivo.t>\n");
@@ -868,6 +1021,8 @@ fn main() -> usize ! {
     var st_campos: lista<lista<str>> = [];
     var st_tipos: lista<lista<str>> = [];
     var st_indice: mapa<str, usize> = [];
+    // Cada generica, con el indice del modulo que la declara.
+    var plantillas: mapa<str, usize> = [];
     for m en modulos {
         var tipos = I.contexto();
         let arbol = try F.preparar(vista(m), tipos);
@@ -876,7 +1031,10 @@ fn main() -> usize ! {
             let clase = vista(d.clase);
             if igual(clase, "usar") || igual(clase, "alias") { continue; }
             if igual(clase, "fn") {
-                if F.es_generica(d) { return rechazo("genericas"); }
+                if F.es_generica(d) {
+                    poner(plantillas, vista(d.texto), largo(arboles));
+                    continue;
+                }
                 if G.choca_con_c(vista(d.texto)) {
                     return rechazo("nombres que chocan con C");
                 }
@@ -919,6 +1077,35 @@ fn main() -> usize ! {
         return rechazo("nombres repetidos entre modulos");
     }
 
+    // Las copias de las genericas, en el orden en que las crea el original.
+    // Se descubren antes del recorrido de tipos porque el original ya las
+    // tiene cuando registra: sus firmas tambien cuentan.
+    var vistas_inst: mapa<str, usize> = [];
+    var orden_inst: lista<str> = [];
+    var k_desc = 0;
+    while k_desc < largo(arboles) {
+        for d en arboles[k_desc].hijos {
+            if !igual(vista(d.clase), "fn") || F.es_generica(d) { continue; }
+            var borrador = F.cuenta_nueva();
+            let escritas = F.generar_funcion(d, contextos[k_desc],
+                vista(modulos[k_desc]), borrador);
+            // Si no se sabe escribir, lo dira la pasada de verdad.
+            if largo(escritas) == 0 { continue; }
+            if !descubrir(borrador.instancias, arboles, contextos, modulos,
+                plantillas, vistas_inst, orden_inst) {
+                return 1;
+            }
+        }
+        k_desc = k_desc + 1;
+    }
+    var instancias: lista<P.Nodo> = [];
+    var modulo_de: lista<usize> = [];
+    for p en orden_inst {
+        anadir(instancias, nodo_instancia(vista(p), arboles, plantillas));
+        let plantilla = campo_pedido(vista(p), 0);
+        anadir(modulo_de, obtener(plantillas, vista(plantilla)) sino 0);
+    }
+
     // Las listas, con el mismo recorrido que el original: en orden de
     // declaracion, campos de struct y funciones entremezclados.
     var reg = registro();
@@ -936,13 +1123,21 @@ fn main() -> usize ! {
                     }
                 }
             }
-            if igual(vista(d.clase), "fn") {
+            if igual(vista(d.clase), "fn") && !F.es_generica(d) {
                 if !mirar_funcion(d, contextos[im], reg, global, st_indice) {
                     return rechazo("mapas, bloques ni arreglos");
                 }
             }
         }
         im = im + 1;
+    }
+    var k_mira = 0;
+    while k_mira < largo(instancias) {
+        if !mirar_funcion(instancias[k_mira], contextos[modulo_de[k_mira]], reg,
+            global, st_indice) {
+            return rechazo("mapas, bloques ni arreglos");
+        }
+        k_mira = k_mira + 1;
     }
 
     // Las internas falibles registran el suyo despues, al recorrer todo.
@@ -1036,40 +1231,26 @@ fn main() -> usize ! {
         // `#line`: al cambiar de modulo nunca coincide.
         cta.ultima_linea = 0;
         for d en arboles[i].hijos {
-            if !igual(vista(d.clase), "fn") { continue; }
-            let lineas = F.generar_funcion(d, contextos[i], vista(modulos[i]), cta);
-            if largo(lineas) == 0 {
-                imprimir_error($"tcodec: no se escribir `{d.texto}` entera\n");
+            if !igual(vista(d.clase), "fn") || F.es_generica(d) { continue; }
+            if !emitir_funcion(d, contextos[i], vista(modulos[i]), cta, protos,
+                cuerpos, anchos, decimales, conversiones) {
                 return 1;
             }
-            if !igual(vista(d.texto), "main") {
-                for l en lineas {
-                    if !empieza_con(vista(l), "#line") {
-                        var p = copiar(l);
-                        empujar(p, ";");
-                        anadir(protos, p);
-                        break;
-                    }
-                }
-            }
-            for l en lineas {
-                if necesita_lo_que_falta(vista(l)) {
-                    imprimir_error($"tcodec: `{d.texto}` necesita algo que falta\n");
-                    return 1;
-                }
-                apuntar_tras(vista(l), "ss_lang_suma_", anchos);
-                apuntar_tras(vista(l), "ss_lang_resta_", anchos);
-                apuntar_tras(vista(l), "ss_lang_mul_", anchos);
-                apuntar_tras(vista(l), "ss_lang_abs_", anchos);
-                apuntar_tras(vista(l), "ss_lang_desp_izq_", anchos);
-                apuntar_tras(vista(l), "ss_lang_desp_der_", anchos);
-                apuntar_tras(vista(l), "ss_lang_fin_", decimales);
-                apuntar_tras(vista(l), "ss_lang_conv_", conversiones);
-                anadir(cuerpos, copiar(l));
-            }
-            anadir(cuerpos, vacio());
         }
         i = i + 1;
+    }
+    // Las copias van detras de todo, `main` incluida.
+    var ultima_ruta = copiar(modulos[largo(modulos) - 1]);
+    var k_emite = 0;
+    while k_emite < largo(instancias) {
+        let de = modulo_de[k_emite];
+        if !igual(vista(modulos[de]), vista(ultima_ruta)) { cta.ultima_linea = 0; }
+        ultima_ruta = copiar(modulos[de]);
+        if !emitir_funcion(instancias[k_emite], contextos[de], vista(modulos[de]),
+            cta, protos, cuerpos, anchos, decimales, conversiones) {
+            return 1;
+        }
+        k_emite = k_emite + 1;
     }
 
     // Toda lista que aparezca en un cuerpo tiene que tener su typedef: si el
@@ -1114,6 +1295,19 @@ fn main() -> usize ! {
         if !tiene(registradas, vista(u)) {
             imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
             return 1;
+        }
+    }
+
+    // Y toda copia de generica que se llame tiene que haberse escrito.
+    for g en claves(plantillas) {
+        var usadas_g: mapa<str, usize> = [];
+        let prefijo = $"{g}__";
+        for l en cuerpos { apuntar_nombres(vista(l), vista(prefijo), usadas_g); }
+        for u en claves(usadas_g) {
+            if !tiene(vistas_inst, vista(u)) {
+                imprimir_error($"tcodec: la copia `{u}` se usa y no se escribio\n");
+                return 1;
+            }
         }
     }
 
