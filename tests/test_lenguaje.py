@@ -632,6 +632,14 @@ RECHAZO = [
      'fn f() { let a: usize = 1; let a: usize = 2; }',
      "ya esta declarada"),
 
+    ("tapar una variable de un bloque de fuera",
+     'fn f(c: bool) { let t: usize = 1; if c { let t: usize = 2; } }',
+     "tapa a una variable"),
+
+    ("tapar un parametro dentro de un bucle",
+     'fn f(n: usize) { while n > 0 { let n: usize = 0; } }',
+     "tapa a una variable"),
+
     ("prestar una vista no tiene sentido: ya es un prestamo",
      'fn g(v: &view) {}',
      "una vista ya es un prestamo"),
@@ -672,6 +680,36 @@ RECHAZO = [
 
 
 ACEPTA = [
+    # ---- banderas de soltar, una por declaracion ----
+    #
+    # Dos bloques hermanos pueden declarar el mismo nombre. La bandera de
+    # "sigue viva" es de cada declaracion, no del nombre: con una por nombre
+    # el C no compilaba, o se perdia la de un bloque al mover la del otro.
+    ("dos bloques hermanos con el mismo nombre, movido solo en uno",
+     '''fn f(c: bool) -> usize {
+            var xs: lista<str> = [];
+            if c {
+                let t = nuevo("uno");
+                if largo(xs) == 0 { anadir(xs, t); }
+            }
+            if largo(xs) < 10 {
+                let t = nuevo("dos");
+                if c { anadir(xs, t); }
+                if largo(xs) > 0 { return largo(xs); }
+            }
+            return 0;
+        }
+        fn main() { imprimir($"{f(false)} {f(true)}\\n"); }''',
+     "0 2\n"),
+
+    ("una clausura puede usar el nombre de una variable de quien la crea",
+     '''fn main() {
+            let x: usize = 3;
+            let doble = fn(x: usize) -> usize { return x * 2; };
+            imprimir($"{doble(x)}\\n");
+        }''',
+     "6\n"),
+
     # ---- temporales en las salidas tempranas ----
     #
     # Los cinco los encontro ejecutar bajo AddressSanitizer el compilador
@@ -2978,7 +3016,7 @@ print("=== PROGRAMA: el archivo C entero, escrito por Tcode ===")
 # el generador de Python. Lo que `tcodec` no sabe escribir entero lo rechaza
 # sin escribir medio archivo; se cuentan los programas identicos y se exige un
 # minimo.
-_MINIMO_PROGRAMAS = 2
+_MINIMO_PROGRAMAS = 4
 
 tmp = tempfile.mkdtemp(prefix="tcode-programa-")
 _cwd_antes = os.getcwd()
