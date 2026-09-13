@@ -96,7 +96,7 @@ fn sin_cadenas(l: view) -> str {
 
 fn necesita_lo_que_falta(l: view) -> bool {
     if contiene(l, "ss_bloque_") { return true; }
-    if contiene(l, "ss_arr_") || contiene(l, "ss_fn_") { return true; }
+    if contiene(l, "ss_fn_") { return true; }
     if contiene(l, "ss_cierre_") || contiene(l, "ss_lang_cstr_") { return true; }
     if contiene(l, "ss_lang_escribir_") {
         return true;
@@ -237,7 +237,14 @@ fn visitar_struct(nombre: view, indice: &mapa<str, usize>,
     poner(listos, nombre, 1);
     let k = obtener(indice, nombre) sino 0;
     for t en tipos_de[k] {
-        visitar_struct(vista(t), indice, tipos_de, listos, salida);
+        // Un arreglo de structs necesita el tamaño del de dentro.
+        var base = copiar(t);
+        while empieza_con(vista(base), "[") {
+            let pa = partes_arreglo(vista(base));
+            if largo(pa) != 2 { break; }
+            base = copiar(pa[0]);
+        }
+        visitar_struct(vista(base), indice, tipos_de, listos, salida);
     }
     anadir(salida, nuevo(nombre));
 }
@@ -377,6 +384,39 @@ fn partes_mapa(t: view) -> lista<str> {
     return salida;
 }
 
+// `[T; N]` -> [T, N], cortando por el `;` de fuera.
+fn partes_arreglo(t: view) -> lista<str> {
+    var salida: lista<str> = [];
+    if largo(t) < 2 || !empieza_con(t, "[") { return salida; }
+    let dentro = rebanar(t, 1, largo(t) - 1);
+    var hondura = 0;
+    var corte = largo(dentro);
+    var i = 0;
+    while i < largo(dentro) {
+        let b = byte(dentro, i);
+        if b == 91 || b == 60 { hondura = hondura + 1; }
+        if (b == 93 || b == 62) && hondura > 0 { hondura = hondura - 1; }
+        if b == 59 && hondura == 0 { corte = i; }
+        i = i + 1;
+    }
+    if corte == largo(dentro) { return salida; }
+    anadir(salida, nuevo(rebanar(dentro, 0, corte)));
+    var j = corte + 1;
+    while j < largo(dentro) && byte(dentro, j) == 32 { j = j + 1; }
+    anadir(salida, nuevo(rebanar(dentro, j, largo(dentro))));
+    return salida;
+}
+
+fn cuantos_corchetes(t: view) -> usize {
+    var n = 0;
+    var i = 0;
+    while i < largo(t) {
+        if byte(t, i) == 91 { n = n + 1; }
+        i = i + 1;
+    }
+    return n;
+}
+
 // Lo que el recorrido previo registra, en el orden en que lo registra el
 // original: cada coleccion concreta y cada tipo resultado. Un mapa registra
 // al pasar la lista de sus claves y los resultados de `obtener`, asi que
@@ -387,11 +427,14 @@ struct Registro {
     resultados: lista<str>,
     vistos: mapa<str, usize>,
     res_vistos: mapa<str, usize>,
+    // Los envoltorios de arreglo van aparte: no son agregados sin nombre.
+    arreglos: lista<str>,
+    arr_vistos: mapa<str, usize>,
 }
 
 fn registro() -> Registro {
     return Registro { listas: [], mapas: [], resultados: [], vistos: [],
-        res_vistos: [] };
+        res_vistos: [], arreglos: [], arr_vistos: [] };
 }
 
 fn registrar_resultado(reg: mut Registro, t: view) {
@@ -420,6 +463,23 @@ fn tipo_obtener(v: view, global: &I.Contexto) -> str {
 // es algo que este hito todavia no escribe.
 fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     structs: &mapa<str, usize>) -> bool {
+    if empieza_con(t, "[") {
+        let pa = partes_arreglo(t);
+        if largo(pa) != 2 { return false; }
+        // Lo de dentro se registraria al pedir su nombre en C, fuera del
+        // recorrido: ese orden no se reproduce.
+        if contiene(vista(pa[0]), "<") {
+            imprimir_error($"tcodec: el tipo `{t}`\n");
+            return false;
+        }
+        if tiene(reg.arr_vistos, t) { return true; }
+        if empieza_con(vista(pa[0]), "[") {
+            if !mirar_tipo(vista(pa[0]), reg, global, structs) { return false; }
+        }
+        poner(reg.arr_vistos, t, 1);
+        anadir(reg.arreglos, nuevo(t));
+        return true;
+    }
     if es_bloque_o_arreglo(t) {
         // Un prestamo no registra nada, como en el original.
         if empieza_con(t, "&") { return true; }
@@ -923,6 +983,13 @@ fn necesita_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
         }
         return;
     }
+    if empieza_con(t, "[") {
+        let pa = partes_arreglo(t);
+        if largo(pa) == 2 {
+            necesita_copiador(vista(pa[0]), global, st_indice, st_tipos, vistos, salida);
+        }
+        return;
+    }
     if tiene(st_indice, t) {
         let k = obtener(st_indice, t) sino 0;
         for c en st_tipos[k] {
@@ -1034,6 +1101,21 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
         anadir(salida, nuevo("        r.claves[i] = ss_clone(&p->claves[i]);"));
         anadir(salida, $"        r.valores[i] = {cp};");
         anadir(salida, nuevo("    }"));
+        anadir(salida, nuevo("    return r;"));
+        anadir(salida, nuevo("}"));
+        anadir(salida, vacio());
+        return true;
+    }
+    if empieza_con(t, "[") {
+        let pa = partes_arreglo(t);
+        if largo(pa) != 2 { return false; }
+        let cp = copia_de("p->e[i]", vista(pa[0]), global);
+        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
+        anadir(salida, nuevo("{"));
+        anadir(salida, $"    {tc} r;");
+        anadir(salida, $"    for (size_t i = 0; i < {pa[1]}; i++)");
+        anadir(salida, $"        r.e[i] = {cp};");
         anadir(salida, nuevo("    return r;"));
         anadir(salida, nuevo("}"));
         anadir(salida, vacio());
@@ -1271,9 +1353,9 @@ fn main() -> usize ! {
                     if igual(vista(h.clase), "campo_def") {
                         let tp = F.tipo_pelado(vista(h.texto));
                         let t = I.sin_alias_tipo(vista(tp));
-                        if es_bloque_o_arreglo(vista(t)) || (contiene(vista(t), "<")
+                        if contiene(vista(t), "bloque<") || (contiene(vista(t), "<")
                             && !es_lista_t(vista(t)) && !es_mapa_t(vista(t))) {
-                            return rechazo("bloques, arreglos o genericos en un struct");
+                            return rechazo("bloques o genericos en un struct");
                         }
                         anadir(campos, F.nombre_de(vista(h.texto)));
                         anadir(tipos_campo, t);
@@ -1526,6 +1608,26 @@ fn main() -> usize ! {
         }
     }
     if alguno_posee { anadir(partes, vacio()); }
+    // Los envoltorios de arreglo, de dentro hacia fuera.
+    var arr_orden: lista<str> = [];
+    var hondo_a = 0;
+    var quedan_a = largo(reg.arreglos);
+    while quedan_a > 0 {
+        for t en reg.arreglos {
+            if cuantos_corchetes(vista(t)) == hondo_a {
+                anadir(arr_orden, copiar(t));
+                quedan_a = quedan_a - 1;
+            }
+        }
+        hondo_a = hondo_a + 1;
+    }
+    for t en arr_orden {
+        let pa = partes_arreglo(vista(t));
+        let te = G.tipo_c(vista(pa[0]));
+        let tc = G.tipo_c(vista(t));
+        anadir(partes, $"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
+    }
+    if largo(reg.arreglos) > 0 { anadir(partes, vacio()); }
     for r en reg.resultados { anadir(partes, typedef_resultado(vista(r))); }
     if largo(reg.resultados) > 0 { anadir(partes, vacio()); }
     // Las internas que hablan con el sistema, en un orden fijo: el monotono
@@ -1685,6 +1787,20 @@ fn main() -> usize ! {
         }
     }
 
+    // Y con los arreglos.
+    var usados_a: mapa<str, usize> = [];
+    for l en limpios { apuntar_nombres(vista(l), "ss_arr_", usados_a); }
+    for x en reg.arreglos {
+        let nombre_c = G.tipo_c(vista(x));
+        poner(registradas, vista(nombre_c), 1);
+    }
+    for u en claves(usados_a) {
+        if !tiene(registradas, vista(u)) {
+            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
+            return 1;
+        }
+    }
+
     // Lo mismo con los mapas y los tipos resultado.
     var usados_m: mapa<str, usize> = [];
     var usados_r: mapa<str, usize> = [];
@@ -1759,7 +1875,7 @@ fn main() -> usize ! {
     for t en copiadores {
         if !cuerpo_copiador(vista(t), global, st_indice, st_campos, st_tipos,
             en_indice, en_variantes, en_lleva, bloque_copias) {
-            return rechazo("copiar bloques o arreglos");
+            return rechazo("copiar bloques");
         }
     }
     var usados_c: mapa<str, usize> = [];

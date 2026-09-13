@@ -454,6 +454,25 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         return copiar(tmp);
     }
 
+    // `[a, b, c]` de tamaño fijo: un literal compuesto de C, de una vez.
+    if igual(clase, "literal_lista") && !T.es_mapa(esperado) && largo(n.hijos) > 0 {
+        var t = nuevo(esperado);
+        if !T.es_arreglo(esperado) { t = I.tipo_de(tipos, n); }
+        if !T.es_arreglo(vista(t)) { return no_se(); }
+        let elem = T.elemento(vista(t));
+        var piezas = vacio();
+        var primera = true;
+        for x en n.hijos {
+            let valor = expresion_c(b, s, x, vista(elem), tipos);
+            if es_desconocido(vista(valor)) { return no_se(); }
+            if !primera { empujar(piezas, ", "); }
+            primera = false;
+            empujar(piezas, vista(valor));
+        }
+        let tc = tipo_c(vista(t));
+        return $"({tc}){{{{ {piezas} }}}}";
+    }
+
     // `[]` donde se espera un mapa: la tabla no nace hasta el primer
     // `poner`, que es donde el coste se ve.
     if igual(clase, "literal_lista") {
