@@ -22,6 +22,20 @@ usar "lib/comprobar.t" como C;
 usar "std/texto";
 usar "std/lista";
 
+// Lo que hace falta del sistema para construir el binario, escrito en C al
+// lado: ejecutar el compilador de C, un temporal, y sustituir un archivo de
+// una vez.
+externo "lib/sistema_tcodec.c" {
+    fn tcodec_ejecutar(orden: str) -> i32;
+    fn tcodec_directorio_temporal() -> cadena_c;
+    fn tcodec_ruta_real(ruta: str) -> cadena_c;
+    fn tcodec_misma_ruta(a: str, b: str) -> i32;
+    fn tcodec_es_archivo(ruta: str) -> i32;
+    fn tcodec_temporal_junto(destino: str) -> cadena_c;
+    fn tcodec_instalar(temporal: str, destino: str, ejecutable: i32) -> i32;
+    fn tcodec_borrar(ruta: str);
+}
+
 // Donde empieza `que` en `t` a partir de `desde`, o `largo(t)` si no esta.
 fn buscar_desde(t: view, que: view, desde: usize) -> usize {
     var i = desde;
@@ -1876,13 +1890,294 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     return true;
 }
 
+// ------------------------------------------------------------------
+// Del C al binario, como `tcode`
+// ------------------------------------------------------------------
+
+// Un argumento para la shell, entre comillas simples: nada de dentro se
+// interpreta.
+fn para_la_shell(t: view) -> str {
+    var r = nuevo("'");
+    var i = 0;
+    while i < largo(t) {
+        if byte(t, i) == 39 { empujar(r, "'\\''"); }
+        else { empujar(r, rebanar(t, i, i + 1)); }
+        i = i + 1;
+    }
+    empujar(r, "'");
+    return r;
+}
+
+// `a/b/c.t` -> `a/b/c`: sin la extension, si la hay en el ultimo trozo.
+fn sin_extension(ruta: view) -> str {
+    var punto = largo(ruta);
+    var i = largo(ruta);
+    while i > 0 {
+        i = i - 1;
+        let b = byte(ruta, i);
+        if b == 47 { break; }
+        if b == 46 {
+            punto = i;
+            break;
+        }
+    }
+    // `.oculto` no tiene extension: el punto es parte del nombre.
+    if punto < largo(ruta) && punto > 0 && byte(ruta, punto - 1) == 47 {
+        return nuevo(ruta);
+    }
+    if punto == 0 { return nuevo(ruta); }
+    return nuevo(rebanar(ruta, 0, punto));
+}
+
+fn extension(ruta: view) -> str {
+    let sin = sin_extension(ruta);
+    return nuevo(rebanar(ruta, largo(sin), largo(ruta)));
+}
+
+fn nombre_suelto(ruta: view) -> str {
+    var i = largo(ruta);
+    while i > 0 {
+        if byte(ruta, i - 1) == 47 { break; }
+        i = i - 1;
+    }
+    return nuevo(rebanar(ruta, i, largo(ruta)));
+}
+
+fn directorio_de(ruta: view) -> str {
+    var i = largo(ruta);
+    while i > 0 {
+        if byte(ruta, i - 1) == 47 { return nuevo(rebanar(ruta, 0, i - 1)); }
+        i = i - 1;
+    }
+    return vacio();
+}
+
+// `escribir_archivo` no da valor: esto da `true` si fue bien, para poder
+// decir que hacer si no con `sino false`.
+fn escribir(ruta: view, contenido: view) -> bool ! {
+    try escribir_archivo(ruta, contenido);
+    return true;
+}
+
+// Lo escribe entero en un temporal al lado y solo entonces sustituye el
+// destino, siguiendo enlaces y con sus permisos.
+fn escribir_de_una_vez(ruta: view, contenido: view, ejecutable: bool) -> bool {
+    let destino = tcodec_ruta_real(nuevo(ruta));
+    if largo(destino) == 0 { return false; }
+    let temporal = tcodec_temporal_junto(copiar(destino));
+    if largo(temporal) == 0 { return false; }
+    let bien = escribir(vista(temporal), contenido) sino false;
+    if !bien {
+        tcodec_borrar(copiar(temporal));
+        return false;
+    }
+    var bandera: i32 = 0;
+    if ejecutable { bandera = 1; }
+    if tcodec_instalar(copiar(temporal), copiar(destino), bandera) != 0 {
+        tcodec_borrar(copiar(temporal));
+        return false;
+    }
+    return true;
+}
+
+fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
+    cc: view, raiz: view, ext_cabeceras: &lista<str>, ext_modulos: &lista<str>) -> usize {
+    var base = nuevo(salida);
+    if largo(base) == 0 { base = sin_extension(fuente); }
+
+    // Con --emitir-c el C es el producto, y va junto al fuente. Un `.c` que
+    // no escribio Tcode no se pisa.
+    if igual(modo, "emitir") {
+        let ruta_c = $"{base}.c";
+        if tcodec_es_archivo(copiar(ruta_c)) == 1 {
+            let previo = leer_archivo(vista(ruta_c)) sino vacio();
+            let marca = "/* Generado por el compilador de Tcode. No editar a mano. */";
+            var principio = vista(previo);
+            if largo(principio) > 200 { principio = rebanar(principio, 0, 200); }
+            if !contiene(principio, marca) {
+                imprimir_error($"tcodec: {ruta_c} ya existe y no lo genero tcode, asi que no lo piso. Usa -o para elegir otro nombre.\n");
+                return 2;
+            }
+        }
+        if !escribir_de_una_vez(vista(ruta_c), todo, false) {
+            imprimir_error($"tcodec: no se pudo escribir `{ruta_c}`\n");
+            return 2;
+        }
+        imprimir($"{ruta_c}\n");
+        return 0;
+    }
+
+    // `-o fuente.t` y un fuente sin extension harian que el compilador de C
+    // pisara el programa original.
+    if tcodec_misma_ruta(copiar(base), nuevo(fuente)) == 1 {
+        imprimir_error($"tcodec: la salida `{base}` es el propio archivo fuente; elige otro nombre con `-o`.\n");
+        return 2;
+    }
+    let ext = extension(vista(base));
+    if igual(vista(ext), ".t") {
+        imprimir_error($"tcodec: la salida `{base}` parece un fuente `.t`; elige otro nombre para no sobrescribir codigo.\n");
+        return 2;
+    }
+    if !contiene(todo, "int main(") {
+        imprimir_error($"tcodec: {fuente} no tiene `fn main`, asi que no es un programa. Si es un modulo, compila el archivo que lo usa; si no, anade `fn main() -> usize {{ ... }}`.\n");
+        return 1;
+    }
+
+    // Un `externo "algo.c"` no se incluye: se compila y se enlaza junto al
+    // programa.
+    var acompanan: lista<str> = [];
+    var faltan: lista<str> = [];
+    var k = 0;
+    while k < largo(ext_cabeceras) {
+        let cab = vista(ext_cabeceras[k]);
+        if termina_con(cab, ".c") {
+            let dir = directorio_de(vista(ext_modulos[k]));
+            var junto = nuevo(cab);
+            if largo(dir) > 0 { junto = $"{dir}/{cab}"; }
+            if !esta_en(acompanan, vista(junto)) && !esta_en(faltan, vista(junto)) {
+                if tcodec_es_archivo(copiar(junto)) == 1 { anadir(acompanan, junto); }
+                else { anadir(faltan, junto); }
+            }
+        }
+        k = k + 1;
+    }
+    if largo(faltan) > 0 {
+        for x en faltan {
+            imprimir_error($"tcodec: `externo` pide `{x}` y ese archivo no esta.\n");
+        }
+        return 2;
+    }
+
+    let tmp = tcodec_directorio_temporal();
+    if largo(tmp) == 0 {
+        imprimir_error("tcodec: no se pudo crear un directorio temporal\n");
+        return 2;
+    }
+    let nombre_c = nombre_suelto(vista(base));
+    let ruta_c = $"{tmp}/{nombre_c}.c";
+    let ruta_err = $"{tmp}/cc.err";
+    let bien = escribir(vista(ruta_c), todo) sino false;
+    if !bien {
+        imprimir_error($"tcodec: no se pudo escribir `{ruta_c}`\n");
+        tcodec_borrar(copiar(tmp));
+        return 2;
+    }
+
+    // El enlazador trabaja sobre un vecino temporal: solo un resultado
+    // completo sustituye al binario anterior.
+    let destino_bin = tcodec_ruta_real(copiar(base));
+    var salida_tmp = vacio();
+    if largo(destino_bin) > 0 { salida_tmp = tcodec_temporal_junto(copiar(destino_bin)); }
+    if largo(salida_tmp) == 0 {
+        imprimir_error($"tcodec: no se pudo preparar la salida `{base}`\n");
+        tcodec_borrar(copiar(ruta_c));
+        tcodec_borrar(copiar(tmp));
+        return 2;
+    }
+
+    var orden = para_la_shell(cc);
+    let piezas_fijas = $" -std=c17 -O{nivel} -Wall -Wextra ";
+    empujar(orden, vista(piezas_fijas));
+    let incluir = $"-I{raiz}/runtime";
+    empujar(orden, para_la_shell(vista(incluir)));
+    empujar(orden, " ");
+    empujar(orden, para_la_shell(vista(ruta_c)));
+    empujar(orden, " ");
+    let safestr = $"{raiz}/runtime/safestr.c";
+    empujar(orden, para_la_shell(vista(safestr)));
+    for x en acompanan {
+        empujar(orden, " ");
+        empujar(orden, para_la_shell(vista(x)));
+    }
+    empujar(orden, " -o ");
+    empujar(orden, para_la_shell(vista(salida_tmp)));
+    // `raiz`, `piso` y compania viven en libm.
+    empujar(orden, " -lm 2> ");
+    empujar(orden, para_la_shell(vista(ruta_err)));
+
+    let rc = tcodec_ejecutar(orden);
+    let dijo = leer_archivo(vista(ruta_err)) sino vacio();
+    tcodec_borrar(copiar(ruta_c));
+    tcodec_borrar(copiar(ruta_err));
+    tcodec_borrar(copiar(tmp));
+    if rc != 0 {
+        tcodec_borrar(copiar(salida_tmp));
+        if largo(ext_cabeceras) > 0 {
+            imprimir_error("tcodec: el C generado no compilo. Con bloques `externo` de por medio, lo mas probable es que una firma no coincida con la de C.\n");
+        } else {
+            imprimir_error("tcodec: el C generado no compilo. Es un fallo del compilador, no de tu programa.\n");
+        }
+        imprimir_error($"{dijo}\n");
+        return 1;
+    }
+    if largo(recortar(vista(dijo))) > 0 { imprimir_error($"{dijo}\n"); }
+    if tcodec_instalar(copiar(salida_tmp), copiar(destino_bin), 1) != 0 {
+        tcodec_borrar(copiar(salida_tmp));
+        imprimir_error($"tcodec: no se pudo instalar la salida `{base}`\n");
+        return 2;
+    }
+    imprimir($"{base}\n");
+    return 0;
+}
+
 fn main() -> usize ! {
-    if n_argumentos() < 2 {
-        imprimir_error($"uso: {argumento(0)} <archivo.t>\n");
+    // Las mismas opciones que `tcode`, y una mas para ver el C sin escribir
+    // ningun archivo, que es lo que usan la suite y el punto fijo.
+    var fuente = vacio();
+    var salida = vacio();
+    var nivel = nuevo("2");
+    var cc = variable_entorno("CC") sino nuevo("cc");
+    var modo = nuevo("binario");
+    var ia = 1;
+    while ia < n_argumentos() {
+        let a = argumento(ia);
+        ia = ia + 1;
+        if igual(a, "-o") || igual(a, "--cc") {
+            if ia >= n_argumentos() {
+                imprimir_error($"tcodec: `{a}` necesita un valor detras\n");
+                return 2;
+            }
+            if igual(a, "-o") { salida = nuevo(argumento(ia)); }
+            else { cc = nuevo(argumento(ia)); }
+            ia = ia + 1;
+        } else if empieza_con(a, "-O") {
+            nivel = nuevo(rebanar(a, 2, largo(a)));
+            if largo(nivel) == 0 && ia < n_argumentos() {
+                nivel = nuevo(argumento(ia));
+                ia = ia + 1;
+            }
+            let nv = vista(nivel);
+            if !igual(nv, "0") && !igual(nv, "1") && !igual(nv, "2") && !igual(nv, "3")
+            && !igual(nv, "s") {
+                imprimir_error("tcodec: -O acepta 0, 1, 2, 3 o s\n");
+                return 2;
+            }
+        } else if igual(a, "--emitir-c") {
+            modo = nuevo("emitir");
+        } else if igual(a, "--mostrar-c") {
+            modo = nuevo("mostrar");
+        } else if igual(a, "--solo-comprobar") {
+            modo = nuevo("comprobar");
+        } else if empieza_con(a, "-") {
+            imprimir_error($"tcodec: no conozco la opcion `{a}`\n");
+            return 2;
+        } else if largo(fuente) > 0 {
+            imprimir_error("tcodec: un archivo cada vez\n");
+            return 2;
+        } else {
+            fuente = nuevo(a);
+        }
+    }
+    if largo(fuente) == 0 {
+        imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar]\n");
+        return 2;
+    }
+    if tcodec_es_archivo(copiar(fuente)) == 0 {
+        imprimir_error($"tcodec: no encuentro {fuente}\n");
         return 2;
     }
     let raiz = variable_entorno("TCODE_RAIZ") sino nuevo(".");
-    let principal = normalizar(argumento(1));
+    let principal = normalizar(vista(fuente));
     var modulos: lista<str> = [];
     var pila: lista<str> = [];
     try visitar(vista(principal), vista(raiz), modulos, pila);
@@ -1906,6 +2201,9 @@ fn main() -> usize ! {
     // Las funciones de los bloques `externo`: de que cabecera salen y su
     // prototipo en C.
     var ext_cabeceras: lista<str> = [];
+    // El modulo de cada una: un `externo "algo.c"` va junto al archivo que
+    // lo pide, y se compila y se enlaza con el programa.
+    var ext_modulos: lista<str> = [];
     var ext_protos: lista<str> = [];
     // Los enums: cada variante, y lo que lleva cada una como `T1\tT2`.
     var en_nombres: lista<str> = [];
@@ -2000,6 +2298,7 @@ fn main() -> usize ! {
                         }
                     }
                     anadir(ext_cabeceras, nuevo(vista(d.texto)));
+                    anadir(ext_modulos, copiar(m));
                     anadir(ext_protos, prototipo_externo(vista(f.texto), ps, pn, vista(ret)));
                 }
                 continue;
@@ -2122,7 +2421,10 @@ fn main() -> usize ! {
         else { imprimir_error($"\n{n} errores. No se genero nada.\n"); }
         return 1;
     }
-    if n_argumentos() > 2 && igual(argumento(2), "--solo-comprobar") { return 0; }
+    if igual(vista(modo), "comprobar") {
+        imprimir($"{fuente}: sin errores\n");
+        return 0;
+    }
 
     // Las clausuras nacieron al comprobar, en el orden del original y una por
     // copia en las genericas. Cada cuerpo lleva ahora el `Cierre_N` que le
@@ -2907,6 +3209,10 @@ fn main() -> usize ! {
         primero = false;
         empujar(todo, vista(x));
     }
-    imprimir(todo);
-    return 0;
+    if igual(vista(modo), "mostrar") {
+        imprimir(todo);
+        return 0;
+    }
+    return construir(todo, vista(fuente), vista(salida), vista(modo), vista(nivel),
+        vista(cc), vista(raiz), ext_cabeceras, ext_modulos);
 }

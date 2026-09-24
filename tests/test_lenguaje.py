@@ -3747,6 +3747,8 @@ fn main() { imprimir($"{dos_veces(aplicar, 3)}\n"); }
 """
 
 _MINIMO_PROGRAMAS = 25
+# Lo que `tcodec` necesita del sistema, en C, junto a el.
+_SISTEMA_TCODEC = os.path.join("ejemplos", "compilador", "lib", "sistema_tcodec.c")
 # Rechazos cuyo primer error dice `tcodec` igual que Python: todos, tambien
 # los de sintaxis, que dan el lexer y el parser escritos en Tcode.
 _MINIMO_RECHAZOS = 157
@@ -3774,6 +3776,7 @@ try:
             ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
              "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
              f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             _SISTEMA_TCODEC,
              "-o", binario, "-lm"],
             capture_output=True, text=True)
         if r.returncode != 0:
@@ -3788,7 +3791,7 @@ try:
             literal_invalido = os.path.join(tmp, "literal-invalido.t")
             with open(literal_invalido, "w", encoding="utf-8") as f:
                 f.write('fn main() { let x: u8 = 256; imprimir(x); }\n')
-            e = subprocess.run([binario, literal_invalido], capture_output=True,
+            e = subprocess.run([binario, literal_invalido, "--mostrar-c"], capture_output=True,
                                text=True, timeout=60, env=entorno)
             if e.returncode == 0 or e.stdout:
                 falla("tcodec rechaza literales enteros fuera de rango",
@@ -3798,7 +3801,7 @@ try:
             decimal_invalido = os.path.join(tmp, "decimal-invalido.t")
             with open(decimal_invalido, "w", encoding="utf-8") as f:
                 f.write('fn main() { let x: f64 = 1e309; imprimir(x); }\n')
-            e = subprocess.run([binario, decimal_invalido], capture_output=True,
+            e = subprocess.run([binario, decimal_invalido, "--mostrar-c"], capture_output=True,
                                text=True, timeout=60, env=entorno)
             if e.returncode == 0 or e.stdout:
                 falla("tcodec rechaza literales decimales infinitos",
@@ -3809,7 +3812,7 @@ try:
             with open(inexacto, "w", encoding="utf-8") as f:
                 f.write('fn main() { let x: f64 = 9007199254740993; '
                         'imprimir(x); }\n')
-            e = subprocess.run([binario, inexacto], capture_output=True,
+            e = subprocess.run([binario, inexacto, "--mostrar-c"], capture_output=True,
                                text=True, timeout=60, env=entorno)
             if e.returncode == 0 or e.stdout:
                 falla("tcodec rechaza enteros que un decimal redondearia",
@@ -3827,7 +3830,7 @@ try:
                         'let m: i8 = -0128; '
                         'imprimir($"{a} {b} {c} {d} {g} {h} {k} {m}\\n"); }\n')
             esperado_literal, errores_literal = compilar_archivo(literal_valido)
-            e = subprocess.run([binario, literal_valido], capture_output=True,
+            e = subprocess.run([binario, literal_valido, "--mostrar-c"], capture_output=True,
                                text=True, timeout=60, env=entorno)
             if errores_literal or e.returncode != 0 or e.stdout != esperado_literal:
                 falla("tcodec conserva los limites enteros validos",
@@ -3849,7 +3852,7 @@ try:
                 with open(ruta_cierre, "w", encoding="utf-8") as f:
                     f.write(fuente_c)
                 esperado_c, errores_c = compilar_archivo(ruta_cierre)
-                e = subprocess.run([binario, ruta_cierre], capture_output=True,
+                e = subprocess.run([binario, ruta_cierre, "--mostrar-c"], capture_output=True,
                                    text=True, timeout=60, env=entorno)
                 if errores_c or e.returncode != 0 or e.stdout != esperado_c:
                     falla(f"tcodec escribe {nombre_c}",
@@ -4006,7 +4009,7 @@ try:
                 esperado, errores_f = compilar_archivo(archivo)
                 if errores_f:
                     continue
-                e = subprocess.run([binario, archivo], capture_output=True,
+                e = subprocess.run([binario, archivo, "--mostrar-c"], capture_output=True,
                                    text=True, timeout=180, env=entorno)
                 if "Sanitizer" in e.stderr:
                     total += 1
@@ -4039,6 +4042,53 @@ try:
             print(f"    {iguales} programas enteros, mismo C que el generador "
                   f"de Python ({intentados} intentados)")
 
+            # `tcodec` tambien hace el ultimo paso: llama al compilador de C,
+            # enlaza lo que piden los `externo`, y deja el binario.
+            total += 1
+            bin_hola = os.path.join(tmp, "hola")
+            e = subprocess.run([binario, os.path.join("ejemplos", "hola.t"),
+                                "-o", bin_hola], capture_output=True, text=True,
+                               timeout=180, env=entorno)
+            r_h = (subprocess.run([bin_hola], capture_output=True, text=True,
+                                  timeout=60) if e.returncode == 0 else None)
+            if e.returncode != 0 or r_h is None or r_h.stdout != "Hola, mundo!\n12 bytes\n":
+                falla("tcodec compila y enlaza un programa",
+                      f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
+
+            total += 1
+            bin_reloj = os.path.join(tmp, "reloj")
+            e = subprocess.run([binario, os.path.join("ejemplos", "externo", "reloj.t"),
+                                "-o", bin_reloj], capture_output=True, text=True,
+                               timeout=180, env=entorno)
+            r_r = (subprocess.run([bin_reloj], capture_output=True, text=True,
+                                  timeout=60) if e.returncode == 0 else None)
+            if e.returncode != 0 or r_r is None or r_r.returncode != 0:
+                falla("tcodec enlaza el `.c` de un `externo`",
+                      f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
+
+            # La salida nunca es el fuente ni un `.t`, y un fallo del
+            # compilador de C deja el binario anterior como estaba.
+            total += 1
+            fuente_s = os.path.join(tmp, "prog.t")
+            shutil.copy(os.path.join("ejemplos", "hola.t"), fuente_s)
+            antes_s = open(fuente_s, encoding="utf-8").read()
+            e1s = subprocess.run([binario, fuente_s, "-o", fuente_s],
+                                 capture_output=True, text=True, timeout=60, env=entorno)
+            e2s = subprocess.run([binario, fuente_s, "-o", os.path.join(tmp, "x.t")],
+                                 capture_output=True, text=True, timeout=60, env=entorno)
+            viejo = os.path.join(tmp, "viejo")
+            with open(viejo, "w", encoding="utf-8") as f:
+                f.write("binario anterior")
+            e3s = subprocess.run([binario, fuente_s, "--cc", "false", "-o", viejo],
+                                 capture_output=True, text=True, timeout=60, env=entorno)
+            if (e1s.returncode == 0 or "propio archivo fuente" not in e1s.stderr
+                    or e2s.returncode == 0 or "parece un fuente" not in e2s.stderr
+                    or e3s.returncode == 0
+                    or open(viejo, encoding="utf-8").read() != "binario anterior"
+                    or open(fuente_s, encoding="utf-8").read() != antes_s):
+                falla("tcodec protege el fuente y el binario anterior",
+                      f"{e1s.stderr[:200]!r} {e2s.stderr[:200]!r} {e3s.stderr[:200]!r}")
+
             # El punto fijo. El `tcodec` que compilo Python escribe su propio
             # C; ese C, compilado, tiene que volver a escribir exactamente el
             # mismo. Es la prueba de que el compilador ya no depende de
@@ -4047,7 +4097,7 @@ try:
             # `rustc` en Rust.
             total += 1
             propio = os.path.join("ejemplos", "compilador", "tcodec.t")
-            e1 = subprocess.run([binario, propio], capture_output=True,
+            e1 = subprocess.run([binario, propio, "--mostrar-c"], capture_output=True,
                                 text=True, timeout=600, env=entorno)
             if e1.returncode != 0 or "Sanitizer" in e1.stderr:
                 falla("punto fijo", f"tcodec no se escribe a si mismo:\n"
@@ -4061,14 +4111,15 @@ try:
                     ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra",
                      "-Werror", "-fsanitize=address,undefined",
                      "-fno-omit-frame-pointer", f"-I{RUNTIME}", ruta_c2,
-                     os.path.join(RUNTIME, "safestr.c"), "-o", binario2,
+                     os.path.join(RUNTIME, "safestr.c"), _SISTEMA_TCODEC,
+                     "-o", binario2,
                      "-lm"],
                     capture_output=True, text=True)
                 if r2.returncode != 0:
                     falla("punto fijo", f"su propio C no compila:\n"
                                         f"{r2.stderr[:600]}")
                 else:
-                    e2 = subprocess.run([binario2, propio],
+                    e2 = subprocess.run([binario2, propio, "--mostrar-c"],
                                         capture_output=True, text=True,
                                         timeout=600, env=entorno)
                     if (e2.returncode != 0 or "Sanitizer" in e2.stderr
@@ -4079,6 +4130,24 @@ try:
                         print(f"    punto fijo: tcodec compilado desde su "
                               f"propio C lo reproduce byte a byte "
                               f"({len(e1.stdout.encode())} bytes)")
+                        # Y sin nadie mas: `tcodec` se construye a si mismo,
+                        # llamando el al compilador de C, y ese binario
+                        # vuelve a escribir el mismo C.
+                        total += 1
+                        binario3 = os.path.join(tmp, "etapa3")
+                        e3 = subprocess.run([binario, propio, "-o", binario3],
+                                            capture_output=True, text=True,
+                                            timeout=900, env=entorno)
+                        e4 = (subprocess.run([binario3, propio, "--mostrar-c"],
+                                             capture_output=True, text=True,
+                                             timeout=600, env=entorno)
+                              if e3.returncode == 0 else None)
+                        if e4 is None or e4.returncode != 0 or e4.stdout != e1.stdout:
+                            falla("tcodec se construye a si mismo",
+                                  f"{e3.stderr[:400]}")
+                        else:
+                            print("    tcodec se construye a si mismo sin "
+                                  "Python, y reproduce su C")
 finally:
     os.chdir(_cwd_antes)
     shutil.rmtree(tmp, ignore_errors=True)
