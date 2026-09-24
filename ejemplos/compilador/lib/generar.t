@@ -1999,10 +1999,12 @@ fn cierre_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         let nombre = vista(h.texto);
         let t = I.buscar(tipos, nombre);
         if largo(t) == 0 { return no_se(); }
-        // Capturar lo que tiene duenio es moverlo al struct; eso esta capa
-        // todavia no lo sigue.
-        if I.posee_con_formas(tipos, vista(t)) || T.es_referencia(vista(t))
-        || igual(vista(t), "view") {
+        // Un prestamo no se captura: el comprobador ya lo rechazo.
+        if T.es_referencia(vista(t)) || igual(vista(t), "view") { return no_se(); }
+        // Capturar lo que tiene duenio es moverlo al struct: la bandera la
+        // apaga la sentencia, aqui basta con que exista.
+        if I.posee_con_formas(tipos, vista(t)) && !es_puntero(s, tipos, nombre)
+        && !lleva_bandera(b, s, nombre) {
             return no_se();
         }
         let valor = expresion_c(b, s, P.hoja("variable", nombre, n.linea),
@@ -2165,7 +2167,8 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     }
     let pura = interna_pura(b, s, n, tipos);
     if !es_desconocido(vista(pura)) { return pura; }
-    if igual(nombre, "leer_archivo") || igual(nombre, "leer_linea")
+    if igual(nombre, "leer_archivo") || igual(nombre, "escribir_archivo")
+    || igual(nombre, "leer_linea")
     || igual(nombre, "entrada_completa") || igual(nombre, "variable_entorno")
     || igual(nombre, "ahora_ms") || igual(nombre, "monotono_ms")
     || igual(nombre, "sembrar") || igual(nombre, "azar") {
@@ -2346,6 +2349,18 @@ fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
         }
     }
 
+    // Capturar por valor lo que tiene duenio es entregarlo al struct de la
+    // clausura, igual que meterlo en un literal.
+    if igual(clase, "cierre") {
+        for h en n.hijos {
+            if !igual(vista(h.clase), "captura") { continue; }
+            let v = P.hoja("variable", vista(h.texto), n.linea);
+            if entrega_suelta(punteros, v, tipos) {
+                apuntar_movida(salida, vista(h.texto));
+            }
+        }
+    }
+
     if igual(clase, "llamada") {
         var i = 0;
         for h en n.hijos {
@@ -2452,6 +2467,24 @@ fn interna_del_sistema(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         empujar(r, vista(ruta));
         empujar(r, ")");
         return r;
+    }
+    // La ruta y luego los datos, cada uno una sola vez.
+    if igual(nombre, "escribir_archivo") {
+        if largo(n.hijos) != 2 { return no_se(); }
+        let ruta = como_vista(b, s, n.hijos[0], tipos);
+        let datos = como_vista(b, s, n.hijos[1], tipos);
+        if es_desconocido(vista(ruta)) || es_desconocido(vista(datos)) { return no_se(); }
+        var r = nuevo("ss_lang_escribir_archivo_(");
+        var previos: lista<str> = [];
+        agregar_argumento_ordenado(b, r, previos, vista(ruta), "view",
+            false, false, true);
+        empujar(r, ", ");
+        agregar_argumento_ordenado(b, r, previos, vista(datos), "view",
+            false, false, true);
+        empujar(r, ")");
+        b.ultima_linea = 0;
+        marcar(b, s, n.linea);
+        return envolver_llamada_ordenada(r, previos);
     }
     if igual(nombre, "variable_entorno") {
         if largo(n.hijos) != 1 { return no_se(); }
@@ -3746,6 +3779,8 @@ fn tipo_si_va_bien(n: &P.Nodo, tipos: &I.Contexto) -> str {
         if tiene(tipos.tipo_params, llamado) { return I.tipo_de(tipos, n); }
         return nuevo(obtener(tipos.retornos, llamado) sino "");
     }
+    // Escribir sale bien o no, sin valor.
+    if igual(llamado, "escribir_archivo") { return nuevo("()"); }
     if igual(llamado, "obtener") || igual(llamado, "leer_archivo")
     || igual(llamado, "leer_linea") || igual(llamado, "entrada_completa")
     || igual(llamado, "variable_entorno") {

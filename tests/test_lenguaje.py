@@ -3672,6 +3672,72 @@ _PRECEDENCIA_TCODEC = r"""fn main() {
 }
 """
 
+# Una clausura dentro de una generica: una por copia, numeradas en el orden
+# en que el comprobador crea las copias.
+_CIERRE_EN_GENERICA_TCODEC = r"""usar "std/lista";
+
+fn contar_si<T>(xs: &lista<T>, n: usize) -> usize {
+    let tope = n;
+    let pequeno = fn[tope](i: usize) -> bool { return i < tope; };
+    var k: usize = 0;
+    var i: usize = 0;
+    while i < largo(xs) {
+        if pequeno(i) { k = k + 1; }
+        i = i + 1;
+    }
+    return k;
+}
+
+fn envolver<T>(x: T) -> usize {
+    let f = fn(y: usize) -> usize { return y + 1; };
+    let _x = x;
+    return f(1);
+}
+
+fn main() {
+    var ns: lista<usize> = [];
+    anadir(ns, 1); anadir(ns, 2); anadir(ns, 3);
+    var ts: lista<str> = [];
+    anadir(ts, nuevo("a"));
+    let mas = fn(z: usize) -> usize { return z * 2; };
+    imprimir($"{contar_si(ns, 2)} {contar_si(ts, 5)} {envolver(3)} {mas(4)}\n");
+}
+"""
+
+# Capturar lo que tiene duenio lo mueve al struct de la clausura, que se
+# libera con su liberador; la variable lleva bandera.
+_CAPTURA_CON_DUENIO_TCODEC = r"""usar "std/lista";
+
+fn main() {
+    let prefijo = nuevo("pre-");
+    let marca = fn[prefijo](x: &str) -> str {
+        var r = copiar(prefijo);
+        empujar(r, vista(x));
+        return r;
+    };
+    let hola = nuevo("hola");
+    let dicho = marca(hola);
+    imprimir($"{dicho}\n");
+    var ns: lista<str> = [];
+    anadir(ns, nuevo("uva")); anadir(ns, nuevo("aguacate"));
+    let tope = nuevo("xxxx");
+    let cortos = filtradas(ns, fn[tope](x: &str) -> bool { return largo(x) < largo(tope); });
+    imprimir($"{largo(cortos)}\n");
+}
+"""
+
+# `escribir_archivo`: su ayudante, y su tipo resultado donde le toca.
+_ESCRIBIR_ARCHIVO_TCODEC = r"""fn guardar(ruta: view, texto: view) -> usize ! {
+    try escribir_archivo(ruta, texto);
+    return largo(texto);
+}
+fn main() -> usize ! {
+    let n = try guardar("/dev/null", "hola\n");
+    imprimir($"{n}\n");
+    return 0;
+}
+"""
+
 _FN_ANIDADA_TCODEC = r"""fn doble(n: usize) -> usize { return n * 2; }
 fn aplicar(f: fn(usize) -> usize, n: usize) -> usize { return f(n); }
 fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
@@ -3774,7 +3840,10 @@ try:
             # repositorio salvo lo de `pruebas.t`.
             for nombre_c, fuente_c in (("cierres.t", _CIERRES_TCODEC),
                                        ("anidado.t", _FN_ANIDADA_TCODEC),
-                                       ("precedencia.t", _PRECEDENCIA_TCODEC)):
+                                       ("precedencia.t", _PRECEDENCIA_TCODEC),
+                                       ("generica.t", _CIERRE_EN_GENERICA_TCODEC),
+                                       ("captura.t", _CAPTURA_CON_DUENIO_TCODEC),
+                                       ("escribe.t", _ESCRIBIR_ARCHIVO_TCODEC)):
                 total += 1
                 ruta_cierre = os.path.join(tmp, nombre_c)
                 with open(ruta_cierre, "w", encoding="utf-8") as f:
@@ -3786,21 +3855,6 @@ try:
                     falla(f"tcodec escribe {nombre_c}",
                           f"errores {errores_c}, codigo {e.returncode}, "
                           f"stderr {e.stderr[:300]!r}")
-
-            # Dentro de una generica habria una clausura por copia, y tcodec
-            # no sabe numerarlas: lo dice en vez de escribir otro C.
-            total += 1
-            cierre_generica = os.path.join(tmp, "cierre-generica.t")
-            with open(cierre_generica, "w", encoding="utf-8") as f:
-                f.write('fn envolver<T>(x: T) -> usize {\n'
-                        '    let f = fn(y: usize) -> usize { return y + 1; };\n'
-                        '    return f(1);\n}\n'
-                        'fn main() { imprimir($"{envolver(3)}\\n"); }\n')
-            e = subprocess.run([binario, cierre_generica], capture_output=True,
-                               text=True, timeout=60, env=entorno)
-            if e.returncode == 0 or e.stdout or "generica" not in e.stderr:
-                falla("tcodec rechaza una clausura dentro de una generica",
-                      f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
 
             # El comprobador en Tcode: lo que Python rechaza, tcodec tambien, y
             # con el mismo primer error; lo que Python acepta, tcodec no lo
