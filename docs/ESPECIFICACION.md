@@ -98,6 +98,19 @@ Para optar por no comprobar, hay que escribirlo:
 let a: usize = x *? y;   // multiplicación envolvente, explícita
 ```
 
+En tipos con signo la vuelta y las operaciones de bits son módulo `2^N`, igual
+en cualquier compilador C17: el C generado reconstruye el valor negativo sin
+depender de convertir un entero sin signo fuera de rango a uno con signo. El
+desplazamiento derecho de un negativo es aritmético y rellena con unos.
+
+La división signed también cierra el único borde especial de C17:
+`INT_MIN / -1` aborta como desbordamiento antes de dividir. En
+`INT_MIN % -1` el resto matemático es `0`, y eso devuelve Tcode sin ejecutar
+la operación que C considera indefinida.
+
+Negar el mínimo signed tampoco llega al operador unario de C: `-INT_MIN`
+aborta como desbordamiento en `-`; cualquier otro valor se niega normalmente.
+
 ### 3. Sin conversiones implícitas (mata el fallo 4 por otra vía)
 
 No existe la conversión silenciosa entre anchos ni entre signos. `i64` y
@@ -176,6 +189,17 @@ variable de quien la crea, porque es otra función.
   podría liberarla.
 - **Peor que Rust:** a veces hay que inventar un segundo nombre. Medido antes
   de decidir, ningún programa del repositorio tapaba variables.
+
+### Orden de evaluación
+
+Las subexpresiones se evalúan **de izquierda a derecha**. En una llamada se
+evalúan los argumentos en el orden escrito; en una operación binaria, primero
+el operando izquierdo. Las funciones internas y las declaradas con `externo`
+siguen la misma regla. El C generado la hace explícita con temporales: no
+depende del orden que el compilador de C decida usar.
+
+`&&` y `||` además conservan cortocircuito: el lado derecho sólo se evalúa si
+el izquierdo no determina ya el resultado.
 
 ### 5. Tipos compuestos: propiedad recursiva y límites comprobados
 
@@ -1072,6 +1096,18 @@ falta para escribir un contenedor.
 el nombre, menos en `usize`, que mide cosas de la máquina y por eso vale lo
 que valga ahí.
 
+El literal toma el tipo del lugar donde se usa, pero no se trunca para caber:
+`let x: u8 = 256;` es un error de compilación. Los mínimos con signo son
+válidos (`-128` en `i8`, `-9223372036854775808` en `i64`) porque el signo y la
+magnitud se comprueban juntos. Una magnitud mayor que `u64` se rechaza en el
+parser con un diagnóstico acotado, aunque el texto tenga millones de dígitos.
+
+Un literal `usize` se comprueba contra 64 bits, porque el compilador no sabe
+cuánto mide `size_t` en la máquina de destino. Por encima de `2^32 − 1` el C
+generado lo pregunta al compilador de C (`SS_LANG_USIZE_LIT`): en un destino
+de 32 bits, `let n: usize = 5000000000;` no compila en vez de truncarse. Un
+cero delante no cambia la base: `010` es diez.
+
 **La aritmética comprobada vale para todos.** Un `u8` que se pasa de 255
 detiene el programa igual que un `usize` que se pasa de `SIZE_MAX`:
 
@@ -1090,9 +1126,17 @@ let corto = v como? u8;     // se queda con los bits de abajo, a propósito
 ```
 
 El `?` es el mismo de `+?`: *quiero salirme de la comprobación y lo digo*.
-La comprobación es **de ida y vuelta** —se convierte, se vuelve a convertir
-al tipo de origen, y si no sale lo mismo es que no cabía— así que vale para
-cualquier pareja, con signo o sin él, sin comparar límites de tipos distintos.
+Entre enteros se compara primero en `intmax_t`/`uintmax_t` contra los límites
+del destino y sólo después se convierte; ningún cruce de signo ni
+estrechamiento depende del resultado que C elija para un cast fuera de rango.
+De decimal a entero se demuestran antes del cast la finitud, la ausencia de
+fracción y el intervalo `[−2^(N−1), 2^(N−1))` o `[0, 2^N)`: NaN, infinito y
+los bordes redondeados no llegan nunca a una conversión indefinida de C17.
+
+De entero a decimal tampoco se vuelve a convertir el resultado: se cuenta la
+magnitud binaria y se comprueban los bits que quedarían fuera de la mantisa.
+Así `2^53` cabe exactamente en `f64`, pero `2^53 + 1` y `u64::MAX` no pierden
+un bit en silencio ni pueden redondearse hasta `2^64`.
 
 ```
 ejemplo.t:2: el valor no cabe en `u8` viniendo de `u32`
@@ -1195,6 +1239,17 @@ permite; así son *n* copias en vez de *n* log *n* intercambios imposibles.
 
 `f64` y `f32`. Literales con punto o exponente: `3.5`, `1e-3`. Un número
 escrito sin punto no decide su tipo, así que `let x: f64 = 1;` vale.
+El literal tiene que ser finito en su tipo de destino: por ejemplo, `1e309`
+no es un `f64` válido y `3.5e38` no es un `f32` válido. El compilador lo
+rechaza antes de emitir C; nunca depende de que el backend lo redondee a
+infinito. El borde es exactamente donde C empezaría a redondear a infinito,
+así que `3.4028235e38`, la forma corta del máximo de `f32`, vale y da ese
+máximo.
+
+Un entero escrito donde va un decimal tiene que caber exacto, igual que con
+`como`: `let x: f64 = 9007199254740992;` (`2^53`) vale, pero
+`9007199254740993` es un error de compilación en vez de redondearse en
+silencio.
 
 ### La decisión
 
@@ -1240,14 +1295,21 @@ pero se dice. Rust necesita clippy para esto; aquí lo dice el compilador.
 
 ### Conversión
 
-`como` entre enteros y decimales se comprueba de ida y vuelta, igual que
-entre anchos:
+`como` entre enteros y decimales comprueba que no se pierda información. Al
+ir de decimal a entero, valida finitud, fracción y rango antes de convertir:
 
 ```tcode
 let x = n como f64;          // 7 -> 7.0
 let k = exacto como usize;   // 3.0 -> 3, vale
 let m = f como usize;        // 3.7 -> para: el valor no cabe
 ```
+
+Al ir de entero a decimal, valida primero que los bits significativos que no
+caben en la mantisa sean todos cero. No usa un cast de vuelta al entero, que
+sería peligroso si el redondeo produjera justo `2^64`.
+
+Al estrechar `f64` a `f32`, comprueba finitud y `FLT_MAX` antes del cast; una
+vez dentro del rango, la ida y vuelta rechaza cualquier redondeo de precisión.
 
 **Rust trunca aquí en silencio** (`3.7 as usize` da `3`). Esa es su parte
 menos defendida, y aquí no pasa. Si lo que quieres es truncar, dilo:
@@ -1370,6 +1432,12 @@ redimensionar(b, 1);         // lo que sobra se libera antes de soltar
 
 Un `bloque<T>` es memoria reservada de una pieza con su tamaño al lado.
 Índices comprobados, y dueño: se libera solo, elemento a elemento.
+Un `&mut bloque<T>` puede cambiarlo de tamaño, pero no mientras exista una
+vista o un préstamo vivo de sus elementos: al encoger, esa memoria se libera.
+El bloque también queda reservado durante el cálculo del tamaño nuevo: ese
+cálculo puede consultarlo, pero no consumirlo ni modificarlo.
+Si el bloque está dentro de otra colección, se localiza una sola vez y antes
+de calcular el tamaño nuevo.
 
 ### Por qué no hace falta `unsafe`
 
@@ -1394,6 +1462,10 @@ Pone un valor en un sitio y devuelve el que había. Es lo que permite **sacar
 algo de una colección sin dejar un hueco sin dueño**, que es justo lo que el
 compilador no dejaba hacer de ninguna otra forma. Con esto, dar la vuelta a
 una `lista<str>` en el sitio —imposible hasta ahora— son seis líneas.
+
+El sitio y cada índice que lo identifica se evalúan una sola vez. Mientras se
+calcula el reemplazo, el destino queda reservado: se puede leer o copiar, pero
+no moverlo ni modificarlo desde el segundo argumento.
 
 Es el `mem::replace` de Rust, y por la misma razón: es la operación mínima
 que hace segura la salida de un valor de un sitio compartido.

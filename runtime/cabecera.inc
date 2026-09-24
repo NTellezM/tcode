@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,6 +143,14 @@ static tipo ss_lang_desp_der_##sufijo(tipo a, size_t n, const char* ar, int ln)\
 
 #define SS_LANG_ARIT_I(sufijo, tipo, utipo, tmax, tmin)                       \
 SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_env_##sufijo(utipo bits)                                 \
+{ /* Reconstruye el valor modular sin convertir un unsigned fuera de rango   \
+     a signed: esa conversion depende de la implementacion en C17. */         \
+  if (bits <= (utipo) tmax) { return (tipo) bits; }                           \
+  utipo magnitud = (utipo) ((utipo) ~bits + (utipo) 1);                       \
+  if (magnitud == (utipo) tmax + (utipo) 1) { return tmin; }                  \
+  return (tipo) -(tipo) magnitud; }                                           \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
 static tipo ss_lang_suma_##sufijo(tipo a, tipo b, const char* ar, int ln)     \
 { tipo r = 0;                                                              \
   if (SS_LANG_DESB_SUMA_I(a, b, &r, tmax, tmin))                    \
@@ -165,14 +174,36 @@ static tipo ss_lang_abs_##sufijo(tipo a, const char* ar, int ln)              \
   if (a == tmin) { ss_lang_desborde_("absoluto", ar, ln); }                   \
   return a < 0 ? (tipo) -a : a; }                                             \
 SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_neg_##sufijo(tipo a, const char* ar, int ln)              \
+{ if (a == tmin) { ss_lang_desborde_("-", ar, ln); }                          \
+  return (tipo) -a; }                                                         \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_div_##sufijo(tipo a, tipo b, const char* ar, int ln)      \
+{ if (b == 0) { ss_lang_division_cero_(ar, ln); }                             \
+  if (a == tmin && b == (tipo) -1) { ss_lang_desborde_("/", ar, ln); }        \
+  return (tipo) (a / b); }                                                    \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo ss_lang_mod_##sufijo(tipo a, tipo b, const char* ar, int ln)      \
+{ if (b == 0) { ss_lang_division_cero_(ar, ln); }                             \
+  /* El resto matematico es cero; C17 hace indefinida la operacion. */        \
+  if (a == tmin && b == (tipo) -1) { return (tipo) 0; }                       \
+  return (tipo) (a % b); }                                                    \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
 static tipo ss_lang_desp_izq_##sufijo(tipo a, size_t n, const char* ar, int ln)\
 { if (n >= sizeof(tipo) * 8) { ss_lang_desborde_("<<", ar, ln); }             \
   /* desplazar un negativo es indefinido en C: se hace sobre los bits. */     \
-  return (tipo) ((utipo) ((utipo) a << n)); }                                 \
+  return ss_lang_env_##sufijo((utipo) ((utipo) a << n)); }                    \
 SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
 static tipo ss_lang_desp_der_##sufijo(tipo a, size_t n, const char* ar, int ln)\
 { if (n >= sizeof(tipo) * 8) { ss_lang_desborde_(">>", ar, ln); }             \
-  return (tipo) (a >> n); }
+  utipo bits = (utipo) a;                                                     \
+  bits = (utipo) (bits >> n);                                                 \
+  /* Tcode define el desplazamiento derecho con signo como aritmetico. */     \
+  if (a < 0 && n != 0) {                                                      \
+      utipo unos = (utipo) ~(utipo) 0;                                        \
+      bits = (utipo) (bits | (utipo) (unos << (sizeof(tipo) * 8 - n)));       \
+  }                                                                           \
+  return ss_lang_env_##sufijo(bits); }
 
 /* Decimales. Un calculo que sale de los numeros —un NaN, un infinito— no
    sigue adelante: para donde aparece. Es la misma regla que ya vale para el
@@ -191,11 +222,142 @@ static tipo ss_lang_fin_##sufijo(tipo r, const char* op, const char* consejo, \
     return r;                                                                 \
 }
 
-/* Conversion entre anchos. La comprobacion es de ida y vuelta: se convierte,
-   se vuelve a convertir al tipo de origen, y si no sale lo mismo es que no
-   cabia. Vale para cualquier pareja, con signo o sin el, y no se apoya en
-   comparar limites de tipos distintos, que es de donde salen los avisos del
-   compilador de C y los errores sutiles. `como?` no pasa por aqui. */
+/* Decimal a entero: primero se demuestra el rango y solo entonces se hace el
+   cast. Convertir antes un NaN, infinito o valor fuera de rango es
+   comportamiento indefinido en C17. Los limites son potencias de dos exactas,
+   incluso donde `UINT64_MAX` redondeado a double seria 2^64. */
+#define SS_LANG_CONV_F_U(destino, tipo_d, origen, tipo_o)                    \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
+        tipo_o v, const char* ar, int ln)                                     \
+{                                                                             \
+    long double x = (long double) v;                                          \
+    long double limite = ldexpl(1.0L, (int) (sizeof(tipo_d) * 8));             \
+    if (!isfinite(v) || truncl(x) != x || x < 0.0L || x >= limite) {          \
+        ss_lang_no_cabe_(#origen, #destino, ar, ln);                          \
+    }                                                                         \
+    return (tipo_d) v;                                                        \
+}
+
+#define SS_LANG_CONV_F_I(destino, tipo_d, origen, tipo_o)                    \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
+        tipo_o v, const char* ar, int ln)                                     \
+{                                                                             \
+    long double x = (long double) v;                                          \
+    long double limite = ldexpl(1.0L, (int) (sizeof(tipo_d) * 8 - 1));         \
+    if (!isfinite(v) || truncl(x) != x || x < -limite || x >= limite) {       \
+        ss_lang_no_cabe_(#origen, #destino, ar, ln);                          \
+    }                                                                         \
+    return (tipo_d) v;                                                        \
+}
+
+/* Entero a decimal: la conversion C siempre queda dentro del rango para los
+   enteros de Tcode, pero puede redondear. Se comprueba la cantidad de bits
+   significativos y los bits bajos descartados, sin volver a convertir el
+   decimal a entero. */
+#define SS_LANG_CONV_U_F(destino, tipo_d, mantisa, origen, tipo_o)            \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
+        tipo_o v, const char* ar, int ln)                                     \
+{                                                                             \
+    uintmax_t magnitud = (uintmax_t) v;                                       \
+    uintmax_t t = magnitud;                                                   \
+    unsigned bits = 0;                                                        \
+    while (t != 0) { bits++; t >>= 1; }                                      \
+    unsigned sobra = bits > (mantisa) ? bits - (mantisa) : 0;                 \
+    if (sobra != 0 &&                                                        \
+        (magnitud & ((UINTMAX_C(1) << sobra) - UINTMAX_C(1))) != 0) {         \
+        ss_lang_no_cabe_(#origen, #destino, ar, ln);                          \
+    }                                                                         \
+    return (tipo_d) v;                                                        \
+}
+
+#define SS_LANG_CONV_I_F(destino, tipo_d, mantisa, origen, tipo_o)            \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
+        tipo_o v, const char* ar, int ln)                                     \
+{                                                                             \
+    uintmax_t magnitud = v < 0                                                \
+        ? (uintmax_t) (-(v + 1)) + UINTMAX_C(1) : (uintmax_t) v;              \
+    uintmax_t t = magnitud;                                                   \
+    unsigned bits = 0;                                                        \
+    while (t != 0) { bits++; t >>= 1; }                                      \
+    unsigned sobra = bits > (mantisa) ? bits - (mantisa) : 0;                 \
+    if (sobra != 0 &&                                                        \
+        (magnitud & ((UINTMAX_C(1) << sobra) - UINTMAX_C(1))) != 0) {         \
+        ss_lang_no_cabe_(#origen, #destino, ar, ln);                          \
+    }                                                                         \
+    return (tipo_d) v;                                                        \
+}
+
+/* Entre enteros se demuestra el intervalo en uintmax_t/intmax_t antes del
+   cast. Así ni siquiera se depende de la conversión signed fuera de rango que
+   C17 deja a la implementación. */
+#define SS_LANG_CONV_U_U(destino, tipo_d, dmax, origen, tipo_o)               \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
+        tipo_o v, const char* ar, int ln)                                     \
+{                                                                             \
+    if ((uintmax_t) v > (uintmax_t) (dmax)) {                                 \
+        ss_lang_no_cabe_(#origen, #destino, ar, ln);                          \
+    }                                                                         \
+    return (tipo_d) v;                                                        \
+}
+
+#define SS_LANG_CONV_I_U(destino, tipo_d, dmax, origen, tipo_o)               \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
+        tipo_o v, const char* ar, int ln)                                     \
+{                                                                             \
+    if (v < 0 || (uintmax_t) v > (uintmax_t) (dmax)) {                        \
+        ss_lang_no_cabe_(#origen, #destino, ar, ln);                          \
+    }                                                                         \
+    return (tipo_d) v;                                                        \
+}
+
+#define SS_LANG_CONV_U_I(destino, tipo_d, dmax, origen, tipo_o)               \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
+        tipo_o v, const char* ar, int ln)                                     \
+{                                                                             \
+    if ((uintmax_t) v > (uintmax_t) (dmax)) {                                 \
+        ss_lang_no_cabe_(#origen, #destino, ar, ln);                          \
+    }                                                                         \
+    return (tipo_d) v;                                                        \
+}
+
+#define SS_LANG_CONV_I_I(destino, tipo_d, dmin, dmax, origen, tipo_o)         \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
+        tipo_o v, const char* ar, int ln)                                     \
+{                                                                             \
+    if ((intmax_t) v < (intmax_t) (dmin) ||                                   \
+        (intmax_t) v > (intmax_t) (dmax)) {                                   \
+        ss_lang_no_cabe_(#origen, #destino, ar, ln);                          \
+    }                                                                         \
+    return (tipo_d) v;                                                        \
+}
+
+/* Estrechar un decimal fuera del rango del destino no está definido en C17.
+   Dentro del rango, la ida y vuelta comprueba además que no se redondeó. */
+#define SS_LANG_CONV_F_F(destino, tipo_d, dmax, origen, tipo_o)               \
+SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
+static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
+        tipo_o v, const char* ar, int ln)                                     \
+{                                                                             \
+    long double x = (long double) v;                                          \
+    if (!isfinite(v) || x < -(long double) (dmax) ||                          \
+        x > (long double) (dmax)) {                                           \
+        ss_lang_no_cabe_(#origen, #destino, ar, ln);                          \
+    }                                                                         \
+    tipo_d r = (tipo_d) v;                                                    \
+    if ((tipo_o) r != v) { ss_lang_no_cabe_(#origen, #destino, ar, ln); }      \
+    return r;                                                                 \
+}
+
+/* Las demas conversiones siguen comprobándose de ida y vuelta. `como?` no
+   pasa por aqui. */
 #define SS_LANG_CONV(destino, tipo_d, origen, tipo_o)                         \
 SS_LANG_QUIZA_SIN_USAR SS_LANG_SIEMPRE                                        \
 static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
@@ -211,6 +373,12 @@ static tipo_d ss_lang_conv_##destino##_de_##origen(                           \
 
 #define SS_LANG_MOD(a, b, arch, ln) \
     (((b) == 0) ? (ss_lang_division_cero_(arch, ln), 0) : ((a) % (b)))
+
+/* Un literal `usize` por encima de 2^32 - 1. Tcode no sabe cuanto mide
+   `size_t` en el destino, asi que lo pregunta al compilador de C: si no cabe,
+   el arreglo de tamaño negativo detiene la compilacion en vez de truncarlo. */
+#define SS_LANG_USIZE_LIT(n) \
+    ((size_t) (n) + 0 * sizeof(char[(n) <= SIZE_MAX ? 1 : -1]))
 
 /* Argumentos de la linea de ordenes.
    `argv` vive tanto como el proceso, asi que una vista suya nunca cuelga:
@@ -315,4 +483,3 @@ static SafeString ss_lang_texto_view_(SafeView valor, const char* ar, int ln)
     if (!ss_ok(&s)) ss_lang_sin_memoria_(ar, ln);
     return s;
 }
-

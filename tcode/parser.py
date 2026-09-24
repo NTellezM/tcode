@@ -68,7 +68,11 @@ class Parser:
 
     def error(self, mensaje, tok=None):
         t = tok or self.actual
-        visto = "fin de archivo" if t.tipo == "fin" else repr(t.valor)
+        if t.tipo == "fin":
+            visto = "fin de archivo"
+        else:
+            mostrado = t.valor if len(t.valor) <= 72 else t.valor[:69] + "..."
+            visto = repr(mostrado)
         raise ErrorSintactico(f"{self.archivo}:{t.linea}: {mensaje}, se encontro {visto}")
 
     def es(self, tipo, valor=None) -> bool:
@@ -97,6 +101,27 @@ class Parser:
             que = valor if valor is not None else tipo
             self.error(f"se esperaba {que!r}")
         return t
+
+    def entero_literal(self, tok: Token) -> int:
+        """Convierte un entero sin dejar que ``int`` sea la frontera de error.
+
+        El lexer conserva el texto original. Validarlo por longitud primero
+        evita que un archivo hostil alcance el limite de digitos de Python y
+        convierte ese accidente del anfitrion en un diagnostico de Tcode.
+        ``u64`` es el entero mas ancho del lenguaje; el signo se representa
+        despues como una expresion unaria, por lo que tambien admite la
+        magnitud de ``INT64_MIN``.
+        """
+        texto = tok.valor
+        if not texto.isascii() or not texto.isdecimal():
+            self.error("un literal entero solo admite digitos de `0` a `9`", tok)
+        significativo = texto.lstrip("0") or "0"
+        max_u64 = "18446744073709551615"
+        if (len(significativo) > len(max_u64)
+                or (len(significativo) == len(max_u64)
+                    and significativo > max_u64)):
+            self.error("el literal entero no cabe en `u64`", tok)
+        return int(significativo)
 
     # ---------- alto nivel ----------
 
@@ -401,9 +426,10 @@ class Parser:
         if self.acepta("simbolo", "["):
             elem = self.tipo()
             self.espera("simbolo", ";")
-            n = self.espera("entero").valor
+            tok_n = self.espera("entero")
+            n = self.entero_literal(tok_n)
             self.espera("simbolo", "]")
-            if int(n) <= 0:
+            if n <= 0:
                 self.error("un arreglo tiene que tener al menos un elemento", t)
             return f"[{elem}; {n}]"
 
@@ -791,7 +817,7 @@ class Parser:
 
         if t.tipo == "entero":
             self.i += 1
-            return Entero(int(t.valor), linea=t.linea)
+            return Entero(self.entero_literal(t), linea=t.linea)
 
         if t.tipo == "decimal":
             self.i += 1

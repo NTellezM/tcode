@@ -26,6 +26,52 @@ RUNTIME = os.path.join(RAIZ, "runtime")
 
 
 RECHAZO = [
+    # ---- literales: el error es de Tcode, no una truncacion de C ----
+    ("un entero no se recorta para caber en u8",
+     'fn main() { let x: u8 = 256; imprimir(x); }',
+     "no cabe en `u8`"),
+
+    ("un entero positivo no cruza el maximo firmado",
+     'fn main() { let x: i8 = 128; imprimir(x); }',
+     "no cabe en `i8`"),
+
+    ("un entero negativo no cruza el minimo firmado",
+     'fn main() { let x: i8 = -129; imprimir(x); }',
+     "no cabe en `i8`"),
+
+    ("una operacion no esconde un literal fuera de rango",
+     'fn main() { let x: u8 = 1 + 256; imprimir(x); }',
+     "no cabe en `u8`"),
+
+    ("un entero mayor que u64 no llega a Python ni a C",
+     'fn main() { let x = ' + ('9' * 5000) + '; imprimir(x); }',
+     "no cabe en `u64`"),
+
+    ("un decimal demasiado grande para f32 no se vuelve infinito",
+     'fn main() { let x: f32 = 3.5e38; imprimir(x); }',
+     "no cabe en `f32`"),
+
+    ("un decimal demasiado grande para f64 no se vuelve infinito",
+     'fn main() { let x: f64 = 1e309; imprimir(x); }',
+     "no cabe en `f64`"),
+
+    # El borde es donde C ya redondea a infinito, no el maximo escrito.
+    ("un decimal que C redondearia a infinito en f32",
+     'fn main() { let x: f32 = 3.4028236e38; imprimir(x); }',
+     "no cabe en `f32`"),
+
+    ("un decimal que C redondearia a infinito en f64",
+     'fn main() { let x: f64 = 1.7976931348623159e308; imprimir(x); }',
+     "no cabe en `f64`"),
+
+    ("un entero escrito no pierde precision en un f64",
+     'fn main() { let x: f64 = 9007199254740993; imprimir(x); }',
+     "no cabe en `f64` sin perder precision"),
+
+    ("un entero escrito no pierde precision en un f32",
+     'fn main() { let x: f32 = 16777217; imprimir(x); }',
+     "no cabe en `f32` sin perder precision"),
+
     # ---- el sistema ----
     ("el fin de la entrada es un fallo, no una cadena",
      'fn main() -> usize { let l = leer_linea(); return 0; }',
@@ -684,10 +730,84 @@ RECHAZO = [
      'struct P { u: usize } struct Q { u: usize } fn g(a: &P) {}'
      ' fn f() { var q: Q = Q { u: 1 }; g(q); }',
      "recibio `Q`"),
+
+    ("redimensionar por &mut no invalida una vista viva",
+     'fn main() -> usize ! { var m: mapa<str, bloque<str>> = [];'
+     ' var b: bloque<str> = reservar(1); b[0] = nuevo("a");'
+     ' poner(m, "x", b);'
+     ' let p: &mut bloque<str> = try obtener_mut(m, "x");'
+     ' let v = vista(p[0]); redimensionar(p, 0); imprimir(v); return 0; }',
+     "esta prestada por `v`"),
+
+    ("redimensionar reserva el bloque mientras calcula el tamaño",
+     'fn soltar(x: bloque<usize>) -> usize { return 1; }'
+     ' fn main() { var b: bloque<usize> = reservar(1);'
+     ' redimensionar(b, soltar(b)); }',
+     "esta reservada por `redimensionar` mientras se calcula el tamaño"),
+
+    ("intercambiar por &mut no invalida una vista viva",
+     'fn main() -> usize ! { var m: mapa<str, bloque<str>> = [];'
+     ' var b: bloque<str> = reservar(1); b[0] = nuevo("a");'
+     ' poner(m, "x", b);'
+     ' let p: &mut bloque<str> = try obtener_mut(m, "x");'
+     ' let v = vista(p[0]);'
+     ' let old = intercambiar(p[0], nuevo("b"));'
+     ' imprimir(v); imprimir(old); return 0; }',
+     "esta prestada por `v`"),
+
+    ("intercambiar reserva el destino mientras calcula el reemplazo",
+     'fn reemplazar(x: str) -> str { return nuevo("b"); }'
+     ' fn main() { var s = nuevo("a");'
+     ' let old = intercambiar(s, reemplazar(s)); imprimir(old); }',
+     "esta reservada por `intercambiar` mientras se calcula el reemplazo"),
 ]
 
 
 ACEPTA = [
+    ("los limites exactos de los enteros siguen siendo validos",
+     '''fn main() {
+            let a: u8 = 255;
+            let b: i8 = 127;
+            let c: i8 = -128;
+            let d: u64 = 18446744073709551615;
+            let e: i64 = 9223372036854775807;
+            let f: i64 = -9223372036854775808;
+            imprimir($"{a} {b} {c} {d} {e} {f}\\n");
+        }''',
+     "255 127 -128 18446744073709551615 9223372036854775807 "
+     "-9223372036854775808\n"),
+
+    ("los limites finitos de los decimales siguen siendo validos",
+     '''fn main() {
+            let a: f32 = 3.4028234e38;
+            let b: f64 = 1.7976931348623157e308;
+            imprimir(a > 0.0); imprimir(" "); imprimir(b > 0.0);
+        }''',
+     "true true"),
+
+    # Como se escribe el maximo en Rust o Java: redondea a el, no a infinito.
+    ("el maximo escrito corto redondea al maximo, no a infinito",
+     '''fn main() {
+            let a: f32 = 3.4028235e38;
+            let b: f64 = 1.7976931348623158e308;
+            let c: f64 = 9007199254740992;
+            let d: f32 = 16777216;
+            imprimir($"{a == 3.4028234e38} {b == 1.7976931348623157e308} ");
+            imprimir($"{c} {d}\\n");
+        }''',
+     "true true 9.0072e+15 1.67772e+07\n"),
+
+    # Un `usize` ancho pasa por `SS_LANG_USIZE_LIT`, que en un destino de 32
+    # bits detiene la compilacion de C. Aqui, en 64, vale lo que vale. Y un
+    # cero delante no convierte el numero en octal.
+    ("un usize ancho y un cero delante",
+     '''fn main() {
+            let a: usize = 5000000000;
+            let b = 010;
+            imprimir($"{a} {b}\\n");
+        }''',
+     "5000000000 10\n"),
+
     # ---- aritmetica envolvente ----
     #
     # `+?` se generaba con el operador del propio tipo: con signo, dar la
@@ -913,6 +1033,101 @@ ACEPTA = [
         }''',
      "c b a \n"),
 
+    ("`intercambiar` evalua el sitio una sola vez",
+     '''fn siguiente(i: mut usize) -> usize {
+            let antes = i;
+            i = i + 1;
+            return antes;
+        }
+        fn main() {
+            var xs = [10, 20];
+            var i = 0;
+            let viejo = intercambiar(xs[siguiente(i)], 99);
+            imprimir($"{viejo} {xs[0]} {xs[1]} {i}\\n");
+        }''',
+     "10 99 20 1\n"),
+
+    ("un indice anidado evalua la base una sola vez",
+     '''fn siguiente(i: mut usize) -> usize {
+            let antes = i;
+            i = i + 1;
+            return antes;
+        }
+        fn main() {
+            var xs: lista<bloque<usize>> = [];
+            var b: bloque<usize> = reservar(1);
+            b[0] = 7;
+            anadir(xs, b);
+            var i = 0;
+            let viejo = intercambiar(xs[siguiente(i)][0], 9);
+            imprimir($"{viejo} {xs[0][0]} {i}\\n");
+        }''',
+     "7 9 1\n"),
+
+    ("un indice anidado conserva el cortocircuito",
+     '''fn siguiente(i: mut usize) -> usize {
+            let antes = i;
+            i = i + 1;
+            return antes;
+        }
+        fn main() {
+            var xs: lista<bloque<usize>> = [];
+            var b: bloque<usize> = reservar(1);
+            anadir(xs, b);
+            var i = 0;
+            if false && xs[siguiente(i)][0] == 1 { imprimir("mal"); }
+            imprimir(i);
+        }''',
+     "0"),
+
+    ("redimensionar evalua el sitio antes que el tamaño",
+     '''fn siguiente(i: mut usize) -> usize {
+            let antes = i;
+            i = i + 1;
+            return antes;
+        }
+        fn main() {
+            var xs: lista<bloque<usize>> = [];
+            var a: bloque<usize> = reservar(2);
+            var b: bloque<usize> = reservar(3);
+            anadir(xs, a);
+            anadir(xs, b);
+            var i = 0;
+            redimensionar(xs[siguiente(i)], siguiente(i));
+            imprimir($"{largo(xs[0])} {largo(xs[1])} {i}\\n");
+        }''',
+     "1 3 2\n"),
+
+    ("listas de bloques y mapas registran sus tipos interiores",
+     '''fn main() -> usize ! {
+            var bloques: lista<bloque<usize>> = [];
+            var b: bloque<usize> = reservar(2);
+            b[1] = 7;
+            anadir(bloques, b);
+
+            var mapas: lista<mapa<str, usize>> = [];
+            var m: mapa<str, usize> = [];
+            poner(m, "x", 9);
+            anadir(mapas, m);
+            imprimir($"{bloques[0][1]} {try obtener(mapas[0], "x")}\\n");
+            return 0;
+        }''',
+     "7 9\n"),
+
+    ("un bloque guardado en un mapa se presta para modificar",
+     '''fn main() -> usize ! {
+            var m: mapa<str, bloque<usize>> = [];
+            var b: bloque<usize> = reservar(1);
+            b[0] = 4;
+            poner(m, "x", b);
+            let p: &mut bloque<usize> = try obtener_mut(m, "x");
+            redimensionar(p, 2);
+            p[1] = 8;
+            imprimir($"{largo(p)} {p[0]} {p[1]}\\n");
+            return 0;
+        }''',
+     "2 4 8\n"),
+
     ("una clausura captura por valor, incluso lo que tiene duenio",
      '''usar "std/lista";
         usar "std/texto";
@@ -980,6 +1195,13 @@ ACEPTA = [
         }''',
      "7.0 3 3.5\n"),
 
+    ("un entero grande exactamente representable se convierte a f64",
+     '''fn main() {
+            let n: u64 = 9007199254740992;
+            imprimir(n como f64); imprimir("\\n");
+        }''',
+     "9.0072e+15\n"),
+
     ("indexar lo que devuelve una llamada no la evalua dos veces ni filtra",
      '''fn hacer() -> lista<usize> {
             var xs: lista<usize> = [];
@@ -1038,6 +1260,28 @@ ACEPTA = [
             imprimir($" {v como? u8} {a como u32}\\n");
         }''',
      "255 200000 0 55 true 239 200\n"),
+
+    ("la aritmetica envolvente con signo no depende del compilador C",
+     '''fn main() {
+            let max: i8 = 127;
+            let uno: i8 = 1;
+            let cien: i8 = 100;
+            let dos: i8 = 2;
+            imprimir(max +? uno); imprimir(" ");
+            imprimir(cien *? dos); imprimir(" ");
+            let minimo: i8 = max +? uno;
+            imprimir(~minimo); imprimir(" ");
+            imprimir(minimo >> 1); imprimir(" ");
+            imprimir(minimo & max); imprimir(" ");
+            imprimir(minimo | uno); imprimir(" ");
+            imprimir(minimo ^ uno); imprimir(" ");
+            let cero: i8 = 0;
+            let menos_uno: i8 = cero - uno;
+            imprimir(minimo % menos_uno); imprimir(" ");
+            let cinco: i8 = 5;
+            imprimir(-cinco); imprimir("\\n");
+        }''',
+     "-128 -56 127 -64 0 -127 -127 0 -5\n"),
 
     ("un `str` guarda bytes, no texto",
      '''usar "std/bytes";
@@ -1481,6 +1725,156 @@ ACEPTA = [
             return 0;
         }''',
      "28\n"),
+
+    ("devolver un parametro escalar prestado devuelve su valor, no su direccion",
+     '''fn subir(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn mirar(n: &usize) -> usize { return n; }
+        fn main() -> usize {
+            var x: usize = 7;
+            imprimir(subir(x)); imprimir(" ");
+            imprimir(mirar(x)); imprimir("\\n");
+            return 0;
+        }''',
+     "8 8\n"),
+
+    ("los argumentos de una funcion se evaluan de izquierda a derecha",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn juntar(a: usize, b: usize) -> usize { return a * 10 + b; }
+        fn main() -> usize {
+            var n: usize = 0;
+            imprimir(juntar(siguiente(n), siguiente(n)));
+            imprimir("\\n");
+            return 0;
+        }''',
+     "12\n"),
+
+    ("los argumentos de una funcion externa tambien van de izquierda a derecha",
+     '''externo "math.h" {
+            fn pow(base: f64, exponente: f64) -> f64;
+        }
+        fn siguiente(n: mut f64) -> f64 {
+            n = n + 1.0;
+            return n;
+        }
+        fn main() {
+            var n: f64 = 1.0;
+            imprimir(pow(siguiente(n), siguiente(n)));
+            imprimir("\\n");
+        }''',
+     "8.0\n"),
+
+    ("las comparaciones internas evaluan sus operandos de izquierda a derecha",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn main() {
+            var n: usize = 0;
+            imprimir(menor(siguiente(n), siguiente(n)));
+            imprimir("\\n");
+        }''',
+     "true\n"),
+
+    ("los operadores binarios evaluan primero el operando izquierdo",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn main() {
+            var n: usize = 0;
+            imprimir(siguiente(n) * 10 + siguiente(n));
+            imprimir(" ");
+            n = 0;
+            imprimir(siguiente(n) < siguiente(n));
+            imprimir("\\n");
+        }''',
+     "12 true\n"),
+
+    ("los literales compuestos evaluan sus valores de izquierda a derecha",
+     '''struct Par { a: usize, b: usize }
+        enum Dos { Valores(usize, usize) }
+        fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn main() {
+            var n: usize = 0;
+            let p: Par = Par { a: siguiente(n), b: siguiente(n) };
+            imprimir(p.a); imprimir(p.b); imprimir(n); imprimir(" ");
+            n = 0;
+            let a: [usize; 2] = [siguiente(n), siguiente(n)];
+            imprimir(a[0]); imprimir(a[1]); imprimir(n); imprimir(" ");
+            n = 0;
+            let e: Dos = Dos.Valores(siguiente(n), siguiente(n));
+            imprimir(match e { Dos.Valores(x, y) -> x * 10 + y, });
+            imprimir(n); imprimir("\\n");
+        }''',
+     "122 122 122\n"),
+
+    ("rebanar evalua texto, inicio y final de izquierda a derecha",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn main() {
+            var n: usize = 0;
+            imprimir(rebanar("abcd", siguiente(n), siguiente(n)));
+            imprimir("\\n");
+        }''',
+     "b\n"),
+
+    ("los mutadores evaluan el destino antes que el valor",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn siguiente_texto(n: mut usize) -> str {
+            n = n + 1;
+            return texto(n);
+        }
+        fn main() {
+            var n: usize = 0;
+            var listas: lista<lista<usize>> = [];
+            anadir(listas, []); anadir(listas, []); anadir(listas, []);
+            anadir(listas[siguiente(n)], siguiente(n));
+            imprimir(listas[1][0]); imprimir(" ");
+            n = 0;
+            var textos: [str; 3] = [nuevo("0"), nuevo("1"), nuevo("2")];
+            empujar(textos[siguiente(n)], siguiente_texto(n));
+            imprimir(textos[1]); imprimir("\\n");
+        }''',
+     "2 12\n"),
+
+    ("un arreglo puede contener listas con su typedef declarado antes",
+     '''fn main() {
+            var xs: [lista<usize>; 2] = [[], []];
+            anadir(xs[1], 7);
+            imprimir(xs[1][0]); imprimir("\\n");
+        }''',
+     "7\n"),
+
+    ("poner fija mapa, clave y valor en ese orden",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn siguiente_clave(n: mut usize) -> str {
+            n = n + 1;
+            return texto(n);
+        }
+        fn main() {
+            var n: usize = 0;
+            var ms: [mapa<str, usize>; 4] = [[], [], [], []];
+            poner(ms[siguiente(n)], siguiente_clave(n), siguiente(n));
+            imprimir(obtener(ms[1], "2") sino 0); imprimir("\\n");
+        }''',
+     "3\n"),
 
     ("mapa: poner, reemplazar, consultar y contar",
      '''fn main() -> usize {
@@ -2026,6 +2420,59 @@ ABORTA = [
      'fn main() -> usize { let f: f64 = 3.7; imprimir(f como usize); return 0; }',
      "no cabe en `usize` viniendo de `f64`"),
 
+    ("una conversion decimal negativa a unsigned para antes del cast",
+     'fn main() { let f: f64 = 0.0 - 1.0; imprimir(f como usize); }',
+     "no cabe en `usize` viniendo de `f64`"),
+
+    ("una conversion decimal sobre el limite de u64 para antes del cast",
+     'fn main() { let f: f64 = 18446744073709551616.0; imprimir(f como u64); }',
+     "no cabe en `u64` viniendo de `f64`"),
+
+    ("una conversion de NaN a entero para antes del cast",
+     'fn main() { let z: f64 = 0.0; let n = z /? z; imprimir(n como i64); }',
+     "no cabe en `i64` viniendo de `f64`"),
+
+    ("u64 maximo no se redondea a 2^64 al convertirlo a f64",
+     'fn main() { let n: u64 = 18446744073709551615; imprimir(n como f64); }',
+     "no cabe en `f64` viniendo de `u64`"),
+
+    ("un entero sobre la mantisa de f64 no pierde un bit en silencio",
+     'fn main() { let n: u64 = 9007199254740993; imprimir(n como f64); }',
+     "no cabe en `f64` viniendo de `u64`"),
+
+    ("un entero unsigned no entra en un signed mas estrecho antes del cast",
+     'fn main() { let n: u64 = 18446744073709551615; imprimir(n como i64); }',
+     "no cabe en `i64` viniendo de `u64`"),
+
+    ("un entero negativo no entra en unsigned antes del cast",
+     'fn main() { let z: i64 = 0; let n: i64 = z - 1; imprimir(n como u64); }',
+     "no cabe en `u64` viniendo de `i64`"),
+
+    ("un decimal fuera de f32 para antes del estrechamiento",
+     'fn main() { let n: f64 = 1e100; imprimir(n como f32); }',
+     "no cabe en `f32` viniendo de `f64`"),
+
+    ("un f64 que perderia precision al estrecharse para",
+     'fn main() { let n: f64 = 0.1; imprimir(n como f32); }',
+     "no cabe en `f32` viniendo de `f64`"),
+
+    ("dividir el minimo signed por menos uno para antes del C indefinido",
+     '''fn main() {
+            let max: i8 = 127; let uno: i8 = 1;
+            let minimo: i8 = max +? uno;
+            let cero: i8 = 0; let menos_uno: i8 = cero - uno;
+            imprimir(minimo / menos_uno);
+        }''',
+     "desbordamiento en `/`"),
+
+    ("negar el minimo signed para antes del C indefinido",
+     '''fn main() {
+            let max: i8 = 127; let uno: i8 = 1;
+            let minimo: i8 = max +? uno;
+            imprimir(-minimo);
+        }''',
+     "desbordamiento en `-`"),
+
     ("desbordamiento al multiplicar",
      '''fn main() -> usize {
             var a: usize = 1;
@@ -2152,6 +2599,93 @@ with tempfile.TemporaryDirectory() as tmp:
         elif "runtime error" in err or "AddressSanitizer" in err:
             falla(nombre, f"sanitizer se quejo:\n{err}")
 
+print("=== SALIDA: el compilador nunca reemplaza sus fuentes ===")
+with tempfile.TemporaryDirectory() as tmp:
+    fuente = os.path.join(tmp, "programa.t")
+    contenido = 'fn main() { imprimir("intacto"); }\n'
+    with open(fuente, "w", encoding="utf-8") as f:
+        f.write(contenido)
+
+    total += 1
+    r = subprocess.run(
+        [sys.executable, "-m", "tcode", fuente, "-o", fuente],
+        cwd=RAIZ, capture_output=True, text=True)
+    with open(fuente, encoding="utf-8") as f:
+        despues = f.read()
+    if r.returncode == 0:
+        falla("-o no puede ser el fuente", "el compilador acepto la colision")
+    elif despues != contenido:
+        falla("-o no puede ser el fuente", "el archivo fuente fue modificado")
+    elif "propio archivo fuente" not in r.stderr:
+        falla("-o no puede ser el fuente", f"diagnostico inesperado: {r.stderr!r}")
+
+    total += 1
+    sin_extension = os.path.join(tmp, "programa")
+    with open(sin_extension, "w", encoding="utf-8") as f:
+        f.write(contenido)
+    r = subprocess.run(
+        [sys.executable, "-m", "tcode", sin_extension],
+        cwd=RAIZ, capture_output=True, text=True)
+    with open(sin_extension, encoding="utf-8") as f:
+        despues = f.read()
+    if r.returncode == 0 or despues != contenido:
+        falla("la salida implicita no pisa un fuente sin extension",
+              f"codigo {r.returncode}, contenido {despues!r}")
+    elif "propio archivo fuente" not in r.stderr:
+        falla("la salida implicita no pisa un fuente sin extension",
+              f"diagnostico inesperado: {r.stderr!r}")
+
+    total += 1
+    binario_previo = os.path.join(tmp, "programa-anterior")
+    marca_previa = b"binario anterior intacto\n"
+    with open(binario_previo, "wb") as f:
+        f.write(marca_previa)
+    r = subprocess.run(
+        [sys.executable, "-m", "tcode", fuente, "--cc", "/bin/false",
+         "-o", binario_previo],
+        cwd=RAIZ, capture_output=True, text=True)
+    with open(binario_previo, "rb") as f:
+        despues = f.read()
+    if r.returncode == 0:
+        falla("un fallo de C conserva el binario anterior",
+              "el compilador C falso se considero exitoso")
+    elif despues != marca_previa:
+        falla("un fallo de C conserva el binario anterior",
+              f"el destino cambio a {despues!r}")
+
+    # Formatear un enlace escribe en lo que apunta: reemplazarlo lo convertia
+    # en un archivo suelto y dejaba el original sin tocar.
+    total += 1
+    real = os.path.join(tmp, "real.t")
+    enlace = os.path.join(tmp, "enlace.t")
+    with open(real, "w", encoding="utf-8") as f:
+        f.write('fn main() {\nimprimir("a");\n}\n')
+    os.symlink(real, enlace)
+    r = subprocess.run(
+        [sys.executable, "-m", "tcode", enlace, "--formatear", "--escribir"],
+        cwd=RAIZ, capture_output=True, text=True)
+    with open(real, encoding="utf-8") as f:
+        formateado = f.read()
+    if r.returncode != 0 or not os.path.islink(enlace):
+        falla("formatear un enlace conserva el enlace",
+              f"codigo {r.returncode}, enlace {os.path.islink(enlace)}")
+    elif '    imprimir("a");' not in formateado:
+        falla("formatear un enlace conserva el enlace",
+              f"el original no se formateo: {formateado!r}")
+
+    # Un binario nuevo respeta el `umask`, como lo haria `cc -o`.
+    total += 1
+    nuevo_bin = os.path.join(tmp, "con-umask")
+    r = subprocess.run(
+        ["sh", "-c", 'umask 027 && exec "$@"', "sh", sys.executable, "-m",
+         "tcode", fuente, "-o", nuevo_bin],
+        cwd=RAIZ, capture_output=True, text=True)
+    modo = os.stat(nuevo_bin).st_mode & 0o777 if os.path.exists(nuevo_bin) else None
+    if r.returncode != 0 or modo != 0o750:
+        falla("un binario nuevo respeta el umask",
+              f"codigo {r.returncode}, modo {oct(modo) if modo else None}, "
+              f"stderr {r.stderr[:300]!r}")
+
 print("=== ARCHIVOS: lectura real, incluida entrada binaria ===")
 with tempfile.TemporaryDirectory() as tmp:
     total += 1
@@ -2204,6 +2738,40 @@ with tempfile.TemporaryDirectory() as tmp:
                   "`imprimir_error` no salio por la salida de error")
         elif "AddressSanitizer" in err:
             falla("escribir y volver a leer", f"sanitizer se quejo:\n{err}")
+
+    # La ruta se calcula antes que los datos. Si C invirtiera los argumentos,
+    # `datos` veria 1 y `ruta` intentaria escribir en un lugar inexistente.
+    total += 1
+    orden = os.path.join(tmp, "orden.bin")
+    ruta_o = orden.replace("\\", "\\\\").replace('"', '\\"')
+    fuente = f'''fn ruta(n: mut usize) -> view {{
+        n = n + 1;
+        if n == 1 {{ return "{ruta_o}"; }}
+        return "/no/existe/orden.bin";
+    }}
+    fn datos(n: mut usize) -> view {{
+        n = n + 1;
+        if n == 2 {{ return "bien"; }}
+        return "mal";
+    }}
+    fn main() -> usize ! {{
+        var n: usize = 0;
+        try escribir_archivo(ruta(n), datos(n));
+        let vuelta = try leer_archivo("{ruta_o}");
+        imprimir(vuelta); imprimir(" "); imprimir(n); imprimir("\\n");
+        return 0;
+    }}'''
+    try:
+        rc, out, err = compilar_y_correr(fuente, tmp)
+    except AssertionError as exc:
+        falla("escribir_archivo evalua ruta antes que datos", str(exc))
+    else:
+        if rc != 0 or out != "bien 2\n":
+            falla("escribir_archivo evalua ruta antes que datos",
+                  f"codigo {rc}, salida {out!r}, stderr {err!r}")
+        elif "runtime error" in err or "AddressSanitizer" in err:
+            falla("escribir_archivo evalua ruta antes que datos",
+                  f"sanitizer se quejo:\n{err}")
 
     # Escribir donde no se puede es un fallo, no un cuelgue.
     total += 1
@@ -2575,26 +3143,10 @@ print("=== PROPIEDAD: que le pasa a cada valor, dicho por Tcode ===")
 # `libera`, y tiene que coincidir con lo que el comprobador de Python sabe
 # decir con `--explicar`.
 #
-# Tres archivos no coinciden todavia, por dos limitaciones de la capa en
-# Tcode que estan sin resolver y no se esconden:
-#
-#   - dos variables con el MISMO NOMBRE en bloques distintos de una funcion:
-#     el destino de una se le atribuye a la otra
-#   - una llamada repartida en varias lineas: el movimiento se apunta en la
-#     linea del argumento, y el comprobador de Python a veces usa otra
-#
-# La lista esta aqui escrita para que no crezca sin que nadie se entere: si
-# un archivo que hoy coincide deja de hacerlo, la suite lo dice.
-_PROPIEDAD_PENDIENTES = {
-    # nombre repetido en bloques distintos
-    "ejemplos/json.t",
-    "ejemplos/compilador/tcodec.t",
-    "ejemplos/compilador/lib/tipar.t",
-    "ejemplos/compilador/lib/generar.t",
-    # un `return` dentro de un `if` cuenta para el camino que sigue: Python no
-    # junta una rama que ya salio con la continuacion, y esta capa si
-    "ejemplos/compilador/lib/programa.t",
-}
+# No hay excepciones: todos los archivos que ambas implementaciones pueden
+# analizar deben coincidir. El conjunto queda explicito para que una futura
+# divergencia no se pueda incorporar silenciosamente como caso permitido.
+_PROPIEDAD_PENDIENTES = set()
 
 def _propiedad_esperada(ruta):
     from tcode.parser import parsear as _p
@@ -3057,7 +3609,8 @@ print("=== PROGRAMA: el archivo C entero, escrito por Tcode ===")
 # el generador de Python. Lo que `tcodec` no sabe escribir entero lo rechaza
 # sin escribir medio archivo; se cuentan los programas identicos y se exige un
 # minimo.
-_MINIMO_PROGRAMAS = 23
+_MINIMO_PROGRAMAS = 24
+_OBLIGATORIOS_TCODEC = {os.path.join("ejemplos", "bloques.t")}
 
 tmp = tempfile.mkdtemp(prefix="tcode-programa-")
 _cwd_antes = os.getcwd()
@@ -3086,6 +3639,57 @@ try:
             # preguntar por el directorio de trabajo, y los `#line` son
             # relativos a el.
             entorno = dict(os.environ, TCODE_RAIZ=".")
+
+            total += 1
+            literal_invalido = os.path.join(tmp, "literal-invalido.t")
+            with open(literal_invalido, "w", encoding="utf-8") as f:
+                f.write('fn main() { let x: u8 = 256; imprimir(x); }\n')
+            e = subprocess.run([binario, literal_invalido], capture_output=True,
+                               text=True, timeout=60, env=entorno)
+            if e.returncode == 0 or e.stdout:
+                falla("tcodec rechaza literales enteros fuera de rango",
+                      f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
+
+            total += 1
+            decimal_invalido = os.path.join(tmp, "decimal-invalido.t")
+            with open(decimal_invalido, "w", encoding="utf-8") as f:
+                f.write('fn main() { let x: f64 = 1e309; imprimir(x); }\n')
+            e = subprocess.run([binario, decimal_invalido], capture_output=True,
+                               text=True, timeout=60, env=entorno)
+            if e.returncode == 0 or e.stdout:
+                falla("tcodec rechaza literales decimales infinitos",
+                      f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
+
+            total += 1
+            inexacto = os.path.join(tmp, "entero-inexacto.t")
+            with open(inexacto, "w", encoding="utf-8") as f:
+                f.write('fn main() { let x: f64 = 9007199254740993; '
+                        'imprimir(x); }\n')
+            e = subprocess.run([binario, inexacto], capture_output=True,
+                               text=True, timeout=60, env=entorno)
+            if e.returncode == 0 or e.stdout:
+                falla("tcodec rechaza enteros que un decimal redondearia",
+                      f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
+
+            total += 1
+            literal_valido = os.path.join(tmp, "literal-valido.t")
+            with open(literal_valido, "w", encoding="utf-8") as f:
+                f.write('fn main() { let a: i8 = -128; '
+                        'let b: u64 = 18446744073709551615; '
+                        'let c: f32 = 3.4028234e38; '
+                        'let d: f64 = 1.7976931348623157e308; '
+                        'let g: f32 = 3.4028235e38; '
+                        'let h: usize = 5000000000; let k = 010; '
+                        'let m: i8 = -0128; '
+                        'imprimir($"{a} {b} {c} {d} {g} {h} {k} {m}\\n"); }\n')
+            esperado_literal, errores_literal = compilar_archivo(literal_valido)
+            e = subprocess.run([binario, literal_valido], capture_output=True,
+                               text=True, timeout=60, env=entorno)
+            if errores_literal or e.returncode != 0 or e.stdout != esperado_literal:
+                falla("tcodec conserva los limites enteros validos",
+                      f"errores {errores_literal}, codigo {e.returncode}, "
+                      f"stderr {e.stderr[:300]!r}")
+
             iguales = intentados = 0
             for archivo in sorted(
                     glob.glob(os.path.join("std", "*.t"))
@@ -3105,6 +3709,10 @@ try:
                                             f"{e.stderr[:400]}")
                     continue
                 if e.returncode != 0:
+                    if archivo in _OBLIGATORIOS_TCODEC:
+                        total += 1
+                        falla("tcodec en Tcode",
+                              f"{archivo}: lo rechazo\n{e.stderr[:400]}")
                     continue        # lo rechazo: todavia no lo escribe entero
                 intentados += 1
                 total += 1
@@ -3290,9 +3898,17 @@ try:
             e = subprocess.run(["gdb", "-batch", "-ex", "run", "-ex", "bt",
                                 binario], capture_output=True, text=True,
                                timeout=120)
-            if f"hondo.t:3" not in e.stdout:
+            # Algunos contenedores instalan gdb pero bloquean ptrace. Eso no
+            # dice nada sobre las directivas `#line`: se deja constancia y se
+            # conserva la comprobacion real donde el depurador puede arrancar.
+            sin_ptrace = ("ptrace: Operation not permitted" in e.stderr
+                          or "Could not trace the inferior process" in e.stderr)
+            if sin_ptrace:
+                print("    (gdb instalado, pero el entorno bloquea ptrace)")
+            elif f"hondo.t:3" not in e.stdout:
                 falla("el depurador ve el `.t`",
-                      "la pila no señala `hondo.t:3`:\n" + e.stdout[-600:])
+                      "la pila no señala `hondo.t:3`:\n"
+                      + (e.stdout + e.stderr)[-600:])
     print(f"    {marcadas} directivas, todas a una linea que existe")
 finally:
     shutil.rmtree(tmp, ignore_errors=True)

@@ -305,28 +305,176 @@ fn no_se() -> str { return nuevo("?"); }
 
 fn es_desconocido(c: view) -> bool { return igual(c, "?"); }
 
-fn literal_entero(valor: view, esperado: view) -> str {
-    if igual(esperado, "i64") {
-        var s = nuevo("(int64_t)");
-        empujar(s, valor);
-        return s;
+fn sin_ceros_izquierda(valor: view) -> view {
+    var i = 0;
+    while i + 1 < largo(valor) && byte(valor, i) == 48 { i = i + 1; }
+    return rebanar(valor, i, largo(valor));
+}
+
+fn limite_literal_entero(tipo: view, negativo: bool) -> str {
+    if igual(tipo, "u8") { return nuevo("255"); }
+    if igual(tipo, "u16") { return nuevo("65535"); }
+    if igual(tipo, "u32") { return nuevo("4294967295"); }
+    if igual(tipo, "u64") || igual(tipo, "usize") {
+        return nuevo("18446744073709551615");
     }
+    if igual(tipo, "i8") {
+        return nuevo(if negativo { "128" } else { "127" });
+    }
+    if igual(tipo, "i16") {
+        return nuevo(if negativo { "32768" } else { "32767" });
+    }
+    if igual(tipo, "i32") {
+        return nuevo(if negativo { "2147483648" } else { "2147483647" });
+    }
+    if igual(tipo, "i64") {
+        return nuevo(if negativo { "9223372036854775808" }
+            else { "9223372036854775807" });
+    }
+    return vacio();
+}
+
+fn cabe_literal_entero(valor: view, tipo: view, negativo: bool) -> bool {
+    let limite = limite_literal_entero(tipo, negativo);
+    if largo(limite) == 0 { return true; }
+    if negativo && !empieza_con(tipo, "i") { return false; }
+    let limpio = sin_ceros_izquierda(valor);
+    if largo(limpio) < largo(limite) { return true; }
+    if largo(limpio) > largo(limite) { return false; }
+    return igual(limpio, limite) || menor(limpio, limite);
+}
+
+// Compara el texto decimal sin convertirlo primero a `f64`: precisamente hay
+// que decidir si esa conversion produciria infinito. Se normaliza a
+// `cifras * 10^orden` y se compara con el punto en que C redondea a infinito.
+fn cabe_literal_decimal(valor: view, tipo: view) -> bool {
+    var fin_mantisa = largo(valor);
+    var punto = largo(valor);
+    var i = 0;
+    while i < largo(valor) {
+        let c = byte(valor, i);
+        if c == 46 { punto = i; }
+        if c == 101 || c == 69 { fin_mantisa = i; break; }
+        i = i + 1;
+    }
+    let antes = if punto < fin_mantisa { punto } else { fin_mantisa };
+
+    var cifras = vacio();
+    var ceros = 0;
+    var empezo = false;
+    i = 0;
+    while i < fin_mantisa {
+        let c = byte(valor, i);
+        if c != 46 {
+            if !empezo && c == 48 { ceros = ceros + 1; }
+            else {
+                empezo = true;
+                empujar_byte(cifras, c como u8);
+            }
+        }
+        i = i + 1;
+    }
+    if !empezo { return true; }
+
+    var orden: i64 = (antes como i64) - (ceros como i64) - 1;
+    if fin_mantisa < largo(valor) {
+        i = fin_mantisa + 1;
+        var exp_negativo = false;
+        if i < largo(valor) && (byte(valor, i) == 43 || byte(valor, i) == 45) {
+            exp_negativo = byte(valor, i) == 45;
+            i = i + 1;
+        }
+        var exp: i64 = 0;
+        while i < largo(valor) {
+            if exp > 1000 { return exp_negativo; }
+            exp = exp * 10 + ((byte(valor, i) - 48) como i64);
+            i = i + 1;
+        }
+        if exp > 1000 { return exp_negativo; }
+        if exp_negativo { orden = orden - exp; }
+        else { orden = orden + exp; }
+    }
+
+    let max_orden: i64 = if igual(tipo, "f32") { 38 } else { 308 };
+    if orden < max_orden { return true; }
+    if orden > max_orden { return false; }
+    // El umbral es el maximo mas media unidad de su ultima cifra: ahi C ya
+    // redondea a infinito (el empate va al par, que es infinito). Por debajo,
+    // `3.4028235e38` redondea al maximo de `f32` y vale.
+    var umbral = nuevo("340282356779733661637539395458142568448");
+    if igual(tipo, "f64") {
+        umbral = nuevo("179769313486231580793728971405303415079934132710037826936173");
+        empujar(umbral, "778980444968292764750946649017977587207096330286416692887910");
+        empujar(umbral, "946555547851940402630657488671505820681908902000708383676273");
+        empujar(umbral, "854845817711531764475730270069855571366959622842914819860834");
+        empujar(umbral, "936475292719074168444365510704342711559699508093042880177904");
+        empujar(umbral, "174497792");
+    }
+    i = 0;
+    while i < largo(vista(umbral)) {
+        let dado = if i < largo(cifras) { byte(vista(cifras), i) } else { 48 };
+        let tope = byte(vista(umbral), i);
+        if dado < tope { return true; }
+        if dado > tope { return false; }
+        i = i + 1;
+    }
+    // Igual al umbral, o mayor por las cifras que siguen: infinito.
+    return false;
+}
+
+fn literal_entero(texto: view, esperado: view) -> str {
+    // `010` es diez, no el ocho octal que leeria C.
+    let valor = sin_ceros_izquierda(texto);
     if igual(esperado, "f64") || igual(esperado, "f32") {
+        if !entero_exacto_en(valor, esperado) { return no_se(); }
         var s = nuevo(valor);
         empujar(s, ".0");
         if igual(esperado, "f32") { empujar(s, "f"); }
         return s;
     }
+    if es_entero(esperado) && !cabe_literal_entero(valor, esperado, false) {
+        return no_se();
+    }
     // Sin sufijo, un literal por encima de 2^63-1 no cabe en el tipo que C le
     // asigna por defecto y el compilador avisa.
-    var s = nuevo("(size_t)");
-    empujar(s, valor);
-    if mayor_que_i64(valor) { empujar(s, "ULL"); }
+    var s = nuevo("(");
+    if es_entero(esperado) {
+        let tc = tipo_c(esperado);
+        empujar(s, vista(tc));
+    } else { empujar(s, "size_t"); }
+    empujar(s, ")");
+    var numero = nuevo(valor);
+    if mayor_que(valor, "9223372036854775807") { empujar(numero, "ULL"); }
+    // El ancho de `size_t` es el del destino: por encima de 2^32 - 1 el C
+    // comprueba al compilar que el literal cabe.
+    if igual(vista(s), "(size_t)") && mayor_que(valor, "4294967295") {
+        return $"SS_LANG_USIZE_LIT({numero})";
+    }
+    empujar(s, vista(numero));
     return s;
 }
 
-fn mayor_que_i64(valor: view) -> bool {
-    let tope = "9223372036854775807";
+// Un entero escrito donde va un decimal tiene que caber exacto en la mantisa:
+// sin contar los ceros binarios del final, no puede tener mas bits que ella.
+fn entero_exacto_en(valor: view, tipo: view) -> bool {
+    var v: u64 = 0;
+    var i = 0;
+    while i < largo(valor) {
+        v = v * 10 + ((byte(valor, i) - 48) como u64);
+        i = i + 1;
+    }
+    if v == 0 { return true; }
+    while v % 2 == 0 { v = v / 2; }
+    var bits: usize = 0;
+    while v != 0 {
+        bits = bits + 1;
+        v = v / 2;
+    }
+    let mantisa: usize = if igual(tipo, "f32") { 24 } else { 53 };
+    return bits <= mantisa;
+}
+
+fn mayor_que(valor: view, tope: view) -> bool {
     if largo(valor) > largo(tope) { return true; }
     if largo(valor) < largo(tope) { return false; }
     return menor(tope, valor);
@@ -376,6 +524,8 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
     }
 
     if igual(clase, "llamada") {
+        // `reservar(n)` no dice de que: lo dice donde va.
+        if igual(vista(n.texto), "reservar") { return reservar_c(b, s, n, esperado, tipos); }
         return llamada_c(b, s, n, tipos);
     }
 
@@ -396,17 +546,24 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         if largo(lleva) != largo(n.hijos) { return no_se(); }
         let etq = etiqueta(vista(en_t), vista(cual));
         var r = $"({en_t}){{ .etiqueta = {etq}";
+        var previos: lista<str> = [];
         var i = 0;
         for h en n.hijos {
             let valor = expresion_c(b, s, h, vista(lleva[i]), tipos);
             if es_desconocido(vista(valor)) { return no_se(); }
             reclamar(b, vista(valor));
-            let pieza = $", .dato.v_{cual}._{i} = {valor}";
+            let pieza = $", .dato.v_{cual}._{i} = ";
             empujar(r, vista(pieza));
+            agregar_argumento_ordenado(b, r, previos, vista(valor),
+                vista(lleva[i]), false, false, largo(n.hijos) > 1);
             i = i + 1;
         }
         empujar(r, " }");
-        return r;
+        if largo(previos) > 0 {
+            b.ultima_linea = 0;
+            marcar(b, s, n.linea);
+        }
+        return envolver_llamada_ordenada(r, previos);
     }
 
     if igual(clase, "interpolada") { return interpolada_c(b, s, n, tipos); }
@@ -419,6 +576,10 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
     // Un decimal va tal cual se escribio, con sufijo si el destino es de
     // 32 bits: `2.5` en un `f32` sin la `f` seria un `double` recortado.
     if igual(clase, "decimal") {
+        if (igual(esperado, "f32") || igual(esperado, "f64"))
+        && !cabe_literal_decimal(vista(n.texto), esperado) {
+            return no_se();
+        }
         var r = nuevo(vista(n.texto));
         if !contiene(vista(n.texto), ".") && !contiene(vista(n.texto), "e")
         && !contiene(vista(n.texto), "E") {
@@ -464,16 +625,24 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         if !T.es_arreglo(vista(t)) { return no_se(); }
         let elem = T.elemento(vista(t));
         var piezas = vacio();
+        var previos: lista<str> = [];
         var primera = true;
         for x en n.hijos {
             let valor = expresion_c(b, s, x, vista(elem), tipos);
             if es_desconocido(vista(valor)) { return no_se(); }
+            reclamar(b, vista(valor));
             if !primera { empujar(piezas, ", "); }
             primera = false;
-            empujar(piezas, vista(valor));
+            agregar_argumento_ordenado(b, piezas, previos, vista(valor),
+                vista(elem), false, false, largo(n.hijos) > 1);
         }
         let tc = tipo_c(vista(t));
-        return $"({tc}){{{{ {piezas} }}}}";
+        let literal = $"({tc}){{{{ {piezas} }}}}";
+        if largo(previos) > 0 {
+            b.ultima_linea = 0;
+            marcar(b, s, n.linea);
+        }
+        return envolver_llamada_ordenada(literal, previos);
     }
 
     // `[]` donde se espera un mapa: la tabla no nace hasta el primer
@@ -511,7 +680,47 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         let op = vista(n.texto);
         if largo(n.hijos) != 1 { return no_se(); }
         // `~` lleva molde para que el resultado no se ensanche por el camino.
-        if igual(op, "~") { return no_se(); }
+        if igual(op, "~") {
+            var t = I.tipo_de(tipos, n.hijos[0]);
+            if !es_entero(vista(t)) { t = nuevo(esperado); }
+            if !es_entero(vista(t)) { return no_se(); }
+            let dentro = expresion_c(b, s, n.hijos[0], vista(t), tipos);
+            if es_desconocido(vista(dentro)) { return no_se(); }
+            let tc = tipo_c(vista(t));
+            if empieza_con(vista(t), "i") {
+                let ut = $"uint{rebanar(vista(t), 1, largo(vista(t)))}_t";
+                return $"ss_lang_env_{t}(({ut}) ~({ut}) ({dentro}))";
+            }
+            return $"(({tc}) ~{dentro})";
+        }
+        if igual(op, "-") {
+            var t = I.tipo_de(tipos, n.hijos[0]);
+            if es_entero(esperado) || igual(esperado, "f32") || igual(esperado, "f64") {
+                t = nuevo(esperado);
+            }
+            if empieza_con(vista(t), "i")
+            && igual(vista(n.hijos[0].clase), "entero") {
+                let valor = sin_ceros_izquierda(vista(n.hijos[0].texto));
+                if !cabe_literal_entero(valor, vista(t), true) { return no_se(); }
+                if (igual(vista(t), "i8") && igual(valor, "128"))
+                || (igual(vista(t), "i16") && igual(valor, "32768"))
+                || (igual(vista(t), "i32") && igual(valor, "2147483648"))
+                || (igual(vista(t), "i64") && igual(valor, "9223372036854775808")) {
+                    return $"INT{rebanar(vista(t), 1, largo(vista(t)))}_MIN";
+                }
+                return $"(({tipo_c(vista(t))})-{valor})";
+            }
+            if es_entero(vista(t)) && !empieza_con(vista(t), "i")
+            && igual(vista(n.hijos[0].clase), "entero") {
+                return no_se();
+            }
+            let dentro = expresion_c(b, s, n.hijos[0], vista(t), tipos);
+            if es_desconocido(vista(dentro)) { return no_se(); }
+            if empieza_con(vista(t), "i") {
+                return $"ss_lang_neg_{t}({dentro}, \"{s.archivo}\", {n.linea})";
+            }
+            return $"(-{dentro})";
+        }
         let dentro = expresion_c(b, s, n.hijos[0], esperado, tipos);
         if es_desconocido(vista(dentro)) { return no_se(); }
         var v = nuevo("(");
@@ -694,6 +903,7 @@ fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
     // En C no queda el alias del modulo: `P.Nodo` es `Nodo`.
     empujar(r, tipo_c(escrito));
     empujar(r, "){ ");
+    var previos: lista<str> = [];
     var primero = true;
     for h en n.hijos {
         if !igual(vista(h.clase), "campo") { return no_se(); }
@@ -707,10 +917,15 @@ fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
         empujar(r, ".");
         empujar(r, vista(h.texto));
         empujar(r, " = ");
-        empujar(r, vista(valor));
+        agregar_argumento_ordenado(b, r, previos, vista(valor), vista(suyo),
+            false, false, largo(n.hijos) > 1);
     }
     empujar(r, " }");
-    return r;
+    if largo(previos) > 0 {
+        b.ultima_linea = 0;
+        marcar(b, s, n.linea);
+    }
+    return envolver_llamada_ordenada(r, previos);
 }
 
 // `x como u32`. Convertir de verdad comprueba que el valor cabe: si no
@@ -788,6 +1003,22 @@ fn sitio_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     return tmp;
 }
 
+fn sitio_solo_lectura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
+    let clase = vista(n.clase);
+    if igual(clase, "variable") {
+        if tiene(s.punteros, vista(n.texto)) {
+            let marca = obtener(s.punteros, vista(n.texto)) sino 0;
+            if marca == 2 { return true; }
+        }
+        let t = I.tipo_de(tipos, n);
+        return T.es_referencia(vista(t)) && !empieza_con(vista(t), "&mut ");
+    }
+    if (igual(clase, "campo") || igual(clase, "indice")) && largo(n.hijos) > 0 {
+        return sitio_solo_lectura(s, n.hijos[0], tipos);
+    }
+    return false;
+}
+
 // Indexar comprueba el limite: es la comprobacion que C no hace y por la que
 // existe medio Tcode. Va en el C, no en el comprobador, porque el indice se
 // sabe al correr.
@@ -800,14 +1031,23 @@ fn indice_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let idx = expresion_c(b, s, n.hijos[1], "usize", tipos);
     if es_desconocido(vista(idx)) { return no_se(); }
 
+    // La direccion del contenedor se evalua una sola vez, aun cuando `sitio`
+    // sea otro indice con efectos. La coma secuencia esa evaluacion y el [0]
+    // final deja un sitio asignable en C.
+    let ptr = nuevo_temporal(b);
+    let tc = tipo_c(vista(base));
+    if sitio_solo_lectura(s, n.hijos[0], tipos) {
+        emitir(b, $"const {tc}* {ptr};");
+    } else {
+        emitir(b, $"{tc}* {ptr};");
+    }
+
     var cuantos = vacio();
     if T.es_lista(vista(base)) {
-        cuantos = copiar(sitio);
-        empujar(cuantos, ".length");
+        cuantos = $"{ptr}->length";
     } else {
         if T.es_bloque(vista(base)) {
-            cuantos = copiar(sitio);
-            empujar(cuantos, ".n");
+            cuantos = $"{ptr}->n";
         } else {
             if T.es_arreglo(vista(base)) {
                 cuantos = cuantos_de_arreglo(vista(base));
@@ -817,8 +1057,7 @@ fn indice_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         }
     }
 
-    var r = copiar(sitio);
-    empujar(r, ".e[ss_lang_indice_(");
+    var r = $"(({ptr} = &({sitio}), &{ptr}->e[ss_lang_indice_(";
     empujar(r, vista(idx));
     empujar(r, ", ");
     empujar(r, vista(cuantos));
@@ -826,7 +1065,7 @@ fn indice_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     empujar(r, vista(s.archivo));
     empujar(r, "\", ");
     empujar(r, texto(n.linea));
-    empujar(r, ")]");
+    empujar(r, ")])[0])");
     return r;
 }
 
@@ -834,85 +1073,62 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Co
     if largo(n.hijos) != 2 { return no_se(); }
     let op = vista(n.texto);
 
-    // Lo logico y lo comparativo salen tal cual: en C significan lo mismo.
+    // Lo logico conserva el cortocircuito de C: el lado derecho solo se
+    // evalua si el izquierdo no decide ya el resultado.
     if igual(op, "&&") || igual(op, "||") {
         return junta(b, s, n, "bool", op, tipos);
-    }
-    if igual(op, "==") || igual(op, "!=") || igual(op, "<") || igual(op, "<=")
-    || igual(op, ">") || igual(op, ">=") {
-        let t = tipo_operando(s, n, tipos);
-        return junta(b, s, n, vista(t), op, tipos);
     }
 
     let t = tipo_operando(s, n, tipos);
     if largo(t) == 0 { return no_se(); }
+
+    // Para todo lo demas, C no promete izquierda antes que derecha. Se
+    // declaran dos temporales sin inicializarlos y las asignaciones quedan
+    // dentro de la expresion: asi un `&&` o `||` exterior sigue pudiendo
+    // omitirla por completo.
+    var t_der = copiar(t);
+    if igual(op, "<<") || igual(op, ">>") { t_der = nuevo("usize"); }
+    let valor_izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
+    let valor_der = expresion_c(b, s, n.hijos[1], vista(t_der), tipos);
+    if es_desconocido(vista(valor_izq)) || es_desconocido(vista(valor_der)) {
+        return no_se();
+    }
+    let tmp_izq = nuevo_temporal(b);
+    let tmp_der = nuevo_temporal(b);
+    let tc_izq = tipo_c(vista(t));
+    let tc_der = tipo_c(vista(t_der));
+    emitir(b, $"{tc_izq} {tmp_izq};");
+    emitir(b, $"{tc_der} {tmp_der};");
+    // Los temporales son infraestructura del C. La operacion que viene
+    // despues sigue perteneciendo a la linea original para el depurador.
+    b.ultima_linea = 0;
+    marcar(b, s, n.linea);
+    var resultado = vacio();
 
     // Los decimales no desbordan: se van a infinito o a NaN, callando. En
     // Tcode eso para el programa donde aparece, asi que cada operacion pasa
     // por una comprobacion de que el resultado sigue siendo un numero. El
     // que quiera lo de IEEE lo pide con `+?`, `-?`, `*?` o `/?`.
     if igual(vista(t), "f32") || igual(vista(t), "f64") {
-        let izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
-        let der = expresion_c(b, s, n.hijos[1], vista(t), tipos);
-        if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
-            return no_se();
-        }
         if empieza_con(op, "+?") || empieza_con(op, "-?")
         || empieza_con(op, "*?") || empieza_con(op, "/?") {
-            var v = nuevo("(");
-            empujar(v, vista(izq));
-            empujar(v, " ");
-            empujar(v, rebanar(op, 0, 1));
-            empujar(v, " ");
-            empujar(v, vista(der));
-            empujar(v, ")");
-            return v;
+            resultado = $"({tmp_izq} {rebanar(op, 0, 1)} {tmp_der})";
+        } else {
+            if igual(op, "+") || igual(op, "-") || igual(op, "*")
+            || igual(op, "/") {
+                resultado = $"ss_lang_fin_{t}(({tmp_izq} {op} {tmp_der}), \"{op}\", \"Si lo querias, escribe `{op}?`.\", \"{s.archivo}\", {n.linea})";
+            } else {
+                resultado = $"({tmp_izq} {op} {tmp_der})";
+            }
         }
-        if !igual(op, "+") && !igual(op, "-") && !igual(op, "*")
-        && !igual(op, "/") {
-            return no_se();
-        }
-        var v = nuevo("ss_lang_fin_");
-        empujar(v, vista(t));
-        empujar(v, "((");
-        empujar(v, vista(izq));
-        empujar(v, " ");
-        empujar(v, op);
-        empujar(v, " ");
-        empujar(v, vista(der));
-        empujar(v, "), \"");
-        empujar(v, op);
-        empujar(v, "\", \"Si lo querias, escribe `");
-        empujar(v, op);
-        empujar(v, "?`.\", \"");
-        empujar(v, vista(s.archivo));
-        empujar(v, "\", ");
-        empujar(v, texto(n.linea));
-        empujar(v, ")");
-        return v;
     }
 
     // El desplazamiento tiene dos tipos: lo que se mueve y cuanto se mueve.
     // Y se comprueba, porque en C desplazar mas que el ancho es indefinido.
-    if igual(op, "<<") || igual(op, ">>") {
-        let izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
-        let der = expresion_c(b, s, n.hijos[1], "usize", tipos);
-        if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
-            return no_se();
-        }
-        var v = nuevo("ss_lang_desp_");
-        if igual(op, "<<") { empujar(v, "izq_"); } else { empujar(v, "der_"); }
-        empujar(v, vista(t));
-        empujar(v, "(");
-        empujar(v, vista(izq));
-        empujar(v, ", ");
-        empujar(v, vista(der));
-        empujar(v, ", \"");
-        empujar(v, vista(s.archivo));
-        empujar(v, "\", ");
-        empujar(v, texto(n.linea));
-        empujar(v, ")");
-        return v;
+    if largo(resultado) == 0 && (igual(op, "<<") || igual(op, ">>")) {
+        var sentido = nuevo("der");
+        if igual(op, "<<") { sentido = nuevo("izq"); }
+        resultado = $"ss_lang_desp_{sentido}_{t}({tmp_izq}, {tmp_der}, \"{s.archivo}\", {n.linea})";
     }
 
     // Bits, y aritmetica envolvente pedida a proposito. El molde deja claro
@@ -920,77 +1136,53 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Co
     // `int`.
     // La envolvente se opera en `uint64_t`, donde C define la vuelta: con
     // signo, `INT64_MAX + 1` es comportamiento indefinido.
-    if igual(op, "+?") || igual(op, "-?") || igual(op, "*?") {
-        let izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
-        let der = expresion_c(b, s, n.hijos[1], vista(t), tipos);
-        if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
-            return no_se();
-        }
+    if largo(resultado) == 0
+    && (igual(op, "+?") || igual(op, "-?") || igual(op, "*?")) {
         let tc = tipo_c(vista(t));
         let signo = rebanar(op, 0, 1);
-        return $"(({tc}) ((uint64_t) ({izq}) {signo} (uint64_t) ({der})))";
-    }
-    if igual(op, "&") || igual(op, "|") || igual(op, "^") {
-        let izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
-        let der = expresion_c(b, s, n.hijos[1], vista(t), tipos);
-        if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
-            return no_se();
+        let bits = $"((uint64_t) ({tmp_izq}) {signo} (uint64_t) ({tmp_der}))";
+        if empieza_con(vista(t), "i") {
+            let ut = $"uint{rebanar(vista(t), 1, largo(vista(t)))}_t";
+            resultado = $"ss_lang_env_{t}(({ut}) {bits})";
+        } else {
+            resultado = $"(({tc}) {bits})";
         }
-        var v = nuevo("((");
-        empujar(v, tipo_c(vista(t)));
-        empujar(v, ") (");
-        empujar(v, vista(izq));
-        empujar(v, " ");
-        empujar(v, rebanar(op, 0, 1));
-        empujar(v, " ");
-        empujar(v, vista(der));
-        empujar(v, "))");
-        return v;
+    }
+    if largo(resultado) == 0
+    && (igual(op, "&") || igual(op, "|") || igual(op, "^")) {
+        let tc = tipo_c(vista(t));
+        if empieza_con(vista(t), "i") {
+            let ut = $"uint{rebanar(vista(t), 1, largo(vista(t)))}_t";
+            resultado = $"ss_lang_env_{t}(({ut}) (({ut}) ({tmp_izq}) {op} ({ut}) ({tmp_der})))";
+        } else {
+            resultado = $"(({tc}) ({tmp_izq} {op} {tmp_der}))";
+        }
     }
 
     let fam = familia(op);
-    if largo(fam) > 0 {
-        let izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
-        let der = expresion_c(b, s, n.hijos[1], vista(t), tipos);
-        if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
-            return no_se();
-        }
-        var v = nuevo("ss_lang_");
-        empujar(v, vista(fam));
-        empujar(v, "_");
-        empujar(v, vista(t));
-        empujar(v, "(");
-        empujar(v, vista(izq));
-        empujar(v, ", ");
-        empujar(v, vista(der));
-        empujar(v, ", \"");
-        empujar(v, vista(s.archivo));
-        empujar(v, "\", ");
-        empujar(v, texto(n.linea));
-        empujar(v, ")");
-        return v;
+    if largo(resultado) == 0 && largo(fam) > 0 {
+        resultado = $"ss_lang_{fam}_{t}({tmp_izq}, {tmp_der}, \"{s.archivo}\", {n.linea})";
     }
 
-    if igual(op, "/") || igual(op, "%") {
-        let izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
-        let der = expresion_c(b, s, n.hijos[1], vista(t), tipos);
-        if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
-            return no_se();
+    if largo(resultado) == 0 && (igual(op, "/") || igual(op, "%")) {
+        if empieza_con(vista(t), "i") {
+            var nombre = nuevo("div");
+            if igual(op, "%") { nombre = nuevo("mod"); }
+            resultado = $"ss_lang_{nombre}_{t}({tmp_izq}, {tmp_der}, \"{s.archivo}\", {n.linea})";
+        } else {
+            var macro = nuevo("SS_LANG_DIV");
+            if igual(op, "%") { macro = nuevo("SS_LANG_MOD"); }
+            resultado = $"{macro}({tmp_izq}, {tmp_der}, \"{s.archivo}\", {n.linea})";
         }
-        var v = nuevo("SS_LANG_DIV(");
-        if igual(op, "%") { v = nuevo("SS_LANG_MOD("); }
-        empujar(v, vista(izq));
-        empujar(v, ", ");
-        empujar(v, vista(der));
-        empujar(v, ", \"");
-        empujar(v, vista(s.archivo));
-        empujar(v, "\", ");
-        empujar(v, texto(n.linea));
-        empujar(v, ")");
-        return v;
     }
 
-    return no_se();
+    if largo(resultado) == 0
+    && (igual(op, "==") || igual(op, "!=") || igual(op, "<")
+        || igual(op, "<=") || igual(op, ">") || igual(op, ">=")) {
+        resultado = $"({tmp_izq} {op} {tmp_der})";
+    }
+    if largo(resultado) == 0 { return no_se(); }
+    return $"(({tmp_izq} = {valor_izq}, {tmp_der} = {valor_der}, {resultado}))";
 }
 
 // `(izq OP der)`, que es como salen los operadores que C ya tiene.
@@ -1039,6 +1231,44 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
 
     if igual(nombre, "n_argumentos") { return nuevo("ss_lang_n_argumentos_()"); }
 
+    if igual(nombre, "redimensionar") {
+        if largo(n.hijos) != 2 { return no_se(); }
+        let crudo = I.tipo_de(tipos, n.hijos[0]);
+        let t = T.apuntado_si(vista(crudo));
+        if !T.es_bloque(vista(t)) { return no_se(); }
+        let dir = direccion_del_sitio(b, s, n.hijos[0], tipos);
+        if es_desconocido(vista(dir)) { return no_se(); }
+        let ptr = nuevo_temporal(b);
+        let tc = tipo_c(vista(t));
+        emitir(b, $"{tc}* {ptr} = {dir};");
+        let cuantos = expresion_c(b, s, n.hijos[1], "usize", tipos);
+        if es_desconocido(vista(cuantos)) { return no_se(); }
+        let m = mangle(vista(t));
+        return $"ss_lang_bloque_cambiar_{m}({ptr}, {cuantos}, \"{s.archivo}\", {n.linea})";
+    }
+
+    // Se saca primero y se pone despues: si el valor nuevo viniera del mismo
+    // sitio, hacerlo al reves lo perderia. Nunca queda un hueco sin duenio.
+    if igual(nombre, "intercambiar") {
+        if largo(n.hijos) != 2 { return no_se(); }
+        var t = I.tipo_de(tipos, n.hijos[0]);
+        if largo(t) == 0 { t = nuevo("usize"); }
+        // El destino puede hacer trabajo al calcularse. Su direccion se
+        // guarda para leer y escribir exactamente el mismo sitio.
+        let direccion = direccion_del_sitio(b, s, n.hijos[0], tipos);
+        if es_desconocido(vista(direccion)) { return no_se(); }
+        let tc = tipo_c(vista(t));
+        let ptr = nuevo_temporal(b);
+        emitir(b, $"{tc}* {ptr} = {direccion};");
+        let valor = expresion_c(b, s, n.hijos[1], vista(t), tipos);
+        if es_desconocido(vista(valor)) { return no_se(); }
+        reclamar(b, vista(valor));
+        let tmp = nuevo_temporal(b);
+        emitir(b, $"{tc} {tmp} = *{ptr};");
+        emitir(b, $"*{ptr} = {valor};");
+        return tmp;
+    }
+
     if igual(nombre, "argumento") {
         if largo(n.hijos) != 1 { return no_se(); }
         let i = expresion_c(b, s, n.hijos[0], "usize", tipos);
@@ -1072,6 +1302,11 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
             empujar(r, ".length)");
             return r;
         }
+        if T.es_bloque(vista(sobre)) {
+            let donde = sitio_c(b, s, n.hijos[0], tipos);
+            if es_desconocido(vista(donde)) { return no_se(); }
+            return $"({donde}.n)";
+        }
         let v = como_vista(b, s, n.hijos[0], tipos);
         if es_desconocido(vista(v)) { return no_se(); }
         var r = nuevo("sv_len_of(");
@@ -1102,18 +1337,45 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
 
     if igual(nombre, "igual") || igual(nombre, "menor") {
         if largo(n.hijos) != 2 { return no_se(); }
-        let uno = como_vista(b, s, n.hijos[0], tipos);
-        let dos = como_vista(b, s, n.hijos[1], tipos);
+        let crudo = I.tipo_de(tipos, n.hijos[0]);
+        let ta = T.apuntado_si(vista(crudo));
+        let es_texto = igual(vista(ta), "str") || igual(vista(ta), "view");
+        var uno = vacio();
+        var dos = vacio();
+        var tc = vacio();
+        if es_texto {
+            uno = como_vista(b, s, n.hijos[0], tipos);
+            dos = como_vista(b, s, n.hijos[1], tipos);
+            tc = nuevo("SafeView");
+        } else {
+            uno = expresion_c(b, s, n.hijos[0], vista(ta), tipos);
+            dos = expresion_c(b, s, n.hijos[1], vista(ta), tipos);
+            tc = tipo_c(vista(ta));
+        }
         if es_desconocido(vista(uno)) || es_desconocido(vista(dos)) {
             return no_se();
         }
-        var r = nuevo("sv_equals(");
-        if igual(nombre, "menor") { r = nuevo("(sv_cmp("); }
-        empujar(r, vista(uno));
-        empujar(r, ", ");
-        empujar(r, vista(dos));
-        if igual(nombre, "menor") { empujar(r, ") < 0)"); }
-        else { empujar(r, ")"); }
+        let tmp_uno = nuevo_temporal(b);
+        let tmp_dos = nuevo_temporal(b);
+        emitir(b, $"{tc} {tmp_uno};");
+        emitir(b, $"{tc} {tmp_dos};");
+        var comparacion = vacio();
+        if es_texto {
+            comparacion = nuevo("sv_equals(");
+            if igual(nombre, "menor") { comparacion = nuevo("(sv_cmp("); }
+            empujar(comparacion, vista(tmp_uno));
+            empujar(comparacion, ", ");
+            empujar(comparacion, vista(tmp_dos));
+            if igual(nombre, "menor") { empujar(comparacion, ") < 0)"); }
+            else { empujar(comparacion, ")"); }
+        } else {
+            var op = nuevo("<");
+            if igual(nombre, "igual") { op = nuevo("=="); }
+            comparacion = $"({tmp_uno} {op} {tmp_dos})";
+        }
+        var r = $"(({tmp_uno} = {uno}, {tmp_dos} = {dos}, ";
+        empujar(r, vista(comparacion));
+        empujar(r, "))");
         return r;
     }
 
@@ -1182,31 +1444,40 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         }
 
         if largo(n.hijos) < 2 { return no_se(); }
+        if igual(nombre, "poner") {
+            if largo(n.hijos) != 3 { return no_se(); }
+            let ptr = nuevo_temporal(b);
+            let tc = tipo_c(vista(tm));
+            emitir(b, $"{tc}* {ptr} = {donde};");
+            let clave_p = como_vista(b, s, n.hijos[1], tipos);
+            if es_desconocido(vista(clave_p)) { return no_se(); }
+            let tv = T.valor_de_mapa(vista(tm)) sino vacio();
+            if largo(vista(tv)) == 0 { return no_se(); }
+            let valor = expresion_c(b, s, n.hijos[2], vista(tv), tipos);
+            if es_desconocido(vista(valor)) { return no_se(); }
+            reclamar(b, vista(valor)); // el mapa se lo queda
+            b.ultima_linea = 0;
+            marcar(b, s, n.linea);
+            return $"ss_mapa_poner_{mangle(vista(tm))}({ptr}, {clave_p}, {valor}, \"{s.archivo}\", {n.linea})";
+        }
         let clave = como_vista(b, s, n.hijos[1], tipos);
         if es_desconocido(vista(clave)) { return no_se(); }
-        empujar(r, ", ");
-        empujar(r, vista(clave));
-
-        if !igual(nombre, "poner") {
-            if largo(n.hijos) != 2 { return no_se(); }
-            empujar(r, ")");
-            return r;
-        }
-
-        if largo(n.hijos) != 3 { return no_se(); }
-        let tv = T.valor_de_mapa(vista(tm)) sino vacio();
-        if largo(vista(tv)) == 0 { return no_se(); }
-        let valor = expresion_c(b, s, n.hijos[2], vista(tv), tipos);
-        if es_desconocido(vista(valor)) { return no_se(); }
-        reclamar(b, vista(valor)); // el mapa se lo queda
-        empujar(r, ", ");
-        empujar(r, vista(valor));
-        empujar(r, ", \"");
-        empujar(r, vista(s.archivo));
-        empujar(r, "\", ");
-        empujar(r, texto(n.linea));
-        empujar(r, ")");
-        return r;
+        var previos: lista<str> = [];
+        var llamada = nuevo("ss_mapa_");
+        empujar(llamada, nombre);
+        empujar(llamada, "_");
+        empujar(llamada, mangle(vista(tm)));
+        empujar(llamada, "(");
+        let mutable = igual(nombre, "obtener_mut") || igual(nombre, "quitar");
+        agregar_argumento_ordenado(b, llamada, previos, vista(donde),
+            vista(tm), true, mutable, true);
+        empujar(llamada, ", ");
+        agregar_argumento_ordenado(b, llamada, previos, vista(clave),
+            "view", false, false, true);
+        empujar(llamada, ")");
+        b.ultima_linea = 0;
+        marcar(b, s, n.linea);
+        return envolver_llamada_ordenada(llamada, previos);
     }
 
     // `copiar(x)`: una copia independiente, hasta el fondo. Cada tipo lleva
@@ -1264,8 +1535,12 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         if igual(vista(t), "str") || igual(vista(t), "view") {
             let v = como_vista(b, s, n.hijos[0], tipos);
             if es_desconocido(vista(v)) { return no_se(); }
+            let tmp = nuevo_temporal(b);
+            emitir(b, $"SafeView {tmp} = {v};");
+            b.ultima_linea = 0;
+            marcar(b, s, n.hijos[0].linea);
             empujar(r, "SV_FMT, SV_ARG(");
-            empujar(r, vista(v));
+            empujar(r, vista(tmp));
             empujar(r, "))");
             return r;
         }
@@ -1398,10 +1673,12 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         if largo(n.hijos) != 2 { return no_se(); }
         let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
         if es_desconocido(vista(donde)) { return no_se(); }
+        let ptr = nuevo_temporal(b);
+        emitir(b, $"SafeString* {ptr} = {donde};");
         let valor = expresion_c(b, s, n.hijos[1], "u8", tipos);
         if es_desconocido(vista(valor)) { return no_se(); }
         var r = nuevo("ss_lang_empujar_byte_(");
-        empujar(r, vista(donde));
+        empujar(r, vista(ptr));
         empujar(r, ", ");
         empujar(r, vista(valor));
         empujar(r, ", \"");
@@ -1409,6 +1686,8 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         empujar(r, "\", ");
         empujar(r, texto(n.linea));
         empujar(r, ")");
+        b.ultima_linea = 0;
+        marcar(b, s, n.linea);
         return r;
     }
 
@@ -1422,13 +1701,19 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
             return no_se();
         }
         var r = nuevo("sv_slice(");
-        empujar(r, vista(v));
+        var previos: lista<str> = [];
+        agregar_argumento_ordenado(b, r, previos, vista(v), "view",
+            false, false, true);
         empujar(r, ", ");
-        empujar(r, vista(desde));
+        agregar_argumento_ordenado(b, r, previos, vista(desde), "usize",
+            false, false, true);
         empujar(r, ", ");
-        empujar(r, vista(hasta));
+        agregar_argumento_ordenado(b, r, previos, vista(hasta), "usize",
+            false, false, true);
         empujar(r, ")");
-        return r;
+        b.ultima_linea = 0;
+        marcar(b, s, n.linea);
+        return envolver_llamada_ordenada(r, previos);
     }
 
     return no_se();
@@ -1577,28 +1862,66 @@ fn cuantos_bytes(crudo: view) -> usize {
 // traducir salvo la cadena, que pasa a `const char*` comprobando que no
 // lleve un cero en medio. Lo que devuelve `cadena_c` sigue siendo de C:
 // Tcode se queda una copia, que ya se suelta sola.
+// Un bloque nuevo, a ceros. El tipo sale de donde se pone.
+fn reservar_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
+    tipos: &I.Contexto) -> str {
+    if largo(n.hijos) != 1 { return no_se(); }
+    var t = nuevo(esperado);
+    if !T.es_bloque(esperado) { t = I.tipo_de(tipos, n); }
+    if !T.es_bloque(vista(t)) { t = nuevo("bloque<usize>"); }
+    let cuantos = expresion_c(b, s, n.hijos[0], "usize", tipos);
+    if es_desconocido(vista(cuantos)) { return no_se(); }
+    let m = mangle(vista(t));
+    return $"ss_lang_bloque_nuevo_{m}({cuantos}, \"{s.archivo}\", {n.linea})";
+}
+
 fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let nombre = vista(n.texto);
     let firmados = I.lista_de(tipos.params, nombre) sino [];
     if largo(firmados) != largo(n.hijos) { return no_se(); }
     var v = I.sin_modulo(nombre);
     empujar(v, "(");
+    var previos: lista<str> = [];
+    let secuenciar = largo(n.hijos) > 1;
     var i = 0;
     for h en n.hijos {
         if i > 0 { empujar(v, ", "); }
+        var arg = vacio();
+        var tc = vacio();
         if igual(vista(firmados[i]), "str") {
             let sitio = sitio_c(b, s, h, tipos);
             if es_desconocido(vista(sitio)) { return no_se(); }
-            let pieza = $"ss_lang_cstr_(&{sitio}, \"{s.archivo}\", {n.linea})";
-            empujar(v, vista(pieza));
+            arg = $"ss_lang_cstr_(&{sitio}, \"{s.archivo}\", {n.linea})";
+            tc = nuevo("const char*");
         } else {
-            let arg = expresion_c(b, s, h, vista(firmados[i]), tipos);
+            arg = expresion_c(b, s, h, vista(firmados[i]), tipos);
             if es_desconocido(vista(arg)) { return no_se(); }
+            tc = tipo_c(vista(firmados[i]));
+        }
+        if secuenciar {
+            let tmp = nuevo_temporal(b);
+            emitir(b, $"{tc} {tmp};");
+            anadir(previos, $"{tmp} = {arg}");
+            empujar(v, vista(tmp));
+        } else {
             empujar(v, vista(arg));
         }
         i = i + 1;
     }
     empujar(v, ")");
+    if largo(previos) > 0 {
+        var orden = nuevo("((");
+        var primero = true;
+        for p en previos {
+            if !primero { empujar(orden, ", "); }
+            primero = false;
+            empujar(orden, vista(p));
+        }
+        empujar(orden, ", ");
+        empujar(orden, vista(v));
+        empujar(orden, "))");
+        v = orden;
+    }
     let marca = obtener(tipos.externas, nombre) sino 1;
     if marca == 2 {
         let tmp = nuevo_temporal(b);
@@ -1607,6 +1930,41 @@ fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -
         return tmp;
     }
     return v;
+}
+
+fn agregar_argumento_ordenado(b: mut Cuerpo, llamada: mut str,
+    previos: mut lista<str>, arg: view, tipo: view, presta: bool,
+    mutable: bool, secuenciar: bool) {
+    if !secuenciar {
+        empujar(llamada, arg);
+        return;
+    }
+    let tmp = nuevo_temporal(b);
+    var d = vacio();
+    if presta && !mutable { empujar(d, "const "); }
+    empujar(d, tipo_c(tipo));
+    if presta { empujar(d, "*"); }
+    empujar(d, " ");
+    empujar(d, vista(tmp));
+    empujar(d, ";");
+    emitir(b, vista(d));
+    anadir(previos, $"{tmp} = {arg}");
+    empujar(llamada, vista(tmp));
+}
+
+fn envolver_llamada_ordenada(llamada: str, previos: &lista<str>) -> str {
+    if largo(previos) == 0 { return llamada; }
+    var orden = nuevo("((");
+    var primero = true;
+    for p en previos {
+        if !primero { empujar(orden, ", "); }
+        primero = false;
+        empujar(orden, vista(p));
+    }
+    empujar(orden, ", ");
+    empujar(orden, vista(llamada));
+    empujar(orden, "))");
+    return orden;
 }
 
 fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
@@ -1687,6 +2045,8 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     }
     var v = copiar(en_c);
     empujar(v, "(");
+    var previos: lista<str> = [];
+    let secuenciar = largo(n.hijos) > 1;
     var i = 0;
     for h en n.hijos {
         if i > 0 { empujar(v, ", "); }
@@ -1696,9 +2056,11 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         // Un parametro prestado recibe la direccion, no el valor. Si lo que
         // se le pasa ya es un puntero, se pasa tal cual.
         var presta_el = false;
+        var presta_mut = false;
         if i < largo(marcados) {
             let m = vista(marcados[i]);
             presta_el = empieza_con(m, "&") || empieza_con(m, "mut ");
+            presta_mut = empieza_con(m, "mut ");
         }
         if presta_el {
             let clase_h = vista(h.clase);
@@ -1706,7 +2068,8 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             || igual(clase_h, "indice") {
                 let dir = direccion_del_sitio(b, s, h, tipos);
                 if es_desconocido(vista(dir)) { return no_se(); }
-                empujar(v, vista(dir));
+                agregar_argumento_ordenado(b, v, previos, vista(dir),
+                    vista(esperado), true, presta_mut, secuenciar);
                 i = i + 1;
                 continue;
             }
@@ -1723,8 +2086,10 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             if I.posee_con_formas(tipos, vista(esperado)) {
                 apuntar_temporal(b, vista(tmp), vista(esperado));
             }
-            empujar(v, "&");
-            empujar(v, vista(tmp));
+            var dir = nuevo("&");
+            empujar(dir, vista(tmp));
+            agregar_argumento_ordenado(b, v, previos, vista(dir),
+                vista(esperado), true, presta_mut, secuenciar);
             i = i + 1;
             continue;
         }
@@ -1736,7 +2101,8 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             if igual(vista(suyo), "str") {
                 let arg = como_vista(b, s, h, tipos);
                 if es_desconocido(vista(arg)) { return no_se(); }
-                empujar(v, vista(arg));
+                agregar_argumento_ordenado(b, v, previos, vista(arg),
+                    "view", false, false, secuenciar);
                 i = i + 1;
                 continue;
             }
@@ -1749,13 +2115,28 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         }
         let arg = expresion_c(b, s, h, vista(esperado), tipos);
         if es_desconocido(vista(arg)) { return no_se(); }
-        empujar(v, vista(arg));
+        if secuenciar && largo(esperado) == 0 { return no_se(); }
+        agregar_argumento_ordenado(b, v, previos, vista(arg),
+            vista(esperado), false, false, secuenciar);
         i = i + 1;
     }
     // Despues de los argumentos: una generica que se llama dentro de otro
     // argumento se crea antes, como en el original.
     if largo(pedido) > 0 { anadir(b.instancias, pedido); }
     empujar(v, ")");
+    if largo(previos) > 0 {
+        var orden = nuevo("((");
+        var primero = true;
+        for p en previos {
+            if !primero { empujar(orden, ", "); }
+            primero = false;
+            empujar(orden, vista(p));
+        }
+        empujar(orden, ", ");
+        empujar(orden, vista(v));
+        empujar(orden, "))");
+        return orden;
+    }
     return v;
 }
 
@@ -1803,6 +2184,8 @@ fn presta_argumento(tipos: &I.Contexto, nombre: view, i: usize) -> bool {
     // `anadir(xs, v)` y `poner(m, k, v)` prestan la coleccion y se quedan
     // con lo demas. Las otras internas cubiertas toman vistas o escalares.
     if igual(nombre, "anadir") { return i == 0; }
+    // `intercambiar(sitio, v)` presta el sitio y se queda con `v`.
+    if igual(nombre, "intercambiar") { return i == 0; }
     // La clave se copia dentro de la tabla: se presta. Solo el valor se
     // queda en el mapa.
     if igual(nombre, "poner") { return i < 2; }
@@ -2006,6 +2389,7 @@ fn es_interna(nombre: view) -> bool {
     if igual(nombre, "claves") || igual(nombre, "quitar") { return true; }
     if igual(nombre, "texto") || igual(nombre, "copiar") { return true; }
     if igual(nombre, "ordenar") || igual(nombre, "reservar") { return true; }
+    if igual(nombre, "redimensionar") || igual(nombre, "intercambiar") { return true; }
     return false;
 }
 
@@ -2426,6 +2810,26 @@ fn liberacion(b: mut Cuerpo, tipos: &I.Contexto, nombre: view,
         empujar(l, nombre);
         empujar(l, ");");
         emitir(b, vista(l));
+        return;
+    }
+
+    // Un bloque suelta sus elementos, si poseen, y luego su memoria.
+    if T.es_bloque(tipo) {
+        let elem_b = T.elemento(tipo);
+        if I.posee_con_formas(tipos, vista(elem_b)) {
+            b.bucle = b.bucle + 1;
+            let i_b = nombre_de_bucle(b.bucle);
+            emitir(b, $"for (size_t {i_b} = 0; {i_b} < {nombre}.n; {i_b}++)");
+            emitir(b, "{");
+            b.sangria = b.sangria + 1;
+            let dentro_b = $"{nombre}.e[{i_b}]";
+            liberacion(b, tipos, vista(dentro_b), vista(elem_b));
+            b.sangria = b.sangria - 1;
+            emitir(b, "}");
+        }
+        emitir(b, $"free({nombre}.e);");
+        emitir(b, $"{nombre}.e = NULL;");
+        emitir(b, $"{nombre}.n = 0;");
         return;
     }
 
@@ -2934,11 +3338,14 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         if igual(a_que, "variable") { nombre = nuevo(vista(n.hijos[0].texto)); }
         let tipo = I.tipo_de(tipos, n.hijos[0]);
         if largo(tipo) == 0 { return false; }
+        // Se fija primero el sitio. Ademas de coincidir con el generador de
+        // Python, esto evita que el valor cambie un indice o la coleccion de
+        // la izquierda antes de que sepamos donde se escribira.
+        let destino = expresion_c(b, s, n.hijos[0], vista(tipo), tipos);
+        if es_desconocido(vista(destino)) { return false; }
         let valor = expresion_c(b, s, n.hijos[1], vista(tipo), tipos);
         if es_desconocido(vista(valor)) { return false; }
         reclamar(b, vista(valor));
-        let destino = expresion_c(b, s, n.hijos[0], vista(tipo), tipos);
-        if es_desconocido(vista(destino)) { return false; }
 
         // Asignar a algo con duenio pide soltar lo viejo. `liberacion` ya sabe
         // soltar cualquier cosa que posea: `str`, listas, mapas y structs.
@@ -3124,7 +3531,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             I.declarar(tipos, vista(dos), vista(tv));
         }
         let ya_era = tiene(s.punteros, quien);
-        if presta { poner(s.punteros, quien, 1); }
+        if presta { poner(s.punteros, quien, 2); }
 
         var bien = true;
         for st en n.hijos[1].hijos {
@@ -3233,6 +3640,9 @@ fn tipo_escrito(texto: view) -> str {
 fn tipo_si_va_bien(n: &P.Nodo, tipos: &I.Contexto) -> str {
     let llamado = vista(n.texto);
     if tiene(tipos.retornos, llamado) {
+        // El retorno escrito de una generica puede ser `T`; el tipo de esta
+        // llamada ya contiene las ligaduras deducidas de sus argumentos.
+        if tiene(tipos.tipo_params, llamado) { return I.tipo_de(tipos, n); }
         return nuevo(obtener(tipos.retornos, llamado) sino "");
     }
     if igual(llamado, "obtener") || igual(llamado, "leer_archivo")
@@ -3364,23 +3774,29 @@ fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     if entrega_variable(s, n.hijos[1], tipos) {
         if !lleva_bandera(b, s, vista(n.hijos[1].texto)) { return false; }
     }
+    let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(vista(donde)) { return false; }
+    let ptr = nuevo_temporal(b);
+    let tc = tipo_c(vista(sobre));
+    emitir(b, $"{tc}* {ptr} = {donde};");
     let valor = expresion_c(b, s, n.hijos[1], vista(elem), tipos);
     if es_desconocido(vista(valor)) { return false; }
     reclamar(b, vista(valor)); // la lista se lo queda
 
-    let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
-    if es_desconocido(vista(donde)) { return false; }
     var l = nuevo("ss_push_");
     empujar(l, mangle(vista(sobre)));
     empujar(l, "(");
-    empujar(l, vista(donde));
+    empujar(l, vista(ptr));
     empujar(l, ", ");
     empujar(l, vista(valor));
     empujar(l, ", \"");
     empujar(l, vista(s.archivo));
     empujar(l, "\", ");
     empujar(l, texto(n.linea));
-    empujar(l, ");");
+    empujar(l, ")");
+    b.ultima_linea = 0;
+    marcar(b, s, n.linea);
+    empujar(l, ";");
     emitir(b, vista(l));
     return true;
 }
@@ -3662,13 +4078,17 @@ fn empujar_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     if largo(n.hijos) != 2 { return false; }
     let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
     if es_desconocido(vista(donde)) { return false; }
+    let ptr = nuevo_temporal(b);
+    emitir(b, $"SafeString* {ptr} = {donde};");
     let que = como_vista(b, s, n.hijos[1], tipos);
     if es_desconocido(vista(que)) { return false; }
     var l = nuevo("ss_append_view(");
-    empujar(l, vista(donde));
+    empujar(l, vista(ptr));
     empujar(l, ", ");
     empujar(l, vista(que));
     empujar(l, ");");
+    b.ultima_linea = 0;
+    marcar(b, s, n.linea);
     emitir(b, vista(l));
     return true;
 }
