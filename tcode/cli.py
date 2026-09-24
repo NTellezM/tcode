@@ -30,6 +30,55 @@ def _lo_generamos_nosotros(ruta):
         return False
 
 
+def _misma_ruta(ruta_a, ruta_b):
+    """Reconoce la misma entrada incluso a traves de enlaces o `..`."""
+    try:
+        return os.path.samefile(ruta_a, ruta_b)
+    except OSError:
+        a = os.path.realpath(os.path.abspath(ruta_a))
+        b = os.path.realpath(os.path.abspath(ruta_b))
+        return a == b
+
+
+def _modo_nuevo(ejecutable):
+    """Los permisos que tendria un archivo recien creado: los de siempre menos
+    el `umask`. `mkstemp` crea con 0600 y hay que decirlo a mano."""
+    mascara = os.umask(0)
+    os.umask(mascara)
+    return (0o777 if ejecutable else 0o666) & ~mascara
+
+
+def _escribir_atomico(ruta, contenido):
+    """Escribe completo y solo entonces reemplaza el destino.
+
+    Si la ruta es un enlace simbolico se escribe en lo que apunta: reemplazar
+    el enlace lo convertiria en un archivo suelto y dejaria el original igual.
+    """
+    ruta = os.path.realpath(ruta)
+    directorio = os.path.dirname(ruta)
+    fd, temporal = tempfile.mkstemp(prefix=".tcode-", dir=directorio)
+    try:
+        try:
+            modo = os.stat(ruta).st_mode & 0o777
+        except OSError:
+            modo = _modo_nuevo(ejecutable=False)
+        os.fchmod(fd, modo)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            fd = -1
+            f.write(contenido)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(temporal, ruta)
+    except BaseException:
+        if fd >= 0:
+            os.close(fd)
+        try:
+            os.unlink(temporal)
+        except OSError:
+            pass
+        raise
+
+
 def compilar_a_c(fuente, archivo, devolver_comp=False, con_lineas=True):
     """Compila una fuente suelta, sin resolver `usar`. Lo usan los tests."""
     return _compilar(parsear(fuente, archivo), archivo, devolver_comp,
@@ -104,8 +153,7 @@ def main(argv=None):
             salida = formatear(fuente, args.fuente)
             if args.escribir:
                 if salida != fuente:
-                    with open(args.fuente, "w", encoding="utf-8") as f:
-                        f.write(salida)
+                    _escribir_atomico(args.fuente, salida)
                     print(f"formateado {args.fuente}")
             else:
                 sys.stdout.write(salida)
@@ -163,10 +211,26 @@ def main(argv=None):
                   f"no lo piso. Usa -o para elegir otro nombre.",
                   file=sys.stderr)
             return 2
-        with open(ruta_c, "w", encoding="utf-8") as f:
-            f.write(codigo)
+        try:
+            _escribir_atomico(ruta_c, codigo)
+        except OSError as exc:
+            print(f"tcode: no se pudo escribir `{ruta_c}`: {exc}",
+                  file=sys.stderr)
+            return 2
         print(ruta_c)
         return 0
+
+    # `-o fuente.t` y un fuente sin extension hacian que `cc -o` truncara el
+    # programa original. Se comprueba despues de --emitir-c porque en ese modo
+    # el producto real es `<base>.c`, no `base`.
+    if _misma_ruta(base, args.fuente):
+        print(f"tcode: la salida `{base}` es el propio archivo fuente; elige "
+              "otro nombre con `-o`.", file=sys.stderr)
+        return 2
+    if os.path.splitext(base)[1] == ".t":
+        print(f"tcode: la salida `{base}` parece un fuente `.t`; elige otro "
+              "nombre para no sobrescribir codigo.", file=sys.stderr)
+        return 2
 
     if "int main(" not in codigo:
         print(f"tcode: {args.fuente} no tiene `fn main`, asi que no es un "
@@ -175,6 +239,7 @@ def main(argv=None):
         return 1
 
     tmp = tempfile.mkdtemp(prefix="tcode-")
+    salida_tmp = None
     try:
         ruta_c = os.path.join(tmp, os.path.basename(base) + ".c")
         with open(ruta_c, "w", encoding="utf-8") as f:
@@ -199,10 +264,27 @@ def main(argv=None):
                       file=sys.stderr)
             return 2
 
+        # El enlazador trabaja sobre un vecino temporal. Solo un resultado
+        # completo reemplaza el binario anterior, y el rename no cruza discos.
+        # Un `base` que es enlace se reemplaza en su destino, como el C.
+        destino_bin = os.path.realpath(base)
+        try:
+            try:
+                modo_salida = os.stat(destino_bin).st_mode & 0o777
+            except OSError:
+                modo_salida = _modo_nuevo(ejecutable=True)
+            fd_salida, salida_tmp = tempfile.mkstemp(
+                prefix=".tcode-bin-", dir=os.path.dirname(destino_bin))
+            os.close(fd_salida)
+        except OSError as exc:
+            print(f"tcode: no se pudo preparar la salida `{base}`: {exc}",
+                  file=sys.stderr)
+            return 2
+
         orden = [args.cc, "-std=c17", f"-O{args.optimizacion}", "-Wall", "-Wextra",
                  f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
                  *acompanan,
-                 "-o", base,
+                 "-o", salida_tmp,
                  # `raiz`, `piso` y compania viven en libm. En glibc moderna
                  # ya va dentro de libc, pero enlazarla no estorba y hace
                  # falta en todo lo demas.
@@ -221,7 +303,20 @@ def main(argv=None):
             return 1
         if r.stderr.strip():
             print(r.stderr, file=sys.stderr)
+        try:
+            os.chmod(salida_tmp, modo_salida)
+            os.replace(salida_tmp, destino_bin)
+            salida_tmp = None
+        except OSError as exc:
+            print(f"tcode: no se pudo instalar la salida `{base}`: {exc}",
+                  file=sys.stderr)
+            return 2
     finally:
+        if salida_tmp is not None:
+            try:
+                os.unlink(salida_tmp)
+            except OSError:
+                pass
         shutil.rmtree(tmp, ignore_errors=True)
 
     print(base)

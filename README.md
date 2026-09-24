@@ -146,8 +146,8 @@ cualquier sitio donde haya un compilador de C17.
 comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
-Sobre los veintidós `.t` del repositorio —incluido el suyo propio— produce
-**11.920 tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+Sobre los 47 `.t` del repositorio —incluido el suyo propio— produce
+**93.206 tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -169,8 +169,8 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 
 `ejemplos/lexer/parser.t` son 626 líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
-de abajo arriba. Acepta y rechaza **exactamente** los mismos veintidós
-archivos que el parser del compilador, y sobre ellos produce 6.209 nodos:
+de abajo arriba. Acepta y rechaza **exactamente** los mismos 47 archivos que
+el parser del compilador, y sobre ellos produce 46.239 nodos:
 
 ```
 $ ./ejemplos/lexer/parser ejemplos/lexer/parser.t --callado
@@ -180,23 +180,22 @@ ejemplos/lexer/parser.t: 2082 nodos, hondura 15
 Y dos capas más del comprobador, en `ejemplos/compilador/`:
 
 - `lib/tipos.t` responde las dos preguntas de las que cuelga todo —¿este tipo
-  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **31 archivos, 154
+  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **47 archivos, 292
   tipos**, las mismas respuestas que el comprobador de Python.
 - `lib/tipar.t` dice **de qué tipo es cada variable de cada función**, con
-  llamadas, campos, índices, préstamos y genéricas instanciadas: **32
-  archivos, 730 variables**, los mismos tipos.
+  llamadas, campos, índices, préstamos y genéricas instanciadas: **42
+  archivos, 2.615 variables**, los mismos tipos.
 - `lib/propiedad.t` dice **qué le pasa a cada valor con dueño** —se presta,
   se entrega en la línea N, se mueve en la línea N, o se libera al cerrar su
-  bloque—, que es lo único que de verdad separa a Tcode de C: **27 archivos,
-  369 variables**, el mismo destino. Quedan cinco archivos pendientes, por dos
-  limitaciones que están escritas en la suite y no se esconden.
+  bloque—, que es lo único que de verdad separa a Tcode de C: **42 archivos,
+  2.615 variables**, el mismo destino, sin ningún archivo pendiente.
 - `lib/generar.t` es **el generador**: cómo se llama cada tipo en C, cómo
-  queda la firma de cada función —**33 archivos, 187 firmas**— y el C de cada
-  expresión que se devuelve: **206 de 401 expresiones, carácter por
+  queda la firma de cada función —**42 archivos, 390 firmas**— y el C de cada
+  expresión que se devuelve: **940 de 1.065 expresiones, carácter por
   carácter**, las mismas que emite el generador de Python. Lo que aún no
   cubre sale marcado y no se compara; la suite exige un mínimo en vez de
   hacer como que están todas. Y **la función entera** —firma, cuerpo, y los
-  `ss_free` puestos solos donde tocan—: **32 funciones idénticas**, línea por
+  `ss_free` puestos solos donde tocan—: **437 funciones idénticas**, línea por
   línea, normalizando sólo los números de temporal.
 
 Las dos se comparan contra el comprobador de Python en cada ejecución de la
@@ -208,9 +207,9 @@ suite, sobre el código real del repositorio.
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **7.849 líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **9.472 líneas de Tcode** (lexer,
 parser, tipado, generador y el programa) y el resultado se compara byte a
-byte con el del generador de Python: **21 programas enteros idénticos**,
+byte con el del generador de Python: **24 programas enteros idénticos**,
 entre ellos el lexer, el parser y el propio `tcodec`.
 
 Y el punto fijo:
@@ -224,19 +223,18 @@ igual
 ```
 
 El `tcodec` construido desde su propio C vuelve a escribir exactamente los
-mismos bytes (1,37 MB), también bajo AddressSanitizer y UBSan, y la suite lo
+mismos bytes (2,43 MB), también bajo AddressSanitizer y UBSan, y la suite lo
 comprueba en cada ejecución. A partir de ahí el compilador ya no necesita a
 Python para existir, que es el paso que dieron Go en la 1.5 y Rust con su
-primer `rustc` escrito en Rust. Se escribe a sí mismo en 0,37 s; el de
-Python tarda 0,74 s en lo mismo.
+primer `rustc` escrito en Rust.
 
 Lo que `tcodec` todavía no escribe lo rechaza diciendo qué es, sin dejar
-medio archivo: structs genéricos (`Par<A, B>`), clausuras y tipos función,
-`bloque`, `externo` y `escribir_archivo`. Ya escribe enums, arreglos
-`[T; N]`, funciones repetidas entre módulos y funciones con nombre de
-palabra de C (`union`). De los 23 programas del repositorio escribe 21;
-faltan `pruebas.t` y `externo/reloj.t`. Por eso el compilador de referencia
-sigue siendo el de Python: es el que acepta todo el lenguaje.
+medio archivo: clausuras, tipos función y `escribir_archivo`. Ya escribe
+structs genéricos (`Par<A, B>`), bloques, `externo`, enums, arreglos `[T; N]`,
+funciones repetidas entre módulos y funciones con nombre de palabra de C
+(`union`). De los 25 programas del repositorio escribe 24; falta
+`pruebas.t`. Por eso el compilador de referencia sigue siendo el de Python:
+es el que acepta todo el lenguaje.
 
 Escribirlo encontró fallos reales en el original, que se arreglaron con su
 prueba: fugas en salidas tempranas, banderas de propiedad por nombre en vez
@@ -331,11 +329,19 @@ echo 'python3 -m tcode "$@"' > ~/.local/bin/tcode && chmod +x ~/.local/bin/tcode
 
 ```
 python3 -m tcode programa.t              # compila a binario
+python3 -m tcode programa.t -o mi_binario
 python3 -m tcode programa.t -O3          # nivel de optimizacion del backend
 python3 -m tcode programa.t --emitir-c   # deja el C y no invoca a cc
 python3 -m tcode programa.t --explicar   # que infirio el compilador
 python3 -m tcode programa.t --solo-comprobar
 ```
+
+La salida binaria nunca puede ser el propio fuente, tampoco mediante un
+enlace ni por usar un archivo sin extensión. Un nombre de salida terminado en
+`.t` también se rechaza para que una compilación no pueda sobrescribir código.
+El C, el formato y el binario se construyen primero en un temporal vecino y
+sólo reemplazan el destino al terminar: si falla el backend, el binario
+anterior queda intacto.
 
 ## Avisos
 

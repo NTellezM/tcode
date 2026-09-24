@@ -151,7 +151,11 @@ fn main() -> usize ! {
                     let pt = tipo_pelado(vista(h.texto));
                     poner(de_tipo, vista(pn), copiar(pt));
                     I.declarar(tipos, vista(pn), vista(pt));
-                    if presta(vista(h.texto)) { poner(puntos, vista(pn), 1); }
+                    if presta(vista(h.texto)) {
+                        let m = marca_de(vista(h.texto));
+                        if igual(vista(m), "&") { poner(puntos, vista(pn), 2); }
+                        else { poner(puntos, vista(pn), 1); }
+                    }
                 }
             }
             // Esta capa mira expresiones sueltas, no caminos: sin caminos

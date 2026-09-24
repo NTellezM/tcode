@@ -329,7 +329,10 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
             empujar(junto, ": ");
             empujar(junto, vista(m));
             anadir(marcas, junto);
-            if largo(m) > 0 { poner(puntos, vista(pn), 1); }
+            if largo(m) > 0 {
+                if igual(vista(m), "&") { poner(puntos, vista(pn), 2); }
+                else { poner(puntos, vista(pn), 1); }
+            }
         }
         if igual(vista(h.clase), "retorno_tipo") {
             retorno = nuevo(vista(h.texto));

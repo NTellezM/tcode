@@ -323,6 +323,12 @@ fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
     var de_bucle: mapa<str, usize> = [];
     var valores_de_bucle: mapa<str, usize> = [];
     recoger_bucles(d, de_bucle, valores_de_bucle);
+    // Una referencia declarada normalmente (`let x = obtener(...)`) queda
+    // prestada. La que introduce un patron de `match`, en cambio, es solo la
+    // vista tipada que el patron expone y Python no la marca como recibida.
+    // La linea forma parte de la clave para no confundir nombres repetidos.
+    var atrapadas: mapa<str, usize> = [];
+    recoger_atrapadas(d, atrapadas);
     var prestados: mapa<str, usize> = [];
     for h en d.hijos {
         if igual(vista(h.clase), "param") {
@@ -348,14 +354,20 @@ fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
                 // sacarlo, y eso vale igual para un numero que para un
                 // `str`. Que el elemento tenga duenio o no cambia como se
                 // pasa, no de quien es.
+                var donde = 0;
+                if i < largo(lineas) { donde = lineas[i]; }
                 var prestada = tiene(prestados, vista(nom));
-                if tiene(de_bucle, vista(nom)) { prestada = true; }
-                if tiene(valores_de_bucle, vista(nom))
+                let clave = $"{nom}\t{donde}";
+                let es_ref = empieza_con(vista(tip), "&")
+                || empieza_con(vista(tip), "mut ");
+                if es_ref && !tiene(atrapadas, vista(clave)) {
+                    prestada = true;
+                }
+                if tiene(de_bucle, vista(clave)) { prestada = true; }
+                if tiene(valores_de_bucle, vista(clave))
                 && Q.tiene_duenio(c, vista(tip)) {
                     prestada = true;
                 }
-                var donde = 0;
-                if i < largo(lineas) { donde = lineas[i]; }
                 anadir(vs, Q.vigilar(vista(nom), vista(tip), prestada, donde));
                 anadir(mias, i);
             }
@@ -378,18 +390,29 @@ fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
     }
 }
 
-// Los nombres que declara un `for`, y en que sitio. El primero —el elemento
-// o la clave— se presta siempre: recorrer es mirar lo que hay. El segundo
-// —el valor de un mapa— llega por copia si es un escalar, y prestado si
-// tiene duenio, igual que cualquier otro valor.
+// Variables que nacen al desarmar visualmente una variante. El `match` no
+// mueve esos valores fuera del enum: solo les da nombre dentro del brazo.
+fn recoger_atrapadas(n: &P.Nodo, salida: mut mapa<str, usize>) {
+    if igual(vista(n.clase), "atrapa") {
+        poner(salida, $"{n.texto}\t{n.linea}", 1);
+    }
+    for h en n.hijos { recoger_atrapadas(h, salida); }
+}
+
+// Las declaraciones que introduce un `for`, identificadas por nombre y
+// linea. Usar solo el nombre convertia tambien en prestada cualquier variable
+// homonima de otro bloque. El primero —el elemento o la clave— se presta
+// siempre; el segundo —el valor de un mapa— llega por copia si es escalar, y
+// prestado si tiene duenio.
 fn recoger_bucles(n: &P.Nodo, primeros: mut mapa<str, usize>,
     segundos: mut mapa<str, usize>) {
     if igual(vista(n.clase), "para") {
         let partes = try_partir(vista(n.texto));
         var i = 0;
         for parte en partes {
-            if i == 0 { poner(primeros, vista(parte), 1); }
-            else { poner(segundos, vista(parte), 1); }
+            let clave = $"{parte}\t{n.linea}";
+            if i == 0 { poner(primeros, vista(clave), 1); }
+            else { poner(segundos, vista(clave), 1); }
             i = i + 1;
         }
     }

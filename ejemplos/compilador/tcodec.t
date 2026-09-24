@@ -62,6 +62,25 @@ fn fila_aritmetica(t: view) -> str {
     return nuevo("SS_LANG_ARIT_I(i64, int64_t, uint64_t, INT64_MAX, INT64_MIN)");
 }
 
+fn maximo_entero(t: view) -> str {
+    if igual(t, "usize") { return nuevo("SIZE_MAX"); }
+    if igual(t, "u8") { return nuevo("UINT8_MAX"); }
+    if igual(t, "u16") { return nuevo("UINT16_MAX"); }
+    if igual(t, "u32") { return nuevo("UINT32_MAX"); }
+    if igual(t, "u64") { return nuevo("UINT64_MAX"); }
+    if igual(t, "i8") { return nuevo("INT8_MAX"); }
+    if igual(t, "i16") { return nuevo("INT16_MAX"); }
+    if igual(t, "i32") { return nuevo("INT32_MAX"); }
+    return nuevo("INT64_MAX");
+}
+
+fn minimo_entero(t: view) -> str {
+    if igual(t, "i8") { return nuevo("INT8_MIN"); }
+    if igual(t, "i16") { return nuevo("INT16_MIN"); }
+    if igual(t, "i32") { return nuevo("INT32_MIN"); }
+    return nuevo("INT64_MIN");
+}
+
 // Lo que este hito todavia no sabe emitir: cada uno pide una seccion propia
 // del archivo (typedefs, tablas, ayudantes), y sin ella el C no compila.
 // La linea sin lo que va entre comillas: un literal que diga `ss_lista_`
@@ -95,7 +114,6 @@ fn sin_cadenas(l: view) -> str {
 }
 
 fn necesita_lo_que_falta(l: view) -> bool {
-    if contiene(l, "ss_bloque_") { return true; }
     if contiene(l, "ss_fn_") { return true; }
     if contiene(l, "ss_cierre_") { return true; }
     if contiene(l, "ss_lang_escribir_") {
@@ -449,6 +467,9 @@ struct Registro {
     resultados: lista<str>,
     vistos: mapa<str, usize>,
     res_vistos: mapa<str, usize>,
+    // Cada `bloque<T>`, en el orden en que se registra: antes que lo que
+    // lleva dentro, al reves que una lista.
+    bloques: lista<str>,
     // Los envoltorios de arreglo van aparte: no son agregados sin nombre.
     arreglos: lista<str>,
     arr_vistos: mapa<str, usize>,
@@ -456,7 +477,7 @@ struct Registro {
 
 fn registro() -> Registro {
     return Registro { listas: [], mapas: [], resultados: [], vistos: [],
-        res_vistos: [], arreglos: [], arr_vistos: [] };
+        res_vistos: [], arreglos: [], arr_vistos: [], bloques: [] };
 }
 
 fn registrar_resultado(reg: mut Registro, t: view) {
@@ -469,7 +490,8 @@ fn registrar_resultado(reg: mut Registro, t: view) {
 
 // Tiene partes: se puede leer un campo o modificarlo en el sitio.
 fn es_compuesto_t(t: view, structs: &mapa<str, usize>) -> bool {
-    if igual(t, "str") || es_lista_t(t) || es_mapa_t(t) { return true; }
+    if igual(t, "str") || empieza_con(t, "bloque<") { return true; }
+    if es_lista_t(t) || es_mapa_t(t) { return true; }
     if empieza_con(t, "[") { return true; }
     return tiene(structs, t);
 }
@@ -494,19 +516,20 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     if empieza_con(t, "[") {
         let pa = partes_arreglo(t);
         if largo(pa) != 2 { return false; }
-        // Lo de dentro se registraria al pedir su nombre en C, fuera del
-        // recorrido: ese orden no se reproduce.
-        if contiene(vista(pa[0]), "<") {
-            imprimir_error($"tcodec: el tipo `{t}`\n");
-            return false;
-        }
         if tiene(reg.arr_vistos, t) { return true; }
-        if empieza_con(vista(pa[0]), "[") {
-            if !mirar_tipo(vista(pa[0]), reg, global, structs) { return false; }
-        }
+        // El typedef del elemento va antes que el envoltorio del arreglo:
+        // tambien cuando el elemento es una lista, mapa o bloque.
+        if !mirar_tipo(vista(pa[0]), reg, global, structs) { return false; }
         poner(reg.arr_vistos, t, 1);
         anadir(reg.arreglos, nuevo(t));
         return true;
+    }
+    if empieza_con(t, "bloque<") {
+        if tiene(reg.vistos, t) { return true; }
+        poner(reg.vistos, t, 1);
+        anadir(reg.bloques, nuevo(t));
+        let dentro_b = nuevo(rebanar(t, 7, largo(t) - 1));
+        return mirar_tipo(vista(dentro_b), reg, global, structs);
     }
     if es_bloque_o_arreglo(t) {
         // Un prestamo no registra nada, como en el original.
@@ -517,9 +540,9 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     if tiene(reg.vistos, t) { return true; }
     if es_lista_t(t) {
         let dentro = interior_lista(t);
-        if es_lista_t(vista(dentro)) {
-            if !mirar_tipo(vista(dentro), reg, global, structs) { return false; }
-        }
+        // Igual que el generador de referencia: lo que lleva dentro tiene que
+        // registrarse antes, aunque sea un mapa o un bloque y no otra lista.
+        if !mirar_tipo(vista(dentro), reg, global, structs) { return false; }
         poner(reg.vistos, t, 1);
         anadir(reg.listas, nuevo(t));
         return true;
@@ -612,6 +635,13 @@ fn poner_typedef(t: view, reg: &Registro, puestos: mut mapa<str, usize>,
     if tiene(puestos, t) || !tiene(reg.vistos, t) { return; }
     poner(puestos, t, 1);
     let tc = G.tipo_c(t);
+    if empieza_con(t, "bloque<") {
+        let dentro_b = nuevo(rebanar(t, 7, largo(t) - 1));
+        poner_typedef(vista(dentro_b), reg, puestos, salida);
+        let te_b = G.tipo_c(vista(dentro_b));
+        anadir(salida, $"typedef struct {{ {te_b}* e; size_t n; }} {tc};");
+        return;
+    }
     if es_lista_t(t) {
         let dentro = interior_lista(t);
         poner_typedef(vista(dentro), reg, puestos, salida);
@@ -922,6 +952,55 @@ fn funcion_mapa(t: view, global: &I.Contexto, structs: &mapa<str, usize>,
     anadir(salida, vacio());
 }
 
+fn funcion_bloque(t: view, global: &I.Contexto, cta: mut F.Cuenta,
+    salida: mut lista<str>) {
+    let elem = nuevo(rebanar(t, 7, largo(t) - 1));
+    let te = G.tipo_c(vista(elem));
+    let nombre = G.tipo_c(t);
+    let m = G.mangle(t);
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static {nombre} ss_lang_bloque_nuevo_{m}(size_t n,");
+    anadir(salida, nuevo("        const char* archivo, int linea)"));
+    anadir(salida, nuevo("{"));
+    anadir(salida, $"    {nombre} b = {{ NULL, 0 }};");
+    anadir(salida, nuevo("    if (n == 0) return b;"));
+    anadir(salida, $"    if (n > SIZE_MAX / sizeof({te}))");
+    anadir(salida, nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, $"    b.e = ({te}*) calloc(n, sizeof({te}));");
+    anadir(salida, nuevo("    if (b.e == NULL) ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, nuevo("    b.n = n;"));
+    anadir(salida, nuevo("    return b;"));
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static void ss_lang_bloque_cambiar_{m}({nombre}* p, size_t n,");
+    anadir(salida, nuevo("        const char* archivo, int linea)"));
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    if (n == p->n) return;"));
+    if I.posee_con_formas(global, vista(elem)) {
+        anadir(salida, nuevo("    if (n < p->n)"));
+        anadir(salida, nuevo("        for (size_t i = n; i < p->n; i++)"));
+        anadir(salida, nuevo("        {"));
+        lineas_liberacion(global, "p->e[i]", vista(elem), 3, cta, salida);
+        anadir(salida, nuevo("        }"));
+    }
+    anadir(salida, nuevo("    if (n == 0)"));
+    anadir(salida, nuevo("    {"));
+    anadir(salida, nuevo("        free(p->e); p->e = NULL; p->n = 0; return;"));
+    anadir(salida, nuevo("    }"));
+    anadir(salida, $"    if (n > SIZE_MAX / sizeof({te}))");
+    anadir(salida, nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, $"    void* memoria = realloc(p->e, n * sizeof({te}));");
+    anadir(salida, nuevo("    if (memoria == NULL) ss_lang_sin_memoria_(archivo, linea);"));
+    anadir(salida, $"    p->e = ({te}*) memoria;");
+    anadir(salida, nuevo("    /* Lo nuevo nace a ceros, que en Tcode es un valor valido. */"));
+    anadir(salida, nuevo("    if (n > p->n)"));
+    anadir(salida, $"        memset(p->e + p->n, 0, (n - p->n) * sizeof({te}));");
+    anadir(salida, nuevo("    p->n = n;"));
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+}
+
 // El tipo de mapa al que se refiere un nombre de C: `ss_mapa_poner_mapa_x`
 // y `ss_mapa_x` hablan del mismo.
 fn tipo_de_nombre_mapa(u: view) -> str {
@@ -998,6 +1077,11 @@ fn necesita_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
     }
     poner(vistos, t, 1);
     anadir(salida, nuevo(t));
+    if empieza_con(t, "bloque<") {
+        let dentro_b = nuevo(rebanar(t, 7, largo(t) - 1));
+        necesita_copiador(vista(dentro_b), global, st_indice, st_tipos, vistos, salida);
+        return;
+    }
     if es_lista_t(t) {
         let dentro = interior_lista(t);
         necesita_copiador(vista(dentro), global, st_indice, st_tipos, vistos, salida);
@@ -1081,6 +1165,25 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
             anadir(salida, nuevo("    default: break;"));
             anadir(salida, nuevo("    }"));
         }
+        anadir(salida, nuevo("    return r;"));
+        anadir(salida, nuevo("}"));
+        anadir(salida, vacio());
+        return true;
+    }
+    if empieza_con(t, "bloque<") {
+        let elem_b = nuevo(rebanar(t, 7, largo(t) - 1));
+        let te_b = G.tipo_c(vista(elem_b));
+        let cp_b = copia_de("p->e[i]", vista(elem_b), global);
+        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
+        anadir(salida, nuevo("{"));
+        anadir(salida, $"    {tc} r = {{ NULL, 0 }};");
+        anadir(salida, nuevo("    if (p->n == 0) return r;"));
+        anadir(salida, $"    r.e = ({te_b}*) calloc(p->n, sizeof({te_b}));");
+        anadir(salida, nuevo("    if (r.e == NULL) ss_lang_sin_memoria_(__FILE__, __LINE__);"));
+        anadir(salida, nuevo("    r.n = p->n;"));
+        anadir(salida, nuevo("    for (size_t i = 0; i < p->n; i++)"));
+        anadir(salida, $"        r.e[i] = {cp_b};");
         anadir(salida, nuevo("    return r;"));
         anadir(salida, nuevo("}"));
         anadir(salida, vacio());
@@ -1530,8 +1633,12 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
         apuntar_tras(vista(limpia), "ss_lang_resta_", anchos);
         apuntar_tras(vista(limpia), "ss_lang_mul_", anchos);
         apuntar_tras(vista(limpia), "ss_lang_abs_", anchos);
+        apuntar_tras(vista(limpia), "ss_lang_neg_", anchos);
+        apuntar_tras(vista(limpia), "ss_lang_div_", anchos);
+        apuntar_tras(vista(limpia), "ss_lang_mod_", anchos);
         apuntar_tras(vista(limpia), "ss_lang_desp_izq_", anchos);
         apuntar_tras(vista(limpia), "ss_lang_desp_der_", anchos);
+        apuntar_tras(vista(limpia), "ss_lang_env_", anchos);
         apuntar_tras(vista(limpia), "ss_lang_fin_", decimales);
         apuntar_tras(vista(limpia), "ss_lang_conv_", conversiones);
         anadir(cuerpos, copiar(l));
@@ -1627,9 +1734,6 @@ fn main() -> usize ! {
                     if igual(vista(h.clase), "campo_def") {
                         let tp = F.tipo_pelado(vista(h.texto));
                         let t = I.sin_alias_tipo(vista(tp));
-                        if contiene(vista(t), "bloque<") {
-                            return rechazo("bloques en un struct");
-                        }
                         anadir(campos, F.nombre_de(vista(h.texto)));
                         anadir(tipos_campo, t);
                     }
@@ -1912,19 +2016,6 @@ fn main() -> usize ! {
     // Todas las que fallan dan un `str`: el tipo resultado es uno.
     if usa_leer_archivo || da_texto { registrar_resultado(reg, "str"); }
 
-    // Una lista de mapas no registra su mapa al recorrer: el original lo
-    // registra al escribir el typedef de la lista, despues de todo lo demas.
-    var diferidos: lista<str> = [];
-    for x en reg.listas {
-        let e = interior_lista(vista(x));
-        if es_mapa_t(vista(e)) && !tiene(reg.vistos, vista(e)) { anadir(diferidos, e); }
-    }
-    for e en diferidos {
-        if !mirar_tipo(vista(e), reg, global, con_partes) {
-            return rechazo("mapas, bloques ni arreglos");
-        }
-    }
-
     // Los structs en orden de dependencia, y quien de ellos posee.
     var listos: mapa<str, usize> = [];
     var orden: lista<str> = [];
@@ -1950,6 +2041,7 @@ fn main() -> usize ! {
     }
     if largo(en_nombres) > 0 { anadir(partes, vacio()); }
     var ordenadas: lista<str> = [];
+    for x en reg.bloques { anadir(ordenadas, copiar(x)); }
     for x en reg.listas { anadir(ordenadas, copiar(x)); }
     for x en reg.mapas { anadir(ordenadas, copiar(x)); }
     ordenar(ordenadas);
@@ -2072,6 +2164,9 @@ fn main() -> usize ! {
         anadir(partes, vacio());
     }
     if usa_leer_archivo { ayudante_leer_archivo(partes); }
+    // Los bloques: reservar y cambiar de tamaño, a ceros, y al encoger se
+    // suelta lo que se queda fuera.
+    for x en reg.bloques { funcion_bloque(vista(x), global, cta, partes); }
     for x en reg.listas { funcion_push(vista(x), partes); }
     for x en reg.listas { funcion_ordenar(vista(x), partes); }
     // Los mapas gastan cuenta si sus valores poseen: van antes que los
@@ -2195,6 +2290,20 @@ fn main() -> usize ! {
     for u en claves(usadas) {
         if !tiene(registradas, vista(u)) {
             imprimir_error($"tcodec: `{u}` se usa y el recorrido no la registro\n");
+            return 1;
+        }
+    }
+
+    // Y con los bloques.
+    var usados_b: mapa<str, usize> = [];
+    for l en limpios { apuntar_nombres(vista(l), "ss_bloque_", usados_b); }
+    for x en reg.bloques {
+        let nombre_c = G.tipo_c(vista(x));
+        poner(registradas, vista(nombre_c), 1);
+    }
+    for u en claves(usados_b) {
+        if !tiene(registradas, vista(u)) {
+            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
             return 1;
         }
     }
@@ -2327,7 +2436,56 @@ fn main() -> usize ! {
         let origen = rebanar(vista(par), corte + 1, largo(vista(par)));
         let td = G.tipo_c(destino);
         let to = G.tipo_c(origen);
-        anadir(arit, $"SS_LANG_CONV({destino}, {td}, {origen}, {to})");
+        var macro = nuevo("SS_LANG_CONV");
+        var extra = vacio();
+        if empieza_con(origen, "f") {
+            if igual(destino, "usize") || empieza_con(destino, "u") {
+                macro = nuevo("SS_LANG_CONV_F_U");
+            } else {
+                if empieza_con(destino, "i") {
+                    macro = nuevo("SS_LANG_CONV_F_I");
+                }
+            }
+        } else {
+            if igual(destino, "f32") || igual(destino, "f64") {
+                if igual(origen, "usize") || empieza_con(origen, "u") {
+                    macro = nuevo("SS_LANG_CONV_U_F");
+                } else {
+                    if empieza_con(origen, "i") {
+                        macro = nuevo("SS_LANG_CONV_I_F");
+                    }
+                }
+                if igual(destino, "f32") {
+                    extra = nuevo("FLT_MANT_DIG, ");
+                } else {
+                    extra = nuevo("DBL_MANT_DIG, ");
+                }
+            } else {
+                let origen_entero = igual(origen, "usize")
+                || empieza_con(origen, "u") || empieza_con(origen, "i");
+                let destino_entero = igual(destino, "usize")
+                || empieza_con(destino, "u") || empieza_con(destino, "i");
+                if origen_entero && destino_entero {
+                    let ou = igual(origen, "usize") || empieza_con(origen, "u");
+                    let du = igual(destino, "usize") || empieza_con(destino, "u");
+                    var os = nuevo("I");
+                    if ou { os = nuevo("U"); }
+                    var ds = nuevo("I");
+                    if du { ds = nuevo("U"); }
+                    macro = $"SS_LANG_CONV_{os}_{ds}";
+                    if du || ou {
+                        extra = $"{maximo_entero(destino)}, ";
+                    } else {
+                        extra = $"{minimo_entero(destino)}, {maximo_entero(destino)}, ";
+                    }
+                }
+            }
+        }
+        if igual(origen, "f64") && igual(destino, "f32") {
+            macro = nuevo("SS_LANG_CONV_F_F");
+            extra = nuevo("FLT_MAX, ");
+        }
+        anadir(arit, $"{macro}({destino}, {td}, {extra}{origen}, {to})");
     }
     if largo(arit) > 0 { anadir(arit, vacio()); }
 

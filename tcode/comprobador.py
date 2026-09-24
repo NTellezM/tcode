@@ -7,6 +7,7 @@ auditando la libreria en C.
 """
 
 import re
+from decimal import Decimal as NumeroDecimal, InvalidOperation
 
 from tcode.parser import RESTRICCIONES
 from tcode.nodos import (
@@ -32,6 +33,27 @@ ENTEROS = set(SIN_SIGNO) | set(CON_SIGNO)
 # de siempre, para quien lo quiera y lo diga.
 DECIMALES = {"f32", "f64"}
 NUMERICOS = ENTEROS | DECIMALES
+
+# El ancho de ``usize`` es el del destino, que el compilador no conoce: puede
+# ser otro que el del proceso que lo ejecuta (`--cc` de otra arquitectura).
+# Aqui se acepta lo que cabe en el mas ancho, 64 bits, y el C generado
+# comprueba en tiempo de compilacion (`SS_LANG_USIZE_LIT`) que un literal por
+# encima de 2^32 - 1 cabe en el `size_t` real.
+BITS_USIZE = 64
+# Un literal decimal es finito si queda por debajo del punto en que C ya lo
+# redondea a infinito: el maximo mas media unidad de la ultima cifra. Justo en
+# ese punto el empate va al par, que es infinito. Asi `3.4028235e38`, que es
+# como se escribe el maximo de `f32`, vale.
+UMBRAL_F32 = NumeroDecimal(2**128 - 2**103)
+UMBRAL_F64 = NumeroDecimal(2**1024 - 2**970)
+# Bits de mantisa, contando el implicito: un entero mas largo pierde cifras.
+MANTISA = {"f32": 24, "f64": 53}
+# `intercambiar` y `redimensionar` reservan su destino mientras calculan el
+# segundo argumento. La reserva se apunta como un prestamo con su nombre.
+RESERVAS = {
+    "intercambiar": "mientras se calcula el reemplazo",
+    "redimensionar": "mientras se calcula el tamaño nuevo",
+}
 # Un numero escrito sin punto no decide su tipo: cuadra con cualquier entero,
 # y tambien con un decimal, que es lo que hace natural escribir `0` en vez de
 # `0.0` donde el contexto ya lo dice.
@@ -560,8 +582,8 @@ class Comprobador:
                              f"copia, o recibelo por valor")
             return
         if sim.prestamos:
-            self.error(nodo, f"no se puede mover `{sim.nombre}`: esta prestada "
-                             f"por {self._lista(sim.prestamos)}")
+            self.error(nodo, f"no se puede mover `{sim.nombre}`: "
+                             f"{self._ocupada(sim)}")
             return
         # Una sola regla, en vez de un caso especial por construccion:
         #
@@ -593,13 +615,16 @@ class Comprobador:
                                  f"lectura (`{sim.tipo}`): para modificar lo "
                                  f"que apunta hace falta `&mut "
                                  f"{apuntado(sim.tipo)}`")
+            elif sim.prestamos:
+                self.error(nodo, f"no se puede modificar `{sim.nombre}`: "
+                                 f"{self._ocupada(sim)}")
             return
         if not sim.mutable:
             self.error_no_mutable(nodo, sim)
             return
         if sim.prestamos:
-            self.error(nodo, f"no se puede modificar `{sim.nombre}`: esta "
-                             f"prestada por {self._lista(sim.prestamos)}")
+            self.error(nodo, f"no se puede modificar `{sim.nombre}`: "
+                             f"{self._ocupada(sim)}")
 
     def error_no_mutable(self, nodo, sim):
         """Por que no se puede modificar. La razon cambia el arreglo."""
@@ -615,6 +640,17 @@ class Comprobador:
         if not self.usar(nodo, sim):
             return
         sim.prestamos.append(nombre_vista)
+
+    @classmethod
+    def _ocupada(cls, sim):
+        """Por que no se puede tocar: prestamos vivos o una reserva de
+        `intercambiar`/`redimensionar` mientras calculan su argumento."""
+        prestamos = [n for n in sim.prestamos if n not in RESERVAS]
+        reservas = [n for n in sim.prestamos if n in RESERVAS]
+        if prestamos:
+            return f"esta prestada por {cls._lista(prestamos)}"
+        n = reservas[0]
+        return f"esta reservada por `{n}` {RESERVAS[n]}"
 
     @staticmethod
     def _lista(nombres):
@@ -658,7 +694,8 @@ class Comprobador:
     def es_compuesto(self, t):
         """Tiene partes: se puede leer un campo o modificarlo en el sitio.
         Un escalar no lo es; prestarlo no aporta nada sobre copiarlo."""
-        return (t == "str" or es_lista(t) or es_mapa(t) or es_arreglo(t)
+        return (t == "str" or es_bloque(t) or es_lista(t) or es_mapa(t)
+                or es_arreglo(t)
                 or t in self.structs or t in self.enums)
 
     def tipo_existe(self, t):
@@ -1425,6 +1462,7 @@ class Comprobador:
                 if tipo is None:
                     return
                 if tipo == LITERAL:
+                    self.comprobar_literal(s.valor, "usize")
                     tipo = concreto(tipo)
                 if not self.tipo_existe(tipo):
                     self.error(s, f"no se puede deducir el tipo de "
@@ -1487,8 +1525,8 @@ class Comprobador:
             elif not sim.mutable:
                 self.error_no_mutable(s, sim)
             if sim.prestamos:
-                self.error(s, f"no se puede modificar `{base}`: esta prestada "
-                              f"por {self._lista(sim.prestamos)}")
+                self.error(s, f"no se puede modificar `{base}`: "
+                              f"{self._ocupada(sim)}")
             if destino is not None and tipo is not None and not encaja(destino, tipo):
                 self.error(s, f"el destino es `{destino}` y se le asigna "
                               f"un `{tipo}`")
@@ -1806,7 +1844,66 @@ class Comprobador:
 
     # ---------- expresiones ----------
 
+    def comprobar_literal(self, e, destino):
+        """Comprueba la magnitud antes de que C pueda truncarla o hacerla inf.
+
+        El signo menos es un nodo separado. Mirarlo junto al literal permite
+        aceptar exactamente ``INT_MIN``, cuya magnitud es una unidad mayor que
+        ``INTMAX``, sin relajar el limite para los positivos.
+        """
+        # El contexto tambien alcanza los numeros dentro de una expresion
+        # puramente literal: `let x: u8 = 1 + 256` no debe esquivar el limite
+        # solo por tener un operador en medio. En desplazamientos, la cantidad
+        # es un `usize`, no el tipo del valor desplazado.
+        if isinstance(e, Binaria):
+            self.comprobar_literal(e.izq, destino)
+            self.comprobar_literal(
+                e.der, "usize" if e.op in {"<<", ">>"} else destino)
+            return
+
+        negativo = (isinstance(e, Unaria) and e.op == "-"
+                    and isinstance(e.valor, (Entero, Decimal)))
+        literal = e.valor if negativo else e
+
+        if isinstance(literal, Entero):
+            valor = literal.valor
+            if destino in SIN_SIGNO:
+                bits = SIN_SIGNO[destino] or BITS_USIZE
+                cabe = not negativo and valor <= (1 << bits) - 1
+            elif destino in CON_SIGNO:
+                bits = CON_SIGNO[destino]
+                limite = ((1 << (bits - 1)) if negativo
+                          else (1 << (bits - 1)) - 1)
+                cabe = valor <= limite
+            elif destino in DECIMALES:
+                # Un entero escrito tiene que caber exacto: `2^53 + 1` en un
+                # `f64` se redondearia en silencio, igual que con `como`.
+                significativo = valor >> max((valor & -valor).bit_length() - 1, 0)
+                cabe = significativo.bit_length() <= MANTISA[destino]
+            else:
+                return
+            if not cabe:
+                signo = "-" if negativo else ""
+                exacto = " sin perder precision" if destino in DECIMALES else ""
+                self.error(e, f"el literal `{signo}{valor}` no cabe en "
+                              f"`{destino}`{exacto}")
+            return
+
+        if isinstance(literal, Decimal) and destino in DECIMALES:
+            try:
+                valor = NumeroDecimal(literal.valor)
+            except InvalidOperation:
+                self.error(e, "el literal decimal no es un numero valido")
+                return
+            umbral = UMBRAL_F32 if destino == "f32" else UMBRAL_F64
+            if not valor.is_finite() or abs(valor) >= umbral:
+                signo = "-" if negativo else ""
+                self.error(e, f"el literal `{signo}{literal.valor}` no cabe "
+                              f"en `{destino}` como numero finito")
+
     def expresion(self, e, destino=None, mover_variables=False):
+        if destino in NUMERICOS:
+            self.comprobar_literal(e, destino)
         if isinstance(e, Entero):
             return LITERAL
         if isinstance(e, Decimal):
@@ -1873,8 +1970,14 @@ class Comprobador:
                     self.error(e, f"`!` necesita un `bool`, recibio `{t}`")
                 return "bool"
             if t == LITERAL:
-                # `-9` es un numero escrito, y un numero escrito negativo solo
-                # cabe en `i64`. Antes esto no compilaba en ningun sitio.
+                # Con un destino firmado, el literal toma ese ancho. Esto es
+                # esencial para que su minimo (por ejemplo `-128` en i8) sea
+                # representable. Sin contexto conserva el valor por defecto.
+                if destino in CON_SIGNO or destino in DECIMALES:
+                    return destino
+                if destino in SIN_SIGNO:
+                    return destino
+                self.comprobar_literal(e, "i64")
                 return "i64"
             if t == LITERAL_DECIMAL:
                 return LITERAL_DECIMAL
@@ -2400,8 +2503,10 @@ class Comprobador:
 
         # Un numero escrito toma el tipo del otro lado.
         if ti in (LITERAL, LITERAL_DECIMAL) and td in NUMERICOS:
+            self.comprobar_literal(e.izq, td)
             ti = td
         elif td in (LITERAL, LITERAL_DECIMAL) and ti in NUMERICOS:
+            self.comprobar_literal(e.der, ti)
             td = ti
         if ti == LITERAL and td == LITERAL_DECIMAL:
             ti = td
@@ -2726,8 +2831,14 @@ class Comprobador:
                               "un campo o un elemento")
                 self.expresion(e.args[1])
                 return UNIDAD
-            self.mutar(e.args[0], sim)
-            t = self.expresion(e.args[1])
+            self.mutar(e.args[0], sim,
+                       por_referencia=es_referencia(sim.tipo))
+            marca = "redimensionar"
+            sim.prestamos.append(marca)
+            try:
+                t = self.expresion(e.args[1])
+            finally:
+                sim.prestamos.remove(marca)
             if t is not None and not encaja("usize", t):
                 self.error(e, f"`redimensionar` espera el tamaño nuevo, un "
                               f"`usize`, y recibio `{t}`")
@@ -2749,10 +2860,19 @@ class Comprobador:
                 self.expresion(valor)
                 return None
             t = self.tipo_de_lugar(destino_nodo)
-            self.mutar(destino_nodo, sim)
-            tv = self.expresion(valor, destino=t,
-                                mover_variables=(t is not None
-                                                 and self.posee(t)))
+            self.mutar(destino_nodo, sim,
+                       por_referencia=es_referencia(sim.tipo))
+            # El sitio queda reservado hasta que se haya calculado el valor
+            # nuevo. De lo contrario `intercambiar(s, f(s))` podria mover y
+            # liberar `s` antes de devolver el valor viejo.
+            marca = "intercambiar"
+            sim.prestamos.append(marca)
+            try:
+                tv = self.expresion(valor, destino=t,
+                                    mover_variables=(t is not None
+                                                     and self.posee(t)))
+            finally:
+                sim.prestamos.remove(marca)
             if t is not None and tv is not None and not encaja(t, tv):
                 self.error(e, f"`intercambiar` pone y saca lo mismo: el sitio "
                               f"es `{t}` y el valor es `{tv}`")

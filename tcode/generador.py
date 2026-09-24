@@ -89,11 +89,12 @@ class _ParamSuelto:
     """Un parametro sacado de un tipo de funcion, para que la generacion de
     argumentos no tenga que saber si detras hay una declaracion o una
     variable."""
-    __slots__ = ("tipo", "prestado")
+    __slots__ = ("tipo", "prestado", "mutable")
 
-    def __init__(self, tipo, prestado):
+    def __init__(self, tipo, prestado, mutable=False):
         self.tipo = tipo
         self.prestado = prestado
+        self.mutable = mutable
 
 
 class _FirmaSuelta:
@@ -223,6 +224,11 @@ class Generador:
             elem, _ = partes_arreglo(t)
             if es_arreglo(elem):
                 self.registrar_arreglo(elem)
+            else:
+                # El typedef del elemento tiene que existir antes que el del
+                # arreglo. Esto incluye `lista<T>`, mapas y bloques, no solo
+                # otro arreglo anidado.
+                self.tipo_c(elem)
             self.arreglos[t] = f"ss_{mangle(t)}"
         return self.arreglos[t]
 
@@ -436,6 +442,12 @@ class Generador:
             elem = elem_lista(t)
             if es_lista(elem):
                 self.registrar_lista(elem)
+            else:
+                # Una lista puede guardar cualquier tipo almacenable, tambien
+                # otro agregado. Hay que registrarlo ahora: descubrirlo al
+                # escribir los typedefs llega tarde y puede mutar el diccionario
+                # que se esta recorriendo.
+                self.tipo_c(elem)
             self.listas[t] = f"ss_{mangle(t)}"
         return self.listas[t]
 
@@ -1312,7 +1324,26 @@ class Generador:
         for t in sorted(self.decimales):
             arit.append(f"SS_LANG_ARIT_F({t}, {DECIMALES[t]})")
         for destino, origen in sorted(self.conversiones):
-            arit.append(f"SS_LANG_CONV({destino}, {TIPOS_C[destino]}, "
+            macro = "SS_LANG_CONV"
+            extra = ""
+            if origen in DECIMALES and destino in ARITMETICA:
+                macro = ("SS_LANG_CONV_F_U" if ARITMETICA[destino][3] is None
+                         else "SS_LANG_CONV_F_I")
+            elif origen in ARITMETICA and destino in DECIMALES:
+                macro = ("SS_LANG_CONV_U_F" if ARITMETICA[origen][3] is None
+                         else "SS_LANG_CONV_I_F")
+                extra = "FLT_MANT_DIG, " if destino == "f32" else "DBL_MANT_DIG, "
+            elif origen in ARITMETICA and destino in ARITMETICA:
+                origen_u = ARITMETICA[origen][3] is None
+                destino_u = ARITMETICA[destino][3] is None
+                macro = f"SS_LANG_CONV_{'U' if origen_u else 'I'}_{'U' if destino_u else 'I'}"
+                dmax, dmin = ARITMETICA[destino][2], ARITMETICA[destino][3]
+                extra = (f"{dmax}, " if destino_u or origen_u
+                         else f"{dmin}, {dmax}, ")
+            elif origen == "f64" and destino == "f32":
+                macro = "SS_LANG_CONV_F_F"
+                extra = "FLT_MAX, "
+            arit.append(f"{macro}({destino}, {TIPOS_C[destino]}, {extra}"
                         f"{origen}, {TIPOS_C[origen]})")
         if arit:
             arit.append("")
@@ -2008,7 +2039,10 @@ class Generador:
             if devuelta is not None:
                 self._apagar_ahora()
                 self.liberar_todo(excepto=entregadas)
-                self.emitir(f"return {envolver(devuelta)};")
+                # Una variable prestada llega como puntero en C. `expr` ya
+                # produce `(*x)`; usar aqui el nombre crudo devolveria la
+                # direccion como si fuera el escalar apuntado.
+                self.emitir(f"return {envolver(valor)};")
                 self.temporales = []
             else:
                 tmp = self.nuevo_tmp()
@@ -2158,13 +2192,19 @@ class Generador:
             if esperado in DECIMALES:
                 # `let x: f64 = 0;` — un numero escrito no decide su tipo.
                 return f"{e.valor}.0f" if esperado == "f32" else f"{e.valor}.0"
-            if esperado == "i64":
-                return f"(int64_t){e.valor}"
+            if esperado in ARITMETICA:
+                tipo_c = ARITMETICA[esperado][1]
+            else:
+                tipo_c = "size_t"
             # Sin sufijo, un literal por encima de 2^63-1 no cabe en el tipo
             # que C le asigna por defecto y el compilador avisa. `ULL` le dice
             # cual es sin cambiar el valor.
             sufijo = "ULL" if e.valor > 9223372036854775807 else ""
-            return f"(size_t){e.valor}{sufijo}"
+            if tipo_c == "size_t" and e.valor > 4294967295:
+                # El ancho de `size_t` es el del destino, no el de quien
+                # compila: el C comprueba al compilar que el literal cabe.
+                return f"SS_LANG_USIZE_LIT({e.valor}{sufijo})"
+            return f"({tipo_c}){e.valor}{sufijo}"
 
         if isinstance(e, Cadena):
             return (f"sv_len({self.literal_c(e.valor)}, "
@@ -2229,6 +2269,25 @@ class Generador:
         if isinstance(e, Unaria):
             if e.op == "~":
                 return self.unaria_bits(e, esperado)
+            if e.op == "-":
+                t = self._tipo_de(e.valor)
+                if esperado in ARITMETICA or esperado in DECIMALES:
+                    t = esperado
+                # Un literal ya fue validado estaticamente. Generarlo como una
+                # constante del tipo final evita pasar INT_MIN por el ayudante
+                # de negacion (que correctamente lo trataria como overflow en
+                # una negacion calculada durante la ejecucion).
+                if isinstance(e.valor, Entero) and t.startswith("i"):
+                    bits = int(t[1:])
+                    if e.valor.valor == 1 << (bits - 1):
+                        return f"INT{bits}_MIN"
+                    return f"(({ARITMETICA[t][1]})-{e.valor.valor})"
+                valor = self.expr(e.valor, t)
+                if t in ARITMETICA and t.startswith("i"):
+                    self.usar_aritmetica(t)
+                    return (f"ss_lang_neg_{t}({valor}, "
+                            f"{self.arch(e)}, {e.linea})")
+                return f"(-{valor})"
             return f"({e.op}{self.expr(e.valor, esperado)})"
 
         if isinstance(e, Try):
@@ -2279,11 +2338,21 @@ class Generador:
         if isinstance(e, EnumLit):
             v = self.c.variante_de(e.tipo, e.variante)
             partes = [f".etiqueta = {self.etiqueta(e.tipo, e.variante)}"]
+            previos = []
             for i, (arg, t) in enumerate(zip(e.args, v.tipos)):
                 valor = self.expr(arg, t)
                 self.reclamar(valor)      # la variante se lo queda
+                if len(e.args) > 1:
+                    tmp = self.nuevo_tmp()
+                    self.emitir(f"{self.tipo_c(t)} {tmp};")
+                    previos.append(f"{tmp} = {valor}")
+                    valor = tmp
                 partes.append(f".dato.v_{e.variante}._{i} = {valor}")
-            return f"({e.tipo}){{ {', '.join(partes)} }}"
+            if previos:
+                self.ultima_pos = None
+                self.marcar(e)
+            literal = f"({e.tipo}){{ {', '.join(partes)} }}"
+            return self.con_argumentos_ordenados(literal, previos)
 
         if isinstance(e, Match):
             return self.match_valor(e)
@@ -2311,14 +2380,24 @@ class Generador:
         if isinstance(e, LiteralStruct):
             st = self.c.structs.get(e.tipo)
             tipos = {c.nombre: c.tipo for c in st.campos} if st else {}
-            piezas = []
+            piezas, previos = [], []
             for n, v in e.campos:
-                valor = self.expr(v, tipos.get(n))
+                t = tipos.get(n)
+                valor = self.expr(v, t)
                 # El struct se queda con el campo: si venia de un temporal de
                 # la sentencia, deja de liberarse ahi.
                 self.reclamar(valor)
+                if len(e.campos) > 1:
+                    tmp = self.nuevo_tmp()
+                    self.emitir(f"{self.tipo_c(t)} {tmp};")
+                    previos.append(f"{tmp} = {valor}")
+                    valor = tmp
                 piezas.append(f".{n} = {valor}")
-            return f"({e.tipo}){{ {', '.join(piezas)} }}"
+            if previos:
+                self.ultima_pos = None
+                self.marcar(e)
+            literal = f"({e.tipo}){{ {', '.join(piezas)} }}"
+            return self.con_argumentos_ordenados(literal, previos)
 
         if isinstance(e, LiteralArreglo):
             if esperado and es_mapa(esperado):
@@ -2339,8 +2418,21 @@ class Generador:
                 return tmp
             t = esperado if (esperado and es_arreglo(esperado)) else self._tipo_de(e)
             elem = elem_de(t)
-            partes = ", ".join(self.expr(x, elem) for x in e.elementos)
-            return f"({self.tipo_c(t)}){{{{ {partes} }}}}"
+            args, previos = [], []
+            for x in e.elementos:
+                valor = self.expr(x, elem)
+                self.reclamar(valor)
+                if len(e.elementos) > 1:
+                    tmp = self.nuevo_tmp()
+                    self.emitir(f"{self.tipo_c(elem)} {tmp};")
+                    previos.append(f"{tmp} = {valor}")
+                    valor = tmp
+                args.append(valor)
+            if previos:
+                self.ultima_pos = None
+                self.marcar(e)
+            literal = f"({self.tipo_c(t)}){{{{ {', '.join(args)} }}}}"
+            return self.con_argumentos_ordenados(literal, previos)
 
         if isinstance(e, SiExpr):
             # Se baja a una variable y un `if`, no al `?:` de C: cada rama
@@ -2399,6 +2491,21 @@ class Generador:
             self.temporales.append(tmp)
         return tmp
 
+    def lugar_solo_lectura(self, e):
+        """Un campo/indice conserva el `const` del prestamo que lo contiene."""
+        if isinstance(e, Variable):
+            entrada = self.buscar(e.nombre)
+            if entrada and ((entrada[1] and entrada[2] is None)
+                           or getattr(entrada[2], "compartido", False)):
+                return True
+            t = self._tipo_de(e) or ""
+            return es_referencia(t) and not es_referencia_mutable(t)
+        if isinstance(e, Campo):
+            return self.lugar_solo_lectura(e.objeto)
+        if isinstance(e, Indice):
+            return self.lugar_solo_lectura(e.arreglo)
+        return False
+
     def lugar(self, e):
         """C para un sitio al que se puede leer y escribir."""
         if isinstance(e, Variable):
@@ -2408,27 +2515,46 @@ class Generador:
             # sale como `(*x)`, asi que aqui siempre es un punto.
             return f"{self.como_lugar(e.objeto)}.{e.nombre}"
         if isinstance(e, Indice):
-            base = self._tipo_de(e.arreglo)
-            idx = self.expr(e.indice, "usize")
+            # Un contenedor prestado se representa como puntero en C, pero
+            # sus reglas de indice son las del valor al que apunta.
+            base = sin_prestamo(self._tipo_de(e.arreglo) or "")
             sitio = self.como_lugar(e.arreglo)
+            idx = self.expr(e.indice, "usize")
+            ptr = self.nuevo_tmp()
+            const = "const " if self.lugar_solo_lectura(e.arreglo) else ""
+            self.emitir(f"{const}{self.tipo_c(base)}* {ptr};")
+            # `sitio` puede ser otro indice con efectos. La coma de C evalua
+            # su direccion antes de mirar el largo, y el [0] final conserva
+            # un lvalue para asignaciones y `&sitio`.
             if es_bloque(base):
-                return (f"{sitio}.e[ss_lang_indice_({idx}, {sitio}.n, "
-                        f"{self.arch(e)}, {e.linea})]")
-            if es_lista(base):
-                return (f"{sitio}.e[ss_lang_indice_({idx}, {sitio}.length, "
-                        f"{self.arch(e)}, {e.linea})]")
-            n = largo_arreglo(base) if es_arreglo(base) else 0
-            return (f"{sitio}.e"
-                    f"[ss_lang_indice_({idx}, {n}, {self.arch(e)}, {e.linea})]")
+                largo = f"{ptr}->n"
+            elif es_lista(base):
+                largo = f"{ptr}->length"
+            else:
+                largo = str(largo_arreglo(base) if es_arreglo(base) else 0)
+            return (f"(({ptr} = &({sitio}), &{ptr}->e[ss_lang_indice_("
+                    f"{idx}, {largo}, {self.arch(e)}, {e.linea})])[0])")
         return self.expr(e, None)
 
     def unaria_bits(self, e, esperado):
         t = self._tipo_de(e.valor)
         if t not in ARITMETICA:
             t = esperado if esperado in ARITMETICA else "usize"
-        return f"(({self.tipo_c(t)}) ~{self.expr(e.valor, t)})"
+        valor = self.expr(e.valor, t)
+        if t.startswith("i"):
+            self.usar_aritmetica(t)
+            utipo = TIPOS_C[t.replace("i", "u", 1)]
+            return f"ss_lang_env_{t}(({utipo}) ~({utipo}) ({valor}))"
+        return f"(({self.tipo_c(t)}) ~{valor})"
 
     def binaria(self, e: Binaria, esperado):
+        # `&&` y `||` ya fijan el orden en C y, sobre todo, no deben evaluar
+        # el lado derecho cuando el izquierdo decide el resultado.
+        if e.op in {"&&", "||"}:
+            izq = self.expr(e.izq, "bool")
+            der = self.expr(e.der, "bool")
+            return f"({izq} {e.op} {der})"
+
         t = self._tipo_de(e.izq)
         if t not in ARITMETICA and t not in DECIMALES:
             t = self._tipo_de(e.der)
@@ -2439,52 +2565,92 @@ class Generador:
                 t = "usize"
         pos = f"{self.arch(e)}, {e.linea}"
 
+        # Salvo los operadores logicos anteriores, C no promete evaluar el
+        # operando izquierdo antes que el derecho. Incluso dos llamadas que
+        # modifican el mismo escalar quedarian sin secuenciar. Las
+        # declaraciones se pueden adelantar sin ejecutar nada; las
+        # asignaciones permanecen dentro de la expresion para respetar un
+        # `&&` o `||` exterior.
+        t_der = "usize" if e.op in {"<<", ">>"} else t
+        valor_izq = self.expr(e.izq, t)
+        valor_der = self.expr(e.der, t_der)
+        tmp_izq = self.nuevo_tmp()
+        tmp_der = self.nuevo_tmp()
+        self.emitir(f"{self.tipo_c(t)} {tmp_izq};")
+        self.emitir(f"{self.tipo_c(t_der)} {tmp_der};")
+        # Las declaraciones son infraestructura del C, no pasos escritos en
+        # Tcode. Repetir la marca evita que cada una adelante artificialmente
+        # la linea que muestran gdb y los sanitizers para la operacion real.
+        self.ultima_pos = None
+        self.marcar(e)
+
+        def ordenada(valor):
+            return (f"(({tmp_izq} = {valor_izq}, {tmp_der} = {valor_der}, "
+                    f"{valor}))")
+
         if t in DECIMALES:
-            izq = self.expr(e.izq, t)
-            der = self.expr(e.der, t)
             if e.op in {"+", "-", "*", "/"}:
                 self.decimales.add(t)
                 consejo = f"Si lo querias, escribe `{e.op}?`."
-                return (f"ss_lang_fin_{t}(({izq} {e.op} {der}), "
-                        f"\"{e.op}\", \"{consejo}\", {pos})")
+                resultado = (f"ss_lang_fin_{t}(({tmp_izq} {e.op} {tmp_der}), "
+                             f"\"{e.op}\", \"{consejo}\", {pos})")
+                return ordenada(resultado)
             if e.op in {"+?", "-?", "*?", "/?"}:
-                return f"({izq} {e.op[0]} {der})"
-            return f"({izq} {e.op} {der})"
+                return ordenada(f"({tmp_izq} {e.op[0]} {tmp_der})")
+            return ordenada(f"({tmp_izq} {e.op} {tmp_der})")
 
         # El desplazamiento tiene dos tipos: lo que se mueve y cuanto se mueve.
         if e.op in {"<<", ">>"}:
             self.usar_aritmetica(t)
-            izq = self.expr(e.izq, t)
-            der = self.expr(e.der, "usize")
             fn = "izq" if e.op == "<<" else "der"
-            return f"ss_lang_desp_{fn}_{ARITMETICA[t][0]}({izq}, {der}, {pos})"
-
-        izq = self.expr(e.izq, t)
-        der = self.expr(e.der, t)
+            return ordenada(
+                f"ss_lang_desp_{fn}_{ARITMETICA[t][0]}("
+                f"{tmp_izq}, {tmp_der}, {pos})")
 
         if e.op in {"+", "-", "*"}:
             self.usar_aritmetica(t)
             nombre = {"+": "suma", "-": "resta", "*": "mul"}[e.op]
-            return f"ss_lang_{nombre}_{ARITMETICA[t][0]}({izq}, {der}, {pos})"
+            return ordenada(
+                f"ss_lang_{nombre}_{ARITMETICA[t][0]}("
+                f"{tmp_izq}, {tmp_der}, {pos})")
 
         if e.op in {"+?", "-?", "*?"}:
             # Envolvente, pedida a proposito. Se opera en `uint64_t`, donde C
             # SI define la vuelta, y se recorta al ancho: con el tipo con
             # signo, `INT64_MAX + 1` es comportamiento indefinido, y un `u16`
             # por otro `u16` se promociona a `int` y tambien puede serlo.
-            # Pasar de vuelta a un tipo con signo lo define gcc y clang como
-            # modulo, que es lo que se pide.
-            return (f"(({self.tipo_c(t)}) ((uint64_t) ({izq}) {e.op[0]} "
-                    f"(uint64_t) ({der})))")
+            bits = (f"((uint64_t) ({tmp_izq}) {e.op[0]} "
+                    f"(uint64_t) ({tmp_der}))")
+            if t.startswith("i"):
+                self.usar_aritmetica(t)
+                utipo = TIPOS_C[t.replace("i", "u", 1)]
+                return ordenada(
+                    f"ss_lang_env_{t}(({utipo}) {bits})")
+            return ordenada(f"(({self.tipo_c(t)}) {bits})")
 
         if e.op == "/":
-            return f"SS_LANG_DIV({izq}, {der}, {pos})"
+            if t.startswith("i"):
+                self.usar_aritmetica(t)
+                return ordenada(
+                    f"ss_lang_div_{t}({tmp_izq}, {tmp_der}, {pos})")
+            return ordenada(f"SS_LANG_DIV({tmp_izq}, {tmp_der}, {pos})")
         if e.op == "%":
-            return f"SS_LANG_MOD({izq}, {der}, {pos})"
+            if t.startswith("i"):
+                self.usar_aritmetica(t)
+                return ordenada(
+                    f"ss_lang_mod_{t}({tmp_izq}, {tmp_der}, {pos})")
+            return ordenada(f"SS_LANG_MOD({tmp_izq}, {tmp_der}, {pos})")
         if e.op in {"&", "|", "^"}:
-            return f"(({self.tipo_c(t)}) ({izq} {e.op} {der}))"
+            if t.startswith("i"):
+                self.usar_aritmetica(t)
+                utipo = TIPOS_C[t.replace("i", "u", 1)]
+                return ordenada(
+                    f"ss_lang_env_{t}(({utipo}) (({utipo}) ({tmp_izq}) "
+                    f"{e.op} ({utipo}) ({tmp_der})))")
+            return ordenada(
+                f"(({self.tipo_c(t)}) ({tmp_izq} {e.op} {tmp_der}))")
 
-        return f"({izq} {e.op} {der})"
+        return ordenada(f"({tmp_izq} {e.op} {tmp_der})")
 
     def conversion(self, e):
         origen = sin_prestamo(self._tipo_de(e.valor) or "usize")
@@ -2507,6 +2673,31 @@ class Generador:
         nueve familias."""
         if tipo in ARITMETICA:
             self.aritmeticas.add(tipo)
+
+    def argumentos_ordenados(self, nodo, valores):
+        """Materializa argumentos C de izquierda a derecha.
+
+        `valores` contiene pares `(expresion_c, tipo_c)`. Las declaraciones
+        no ejecutan nada y pueden salir antes; las asignaciones se quedan en
+        la expresion para conservar el cortocircuito de un operador exterior.
+        """
+        if len(valores) <= 1:
+            return [v for v, _ in valores], []
+        args, previos = [], []
+        for valor, tipo in valores:
+            tmp = self.nuevo_tmp()
+            self.emitir(f"{tipo} {tmp};")
+            args.append(tmp)
+            previos.append(f"{tmp} = {valor}")
+        self.ultima_pos = None
+        self.marcar(nodo)
+        return args, previos
+
+    @staticmethod
+    def con_argumentos_ordenados(llamada, previos):
+        if not previos:
+            return llamada
+        return f"(({', '.join(previos)}, {llamada}))"
 
     def llamada(self, e: Llamada, esperado=None):
         n = e.nombre
@@ -2541,36 +2732,70 @@ class Generador:
             ta = sin_prestamo(self._tipo_de(e.args[0]) or "view")
             op = "==" if n == "igual" else "<"
             if ta in ("str", "view"):
+                izq = self.como_vista(e.args[0])
+                der = self.como_vista(e.args[1])
+                tmp_izq = self.nuevo_tmp()
+                tmp_der = self.nuevo_tmp()
+                self.emitir(f"SafeView {tmp_izq};")
+                self.emitir(f"SafeView {tmp_der};")
                 if n == "igual":
-                    return (f"sv_equals({self.como_vista(e.args[0])}, "
-                            f"{self.como_vista(e.args[1])})")
-                return (f"(sv_cmp({self.como_vista(e.args[0])}, "
-                        f"{self.como_vista(e.args[1])}) < 0)")
+                    comparacion = f"sv_equals({tmp_izq}, {tmp_der})"
+                else:
+                    comparacion = f"(sv_cmp({tmp_izq}, {tmp_der}) < 0)"
+                return (f"(({tmp_izq} = {izq}, {tmp_der} = {der}, "
+                        f"{comparacion}))")
             # Escalares: la comparacion de C, que es la que el lector espera.
-            return (f"({self.expr(e.args[0], ta)} {op} "
-                    f"{self.expr(e.args[1], ta)})")
+            izq = self.expr(e.args[0], ta)
+            der = self.expr(e.args[1], ta)
+            tmp_izq = self.nuevo_tmp()
+            tmp_der = self.nuevo_tmp()
+            self.emitir(f"{self.tipo_c(ta)} {tmp_izq};")
+            self.emitir(f"{self.tipo_c(ta)} {tmp_der};")
+            return (f"(({tmp_izq} = {izq}, {tmp_der} = {der}, "
+                    f"({tmp_izq} {op} {tmp_der})))")
         if n == "rebanar":
-            return (f"sv_slice({self.como_vista(e.args[0])}, "
-                    f"{self.expr(e.args[1], 'usize')}, "
-                    f"{self.expr(e.args[2], 'usize')})")
+            valores = [
+                (self.como_vista(e.args[0]), "SafeView"),
+                (self.expr(e.args[1], "usize"), "size_t"),
+                (self.expr(e.args[2], "usize"), "size_t"),
+            ]
+            args, previos = self.argumentos_ordenados(e, valores)
+            llamada = f"sv_slice({', '.join(args)})"
+            return self.con_argumentos_ordenados(llamada, previos)
         if n == "empujar":
-            return (f"ss_append_view({self.dir_de(e.args[0])}, "
-                    f"{self.como_vista(e.args[1])})")
+            direccion = self.dir_de(e.args[0])
+            ptr = self.nuevo_tmp()
+            self.emitir(f"SafeString* {ptr} = {direccion};")
+            valor = self.como_vista(e.args[1])
+            self.ultima_pos = None
+            self.marcar(e)
+            return f"ss_append_view({ptr}, {valor})"
         if n == "empujar_byte":
-            return (f"ss_lang_empujar_byte_({self.dir_de(e.args[0])}, "
-                    f"{self.expr(e.args[1], 'u8')}, {self.arch(e)}, {e.linea})")
+            direccion = self.dir_de(e.args[0])
+            ptr = self.nuevo_tmp()
+            self.emitir(f"SafeString* {ptr} = {direccion};")
+            valor = self.expr(e.args[1], "u8")
+            self.ultima_pos = None
+            self.marcar(e)
+            return (f"ss_lang_empujar_byte_({ptr}, {valor}, "
+                    f"{self.arch(e)}, {e.linea})")
         if n == "imprimir":
             return self.imprimir(e.args[0])
         if n == "anadir":
             lista = e.args[0]
             tipo_lista = self._tipo_de(lista)
             elem = elem_lista(tipo_lista)
+            direccion = self.dir_de(lista)
+            ptr = self.nuevo_tmp()
+            self.emitir(f"{self.tipo_c(tipo_lista)}* {ptr} = {direccion};")
             valor = self.expr(e.args[1], elem)
             # La lista se queda con el valor: si venia de un temporal de la
             # sentencia, deja de liberarse ahi. Sin esto, `anadir(xs, $"...")`
             # mete el texto en la lista y lo libera al acabar la linea.
             self.reclamar(valor)
-            return (f"ss_push_{mangle(tipo_lista)}({self.dir_de(lista)}, {valor}, "
+            self.ultima_pos = None
+            self.marcar(e)
+            return (f"ss_push_{mangle(tipo_lista)}({ptr}, {valor}, "
                     f"{self.arch(e)}, {e.linea})")
         if n in ("raiz", "piso", "techo", "redondear", "absoluto"):
             t = sin_prestamo(self._tipo_de(e.args[0]) or "f64")
@@ -2609,21 +2834,30 @@ class Generador:
             t = self._tipo_de(e.args[0]) or "bloque<usize>"
             t = apuntado(t) if es_referencia(t) else t
             self.registrar_bloque(t)
-            return (f"ss_lang_bloque_cambiar_{mangle(t)}({self.dir_de(e.args[0])}, "
-                    f"{self.expr(e.args[1], 'usize')}, {self.arch(e)}, {e.linea})")
+            direccion = self.dir_de(e.args[0])
+            ptr = self.nuevo_tmp()
+            self.emitir(f"{self.tipo_c(t)}* {ptr} = {direccion};")
+            cuantos = self.expr(e.args[1], "usize")
+            return (f"ss_lang_bloque_cambiar_{mangle(t)}({ptr}, "
+                    f"{cuantos}, {self.arch(e)}, {e.linea})")
 
         if n == "intercambiar":
             destino_nodo, valor_nodo = e.args
             t = self._tipo_de(destino_nodo) or "usize"
-            sitio = self.lugar(destino_nodo)
+            # El destino puede contener trabajo (`xs[siguiente(i)]`). Guardar
+            # su direccion garantiza que se evalua una sola vez y que leemos y
+            # escribimos exactamente el mismo sitio.
+            direccion = self.dir_de(destino_nodo)
+            ptr = self.nuevo_tmp()
+            self.emitir(f"{self.tipo_c(t)}* {ptr} = {direccion};")
             nuevo = self.expr(valor_nodo, t)
             self.reclamar(nuevo)
             tmp = self.nuevo_tmp()
             # Se saca primero y se pone despues: si el valor nuevo viniera
             # del mismo sitio, hacerlo al reves lo perderia.
-            self.emitir(f"{self.tipo_c(t)} {tmp} = {sitio};")
+            self.emitir(f"{self.tipo_c(t)} {tmp} = *{ptr};")
             self.declarar(tmp, t)
-            self.emitir(f"{sitio} = {nuevo};")
+            self.emitir(f"*{ptr} = {nuevo};")
             return tmp
 
         if n == "copiar":
@@ -2683,22 +2917,29 @@ class Generador:
             if n == "claves":
                 return (f"ss_mapa_claves_{m}({dir_mapa}, "
                         f"{self.arch(e)}, {e.linea})")
+            if n == "poner":
+                # Es un mutador sin valor: podemos fijar el destino antes de
+                # generar la clave y el valor, incluidos los preludios que
+                # necesiten para sus temporales.
+                ptr = self.nuevo_tmp()
+                self.emitir(f"{self.tipo_c(tm)}* {ptr} = {dir_mapa};")
+                clave = self.como_vista(e.args[1])
+                _, tv = partes_mapa(tm)
+                valor = self.expr(e.args[2], tv)
+                self.reclamar(valor)
+                self.ultima_pos = None
+                self.marcar(e)
+                return (f"ss_mapa_poner_{m}({ptr}, {clave}, {valor}, "
+                        f"{self.arch(e)}, {e.linea})")
             clave = self.como_vista(e.args[1])
-            if n == "tiene":
-                return f"ss_mapa_tiene_{m}({dir_mapa}, {clave})"
-            if n == "quitar":
-                return f"ss_mapa_quitar_{m}({dir_mapa}, {clave})"
-            if n == "obtener":
-                return f"ss_mapa_obtener_{m}({dir_mapa}, {clave})"
-            if n == "obtener_mut":
-                return f"ss_mapa_obtener_mut_{m}({dir_mapa}, {clave})"
-            _, tv = partes_mapa(tm)
-            valor = self.expr(e.args[2], tv)
-            # El mapa se queda con el valor: si venia de un temporal de la
-            # sentencia, deja de liberarse ahi.
-            self.reclamar(valor)
-            return (f"ss_mapa_poner_{m}({dir_mapa}, {clave}, {valor}, "
-                    f"{self.arch(e)}, {e.linea})")
+            calificador = "const " if n in ("obtener", "tiene") else ""
+            valores = [
+                (dir_mapa, f"{calificador}{self.tipo_c(tm)}*"),
+                (clave, "SafeView"),
+            ]
+            args, previos = self.argumentos_ordenados(e, valores)
+            llamada = f"ss_mapa_{n}_{m}({args[0]}, {args[1]})"
+            return self.con_argumentos_ordenados(llamada, previos)
 
         if n == "n_argumentos":
             return "ss_lang_n_argumentos_()"
@@ -2715,8 +2956,13 @@ class Generador:
             return self.imprimir(e.args[0], "stderr")
 
         if n == "escribir_archivo":
-            return (f"ss_lang_escribir_archivo_({self.como_vista(e.args[0])}, "
-                    f"{self.como_vista(e.args[1])})")
+            valores = [
+                (self.como_vista(e.args[0]), "SafeView"),
+                (self.como_vista(e.args[1]), "SafeView"),
+            ]
+            args, previos = self.argumentos_ordenados(e, valores)
+            llamada = f"ss_lang_escribir_archivo_({args[0]}, {args[1]})"
+            return self.con_argumentos_ordenados(llamada, previos)
 
         if n == "leer_archivo":
             return f"ss_lang_leer_archivo_({self.como_vista(e.args[0])})"
@@ -2742,14 +2988,20 @@ class Generador:
             if es_funcion(tv):
                 f = _FirmaSuelta([
                     _ParamSuelto(apuntado(x) if es_referencia(x) else x,
-                                 es_referencia(x))
+                                 es_referencia(x), es_referencia_mutable(x))
                     for x in partes_funcion(tv)[0]])
         args = []
+        previos = []
+        # C no fija el orden de evaluacion de los argumentos. Tcode si los
+        # analiza de izquierda a derecha, y el C tiene que hacer lo mismo.
+        # Las asignaciones quedan dentro de la expresion para no romper el
+        # cortocircuito si la llamada vive a la derecha de `&&` o `||`.
+        secuenciar = len(e.args) > 1
         for i, a in enumerate(e.args):
             p = f.params[i] if f and i < len(f.params) else None
             if p is not None and p.prestado:
                 if isinstance(a, (Variable, Campo, Indice)):
-                    args.append(self.dir_de(a))
+                    arg_c = self.dir_de(a)
                 else:
                     # Prestar algo recien hecho: se guarda en un temporal para
                     # poder tomarle la direccion, y se libera al acabar la
@@ -2761,33 +3013,60 @@ class Generador:
                     self.declarar(tmp, p.tipo)
                     if self.c.posee(p.tipo):
                         self.temporales.append(tmp)
-                    args.append(f"&{tmp}")
+                    arg_c = f"&{tmp}"
             else:
                 # `str` donde se pide `view`: se presta sin escribirlo.
                 if (p is not None and p.tipo == "view"
                         and self._tipo_de(a) == "str"):
-                    args.append(self.como_vista(a))
-                    continue
-                arg_c = self.expr(a, p.tipo if p else None)
-                if p is not None and self.c.posee(p.tipo):
-                    self.reclamar(arg_c)     # la funcion se lo queda
+                    arg_c = self.como_vista(a)
+                else:
+                    arg_c = self.expr(a, p.tipo if p else None)
+                    if p is not None and self.c.posee(p.tipo):
+                        self.reclamar(arg_c)     # la funcion se lo queda
+
+            if secuenciar and p is not None:
+                tmp_arg = self.nuevo_tmp()
+                if p.prestado:
+                    const = "" if getattr(p, "mutable", False) else "const "
+                    self.emitir(f"{const}{self.tipo_c(p.tipo)}* {tmp_arg};")
+                else:
+                    self.emitir(f"{self.tipo_c(p.tipo)} {tmp_arg};")
+                previos.append(f"{tmp_arg} = {arg_c}")
+                args.append(tmp_arg)
+            else:
                 args.append(arg_c)
         destino = "ss_main_" if n == "main" else n
-        return f"{destino}({', '.join(args)})"
+        llamada = f"{destino}({', '.join(args)})"
+        if previos:
+            return f"(({', '.join(previos)}, {llamada}))"
+        return llamada
 
     def llamada_externa(self, e, f):
         """Una llamada a C. Es la misma llamada que escribiria un programa en
         C: sin envoltorio, sin coste, y sin nada que traducir salvo la
         cadena, que pasa de `SafeString` a `const char*`."""
         args = []
+        previos = []
+        secuenciar = len(e.args) > 1
         for a, p in zip(e.args, f.params):
             if p.tipo == "str":
                 sitio = self.como_lugar(a)
-                args.append(f"ss_lang_cstr_(&{sitio}, "
-                            f"{self.arch(e)}, {e.linea})")
+                arg_c = (f"ss_lang_cstr_(&{sitio}, "
+                         f"{self.arch(e)}, {e.linea})")
+                tipo_c = "const char*"
             else:
-                args.append(self.expr(a, p.tipo))
+                arg_c = self.expr(a, p.tipo)
+                tipo_c = self.tipo_c(p.tipo)
+            if secuenciar:
+                tmp_arg = self.nuevo_tmp()
+                self.emitir(f"{tipo_c} {tmp_arg};")
+                previos.append(f"{tmp_arg} = {arg_c}")
+                args.append(tmp_arg)
+            else:
+                args.append(arg_c)
         llamada = f"{f.nombre}({', '.join(args)})"
+        if previos:
+            llamada = f"(({', '.join(previos)}, {llamada}))"
         if f.devuelve_cstr:
             # C da un `char*` que sigue siendo suyo: Tcode se queda una
             # copia, que ya es un `str` normal y se libera como los demas.
@@ -2839,9 +3118,19 @@ class Generador:
         if t == "str":
             if isinstance(a, (Variable, Campo, Indice)):
                 return f'{f}"%s", ss_cstr({self.dir_de(a)}))'
-            return f'{f}SV_FMT, SV_ARG({self.como_vista(a)}))'
+            vista = self.como_vista(a)
+            tmp = self.nuevo_tmp()
+            self.emitir(f"SafeView {tmp} = {vista};")
+            self.ultima_pos = None
+            self.marcar(a)
+            return f'{f}SV_FMT, SV_ARG({tmp}))'
         if t == "view":
-            return f'{f}SV_FMT, SV_ARG({self.como_vista(a)}))'
+            vista = self.como_vista(a)
+            tmp = self.nuevo_tmp()
+            self.emitir(f"SafeView {tmp} = {vista};")
+            self.ultima_pos = None
+            self.marcar(a)
+            return f'{f}SV_FMT, SV_ARG({tmp}))'
         if t == "usize":
             return f'{f}"%zu", {self.expr(a, "usize")})'
         if t in DECIMALES:
