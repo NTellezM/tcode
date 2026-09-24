@@ -17,6 +17,7 @@ usar "lib/generar.t" como G;
 usar "lib/tipar.t" como I;
 usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
+usar "lib/tipos.t" como T;
 usar "std/texto";
 usar "std/lista";
 
@@ -114,8 +115,6 @@ fn sin_cadenas(l: view) -> str {
 }
 
 fn necesita_lo_que_falta(l: view) -> bool {
-    if contiene(l, "ss_fn_") { return true; }
-    if contiene(l, "ss_cierre_") { return true; }
     if contiene(l, "ss_lang_escribir_") {
         return true;
     }
@@ -1024,7 +1023,11 @@ fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
     while i < largo(t) {
         var j = i + largo(prefijo);
         while j < largo(t) && I.es_de_nombre(byte(t, j)) { j = j + 1; }
-        poner(salida, rebanar(t, i, j), 1);
+        // Solo al principio de un nombre: `posicion__` esta dentro de
+        // `ultima_posicion__usize`, y esa es otra copia.
+        if i == 0 || !I.es_de_nombre(byte(t, i - 1)) {
+            poner(salida, rebanar(t, i, j), 1);
+        }
         i = buscar_desde(t, prefijo, j);
     }
 }
@@ -1489,6 +1492,154 @@ fn anadir_lineas(texto_c: view, salida: mut lista<str>) {
 }
 
 // ------------------------------------------------------------------
+// Clausuras
+// ------------------------------------------------------------------
+//
+// El original convierte cada clausura en un struct con lo capturado y una
+// funcion que lo recibe, y las numera segun las va comprobando. Aqui se hace
+// antes de nada, recorriendo las funciones en el mismo orden: en el arbol
+// queda solo `Cierre_N` con sus capturas, y su cuerpo pasa a `ss_cierre_N`.
+
+// Dentro del cuerpo, un nombre capturado es un campo del entorno.
+fn renombrar_capturas(n: mut P.Nodo, nombres: &lista<str>, linea: usize) {
+    var i = 0;
+    while i < largo(n.hijos) {
+        if igual(vista(n.hijos[i].clase), "variable")
+        && esta_en(nombres, vista(n.hijos[i].texto)) {
+            var c = P.rama("campo", n.hijos[i].linea);
+            c.texto = copiar(n.hijos[i].texto);
+            anadir(c.hijos, P.hoja("variable", "_ss_entorno", linea));
+            n.hijos[i] = c;
+        } else {
+            renombrar_capturas(n.hijos[i], nombres, linea);
+        }
+        i = i + 1;
+    }
+}
+
+// La funcion de una clausura: el entorno prestado delante, y despues lo
+// suyo.
+fn nodo_de_cierre(c: &P.Nodo, numero: usize) -> P.Nodo {
+    var f = P.rama("fn", c.linea);
+    f.texto = $"ss_cierre_{numero}";
+    var entorno = P.rama("param", c.linea);
+    entorno.texto = $"_ss_entorno: &Cierre_{numero}";
+    anadir(f.hijos, entorno);
+    var capturas: lista<str> = [];
+    for h en c.hijos {
+        if igual(vista(h.clase), "captura") { anadir(capturas, copiar(h.texto)); }
+    }
+    for h en c.hijos {
+        if igual(vista(h.clase), "captura") { continue; }
+        var x = copiar(h);
+        if igual(vista(x.clase), "bloque") { renombrar_capturas(x, capturas, c.linea); }
+        anadir(f.hijos, x);
+    }
+    return f;
+}
+
+// Numera las clausuras de `n` en orden y deja cada funcion en su hueco de
+// `fns`. Una clausura dentro de otra se crea al comprobar la de fuera, asi
+// que va justo detras.
+fn numerar_cierres(n: mut P.Nodo, cuenta: mut usize, fns: mut lista<P.Nodo>) {
+    var i = 0;
+    while i < largo(n.hijos) {
+        if igual(vista(n.hijos[i].clase), "cierre") {
+            cuenta = cuenta + 1;
+            let numero = cuenta;
+            var f = nodo_de_cierre(n.hijos[i], numero);
+            var queda = P.rama("cierre", n.hijos[i].linea);
+            queda.texto = $"Cierre_{numero}";
+            for h en n.hijos[i].hijos {
+                if igual(vista(h.clase), "captura") { anadir(queda.hijos, copiar(h)); }
+            }
+            n.hijos[i] = queda;
+            anadir(fns, P.rama("vacio", 0));
+            numerar_cierres(f, cuenta, fns);
+            fns[numero - 1] = f;
+        } else {
+            numerar_cierres(n.hijos[i], cuenta, fns);
+        }
+        i = i + 1;
+    }
+}
+
+fn tiene_cierre(n: &P.Nodo) -> bool {
+    if igual(vista(n.clase), "cierre") { return true; }
+    for h en n.hijos {
+        if tiene_cierre(h) { return true; }
+    }
+    return false;
+}
+
+// Lo que lleva el struct de una clausura, en orden, sacado de su pedido
+// `\tss_cierre_N\tnombre=tipo...`. Sin capturas lleva un byte: un struct
+// vacio no es C valido.
+fn campos_de_cierre(p: view, nombres: mut lista<str>, tipos: mut lista<str>) {
+    var k = 2;
+    var pieza = campo_pedido(p, k);
+    while largo(pieza) > 0 {
+        let corte = buscar_desde(vista(pieza), "=", 0);
+        anadir(nombres, nuevo(rebanar(vista(pieza), 0, corte)));
+        anadir(tipos, nuevo(rebanar(vista(pieza), corte + 1, largo(vista(pieza)))));
+        k = k + 1;
+        pieza = campo_pedido(p, k);
+    }
+    if largo(nombres) == 0 {
+        anadir(nombres, nuevo("ss_vacio"));
+        anadir(tipos, nuevo("u8"));
+    }
+}
+
+// `ss_cierre_3` -> `Cierre_3`.
+fn struct_de_cierre(en_c: view) -> str {
+    return $"Cierre_{rebanar(en_c, 10, largo(en_c))}";
+}
+
+// Los tipos funcion que puede nombrar el C: las firmas del programa y los
+// tipos de los parametros y retornos de cada funcion escrita, con los que
+// lleven dentro.
+fn apuntar_tipo_funcion(t: view, salida: mut lista<str>) {
+    if !T.es_funcion(t) || esta_en(salida, t) { return; }
+    anadir(salida, nuevo(t));
+    for x en T.partes_de_funcion(t) {
+        let dentro = T.apuntado_si(vista(x));
+        apuntar_tipo_funcion(vista(dentro), salida);
+    }
+}
+
+fn tipos_funcion_de(d: &P.Nodo, salida: mut lista<str>) {
+    for h en d.hijos {
+        if igual(vista(h.clase), "param") {
+            let tp = F.tipo_pelado(vista(h.texto));
+            apuntar_tipo_funcion(vista(tp), salida);
+        }
+        if igual(vista(h.clase), "retorno_tipo") {
+            apuntar_tipo_funcion(vista(h.texto), salida);
+        }
+    }
+}
+
+// `nombre` aparece en `l` como palabra entera: `ss_fn_x_a_y` no es
+// `ss_fn_x_a_y_z`.
+fn contiene_nombre(l: view, nombre: view) -> bool {
+    var i = buscar_desde(l, nombre, 0);
+    while i < largo(l) {
+        let fin = i + largo(nombre);
+        let antes_ok = i == 0 || !es_de_nombre_c(byte(l, i - 1));
+        let despues_ok = fin >= largo(l) || !es_de_nombre_c(byte(l, fin));
+        if antes_ok && despues_ok { return true; }
+        i = buscar_desde(l, nombre, i + 1);
+    }
+    return false;
+}
+
+fn es_de_nombre_c(c: usize) -> bool {
+    return (c >= 97 && c <= 122) || (c >= 65 && c <= 90) || (c >= 48 && c <= 57)
+    || c == 95;
+}
+
+// ------------------------------------------------------------------
 // Genericas
 // ------------------------------------------------------------------
 //
@@ -1569,18 +1720,62 @@ fn nodo_instancia(p: view, arboles: &lista<P.Nodo>,
     return r;
 }
 
+// Las funciones de las clausuras, el modulo de cada una y el indice de cada
+// nombre en C.
+struct Cierres {
+    fns: lista<P.Nodo>,
+    modulo: lista<usize>,
+    indice: mapa<str, usize>,
+}
+
 // Escribe en borrador cada copia pedida que no se haya visto, primero las
 // que pide ella, y la apunta en `orden` al terminar.
 fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
     contextos: mut lista<I.Contexto>, modulos: &lista<str>,
     plantillas: &mapa<str, usize>, vistos: mut mapa<str, usize>,
-    orden: mut lista<str>, creados: mut lista<str>) -> bool {
+    orden: mut lista<str>, creados: mut lista<str>, cierres: &Cierres,
+    global: mut I.Contexto) -> bool {
     for p en pedidos {
         let en_c = campo_pedido(vista(p), 1);
         if tiene(vistos, vista(en_c)) { continue; }
         poner(vistos, vista(en_c), 1);
         anadir(creados, copiar(p));
         let plantilla = campo_pedido(vista(p), 0);
+        if largo(plantilla) == 0 {
+            // Una clausura: su struct existe desde que se crea, y su funcion
+            // se apunta antes de comprobar su cuerpo, al reves que una copia.
+            if !tiene(cierres.indice, vista(en_c)) {
+                imprimir_error($"tcodec: `{en_c}` no es una clausura conocida\n");
+                return false;
+            }
+            let k = obtener(cierres.indice, vista(en_c)) sino 0;
+            var cn: lista<str> = [];
+            var ct: lista<str> = [];
+            campos_de_cierre(vista(p), cn, ct);
+            let st = struct_de_cierre(vista(en_c));
+            poner(global.campos, vista(st), copiar(ct));
+            poner(global.nombres, vista(st), copiar(cn));
+            var kc = 0;
+            while kc < largo(contextos) {
+                poner(contextos[kc].campos, vista(st), copiar(ct));
+                poner(contextos[kc].nombres, vista(st), copiar(cn));
+                kc = kc + 1;
+            }
+            anadir(orden, copiar(p));
+            let de = cierres.modulo[k];
+            var borrador_c = F.cuenta_nueva();
+            let lineas_c = F.generar_funcion(cierres.fns[k], contextos[de],
+                vista(modulos[de]), borrador_c);
+            if largo(lineas_c) == 0 {
+                imprimir_error($"tcodec: no se escribir la clausura `{en_c}`\n");
+                return false;
+            }
+            if !descubrir(borrador_c.instancias, arboles, contextos, modulos,
+                plantillas, vistos, orden, creados, cierres, global) {
+                return false;
+            }
+            continue;
+        }
         if !tiene(plantillas, vista(plantilla)) {
             imprimir_error($"tcodec: `{plantilla}` no es una generica conocida\n");
             return false;
@@ -1594,7 +1789,7 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
             return false;
         }
         if !descubrir(borrador.instancias, arboles, contextos, modulos, plantillas,
-            vistos, orden, creados) {
+            vistos, orden, creados, cierres, global) {
             return false;
         }
         anadir(orden, copiar(p));
@@ -1873,6 +2068,46 @@ fn main() -> usize ! {
         k_ctx = k_ctx + 1;
     }
 
+    // Las clausuras, numeradas en el orden en que las comprueba el original:
+    // funcion a funcion, cada una seguida de las que lleve dentro. Dentro de
+    // una generica habria una por copia, creada al crear la copia: eso no se
+    // sabe numerar desde aqui.
+    var cierres = Cierres { fns: [], modulo: [], indice: [] };
+    var n_cierres: usize = 0;
+    var m_c = 0;
+    while m_c < largo(arboles) {
+        var k_d = 0;
+        while k_d < largo(arboles[m_c].hijos) {
+            if igual(vista(arboles[m_c].hijos[k_d].clase), "fn") {
+                if F.es_generica(arboles[m_c].hijos[k_d]) {
+                    if tiene_cierre(arboles[m_c].hijos[k_d]) {
+                        return rechazo("una clausura dentro de una generica");
+                    }
+                } else {
+                    numerar_cierres(arboles[m_c].hijos[k_d], n_cierres, cierres.fns);
+                    while largo(cierres.modulo) < largo(cierres.fns) {
+                        anadir(cierres.modulo, m_c);
+                    }
+                }
+            }
+            k_d = k_d + 1;
+        }
+        m_c = m_c + 1;
+    }
+    // Su firma la ven todos los modulos: una copia de `filtradas` en
+    // std/lista llama a la clausura de quien la pidio.
+    var k_cf = 0;
+    while k_cf < largo(cierres.fns) {
+        poner(cierres.indice, vista(cierres.fns[k_cf].texto), k_cf);
+        F.recoger_firmas(cierres.fns[k_cf], global);
+        var k_cx = 0;
+        while k_cx < largo(contextos) {
+            F.recoger_firmas(cierres.fns[k_cf], contextos[k_cx]);
+            k_cx = k_cx + 1;
+        }
+        k_cf = k_cf + 1;
+    }
+
     // Las copias de los structs genericos: primero las que piden los campos
     // de los structs, luego las de los tipos escritos en cada funcion.
     var en_curso_st: mapa<str, usize> = [];
@@ -1922,14 +2157,27 @@ fn main() -> usize ! {
             // Si no se sabe escribir, lo dira la pasada de verdad.
             if largo(escritas) == 0 { continue; }
             if !descubrir(borrador.instancias, arboles, contextos, modulos,
-                plantillas, vistas_inst, orden_inst, creados_inst) {
+                plantillas, vistas_inst, orden_inst, creados_inst, cierres, global) {
                 return 1;
             }
         }
         k_desc = k_desc + 1;
     }
-    // Cada copia resuelve sus tipos al crearse, antes de su cuerpo.
+    // Cada copia resuelve sus tipos al crearse, antes de su cuerpo. El struct
+    // de una clausura tambien nace ahi, entre las copias.
     for p en creados_inst {
+        if largo(campo_pedido(vista(p), 0)) == 0 {
+            let en_c_c = campo_pedido(vista(p), 1);
+            let st_c = struct_de_cierre(vista(en_c_c));
+            var cn: lista<str> = [];
+            var ct: lista<str> = [];
+            campos_de_cierre(vista(p), cn, ct);
+            poner(st_indice, vista(st_c), largo(st_nombres));
+            anadir(st_nombres, copiar(st_c));
+            anadir(st_campos, cn);
+            anadir(st_tipos, ct);
+            continue;
+        }
         let copia_r = nodo_instancia(vista(p), arboles, plantillas);
         resolver_instancia(copia_r, stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
             st_nombres, st_indice, st_campos, st_tipos, global);
@@ -1939,6 +2187,13 @@ fn main() -> usize ! {
     var instancias: lista<P.Nodo> = [];
     var modulo_de: lista<usize> = [];
     for p en orden_inst {
+        if largo(campo_pedido(vista(p), 0)) == 0 {
+            let en_c_i = campo_pedido(vista(p), 1);
+            let k_ci = obtener(cierres.indice, vista(en_c_i)) sino 0;
+            anadir(instancias, copiar(cierres.fns[k_ci]));
+            anadir(modulo_de, cierres.modulo[k_ci]);
+            continue;
+        }
         anadir(instancias, nodo_instancia(vista(p), arboles, plantillas));
         let plantilla = campo_pedido(vista(p), 0);
         anadir(modulo_de, obtener(plantillas, vista(plantilla)) sino 0);
@@ -2489,6 +2744,55 @@ fn main() -> usize ! {
     }
     if largo(arit) > 0 { anadir(arit, vacio()); }
 
+    // Los tipos funcion que nombra el C, cada uno con su typedef, en el orden
+    // en que aparecen. Van justo antes de la aritmetica, como en el original.
+    var candidatos: lista<str> = [];
+    for fk en claves(global.retornos) {
+        let firma = I.firma_de_funcion(global, vista(fk));
+        apuntar_tipo_funcion(vista(firma), candidatos);
+    }
+    var k_tf = 0;
+    while k_tf < largo(arboles) {
+        for d en arboles[k_tf].hijos {
+            if igual(vista(d.clase), "fn") && !F.es_generica(d) {
+                tipos_funcion_de(d, candidatos);
+            }
+        }
+        k_tf = k_tf + 1;
+    }
+    for d en instancias { tipos_funcion_de(d, candidatos); }
+    var nombres_fn: lista<str> = [];
+    for t en candidatos { anadir(nombres_fn, G.tipo_c(vista(t))); }
+    var tipos_fn: lista<str> = [];
+    var puestos_fn: mapa<str, usize> = [];
+    var mirar_fn: lista<str> = [];
+    for l en protos { anadir(mirar_fn, sin_cadenas(vista(l))); }
+    for l en limpios { anadir(mirar_fn, copiar(l)); }
+    for l en mirar_fn {
+        if !contiene(vista(l), "ss_fn_") { continue; }
+        var k_c = 0;
+        while k_c < largo(candidatos) {
+            let nc = vista(nombres_fn[k_c]);
+            if !tiene(puestos_fn, nc) && contiene_nombre(vista(l), nc) {
+                poner(puestos_fn, nc, 1);
+                let partes_f = T.partes_de_funcion(vista(candidatos[k_c]));
+                var firma_c = vacio();
+                var q = 0;
+                while q + 1 < largo(partes_f) {
+                    if q > 0 { empujar(firma_c, ", "); }
+                    let pc = G.tipo_c(vista(partes_f[q]));
+                    empujar(firma_c, vista(pc));
+                    q = q + 1;
+                }
+                if largo(firma_c) == 0 { firma_c = nuevo("void"); }
+                let rc = G.tipo_c(vista(partes_f[largo(partes_f) - 1]));
+                anadir(tipos_fn, $"typedef {rc} (*{nc})({firma_c});");
+            }
+            k_c = k_c + 1;
+        }
+    }
+    if largo(tipos_fn) > 0 { anadir(tipos_fn, vacio()); }
+
     let cabecera = try leer_archivo($"{raiz}/runtime/cabecera.inc");
 
     // El mismo orden que el original: cabecera, structs y resultados,
@@ -2521,6 +2825,7 @@ fn main() -> usize ! {
         anadir(todas, vacio());
     }
     for x en partes { anadir(todas, copiar(x)); }
+    for x en tipos_fn { anadir(todas, copiar(x)); }
     for a en arit { anadir(todas, copiar(a)); }
     for x en bloque_copias { anadir(todas, copiar(x)); }
     for p en protos { anadir(todas, copiar(p)); }

@@ -287,10 +287,12 @@ def firma_funcion(params, retorno):
 def partir_tipos(dentro):
     """Parte `usize, lista<str>` por las comas de fuera."""
     piezas, hondura, actual = [], 0, ""
-    for ch in dentro:
-        if ch in "<[":
+    for i, ch in enumerate(dentro):
+        # Un tipo funcion lleva comas dentro de sus parentesis, y la `>` de
+        # su `->` no cierra ningun angulo.
+        if ch in "<[(":
             hondura += 1
-        elif ch in ">]":
+        elif ch in "])" or (ch == ">" and dentro[i - 1:i] != "-"):
             hondura -= 1
         if ch == "," and hondura == 0:
             piezas.append(actual.strip())

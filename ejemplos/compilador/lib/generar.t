@@ -520,8 +520,21 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
             empujar(v, ")");
             return v;
         }
+        // El nombre de una funcion como valor: el puntero, que en C se
+        // escribe igual que ella.
+        if largo(I.buscar(tipos, nombre)) == 0
+        && largo(I.firma_de_funcion(tipos, nombre)) > 0 {
+            if tiene(tipos.repetidas, nombre) { return no_se(); }
+            var en_c = I.sin_modulo(nombre);
+            if tiene(tipos.renombradas, nombre) {
+                en_c = nuevo(obtener(tipos.renombradas, nombre) sino "");
+            }
+            return nombre_en_c(vista(en_c));
+        }
         return nuevo(nombre);
     }
+
+    if igual(clase, "cierre") { return cierre_c(b, s, n, tipos); }
 
     if igual(clase, "llamada") {
         // `reservar(n)` no dice de que: lo dice donde va.
@@ -1967,83 +1980,84 @@ fn envolver_llamada_ordenada(llamada: str, previos: &lista<str>) -> str {
     return orden;
 }
 
-fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
-    let nombre = vista(n.texto);
-    let pura = interna_pura(b, s, n, tipos);
-    if !es_desconocido(vista(pura)) { return pura; }
-    if igual(nombre, "leer_archivo") || igual(nombre, "leer_linea")
-    || igual(nombre, "entrada_completa") || igual(nombre, "variable_entorno")
-    || igual(nombre, "ahora_ms") || igual(nombre, "monotono_ms")
-    || igual(nombre, "sembrar") || igual(nombre, "azar") {
-        return interna_del_sistema(b, s, n, tipos);
+// Una llamada a un valor: una variable que guarda una clausura se llama como
+// su funcion con el entorno delante, prestado; una que guarda un puntero a
+// funcion, con la firma que dice su tipo. Vacio si el valor no es ninguna
+// de las dos cosas: entonces es una llamada normal.
+// Una clausura escrita en el sitio es su struct: lo capturado, por valor.
+// Pide su funcion a quien escribe el programa, con el tipo de cada captura,
+// que es lo que llevara el struct.
+fn cierre_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let st = vista(n.texto);
+    let de_cierre = I.funcion_de_cierre(st);
+    if largo(de_cierre) == 0 { return no_se(); }
+    var pedido = nuevo("\t");
+    empujar(pedido, vista(de_cierre));
+    var piezas = vacio();
+    for h en n.hijos {
+        if !igual(vista(h.clase), "captura") { continue; }
+        let nombre = vista(h.texto);
+        let t = I.buscar(tipos, nombre);
+        if largo(t) == 0 { return no_se(); }
+        // Capturar lo que tiene duenio es moverlo al struct; eso esta capa
+        // todavia no lo sigue.
+        if I.posee_con_formas(tipos, vista(t)) || T.es_referencia(vista(t))
+        || igual(vista(t), "view") {
+            return no_se();
+        }
+        let valor = expresion_c(b, s, P.hoja("variable", nombre, n.linea),
+            vista(t), tipos);
+        if es_desconocido(vista(valor)) { return no_se(); }
+        if largo(piezas) > 0 { empujar(piezas, ", "); }
+        let pieza = $".{nombre} = {valor}";
+        empujar(piezas, vista(pieza));
+        let sin_alias = I.sin_alias_tipo(vista(t));
+        let campo = $"\t{nombre}={sin_alias}";
+        empujar(pedido, vista(campo));
     }
-    if es_interna(nombre) { return no_se(); }
-    if !tiene(tipos.retornos, nombre) { return no_se(); }
-    // Una llamada a C pide convertir el `str` a `const char*` comprobando el
-    // cero de en medio. Esta capa todavia no lo hace, asi que no la emite.
-    if tiene(tipos.externas, nombre) { return llamada_externa_c(b, s, n, tipos); }
-    if tiene(tipos.repetidas, nombre) { return no_se(); }
+    if largo(piezas) == 0 { piezas = nuevo(".ss_vacio = 0"); }
+    anadir(b.instancias, pedido);
+    return $"({st}){{ {piezas} }}";
+}
 
-    var firmados = I.lista_de(tipos.params, nombre) sino [];
-    let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];
-    // En C no queda el alias del modulo: `I.tipo_de` se llama `tipo_de`.
-    var en_c = I.sin_modulo(nombre);
-    // Un nombre propio que tambien traia un modulo: el cargador le pone el
-    // nombre del archivo delante. Llamado con el alias del modulo seria el
-    // otro, y ese no se sabe como quedo: no se emite.
-    if tiene(tipos.renombradas, nombre) {
-        en_c = nuevo(obtener(tipos.renombradas, nombre) sino "");
+fn llamada_a_valor(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
+    local: view) -> str {
+    let t = T.apuntado_si(local);
+    let de_cierre = I.funcion_de_cierre(vista(t));
+    if largo(de_cierre) > 0 {
+        var otra = P.rama("llamada", n.linea);
+        otra.texto = copiar(de_cierre);
+        anadir(otra.hijos, P.hoja("variable", vista(n.texto), n.linea));
+        for h en n.hijos { anadir(otra.hijos, copiar(h)); }
+        return llamada_c(b, s, otra, tipos);
     }
-    if contiene(nombre, ".") && tiene(tipos.renombradas, vista(en_c)) {
-        return no_se();
+    if !T.es_funcion(vista(t)) { return vacio(); }
+    if es_puntero(s, tipos, vista(n.texto)) { return no_se(); }
+    let partes = T.partes_de_funcion(vista(t));
+    if largo(partes) == 0 { return no_se(); }
+    var firmados: lista<str> = [];
+    var marcados: lista<str> = [];
+    var i = 0;
+    while i + 1 < largo(partes) {
+        let p = vista(partes[i]);
+        anadir(firmados, T.apuntado_si(p));
+        if empieza_con(p, "&mut ") { anadir(marcados, nuevo("mut ")); }
+        else {
+            if T.es_referencia(p) { anadir(marcados, nuevo("&")); }
+            else { anadir(marcados, vacio()); }
+        }
+        i = i + 1;
     }
-    // `union` es legitimo en Tcode y no en C: se llama como se declaro.
-    en_c = nombre_en_c(vista(en_c));
+    return llamada_con_firma(b, s, n, tipos, vista(n.texto), firmados, marcados, "");
+}
 
-    // Una generica: se eligen los tipos mirando los argumentos, igual que el
-    // comprobador, y se llama a la copia con ese juego de tipos. El nombre
-    // de la copia lleva los tipos dentro, saneados para que sean C.
-    var pedido = vacio();
-    if tiene(tipos.tipo_params, nombre) {
-        let sueltos = I.lista_de(tipos.tipo_params, nombre) sino [];
-        var ligaduras: mapa<str, str> = [];
-        var k = 0;
-        while k < largo(firmados) && k < largo(n.hijos) {
-            let dado = I.tipo_de(tipos, n.hijos[k]);
-            let limpio = T.apuntado_si(vista(dado));
-            I.unificar(vista(firmados[k]), vista(limpio), sueltos, ligaduras);
-            k = k + 1;
-        }
-        empujar(en_c, "__");
-        var primero = true;
-        for tp en sueltos {
-            if !tiene(ligaduras, vista(tp)) { return no_se(); }
-            let ligado = nuevo(obtener(ligaduras, vista(tp)) sino "");
-            if !primero { empujar(en_c, "_"); }
-            primero = false;
-            let ligado_c = I.nombre_resuelto(vista(ligado));
-            let limpio = sanear(vista(ligado_c));
-            empujar(en_c, vista(limpio));
-        }
-        // Lo que hace falta para escribir la copia: de que plantilla sale,
-        // como se llama y que tipo va en cada parametro. Sin el alias del
-        // modulo: la copia se escribe en el modulo de la plantilla.
-        pedido = I.sin_modulo(nombre);
-        empujar(pedido, "\t");
-        empujar(pedido, vista(en_c));
-        for tp en sueltos {
-            let ligado = obtener(ligaduras, vista(tp)) sino "";
-            let sin_alias = I.sin_alias_tipo(ligado);
-            empujar(pedido, "\t");
-            empujar(pedido, vista(tp));
-            empujar(pedido, "=");
-            empujar(pedido, vista(sin_alias));
-        }
-        var puestos: lista<str> = [];
-        for f en firmados { anadir(puestos, I.sustituir(vista(f), ligaduras)); }
-        firmados = puestos;
-    }
-    var v = copiar(en_c);
+// Los argumentos de una llamada, ya elegida la funcion: `en_c` es como se
+// llama en C, `firmados` el tipo de cada parametro y `marcados` su marca de
+// prestamo. `pedido`, si no esta vacio, es la copia de generica que hace falta.
+fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
+    en_c: view, firmados: &lista<str>, marcados: &lista<str>,
+    pedido: view) -> str {
+    var v = nuevo(en_c);
     empujar(v, "(");
     var previos: lista<str> = [];
     let secuenciar = largo(n.hijos) > 1;
@@ -2122,7 +2136,7 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     }
     // Despues de los argumentos: una generica que se llama dentro de otro
     // argumento se crea antes, como en el original.
-    if largo(pedido) > 0 { anadir(b.instancias, pedido); }
+    if largo(pedido) > 0 { anadir(b.instancias, nuevo(pedido)); }
     empujar(v, ")");
     if largo(previos) > 0 {
         var orden = nuevo("((");
@@ -2138,6 +2152,93 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         return orden;
     }
     return v;
+}
+
+fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let nombre = vista(n.texto);
+    // Una variable con una clausura o una funcion dentro se llama a traves
+    // de su valor. Cualquier otra no cambia nada: es la funcion del nombre.
+    let local = I.buscar(tipos, nombre);
+    if largo(local) > 0 {
+        let por_valor = llamada_a_valor(b, s, n, tipos, vista(local));
+        if largo(por_valor) > 0 { return por_valor; }
+    }
+    let pura = interna_pura(b, s, n, tipos);
+    if !es_desconocido(vista(pura)) { return pura; }
+    if igual(nombre, "leer_archivo") || igual(nombre, "leer_linea")
+    || igual(nombre, "entrada_completa") || igual(nombre, "variable_entorno")
+    || igual(nombre, "ahora_ms") || igual(nombre, "monotono_ms")
+    || igual(nombre, "sembrar") || igual(nombre, "azar") {
+        return interna_del_sistema(b, s, n, tipos);
+    }
+    if es_interna(nombre) { return no_se(); }
+    if !tiene(tipos.retornos, nombre) { return no_se(); }
+    // Una llamada a C pide convertir el `str` a `const char*` comprobando el
+    // cero de en medio. Esta capa todavia no lo hace, asi que no la emite.
+    if tiene(tipos.externas, nombre) { return llamada_externa_c(b, s, n, tipos); }
+    if tiene(tipos.repetidas, nombre) { return no_se(); }
+
+    var firmados = I.lista_de(tipos.params, nombre) sino [];
+    let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];
+    // En C no queda el alias del modulo: `I.tipo_de` se llama `tipo_de`.
+    var en_c = I.sin_modulo(nombre);
+    // Un nombre propio que tambien traia un modulo: el cargador le pone el
+    // nombre del archivo delante. Llamado con el alias del modulo seria el
+    // otro, y ese no se sabe como quedo: no se emite.
+    if tiene(tipos.renombradas, nombre) {
+        en_c = nuevo(obtener(tipos.renombradas, nombre) sino "");
+    }
+    if contiene(nombre, ".") && tiene(tipos.renombradas, vista(en_c)) {
+        return no_se();
+    }
+    // `union` es legitimo en Tcode y no en C: se llama como se declaro.
+    en_c = nombre_en_c(vista(en_c));
+
+    // Una generica: se eligen los tipos mirando los argumentos, igual que el
+    // comprobador, y se llama a la copia con ese juego de tipos. El nombre
+    // de la copia lleva los tipos dentro, saneados para que sean C.
+    var pedido = vacio();
+    if tiene(tipos.tipo_params, nombre) {
+        let sueltos = I.lista_de(tipos.tipo_params, nombre) sino [];
+        var ligaduras: mapa<str, str> = [];
+        var k = 0;
+        while k < largo(firmados) && k < largo(n.hijos) {
+            let dado = I.tipo_de(tipos, n.hijos[k]);
+            let limpio = T.apuntado_si(vista(dado));
+            I.unificar(vista(firmados[k]), vista(limpio), sueltos, ligaduras);
+            k = k + 1;
+        }
+        empujar(en_c, "__");
+        var primero = true;
+        for tp en sueltos {
+            if !tiene(ligaduras, vista(tp)) { return no_se(); }
+            let ligado = nuevo(obtener(ligaduras, vista(tp)) sino "");
+            if !primero { empujar(en_c, "_"); }
+            primero = false;
+            let ligado_c = I.nombre_resuelto(vista(ligado));
+            let limpio = sanear(vista(ligado_c));
+            empujar(en_c, vista(limpio));
+        }
+        // Lo que hace falta para escribir la copia: de que plantilla sale,
+        // como se llama y que tipo va en cada parametro. Sin el alias del
+        // modulo: la copia se escribe en el modulo de la plantilla.
+        pedido = I.sin_modulo(nombre);
+        empujar(pedido, "\t");
+        empujar(pedido, vista(en_c));
+        for tp en sueltos {
+            let ligado = obtener(ligaduras, vista(tp)) sino "";
+            let sin_alias = I.sin_alias_tipo(ligado);
+            empujar(pedido, "\t");
+            empujar(pedido, vista(tp));
+            empujar(pedido, "=");
+            empujar(pedido, vista(sin_alias));
+        }
+        var puestos: lista<str> = [];
+        for f en firmados { anadir(puestos, I.sustituir(vista(f), ligaduras)); }
+        firmados = puestos;
+    }
+    return llamada_con_firma(b, s, n, tipos, vista(en_c), firmados, marcados,
+        vista(pedido));
 }
 
 // Si la expresion entrega una variable entera que tiene duenio: eso es un
