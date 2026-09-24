@@ -764,6 +764,17 @@ RECHAZO = [
 
 
 ACEPTA = [
+    # `partir_tipos` cortaba por las comas de dentro de un `fn(...)` y
+    # contaba la `>` de `->` como un angulo que se cierra.
+    ("un tipo funcion que recibe otro",
+     '''fn doble(n: usize) -> usize { return n * 2; }
+        fn aplicar(f: fn(usize) -> usize, n: usize) -> usize { return f(n); }
+        fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
+            return g(doble, g(doble, n));
+        }
+        fn main() { imprimir($"{dos_veces(aplicar, 3)}\\n"); }''',
+     "12\n"),
+
     ("los limites exactos de los enteros siguen siendo validos",
      '''fn main() {
             let a: u8 = 255;
@@ -3609,8 +3620,47 @@ print("=== PROGRAMA: el archivo C entero, escrito por Tcode ===")
 # el generador de Python. Lo que `tcodec` no sabe escribir entero lo rechaza
 # sin escribir medio archivo; se cuentan los programas identicos y se exige un
 # minimo.
-_MINIMO_PROGRAMAS = 24
-_OBLIGATORIOS_TCODEC = {os.path.join("ejemplos", "bloques.t")}
+_CIERRES_TCODEC = r"""usar "std/lista";
+
+fn sumar(a: usize, b: usize) -> usize { return a + b; }
+fn aplicar(f: fn(usize, usize) -> usize, x: usize, y: usize) -> usize {
+    return f(x, y);
+}
+fn doble_de<F>(f: F, x: usize) -> usize { return f(x) * 2; }
+
+fn main() {
+    let base: usize = 10;
+    let tope: usize = 3;
+    let mas = fn[base](x: usize) -> usize { return x + base; };
+    imprimir($"{mas(5)}\n");
+    imprimir($"{doble_de(mas, 1)}\n");
+    imprimir($"{aplicar(sumar, 2, 3)}\n");
+    let g = sumar;
+    imprimir($"{g(4, 4)}\n");
+    var ns: lista<usize> = [];
+    anadir(ns, 1); anadir(ns, 5); anadir(ns, 2);
+    let chicos = cuantas_cumplen(ns, fn[tope](n: &usize) -> bool { return n < tope; });
+    imprimir($"{chicos}\n");
+    let anidada = fn[base](x: usize) -> usize {
+        let k: usize = base;
+        let otra = fn[k](y: usize) -> usize { return y * k; };
+        return otra(x) + 1;
+    };
+    imprimir($"{anidada(2)}\n");
+}
+"""
+
+_FN_ANIDADA_TCODEC = r"""fn doble(n: usize) -> usize { return n * 2; }
+fn aplicar(f: fn(usize) -> usize, n: usize) -> usize { return f(n); }
+fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
+    return g(doble, g(doble, n));
+}
+fn main() { imprimir($"{dos_veces(aplicar, 3)}\n"); }
+"""
+
+_MINIMO_PROGRAMAS = 25
+_OBLIGATORIOS_TCODEC = {os.path.join("ejemplos", "bloques.t"),
+                        os.path.join("ejemplos", "pruebas.t")}
 
 tmp = tempfile.mkdtemp(prefix="tcode-programa-")
 _cwd_antes = os.getcwd()
@@ -3689,6 +3739,39 @@ try:
                 falla("tcodec conserva los limites enteros validos",
                       f"errores {errores_literal}, codigo {e.returncode}, "
                       f"stderr {e.stderr[:300]!r}")
+
+            # Clausuras con y sin capturas, una dentro de otra, guardadas en
+            # una variable, pasadas a una generica, y punteros a funcion,
+            # tambien uno que recibe otro. Nada de eso lo pide un programa del
+            # repositorio salvo lo de `pruebas.t`.
+            for nombre_c, fuente_c in (("cierres.t", _CIERRES_TCODEC),
+                                       ("anidado.t", _FN_ANIDADA_TCODEC)):
+                total += 1
+                ruta_cierre = os.path.join(tmp, nombre_c)
+                with open(ruta_cierre, "w", encoding="utf-8") as f:
+                    f.write(fuente_c)
+                esperado_c, errores_c = compilar_archivo(ruta_cierre)
+                e = subprocess.run([binario, ruta_cierre], capture_output=True,
+                                   text=True, timeout=60, env=entorno)
+                if errores_c or e.returncode != 0 or e.stdout != esperado_c:
+                    falla(f"tcodec escribe {nombre_c}",
+                          f"errores {errores_c}, codigo {e.returncode}, "
+                          f"stderr {e.stderr[:300]!r}")
+
+            # Dentro de una generica habria una clausura por copia, y tcodec
+            # no sabe numerarlas: lo dice en vez de escribir otro C.
+            total += 1
+            cierre_generica = os.path.join(tmp, "cierre-generica.t")
+            with open(cierre_generica, "w", encoding="utf-8") as f:
+                f.write('fn envolver<T>(x: T) -> usize {\n'
+                        '    let f = fn(y: usize) -> usize { return y + 1; };\n'
+                        '    return f(1);\n}\n'
+                        'fn main() { imprimir($"{envolver(3)}\\n"); }\n')
+            e = subprocess.run([binario, cierre_generica], capture_output=True,
+                               text=True, timeout=60, env=entorno)
+            if e.returncode == 0 or e.stdout or "generica" not in e.stderr:
+                falla("tcodec rechaza una clausura dentro de una generica",
+                      f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
 
             iguales = intentados = 0
             for archivo in sorted(

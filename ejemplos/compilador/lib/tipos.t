@@ -47,8 +47,11 @@ fn partir_tipos(dentro: view) -> lista<str> {
             corta = true;
         } else {
             let b = byte(dentro, i);
-            if b == 60 || b == 91 { hondura = hondura + 1; }
-            if b == 62 || b == 93 { hondura = hondura - 1; }
+            // Un tipo funcion lleva comas dentro de sus parentesis, y la `>`
+            // de su `->` no cierra ningun angulo.
+            let flecha = b == 62 && i > 0 && byte(dentro, i - 1) == 45;
+            if b == 60 || b == 91 || b == 40 { hondura = hondura + 1; }
+            if (b == 62 && !flecha) || b == 93 || b == 41 { hondura = hondura - 1; }
             if b == 44 && hondura == 0 { corta = true; }
         }
         if corta {

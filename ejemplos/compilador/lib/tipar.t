@@ -115,7 +115,16 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
     if igual(clase, "interpolada") { return nuevo("str"); }
     if igual(clase, "booleano") { return nuevo("bool"); }
 
-    if igual(clase, "variable") { return buscar(c, vista(n.texto)); }
+    if igual(clase, "variable") {
+        let local = buscar(c, vista(n.texto));
+        if largo(local) > 0 { return local; }
+        // El nombre de una funcion sin parentesis detras es un valor: el
+        // puntero a esa funcion, con su firma por tipo.
+        return firma_de_funcion(c, vista(n.texto));
+    }
+
+    // Una clausura ya numerada lleva el nombre de su struct.
+    if igual(clase, "cierre") { return copiar(n.texto); }
 
     // `if c { a } else { b }` vale lo que valga su primera rama: el
     // comprobador ya exige que las dos den lo mismo.
@@ -553,6 +562,23 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
         }
     }
 
+    // Una variable que guarda una clausura o una funcion se llama igual que
+    // una funcion: la clausura es su struct mas `ss_cierre_N`.
+    let local = buscar(c, nombre);
+    if largo(local) > 0 {
+        let t = T.apuntado_si(vista(local));
+        let de_cierre = funcion_de_cierre(vista(t));
+        if largo(de_cierre) > 0 {
+            return nuevo(obtener(c.retornos, vista(de_cierre)) sino "");
+        }
+        if T.es_funcion(vista(t)) {
+            let partes = T.partes_de_funcion(vista(t));
+            if largo(partes) == 0 { return vacio(); }
+            return copiar(partes[largo(partes) - 1]);
+        }
+        return vacio();
+    }
+
     // Una funcion del programa.
     if !tiene(c.retornos, nombre) { return vacio(); }
     let retorno = nuevo(obtener(c.retornos, nombre) sino "");
@@ -572,6 +598,50 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
         i = i + 1;
     }
     return sustituir(vista(retorno), ligaduras);
+}
+
+// `Cierre_3` -> `ss_cierre_3`, la funcion que recibe ese entorno. Vacio si
+// el tipo no es el de una clausura.
+fn funcion_de_cierre(t: view) -> str {
+    if !empieza_con(t, "Cierre_") { return vacio(); }
+    let n = rebanar(t, 7, largo(t));
+    if largo(n) == 0 { return vacio(); }
+    var i = 0;
+    while i < largo(n) {
+        if byte(n, i) < 48 || byte(n, i) > 57 { return vacio(); }
+        i = i + 1;
+    }
+    return $"ss_cierre_{n}";
+}
+
+// El tipo de una funcion usada como valor, escrito como en el comprobador:
+// `fn(&str) -> bool`. Vacio si no es una funcion normal del programa: una
+// generica no tiene una sola firma, y una de C no se pasa como valor.
+fn firma_de_funcion(c: &Contexto, nombre: view) -> str {
+    if !tiene(c.retornos, nombre) { return vacio(); }
+    if tiene(c.tipo_params, nombre) || tiene(c.externas, nombre) { return vacio(); }
+    let tipos = lista_de(c.params, nombre) sino [];
+    let marcas = lista_de(c.params_marcados, nombre) sino [];
+    var t = nuevo("fn(");
+    var i = 0;
+    while i < largo(tipos) {
+        if i > 0 { empujar(t, ", "); }
+        if i < largo(marcas) {
+            if igual(vista(marcas[i]), "&") { empujar(t, "&"); }
+            if igual(vista(marcas[i]), "mut ") || igual(vista(marcas[i]), "&mut ") {
+                empujar(t, "&mut ");
+            }
+        }
+        empujar(t, vista(tipos[i]));
+        i = i + 1;
+    }
+    empujar(t, ")");
+    let retorno = obtener(c.retornos, nombre) sino "";
+    if largo(retorno) > 0 && !igual(retorno, "()") {
+        empujar(t, " -> ");
+        empujar(t, retorno);
+    }
+    return t;
 }
 
 fn lista_de(m: &mapa<str, lista<str>>, clave: view) -> lista<str> ! {
