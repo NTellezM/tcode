@@ -11,6 +11,7 @@ static const char* ss_lang_cstr_(const SafeString* s,
     size_t n = ss_len(s);
     if (n != 0 && memchr(p, 0, n) != NULL)
     {
+        fflush(stdout);
         fprintf(stderr, "%s:%d: esta cadena lleva un cero en "
                 "medio y va a una funcion de C, que la leeria "
                 "cortada\n", archivo, linea);

@@ -1046,6 +1046,11 @@ class Comprobador:
         if isinstance(e, Unaria):
             if e.op == "!":
                 return "bool"
+            # Un numero escrito con `-` delante solo cabe en uno con signo:
+            # sin mas contexto es un `i64`, como en `let x = -7;`. Aqui un
+            # `Entero` suelto ya sale como `usize`, asi que se mira el nodo.
+            if e.op == "-" and isinstance(e.valor, Entero):
+                return "i64"
             t = self.tipo_probable(e.valor)
             return "i64" if t == LITERAL else t
         if isinstance(e, Binaria):

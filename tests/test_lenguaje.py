@@ -764,6 +764,17 @@ RECHAZO = [
 
 
 ACEPTA = [
+    # Un `Entero` suelto ya sale como `usize` al deducir, asi que `-3`
+    # deducia `A = usize` y despues no cabia.
+    ("un negativo deduce un tipo con signo en un struct generico",
+     '''struct Par<A, B> { a: A, b: B, }
+        fn main() {
+            let q = Par { a: -3, b: 1 };
+            let z = -7;
+            imprimir($"{q.a} {q.b} {z}\\n");
+        }''',
+     "-3 1 -7\n"),
+
     # `partir_tipos` cortaba por las comas de dentro de un `fn(...)` y
     # contaba la `>` de `->` como un angulo que se cierra.
     ("un tipo funcion que recibe otro",
@@ -4009,6 +4020,23 @@ with tempfile.TemporaryDirectory() as tmp:
             falla(nombre, "termino normalmente, deberia abortar")
         elif esperado not in err:
             falla(nombre, f"se esperaba {esperado!r} en stderr, hubo: {err!r}")
+
+    # `abort()` no vacia `stdout`: con la salida en una tuberia, como aqui, lo
+    # ya impreso se perdia. El runtime la vacia antes de cada aborto.
+    for nombre, cuerpo in (
+            ("desbordamiento", "let x: u8 = 255; let y = x + 1; imprimir(y);"),
+            ("indice", "let xs = [1, 2]; let i: usize = 5; imprimir(xs[i]);"),
+            ("division", "let c: usize = 0; imprimir(7 / c);")):
+        total += 1
+        fuente = 'fn main() { imprimir("antes\\n"); ' + cuerpo + ' }'
+        try:
+            rc, out, err = compilar_y_correr(fuente, tmp, con_sanitizers=False)
+        except AssertionError as exc:
+            falla(f"lo impreso antes de abortar ({nombre})", str(exc))
+            continue
+        if rc == 0 or out != "antes\n":
+            falla(f"lo impreso antes de abortar ({nombre})",
+                  f"codigo {rc}, salida {out!r}")
 
 # ---------------------------------------------------------------- modulos
 print("=== MODULOS: varios archivos, un solo programa ===")
