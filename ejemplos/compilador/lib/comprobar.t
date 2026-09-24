@@ -335,8 +335,15 @@ struct Mundo {
     en_formas: mapa<str, lista<str>>,
     // Nombre por dentro -> el que se escribio, para los mensajes.
     bonitos: mapa<str, str>,
-    // Las funciones de las clausuras: se comprueban donde se escriben.
+    // Las funciones de las clausuras, que nacen al comprobarlas: la N-1 es
+    // `ss_cierre_N`, escrita en el modulo `cierres_mod[N-1]`.
     cierres: lista<P.Nodo>,
+    cierres_mod: lista<usize>,
+    n_cierres: usize,
+    // `dueno#k` -> N: la k-esima clausura del cuerpo de `dueno` (una
+    // funcion, `plantilla|T1|T2` para la copia de una generica, o
+    // `ss_cierre_M`) es `Cierre_N`.
+    numeracion: mapa<str, usize>,
     // Lo que hace falta para comprobar la copia de una generica: el arbol de
     // cada modulo y como se ven los nombres desde el.
     arboles: lista<P.Nodo>,
@@ -626,13 +633,16 @@ struct Comprobacion {
     // Las copias de genericas que se estan comprobando, de fuera hacia
     // dentro: `al usar `f` con T = str, desde archivo:linea`.
     instanciando: lista<str>,
+    // De quien es el cuerpo que se esta mirando, para numerar sus clausuras.
+    dueno: str,
 }
 
 fn estado(archivo: view, modulo: usize) -> Comprobacion {
     return Comprobacion { archivo: nuevo(archivo), modulo: modulo, simbolos: [],
         inicios: [], errores: [], retorno: vacio(), falible: false,
         en_condicional: 0, en_condicion_bucle: 0, en_bucle: 0,
-        en_bucle_directo: 0, movidas_en_bucle: [], en_retorno: 0, instanciando: [] };
+        en_bucle_directo: 0, movidas_en_bucle: [], en_retorno: 0, instanciando: [],
+        dueno: vacio() };
 }
 
 // Lo que el mensaje dice en vez de los nombres que puso el compilador: una
@@ -1497,10 +1507,15 @@ fn comprobar_copia(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, k: usize,
     let archivo = copiar(c.archivo);
     let nombre = copiar(m.funciones[k].nombre);
     anadir(c.instanciando, $"al usar `{nombre}` con {inst.ligadas}, desde {archivo}:{n.linea}");
+    let dueno = copiar(c.dueno);
+    let modulo_antes = c.modulo;
     c.simbolos = [];
     c.inicios = [];
     c.archivo = copiar(m.modulos[modulo]);
-    comprobar_funcion(c, m, tipos, kc, nodo);
+    c.modulo = modulo;
+    comprobar_funcion(c, m, tipos, kc, nodo, vista(inst.clave));
+    c.dueno = dueno;
+    c.modulo = modulo_antes;
     var quedan: lista<str> = [];
     var q = 0;
     while q + 1 < largo(c.instanciando) {
@@ -2198,9 +2213,68 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
 
 // Una clausura es su struct con lo capturado mas su funcion, que se
 // comprueba aqui, en mitad de quien la escribe, como en el original.
+// Dentro del cuerpo, un nombre capturado es un campo del entorno.
+fn renombrar_capturas(n: mut P.Nodo, nombres: &lista<str>, linea: usize) {
+    var i = 0;
+    while i < largo(n.hijos) {
+        if igual(vista(n.hijos[i].clase), "variable")
+        && esta_entre(nombres, vista(n.hijos[i].texto)) {
+            var campo_e = P.rama("campo", n.hijos[i].linea);
+            campo_e.texto = copiar(n.hijos[i].texto);
+            anadir(campo_e.hijos, P.hoja("variable", "_ss_entorno", linea));
+            n.hijos[i] = campo_e;
+        } else {
+            renombrar_capturas(n.hijos[i], nombres, linea);
+        }
+        i = i + 1;
+    }
+}
+
+// La funcion de una clausura: el entorno prestado delante, y despues lo
+// suyo, con lo capturado leido del entorno.
+fn nodo_de_cierre(n: &P.Nodo, numero: usize, capturadas: &lista<str>) -> P.Nodo {
+    var f = P.rama("fn", n.linea);
+    f.texto = $"ss_cierre_{numero}";
+    var entorno = P.rama("param", n.linea);
+    entorno.texto = $"_ss_entorno: &Cierre_{numero}";
+    anadir(f.hijos, entorno);
+    for h en n.hijos {
+        if igual(vista(h.clase), "captura") { continue; }
+        var x = copiar(h);
+        if igual(vista(x.clase), "bloque") { renombrar_capturas(x, capturadas, n.linea); }
+        anadir(f.hijos, x);
+    }
+    return f;
+}
+
+// Las clausuras de un cuerpo, numeradas `#0`, `#1`... en preorden. Las de
+// dentro de otra son de la otra: se numeran cuando se mira su funcion.
+fn etiquetar_cierres(n: mut P.Nodo, cuenta: mut usize) {
+    var i = 0;
+    while i < largo(n.hijos) {
+        if igual(vista(n.hijos[i].clase), "cierre") {
+            n.hijos[i].texto = $"#{cuenta}";
+            cuenta = cuenta + 1;
+        } else {
+            etiquetar_cierres(n.hijos[i], cuenta);
+        }
+        i = i + 1;
+    }
+}
+
+// Una clausura es su struct con lo capturado mas su funcion, que nace y se
+// comprueba aqui, en mitad de quien la escribe, como en el original: por eso
+// cada copia de una generica tiene las suyas.
 fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
-    let st = copiar(n.texto);
-    if tiene(m.st_tipos, vista(st)) { return st; }
+    let clave = $"{c.dueno}{n.texto}";
+    if tiene(m.numeracion, vista(clave)) {
+        let ya = obtener(m.numeracion, vista(clave)) sino 0;
+        return $"Cierre_{ya}";
+    }
+    let numero = m.n_cierres + 1;
+    m.n_cierres = numero;
+    poner(m.numeracion, vista(clave), numero);
+    let st = $"Cierre_{numero}";
     var nombres: lista<str> = [];
     var ts: lista<str> = [];
     var vistos: lista<str> = [];
@@ -2233,23 +2307,30 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
     }
     poner(m.st_tipos, vista(st), ts);
     poner(m.st_nombres, vista(st), nombres);
-    let de_cierre = I.funcion_de_cierre(vista(st));
-    let k = buscar_funcion(m, vista(de_cierre)) sino largo(m.funciones);
-    if k >= largo(m.funciones) { return st; }
+    let fn_nodo = nodo_de_cierre(n, numero, vistos);
+    anadir(m.cierres, copiar(fn_nodo));
+    anadir(m.cierres_mod, c.modulo);
+    let de_cierre = $"ss_cierre_{numero}";
+    var f = funcion_de(fn_nodo, vista(de_cierre), vista(c.archivo), c.modulo,
+        numero - 1, false);
+    f.de_cierre = true;
+    let k = largo(m.funciones);
+    poner(m.indice, vista(de_cierre), k);
+    anadir(m.funciones, f);
     // Otra funcion entera: sus propios ambitos y su propio retorno.
     let simbolos = copiar(c.simbolos);
     let inicios = copiar(c.inicios);
     let retorno = copiar(c.retorno);
     let falible = c.falible;
+    let dueno = copiar(c.dueno);
     c.simbolos = [];
     c.inicios = [];
-    let posicion = m.funciones[k].posicion;
-    let nodo = copiar(m.cierres[posicion]);
-    comprobar_funcion(c, m, tipos, k, nodo);
+    comprobar_funcion(c, m, tipos, k, fn_nodo, vista(de_cierre));
     c.simbolos = simbolos;
     c.inicios = inicios;
     c.retorno = retorno;
     c.falible = falible;
+    c.dueno = dueno;
     return st;
 }
 
@@ -2927,11 +3008,22 @@ fn validar_en_nodo(c: mut Comprobacion, m: &Mundo, n: &P.Nodo) {
         if largo(escrito) > 0 { validar_tipo(c, m, n.linea, vista(escrito)); }
     }
     if igual(vista(n.clase), "cierre") {
-        let de_cierre = I.funcion_de_cierre(vista(n.texto));
-        let k = buscar_funcion(m, vista(de_cierre)) sino largo(m.funciones);
-        if k < largo(m.funciones) {
-            let q = m.funciones[k].posicion;
-            validar_en_funcion(c, m, m.cierres[q]);
+        // La clausura tiene sus tipos escritos donde esta: parametros,
+        // retorno, y su cuerpo.
+        for h en n.hijos {
+            if igual(vista(h.clase), "param") {
+                let p = param_de(vista(h.texto));
+                validar_tipo(c, m, n.linea, vista(p.tipo));
+            }
+        }
+        for h en n.hijos {
+            if igual(vista(h.clase), "retorno_tipo") {
+                let t = I.sin_alias_tipo(vista(h.texto));
+                validar_tipo(c, m, n.linea, vista(t));
+            }
+        }
+        for h en n.hijos {
+            if igual(vista(h.clase), "bloque") { validar_en_nodo(c, m, h); }
         }
         return;
     }
@@ -3309,7 +3401,11 @@ struct Programa {
 }
 
 fn comprobar_funcion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, k: usize,
-    d: &P.Nodo) {
+    original: &P.Nodo, dueno: view) {
+    var d = copiar(original);
+    var cuenta: usize = 0;
+    etiquetar_cierres(d, cuenta);
+    c.dueno = nuevo(dueno);
     let f = copiar(m.funciones[k]);
     let nombre = vista(f.nombre);
     c.retorno = copiar(f.retorno);
@@ -3385,12 +3481,21 @@ fn campo_de(texto: view, nombre: mut str, tipo: mut str) {
 // El programa entero, con las clausuras ya numeradas: cada una es su nodo
 // `fn ss_cierre_N` y el modulo donde se escribio. Devuelve los errores como
 // `archivo:linea: mensaje`, en el mismo orden que el original.
+// Lo que sale de comprobar: los errores, y si no los hay, las clausuras que
+// nacieron y donde va cada una.
+struct Revision {
+    errores: lista<str>,
+    cierres: lista<P.Nodo>,
+    cierres_mod: lista<usize>,
+    numeracion: mapa<str, usize>,
+}
+
 fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
-    contextos: &lista<I.Contexto>, cierres: &lista<P.Nodo>,
-    cierres_mod: &lista<usize>) -> lista<str> {
+    contextos: &lista<I.Contexto>) -> Revision {
     var m = Mundo { funciones: [], indice: [], st_tipos: [], st_nombres: [],
         st_params: [], en_variantes: [], en_formas: [], bonitos: [],
-        cierres: copiar(cierres), arboles: copiar(arboles), modulos: copiar(modulos),
+        cierres: [], cierres_mod: [], n_cierres: 0, numeracion: [],
+        arboles: copiar(arboles), modulos: copiar(modulos),
         contextos: copiar(contextos), copias: [] };
     var c = estado("", 0);
     // Donde se definio cada struct y enum, para decir donde estaba el primero.
@@ -3430,16 +3535,6 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         k = k + 1;
     }
-    var q = 0;
-    while q < largo(cierres) {
-        var f = funcion_de(cierres[q], vista(cierres[q].texto), vista(modulos[cierres_mod[q]]),
-            cierres_mod[q], q, false);
-        f.de_cierre = true;
-        poner(m.indice, vista(cierres[q].texto), largo(m.funciones));
-        anadir(m.funciones, f);
-        q = q + 1;
-    }
-
     // Los enums, antes que los structs: un struct puede llevar uno.
     k = 0;
     while k < largo(arboles) {
@@ -3642,9 +3737,10 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
             c.archivo = copiar(f.archivo);
             c.modulo = f.modulo;
             let nodo = copiar(arboles[f.modulo].hijos[f.posicion]);
-            comprobar_funcion(c, m, contextos[f.modulo], e, nodo);
+            comprobar_funcion(c, m, contextos[f.modulo], e, nodo, vista(f.nombre));
         }
         e = e + 1;
     }
-    return copiar(c.errores);
+    return Revision { errores: copiar(c.errores), cierres: copiar(m.cierres),
+        cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion) };
 }

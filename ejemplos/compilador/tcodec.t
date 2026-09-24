@@ -116,9 +116,7 @@ fn sin_cadenas(l: view) -> str {
 }
 
 fn necesita_lo_que_falta(l: view) -> bool {
-    if contiene(l, "ss_lang_escribir_") {
-        return true;
-    }
+    let _l = l;
     return false;
 }
 
@@ -303,6 +301,61 @@ fn llama_a(n: &P.Nodo, nombre: view) -> bool {
 }
 
 // `leer_archivo` solo entra en el programa que lo usa.
+// Escribir un archivo entero: la ruta sin ceros por medio, y un fallo al
+// abrir, al escribir o al cerrar es un fallo, no un archivo a medias callado.
+fn ayudante_escribir_archivo(salida: mut lista<str>) {
+    let res = G.tipo_resultado("()");
+    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    anadir(salida, $"static {res} ss_lang_escribir_archivo_(SafeView ruta, SafeView datos)");
+    anadir(salida, nuevo("{"));
+    anadir(salida, nuevo("    if (ruta.len != 0 && memchr(ruta.ptr, 0, ruta.len) != NULL)"));
+    anadir(salida, $"        return ({res}){{ .motivo = \"la ruta contiene un byte cero\" }};");
+    anadir(salida, vacio());
+    anadir(salida, nuevo("    SafeString copia = ss_from_view(ruta);"));
+    anadir(salida, nuevo("    if (!ss_ok(&copia))"));
+    anadir(salida, nuevo("    {"));
+    anadir(salida, nuevo("        ss_free(&copia);"));
+    anadir(salida, $"        return ({res}){{ .motivo = \"sin memoria para la ruta\" }};");
+    anadir(salida, nuevo("    }"));
+    anadir(salida, nuevo("    FILE* f = fopen(ss_cstr(&copia), \"wb\");"));
+    anadir(salida, nuevo("    ss_free(&copia);"));
+    anadir(salida, nuevo("    if (f == NULL)"));
+    anadir(salida, $"        return ({res}){{ .motivo = \"no se pudo abrir el archivo para escribir\" }};");
+    anadir(salida, vacio());
+    anadir(salida, nuevo("    bool fallo = false;"));
+    anadir(salida, nuevo("    if (datos.len != 0)"));
+    anadir(salida, nuevo("        fallo = fwrite(datos.ptr, 1, datos.len, f) != datos.len;"));
+    anadir(salida, nuevo("    if (fclose(f) != 0) fallo = true;"));
+    anadir(salida, nuevo("    if (fallo)"));
+    anadir(salida, $"        return ({res}){{ .motivo = \"fallo al escribir el archivo\" }};");
+    anadir(salida, $"    return ({res}){{ .motivo = NULL }};");
+    anadir(salida, nuevo("}"));
+    anadir(salida, vacio());
+}
+
+// Las internas que pueden fallar necesitan su tipo resultado, y el original
+// los apunta en el orden en que aparecen sus llamadas, entrando en cada
+// clausura donde esta escrita.
+fn resultados_de_internas(n: &P.Nodo, cierres: &Cierres, reg: mut Registro) {
+    let clase = vista(n.clase);
+    if igual(clase, "llamada") {
+        let nombre = vista(n.texto);
+        if igual(nombre, "leer_archivo") || igual(nombre, "leer_linea")
+        || igual(nombre, "entrada_completa") || igual(nombre, "variable_entorno") {
+            registrar_resultado(reg, "str");
+        }
+        if igual(nombre, "escribir_archivo") { registrar_resultado(reg, "()"); }
+    }
+    if igual(clase, "cierre") {
+        let de_cierre = I.funcion_de_cierre(vista(n.texto));
+        if tiene(cierres.indice, vista(de_cierre)) {
+            let k = obtener(cierres.indice, vista(de_cierre)) sino 0;
+            resultados_de_internas(cierres.fns[k], cierres, reg);
+        }
+    }
+    for h en n.hijos { resultados_de_internas(h, cierres, reg); }
+}
+
 fn ayudante_leer_archivo(salida: mut lista<str>) {
     let res = G.tipo_resultado("str");
     anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
@@ -1503,65 +1556,27 @@ fn anadir_lineas(texto_c: view, salida: mut lista<str>) {
 // antes de nada, recorriendo las funciones en el mismo orden: en el arbol
 // queda solo `Cierre_N` con sus capturas, y su cuerpo pasa a `ss_cierre_N`.
 
-// Dentro del cuerpo, un nombre capturado es un campo del entorno.
-fn renombrar_capturas(n: mut P.Nodo, nombres: &lista<str>, linea: usize) {
-    var i = 0;
-    while i < largo(n.hijos) {
-        if igual(vista(n.hijos[i].clase), "variable")
-        && esta_en(nombres, vista(n.hijos[i].texto)) {
-            var c = P.rama("campo", n.hijos[i].linea);
-            c.texto = copiar(n.hijos[i].texto);
-            anadir(c.hijos, P.hoja("variable", "_ss_entorno", linea));
-            n.hijos[i] = c;
-        } else {
-            renombrar_capturas(n.hijos[i], nombres, linea);
-        }
-        i = i + 1;
-    }
-}
-
-// La funcion de una clausura: el entorno prestado delante, y despues lo
-// suyo.
-fn nodo_de_cierre(c: &P.Nodo, numero: usize) -> P.Nodo {
-    var f = P.rama("fn", c.linea);
-    f.texto = $"ss_cierre_{numero}";
-    var entorno = P.rama("param", c.linea);
-    entorno.texto = $"_ss_entorno: &Cierre_{numero}";
-    anadir(f.hijos, entorno);
-    var capturas: lista<str> = [];
-    for h en c.hijos {
-        if igual(vista(h.clase), "captura") { anadir(capturas, copiar(h.texto)); }
-    }
-    for h en c.hijos {
-        if igual(vista(h.clase), "captura") { continue; }
-        var x = copiar(h);
-        if igual(vista(x.clase), "bloque") { renombrar_capturas(x, capturas, c.linea); }
-        anadir(f.hijos, x);
-    }
-    return f;
-}
-
-// Numera las clausuras de `n` en orden y deja cada funcion en su hueco de
-// `fns`. Una clausura dentro de otra se crea al comprobar la de fuera, asi
-// que va justo detras.
-fn numerar_cierres(n: mut P.Nodo, cuenta: mut usize, fns: mut lista<P.Nodo>) {
+// Cada clausura de un cuerpo, en preorden y sin entrar en otras, pasa a ser
+// el `Cierre_N` que le dio el comprobador: queda su nombre y sus capturas,
+// y su cuerpo es la funcion `ss_cierre_N`.
+fn numerar_cierres(n: mut P.Nodo, dueno: view, numeracion: &mapa<str, usize>,
+    cuenta: mut usize) {
     var i = 0;
     while i < largo(n.hijos) {
         if igual(vista(n.hijos[i].clase), "cierre") {
+            let clave = $"{dueno}#{cuenta}";
             cuenta = cuenta + 1;
-            let numero = cuenta;
-            var f = nodo_de_cierre(n.hijos[i], numero);
-            var queda = P.rama("cierre", n.hijos[i].linea);
-            queda.texto = $"Cierre_{numero}";
-            for h en n.hijos[i].hijos {
-                if igual(vista(h.clase), "captura") { anadir(queda.hijos, copiar(h)); }
+            if tiene(numeracion, vista(clave)) {
+                let numero = obtener(numeracion, vista(clave)) sino 0;
+                var queda = P.rama("cierre", n.hijos[i].linea);
+                queda.texto = $"Cierre_{numero}";
+                for h en n.hijos[i].hijos {
+                    if igual(vista(h.clase), "captura") { anadir(queda.hijos, copiar(h)); }
+                }
+                n.hijos[i] = queda;
             }
-            n.hijos[i] = queda;
-            anadir(fns, P.rama("vacio", 0));
-            numerar_cierres(f, cuenta, fns);
-            fns[numero - 1] = f;
         } else {
-            numerar_cierres(n.hijos[i], cuenta, fns);
+            numerar_cierres(n.hijos[i], dueno, numeracion, cuenta);
         }
         i = i + 1;
     }
@@ -1707,7 +1722,7 @@ fn copiar_sustituido(n: &P.Nodo, lig: &mapa<str, str>) -> P.Nodo {
 
 // La copia de una generica con los tipos de un pedido.
 fn nodo_instancia(p: view, arboles: &lista<P.Nodo>,
-    plantillas: &mapa<str, usize>) -> P.Nodo {
+    plantillas: &mapa<str, usize>, numeracion: &mapa<str, usize>) -> P.Nodo {
     let plantilla = campo_pedido(p, 0);
     let en_c = campo_pedido(p, 1);
     let lig = ligaduras_de(p);
@@ -1720,6 +1735,20 @@ fn nodo_instancia(p: view, arboles: &lista<P.Nodo>,
             break;
         }
     }
+    // Las clausuras de esta copia son suyas: `plantilla|T1|T2`, como las
+    // llama el comprobador.
+    var dueno = copiar(plantilla);
+    var k = 2;
+    var pieza = campo_pedido(p, k);
+    while largo(pieza) > 0 {
+        let corte = buscar_desde(vista(pieza), "=", 0);
+        empujar(dueno, "|");
+        empujar(dueno, rebanar(vista(pieza), corte + 1, largo(pieza)));
+        k = k + 1;
+        pieza = campo_pedido(p, k);
+    }
+    var cuenta: usize = 0;
+    numerar_cierres(r, vista(dueno), numeracion, cuenta);
     return r;
 }
 
@@ -1729,6 +1758,8 @@ struct Cierres {
     fns: lista<P.Nodo>,
     modulo: lista<usize>,
     indice: mapa<str, usize>,
+    // `dueno#k` -> N, como lo decidio el comprobador.
+    numeracion: mapa<str, usize>,
 }
 
 // Escribe en borrador cada copia pedida que no se haya visto, primero las
@@ -1784,7 +1815,7 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
             return false;
         }
         let de = obtener(plantillas, vista(plantilla)) sino 0;
-        let copia = nodo_instancia(vista(p), arboles, plantillas);
+        let copia = nodo_instancia(vista(p), arboles, plantillas, cierres.numeracion);
         var borrador = F.cuenta_nueva();
         let lineas = F.generar_funcion(copia, contextos[de], vista(modulos[de]), borrador);
         if largo(lineas) == 0 {
@@ -2081,37 +2112,50 @@ fn main() -> usize ! {
         k_ctx = k_ctx + 1;
     }
 
-    // Las clausuras, numeradas en el orden en que las comprueba el original:
-    // funcion a funcion, cada una seguida de las que lleve dentro. Dentro de
-    // una generica habria una por copia, creada al crear la copia: eso no se
-    // sabe numerar desde aqui.
-    var cierres = Cierres { fns: [], modulo: [], indice: [] };
-    var n_cierres: usize = 0;
+    // El programa tiene que valer antes de escribir nada: mismas reglas y
+    // mismos mensajes que el comprobador de Python.
+    let revision = C.comprobar_programa(arboles, modulos, contextos);
+    if largo(revision.errores) > 0 {
+        for e en revision.errores { imprimir_error($"error: {e}\n"); }
+        let n = largo(revision.errores);
+        if n == 1 { imprimir_error("\n1 error. No se genero nada.\n"); }
+        else { imprimir_error($"\n{n} errores. No se genero nada.\n"); }
+        return 1;
+    }
+    if n_argumentos() > 2 && igual(argumento(2), "--solo-comprobar") { return 0; }
+
+    // Las clausuras nacieron al comprobar, en el orden del original y una por
+    // copia en las genericas. Cada cuerpo lleva ahora el `Cierre_N` que le
+    // toca en cada sitio, y su funcion se ve desde todos los modulos: una
+    // copia de `filtradas` en std/lista llama a la clausura de quien la pidio.
+    var cierres = Cierres { fns: copiar(revision.cierres),
+        modulo: copiar(revision.cierres_mod), indice: [],
+        numeracion: copiar(revision.numeracion) };
     var m_c = 0;
     while m_c < largo(arboles) {
         var k_d = 0;
         while k_d < largo(arboles[m_c].hijos) {
-            if igual(vista(arboles[m_c].hijos[k_d].clase), "fn") {
-                if F.es_generica(arboles[m_c].hijos[k_d]) {
-                    if tiene_cierre(arboles[m_c].hijos[k_d]) {
-                        return rechazo("una clausura dentro de una generica");
-                    }
-                } else {
-                    numerar_cierres(arboles[m_c].hijos[k_d], n_cierres, cierres.fns);
-                    while largo(cierres.modulo) < largo(cierres.fns) {
-                        anadir(cierres.modulo, m_c);
-                    }
+            if igual(vista(arboles[m_c].hijos[k_d].clase), "fn")
+            && !F.es_generica(arboles[m_c].hijos[k_d]) {
+                var dueno = copiar(arboles[m_c].hijos[k_d].texto);
+                if tiene(contextos[m_c].renombradas, vista(dueno)) {
+                    dueno = nuevo(obtener(contextos[m_c].renombradas, vista(dueno)) sino "");
                 }
+                var cuenta: usize = 0;
+                numerar_cierres(arboles[m_c].hijos[k_d], vista(dueno), cierres.numeracion,
+                    cuenta);
             }
             k_d = k_d + 1;
         }
         m_c = m_c + 1;
     }
-    // Su firma la ven todos los modulos: una copia de `filtradas` en
-    // std/lista llama a la clausura de quien la pidio.
+    let numeracion = copiar(cierres.numeracion);
     var k_cf = 0;
     while k_cf < largo(cierres.fns) {
-        poner(cierres.indice, vista(cierres.fns[k_cf].texto), k_cf);
+        let dueno_c = copiar(cierres.fns[k_cf].texto);
+        var cuenta_c: usize = 0;
+        numerar_cierres(cierres.fns[k_cf], vista(dueno_c), numeracion, cuenta_c);
+        poner(cierres.indice, vista(dueno_c), k_cf);
         F.recoger_firmas(cierres.fns[k_cf], global);
         var k_cx = 0;
         while k_cx < largo(contextos) {
@@ -2120,19 +2164,6 @@ fn main() -> usize ! {
         }
         k_cf = k_cf + 1;
     }
-
-    // El programa tiene que valer antes de escribir nada: mismas reglas y
-    // mismos mensajes que el comprobador de Python.
-    let errores = C.comprobar_programa(arboles, modulos, contextos, cierres.fns,
-        cierres.modulo);
-    if largo(errores) > 0 {
-        for e en errores { imprimir_error($"error: {e}\n"); }
-        let n = largo(errores);
-        if n == 1 { imprimir_error("\n1 error. No se genero nada.\n"); }
-        else { imprimir_error($"\n{n} errores. No se genero nada.\n"); }
-        return 1;
-    }
-    if n_argumentos() > 2 && igual(argumento(2), "--solo-comprobar") { return 0; }
 
     // Las copias de los structs genericos: primero las que piden los campos
     // de los structs, luego las de los tipos escritos en cada funcion.
@@ -2204,7 +2235,7 @@ fn main() -> usize ! {
             anadir(st_tipos, ct);
             continue;
         }
-        let copia_r = nodo_instancia(vista(p), arboles, plantillas);
+        let copia_r = nodo_instancia(vista(p), arboles, plantillas, cierres.numeracion);
         resolver_instancia(copia_r, stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
@@ -2220,7 +2251,7 @@ fn main() -> usize ! {
             anadir(modulo_de, cierres.modulo[k_ci]);
             continue;
         }
-        anadir(instancias, nodo_instancia(vista(p), arboles, plantillas));
+        anadir(instancias, nodo_instancia(vista(p), arboles, plantillas, cierres.numeracion));
         let plantilla = campo_pedido(vista(p), 0);
         anadir(modulo_de, obtener(plantillas, vista(plantilla)) sino 0);
     }
@@ -2272,10 +2303,12 @@ fn main() -> usize ! {
 
     // Las internas falibles registran el suyo despues, al recorrer todo.
     var usa_leer_archivo = false;
+    var usa_escribir_archivo = false;
     var da_texto = false;
     var usa_sistema: mapa<str, usize> = [];
     for arbol en arboles {
         if llama_a(arbol, "leer_archivo") { usa_leer_archivo = true; }
+        if llama_a(arbol, "escribir_archivo") { usa_escribir_archivo = true; }
         if llama_a(arbol, "leer_linea") {
             da_texto = true;
             poner(usa_sistema, "leer_linea", 1);
@@ -2294,8 +2327,8 @@ fn main() -> usize ! {
             poner(usa_sistema, "semilla", 1);
         }
     }
-    // Todas las que fallan dan un `str`: el tipo resultado es uno.
-    if usa_leer_archivo || da_texto { registrar_resultado(reg, "str"); }
+    for arbol en arboles { resultados_de_internas(arbol, cierres, reg); }
+    let _t = da_texto;
 
     // Los structs en orden de dependencia, y quien de ellos posee.
     var listos: mapa<str, usize> = [];
@@ -2426,6 +2459,7 @@ fn main() -> usize ! {
     anadir(internas_orden, nuevo("leer_linea"));
     anadir(internas_orden, nuevo("entrada_completa"));
     anadir(internas_orden, nuevo("variable_entorno"));
+    if usa_escribir_archivo { ayudante_escribir_archivo(partes); }
     for interna en internas_orden {
         if !tiene(usa_sistema, vista(interna)) { continue; }
         let crudo = try leer_archivo($"{raiz}/runtime/sistema/{interna}.inc");
