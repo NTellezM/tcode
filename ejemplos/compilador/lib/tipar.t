@@ -165,6 +165,12 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
 
     if igual(clase, "unaria") {
         if igual(vista(n.texto), "!") { return nuevo("bool"); }
+        // Un numero escrito con `-` delante solo cabe en uno con signo: sin
+        // mas contexto es un `i64`, como en el comprobador.
+        if igual(vista(n.texto), "-") && largo(n.hijos) > 0
+        && igual(vista(n.hijos[0].clase), "entero") {
+            return nuevo("i64");
+        }
         if largo(n.hijos) > 0 { return tipo_de(c, n.hijos[0]); }
         return vacio();
     }

@@ -37,11 +37,14 @@
 #endif
 
 /* Aritmetica comprobada: en Tcode el desbordamiento no es silencioso.
-   Aborta diciendo donde, en vez de seguir con un valor equivocado. */
+   Aborta diciendo donde, en vez de seguir con un valor equivocado. Antes se
+   vacia `stdout`: `abort()` no lo hace, y con la salida en un archivo o una
+   tuberia se perderia todo lo que el programa ya habia impreso. */
 SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
 static void ss_lang_no_es_numero_(const char* op, const char* consejo,
                                   const char* archivo, int linea)
 {
+    fflush(stdout);
     fprintf(stderr, "%s:%d: `%s` no dio un numero (NaN o infinito). %s\n",
             archivo, linea, op, consejo);
     abort();
@@ -51,6 +54,7 @@ SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
 static void ss_lang_no_cabe_(const char* de, const char* a,
                              const char* archivo, int linea)
 {
+    fflush(stdout);
     fprintf(stderr, "%s:%d: el valor no cabe en `%s` viniendo de `%s`\n",
             archivo, linea, a, de);
     abort();
@@ -59,6 +63,7 @@ static void ss_lang_no_cabe_(const char* de, const char* a,
 SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
 static void ss_lang_desborde_(const char* op, const char* archivo, int linea)
 {
+    fflush(stdout);
     fprintf(stderr, "%s:%d: desbordamiento en `%s`\n", archivo, linea, op);
     abort();
 }
@@ -66,6 +71,7 @@ static void ss_lang_desborde_(const char* op, const char* archivo, int linea)
 SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
 static void ss_lang_division_cero_(const char* archivo, int linea)
 {
+    fflush(stdout);
     fprintf(stderr, "%s:%d: division por cero\n", archivo, linea);
     abort();
 }
@@ -397,6 +403,7 @@ static SafeView ss_lang_argumento_(size_t i, const char* arch, int ln)
 {
     if (SS_LANG_RARO(i >= (size_t) ss_lang_argc_))
     {
+        fflush(stdout);
         fprintf(stderr, "%s:%d: no hay argumento %zu (se recibieron %d, "
                         "contando el nombre del programa)\n",
                 arch, ln, i, ss_lang_argc_);
@@ -411,6 +418,7 @@ static size_t ss_lang_indice_(size_t i, size_t n, const char* arch, int ln)
 {
     if (SS_LANG_RARO(i >= n))
     {
+        fflush(stdout);
         fprintf(stderr, "%s:%d: indice %zu fuera de rango (el arreglo tiene "
                         "%zu elemento%s)\n", arch, ln, i, n, n == 1 ? "" : "s");
         abort();
@@ -421,6 +429,7 @@ static size_t ss_lang_indice_(size_t i, size_t n, const char* arch, int ln)
 SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
 static void ss_lang_sin_memoria_(const char* archivo, int linea)
 {
+    fflush(stdout);
     fprintf(stderr, "%s:%d: no hay memoria suficiente\n", archivo, linea);
     abort();
 }

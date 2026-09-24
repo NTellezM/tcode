@@ -54,6 +54,7 @@ static size_t ss_lang_azar_(size_t tope, const char* archivo, int linea)
 {
     if (tope == 0)
     {
+        fflush(stdout);
         fprintf(stderr, "%s:%d: `azar(0)` pide un numero de un rango "
                 "vacio\n", archivo, linea);
         abort();
