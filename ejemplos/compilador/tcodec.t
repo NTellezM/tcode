@@ -207,7 +207,9 @@ fn resolver(pedido: view, dir: view, raiz: view) -> str ! {
 
 // Los `usar` del principio de un archivo, en orden.
 fn usar_de(fuente: view) -> lista<str> ! {
-    let toks = try analizar(fuente);
+    // Si no se puede leer, no pide nada: el error de verdad lo dice despues
+    // `preparar`, con su archivo y su linea.
+    let toks = analizar(fuente) sino [];
     var salida: lista<str> = [];
     var i = 0;
     while i + 1 < largo(toks) {
@@ -1883,7 +1885,17 @@ fn main() -> usize ! {
     var plantillas: mapa<str, usize> = [];
     for m en modulos {
         var tipos = I.contexto();
-        let arbol = try F.preparar(vista(m), tipos);
+        var error_m = vacio();
+        let arbol = F.preparar_con_error(vista(m), tipos, error_m) sino P.rama("vacio", 0);
+        if largo(error_m) > 0 {
+            // Como el cargador de Python: el primer error y nada mas.
+            imprimir_error($"error: {error_m}\n");
+            return 1;
+        }
+        if igual(vista(arbol.clase), "vacio") {
+            imprimir_error($"tcodec: no se pudo leer `{m}`\n");
+            return 1;
+        }
         F.recoger_firmas(arbol, global);
         for d en arbol.hijos {
             let clase = vista(d.clase);

@@ -269,8 +269,15 @@ fn cuenta_nueva() -> Cuenta {
 // para generarlo: sus firmas, las de los modulos que usa y los nombres que
 // el cargador renombra. Devuelve el arbol.
 fn preparar(ruta: view, tipos: mut I.Contexto) -> P.Nodo ! {
+    var error = vacio();
+    return try preparar_con_error(ruta, tipos, error);
+}
+
+// Lo mismo, y si el archivo no se puede leer como Tcode, `error` dice por que
+// con las palabras del lexer y el parser de Python.
+fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str) -> P.Nodo ! {
     let fuente = try leer_archivo(ruta);
-    let tokens = try analizar(vista(fuente));
+    let tokens = try tokens_de(vista(fuente), ruta, error);
     let nombres = P.structs_visibles(ruta, tokens);
     let formas = P.enums_visibles(ruta, tokens);
     // Lo que traen los modulos, antes de nada: los tokens pasan a ser del
@@ -279,10 +286,12 @@ fn preparar(ruta: view, tipos: mut I.Contexto) -> P.Nodo ! {
         recoger_de_modulo(m, tipos);
     }
 
-    let sin_alias: mapa<str, usize> = [];
-    var estado = P.Estado { toks: tokens, i: 0, alias: sin_alias,
-        structs: nombres, enums: formas };
-    let arbol = try P.programa(estado);
+    var estado = P.estado_de(tokens, ruta, nombres, formas);
+    let arbol = P.programa(estado) sino P.rama("vacio", 0);
+    if largo(estado.error) > 0 || igual(vista(arbol.clase), "vacio") {
+        error = copiar(estado.error);
+        falla "sintaxis";
+    }
 
     // Y las suyas, que mandan sobre las de fuera.
     recoger_firmas(arbol, tipos);

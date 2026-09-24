@@ -3661,6 +3661,17 @@ fn main() {
 }
 """
 
+# `&&` ata mas que `||`, y `1_000` es `1000`: el parser y el lexer en Tcode
+# los leian distinto, y el C salia distinto.
+_PRECEDENCIA_TCODEC = r"""fn main() {
+    let a = true;
+    let b = true;
+    let c = false;
+    let x: usize = 1_000;
+    imprimir($"{a || b && c} {x}\n");
+}
+"""
+
 _FN_ANIDADA_TCODEC = r"""fn doble(n: usize) -> usize { return n * 2; }
 fn aplicar(f: fn(usize) -> usize, n: usize) -> usize { return f(n); }
 fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
@@ -3670,10 +3681,12 @@ fn main() { imprimir($"{dos_veces(aplicar, 3)}\n"); }
 """
 
 _MINIMO_PROGRAMAS = 25
-# Rechazos cuyo primer error dice `tcodec` igual que el comprobador de Python.
-# Los que faltan son errores de sintaxis: el parser en Tcode los rechaza,
-# pero con otro mensaje.
-_MINIMO_RECHAZOS = 150
+# Rechazos cuyo primer error dice `tcodec` igual que Python: todos, tambien
+# los de sintaxis, que dan el lexer y el parser escritos en Tcode.
+_MINIMO_RECHAZOS = 157
+# Mutaciones por archivo para comparar los errores de sintaxis: se rompe un
+# token de cada archivo del repositorio de varias formas, siempre las mismas.
+_MUTACIONES_POR_ARCHIVO = 5
 _OBLIGATORIOS_TCODEC = {os.path.join("ejemplos", "bloques.t"),
                         os.path.join("ejemplos", "pruebas.t")}
 
@@ -3760,7 +3773,8 @@ try:
             # tambien uno que recibe otro. Nada de eso lo pide un programa del
             # repositorio salvo lo de `pruebas.t`.
             for nombre_c, fuente_c in (("cierres.t", _CIERRES_TCODEC),
-                                       ("anidado.t", _FN_ANIDADA_TCODEC)):
+                                       ("anidado.t", _FN_ANIDADA_TCODEC),
+                                       ("precedencia.t", _PRECEDENCIA_TCODEC)):
                 total += 1
                 ruta_cierre = os.path.join(tmp, nombre_c)
                 with open(ruta_cierre, "w", encoding="utf-8") as f:
@@ -3857,6 +3871,75 @@ try:
             print(f"    comprobador: {mismos} de {rechazados} rechazos con el "
                   f"mismo primer error, y ninguno de {correctos} programas "
                   f"correctos rechazado")
+
+            # Los errores de sintaxis, sobre el codigo real: cada archivo del
+            # repositorio roto de varias formas —un token de menos, de mas,
+            # un simbolo fuera de sitio, una cadena sin cerrar, un caracter
+            # que no existe— y el primer error tiene que ser el mismo. Los
+            # mutantes van junto al original para que sus `usar` sigan
+            # valiendo, y se borran siempre.
+            import random as _random
+            from tcode.lexer import tokenizar as _tokenizar
+
+            def _mutantes(fuente, semilla):
+                rnd = _random.Random(semilla)
+                lineas = fuente.split("\n")
+                toks = [t for t in _tokenizar(fuente, "x") if t.tipo != "fin"]
+                for _ in range(_MUTACIONES_POR_ARCHIVO):
+                    t = rnd.choice(toks)
+                    li = lineas[t.linea - 1]
+                    c = t.col - 1
+                    literal = t.tipo in ("cadena", "interpolada")
+                    forma = rnd.choice(["borra", "dup", "punto", "paren", "llave",
+                                        "arroba", "comilla", "cero", "fn"])
+                    if literal:
+                        forma = rnd.choice(["punto", "paren", "arroba", "comilla"])
+                    n = len(t.valor)
+                    nueva = {
+                        "borra": lambda: li[:c] + li[c + n:],
+                        "dup": lambda: li[:c] + li[c:c + n] + " " + li[c:],
+                        "punto": lambda: li[:c] + ";" + li[c:],
+                        "paren": lambda: li[:c] + ")" + li[c:],
+                        "llave": lambda: li[:c] + "{" + li[c:],
+                        "arroba": lambda: li[:c] + "@" + li[c:],
+                        "comilla": lambda: li[:c] + '"' + li[c:],
+                        "cero": lambda: li[:c] + "0x" + li[c:],
+                        "fn": lambda: li[:c] + "fn " + li[c:],
+                    }[forma]()
+                    otras = list(lineas)
+                    otras[t.linea - 1] = nueva
+                    yield f"{forma} en la linea {t.linea}", "\n".join(otras)
+
+            iguales_s = rotos = 0
+            for archivo in sorted(glob.glob(os.path.join("std", "*.t"))
+                                  + glob.glob(os.path.join("ejemplos", "**", "*.t"),
+                                              recursive=True)):
+                with open(archivo, encoding="utf-8") as f:
+                    fuente_o = f.read()
+                for que, fuente_m in _mutantes(fuente_o, archivo):
+                    ruta_m = os.path.join(os.path.dirname(archivo),
+                                          ".mut_" + os.path.basename(archivo))
+                    try:
+                        with open(ruta_m, "w", encoding="utf-8") as f:
+                            f.write(fuente_m)
+                        de_python = _errores_python(ruta_m)
+                        if not de_python:
+                            continue
+                        rotos += 1
+                        total += 1
+                        rc, de_tcodec, crudo = _errores_tcodec(ruta_m)
+                        if de_tcodec and de_tcodec[0] == de_python[0]:
+                            iguales_s += 1
+                        else:
+                            falla("los errores de sintaxis en Tcode",
+                                  f"{archivo}, {que}:\n"
+                                  f"  Python: {de_python[0][:300]!r}\n"
+                                  f"  Tcode:  {(de_tcodec[:1] or [crudo[:300]])[0]!r}")
+                    finally:
+                        if os.path.exists(ruta_m):
+                            os.remove(ruta_m)
+            print(f"    sintaxis: {iguales_s} de {rotos} programas rotos, mismo "
+                  f"primer error que el lexer y el parser de Python")
 
             iguales = intentados = 0
             for archivo in sorted(

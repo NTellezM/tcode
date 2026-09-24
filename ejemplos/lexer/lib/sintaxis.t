@@ -25,6 +25,20 @@ struct Estado {
     // Nombres de enum, por lo mismo: `Color.Rojo` es una forma, no el campo
     // `Rojo` de una variable `Color`.
     enums: mapa<str, usize>,
+    // El archivo, para los mensajes, y el primer error que se encontro:
+    // `archivo:linea: mensaje, se encontro 'x'`, como el parser de Python.
+    archivo: str,
+    error: str,
+    // Los parametros de tipo de la funcion o el struct que se esta leyendo:
+    // mientras dura, `T` es un tipo mas.
+    tipo_params: mapa<str, usize>,
+}
+
+// Un estado nuevo sobre unos tokens.
+fn estado_de(toks: lista<Token>, archivo: view, structs: mapa<str, usize>,
+    enums: mapa<str, usize>) -> Estado {
+    return Estado { toks: toks, i: 0, alias: [], structs: structs, enums: enums,
+        archivo: nuevo(archivo), error: vacio(), tipo_params: [] };
 }
 
 // ------------------------------------------------------------------
@@ -105,6 +119,106 @@ fn acepta(e: mut Estado, tipo: view, valor: view) -> bool {
     return false;
 }
 
+// ------------------------------------------------------------------
+// Los errores, con las palabras del parser de Python
+// ------------------------------------------------------------------
+
+// Lo que se encontro, como lo muestra Python: el texto del token entre
+// comillas, recortado si es largo, o `fin de archivo`.
+fn visto_en(e: &Estado, k: usize) -> str {
+    if k >= largo(e.toks) || igual(vista(e.toks[k].tipo), "fin") {
+        return nuevo("fin de archivo");
+    }
+    var valor = copiar(e.toks[k].valor);
+    let clase = vista(e.toks[k].tipo);
+    // Python guarda las cadenas ya descifradas.
+    if igual(clase, "cadena") || igual(clase, "interpolada") {
+        valor = descifrado(vista(valor), igual(clase, "interpolada"));
+    }
+    if caracteres(vista(valor)) > 72 {
+        valor = $"{primeros(vista(valor), 69)}...";
+    }
+    return repr_texto(vista(valor));
+}
+
+// Los caracteres de un texto UTF-8, contando cada `\xNN` descifrado como uno.
+fn caracteres(t: view) -> usize {
+    var n = 0;
+    var i = 0;
+    while i < largo(t) {
+        let b = byte(t, i);
+        if b == 1 && i + 2 < largo(t) {
+            n = n + 1;
+            i = i + 3;
+            continue;
+        }
+        if b < 128 || b >= 192 { n = n + 1; }
+        i = i + 1;
+    }
+    return n;
+}
+
+fn primeros(t: view, cuantos: usize) -> str {
+    var n = 0;
+    var i = 0;
+    while i < largo(t) {
+        let b = byte(t, i);
+        let empieza = b < 128 || b >= 192;
+        if empieza && n == cuantos { break; }
+        if empieza { n = n + 1; }
+        if b == 1 && i + 2 < largo(t) {
+            i = i + 3;
+            continue;
+        }
+        i = i + 1;
+    }
+    return nuevo(rebanar(t, 0, i));
+}
+
+// Una cadena con sus escapes resueltos. Un `\xNN` queda como una marca de
+// tres bytes que `repr_texto` sabe mostrar.
+fn descifrado(t: view, interpolada: bool) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < largo(t) {
+        let b = byte(t, i);
+        if b == 92 && i + 1 < largo(t) {
+            let d = byte(t, i + 1);
+            if d == 110 { empujar_byte(r, 10); i = i + 2; continue; }
+            if d == 116 { empujar_byte(r, 9); i = i + 2; continue; }
+            if d == 48 { empujar_byte(r, 0); i = i + 2; continue; }
+            if d == 120 && i + 3 < largo(t) {
+                empujar_byte(r, 1);
+                empujar(r, rebanar(t, i + 2, i + 4));
+                i = i + 4;
+                continue;
+            }
+            empujar(r, rebanar(t, i + 1, i + 2));
+            i = i + 2;
+            continue;
+        }
+        let _i = interpolada;
+        empujar(r, rebanar(t, i, i + 1));
+        i = i + 1;
+    }
+    return r;
+}
+
+// Deja el primer error: `archivo:linea: mensaje, se encontro 'x'`, sobre el
+// token `k`. Quien lo llama falla justo despues.
+fn error_en(e: mut Estado, mensaje: view, k: usize) {
+    if largo(e.error) > 0 { return; }
+    var linea = 0;
+    if k < largo(e.toks) { linea = e.toks[k].linea; }
+    let visto = visto_en(e, k);
+    e.error = $"{e.archivo}:{linea}: {mensaje}, se encontro {visto}";
+}
+
+fn error_aqui(e: mut Estado, mensaje: view) {
+    let k = e.i;
+    error_en(e, mensaje, k);
+}
+
 fn espera(e: mut Estado, tipo: view, valor: view) -> str ! {
     // `lista<lista<str>>` acaba en dos `>` pegados, que el lexer lee como el
     // desplazamiento `>>`. Donde se espera cerrar un tipo, se parte en dos.
@@ -116,19 +230,63 @@ fn espera(e: mut Estado, tipo: view, valor: view) -> str ! {
     }
     let v = nuevo(valor_en(e, 0));
     if !es(e, tipo, valor) {
-        falla "no era el token que tocaba";
+        var que = nuevo(valor);
+        if largo(que) == 0 { que = nuevo(tipo); }
+        let dicho = repr_texto(vista(que));
+        error_aqui(e, $"se esperaba {dicho}");
+        falla "sintaxis";
     }
     avanzar(e);
     return v;
+}
+
+// Un entero escrito: solo digitos, y que quepa en `u64`. Devuelve el texto
+// sin ceros delante.
+fn entero_literal(e: mut Estado, k: usize) -> str ! {
+    let texto_t = copiar(e.toks[k].valor);
+    var i = 0;
+    while i + 1 < largo(texto_t) && byte(vista(texto_t), i) == 48 { i = i + 1; }
+    let limpio = nuevo(rebanar(vista(texto_t), i, largo(texto_t)));
+    let tope = "18446744073709551615";
+    if largo(limpio) > largo(tope)
+    || (largo(limpio) == largo(tope) && menor(tope, vista(limpio))) {
+        error_en(e, "el literal entero no cabe en `u64`", k);
+        falla "sintaxis";
+    }
+    return limpio;
+}
+
+fn es_tipo_basico(t: view) -> bool {
+    return igual(t, "str") || igual(t, "view") || igual(t, "bool") || igual(t, "u8")
+    || igual(t, "u16") || igual(t, "u32") || igual(t, "u64") || igual(t, "usize")
+    || igual(t, "i8") || igual(t, "i16") || igual(t, "i32") || igual(t, "i64")
+    || igual(t, "f32") || igual(t, "f64");
 }
 
 // ------------------------------------------------------------------
 // Tipos
 // ------------------------------------------------------------------
 
+// Los argumentos de `Nombre<A, B>`, con el `<` ya comido.
+fn argumentos_de_tipo(e: mut Estado, nombre: view) -> str ! {
+    var t = nuevo(nombre);
+    empujar(t, "<");
+    var primero = true;
+    while true {
+        let a = try tipo(e);
+        if !primero { empujar(t, ", "); }
+        primero = false;
+        empujar(t, vista(a));
+        if !acepta(e, "simbolo", ",") { break; }
+    }
+    try espera(e, "simbolo", ">");
+    empujar(t, ">");
+    return t;
+}
+
 fn tipo(e: mut Estado) -> str ! {
-    // `&T` y `&mut T` como tipo. Fuera de la posicion de parametro aparecen
-    // dentro de un tipo de funcion: `fn(&T, &T) -> bool`.
+    let k = e.i;
+    // `&T` y `&mut T` como tipo.
     if acepta(e, "simbolo", "&") {
         var t = nuevo("&");
         if acepta(e, "palabra", "mut") { empujar(t, "mut "); }
@@ -136,42 +294,10 @@ fn tipo(e: mut Estado) -> str ! {
         empujar(t, dentro);
         return t;
     }
-    // `bloque<T>`: no es palabra reservada, se reconoce por el `<`.
-    if es(e, "ident", "bloque") {
-        if igual(valor_en(e, 1), "<") {
-            avanzar(e);
-            try espera(e, "simbolo", "<");
-            let dentro = try tipo(e);
-            try espera(e, "simbolo", ">");
-            var t = nuevo("bloque<");
-            empujar(t, dentro);
-            empujar(t, ">");
-            return t;
-        }
-    }
-    if es(e, "palabra", "lista") {
+    if es(e, "palabra", "") && es_tipo_basico(valor_en(e, 0)) {
+        let v = nuevo(valor_en(e, 0));
         avanzar(e);
-        try espera(e, "simbolo", "<");
-        let dentro = try tipo(e);
-        try espera(e, "simbolo", ">");
-        var t = nuevo("lista<");
-        empujar(t, dentro);
-        empujar(t, ">");
-        return t;
-    }
-    if es(e, "palabra", "mapa") {
-        avanzar(e);
-        try espera(e, "simbolo", "<");
-        let k = try tipo(e);
-        try espera(e, "simbolo", ",");
-        let v = try tipo(e);
-        try espera(e, "simbolo", ">");
-        var t = nuevo("mapa<");
-        empujar(t, k);
-        empujar(t, ", ");
-        empujar(t, v);
-        empujar(t, ">");
-        return t;
+        return v;
     }
     // `fn(usize, usize) -> bool`: el tipo de una funcion usada como valor.
     if es(e, "palabra", "fn") {
@@ -179,12 +305,13 @@ fn tipo(e: mut Estado) -> str ! {
         try espera(e, "simbolo", "(");
         var t = nuevo("fn(");
         if !es(e, "simbolo", ")") {
-            var mas_p = true;
-            while mas_p {
+            var primero = true;
+            while true {
                 let a = try tipo(e);
+                if !primero { empujar(t, ", "); }
+                primero = false;
                 empujar(t, a);
-                mas_p = acepta(e, "simbolo", ",");
-                if mas_p { empujar(t, ", "); }
+                if !acepta(e, "simbolo", ",") { break; }
             }
         }
         try espera(e, "simbolo", ")");
@@ -196,48 +323,76 @@ fn tipo(e: mut Estado) -> str ! {
         }
         return t;
     }
-
-    if es(e, "simbolo", "[") {
+    // Un parametro de tipo de la funcion en curso.
+    if es(e, "ident", "") && tiene(e.tipo_params, valor_en(e, 0)) {
+        let v = nuevo(valor_en(e, 0));
         avanzar(e);
-        let dentro = try tipo(e);
-        try espera(e, "simbolo", ";");
-        let n = try espera(e, "entero", "");
-        try espera(e, "simbolo", "]");
-        var t = nuevo("[");
-        empujar(t, dentro);
-        empujar(t, "; ");
-        empujar(t, n);
-        empujar(t, "]");
-        return t;
-    }
-    if es(e, "palabra", "") || es(e, "ident", "") {
-        var v = nuevo(valor_en(e, 0));
-        avanzar(e);
-        // `t.Caja`: un tipo que llega con nombre de modulo.
-        if tiene(e.alias, vista(v)) {
-            if es(e, "simbolo", ".") {
-                avanzar(e);
-                let miembro = try espera(e, "ident", "");
-                empujar(v, ".");
-                empujar(v, miembro);
-            }
-        }
-        // `Par<usize, str>`: un struct generico aplicado a sus tipos.
-        if acepta(e, "simbolo", "<") {
-            empujar(v, "<");
-            var mas_arg = true;
-            while mas_arg {
-                let a = try tipo(e);
-                empujar(v, a);
-                mas_arg = acepta(e, "simbolo", ",");
-                if mas_arg { empujar(v, ", "); }
-            }
-            try espera(e, "simbolo", ">");
-            empujar(v, ">");
-        }
         return v;
     }
-    falla "se esperaba un tipo";
+    // `par.Par<usize, str>`: un tipo que llega con nombre de modulo.
+    if es(e, "ident", "") && tiene(e.alias, valor_en(e, 0))
+    && igual(tipo_en(e, 1), "simbolo") && igual(valor_en(e, 1), ".") {
+        var v = nuevo(valor_en(e, 0));
+        avanzar(e);
+        avanzar(e);
+        let miembro = try espera(e, "ident", "");
+        empujar(v, ".");
+        empujar(v, miembro);
+        if acepta(e, "simbolo", "<") { return try argumentos_de_tipo(e, vista(v)); }
+        return v;
+    }
+    // `cadena_c`: un `char*` de C que Tcode copia.
+    if es(e, "ident", "cadena_c") {
+        avanzar(e);
+        return nuevo("cadena_c");
+    }
+    // El nombre de un struct o de un enum, con o sin argumentos de tipo.
+    if es(e, "ident", "") && (tiene(e.structs, valor_en(e, 0)) || tiene(e.enums, valor_en(e, 0))) {
+        let v = nuevo(valor_en(e, 0));
+        avanzar(e);
+        if acepta(e, "simbolo", "<") { return try argumentos_de_tipo(e, vista(v)); }
+        return v;
+    }
+    if es(e, "palabra", "mapa") {
+        avanzar(e);
+        try espera(e, "simbolo", "<");
+        let clave = try tipo(e);
+        try espera(e, "simbolo", ",");
+        let valor = try tipo(e);
+        try espera(e, "simbolo", ">");
+        return $"mapa<{clave}, {valor}>";
+    }
+    // `bloque<T>`: no es palabra reservada, se reconoce por el `<`.
+    if es(e, "ident", "bloque") && igual(valor_en(e, 1), "<") {
+        avanzar(e);
+        try espera(e, "simbolo", "<");
+        let dentro = try tipo(e);
+        try espera(e, "simbolo", ">");
+        return $"bloque<{dentro}>";
+    }
+    if es(e, "palabra", "lista") {
+        avanzar(e);
+        try espera(e, "simbolo", "<");
+        let dentro = try tipo(e);
+        try espera(e, "simbolo", ">");
+        return $"lista<{dentro}>";
+    }
+    // Un arreglo de tamaño fijo: `[usize; 5]`.
+    if acepta(e, "simbolo", "[") {
+        let dentro = try tipo(e);
+        try espera(e, "simbolo", ";");
+        let kn = e.i;
+        try espera(e, "entero", "");
+        let n = try entero_literal(e, kn);
+        try espera(e, "simbolo", "]");
+        if igual(vista(n), "0") {
+            error_en(e, "un arreglo tiene que tener al menos un elemento", k);
+            falla "sintaxis";
+        }
+        return $"[{dentro}; {n}]";
+    }
+    error_aqui(e, "se esperaba un tipo (str, view, usize, i64, bool, lista<tipo>, mapa<clave, valor>, un struct, o [tipo; N])");
+    falla "sintaxis";
 }
 
 // ------------------------------------------------------------------
@@ -251,29 +406,40 @@ fn match_(e: mut Estado) -> Nodo ! {
     let v = try expresion(e);
     anadir(n.hijos, v);
     try espera(e, "simbolo", "{");
+    var brazos = 0;
     while !es(e, "simbolo", "}") {
+        if es(e, "fin", "") {
+            error_aqui(e, "match sin cerrar");
+            falla "sintaxis";
+        }
         let bl = linea_actual(e);
         var b = rama("brazo", bl);
-        if igual(valor_en(e, 0), "_") {
+        if es(e, "ident", "_") {
             avanzar(e);
         } else {
             let quien = try espera(e, "ident", "");
             try espera(e, "simbolo", ".");
             let cual = try espera(e, "ident", "");
+            if !tiene(e.enums, vista(quien)) {
+                error_aqui(e, $"`{quien}` no es un enum");
+                falla "sintaxis";
+            }
             empujar(b.texto, quien);
             empujar(b.texto, ".");
             empujar(b.texto, cual);
             if acepta(e, "simbolo", "(") {
-                var mas = true;
-                while mas {
-                    let atrapa = try espera(e, "ident", "");
-                    anadir(b.hijos, hoja("atrapa", vista(atrapa), bl));
-                    mas = acepta(e, "simbolo", ",");
+                if !es(e, "simbolo", ")") {
+                    while true {
+                        let atrapa = try espera(e, "ident", "");
+                        anadir(b.hijos, hoja("atrapa", vista(atrapa), bl));
+                        if !acepta(e, "simbolo", ",") { break; }
+                    }
                 }
                 try espera(e, "simbolo", ")");
             }
         }
         try espera(e, "simbolo", "->");
+        brazos = brazos + 1;
         if es(e, "simbolo", "{") {
             let cuerpo = try bloque(e);
             anadir(b.hijos, cuerpo);
@@ -292,22 +458,34 @@ fn match_(e: mut Estado) -> Nodo ! {
         }
     }
     try espera(e, "simbolo", "}");
+    if brazos == 0 {
+        error_aqui(e, "un `match` sin brazos no mira nada");
+        falla "sintaxis";
+    }
     return n;
 }
 
 // Analiza lo que hay entre llaves y lo cuelga en orden. `{{` y `}}` son una
-// llave escrita, no un hueco.
-fn huecos_de(e: &Estado, t: view, n: mut Nodo) ! {
+// llave escrita, no un hueco. `k` es el token de la cadena, al que apuntan
+// los errores.
+fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
+    // Python mira la cadena ya descifrada: un `\"` es una comilla.
+    let texto_d = descifrado(t, true);
+    let d = vista(texto_d);
     var i = 0;
-    while i < largo(t) {
-        let c = byte(t, i);
-        if c == 123 && i + 1 < largo(t) && byte(t, i + 1) == 123 {
+    while i < largo(d) {
+        let c = byte(d, i);
+        if c == 123 && i + 1 < largo(d) && byte(d, i + 1) == 123 {
             i = i + 2;
             continue;
         }
-        if c == 125 && i + 1 < largo(t) && byte(t, i + 1) == 125 {
+        if c == 125 && i + 1 < largo(d) && byte(d, i + 1) == 125 {
             i = i + 2;
             continue;
+        }
+        if c == 125 {
+            error_en(e, "`}` suelto dentro de una cadena interpolada; escribe `}}` si querias la llave", k);
+            falla "sintaxis";
         }
         if c != 123 {
             i = i + 1;
@@ -315,27 +493,44 @@ fn huecos_de(e: &Estado, t: view, n: mut Nodo) ! {
         }
         var prof = 1;
         var j = i + 1;
-        while j < largo(t) && prof > 0 {
-            if byte(t, j) == 123 { prof = prof + 1; }
-            if byte(t, j) == 125 { prof = prof - 1; }
+        while j < largo(d) && prof > 0 {
+            if byte(d, j) == 123 { prof = prof + 1; }
+            if byte(d, j) == 125 { prof = prof - 1; }
             if prof > 0 { j = j + 1; }
         }
-        if prof != 0 { falla "falta `}` en una cadena interpolada"; }
-        // Lo de dentro del hueco lleva los escapes crudos, y el sub-lexer
-        // no los entiende: `\"hola\"` tiene que ser `"hola"` antes.
-        let suelto = desescapar(rebanar(t, i + 1, j));
-        let dentro = recortar(vista(suelto));
-        if largo(dentro) == 0 {
-            falla "`{}` vacio en una cadena interpolada";
+        if prof != 0 {
+            error_en(e, "falta `}` en una cadena interpolada", k);
+            falla "sintaxis";
         }
-        let suyos = try analizar(dentro);
-        var sub = Estado { toks: suyos, i: 0, alias: copiar(e.alias),
-            structs: copiar(e.structs), enums: copiar(e.enums) };
-        var x = try expresion(sub);
+        let dentro = recortar(rebanar(d, i + 1, j));
+        if largo(dentro) == 0 {
+            error_en(e, "`{}` vacio en una cadena interpolada: pon dentro lo que quieras mostrar", k);
+            falla "sintaxis";
+        }
+        var error_lex = vacio();
+        let suyos = tokens_de(dentro, vista(e.archivo), error_lex) sino [];
+        if largo(error_lex) > 0 {
+            if largo(e.error) == 0 { e.error = error_lex; }
+            falla "sintaxis";
+        }
+        var sub = estado_de(suyos, vista(e.archivo), copiar(e.structs), copiar(e.enums));
+        sub.alias = copiar(e.alias);
+        sub.tipo_params = copiar(e.tipo_params);
+        let x = expresion(sub) sino hoja("vacio", "", 0);
+        if largo(sub.error) > 0 {
+            if largo(e.error) == 0 { e.error = copiar(sub.error); }
+            falla "sintaxis";
+        }
+        if !es(sub, "fin", "") {
+            let dicho = repr_texto(dentro);
+            error_en(e, $"sobra algo despues de la expresion {dicho} dentro de la cadena", k);
+            falla "sintaxis";
+        }
+        var x_l = x;
         // El sub-analisis empieza a contar en la linea 1: lo de dentro de un
         // hueco esta donde este la cadena, y los errores tienen que decirlo.
-        poner_linea(x, n.linea);
-        anadir(n.hijos, x);
+        poner_linea(x_l, n.linea);
+        anadir(n.hijos, x_l);
         i = j + 1;
     }
     return;
@@ -396,86 +591,86 @@ fn poner_linea(n: mut Nodo, l: usize) {
     }
 }
 
+// Los parametros de una funcion o una clausura: `x: T`, `x: mut T`,
+// `x: &T` y `x: &mut T`, que presta para modificar como `mut`.
+fn parametros(e: mut Estado, n: mut Nodo, l: usize) ! {
+    if es(e, "simbolo", ")") { return; }
+    while true {
+        let pn = try espera(e, "ident", "");
+        try espera(e, "simbolo", ":");
+        var marca = vacio();
+        if acepta(e, "palabra", "mut") {
+            marca = nuevo("mut ");
+        } else if acepta(e, "simbolo", "&") {
+            if acepta(e, "palabra", "mut") { marca = nuevo("mut "); }
+            else { marca = nuevo("&"); }
+        }
+        let t = try tipo(e);
+        var pp = rama("param", l);
+        empujar(pp.texto, pn);
+        empujar(pp.texto, ": ");
+        empujar(pp.texto, marca);
+        empujar(pp.texto, t);
+        anadir(n.hijos, pp);
+        if !acepta(e, "simbolo", ",") { break; }
+    }
+    return;
+}
+
+// Los argumentos de una llamada, con el `(` ya comido.
+fn cuerpo_llamada(e: mut Estado, nombre: view, l: usize) -> Nodo ! {
+    var n = rama("llamada", l);
+    empujar(n.texto, nombre);
+    if !es(e, "simbolo", ")") {
+        while true {
+            let x = try expresion(e);
+            anadir(n.hijos, x);
+            if !acepta(e, "simbolo", ",") { break; }
+        }
+    }
+    try espera(e, "simbolo", ")");
+    return n;
+}
+
+// Lo de dentro de `Nombre { ... }`, con el `{` todavia sin comer.
+fn cuerpo_literal_struct(e: mut Estado, nombre: view, l: usize) -> Nodo ! {
+    try espera(e, "simbolo", "{");
+    var n = rama("literal_struct", l);
+    empujar(n.texto, nombre);
+    while !es(e, "simbolo", "}") {
+        let campo = try espera(e, "ident", "");
+        try espera(e, "simbolo", ":");
+        var c = rama("campo", l);
+        empujar(c.texto, campo);
+        let x = try expresion(e);
+        anadir(c.hijos, x);
+        anadir(n.hijos, c);
+        if !acepta(e, "simbolo", ",") { break; }
+    }
+    try espera(e, "simbolo", "}");
+    return n;
+}
+
 fn primario(e: mut Estado) -> Nodo ! {
     let l = linea_actual(e);
+    let k = e.i;
 
-    if es(e, "palabra", "match") { return try match_(e); }
-
-    if es(e, "entero", "") {
-        let v = try espera(e, "entero", "");
-        return hoja("entero", v, l);
-    }
-    if es(e, "cadena", "") {
-        let v = try espera(e, "cadena", "");
-        return hoja("cadena", v, l);
-    }
-    if es(e, "interpolada", "") {
-        let v = try espera(e, "interpolada", "");
-        var n = rama("interpolada", l);
-        empujar(n.texto, vista(v));
-        // Los huecos se analizan aqui: dentro de las llaves vale cualquier
-        // expresion. El texto crudo se guarda entero para poder sacar
-        // despues los trozos literales, que no son nodos.
-        try huecos_de(e, vista(v), n);
-        return n;
-    }
-    if es(e, "palabra", "true") || es(e, "palabra", "false") {
-        let v = nuevo(valor_en(e, 0));
-        avanzar(e);
-        return hoja("booleano", v, l);
-    }
-    if acepta(e, "simbolo", "(") {
-        let dentro = try expresion(e);
-        try espera(e, "simbolo", ")");
-        return dentro;
-    }
-    if acepta(e, "simbolo", "[") {
-        var n = rama("literal_lista", l);
-        if !es(e, "simbolo", "]") {
-            var mas = true;
-            while mas {
-                let x = try expresion(e);
-                anadir(n.hijos, x);
-                mas = acepta(e, "simbolo", ",");
-            }
-        }
-        try espera(e, "simbolo", "]");
-        return n;
-    }
     // `fn[a, b](x: usize) -> bool { ... }`: una clausura.
     if es(e, "palabra", "fn") {
         avanzar(e);
         var n = rama("cierre", l);
         if acepta(e, "simbolo", "[") {
             if !es(e, "simbolo", "]") {
-                var mas_c = true;
-                while mas_c {
+                while true {
                     let cap = try espera(e, "ident", "");
                     anadir(n.hijos, hoja("captura", cap, l));
-                    mas_c = acepta(e, "simbolo", ",");
+                    if !acepta(e, "simbolo", ",") { break; }
                 }
             }
             try espera(e, "simbolo", "]");
         }
         try espera(e, "simbolo", "(");
-        if !es(e, "simbolo", ")") {
-            var mas_p = true;
-            while mas_p {
-                let pn = try espera(e, "ident", "");
-                try espera(e, "simbolo", ":");
-                var marca = vacio();
-                if acepta(e, "palabra", "mut") { marca = nuevo("mut "); }
-                else { if acepta(e, "simbolo", "&") { marca = nuevo("&"); } }
-                let t = try tipo(e);
-                var pp = rama("param", l);
-                empujar(pp.texto, pn);
-                empujar(pp.texto, ": ");
-                empujar(pp.texto, marca);
-                empujar(pp.texto, t);
-                anadir(n.hijos, pp);
-                mas_p = acepta(e, "simbolo", ",");
-            }
-        }
+        try parametros(e, n, l);
         try espera(e, "simbolo", ")");
         if acepta(e, "simbolo", "->") {
             let t = try tipo(e);
@@ -501,7 +696,10 @@ fn primario(e: mut Estado) -> Nodo ! {
         let a = try expresion(e);
         anadir(n.hijos, a);
         try espera(e, "simbolo", "}");
-        try espera(e, "palabra", "else");
+        if !acepta(e, "palabra", "else") {
+            error_aqui(e, "un `if` que da un valor necesita `else`: sin el no habria valor cuando la condicion es falsa");
+            falla "sintaxis";
+        }
         try espera(e, "simbolo", "{");
         let b = try expresion(e);
         anadir(n.hijos, b);
@@ -509,39 +707,70 @@ fn primario(e: mut Estado) -> Nodo ! {
         return n;
     }
 
+    if es(e, "palabra", "match") { return try match_(e); }
+
+    if es(e, "entero", "") {
+        avanzar(e);
+        let _v = try entero_literal(e, k);
+        return hoja("entero", vista(e.toks[k].valor), l);
+    }
     if es(e, "decimal", "") {
         let v = try espera(e, "decimal", "");
         return hoja("decimal", v, l);
     }
+    if es(e, "interpolada", "") {
+        let v = try espera(e, "interpolada", "");
+        var n = rama("interpolada", l);
+        empujar(n.texto, vista(v));
+        // Los huecos se analizan aqui: dentro de las llaves vale cualquier
+        // expresion. El texto crudo se guarda entero para poder sacar
+        // despues los trozos literales, que no son nodos.
+        try huecos_de(e, vista(v), n, k);
+        return n;
+    }
+    if es(e, "cadena", "") {
+        let v = try espera(e, "cadena", "");
+        return hoja("cadena", v, l);
+    }
+    if es(e, "palabra", "true") || es(e, "palabra", "false") {
+        let v = nuevo(valor_en(e, 0));
+        avanzar(e);
+        return hoja("booleano", v, l);
+    }
+    if acepta(e, "simbolo", "[") {
+        var n = rama("literal_lista", l);
+        if !es(e, "simbolo", "]") {
+            while true {
+                let x = try expresion(e);
+                anadir(n.hijos, x);
+                if !acepta(e, "simbolo", ",") { break; }
+            }
+        }
+        try espera(e, "simbolo", "]");
+        return n;
+    }
 
     if es(e, "ident", "") {
-        var nombre = try espera(e, "ident", "");
+        let nombre = nuevo(valor_en(e, 0));
+        avanzar(e);
 
         // `txt.palabras(v)`: nombre calificado por el modulo de donde viene.
-        if tiene(e.alias, vista(nombre)) {
-            if acepta(e, "simbolo", ".") {
-                let miembro = try espera(e, "ident", "");
-                empujar(nombre, ".");
-                empujar(nombre, miembro);
-            }
+        if tiene(e.alias, vista(nombre)) && es(e, "simbolo", ".") {
+            avanzar(e);
+            let miembro = try espera(e, "ident", "");
+            let completo = $"{nombre}.{miembro}";
+            if es(e, "simbolo", "{") { return try cuerpo_literal_struct(e, vista(completo), l); }
+            try espera(e, "simbolo", "(");
+            return try cuerpo_llamada(e, vista(completo), l);
         }
 
-        if acepta(e, "simbolo", "(") {
-            var n = rama("llamada", l);
-            empujar(n.texto, nombre);
-            if !es(e, "simbolo", ")") {
-                var mas = true;
-                while mas {
-                    let x = try expresion(e);
-                    anadir(n.hijos, x);
-                    mas = acepta(e, "simbolo", ",");
-                }
-            }
-            try espera(e, "simbolo", ")");
-            return n;
+        // Un literal de struct: solo si el nombre es de un struct conocido.
+        if tiene(e.structs, vista(nombre)) && es(e, "simbolo", "{") {
+            return try cuerpo_literal_struct(e, vista(nombre), l);
         }
 
-        if es(e, "simbolo", ".") && tiene(e.enums, vista(nombre)) {
+        // `Figura.Circulo(2.0)`: construir una variante.
+        if tiene(e.enums, vista(nombre)) && es(e, "simbolo", ".") {
             avanzar(e);
             let cual = try espera(e, "ident", "");
             var n = rama("enum_lit", l);
@@ -550,11 +779,10 @@ fn primario(e: mut Estado) -> Nodo ! {
             empujar(n.texto, cual);
             if acepta(e, "simbolo", "(") {
                 if !es(e, "simbolo", ")") {
-                    var mas = true;
-                    while mas {
+                    while true {
                         let x = try expresion(e);
                         anadir(n.hijos, x);
-                        mas = acepta(e, "simbolo", ",");
+                        if !acepta(e, "simbolo", ",") { break; }
                     }
                 }
                 try espera(e, "simbolo", ")");
@@ -562,35 +790,23 @@ fn primario(e: mut Estado) -> Nodo ! {
             return n;
         }
 
-        if es(e, "simbolo", "{") && (tiene(e.structs, nombre)
-            || contiene(vista(nombre), ".")) {
-            avanzar(e);
-            var n = rama("literal_struct", l);
-            empujar(n.texto, nombre);
-            while !es(e, "simbolo", "}") {
-                let campo = try espera(e, "ident", "");
-                try espera(e, "simbolo", ":");
-                var c = rama("campo", l);
-                empujar(c.texto, campo);
-                let x = try expresion(e);
-                anadir(c.hijos, x);
-                anadir(n.hijos, c);
-                if !acepta(e, "simbolo", ",") { break; }
-            }
-            try espera(e, "simbolo", "}");
-            return n;
-        }
-
+        if acepta(e, "simbolo", "(") { return try cuerpo_llamada(e, vista(nombre), l); }
         return hoja("variable", nombre, l);
     }
 
-    falla "se esperaba una expresion";
+    if acepta(e, "simbolo", "(") {
+        let dentro = try expresion(e);
+        try espera(e, "simbolo", ")");
+        return dentro;
+    }
+
+    error_aqui(e, "se esperaba una expresion");
+    falla "sintaxis";
 }
 
 fn postfijo(e: mut Estado) -> Nodo ! {
     var n = try primario(e);
-    var sigue = true;
-    while sigue {
+    while true {
         let l = linea_actual(e);
         if acepta(e, "simbolo", ".") {
             let campo = try espera(e, "ident", "");
@@ -598,18 +814,18 @@ fn postfijo(e: mut Estado) -> Nodo ! {
             empujar(p.texto, campo);
             anadir(p.hijos, n);
             n = p;
-        } else {
-            if acepta(e, "simbolo", "[") {
-                let idx = try expresion(e);
-                try espera(e, "simbolo", "]");
-                var p = rama("indice", l);
-                anadir(p.hijos, n);
-                anadir(p.hijos, idx);
-                n = p;
-            } else {
-                sigue = false;
-            }
+            continue;
         }
+        if acepta(e, "simbolo", "[") {
+            let idx = try expresion(e);
+            try espera(e, "simbolo", "]");
+            var p = rama("indice", l);
+            anadir(p.hijos, n);
+            anadir(p.hijos, idx);
+            n = p;
+            continue;
+        }
+        break;
     }
     return n;
 }
@@ -637,7 +853,7 @@ fn unario(e: mut Estado) -> Nodo ! {
 
 // Un nivel de precedencia: `sub` a la izquierda, y mientras el simbolo
 // actual este en `ops`, se junta. `ops` viene como texto separado por
-// espacios; comparar asi evita repetir la misma funcion seis veces.
+// espacios; comparar asi evita repetir la misma funcion diez veces.
 fn en_lista(ops: view, sep: usize, cual: view) -> bool {
     var desde = 0;
     var i = 0;
@@ -675,37 +891,34 @@ fn nivel(e: mut Estado, ops: view, grado: usize) -> Nodo ! {
 }
 
 fn siguiente_nivel(e: mut Estado, grado: usize) -> Nodo ! {
-    if grado == 0 { return try nivel(e, "&& ||", 1); }
-    if grado == 1 { return try nivel(e, "== !=", 2); }
-    if grado == 2 { return try nivel(e, "< <= > >=", 3); }
+    // `&&` ata mas que `||`: `a || b && c` es `a || (b && c)`.
+    if grado == 0 { return try nivel(e, "||", 1); }
+    if grado == 1 { return try nivel(e, "&&", 2); }
+    if grado == 2 { return try nivel(e, "== !=", 3); }
+    if grado == 3 { return try nivel(e, "< <= > >=", 4); }
     // Los bits atan MAS que las comparaciones, no menos: `a & b == c` es
     // `(a & b) == c`, no lo que hace C.
-    if grado == 3 { return try nivel(e, "|", 4); }
-    if grado == 4 { return try nivel(e, "^", 5); }
-    if grado == 5 { return try nivel(e, "&", 6); }
-    if grado == 6 { return try nivel(e, "<< >>", 7); }
-    if grado == 7 { return try nivel(e, "+ - +? -?", 8); }
-    if grado == 8 { return try nivel(e, "* / % *? /?", 9); }
+    if grado == 4 { return try nivel(e, "|", 5); }
+    if grado == 5 { return try nivel(e, "^", 6); }
+    if grado == 6 { return try nivel(e, "&", 7); }
+    if grado == 7 { return try nivel(e, "<< >>", 8); }
+    if grado == 8 { return try nivel(e, "+ - +? -?", 9); }
+    if grado == 9 { return try nivel(e, "* / % *? /?", 10); }
     return try conversion(e);
 }
 
 // `x como u8`, `x como? u8`: ata mas que cualquier binario.
 fn conversion(e: mut Estado) -> Nodo ! {
     var izq = try unario(e);
-    var sigue = true;
-    while sigue {
-        if !igual(valor_en(e, 0), "como") {
-            sigue = false;
-        } else {
-            let l = linea_actual(e);
-            avanzar(e);
-            var n = rama("conversion", l);
-            if acepta(e, "simbolo", "?") { empujar(n.texto, "?"); }
-            let t = try tipo(e);
-            empujar(n.texto, t);
-            anadir(n.hijos, izq);
-            izq = n;
-        }
+    while es(e, "ident", "como") {
+        let l = linea_actual(e);
+        avanzar(e);
+        var n = rama("conversion", l);
+        if acepta(e, "simbolo", "?") { empujar(n.texto, "?"); }
+        let t = try tipo(e);
+        empujar(n.texto, t);
+        anadir(n.hijos, izq);
+        izq = n;
     }
     return izq;
 }
@@ -733,7 +946,10 @@ fn bloque(e: mut Estado) -> Nodo ! {
     try espera(e, "simbolo", "{");
     var n = rama("bloque", l);
     while !es(e, "simbolo", "}") {
-        if igual(tipo_en(e, 0), "fin") { falla "bloque sin cerrar"; }
+        if es(e, "fin", "") {
+            error_aqui(e, "bloque sin cerrar");
+            falla "sintaxis";
+        }
         let st = try sentencia(e);
         anadir(n.hijos, st);
     }
@@ -741,8 +957,14 @@ fn bloque(e: mut Estado) -> Nodo ! {
     return n;
 }
 
+fn es_lugar(n: &Nodo) -> bool {
+    let c = vista(n.clase);
+    return igual(c, "variable") || igual(c, "campo") || igual(c, "indice");
+}
+
 fn sentencia(e: mut Estado) -> Nodo ! {
     let l = linea_actual(e);
+    let k = e.i;
 
     if es(e, "palabra", "let") || es(e, "palabra", "var") {
         let clave = nuevo(valor_en(e, 0));
@@ -793,25 +1015,6 @@ fn sentencia(e: mut Estado) -> Nodo ! {
         return n;
     }
 
-    // Un `match` suelto mira y hace: no lleva `;` detras, como no lo llevan
-    // `if` ni `while`. El que da un valor va detras de un `return` o un `=`.
-    if es(e, "palabra", "match") {
-        var n = rama("expresion", l);
-        let m = try match_(e);
-        anadir(n.hijos, m);
-        return n;
-    }
-
-    if es(e, "palabra", "while") {
-        avanzar(e);
-        var n = rama("mientras", l);
-        let cond = try expresion(e);
-        anadir(n.hijos, cond);
-        let cuerpo = try bloque(e);
-        anadir(n.hijos, cuerpo);
-        return n;
-    }
-
     if es(e, "palabra", "for") {
         avanzar(e);
         var n = rama("para", l);
@@ -830,24 +1033,6 @@ fn sentencia(e: mut Estado) -> Nodo ! {
         return n;
     }
 
-    if es(e, "palabra", "return") {
-        avanzar(e);
-        var n = rama("retorno", l);
-        if !es(e, "simbolo", ";") {
-            let v = try expresion(e);
-            anadir(n.hijos, v);
-        }
-        try espera(e, "simbolo", ";");
-        return n;
-    }
-
-    if es(e, "palabra", "falla") {
-        avanzar(e);
-        let motivo = try espera(e, "cadena", "");
-        try espera(e, "simbolo", ";");
-        return hoja("falla", motivo, l);
-    }
-
     if es(e, "palabra", "break") {
         avanzar(e);
         try espera(e, "simbolo", ";");
@@ -860,14 +1045,62 @@ fn sentencia(e: mut Estado) -> Nodo ! {
         return hoja("continuar", "", l);
     }
 
+    if es(e, "palabra", "while") {
+        avanzar(e);
+        var n = rama("mientras", l);
+        let cond = try expresion(e);
+        anadir(n.hijos, cond);
+        let cuerpo = try bloque(e);
+        anadir(n.hijos, cuerpo);
+        return n;
+    }
+
+    // Un `match` suelto mira y hace: no lleva `;` detras, como no lo llevan
+    // `if` ni `while`. El que da un valor va detras de un `return` o un `=`.
+    if es(e, "palabra", "match") {
+        var n = rama("expresion", l);
+        let m = try match_(e);
+        anadir(n.hijos, m);
+        return n;
+    }
+
+    if es(e, "palabra", "falla") {
+        avanzar(e);
+        if es(e, "simbolo", "(") {
+            // Aqui Python no dice lo que encontro: dice como se escribe.
+            if largo(e.error) == 0 {
+                e.error = $"{e.archivo}:{l}: `falla` no lleva parentesis; se escribe `falla \"el motivo\";`";
+            }
+            falla "sintaxis";
+        }
+        let motivo = try espera(e, "cadena", "");
+        try espera(e, "simbolo", ";");
+        return hoja("falla", motivo, l);
+    }
+
+    if es(e, "palabra", "return") {
+        avanzar(e);
+        var n = rama("retorno", l);
+        if !es(e, "simbolo", ";") {
+            let v = try expresion(e);
+            anadir(n.hijos, v);
+        }
+        try espera(e, "simbolo", ";");
+        return n;
+    }
+
     // asignacion o expresion suelta
     let izq = try expresion(e);
     if acepta(e, "simbolo", "=") {
         var n = rama("asignacion", l);
         let der = try expresion(e);
+        try espera(e, "simbolo", ";");
+        if !es_lugar(izq) {
+            error_en(e, "a la izquierda de `=` tiene que haber una variable, un campo o un elemento", k);
+            falla "sintaxis";
+        }
         anadir(n.hijos, izq);
         anadir(n.hijos, der);
-        try espera(e, "simbolo", ";");
         return n;
     }
     try espera(e, "simbolo", ";");
@@ -880,26 +1113,63 @@ fn sentencia(e: mut Estado) -> Nodo ! {
 // Declaraciones de alto nivel
 // ------------------------------------------------------------------
 
+// `<T>`, `<A, B>`, `<T: numero>`: igual para `fn` y `struct`. Con
+// `restricciones`, cuelga cada una en el nodo; un struct las acepta pero no
+// las guarda, como el original.
+fn lista_tipo_params(e: mut Estado, n: mut Nodo, de_quien: view, l: usize,
+    restricciones: bool) ! {
+    var vistos: mapa<str, usize> = [];
+    if !acepta(e, "simbolo", "<") { return; }
+    while true {
+        let tp = try espera(e, "ident", "");
+        if es_tipo_basico(vista(tp)) {
+            error_aqui(e, $"`{tp}` ya es un tipo del lenguaje: un parametro de tipo necesita otro nombre");
+            falla "sintaxis";
+        }
+        if tiene(e.structs, vista(tp)) {
+            error_aqui(e, $"`{tp}` ya es un struct: un parametro de tipo necesita otro nombre");
+            falla "sintaxis";
+        }
+        if tiene(vistos, vista(tp)) {
+            error_aqui(e, $"`{tp}` esta repetido en `{de_quien}<...>`");
+            falla "sintaxis";
+        }
+        poner(vistos, vista(tp), 1);
+        poner(e.tipo_params, vista(tp), 1);
+        anadir(n.hijos, hoja("tipo_param", vista(tp), l));
+        if acepta(e, "simbolo", ":") {
+            let r = try espera(e, "ident", "");
+            let rv = vista(r);
+            if !igual(rv, "decimal") && !igual(rv, "entero") && !igual(rv, "igualable")
+            && !igual(rv, "numero") && !igual(rv, "ordenable") && !igual(rv, "texto") {
+                error_aqui(e, $"`{r}` no es una restriccion; hay `decimal`, `entero`, `igualable`, `numero`, `ordenable`, `texto`");
+                falla "sintaxis";
+            }
+            if restricciones { anadir(n.hijos, hoja("restriccion", rv, l)); }
+        }
+        if !acepta(e, "simbolo", ",") { break; }
+    }
+    try espera(e, "simbolo", ">");
+    return;
+}
+
 fn declaracion(e: mut Estado) -> Nodo ! {
     let l = linea_actual(e);
+    let k = e.i;
 
     if es(e, "palabra", "struct") {
         avanzar(e);
         let nombre = try espera(e, "ident", "");
         var n = rama("struct", l);
         empujar(n.texto, nombre);
-        // `struct Par<A, B>`: igual que en una funcion.
-        if acepta(e, "simbolo", "<") {
-            var mas_tp = true;
-            while mas_tp {
-                let tp = try espera(e, "ident", "");
-                anadir(n.hijos, hoja("tipo_param", tp, l));
-                mas_tp = acepta(e, "simbolo", ",");
-            }
-            try espera(e, "simbolo", ">");
-        }
+        e.tipo_params = [];
+        try lista_tipo_params(e, n, vista(nombre), l, false);
         try espera(e, "simbolo", "{");
         while !es(e, "simbolo", "}") {
+            if es(e, "fin", "") {
+                error_aqui(e, "struct sin cerrar");
+                falla "sintaxis";
+            }
             let campo = try espera(e, "ident", "");
             try espera(e, "simbolo", ":");
             let t = try tipo(e);
@@ -911,6 +1181,7 @@ fn declaracion(e: mut Estado) -> Nodo ! {
             if !acepta(e, "simbolo", ",") { break; }
         }
         try espera(e, "simbolo", "}");
+        e.tipo_params = [];
         return n;
     }
 
@@ -923,33 +1194,52 @@ fn declaracion(e: mut Estado) -> Nodo ! {
         empujar(n.texto, cabecera);
         try espera(e, "simbolo", "{");
         while !es(e, "simbolo", "}") {
+            if es(e, "fin", "") {
+                error_aqui(e, "`externo` sin cerrar");
+                falla "sintaxis";
+            }
             let fl = linea_actual(e);
+            let kf = e.i;
             try espera(e, "palabra", "fn");
             let nombre = try espera(e, "ident", "");
+            if es(e, "simbolo", "<") {
+                error_en(e, "una funcion de C no puede ser generica: C no tiene con que", kf);
+                falla "sintaxis";
+            }
             var f = rama("fn", fl);
             empujar(f.texto, nombre);
             anadir(f.hijos, hoja("externa", vista(cabecera), fl));
             try espera(e, "simbolo", "(");
-            while !es(e, "simbolo", ")") {
-                let pn = try espera(e, "ident", "");
-                try espera(e, "simbolo", ":");
-                let pt = try tipo(e);
-                var pp = rama("param", fl);
-                empujar(pp.texto, pn);
-                empujar(pp.texto, ": ");
-                empujar(pp.texto, vista(pt));
-                anadir(f.hijos, pp);
-                if !acepta(e, "simbolo", ",") { break; }
+            if !es(e, "simbolo", ")") {
+                while true {
+                    let pn = try espera(e, "ident", "");
+                    try espera(e, "simbolo", ":");
+                    let pt = try tipo(e);
+                    var pp = rama("param", fl);
+                    empujar(pp.texto, pn);
+                    empujar(pp.texto, ": ");
+                    empujar(pp.texto, vista(pt));
+                    anadir(f.hijos, pp);
+                    if !acepta(e, "simbolo", ",") { break; }
+                }
             }
             try espera(e, "simbolo", ")");
             if acepta(e, "simbolo", "->") {
                 let r = try tipo(e);
                 anadir(f.hijos, hoja("retorno_tipo", vista(r), fl));
             }
+            if es(e, "simbolo", "!") {
+                error_en(e, "una funcion de C no falla como las de Tcode: devuelve lo que devuelva y lo miras tu", kf);
+                falla "sintaxis";
+            }
             try espera(e, "simbolo", ";");
             anadir(n.hijos, f);
         }
         try espera(e, "simbolo", "}");
+        if largo(n.hijos) == 0 {
+            error_en(e, "un `externo` vacio no trae nada", k);
+            falla "sintaxis";
+        }
         return n;
     }
 
@@ -959,16 +1249,25 @@ fn declaracion(e: mut Estado) -> Nodo ! {
         var n = rama("enum", l);
         empujar(n.texto, nombre);
         try espera(e, "simbolo", "{");
+        var vistos: mapa<str, usize> = [];
         while !es(e, "simbolo", "}") {
+            if es(e, "fin", "") {
+                error_aqui(e, "enum sin cerrar");
+                falla "sintaxis";
+            }
             let vn = try espera(e, "ident", "");
+            if tiene(vistos, vista(vn)) {
+                error_aqui(e, $"`{nombre}.{vn}` esta declarada dos veces");
+                falla "sintaxis";
+            }
+            poner(vistos, vista(vn), 1);
             var v = rama("variante", linea_actual(e));
             empujar(v.texto, vn);
             if acepta(e, "simbolo", "(") {
-                var mas = true;
-                while mas {
+                while true {
                     let t = try tipo(e);
                     anadir(v.hijos, hoja("lleva", vista(t), linea_actual(e)));
-                    mas = acepta(e, "simbolo", ",");
+                    if !acepta(e, "simbolo", ",") { break; }
                 }
                 try espera(e, "simbolo", ")");
             }
@@ -976,6 +1275,10 @@ fn declaracion(e: mut Estado) -> Nodo ! {
             if !acepta(e, "simbolo", ",") { break; }
         }
         try espera(e, "simbolo", "}");
+        if largo(n.hijos) == 0 {
+            error_aqui(e, $"`enum {nombre}` no declara ninguna variante: un valor que no puede tomar ninguna forma no sirve para nada");
+            falla "sintaxis";
+        }
         return n;
     }
 
@@ -985,47 +1288,12 @@ fn declaracion(e: mut Estado) -> Nodo ! {
     empujar(n.texto, nombre);
 
     // `fn primeras<T>(...)`: parametros de tipo. Dentro de la firma y del
-    // cuerpo, `T` es un tipo mas, y `tipo` ya acepta cualquier nombre.
-    if acepta(e, "simbolo", "<") {
-        var mas_tipos = true;
-        while mas_tipos {
-            let tp = try espera(e, "ident", "");
-            anadir(n.hijos, hoja("tipo_param", tp, l));
-            // `<T: numero>`: la restriccion es un nombre, y uno de estos.
-            if acepta(e, "simbolo", ":") {
-                let r = try espera(e, "ident", "");
-                let rv = vista(r);
-                if !igual(rv, "decimal") && !igual(rv, "entero") && !igual(rv, "igualable")
-                && !igual(rv, "numero") && !igual(rv, "ordenable") && !igual(rv, "texto") {
-                    falla "no es una restriccion; hay `decimal`, `entero`, `igualable`, `numero`, `ordenable`, `texto`";
-                }
-                anadir(n.hijos, hoja("restriccion", r, l));
-            }
-            mas_tipos = acepta(e, "simbolo", ",");
-        }
-        try espera(e, "simbolo", ">");
-    }
+    // cuerpo, `T` es un tipo mas.
+    e.tipo_params = [];
+    try lista_tipo_params(e, n, vista(nombre), l, true);
 
     try espera(e, "simbolo", "(");
-
-    if !es(e, "simbolo", ")") {
-        var mas = true;
-        while mas {
-            let pn = try espera(e, "ident", "");
-            try espera(e, "simbolo", ":");
-            var marca = vacio();
-            if acepta(e, "palabra", "mut") { marca = nuevo("mut "); }
-            else { if acepta(e, "simbolo", "&") { marca = nuevo("&"); } }
-            let t = try tipo(e);
-            var p = rama("param", l);
-            empujar(p.texto, pn);
-            empujar(p.texto, ": ");
-            empujar(p.texto, marca);
-            empujar(p.texto, t);
-            anadir(n.hijos, p);
-            mas = acepta(e, "simbolo", ",");
-        }
-    }
+    try parametros(e, n, l);
     try espera(e, "simbolo", ")");
 
     if acepta(e, "simbolo", "->") {
@@ -1040,6 +1308,7 @@ fn declaracion(e: mut Estado) -> Nodo ! {
 
     let cuerpo = try bloque(e);
     anadir(n.hijos, cuerpo);
+    e.tipo_params = [];
     return n;
 }
 
@@ -1125,9 +1394,7 @@ fn modulos_usados(ruta: view, toks: &lista<Token>) -> lista<Usado> {
                     if largo(otros) == 0 { break; }
                     let nombres = visibles(vista(c), otros, "struct");
                     let formas = visibles(vista(c), otros, "enum");
-                    let sin_alias: mapa<str, usize> = [];
-                    var e = Estado { toks: otros, i: 0, alias: sin_alias,
-                        structs: nombres, enums: formas };
+                    var e = estado_de(otros, vista(c), nombres, formas);
                     let arbol = programa(e) sino rama("programa", 1);
                     anadir(salida, Usado { alias: copiar(alias),
                             arbol: arbol });
@@ -1193,7 +1460,7 @@ fn programa(e: mut Estado) -> Nodo ! {
     while acepta(e, "palabra", "usar") {
         let ruta = try espera(e, "cadena", "");
         // `usar "x" como a;`: `como` no es palabra reservada, es un ident.
-        if igual(valor_en(e, 0), "como") {
+        if es(e, "ident", "como") {
             avanzar(e);
             let a = try espera(e, "ident", "");
             anadir(raiz.hijos, hoja("alias", a, linea_actual(e)));
@@ -1203,6 +1470,10 @@ fn programa(e: mut Estado) -> Nodo ! {
         anadir(raiz.hijos, hoja("usar", ruta, linea_actual(e)));
     }
     while !igual(tipo_en(e, 0), "fin") {
+        if es(e, "palabra", "usar") {
+            error_aqui(e, "los `usar` van todos al principio del archivo");
+            falla "sintaxis";
+        }
         let d = try declaracion(e);
         anadir(raiz.hijos, d);
     }

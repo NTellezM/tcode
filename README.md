@@ -147,7 +147,7 @@ comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
 Sobre los 48 `.t` del repositorio —incluido el suyo propio— produce
-**131.298 tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+**134.330 tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -170,7 +170,7 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 `ejemplos/lexer/lib/sintaxis.t` son 1.214 líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba. Acepta y rechaza **exactamente** los mismos 48 archivos que
-el parser del compilador, y sobre ellos produce 65.462 nodos:
+el parser del compilador, y sobre ellos produce 67.212 nodos:
 
 ```
 $ ./ejemplos/lexer/parser ejemplos/lexer/parser.t --callado
@@ -180,22 +180,22 @@ ejemplos/lexer/parser.t: 87 nodos, hondura 10
 Y dos capas más del comprobador, en `ejemplos/compilador/`:
 
 - `lib/tipos.t` responde las dos preguntas de las que cuelga todo —¿este tipo
-  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **48 archivos, 338
+  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **48 archivos, 341
   tipos**, las mismas respuestas que el comprobador de Python.
 - `lib/tipar.t` dice **de qué tipo es cada variable de cada función**, con
-  llamadas, campos, índices, préstamos y genéricas instanciadas: **43
-  archivos, 3.845 variables**, los mismos tipos.
+  llamadas, campos, índices, préstamos y genéricas instanciadas: **44
+  archivos, 3.886 variables**, los mismos tipos.
 - `lib/propiedad.t` dice **qué le pasa a cada valor con dueño** —se presta,
   se entrega en la línea N, se mueve en la línea N, o se libera al cerrar su
-  bloque—, que es lo único que de verdad separa a Tcode de C: **43 archivos,
-  3.845 variables**, el mismo destino, sin ningún archivo pendiente.
+  bloque—, que es lo único que de verdad separa a Tcode de C: **44 archivos,
+  3.886 variables**, el mismo destino, sin ningún archivo pendiente.
 - `lib/generar.t` es **el generador**: cómo se llama cada tipo en C, cómo
-  queda la firma de cada función —**43 archivos, 528 firmas**— y el C de cada
-  expresión que se devuelve: **1.255 de 1.456 expresiones, carácter por
+  queda la firma de cada función —**44 archivos, 535 firmas**— y el C de cada
+  expresión que se devuelve: **1.273 de 1.475 expresiones, carácter por
   carácter**, las mismas que emite el generador de Python. Lo que aún no
   cubre sale marcado y no se compara; la suite exige un mínimo en vez de
   hacer como que están todas. Y **la función entera** —firma, cuerpo, y los
-  `ss_free` puestos solos donde tocan—: **575 funciones idénticas**, línea por
+  `ss_free` puestos solos donde tocan—: **596 funciones idénticas**, línea por
   línea, normalizando sólo los números de temporal.
 
 Las dos se comparan contra el comprobador de Python en cada ejecución de la
@@ -207,7 +207,7 @@ suite, sobre el código real del repositorio.
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **13.631 líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **14.053 líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador y el programa) y el resultado se compara byte a
 byte con el del generador de Python: **los 25 programas del repositorio, idénticos**,
 entre ellos el lexer, el parser y el propio `tcodec`.
@@ -223,7 +223,7 @@ igual
 ```
 
 El `tcodec` construido desde su propio C vuelve a escribir exactamente los
-mismos bytes (3,62 MB), también bajo AddressSanitizer y UBSan, y la suite lo
+mismos bytes (3,74 MB), también bajo AddressSanitizer y UBSan, y la suite lo
 comprueba en cada ejecución. A partir de ahí el compilador ya no necesita a
 Python para existir, que es el paso que dieron Go en la 1.5 y Rust con su
 primer `rustc` escrito en Rust.
@@ -243,12 +243,28 @@ error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 1 error. No se genero nada.
 ```
 
-La suite pasa por los dos comprobadores cada programa que tiene que
-rechazarse: **150 de 157 dan el mismo primer error, carácter por carácter**, y
-los 157 se rechazan. Los siete que faltan son errores de sintaxis: el parser en
-Tcode los rechaza, pero con otro mensaje. Y el otro lado, que importa más:
-**ninguno de los 150 programas correctos** —los del repositorio y los de la
-suite— se rechaza. `tcodec --solo-comprobar` hace sólo esta parte.
+La suite pasa por los dos compiladores cada programa que tiene que
+rechazarse: **los 157 dan el mismo primer error, carácter por carácter**,
+también los de sintaxis, que salen del lexer y el parser en Tcode con su
+archivo, su línea y lo que encontraron:
+
+```
+$ TCODE_RAIZ=. ./tcodec roto.t
+error: roto.t:3: se esperaba ';', se encontro ')'
+```
+
+Y como siete casos no bastan para fiarse de un parser, la suite rompe cada
+archivo del repositorio de varias formas —un token de menos o de más, un
+símbolo fuera de sitio, una cadena sin cerrar, un carácter que no existe— y
+exige el mismo primer error en todos: **238 de 238**. Y el otro lado, que
+importa más: **ninguno de los 150 programas correctos** —los del repositorio
+y los de la suite— se rechaza. `tcodec --solo-comprobar` hace sólo esta
+parte.
+
+Alinear los dos parsers encontró dos fallos en el de Tcode, que ya escribía
+C distinto sin que nada lo dijera: `a || b && c` se leía `(a || b) && c`
+—`&&` tiene que atar más—, y `1_000` llegaba tal cual al C, que no lo
+entiende.
 
 Lo que `tcodec` todavía no escribe lo rechaza diciendo qué es, sin dejar
 medio archivo: `escribir_archivo`, una clausura dentro de una genérica y una
@@ -258,8 +274,7 @@ genéricos (`Par<A, B>`), bloques, `externo`, enums, arreglos `[T; N]`,
 funciones repetidas entre módulos y funciones con nombre de palabra de C
 (`union`) y `else if`. Escribe los 25 programas del repositorio, `pruebas.t`
 incluido. Aun así el compilador de referencia sigue siendo el de Python: es el
-que acepta todo el lenguaje, da los errores de sintaxis con su sitio, y llama
-al compilador de C.
+que acepta todo el lenguaje y llama al compilador de C.
 
 Escribirlo encontró fallos reales en el original, que se arreglaron con su
 prueba: fugas en salidas tempranas, banderas de propiedad por nombre en vez

@@ -203,7 +203,15 @@ fn unir_ramas(vs: mut lista<Vigilada>, a: &Foto, b: &Foto,
 
 // Si el parametro numero `i` de `fn` se queda con lo que le den.
 fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
-    if !tiene(c.params_marcados, fn_) { return false; }
+    if !tiene(c.params_marcados, fn_) {
+        // `P.estado_de` es `estado_de` del modulo `P`: el alias es de quien
+        // llama, y la firma puede estar apuntada sin el.
+        let corto = I.sin_modulo(fn_);
+        if !igual(vista(corto), fn_) && tiene(c.params_marcados, vista(corto)) {
+            return se_lo_queda(c, vista(corto), i);
+        }
+        return false;
+    }
     let marcados = I.lista_de(c.params_marcados, fn_) sino [];
     if i >= largo(marcados) { return false; }
     let m = vista(marcados[i]);
