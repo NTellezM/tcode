@@ -132,9 +132,7 @@ fn main() -> usize ! {
     let tokens = try analizar(vista(fuente));
     let nombres = P.structs_visibles(ruta, tokens);
     let formas = P.enums_visibles(ruta, tokens);
-    let sin_alias: mapa<str, usize> = [];
-    var estado = P.Estado { toks: tokens, i: 0, alias: sin_alias,
-        structs: nombres, enums: formas };
+    var estado = P.estado_de(tokens, ruta, nombres, formas);
     let arbol = try P.programa(estado);
 
     var tipos = I.contexto();

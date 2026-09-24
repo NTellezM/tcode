@@ -584,8 +584,7 @@ fn mirar_modulo(ruta: view, texto: view, c: mut I.Contexto) {
     if largo(toks) == 0 { return; }
     let nombres = P.structs_visibles(ruta, toks);
     let formas = P.enums_visibles(ruta, toks);
-    let sin_alias: mapa<str, usize> = [];
-    var e = P.Estado { toks: toks, i: 0, alias: sin_alias, structs: nombres, enums: formas };
+    var e = P.estado_de(toks, ruta, nombres, formas);
     let arbol = programa_o_vacio(e);
     recoger_declaraciones(arbol, c);
     // Y lo que ese modulo trae a su vez, una vuelta mas.
@@ -622,9 +621,7 @@ fn main() -> usize ! {
     let tokens = try analizar(vista(fuente));
     let nombres = P.structs_visibles(argumento(1), tokens);
     let formas = P.enums_visibles(argumento(1), tokens);
-    let sin_alias: mapa<str, usize> = [];
-    var estado = P.Estado { toks: tokens, i: 0, alias: sin_alias,
-        structs: nombres, enums: formas };
+    var estado = P.estado_de(tokens, argumento(1), nombres, formas);
     let arbol = try P.programa(estado);
 
     var c = I.contexto();

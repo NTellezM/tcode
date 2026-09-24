@@ -62,3 +62,7 @@ ejemplos/sistema
 ejemplos/compilador/tcodec
 ejemplos/bloques
 ejemplos/genericos
+
+# mutantes que escribe la suite junto a cada archivo, y borra
+.mut_*.t
+**/.mut_*.t

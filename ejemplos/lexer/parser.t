@@ -23,8 +23,7 @@ fn main() -> usize ! {
     // despues del movimiento ya no serian nuestros. El compilador lo dice.
     let nombres = structs_visibles(ruta, tokens);
     let formas = enums_visibles(ruta, tokens);
-    let sin_alias: mapa<str, usize> = [];
-    var e = Estado { toks: tokens, i: 0, alias: sin_alias, structs: nombres, enums: formas };
+    var e = estado_de(tokens, ruta, nombres, formas);
     let arbol = try programa(e);
 
     var callado = false;
