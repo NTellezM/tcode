@@ -781,8 +781,13 @@ fn sentencia(e: mut Estado) -> Nodo ! {
                 let sino_b = try bloque(e);
                 anadir(n.hijos, sino_b);
             } else {
+                // `else if`: la rama es un bloque con ese `if` dentro, que es
+                // lo que significa y lo que escribe el C. Asi nadie de detras
+                // tiene que saber que la rama podia no ser un bloque.
                 let sino_s = try sentencia(e);
-                anadir(n.hijos, sino_s);
+                var envuelta = rama("bloque", sino_s.linea);
+                anadir(envuelta.hijos, sino_s);
+                anadir(n.hijos, envuelta);
             }
         }
         return n;
@@ -986,9 +991,14 @@ fn declaracion(e: mut Estado) -> Nodo ! {
         while mas_tipos {
             let tp = try espera(e, "ident", "");
             anadir(n.hijos, hoja("tipo_param", tp, l));
-            // `<T: numero>`: la restriccion es un nombre, nada mas.
+            // `<T: numero>`: la restriccion es un nombre, y uno de estos.
             if acepta(e, "simbolo", ":") {
                 let r = try espera(e, "ident", "");
+                let rv = vista(r);
+                if !igual(rv, "decimal") && !igual(rv, "entero") && !igual(rv, "igualable")
+                && !igual(rv, "numero") && !igual(rv, "ordenable") && !igual(rv, "texto") {
+                    falla "no es una restriccion; hay `decimal`, `entero`, `igualable`, `numero`, `ordenable`, `texto`";
+                }
                 anadir(n.hijos, hoja("restriccion", r, l));
             }
             mas_tipos = acepta(e, "simbolo", ",");

@@ -18,6 +18,7 @@ usar "lib/tipar.t" como I;
 usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
 usar "lib/tipos.t" como T;
+usar "lib/comprobar.t" como C;
 usar "std/texto";
 usar "std/lista";
 
@@ -2107,6 +2108,19 @@ fn main() -> usize ! {
         }
         k_cf = k_cf + 1;
     }
+
+    // El programa tiene que valer antes de escribir nada: mismas reglas y
+    // mismos mensajes que el comprobador de Python.
+    let errores = C.comprobar_programa(arboles, modulos, contextos, cierres.fns,
+        cierres.modulo);
+    if largo(errores) > 0 {
+        for e en errores { imprimir_error($"error: {e}\n"); }
+        let n = largo(errores);
+        if n == 1 { imprimir_error("\n1 error. No se genero nada.\n"); }
+        else { imprimir_error($"\n{n} errores. No se genero nada.\n"); }
+        return 1;
+    }
+    if n_argumentos() > 2 && igual(argumento(2), "--solo-comprobar") { return 0; }
 
     // Las copias de los structs genericos: primero las que piden los campos
     // de los structs, luego las de los tipos escritos en cada funcion.

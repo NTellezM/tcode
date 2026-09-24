@@ -3670,6 +3670,10 @@ fn main() { imprimir($"{dos_veces(aplicar, 3)}\n"); }
 """
 
 _MINIMO_PROGRAMAS = 25
+# Rechazos cuyo primer error dice `tcodec` igual que el comprobador de Python.
+# Los que faltan son errores de sintaxis: el parser en Tcode los rechaza,
+# pero con otro mensaje.
+_MINIMO_RECHAZOS = 150
 _OBLIGATORIOS_TCODEC = {os.path.join("ejemplos", "bloques.t"),
                         os.path.join("ejemplos", "pruebas.t")}
 
@@ -3783,6 +3787,76 @@ try:
             if e.returncode == 0 or e.stdout or "generica" not in e.stderr:
                 falla("tcodec rechaza una clausura dentro de una generica",
                       f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
+
+            # El comprobador en Tcode: lo que Python rechaza, tcodec tambien, y
+            # con el mismo primer error; lo que Python acepta, tcodec no lo
+            # rechaza nunca por una regla del lenguaje.
+            def _errores_tcodec(ruta):
+                r = subprocess.run([binario, ruta, "--solo-comprobar"],
+                                   capture_output=True, text=True, timeout=120,
+                                   env=entorno)
+                bloques = []
+                for linea in r.stderr.splitlines():
+                    if linea.startswith("error: "):
+                        bloques.append(linea[len("error: "):])
+                    elif linea.startswith("  ") and bloques:
+                        bloques[-1] += "\n" + linea
+                return r.returncode, bloques, r.stderr
+
+            def _errores_python(ruta):
+                try:
+                    _, errs = compilar_archivo(ruta)
+                except Exception as exc:
+                    return [str(exc)]
+                return errs or []
+
+            mismos = rechazados = 0
+            for i, (nombre, fuente, _esperado) in enumerate(RECHAZO):
+                ruta_r = os.path.join(tmp, f"rechazo-{i}.t")
+                with open(ruta_r, "w", encoding="utf-8") as f:
+                    f.write(fuente)
+                de_python = _errores_python(ruta_r)
+                if not de_python:
+                    continue
+                rechazados += 1
+                total += 1
+                rc, de_tcodec, crudo = _errores_tcodec(ruta_r)
+                if rc == 0:
+                    falla("el comprobador en Tcode rechaza lo que Python rechaza",
+                          f"{nombre}: tcodec lo acepto; Python dice "
+                          f"{de_python[0][:200]!r}")
+                elif de_tcodec and de_tcodec[0] == de_python[0]:
+                    mismos += 1
+            total += 1
+            if mismos < _MINIMO_RECHAZOS:
+                falla("el comprobador en Tcode da los mismos errores",
+                      f"solo {mismos} de {rechazados} con el mismo primer "
+                      f"error; se esperaban al menos {_MINIMO_RECHAZOS}")
+
+            correctos = 0
+            aceptables = [(n, f) for n, f, *_ in ACEPTA]
+            for archivo in sorted(glob.glob(os.path.join("std", "*.t"))
+                                  + glob.glob(os.path.join("ejemplos", "**", "*.t"),
+                                              recursive=True)):
+                with open(archivo, encoding="utf-8") as f:
+                    aceptables.append((archivo, f.read()))
+            for i, (nombre, fuente) in enumerate(aceptables):
+                ruta_a = (nombre if os.path.exists(nombre)
+                          else os.path.join(tmp, f"acepta-{i}.t"))
+                if not os.path.exists(nombre):
+                    with open(ruta_a, "w", encoding="utf-8") as f:
+                        f.write(fuente)
+                if _errores_python(ruta_a):
+                    continue
+                correctos += 1
+                total += 1
+                rc, de_tcodec, crudo = _errores_tcodec(ruta_a)
+                if de_tcodec:
+                    falla("el comprobador en Tcode no rechaza programas correctos",
+                          f"{nombre}: {de_tcodec[0][:300]}")
+            print(f"    comprobador: {mismos} de {rechazados} rechazos con el "
+                  f"mismo primer error, y ninguno de {correctos} programas "
+                  f"correctos rechazado")
 
             iguales = intentados = 0
             for archivo in sorted(
