@@ -22,7 +22,10 @@ reglas de la especificacion y no con las del compilador:
   - `como` para si el valor no cabe exacto; `como?` entre enteros se queda
     con los bits de abajo, y hacia un decimal redondea;
   - todo se evalua de izquierda a derecha, y para la primera operacion que
-    falla.
+    falla;
+  - una cuenta hecha solo de numeros escritos se hace al compilar: si
+    pararia, el programa no compila. Aqui no se generan; las que no
+    compilan las prueba `cuentas_escritas`.
 
 Cada sentencia imprime una linea. A veces la ultima tiene que parar: entonces
 se espera la salida hasta ahi y el mensaje con su linea.
@@ -373,7 +376,8 @@ class Oraculo:
         return Nodo(str(v), t, lambda v=v: v, literal=True)
 
     def cuenta_escrita(self, t, prof=0):
-        """Una expresion solo de numeros escritos, calculada en `t`."""
+        """Una expresion solo de numeros escritos, calculada en `t`. Una que
+        pararia no compila, asi que no sale de aqui: sale un numero."""
         if prof >= 2 or self.r.random() < 0.5:
             return self.numero_escrito(t)
         if t in DECIMALES:
@@ -381,8 +385,14 @@ class Oraculo:
         else:
             op = self.r.choice(["+", "-", "*", "/", "%", "+?", "-?", "*?",
                                 "&", "|", "^"])
-        return binaria(op, self.cuenta_escrita(t, prof + 1),
+        nodo = binaria(op, self.cuenta_escrita(t, prof + 1),
                        self.cuenta_escrita(t, prof + 1), t)
+        if t in ENTEROS:
+            try:
+                nodo.calcular()
+            except Para:
+                return self.numero_escrito(t)
+        return nodo
 
     # ----- expresiones con tipo -----
 
@@ -641,6 +651,73 @@ class Oraculo:
 
 def generar(semilla, cuantas=None):
     return Oraculo(semilla).programa(cuantas)
+
+
+# ---------- cuentas de numeros escritos, al compilar ----------
+
+AL_COMPILAR = ": es una cuenta de numeros escritos, y se hace al compilar"
+_OPS_ESCRITAS = ["+", "-", "*", "/", "%", "+?", "-?", "*?", "&", "|", "^",
+                 "<<", ">>"]
+
+
+def _cuenta_al_azar(r, t, prof):
+    """(texto, valor o `Para` con el mensaje del compilador)."""
+    _, hi = rango(t)
+    if prof == 0 or r.random() < 0.3:
+        v = min(hi, r.choice([0, 1, 2, 3, 7, 8, 16, 31, 32, 63, 64, 100, 127,
+                              128, 200, 255, 256, hi, hi // 2, hi - 1,
+                              r.randint(0, hi)]))
+        return str(v), v
+    op = r.choice(_OPS_ESCRITAS)
+    desplaza = op in ("<<", ">>")
+    ta, a = _cuenta_al_azar(r, t, prof - 1)
+    tb, b = _cuenta_al_azar(r, "usize" if desplaza else t, prof - 1)
+    texto = f"({ta} {op} {tb})"
+    if isinstance(a, Para):
+        return texto, a
+    if isinstance(b, Para):
+        return texto, b
+    cuenta = f"`{a} {op} {b}`"
+    _, bits = ENTEROS[t]
+    if desplaza and b >= bits:
+        return texto, Para(f"{cuenta} desplaza un `{t}` {b} bits, y tiene {bits}")
+    try:
+        return texto, _operar(op, a, b, t)
+    except Para as p:
+        if str(p) == "division por cero":
+            return texto, Para(f"{cuenta} divide por cero")
+        return texto, Para(f"{cuenta} no cabe en `{t}`")
+
+
+def cuentas_escritas(semilla):
+    """Un programa con una cuenta hecha solo de numeros escritos, en un sitio
+    que le da su tipo o en uno que no (y entonces es `usize`), y el error que
+    tiene que dar al compilar: (fuente, (linea, mensaje) o None)."""
+    r = random.Random(semilla)
+    sitio = r.choice(["let", "suelta", "imprimir", "al_lado", "retorno"])
+    t = "usize" if sitio in ("suelta", "imprimir") else r.choice(list(ENTEROS))
+    texto, v = _cuenta_al_azar(r, t, r.randint(1, 3))
+    if sitio == "let":
+        cuerpo = [f"    let r: {t} = {texto};", "    imprimir(r);"]
+        linea, antes = 2, []
+    elif sitio == "suelta":
+        cuerpo = [f"    let r = {texto};", "    imprimir(r);"]
+        linea, antes = 2, []
+    elif sitio == "imprimir":
+        cuerpo = [f"    imprimir({texto});"]
+        linea, antes = 2, []
+    elif sitio == "al_lado":
+        cuerpo = [f"    let v: {t} = 1;", f"    let r = v +? {texto};",
+                  "    imprimir(r);"]
+        linea, antes = 3, []
+    else:
+        antes = [f"fn k() -> {t} {{ return {texto}; }}"]
+        cuerpo = ["    imprimir(k());"]
+        linea = 1
+    fuente = "\n".join(antes + ["fn main() {"] + cuerpo + ["}", ""])
+    if isinstance(v, Para):
+        return fuente, (linea, str(v) + AL_COMPILAR)
+    return fuente, None
 
 
 if __name__ == "__main__":

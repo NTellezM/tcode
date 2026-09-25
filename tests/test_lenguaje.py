@@ -92,6 +92,45 @@ RECHAZO = [
      'fn main() { let x: u8 = 1 + 256; imprimir(x); }',
      "no cabe en `u8`"),
 
+    # ---- cuentas de numeros escritos: se hacen al compilar ----
+    ("dos literales se operan en el tipo que se espera, al compilar",
+     'fn main() { let y: u8 = 200 + 100; imprimir(y); }',
+     "`200 + 100` no cabe en `u8`: es una cuenta de numeros escritos, y se "
+     "hace al compilar"),
+
+    ("una cuenta escrita sin tipo es usize, y no baja de cero",
+     'fn main() { let n = 1 - 2; imprimir(n); }',
+     "`1 - 2` no cabe en `usize`"),
+
+    ("una cuenta escrita divide por cero al compilar",
+     'fn main() { let x: i32 = 7 / (3 - 3); imprimir(x); }',
+     "`7 / 0` divide por cero"),
+
+    ("una cuenta escrita no desplaza el ancho de su tipo",
+     'fn main() { let x: u32 = 1 << 32; imprimir(x); }',
+     "`1 << 32` desplaza un `u32` 32 bits, y tiene 32"),
+
+    ("una cuenta escrita toma el tipo de lo que tiene al lado",
+     'fn main() { let x: u8 = 3; imprimir(x + (250 + 10)); }',
+     "`250 + 10` no cabe en `u8`"),
+
+    ("la cuenta de dentro de un menos es del tipo del destino",
+     'fn main() { let c: i8 = -(100 + 28); imprimir(c); }',
+     "`100 + 28` no cabe en `i8`"),
+
+    ("una rama escrita de un if se cuenta en su tipo",
+     'fn main() { let n: usize = 2; let x: u8 = if n > 1 { 255 + 1 } else { 3 };'
+     ' imprimir(x); }',
+     "`255 + 1` no cabe en `u8`"),
+
+    ("una cuenta escrita en lo que devuelve una funcion",
+     'fn k() -> i16 { return 300 * 300; }\nfn main() { imprimir(k()); }',
+     "`300 * 300` no cabe en `i16`"),
+
+    ("la cuenta que para es la primera, de izquierda a derecha",
+     'fn main() { imprimir((0 - 1) + (5 / 0)); }',
+     "`0 - 1` no cabe en `usize`"),
+
     ("un entero mayor que u64 no llega a Python ni a C",
      'fn main() { let x = ' + ('9' * 5000) + '; imprimir(x); }',
      "no cabe en `u64`"),
@@ -996,7 +1035,33 @@ RECHAZO = [
      'struct P { a: str, b: str }'
      ' fn g(a: mut str, b: view) { empujar(a, "x"); imprimir(b); }'
      ' fn main() { var p = P { a: nuevo("a"), b: nuevo("b") }; g(p.a, vista(p.a)); }',
-     "`p` se presta dos veces en la misma llamada a `g`"),
+     "`p.a` se presta dos veces en la misma llamada a `g`"),
+
+    # Los prestamos de una llamada van por caminos: `p.a` y `p.b` no se
+    # tocan, pero `p` contiene a `p.b`, y `p.q` a `p.q.n`.
+    ("el struct entero y uno de sus campos en la misma llamada",
+     'struct P { a: str, b: str }'
+     ' fn k(a: mut P, b: &str) { empujar(a.b, "x"); imprimir(b); }'
+     ' fn main() { var p = P { a: nuevo("a"), b: nuevo("b") }; k(p, p.b); }',
+     "`p` se presta dos veces en la misma llamada a `k`"),
+
+    ("un campo de dentro y el struct que lo contiene",
+     'struct Q { n: usize } struct P { q: Q }'
+     ' fn w(a: mut Q, b: &usize) { a.n = b + 1; }'
+     ' fn main() { var p = P { q: Q { n: 1 } }; w(p.q, p.q.n); imprimir(p.q.n); }',
+     "`p.q` se presta dos veces en la misma llamada a `w`"),
+
+    ("dos elementos de una lista pueden ser el mismo",
+     'struct P { a: str, b: str }'
+     ' fn g(a: mut str, b: view) { empujar(a, "x"); imprimir(b); }'
+     ' fn main() { var v: lista<P> = []; g(v[0].a, vista(v[1].b)); }',
+     "`v` se presta dos veces en la misma llamada a `g`"),
+
+    ("un puntero a funcion mira los caminos igual",
+     'fn h(a: &mut str, b: &str) { empujar(a, "1"); imprimir(b); }'
+     ' struct P { a: str } fn main() { var p = P { a: nuevo("a") };'
+     ' let f: fn(&mut str, &str) = h; f(p.a, p.a); }',
+     "`p.a` se presta dos veces en la misma llamada a `f` (el argumento 1 y el argumento 2)"),
 
     ("un puntero a funcion no se salta los prestamos dobles",
      'fn g(a: &mut lista<str>, b: &str) { anadir(a, nuevo("x")); imprimir(b); }'
@@ -1127,6 +1192,45 @@ RECHAZO = [
 
 
 ACEPTA = [
+    # Dos campos distintos de un struct son memoria distinta: se pueden
+    # prestar a la vez, tambien para modificarlos, y `vista(p.b)` presta solo
+    # `p.b`.
+    ("dos campos distintos se prestan en la misma llamada",
+     '''struct Q { a: str, n: usize }
+        struct P { a: str, b: str, q: Q }
+        fn g(a: mut str, b: view) { empujar(a, "x"); imprimir(b); }
+        fn h(a: mut str, b: mut str) { empujar(a, "1"); empujar(b, "2"); }
+        fn w(a: mut usize, b: &str) { a = a + largo(b); }
+        fn main() {
+            var p = P { a: nuevo("a"), b: nuevo("b"), q: Q { a: nuevo("qa"), n: 1 } };
+            g(p.a, vista(p.b));
+            h(p.a, p.b);
+            h(p.q.a, p.a);
+            g(p.a, p.b);
+            w(p.q.n, p.q.a);
+            let f: fn(&mut str, &str) = hh;
+            f(p.b, p.a);
+            imprimir($" {p.a} {p.b} {p.q.a} {p.q.n}\\n");
+        }
+        fn hh(a: &mut str, b: &str) { empujar(a, vista(b)); }''',
+     "bb2 ax12x b2ax12x qa1 4\n"),
+
+    # Una cuenta de numeros escritos se hace al compilar: la que cabe,
+    # compila. Envolver con `+?` no para nunca, y la rama de un `if` que no
+    # se sabe cual sera se cuenta sola.
+    ("las cuentas escritas que caben compilan",
+     '''fn main() {
+            let a: u8 = 200 + 55;
+            let b: u8 = 250 +? 10;
+            let c: i8 = (0 - 127 - 1) % (0 - 1);
+            let d: i64 = (0 - 7) >> 1;
+            let e: u64 = 18446744073709551615 * 1;
+            let n: usize = 2;
+            let f: u8 = (if n > 1 { 200 } else { 1 }) +? 100;
+            imprimir($"{a} {b} {c} {d} {e} {f}\\n");
+        }''',
+     "255 4 0 -4 18446744073709551615 44\n"),
+
     # Un `Entero` suelto ya sale como `usize` al deducir, asi que `-3`
     # deducia `A = usize` y despues no cabia.
     ("un negativo deduce un tipo con signo en un struct generico",
@@ -3298,10 +3402,6 @@ ABORTA = [
      'fn main() { let f: f32 = 10.0; imprimir(3e38 * f); }',
      "no dio un numero"),
 
-    ("dos literales se operan en el tipo que se espera",
-     'fn main() { let y: u8 = 200 + 100; imprimir(y); }',
-     "desbordamiento en `+`"),
-
     # La rama escrita de un `if` es del tipo de la otra: la cuenta es de
     # `f32` y se pasa del maximo. Antes se hacia en `f64` y seguia.
     ("un if con una rama escrita no saca la cuenta de su tipo",
@@ -5461,6 +5561,33 @@ fn main() {
                 cifra("programas_suite", iguales_s)
                 print(f"    {iguales_s} de {len(trabajos_s)} programas de la suite, "
                       f"mismo C que el generador de Python")
+
+                # Un nombre que declaran dos modulos, y uno usa al otro: `B.hecho`
+                # es el de `b.t` aunque el ultimo `hecho` visto sea el de `a.t`.
+                # `tcodec` los tipaba por el nombre a secas.
+                total += 1
+                dir_r = os.path.join(tmp, "repetida")
+                os.makedirs(os.path.join(dir_r, "lib"))
+                for nombre_r, fuente_r in (
+                        ("lib/b.t", 'fn hecho(t: view) -> str { return nuevo(t); }\n'),
+                        ("lib/a.t", 'usar "b.t" como B;\n'
+                                    'struct Cosa { n: usize }\n'
+                                    'fn hecho(n: usize) -> Cosa { return Cosa { n: n }; }\n'
+                                    'fn usa_a() -> usize { let c = hecho(3); '
+                                    'let _s = B.hecho("x"); return c.n; }\n'),
+                        ("main.t", 'usar "lib/b.t" como B;\nusar "lib/a.t" como A;\n'
+                                   'fn main() {\n    let d = B.hecho("hola");\n'
+                                   '    imprimir($"{d} {A.usa_a()}\\n");\n}\n')):
+                    with open(os.path.join(dir_r, nombre_r), "w", encoding="utf-8") as f:
+                        f.write(fuente_r)
+                principal_r = os.path.join(dir_r, "main.t")
+                esperado_r, errores_r = compilar_archivo(principal_r)
+                e = subprocess.run([binario, principal_r, "--mostrar-c"],
+                                   capture_output=True, text=True, timeout=180,
+                                   env=entorno)
+                if errores_r or e.returncode != 0 or e.stdout != esperado_r:
+                    falla("tcodec escribe una funcion repetida entre modulos",
+                          f"{errores_r[:1]} {e.stderr[-300:]!r}")
 
                 # `tcodec` tambien hace el ultimo paso: llama al compilador de C,
                 # enlaza lo que piden los `externo`, y deja el binario.

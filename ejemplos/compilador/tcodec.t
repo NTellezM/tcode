@@ -1618,6 +1618,60 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
 // Python: primero los campos de los structs, despues los tipos escritos en
 // cada funcion, y los de cada generica al instanciarla.
 
+// Los structs desde `desde`, en el orden de `orden`; los que no estan en el,
+// detras y como estaban.
+fn ordenar_como_comprobador(desde: usize, orden: &lista<str>,
+    st_nombres: mut lista<str>, st_indice: mut mapa<str, usize>,
+    st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>) {
+    var puesto: mapa<str, usize> = [];
+    var k = 0;
+    while k < largo(orden) {
+        if !tiene(puesto, vista(orden[k])) { poner(puesto, vista(orden[k]), k); }
+        k = k + 1;
+    }
+    // Una insercion estable: son pocos.
+    var cual: lista<usize> = [];
+    var i = desde;
+    while i < largo(st_nombres) {
+        anadir(cual, i);
+        i = i + 1;
+    }
+    let fuera = largo(orden);
+    var a = 1;
+    while a < largo(cual) {
+        var b = a;
+        while b > 0 {
+            let pb = obtener(puesto, vista(st_nombres[cual[b]])) sino fuera;
+            let pa = obtener(puesto, vista(st_nombres[cual[b - 1]])) sino fuera;
+            if pa <= pb { break; }
+            let t = cual[b];
+            cual[b] = cual[b - 1];
+            cual[b - 1] = t;
+            b = b - 1;
+        }
+        a = a + 1;
+    }
+    var nombres: lista<str> = [];
+    var campos: lista<lista<str>> = [];
+    var tipos: lista<lista<str>> = [];
+    var j = 0;
+    while j < desde {
+        anadir(nombres, copiar(st_nombres[j]));
+        anadir(campos, copiar(st_campos[j]));
+        anadir(tipos, copiar(st_tipos[j]));
+        j = j + 1;
+    }
+    for c en cual {
+        poner(st_indice, vista(st_nombres[c]), largo(nombres));
+        anadir(nombres, copiar(st_nombres[c]));
+        anadir(campos, copiar(st_campos[c]));
+        anadir(tipos, copiar(st_tipos[c]));
+    }
+    st_nombres = nombres;
+    st_campos = campos;
+    st_tipos = tipos;
+}
+
 // Lo de dentro de `Base<a, b>`, cortado por las comas de fuera.
 fn partir_args(t: view) -> lista<str> {
     var salida: lista<str> = [];
@@ -2894,12 +2948,6 @@ fn main() -> usize ! {
         }
         k_fn = k_fn + 1;
     }
-    // Y las que nacen al comprobar los cuerpos, en el orden del comprobador:
-    // `Par { a: -3, b: 1 }` es un `Par<i64, usize>` que no esta escrito.
-    for t_ap en revision.structs_aplicados {
-        let _r = resolver_reg(vista(t_ap), stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
-            st_nombres, st_indice, st_campos, st_tipos, global);
-    }
 
     // Lo que tiene partes, para `obtener_mut`: structs y enums.
     var con_partes: mapa<str, usize> = [];
@@ -2949,6 +2997,16 @@ fn main() -> usize ! {
         resolver_instancia(copia_r, stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
+    // Y las copias que no estan escritas en ningun sitio: `Par { a: -3, b: 1 }`
+    // es un `Par<i64, usize>` que dedujo el comprobador al mirar el cuerpo.
+    for t_ap en revision.structs_aplicados {
+        let _r = resolver_reg(vista(t_ap), stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+    }
+    // Las copias y las clausuras, en el orden en que nacieron en el
+    // comprobador: una deducida nace entre las demas, al llegar a su cuerpo.
+    ordenar_como_comprobador(n_concretos, revision.orden_structs, st_nombres, st_indice,
+        st_campos, st_tipos);
     for n en st_nombres { poner(con_partes, vista(n), 1); }
 
     var instancias: lista<P.Nodo> = [];

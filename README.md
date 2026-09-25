@@ -393,6 +393,20 @@ lenguaje tiene de fabricar una vista. Con el compilador de antes, 26 de esos
 86 programas compilaban. Y P11 es lo mismo para los números: la suite miraba
 que un programa corriera limpio, no que imprimiera lo correcto.
 
+Con los números escritos ya decididos, dio un paso más: **una cuenta hecha
+sólo de números escritos se hace al compilar**, en su tipo y con las mismas
+reglas. `let y: u8 = 200 + 100;` no es un programa que aborte, es uno mal
+escrito, y no compila:
+
+```
+ejemplo.t:2: `200 + 100` no cabe en `u8`: es una cuenta de numeros escritos, y se hace al compilar
+```
+
+Lo mismo `1 - 2` sin tipo, `7 / (3 - 3)` o `1 << 32` en un `u32`. Los dos
+comprobadores lo hacen igual —el de Tcode sin enteros de más de 64 bits,
+con signo y magnitud—, y P11 lo prueba con un tercero: el oráculo dice qué
+cuentas tienen que dar error y con qué palabras.
+
 ## Formato
 
 ```

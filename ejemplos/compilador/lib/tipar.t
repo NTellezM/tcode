@@ -699,16 +699,19 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
         return vacio();
     }
 
-    // Una funcion del programa.
-    if !tiene(c.retornos, nombre) { return vacio(); }
-    let retorno = nuevo(obtener(c.retornos, nombre) sino "");
-    if !tiene(c.tipo_params, nombre) { return retorno; }
+    // Una funcion del programa. `B.hecho` se busca como la escribe quien
+    // llama: si dos modulos declaran `hecho`, el nombre a secas es de los dos.
+    var clave = nuevo(nombre);
+    if tiene(c.retornos, vista(n.texto)) { clave = copiar(n.texto); }
+    if !tiene(c.retornos, vista(clave)) { return vacio(); }
+    let retorno = nuevo(obtener(c.retornos, vista(clave)) sino "");
+    if !tiene(c.tipo_params, vista(clave)) { return retorno; }
 
     // Generica: se eligen los tipos mirando los argumentos, igual que hace
     // el comprobador, y se ponen en el tipo de retorno.
-    let sueltos = lista_de(c.tipo_params, nombre) sino [];
+    let sueltos = lista_de(c.tipo_params, vista(clave)) sino [];
     if largo(sueltos) == 0 { return retorno; }
-    let declarados = lista_de(c.params, nombre) sino [];
+    let declarados = lista_de(c.params, vista(clave)) sino [];
     var ligaduras: mapa<str, str> = [];
     var i = 0;
     while i < largo(declarados) && i < largo(n.hijos) {

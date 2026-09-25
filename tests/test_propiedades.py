@@ -49,7 +49,10 @@ Las propiedades:
       especificacion (`tests/oraculo.py`), con todos los enteros y los dos
       decimales, numeros escritos a los dos lados, conversiones, `if` como
       valor, llamadas, genericas, campos y arreglos. Y el C que escribe
-      `tcodec` para ese programa es el mismo, byte a byte.
+      `tcodec` para ese programa es el mismo, byte a byte. Una cuenta hecha
+      solo de numeros escritos se hace al compilar: la que pararia el
+      programa no compila, con el error que dice el oraculo, en los dos
+      compiladores; la que no, compila.
   P12 El compilador escrito en Tcode escribe, byte a byte, el mismo C que
       el de Python para todo programa generado y para cada programa valido
       de P10. Lo que uno sabe escribir y el otro no aparece aqui antes que
@@ -77,7 +80,7 @@ from tcode.parser import ErrorSintactico
 from generador_programas import generar, generar_modulos
 from mutador import mutar
 from violaciones import casos as casos_de_violacion
-from oraculo import generar as generar_oraculo
+from oraculo import generar as generar_oraculo, cuentas_escritas
 
 RUNTIME = os.path.join(RAIZ, "runtime")
 CUANTOS = int(os.environ.get("TCODE_PROGRAMAS", "60"))
@@ -363,6 +366,50 @@ def probar_oraculo(tmp, tcodec):
                 falla(propiedad, semilla, detalle, fuente)
 
 
+def probar_cuentas_escritas(tmp, tcodec):
+    """P11, al compilar: una cuenta de numeros escritos que pararia el
+    programa es un error, y el mismo en los dos compiladores."""
+    global total
+    trabajos = []
+    for semilla in range(1, 5 * CUANTOS + 1):
+        fuente, esperado = cuentas_escritas(semilla)
+        ruta = os.path.join(tmp, f"e{semilla}.t")
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write(fuente)
+        total += 1
+        try:
+            _, errores = compilar_archivo(ruta)
+        except Exception:
+            falla("P11 cuentas escritas al compilar", semilla,
+                  traceback.format_exc(), fuente)
+            continue
+        dicho = [x.split(".t:", 1)[1] for x in errores[:1]]
+        quiero = [f"{esperado[0]}: {esperado[1]}"] if esperado else []
+        if dicho != quiero:
+            falla("P11 cuentas escritas al compilar", semilla,
+                  f"el compilador dice {errores[:1]}, y tiene que decir {quiero}",
+                  fuente)
+            continue
+        if tcodec:
+            trabajos.append((semilla, fuente, ruta, errores))
+
+    def comprobar(semilla, fuente, ruta, errores):
+        r = subprocess.run([tcodec, ruta, "--solo-comprobar"], capture_output=True,
+                           text=True, cwd=RAIZ, timeout=300,
+                           env=dict(os.environ, TCODE_RAIZ="."))
+        dados = [x[len("error: "):] for x in r.stderr.splitlines()
+                 if x.startswith("error: ")]
+        return None if dados == errores else f"tcodec dice {dados}, Python {errores}"
+
+    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 2) as hilos:
+        resultados = hilos.map(lambda x: comprobar(*x), trabajos)
+        for (semilla, fuente, _, _), problema in zip(trabajos, resultados):
+            total += 1
+            if problema:
+                falla("P11 cuentas escritas, igual en Tcode", semilla, problema,
+                      fuente)
+
+
 def probar_tcodec(tmp, tcodec):
     """P12: `tcodec` escribe el mismo C que Python para los programas
     generados y para los validos de P10."""
@@ -586,6 +633,7 @@ def main():
         tcodec = None if SIN_TCODEC else construir_tcodec(tmp)
         print("=== ORACULO: la aritmetica da lo que tiene que dar ===")
         probar_oraculo(tmp, tcodec)
+        probar_cuentas_escritas(tmp, tcodec)
 
         if tcodec:
             print("=== TCODEC: el compilador en Tcode escribe el mismo C ===")
