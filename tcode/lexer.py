@@ -41,11 +41,76 @@ class Token:
         return f"{self.tipo}:{self.valor!r}@{self.linea}"
 
 
+HEXA = "0123456789abcdefABCDEF"
+
+
+def fin_de_cadena(fuente, i, archivo="<entrada>", linea=1, validar=True):
+    """Donde acaba una cadena escrita dentro de un hueco: `i` es su `"`, o el
+    `$` de una interpolada, y se devuelve lo que va detras de su comilla.
+
+    Lo de dentro de un hueco se copia tal cual, con sus escapes y sus llaves,
+    porque lo lee despues el lexer del hueco. Pero hay que saber donde acaba
+    cada cadena de dentro: una `}` o un `\\"` suyos no son del hueco. Con
+    `validar`, los escapes se comprueban igual que en una cadena suelta; sin
+    el, el texto ya paso por aqui y no puede fallar.
+    """
+    n = len(fuente)
+    interpolada = fuente[i] == "$"
+    i += 2 if interpolada else 1
+    prof = 0
+    while True:
+        if i >= n or fuente[i] == "\n":
+            if not validar:
+                return n
+            # La de fuera tampoco se cierra: lo mas probable es que falte la
+            # `}` del hueco, como en `$"hola {n"`.
+            raise ErrorLexico(
+                f"{archivo}:{linea}: cadena interpolada sin cerrar; falta la "
+                f"comilla, o falta `}}` en algun hueco")
+        c = fuente[i]
+        if interpolada and prof == 0 and fuente[i:i + 2] in ("{{", "}}"):
+            i += 2
+            continue
+        if prof > 0:
+            if c == '"' or fuente.startswith('$"', i):
+                i = fin_de_cadena(fuente, i, archivo, linea, validar)
+                continue
+            if c == "\\":
+                i += 2
+                continue
+        if interpolada and c == "{":
+            prof += 1
+        elif interpolada and c == "}" and prof:
+            prof -= 1
+        if c == '"' and prof == 0:
+            return i + 1
+        if c == "\\":
+            if validar:
+                if i + 1 >= n:
+                    raise ErrorLexico(f"{archivo}:{linea}: escape sin cerrar")
+                esc = fuente[i + 1]
+                if esc == "x":
+                    hexa = fuente[i + 2:i + 4]
+                    if len(hexa) < 2 or any(x not in HEXA for x in hexa):
+                        raise ErrorLexico(
+                            f"{archivo}:{linea}: `\\x` lleva dos digitos "
+                            f"hexadecimales detras, como `\\x0a`")
+                    i += 4
+                    continue
+                if esc not in 'nt\\"0' + ("{}" if interpolada else ""):
+                    raise ErrorLexico(
+                        f"{archivo}:{linea}: escape desconocido \\{esc}")
+            i += 2
+            continue
+        i += 1
+
+
 def tokenizar(fuente: str, archivo: str = "<entrada>",
-              con_comentarios: bool = False) -> list:
+              con_comentarios: bool = False, linea: int = 1) -> list:
+    """`linea` es donde empieza `fuente`: el hueco de una cadena interpolada
+    se lee aparte, y sus errores tienen que decir donde esta la cadena."""
     toks = []
     i = 0
-    linea = 1
     inicio_linea = 0
     n = len(fuente)
 
@@ -100,8 +165,6 @@ def tokenizar(fuente: str, archivo: str = "<entrada>",
                     raise ErrorLexico(
                         f"{archivo}:{l0}: cadena interpolada sin cerrar; "
                         f"falta la comilla, o falta `}}` en algun hueco")
-                # `{{` y `}}` son una llave escrita, no un hueco: no cuentan
-                # para la hondura ni cierran nada.
                 # `{{` y `}}` son una llave escrita, pero solo FUERA de un
                 # hueco: dentro, `}}` puede ser el cierre de un bloque y el
                 # del hueco, como en `$"{if c { a } else { b }}"`.
@@ -111,6 +174,19 @@ def tokenizar(fuente: str, archivo: str = "<entrada>",
                     # suelta es el parser, al partir los huecos.
                     partes.append(fuente[i])
                     partes.append(fuente[i + 1])
+                    i += 2
+                    continue
+                # Un hueco se copia crudo: lo lee despues el lexer del hueco,
+                # con sus escapes. Una cadena de dentro se salta entera, que
+                # sus llaves y sus comillas no son del hueco.
+                if prof > 0 and (fuente[i] == '"'
+                                 or fuente.startswith('$"', i)):
+                    j = fin_de_cadena(fuente, i, archivo, l0)
+                    partes.append(fuente[i:j])
+                    i = j
+                    continue
+                if prof > 0 and fuente[i] == "\\" and i + 1 < n:
+                    partes.append(fuente[i:i + 2])
                     i += 2
                     continue
                 if fuente[i] == "{":
@@ -128,8 +204,7 @@ def tokenizar(fuente: str, archivo: str = "<entrada>",
                         # `\xNN`: un byte escrito en hexadecimal. Hace falta
                         # para poner en una cadena lo que no es texto.
                         hexa = fuente[i + 2:i + 4]
-                        if len(hexa) < 2 or any(
-                                c not in "0123456789abcdefABCDEF" for c in hexa):
+                        if len(hexa) < 2 or any(c not in HEXA for c in hexa):
                             raise ErrorLexico(
                                 f"{archivo}:{linea}: `\\x` lleva dos digitos "
                                 f"hexadecimales detras, como `\\x0a`")
@@ -169,8 +244,7 @@ def tokenizar(fuente: str, archivo: str = "<entrada>",
                     esc = fuente[i + 1]
                     if esc == "x":
                         hexa = fuente[i + 2:i + 4]
-                        if len(hexa) < 2 or any(
-                                c not in "0123456789abcdefABCDEF" for c in hexa):
+                        if len(hexa) < 2 or any(c not in HEXA for c in hexa):
                             raise ErrorLexico(
                                 f"{archivo}:{linea}: `\\x` lleva dos digitos "
                                 f"hexadecimales detras, como `\\x0a`")

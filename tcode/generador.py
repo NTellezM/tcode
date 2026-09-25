@@ -658,15 +658,22 @@ class Generador:
 
         Un `\\xNN` de la fuente llega marcado como U+DC00+NN (la convencion
         de sustitutos): asi un byte crudo no se confunde con el caracter
-        Unicode del mismo numero, que en UTF-8 ocuparia dos bytes."""
+        Unicode del mismo numero, que en UTF-8 ocuparia dos bytes.
+
+        Un `?` detras de otro va escapado: en C17 `??=` es un trigrafo, y el
+        compilador de C lo cambiaria por `#` antes de leer la cadena. El
+        largo que va al lado seria el de antes, y se leeria de mas."""
         salida = ['"']
+        previo = None
         for b in bytes_de(texto):
-            if b == 0x5C: salida.append("\\\\")
+            if b == 0x3F and previo == 0x3F: salida.append("\\?")
+            elif b == 0x5C: salida.append("\\\\")
             elif b == 0x22: salida.append('\\"')
             elif b == 0x0A: salida.append("\\n")
             elif b == 0x09: salida.append("\\t")
             elif 0x20 <= b < 0x7F: salida.append(chr(b))
             else: salida.append(f"\\{b:03o}")
+            previo = b
         salida.append('"')
         return "".join(salida)
 
@@ -1733,6 +1740,33 @@ class Generador:
                             f"{dentro};")
                 self.declarar(nombre, t)
 
+    def descartar(self, c, tipo, expr):
+        """Una expresion cuyo valor no se guarda: se hace, y lo que da se
+        tira. Si ese valor era duenio de memoria, aqui es donde se devuelve:
+        `try espera(...)` como sentencia tira el `str` que devuelve, y nadie
+        mas lo iba a liberar."""
+        if c and tipo not in (None, UNIDAD) and self.c.posee(tipo):
+            self.reclamar(c)
+            # `liberacion` toma la direccion de lo que libera, y el
+            # resultado de una llamada no tiene direccion: `f();` a secas
+            # daba `ss_free(&f())`, que ni siquiera es C. Se guarda antes.
+            if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", c):
+                tmp = self.nuevo_tmp()
+                self.emitir(f"{self.tipo_c(tipo)} {tmp} = {c};")
+                self.declarar(tmp, tipo)
+                c = tmp
+            self.liberacion(c, tipo)
+            return
+
+        # `try f();` y `f() sino x;` ya emitieron todo el trabajo al
+        # generarse; lo que devuelven es el valor, y como sentencia suelta
+        # no haria nada. Emitirlo daria un aviso de C sobre codigo que el
+        # usuario no escribio. Lo que no es una llamada, como el `0` de un
+        # brazo, se tira con `(void)`, que es como C dice que es a proposito.
+        if c and not isinstance(expr, (Try, Sino)):
+            self.emitir(c + ";" if isinstance(expr, Llamada)
+                        else f"(void) ({c});")
+
     def cuerpo_brazo(self, b, destino):
         """Lo que hace el brazo: dejar su valor en `destino`, o sus
         sentencias. Y soltar lo que haya nacido dentro."""
@@ -1745,6 +1779,9 @@ class Generador:
             if destino is not None:
                 self.reclamar(valor)
                 self.emitir(f"{destino} = {valor};")
+            else:
+                # Un `match` suelto: el brazo hace, y lo que da se tira.
+                self.descartar(valor, self._tipo_de(st.valor), st.valor)
             for t in self.temporales:
                 self.liberacion(t, self.tipo_var(t))
             self.temporales = anteriores
@@ -2226,31 +2263,7 @@ class Generador:
 
         if isinstance(s, ExprSentencia):
             c = self.expr(s.expr, None)
-            tipo = self._tipo_de(s.expr)
-
-            # Una sentencia suelta descarta el valor. Si ese valor era duenio
-            # de memoria, aqui es donde se devuelve: `try espera(...)` como
-            # sentencia tira el `str` que devuelve, y nadie mas lo iba a
-            # liberar.
-            if c and tipo not in (None, UNIDAD) and self.c.posee(tipo):
-                self.reclamar(c)
-                # `liberacion` toma la direccion de lo que libera, y el
-                # resultado de una llamada no tiene direccion: `f();` a secas
-                # daba `ss_free(&f())`, que ni siquiera es C. Se guarda antes.
-                if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", c):
-                    tmp = self.nuevo_tmp()
-                    self.emitir(f"{self.tipo_c(tipo)} {tmp} = {c};")
-                    self.declarar(tmp, tipo)
-                    c = tmp
-                self.liberacion(c, tipo)
-                return
-
-            # `try f();` y `f() sino x;` ya emitieron todo el trabajo al
-            # generarse; lo que devuelven es el valor, y como sentencia suelta
-            # no haria nada. Emitirlo daria un aviso de C sobre codigo que el
-            # usuario no escribio.
-            if c and not isinstance(s.expr, (Try, Sino)):
-                self.emitir(c + ";")
+            self.descartar(c, self._tipo_de(s.expr), s.expr)
             return
 
         raise AssertionError(type(s).__name__)
@@ -2339,12 +2352,60 @@ class Generador:
         if isinstance(e, Binaria):
             if e.op in {"==", "!=", "<", "<=", ">", ">=", "&&", "||"}:
                 return "bool"
-            return self._tipo_de(e.izq)
+            return self._tipo_cuenta(e)
         if isinstance(e, Unaria):
-            return "bool" if e.op == "!" else self._tipo_de(e.valor)
+            if e.op == "!":
+                return "bool"
+            # `-1` sin mas contexto es un `i64`, como en el comprobador: un
+            # numero negativo no cabe en el `usize` de un numero escrito.
+            if e.op == "-" and self._literal_de(e.valor) == "entero":
+                return "i64"
+            return self._tipo_de(e.valor)
         if isinstance(e, Conversion):
             return e.a_tipo
         return "usize"
+
+    def _literal_de(self, e):
+        """`"entero"` o `"decimal"` si el comprobador ve aqui un numero
+        escrito que todavia no tiene tipo —`1`, `2.5`, `1 + 2`, `-0.5`—, y
+        None si no. Un numero asi toma el tipo del otro lado de la operacion,
+        y el C tiene que hacer la cuenta en ese tipo, no en `usize`."""
+        if isinstance(e, Entero):
+            return "entero"
+        if isinstance(e, Decimal):
+            return "decimal"
+        if isinstance(e, Unaria) and e.op == "-":
+            # `-1` ya es un `i64`; `-0.5` sigue sin decidir su ancho.
+            return "decimal" if self._literal_de(e.valor) == "decimal" else None
+        if (isinstance(e, Binaria)
+                and e.op not in {"==", "!=", "<", "<=", ">", ">=", "&&", "||"}):
+            izq, der = self._literal_de(e.izq), self._literal_de(e.der)
+            if izq and der:
+                return "decimal" if "decimal" in (izq, der) else "entero"
+        return None
+
+    def _tipo_cuenta(self, e, esperado=None):
+        """El tipo en que se hace la cuenta de una binaria: el mismo que
+        decide el comprobador. `1 + x` se hace en el tipo de `x`, y `1 + 2`
+        en el que se espera de ella."""
+        izq, der = self._literal_de(e.izq), self._literal_de(e.der)
+        if izq and der:
+            if esperado in ARITMETICA or esperado in DECIMALES:
+                return esperado
+            return "f64" if "decimal" in (izq, der) else "usize"
+        if izq:
+            t = self._tipo_de(e.der)
+            if t in ARITMETICA or t in DECIMALES:
+                return t
+        t = self._tipo_de(e.izq)
+        if t not in ARITMETICA and t not in DECIMALES:
+            t = self._tipo_de(e.der)
+        if t not in ARITMETICA and t not in DECIMALES:
+            if esperado in ARITMETICA or esperado in DECIMALES:
+                t = esperado
+            else:
+                t = "usize"
+        return t
 
     # ---------- expresiones ----------
 
@@ -2434,6 +2495,8 @@ class Generador:
                 t = self._tipo_de(e.valor)
                 if esperado in ARITMETICA or esperado in DECIMALES:
                     t = esperado
+                elif self._literal_de(e.valor) == "entero":
+                    t = "i64"
                 # Un literal ya fue validado estaticamente. Generarlo como una
                 # constante del tipo final evita pasar INT_MIN por el ayudante
                 # de negacion (que correctamente lo trataria como overflow en
@@ -2753,14 +2816,7 @@ class Generador:
             self.emitir("}")
             return vale
 
-        t = self._tipo_de(e.izq)
-        if t not in ARITMETICA and t not in DECIMALES:
-            t = self._tipo_de(e.der)
-        if t not in ARITMETICA and t not in DECIMALES:
-            if esperado in ARITMETICA or esperado in DECIMALES:
-                t = esperado
-            else:
-                t = "usize"
+        t = self._tipo_cuenta(e, esperado)
         pos = f"{self.arch(e)}, {e.linea}"
 
         # Salvo los operadores logicos anteriores, C no promete evaluar el
@@ -2958,7 +3014,8 @@ class Generador:
                 (self.expr(e.args[2], "usize"), "size_t"),
             ]
             args, previos = self.argumentos_ordenados(e, valores)
-            llamada = f"sv_slice({', '.join(args)})"
+            llamada = (f"ss_lang_rebanar_({', '.join(args)}, "
+                       f"{self.arch(e)}, {e.linea})")
             return self.con_argumentos_ordenados(llamada, previos)
         if n == "empujar":
             direccion = self.dir_de(e.args[0])
@@ -3313,22 +3370,18 @@ class Generador:
         """
         f = "printf(" if destino == "stdout" else f"fprintf({destino}, "
         t = self._tipo_de(a)
-        if t == "str":
-            if isinstance(a, (Variable, Campo, Indice)):
-                return f'{f}"%s", ss_cstr({self.dir_de(a)}))'
+        # El texto va con `fwrite`, por su largo: un `str` guarda bytes y
+        # puede llevar ceros, que `%s` y `%.*s` tomarian por el final.
+        if t == "str" and isinstance(a, (Variable, Campo, Indice)):
+            return (f"ss_lang_escribir_({destino}, "
+                    f"ss_view({self.dir_de(a)}))")
+        if t in ("str", "view"):
             vista = self.como_vista(a)
             tmp = self.nuevo_tmp()
             self.emitir(f"SafeView {tmp} = {vista};")
             self.ultima_pos = None
             self.marcar(a)
-            return f'{f}SV_FMT, SV_ARG({tmp}))'
-        if t == "view":
-            vista = self.como_vista(a)
-            tmp = self.nuevo_tmp()
-            self.emitir(f"SafeView {tmp} = {vista};")
-            self.ultima_pos = None
-            self.marcar(a)
-            return f'{f}SV_FMT, SV_ARG({tmp}))'
+            return f"ss_lang_escribir_({destino}, {tmp})"
         if t == "usize":
             return f'{f}"%zu", {self.expr(a, "usize")})'
         if t in DECIMALES:

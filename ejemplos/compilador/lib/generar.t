@@ -10,6 +10,7 @@
 usar "tipos.t" como T;
 usar "tipar.t" como I;
 usar "../../lexer/lib/sintaxis.t" como P;
+usar "../../lexer/lib/lexico.t" como L;
 usar "std/texto";
 usar "std/lista";
 
@@ -153,44 +154,206 @@ fn tipo_resultado(t: view) -> str {
     return s;
 }
 
+// ------------------------------------------------------------------
+// Nombres que no pueden ir tal cual a C
+// ------------------------------------------------------------------
+
+// Tcode no tiene las palabras de C, asi que `union`, `log` o `EOF` son
+// nombres legales. Pero el C generado incluye `math.h`, `stdio.h` y
+// compania, y ahi `log` ya es una funcion y `EOF` una macro. Esos nombres
+// llevan `ss_id_` delante en todo el arbol a la vez, antes de comprobar
+// nada, y los mensajes lo quitan. Es la regla de `tcode/nombres_c.py`, con
+// la misma lista: lo que declaran las cabeceras incluidas en C17 estricto,
+// las palabras de C, lo del runtime y los nombres reservados de C.
+fn nombres_de_c() -> mapa<str, usize> {
+    var m: mapa<str, usize> = [];
+    apuntar_nombres_c(m, "BUFSIZ CLOCKS_PER_SEC DBL_DECIMAL_DIG DBL_DIG DBL_EPSILON DBL_HAS_SUBNORM");
+    apuntar_nombres_c(m, "DBL_MANT_DIG DBL_MAX DBL_MAX_10_EXP DBL_MAX_EXP DBL_MIN DBL_MIN_10_EXP");
+    apuntar_nombres_c(m, "DBL_MIN_EXP DBL_TRUE_MIN DECIMAL_DIG EOF EXIT_FAILURE EXIT_SUCCESS FILE");
+    apuntar_nombres_c(m, "FILENAME_MAX FLT_DECIMAL_DIG FLT_DIG FLT_EPSILON FLT_EVAL_METHOD FLT_HAS_SUBNORM");
+    apuntar_nombres_c(m, "FLT_MANT_DIG FLT_MAX FLT_MAX_10_EXP FLT_MAX_EXP FLT_MIN FLT_MIN_10_EXP");
+    apuntar_nombres_c(m, "FLT_MIN_EXP FLT_RADIX FLT_ROUNDS FLT_TRUE_MIN FOPEN_MAX FP_ILOGB0 FP_ILOGBNAN");
+    apuntar_nombres_c(m, "FP_INFINITE FP_NAN FP_NORMAL FP_SUBNORMAL FP_ZERO HUGE_VAL HUGE_VALF HUGE_VALL");
+    apuntar_nombres_c(m, "INFINITY INT16_C INT16_MAX INT16_MIN INT32_C INT32_MAX INT32_MIN INT64_C");
+    apuntar_nombres_c(m, "INT64_MAX INT64_MIN INT8_C INT8_MAX INT8_MIN INTMAX_C INTMAX_MAX INTMAX_MIN");
+    apuntar_nombres_c(m, "INTPTR_MAX INTPTR_MIN INT_FAST16_MAX INT_FAST16_MIN INT_FAST32_MAX");
+    apuntar_nombres_c(m, "INT_FAST32_MIN INT_FAST64_MAX INT_FAST64_MIN INT_FAST8_MAX INT_FAST8_MIN");
+    apuntar_nombres_c(m, "INT_LEAST16_MAX INT_LEAST16_MIN INT_LEAST32_MAX INT_LEAST32_MIN INT_LEAST64_MAX");
+    apuntar_nombres_c(m, "INT_LEAST64_MIN INT_LEAST8_MAX INT_LEAST8_MIN LDBL_DECIMAL_DIG LDBL_DIG");
+    apuntar_nombres_c(m, "LDBL_EPSILON LDBL_HAS_SUBNORM LDBL_MANT_DIG LDBL_MAX LDBL_MAX_10_EXP");
+    apuntar_nombres_c(m, "LDBL_MAX_EXP LDBL_MIN LDBL_MIN_10_EXP LDBL_MIN_EXP LDBL_TRUE_MIN L_tmpnam");
+    apuntar_nombres_c(m, "MATH_ERREXCEPT MATH_ERRNO MB_CUR_MAX NAN NULL PTRDIFF_MAX PTRDIFF_MIN RAND_MAX");
+    apuntar_nombres_c(m, "SAFESTR_H SEEK_CUR SEEK_END SEEK_SET SIG_ATOMIC_MAX SIG_ATOMIC_MIN SIZE_MAX");
+    apuntar_nombres_c(m, "SafeFreeFn SafeReallocFn SafeString SafeStringList SafeView TIME_UTC TMP_MAX");
+    apuntar_nombres_c(m, "UINT16_C UINT16_MAX UINT32_C UINT32_MAX UINT64_C UINT64_MAX UINT8_C UINT8_MAX");
+    apuntar_nombres_c(m, "UINTMAX_C UINTMAX_MAX UINTPTR_MAX UINT_FAST16_MAX UINT_FAST32_MAX");
+    apuntar_nombres_c(m, "UINT_FAST64_MAX UINT_FAST8_MAX UINT_LEAST16_MAX UINT_LEAST32_MAX");
+    apuntar_nombres_c(m, "UINT_LEAST64_MAX UINT_LEAST8_MAX WCHAR_MAX WCHAR_MIN WINT_MAX WINT_MIN abort abs");
+    apuntar_nombres_c(m, "acos acosf acosh acoshf acoshl acosl alignas aligned_alloc alignof argc argv");
+    apuntar_nombres_c(m, "asctime asin asinf asinh asinhf asinhl asinl assert at_quick_exit atan atan2");
+    apuntar_nombres_c(m, "atan2f atan2l atanf atanh atanhf atanhl atanl atexit atof atoi atol atoll auto");
+    apuntar_nombres_c(m, "break bsearch calloc case cbrt cbrtf cbrtl ceil ceilf ceill char clearerr clock");
+    apuntar_nombres_c(m, "clock_t complex const constexpr continue copysign copysignf copysignl cos cosf");
+    apuntar_nombres_c(m, "cosh coshf coshl cosl ctime default difftime div div_t do double double_t else");
+    apuntar_nombres_c(m, "enum erf erfc erfcf erfcl erff erfl errno exit exp exp2 exp2f exp2l expf expl");
+    apuntar_nombres_c(m, "expm1 expm1f expm1l extern fabs fabsf fabsl fclose fdim fdimf fdiml feof ferror");
+    apuntar_nombres_c(m, "fflush fgetc fgetpos fgets float float_t floor floorf floorl fma fmaf fmal fmax");
+    apuntar_nombres_c(m, "fmaxf fmaxl fmin fminf fminl fmod fmodf fmodl fopen for fpclassify fpos_t");
+    apuntar_nombres_c(m, "fprintf fputc fputs fread free freopen frexp frexpf frexpl fscanf fseek fsetpos");
+    apuntar_nombres_c(m, "ftell fwrite generic getc getchar getenv gmtime goto hypot hypotf hypotl if");
+    apuntar_nombres_c(m, "ilogb ilogbf ilogbl imaginary inline int int16_t int32_t int64_t int8_t");
+    apuntar_nombres_c(m, "int_fast16_t int_fast32_t int_fast64_t int_fast8_t int_least16_t int_least32_t");
+    apuntar_nombres_c(m, "int_least64_t int_least8_t intmax_t intptr_t isfinite isgreater isgreaterequal");
+    apuntar_nombres_c(m, "isinf isless islessequal islessgreater isnan isnormal isunordered labs ldexp");
+    apuntar_nombres_c(m, "ldexpf ldexpl ldiv ldiv_t lgamma lgammaf lgammal llabs lldiv lldiv_t llrint");
+    apuntar_nombres_c(m, "llrintf llrintl llround llroundf llroundl localtime log log10 log10f log10l");
+    apuntar_nombres_c(m, "log1p log1pf log1pl log2 log2f log2l logb logbf logbl logf logl long lrint");
+    apuntar_nombres_c(m, "lrintf lrintl lround lroundf lroundl malloc math_errhandling max_align_t mblen");
+    apuntar_nombres_c(m, "mbstowcs mbtowc memchr memcmp memcpy memmove memset mktime modf modff modfl nan");
+    apuntar_nombres_c(m, "nanf nanl nearbyint nearbyintf nearbyintl nextafter nextafterf nextafterl");
+    apuntar_nombres_c(m, "nexttoward nexttowardf nexttowardl noreturn nullptr offsetof perror pow powf");
+    apuntar_nombres_c(m, "powl printf ptrdiff_t putc putchar puts qsort quick_exit rand realloc register");
+    apuntar_nombres_c(m, "remainder remainderf remainderl remove remquo remquof remquol rename restrict");
+    apuntar_nombres_c(m, "return rewind rint rintf rintl round roundf roundl scalbln scalblnf scalblnl");
+    apuntar_nombres_c(m, "scalbn scalbnf scalbnl scanf setbuf setvbuf short signbit signed sin sinf sinh");
+    apuntar_nombres_c(m, "sinhf sinhl sinl size_t sizeof snprintf sprintf sqrt sqrtf sqrtl srand sscanf");
+    apuntar_nombres_c(m, "static static_assert stderr stdin stdout strcat strchr strcmp strcoll strcpy");
+    apuntar_nombres_c(m, "strcspn strerror strftime strlen strncat strncmp strncpy strpbrk strrchr strspn");
+    apuntar_nombres_c(m, "strstr strtod strtof strtok strtol strtold strtoll strtoul strtoull struct");
+    apuntar_nombres_c(m, "strxfrm sv switch system tan tanf tanh tanhf tanhl tanl tgamma tgammaf tgammal");
+    apuntar_nombres_c(m, "thread_local time time_t timespec timespec_get tm tmpfile tmpnam trunc truncf");
+    apuntar_nombres_c(m, "truncl typedef typeof typeof_unqual uint16_t uint32_t uint64_t uint8_t");
+    apuntar_nombres_c(m, "uint_fast16_t uint_fast32_t uint_fast64_t uint_fast8_t uint_least16_t");
+    apuntar_nombres_c(m, "uint_least32_t uint_least64_t uint_least8_t uintmax_t uintptr_t ungetc union");
+    apuntar_nombres_c(m, "unsigned va_arg va_copy va_end va_list va_start vfprintf vfscanf void volatile");
+    apuntar_nombres_c(m, "vprintf vscanf vsnprintf vsprintf vsscanf wchar_t wcstombs wctomb while");
+    return m;
+}
+
+fn apuntar_nombres_c(m: mut mapa<str, usize>, cuales: view) {
+    for n en palabras(cuales) { poner(m, vista(n), 1); }
+}
+
+fn choca_con_c(n: view, de_c: &mapa<str, usize>) -> bool {
+    if tiene(de_c, n) { return true; }
+    // Reservados de C: `_Bool`, `__func__`, y todo lo que empiece asi.
+    if largo(n) > 1 && byte(n, 0) == 95
+    && (byte(n, 1) == 95 || (byte(n, 1) >= 65 && byte(n, 1) <= 90)) {
+        return true;
+    }
+    // El runtime y lo que escribe el generador: `ss_free`, `SV_FMT`,
+    // `ss_tmp1`, `SS_E_A`.
+    if empieza_con(n, "ss_") || empieza_con(n, "sv_") || empieza_con(n, "SS_")
+    || empieza_con(n, "SV_") {
+        return true;
+    }
+    // El struct de una clausura.
+    if !empieza_con(n, "Cierre_") || largo(n) == 7 { return false; }
+    var i = 7;
+    while i < largo(n) {
+        if byte(n, i) < 48 || byte(n, i) > 57 { return false; }
+        i = i + 1;
+    }
+    return true;
+}
+
+// El nombre que se escribio, sin el prefijo que le puso el cargador.
+fn escrito(n: view) -> str {
+    if empieza_con(n, "ss_id_") { return nuevo(rebanar(n, 6, largo(n))); }
+    return nuevo(n);
+}
+
+fn empieza_nombre(c: usize) -> bool {
+    return (c >= 97 && c <= 122) || (c >= 65 && c <= 90) || c == 95;
+}
+
+// Un mensaje con los nombres como se escribieron.
+fn legible_c(t: view) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < largo(t) {
+        if empieza_nombre(byte(t, i)) {
+            var j = i;
+            while j < largo(t) && I.es_de_nombre(byte(t, j)) { j = j + 1; }
+            let e = escrito(rebanar(t, i, j));
+            empujar(r, vista(e));
+            i = j;
+        } else {
+            empujar(r, rebanar(t, i, i + 1));
+            i = i + 1;
+        }
+    }
+    return r;
+}
+
+fn nombre_para_c(n: view, de_c: &mapa<str, usize>, intocables: &lista<str>) -> str {
+    if !choca_con_c(n, de_c) { return nuevo(n); }
+    for x en intocables {
+        if igual(vista(x), n) { return nuevo(n); }
+    }
+    return $"ss_id_{n}";
+}
+
+// Cada nombre de un texto del arbol, cambiado si choca. Uno seguido de `.`
+// es el alias de un modulo, que no llega a C; con `solo_el_primero`, lo que
+// hay detras del punto es la forma de un enum, que tampoco.
+fn texto_para_c(t: view, de_c: &mapa<str, usize>, intocables: &lista<str>,
+    solo_el_primero: bool) -> str {
+    var r = vacio();
+    var i = 0;
+    var visto_punto = false;
+    while i < largo(t) {
+        let c = byte(t, i);
+        if c == 46 { visto_punto = true; }
+        if !empieza_nombre(c) {
+            empujar(r, rebanar(t, i, i + 1));
+            i = i + 1;
+            continue;
+        }
+        var j = i;
+        while j < largo(t) && I.es_de_nombre(byte(t, j)) { j = j + 1; }
+        let n = rebanar(t, i, j);
+        if (solo_el_primero && visto_punto) || (j < largo(t) && byte(t, j) == 46 && !solo_el_primero) {
+            empujar(r, n);
+        } else {
+            let otro = nombre_para_c(n, de_c, intocables);
+            empujar(r, vista(otro));
+        }
+        i = j;
+    }
+    return r;
+}
+
+// Los nombres de las funciones de un `externo`: son los de C, y no se tocan.
+fn externas_de(arbol: &P.Nodo, salida: mut lista<str>) {
+    for d en arbol.hijos {
+        if !igual(vista(d.clase), "externo") { continue; }
+        for f en d.hijos { anadir(salida, copiar(f.texto)); }
+    }
+}
+
+// Todo el arbol con los nombres que chocan con C cambiados. Los literales,
+// las rutas, los operadores y las formas de un enum no son nombres de C.
+fn renombrar_para_c(n: mut P.Nodo, de_c: &mapa<str, usize>, intocables: &lista<str>) {
+    let clase = copiar(n.clase);
+    let cl = vista(clase);
+    let fijo = igual(cl, "cadena") || igual(cl, "interpolada") || igual(cl, "entero")
+    || igual(cl, "decimal") || igual(cl, "booleano") || igual(cl, "falla")
+    || igual(cl, "usar") || igual(cl, "alias") || igual(cl, "externo") || igual(cl, "externa")
+    || igual(cl, "variante") || igual(cl, "binaria") || igual(cl, "unaria");
+    if !fijo {
+        let forma = igual(cl, "enum_lit") || igual(cl, "brazo") || igual(cl, "patron");
+        n.texto = texto_para_c(vista(n.texto), de_c, intocables, forma);
+    }
+    var i = 0;
+    while i < largo(n.hijos) {
+        renombrar_para_c(n.hijos[i], de_c, intocables);
+        i = i + 1;
+    }
+}
+
 // La firma en C de una funcion. `main` es el unico nombre que cambia: el de
 // verdad lo pone el generador para poder recoger los argumentos.
-// C tiene palabras que Tcode no: un `fn union(...)` es legitimo en Tcode y
-// no lo es en C. El cargador le pone `ss_id_` delante, y esta capa dice lo
-// mismo. `bool`, `true` y `false` no entran: significan lo mismo en los dos.
-fn choca_con_c(n: view) -> bool {
-    if igual(n, "auto") || igual(n, "break") || igual(n, "case") { return true; }
-    if igual(n, "char") || igual(n, "const") || igual(n, "continue") { return true; }
-    if igual(n, "default") || igual(n, "do") || igual(n, "double") { return true; }
-    if igual(n, "else") || igual(n, "enum") || igual(n, "extern") { return true; }
-    if igual(n, "float") || igual(n, "for") || igual(n, "goto") { return true; }
-    if igual(n, "if") || igual(n, "inline") || igual(n, "int") { return true; }
-    if igual(n, "long") || igual(n, "register") || igual(n, "restrict") { return true; }
-    if igual(n, "return") || igual(n, "short") || igual(n, "signed") { return true; }
-    if igual(n, "sizeof") || igual(n, "static") || igual(n, "struct") { return true; }
-    if igual(n, "switch") || igual(n, "typedef") || igual(n, "union") { return true; }
-    if igual(n, "unsigned") || igual(n, "void") || igual(n, "volatile") { return true; }
-    if igual(n, "while") || igual(n, "complex") || igual(n, "imaginary") { return true; }
-    if igual(n, "noreturn") || igual(n, "alignas") || igual(n, "alignof") { return true; }
-    if igual(n, "thread_local") || igual(n, "static_assert") { return true; }
-    if igual(n, "generic") { return true; }
-    // de la biblioteca de C, que tambien esta incluida
-    if igual(n, "malloc") || igual(n, "free") || igual(n, "calloc") { return true; }
-    if igual(n, "realloc") || igual(n, "memcpy") || igual(n, "memset") { return true; }
-    if igual(n, "strlen") || igual(n, "printf") || igual(n, "fprintf") { return true; }
-    if igual(n, "sprintf") || igual(n, "snprintf") || igual(n, "abort") { return true; }
-    if igual(n, "exit") || igual(n, "stdin") || igual(n, "stdout") { return true; }
-    if igual(n, "stderr") || igual(n, "NULL") || igual(n, "size_t") { return true; }
-    return igual(n, "errno");
-}
-
-fn nombre_en_c(n: view) -> str {
-    if !choca_con_c(n) { return nuevo(n); }
-    var s = nuevo("ss_id_");
-    empujar(s, n);
-    return s;
-}
-
 fn prototipo(nombre: view, params: &lista<str>, marcas: &lista<str>,
     retorno: view, falible: bool) -> str {
     if igual(nombre, "main") && !falible {
@@ -207,10 +370,7 @@ fn prototipo(nombre: view, params: &lista<str>, marcas: &lista<str>,
     }
     empujar(salida, " ");
     if igual(nombre, "main") { empujar(salida, "ss_main_"); }
-    else {
-        let en_c = nombre_en_c(nombre);
-        empujar(salida, vista(en_c));
-    }
+    else { empujar(salida, nombre); }
     empujar(salida, "(");
 
     if largo(params) == 0 {
@@ -532,7 +692,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
             if tiene(tipos.renombradas, nombre) {
                 en_c = nuevo(obtener(tipos.renombradas, nombre) sino "");
             }
-            return nombre_en_c(vista(en_c));
+            return en_c;
         }
         return nuevo(nombre);
     }
@@ -723,6 +883,8 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
             var t = I.tipo_de(tipos, n.hijos[0]);
             if es_entero(esperado) || igual(esperado, "f32") || igual(esperado, "f64") {
                 t = nuevo(esperado);
+            } else {
+                if igual(I.literal_de(n.hijos[0]), "entero") { t = nuevo("i64"); }
             }
             if empieza_con(vista(t), "i")
             && igual(vista(n.hijos[0].clase), "entero") {
@@ -813,15 +975,9 @@ fn interpolada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         agregar_vista(b, s, vista(tmp), vista(dado), n.linea);
         cual = cual + 1;
 
-        // Saltar hasta la llave que cierra, contando las de dentro.
-        var prof = 1;
-        var j = i + 1;
-        while j < largo(crudo) && prof > 0 {
-            if byte(crudo, j) == 123 { prof = prof + 1; }
-            if byte(crudo, j) == 125 { prof = prof - 1; }
-            if prof > 0 { j = j + 1; }
-        }
-        i = j + 1;
+        // Saltar hasta la llave que cierra, contando las de dentro y
+        // saltando las cadenas del hueco, que sus llaves no son suyas.
+        i = L.cierre_de_hueco(crudo, i + 1) + 1;
     }
     if largo(trozo) > 0 {
         agregar_trozo(b, s, vista(tmp), vista(trozo), n.linea);
@@ -1102,7 +1258,7 @@ fn indice_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     return r;
 }
 
-fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Contexto) -> str {
+fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str {
     if largo(n.hijos) != 2 { return no_se(); }
     let op = vista(n.texto);
 
@@ -1112,7 +1268,7 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Co
         return junta(b, s, n, "bool", op, tipos);
     }
 
-    let t = tipo_operando(s, n, tipos);
+    let t = I.tipo_cuenta(tipos, n, esperado);
     if largo(t) == 0 { return no_se(); }
 
     // Para todo lo demas, C no promete izquierda antes que derecha. Se
@@ -1287,14 +1443,6 @@ fn junta(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, op: view,
 }
 
 // El tipo con el que operar los dos lados: el del primero que se sepa.
-fn tipo_operando(_s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
-    let a = I.tipo_de(tipos, n.hijos[0]);
-    if es_aritmetico(vista(a)) { return a; }
-    let otro = I.tipo_de(tipos, n.hijos[1]);
-    if es_aritmetico(vista(otro)) { return otro; }
-    return nuevo("usize");
-}
-
 fn es_entero(t: view) -> bool {
     if igual(t, "usize") || igual(t, "i64") { return true; }
     if igual(t, "u8") || igual(t, "u16") || igual(t, "u32") { return true; }
@@ -1606,14 +1754,15 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         if igual(nombre, "imprimir_error") { r = nuevo("fprintf(stderr, "); }
         let t = I.tipo_de(tipos, n.hijos[0]);
         let clase = vista(n.hijos[0].clase);
+        // El texto va con `fwrite`, por su largo: un `str` guarda bytes y
+        // puede llevar ceros, que `%s` y `%.*s` tomarian por el final.
+        var salida = nuevo("stdout");
+        if igual(nombre, "imprimir_error") { salida = nuevo("stderr"); }
         if igual(vista(t), "str") && (igual(clase, "variable")
             || igual(clase, "campo") || igual(clase, "indice")) {
             let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
             if es_desconocido(vista(donde)) { return no_se(); }
-            empujar(r, "\"%s\", ss_cstr(");
-            empujar(r, vista(donde));
-            empujar(r, "))");
-            return r;
+            return $"ss_lang_escribir_({salida}, ss_view({donde}))";
         }
         if igual(vista(t), "str") || igual(vista(t), "view") {
             let v = como_vista(b, s, n.hijos[0], tipos);
@@ -1622,10 +1771,7 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
             emitir(b, $"SafeView {tmp} = {v};");
             b.ultima_linea = 0;
             marcar(b, s, n.hijos[0].linea);
-            empujar(r, "SV_FMT, SV_ARG(");
-            empujar(r, vista(tmp));
-            empujar(r, "))");
-            return r;
+            return $"ss_lang_escribir_({salida}, {tmp})";
         }
         let valor = expresion_c(b, s, n.hijos[0], vista(t), tipos);
         if es_desconocido(vista(valor)) { return no_se(); }
@@ -1783,7 +1929,7 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         || es_desconocido(vista(hasta)) {
             return no_se();
         }
-        var r = nuevo("sv_slice(");
+        var r = nuevo("ss_lang_rebanar_(");
         var previos: lista<str> = [];
         agregar_argumento_ordenado(b, r, previos, vista(v), "view",
             false, false, true);
@@ -1793,6 +1939,10 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         empujar(r, ", ");
         agregar_argumento_ordenado(b, r, previos, vista(hasta), "usize",
             false, false, true);
+        empujar(r, ", \"");
+        empujar(r, vista(s.archivo));
+        empujar(r, "\", ");
+        empujar(r, texto(n.linea));
         empujar(r, ")");
         b.ultima_linea = 0;
         marcar(b, s, n.linea);
@@ -1880,11 +2030,11 @@ fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     return no_se();
 }
 
-// El literal de C con los mismos bytes. Aqui solo lo que no necesita
-// escaparse raro: si lleva algo mas, no se cubre.
 // Un literal de C con los mismos BYTES, escapado. Lo que no sea imprimible
 // va en octal: asi un byte crudo no depende de como lo lea el compilador de
-// C ni de en que juego de caracteres este el archivo.
+// C ni de en que juego de caracteres este el archivo. Un `?` detras de otro
+// va escapado: en C17 `??=` es un trigrafo, y C lo cambiaria por `#` antes
+// de leer la cadena, con el largo de antes al lado.
 fn literal_c(crudo: view) -> str {
     let bytes = P.desescapar(crudo);
     let t = vista(bytes);
@@ -1892,7 +2042,8 @@ fn literal_c(crudo: view) -> str {
     var i = 0;
     while i < largo(t) {
         let c = byte(t, i);
-        if c == 92 { empujar(r, "\\\\"); }
+        if c == 63 && i > 0 && byte(t, i - 1) == 63 { empujar(r, "\\?"); }
+        else if c == 92 { empujar(r, "\\\\"); }
         else {
             if c == 34 { empujar(r, "\\\""); }
             else {
@@ -2264,8 +2415,6 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if contiene(nombre, ".") && tiene(tipos.renombradas, vista(en_c)) {
         return no_se();
     }
-    // `union` es legitimo en Tcode y no en C: se llama como se declaro.
-    en_c = nombre_en_c(vista(en_c));
 
     // Una generica: se eligen los tipos mirando los argumentos, igual que el
     // comprobador, y se llama a la copia con ese juego de tipos. El nombre
@@ -3302,39 +3451,9 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // tenia duenio, este es el sitio donde se devuelve: `try espera(...)`
         // como sentencia tira el `str` que devuelve, y nadie mas lo iba a
         // soltar.
-        let x = vista(n.hijos[0].clase);
         let hecha = expresion_c(b, s, n.hijos[0], "", tipos);
         if es_desconocido(vista(hecha)) { return false; }
-        let t = tipo_suelto(n.hijos[0], tipos);
-        if largo(hecha) > 0 && largo(vista(t)) > 0 && !igual(vista(t), "()")
-        && I.posee_con_formas(tipos, vista(t)) {
-            reclamar(b, vista(hecha));
-            var suelto = copiar(hecha);
-            // `liberacion` toma la direccion de lo que suelta, y el
-            // resultado de una llamada no tiene direccion: `f();` a secas
-            // daria `ss_free(&f())`, que ni siquiera es C. Se guarda antes.
-            if !es_identificador(vista(hecha)) {
-                let tmp = nuevo_temporal(b);
-                var g = nuevo(tipo_c(vista(t)));
-                empujar(g, " ");
-                empujar(g, vista(tmp));
-                empujar(g, " = ");
-                empujar(g, vista(hecha));
-                empujar(g, ";");
-                emitir(b, vista(g));
-                suelto = copiar(tmp);
-            }
-            liberacion(b, tipos, vista(suelto), vista(t));
-            apagar_las_de(b, s, n, tipos);
-            return true;
-        }
-        // `try f();` y `f() sino x;` ya emitieron todo su trabajo: lo que
-        // devuelven es el valor, y como sentencia no haria nada.
-        if largo(hecha) > 0 && !igual(x, "try") && !igual(x, "sino") {
-            var l = copiar(hecha);
-            empujar(l, ";");
-            emitir(b, vista(l));
-        }
+        descartar_c(b, tipos, vista(hecha), n.hijos[0]);
         apagar_las_de(b, s, n, tipos);
         return true;
     }
@@ -4385,6 +4504,49 @@ fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
 
 // Lo que hace el brazo: dejar su valor en `destino`, o sus sentencias. Y
 // soltar lo que haya nacido dentro.
+// Una expresion cuyo valor no se guarda: se hace, y lo que da se tira. Si
+// ese valor tenia duenio, este es el sitio donde se devuelve: `try
+// espera(...)` como sentencia tira el `str` que devuelve, y nadie mas lo iba
+// a soltar.
+fn descartar_c(b: mut Cuerpo, tipos: &I.Contexto, hecha: view, n: &P.Nodo) {
+    let x = vista(n.clase);
+    let t = tipo_suelto(n, tipos);
+    if largo(hecha) > 0 && largo(vista(t)) > 0 && !igual(vista(t), "()")
+    && I.posee_con_formas(tipos, vista(t)) {
+        reclamar(b, hecha);
+        var suelto = nuevo(hecha);
+        // `liberacion` toma la direccion de lo que suelta, y el resultado de
+        // una llamada no tiene direccion: `f();` a secas daria
+        // `ss_free(&f())`, que ni siquiera es C. Se guarda antes.
+        if !es_identificador(hecha) {
+            let tmp = nuevo_temporal(b);
+            var g = nuevo(tipo_c(vista(t)));
+            empujar(g, " ");
+            empujar(g, vista(tmp));
+            empujar(g, " = ");
+            empujar(g, hecha);
+            empujar(g, ";");
+            emitir(b, vista(g));
+            suelto = copiar(tmp);
+        }
+        liberacion(b, tipos, vista(suelto), vista(t));
+        return;
+    }
+    // `try f();` y `f() sino x;` ya emitieron todo su trabajo: lo que
+    // devuelven es el valor, y como sentencia no haria nada. Lo que no es una
+    // llamada, como el `0` de un brazo, se tira con `(void)`, que es como C
+    // dice que es a proposito.
+    if largo(hecha) > 0 && !igual(x, "try") && !igual(x, "sino") {
+        if igual(x, "llamada") {
+            var l = nuevo(hecha);
+            empujar(l, ";");
+            emitir(b, vista(l));
+        } else {
+            emitir(b, $"(void) ({hecha});");
+        }
+    }
+}
+
 fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Contexto,
     retorno: view, falible: bool, destino: view) -> bool {
     for h en brazo.hijos {
@@ -4405,7 +4567,7 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
         // son suyos y se sueltan aqui, antes de salir del brazo, igual que
         // los de una sentencia.
         if igual(que, "retorno") {
-            if largo(destino) == 0 || largo(h.hijos) != 1 { return false; }
+            if largo(h.hijos) != 1 { return false; }
             marcar(b, s, h.linea);
             var antes: lista<str> = [];
             for x en b.temporales { anadir(antes, copiar(x)); }
@@ -4413,8 +4575,13 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
             let tv = I.tipo_de(tipos, h.hijos[0]);
             let valor = expresion_c(b, s, h.hijos[0], vista(tv), tipos);
             if es_desconocido(vista(valor)) { return false; }
-            reclamar(b, vista(valor));
-            emitir(b, $"{destino} = {valor};");
+            if largo(destino) > 0 {
+                reclamar(b, vista(valor));
+                emitir(b, $"{destino} = {valor};");
+            } else {
+                // Un `match` suelto: el brazo hace, y lo que da se tira.
+                descartar_c(b, tipos, vista(valor), h.hijos[0]);
+            }
             soltar_temporales(b, tipos);
             b.temporales = antes;
             cerrar_bloque(b, s, tipos);

@@ -83,6 +83,30 @@ empujar(s, "x");          // error: `s` esta prestada por `p`
 Ante la duda, la inferencia rechaza. Prefiere negarse a un programa correcto
 antes que aceptar uno colgante.
 
+El préstamo viaja por **todo** lo que puede dar una vista, no sólo por
+`vista` y `rebanar`: las dos ramas de un `if` como valor, los brazos de un
+`match` como valor, lo que queda a la derecha de un `sino`, una llamada a una
+genérica (`id(vista(s))`), a un puntero a función o a una clausura, y un
+struct que presta. En todos, la vista que sale presta de todo lo que entró:
+
+```tcode
+let v = if c { vista(s) } else { "z" };
+empujar(s, "x");          // error: `s` esta prestada por `v`
+
+let f: fn(view) -> view = primero;
+let w = f(vista(s));
+s = nuevo("otra");        // error: `s` esta prestada por `w`
+```
+
+Lo que un `match` enlaza también mira dentro del valor mirado, así que lo
+presta mientras viva:
+
+```tcode
+var e = E.A(nuevo("hola"));
+let t = match e { E.A(x) -> x, E.B -> "z" };
+e = E.B;                  // error: `e` esta prestada por `t`
+```
+
 Vale igual para lo que llega prestado con `&T` o `mut T`: `vista(p.nombre)`
 de un `p: &Persona`, `vista(xs[0])` de un `xs: &lista<str>`, o la de un
 `s: mut str` después de modificarlo. La memoria es de quien llama.
@@ -144,11 +168,22 @@ la operación que C considera indefinida.
 
 Negar el mínimo signed tampoco llega al operador unario de C: `-INT_MIN`
 aborta como desbordamiento en `-`; cualquier otro valor se niega normalmente.
+Un entero sin signo no se niega: `-x` con `x: u8` es un error de compilación,
+no la vuelta módulo `2^N` que haría C. Para eso está `0 -? x`.
 
 ### 3. Sin conversiones implícitas (mata el fallo 4 por otra vía)
 
 No existe la conversión silenciosa entre anchos ni entre signos. `i64` y
 `usize` no se mezclan sin decirlo.
+
+Un número escrito no tiene tipo propio: toma el del otro lado de la
+operación, y la cuenta se hace en ese tipo. `1 + x` con `x: u8` es una suma
+de `u8`, que para al pasar de 255; `0 > n` con `n: i32` compara con signo; y
+`2 * x` con `x: f64` es una multiplicación de decimales. Si los dos lados son
+números escritos, la cuenta se hace en el tipo que se espera de ella:
+`let a: i64 = 5 - 10;` vale `-5`, y `let y: u8 = 200 + 100;` para por
+desbordamiento. Sin nada que lo decida, `1 + 2` es un `usize` y `-1` un
+`i64`.
 
 ### La complejidad vive en una capa, no en la superficie
 
@@ -278,9 +313,10 @@ El envoltorio le devuelve la semántica de valor que el lenguaje promete.
   de lo mismo; no vive más que sus dueños, y no sale de la función si presta
   de algo local. Una función que lo devuelve presta de todo lo que se le
   prestó, igual que una que devuelve `view`. Y no se guarda donde nadie
-  sabría cuánto vive: ni en una `lista`, un `mapa` o un `bloque`, ni en un
-  enum, ni en lo que captura una clausura. Tampoco se guarda una vista en un
-  struct que llegó prestado: quien lo prestó no sabría de dónde presta ahora.
+  sabría cuánto vive: ni en una `lista`, un arreglo fijo, un `mapa` o un
+  `bloque`, ni en un enum, ni en lo que captura una clausura. Tampoco se
+  guarda una vista en un struct que llegó prestado: quien lo prestó no sabría
+  de dónde presta ahora.
 - **Sacar un campo.** `let n = p.nombre;` saca el campo de una variable que
   es dueña del struct. En C se copia y su sitio queda a ceros —que en Tcode
   es un valor válido—, así que al liberar el struct ese campo no suelta nada.
@@ -322,8 +358,9 @@ el buffer. La indexación usa la misma comprobación que los arreglos fijos.
 
 Una lista introduce indirección, por lo que permite estructuras recursivas de
 tamaño finito (`struct Nodo { hijos: lista<Nodo> }`). v0 no permite guardar
-`view` en listas —necesitaría vidas útiles en el tipo— ni usar un arreglo fijo
-como elemento de lista.
+`view` —ni un struct que presta— en listas ni en arreglos fijos: cada
+elemento podría prestar de un dueño distinto, y saber cuál necesitaría vidas
+útiles en el tipo. Tampoco se usa un arreglo fijo como elemento de lista.
 
 ### 6. Préstamos: `&T` para leer, `mut T` para modificar
 
@@ -368,6 +405,20 @@ error: `p` se presta dos veces en la misma llamada a `g` (como `a` y como
 v0 mira la variable entera, así que rechaza prestar dos campos distintos del
 mismo struct aunque no se solapen. Es conservador a propósito, y el mensaje
 lo dice.
+
+Una `view` —o un struct que presta— pasada a una función cuenta como
+préstamo para leer durante la llamada, lleve nombre o no. Es el fallo 2 de
+safestr dicho en una línea:
+
+```tcode
+fn g(a: mut str, b: view) { empujar(a, "..."); imprimir(b); }
+
+g(s, vista(s));   // error: `s` se presta dos veces en la misma llamada a `g`
+```
+
+`g` puede hacer crecer `a`, y al crecer el buffer se mueve: `b` quedaría
+mirando memoria liberada. Vale igual si `g` es un puntero a función o una
+clausura; entonces el mensaje nombra los argumentos por su posición.
 
 ### 7. Módulos: un archivo es un módulo
 
@@ -450,6 +501,15 @@ Cuando choca, lleva delante el nombre del archivo: `texto__palabras`. Si dos
 de los que lo declaran se llaman igual en carpetas distintas (`x.t` y
 `lib/x.t`), a esos dos les va la ruta entera, `x__f` y `lib_x__f`, para que
 no acaben siendo la misma función en C.
+
+Con C pasa lo mismo, por una sola regla. Un nombre de Tcode que en C ya
+significa algo —una palabra reservada (`int`, `union`, `restrict`), un
+nombre de las cabeceras que incluye el C generado (`exp`, `stdout`, `errno`,
+`SIZE_MAX`), uno reservado por la norma (`_Algo`, `__algo`) o uno con los
+prefijos del runtime (`ss_`, `sv_`)— sale en el C como `ss_id_<nombre>`. Los
+mensajes siguen diciendo el nombre del `.t`, y los demás nombres no se tocan.
+Lo que se declara en un bloque `externo` y `main` se quedan como están: son
+de C a propósito.
 
 ### 8. Fallos: no se pueden ignorar
 
@@ -594,6 +654,15 @@ primario   := entero | cadena | interpolada | "true" | "false" | ident
             | "[" (expr ",")* "]"
 ```
 
+Un programa puede anidar expresiones y bloques hasta **5000 niveles**. Más
+allá, los dos compiladores lo rechazan con un error en la línea donde se
+pasa, en vez de agotar su pila:
+
+```
+error: hondo.t:1: el programa anida mas de 5000 niveles; parte la expresion
+       o el bloque en trozos, se encontro '('
+```
+
 ## Funciones internas (v0)
 
 Cada una es una operación de la librería de C, con la regla de préstamo que
@@ -607,12 +676,20 @@ le corresponde.
 | `empujar(s: mut str, x)` | `ss_append` / `ss_append_view` | **muta** `s` |
 | `largo(x) -> usize` | `ss_len` / `sv_len_of` | solo lee |
 | `igual(a: view, b: view) -> bool` | `sv_equals` | solo lee |
-| `rebanar(v: view, a, b) -> view` | `sv_slice` | hereda el préstamo de `v` |
-| `imprimir(x)` | `printf` | solo lee |
+| `rebanar(v: view, a, b) -> view` | `sv_slice`, con límites comprobados | hereda el préstamo de `v` |
+| `imprimir(x)` | `fwrite` / `printf` | solo lee |
 | `anadir(xs: mut lista<T>, x: T)` | `realloc` + asignación comprobada | **muta** `xs`, mueve `x` si es dueño |
 | `leer_archivo(ruta: view) -> str !` | `fopen` / `fread` / `fclose` | crea un dueño; el fallo es explícito |
 | `byte(texto: view, i) -> usize` | acceso con límite comprobado | solo lee |
 | `texto(x) -> str` | `ss_appendf` / copia | crea un dueño |
+
+`rebanar` fuera de rango —el final antes del principio, o más allá del
+largo— no devuelve una vista vacía ni lee de más: detiene el programa, igual
+que un índice.
+
+```
+mi.t:3: rebanar(2, 9) fuera de rango (el texto tiene 4 bytes)
+```
 
 ### 10. Mapas y argumentos
 
@@ -703,7 +780,9 @@ imprimir_error("uso: "); imprimir_error(argumento(0));
 ```
 
 `escribir_archivo(ruta, datos) !` escribe en binario, conserva los bytes cero
-y es falible como su gemela de lectura.
+y es falible como su gemela de lectura. `imprimir` también escribe los bytes
+tal cual: un texto con un cero en medio sale entero, no cortado donde un
+`printf("%s")` creería que acaba.
 
 Para el orden hay dos piezas:
 
@@ -805,6 +884,11 @@ literales de siempre siguen siendo literales. Dentro de `{}` cabe **cualquier
 expresión** del lenguaje, y se analiza con las reglas de siempre: `{n + 1}`,
 `{obtener(m, k) sino ""}`, `{a.campo}`. Para escribir una llave, `{{` y `}}`, o
 `\{` y `\}`: son lo mismo, y el formateador las deja como `{{` y `}}`.
+
+Un hueco puede llevar sus propias cadenas, escritas como en cualquier otro
+sitio: `$"{obtener(m, "k") sino "?"}"`. La forma antigua, `\"` dentro del
+hueco, sigue valiendo. Y un error dentro de un hueco se dice en la línea
+de la cadena, no en la primera del archivo.
 
 No hay formato en tiempo de ejecución. Cada hueco se convierte con las
 mismas reglas que `imprimir`, y como el tipo se conoce al compilar, el C que
@@ -1347,6 +1431,8 @@ Eso cubre los tres casos de una sola comprobación —`isfinite` sobre el
 resultado—: `0.0/0.0` (NaN), `1.0/0.0` (infinito) y el desborde a infinito.
 `+?`, `-?`, `*?` y `/?` devuelven el IEEE de siempre, dicho a propósito, con
 el mismo `?` que ya significaba "me salgo de la comprobación" en los enteros.
+`/?` sólo existe entre decimales: entre enteros no hay vuelta que dar, y
+dividir por cero no tiene un resultado que devolver en su lugar.
 
 Esto es lo que hacen los demás:
 
