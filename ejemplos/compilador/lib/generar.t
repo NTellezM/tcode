@@ -1606,14 +1606,15 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         if igual(nombre, "imprimir_error") { r = nuevo("fprintf(stderr, "); }
         let t = I.tipo_de(tipos, n.hijos[0]);
         let clase = vista(n.hijos[0].clase);
+        // El texto va con `fwrite`, por su largo: un `str` guarda bytes y
+        // puede llevar ceros, que `%s` y `%.*s` tomarian por el final.
+        var salida = nuevo("stdout");
+        if igual(nombre, "imprimir_error") { salida = nuevo("stderr"); }
         if igual(vista(t), "str") && (igual(clase, "variable")
             || igual(clase, "campo") || igual(clase, "indice")) {
             let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
             if es_desconocido(vista(donde)) { return no_se(); }
-            empujar(r, "\"%s\", ss_cstr(");
-            empujar(r, vista(donde));
-            empujar(r, "))");
-            return r;
+            return $"ss_lang_escribir_({salida}, ss_view({donde}))";
         }
         if igual(vista(t), "str") || igual(vista(t), "view") {
             let v = como_vista(b, s, n.hijos[0], tipos);
@@ -1622,10 +1623,7 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
             emitir(b, $"SafeView {tmp} = {v};");
             b.ultima_linea = 0;
             marcar(b, s, n.hijos[0].linea);
-            empujar(r, "SV_FMT, SV_ARG(");
-            empujar(r, vista(tmp));
-            empujar(r, "))");
-            return r;
+            return $"ss_lang_escribir_({salida}, {tmp})";
         }
         let valor = expresion_c(b, s, n.hijos[0], vista(t), tipos);
         if es_desconocido(vista(valor)) { return no_se(); }
@@ -1880,11 +1878,11 @@ fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     return no_se();
 }
 
-// El literal de C con los mismos bytes. Aqui solo lo que no necesita
-// escaparse raro: si lleva algo mas, no se cubre.
 // Un literal de C con los mismos BYTES, escapado. Lo que no sea imprimible
 // va en octal: asi un byte crudo no depende de como lo lea el compilador de
-// C ni de en que juego de caracteres este el archivo.
+// C ni de en que juego de caracteres este el archivo. Un `?` detras de otro
+// va escapado: en C17 `??=` es un trigrafo, y C lo cambiaria por `#` antes
+// de leer la cadena, con el largo de antes al lado.
 fn literal_c(crudo: view) -> str {
     let bytes = P.desescapar(crudo);
     let t = vista(bytes);
@@ -1892,7 +1890,8 @@ fn literal_c(crudo: view) -> str {
     var i = 0;
     while i < largo(t) {
         let c = byte(t, i);
-        if c == 92 { empujar(r, "\\\\"); }
+        if c == 63 && i > 0 && byte(t, i - 1) == 63 { empujar(r, "\\?"); }
+        else if c == 92 { empujar(r, "\\\\"); }
         else {
             if c == 34 { empujar(r, "\\\""); }
             else {
@@ -3302,39 +3301,9 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // tenia duenio, este es el sitio donde se devuelve: `try espera(...)`
         // como sentencia tira el `str` que devuelve, y nadie mas lo iba a
         // soltar.
-        let x = vista(n.hijos[0].clase);
         let hecha = expresion_c(b, s, n.hijos[0], "", tipos);
         if es_desconocido(vista(hecha)) { return false; }
-        let t = tipo_suelto(n.hijos[0], tipos);
-        if largo(hecha) > 0 && largo(vista(t)) > 0 && !igual(vista(t), "()")
-        && I.posee_con_formas(tipos, vista(t)) {
-            reclamar(b, vista(hecha));
-            var suelto = copiar(hecha);
-            // `liberacion` toma la direccion de lo que suelta, y el
-            // resultado de una llamada no tiene direccion: `f();` a secas
-            // daria `ss_free(&f())`, que ni siquiera es C. Se guarda antes.
-            if !es_identificador(vista(hecha)) {
-                let tmp = nuevo_temporal(b);
-                var g = nuevo(tipo_c(vista(t)));
-                empujar(g, " ");
-                empujar(g, vista(tmp));
-                empujar(g, " = ");
-                empujar(g, vista(hecha));
-                empujar(g, ";");
-                emitir(b, vista(g));
-                suelto = copiar(tmp);
-            }
-            liberacion(b, tipos, vista(suelto), vista(t));
-            apagar_las_de(b, s, n, tipos);
-            return true;
-        }
-        // `try f();` y `f() sino x;` ya emitieron todo su trabajo: lo que
-        // devuelven es el valor, y como sentencia no haria nada.
-        if largo(hecha) > 0 && !igual(x, "try") && !igual(x, "sino") {
-            var l = copiar(hecha);
-            empujar(l, ";");
-            emitir(b, vista(l));
-        }
+        descartar_c(b, tipos, vista(hecha), n.hijos[0]);
         apagar_las_de(b, s, n, tipos);
         return true;
     }
@@ -4385,6 +4354,43 @@ fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
 
 // Lo que hace el brazo: dejar su valor en `destino`, o sus sentencias. Y
 // soltar lo que haya nacido dentro.
+// Una expresion cuyo valor no se guarda: se hace, y lo que da se tira. Si
+// ese valor tenia duenio, este es el sitio donde se devuelve: `try
+// espera(...)` como sentencia tira el `str` que devuelve, y nadie mas lo iba
+// a soltar.
+fn descartar_c(b: mut Cuerpo, tipos: &I.Contexto, hecha: view, n: &P.Nodo) {
+    let x = vista(n.clase);
+    let t = tipo_suelto(n, tipos);
+    if largo(hecha) > 0 && largo(vista(t)) > 0 && !igual(vista(t), "()")
+    && I.posee_con_formas(tipos, vista(t)) {
+        reclamar(b, hecha);
+        var suelto = nuevo(hecha);
+        // `liberacion` toma la direccion de lo que suelta, y el resultado de
+        // una llamada no tiene direccion: `f();` a secas daria
+        // `ss_free(&f())`, que ni siquiera es C. Se guarda antes.
+        if !es_identificador(hecha) {
+            let tmp = nuevo_temporal(b);
+            var g = nuevo(tipo_c(vista(t)));
+            empujar(g, " ");
+            empujar(g, vista(tmp));
+            empujar(g, " = ");
+            empujar(g, hecha);
+            empujar(g, ";");
+            emitir(b, vista(g));
+            suelto = copiar(tmp);
+        }
+        liberacion(b, tipos, vista(suelto), vista(t));
+        return;
+    }
+    // `try f();` y `f() sino x;` ya emitieron todo su trabajo: lo que
+    // devuelven es el valor, y como sentencia no haria nada.
+    if largo(hecha) > 0 && !igual(x, "try") && !igual(x, "sino") {
+        var l = nuevo(hecha);
+        empujar(l, ";");
+        emitir(b, vista(l));
+    }
+}
+
 fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Contexto,
     retorno: view, falible: bool, destino: view) -> bool {
     for h en brazo.hijos {
@@ -4405,7 +4411,7 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
         // son suyos y se sueltan aqui, antes de salir del brazo, igual que
         // los de una sentencia.
         if igual(que, "retorno") {
-            if largo(destino) == 0 || largo(h.hijos) != 1 { return false; }
+            if largo(h.hijos) != 1 { return false; }
             marcar(b, s, h.linea);
             var antes: lista<str> = [];
             for x en b.temporales { anadir(antes, copiar(x)); }
@@ -4413,8 +4419,13 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
             let tv = I.tipo_de(tipos, h.hijos[0]);
             let valor = expresion_c(b, s, h.hijos[0], vista(tv), tipos);
             if es_desconocido(vista(valor)) { return false; }
-            reclamar(b, vista(valor));
-            emitir(b, $"{destino} = {valor};");
+            if largo(destino) > 0 {
+                reclamar(b, vista(valor));
+                emitir(b, $"{destino} = {valor};");
+            } else {
+                // Un `match` suelto: el brazo hace, y lo que da se tira.
+                descartar_c(b, tipos, vista(valor), h.hijos[0]);
+            }
             soltar_temporales(b, tipos);
             b.temporales = antes;
             cerrar_bloque(b, s, tipos);

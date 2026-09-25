@@ -36,6 +36,17 @@
 #  define SS_LANG_SIEMPRE
 #endif
 
+/* `imprimir` de un texto: sus bytes tal cual, por su largo. Un `str` guarda
+   bytes y puede llevar ceros, que `%s` y `%.*s` tomarian por el final; y
+   lo que `printf` lee por dentro AddressSanitizer no lo mira, mientras que
+   lo que lee `fwrite` si. */
+SS_LANG_QUIZA_SIN_USAR
+static void ss_lang_escribir_(FILE* f, SafeView v)
+{
+    if (v.len > 0)
+        fwrite(v.ptr, 1, v.len, f);
+}
+
 /* Aritmetica comprobada: en Tcode el desbordamiento no es silencioso.
    Aborta diciendo donde, en vez de seguir con un valor equivocado. Antes se
    vacia `stdout`: `abort()` no lo hace, y con la salida en un archivo o una

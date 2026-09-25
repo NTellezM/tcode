@@ -386,6 +386,30 @@ def encaja(esperado, dado):
     return False
 
 
+def _nombres_de_patron(args):
+    """Los nombres que atrapa un patron, a cualquier hondura."""
+    salida = set()
+    for a in args:
+        if isinstance(a, PatronForma):
+            salida |= _nombres_de_patron(a.args)
+        elif isinstance(a, str) and a != "_":
+            salida.add(a)
+    return salida
+
+
+def _nodos_de(nodo):
+    """Todo lo que cuelga de `nodo`, el incluido."""
+    from dataclasses import fields, is_dataclass
+    pila = [nodo]
+    while pila:
+        x = pila.pop()
+        if isinstance(x, (list, tuple)):
+            pila.extend(x)
+        elif is_dataclass(x):
+            yield x
+            pila.extend(getattr(x, f.name) for f in fields(x))
+
+
 class ErrorDeTipos(Exception):
     pass
 
@@ -801,7 +825,12 @@ class Comprobador:
                 or t in self.structs or t in self.enums):
             return True
         if es_arreglo(t):
-            return self.tipo_existe(elem_de(t))
+            # Un arreglo tampoco guarda vistas: cada elemento se puede
+            # reasignar por un indice que no se conoce al compilar, y no
+            # habria forma de saber de quien presta cada uno.
+            elem = elem_de(t)
+            return (elem != "view" and not self.es_prestado_st(elem)
+                    and self.tipo_existe(elem))
         if es_mapa(t):
             k, v = partes_mapa(t)
             # Un mapa tampoco guarda vistas: nadie sabria cuanto viven.
@@ -1686,7 +1715,8 @@ class Comprobador:
                                       f"prestarlo no aporta nada sobre copiarlo")
                     else:
                         self.error(s, f"`{s.tipo}` no es un tipo almacenable; "
-                                      "las listas no pueden guardar `view` ni "
+                                      "las listas y los arreglos no pueden "
+                                      "guardar `view`, y las listas tampoco "
                                       "arreglos fijos")
                 tipo = self.expresion(s.valor, destino=s.tipo,
                                       mover_variables=True)
@@ -2143,6 +2173,47 @@ class Comprobador:
                         sim_b = self.buscar(base) if base else None
                         if sim_b is not None and self.es_prestado_st(sim_b.tipo):
                             junta(sim_b.origenes)
+            # Llamar a una variable que guarda una funcion: su tipo dice lo
+            # mismo que la firma, y la regla es la misma.
+            sim_f = self.buscar(expr.nombre) if f is None else None
+            if sim_f is not None and es_funcion(sim_f.tipo):
+                params, retorno = partes_funcion(sim_f.tipo)
+                if self.presta(retorno):
+                    for arg, pt in zip(expr.args, params):
+                        if es_referencia(pt):
+                            base = self.variable_base(arg)
+                            junta([base] if base else [TEMPORAL])
+                            sim_b = self.buscar(base) if base else None
+                            if sim_b is not None and self.presta(sim_b.tipo):
+                                junta(sim_b.origenes)
+                        elif self.presta(pt):
+                            de_arg = self._origenes_de(arg)
+                            if (not de_arg and not isinstance(arg, Variable)
+                                    and self.procedencia_de(arg) == LOCAL):
+                                de_arg = [TEMPORAL]
+                            junta(de_arg)
+            return salida
+        if isinstance(expr, SiExpr):
+            # Puede ser cualquiera de las dos ramas.
+            junta(self._origenes_de(expr.entonces))
+            junta(self._origenes_de(expr.sino_))
+            return salida
+        if isinstance(expr, Match):
+            # Lo que da cada brazo; y si da algo que atrapo el patron, el
+            # valor mirado: lo atrapado es un prestamo suyo.
+            mirado = None
+            for b in expr.brazos:
+                if not b.es_expresion or not b.cuerpo:
+                    continue
+                valor = b.cuerpo[0].valor
+                junta(self._origenes_de(valor))
+                atrapados = _nombres_de_patron(b.nombres)
+                if atrapados and any(isinstance(n, Variable)
+                                     and n.nombre in atrapados
+                                     for n in _nodos_de(valor)):
+                    if mirado is None:
+                        mirado = self._origenes_mirado(expr.valor) or [TEMPORAL]
+                    junta(mirado)
             return salida
         if isinstance(expr, Variable):
             sim = self.buscar(expr.nombre)
@@ -2176,6 +2247,22 @@ class Comprobador:
                 return list(sim.origenes)
             return [raiz]
         return salida
+
+    def _prestados_por(self, arg, tipo):
+        """Las variables que un argumento deja prestadas mientras dura la
+        llamada, cuando va a un sitio que presta (`view`, un struct que
+        presta). Un `str` suelto donde se pide `view` se presta entero; una
+        vista con nombre ya tiene sus prestamos apuntados en sus duenios."""
+        if isinstance(arg, Variable):
+            sim = self.buscar(arg.nombre)
+            if sim is not None and sin_prestamo(sim.tipo) == "str":
+                return [arg.nombre]
+            return []
+        if tipo is not None and sin_prestamo(tipo) == "str" \
+                and isinstance(arg, (Campo, Indice)):
+            base = self.variable_base(arg)
+            return [base] if base else []
+        return [o for o in self._origenes_de(arg) if o != TEMPORAL]
 
     def _tipo_simple(self, e):
         """El tipo de una variable o de un campo, sin comprobar nada."""
@@ -2369,8 +2456,8 @@ class Comprobador:
                 return t
             if t is not None and t not in ENTEROS:
                 self.error(e, f"`-` necesita un entero, recibio `{t}`")
-            if t == "usize":
-                self.error(e, "`usize` no tiene signo: no se puede negar")
+            if t in SIN_SIGNO:
+                self.error(e, f"`{t}` no tiene signo: no se puede negar")
             return t
 
         if isinstance(e, Cierre):
@@ -2787,7 +2874,30 @@ class Comprobador:
                     tp = "view" if t == "str" else f"&{t}"
                 else:
                     tp = t
-                self.declarar(e, arg, tp, False)
+                sim = self.declarar(e, arg, tp, False)
+                if tp != t:
+                    # Lo atrapado apunta dentro del valor mirado: mientras
+                    # viva, ese valor no se mueve ni se modifica.
+                    for origen in self._origenes_mirado(e.valor):
+                        duenio = self.buscar(origen)
+                        if duenio is None or origen in sim.origenes:
+                            continue
+                        sim.origenes.append(origen)
+                        duenio.prestamos.append(arg)
+                    if sim.origenes:
+                        sim.origen = sim.origenes[0]
+
+    def _origenes_mirado(self, valor):
+        """De que variables es lo que atrapa un patron: de la variable del
+        valor mirado, y si esa es un prestamo, tambien de lo que presta."""
+        base = self.variable_base(valor)
+        sim = self.buscar(base) if base else None
+        if sim is None:
+            return []
+        salida = [base]
+        if self.presta(sim.tipo):
+            salida.extend(o for o in sim.origenes if o not in salida)
+        return salida
 
     def cierre(self, e: Cierre):
         """Una clausura se convierte en un struct con lo capturado y una
@@ -3082,6 +3192,14 @@ class Comprobador:
             return ti
 
         # aritmetica
+        if (e.op == "/?" and LITERAL_DECIMAL not in (ti, td)
+                and ti not in DECIMALES and td not in DECIMALES):
+            # Entre enteros no hay IEEE que pedir: dividir por cero o
+            # `MIN / -1` no tienen un resultado al que volver.
+            self.error(e, "`/?` es la division IEEE de los decimales; entre "
+                          "enteros no hay vuelta que dar. Usa `/`, que se "
+                          "detiene al dividir por cero")
+            return None
         if ti in (LITERAL, LITERAL_DECIMAL) and td in (LITERAL, LITERAL_DECIMAL):
             return LITERAL_DECIMAL if LITERAL_DECIMAL in (ti, td) else LITERAL
         if e.op == "%" and (ti in DECIMALES or td in DECIMALES):
@@ -3127,21 +3245,45 @@ class Comprobador:
                 self.error(e, f"`{nombre}` es `{sim_valor.tipo}` y espera "
                               f"{len(params)} argumento(s), recibio "
                               f"{len(e.args)}")
-            for arg, esperado_t in zip(e.args, params):
+            # Los prestamos de una misma llamada, como en una funcion con
+            # nombre: la firma del puntero dice lo mismo que la de ella.
+            prestados_mut, prestados_lec = {}, {}
+            for i, (arg, esperado_t) in enumerate(zip(e.args, params)):
                 # Un `&X` en la firma presta: se le pasa el sitio, no el valor.
                 presta = es_referencia(esperado_t)
                 interno = apuntado(esperado_t) if presta else esperado_t
                 t = self.expresion(arg, destino=interno,
                                    mover_variables=(not presta
                                                     and self.posee(interno)))
+                cual = f"el argumento {i + 1}"
                 if presta:
                     base = self.variable_base(arg)
                     sim_base = self.buscar(base) if base else None
                     if sim_base is not None:
-                        if es_referencia_mutable(esperado_t):
+                        mutable = es_referencia_mutable(esperado_t)
+                        otro = prestados_mut.get(base)
+                        if otro is None and mutable:
+                            otro = prestados_lec.get(base)
+                        if otro is not None:
+                            self.error(e, f"`{base}` se presta dos veces en "
+                                          f"la misma llamada a `{nombre}` "
+                                          f"({otro} y {cual}), y al menos uno "
+                                          f"de los dos puede modificarlo")
+                        if mutable:
                             self.mutar(arg, sim_base)
+                            prestados_mut[base] = cual
                         else:
                             self.usar(arg, sim_base)
+                            prestados_lec.setdefault(base, cual)
+                elif self.presta(interno):
+                    for base in self._prestados_por(arg, t):
+                        otro = prestados_mut.get(base)
+                        if otro is not None:
+                            self.error(e, f"`{base}` se presta dos veces en "
+                                          f"la misma llamada a `{nombre}` "
+                                          f"({otro} y {cual}), y al menos "
+                                          f"uno de los dos puede modificarlo")
+                        prestados_lec.setdefault(base, cual)
                 if t is not None and not encaja(interno, sin_prestamo(t)):
                     if not (interno == "view" and sin_prestamo(t) == "str"):
                         self.error(e, f"`{nombre}` toma `{esperado_t}` ahi y "
@@ -3239,6 +3381,23 @@ class Comprobador:
                 if sim_arg is not None:
                     sim_arg.movida_a = nombre
             t = self.expresion(arg, destino=param.tipo, mover_variables=mueve)
+
+            # Una vista que se pasa tambien presta, aunque no tenga nombre:
+            # `g(s, vista(s))` con `a: mut str` dejaria a `g` modificando por
+            # un lado lo que lee por el otro, y al crecer el buffer la vista
+            # quedaria colgando. Es el fallo 2 de la especificacion.
+            if self.presta(param.tipo) and not f.externa:
+                for base in self._prestados_por(arg, t):
+                    otro = prestados_mut.get(base)
+                    if otro is not None:
+                        a, b = sorted([param.nombre, otro])
+                        self.error(e, f"`{base}` se presta dos veces en la "
+                                      f"misma llamada a `{nombre}` (como `{a}` "
+                                      f"y como `{b}`), y al menos uno de los "
+                                      f"dos puede modificarlo. v0 mira la "
+                                      f"variable entera, asi que rechaza esto "
+                                      f"aunque sean campos distintos")
+                    prestados_lec.setdefault(base, param.nombre)
 
             # Donde se pide una vista, un `str` se lee prestandolo. Es la
             # misma regla que ya valia para las internas: escribir `vista(s)`
@@ -3570,11 +3729,13 @@ class Comprobador:
                 self.error(e, f"`{nombre}` no sabe mostrar un `{t}`: muestra "
                               f"sus campos o elementos por separado")
             if esperado == "view":
-                origen = self._origen_de(arg)
-                if origen is None and isinstance(arg, Variable) and t == "str":
-                    origen = arg.nombre
-                if origen is not None:
-                    prestados.append(origen)
+                # Todos los duenios posibles, no el primero: con
+                # `if c { vista(a) } else { vista(b) }` puede ser cualquiera.
+                origenes = [o for o in self._origenes_de(arg) if o != TEMPORAL]
+                if (not origenes and isinstance(arg, Variable)
+                        and t == "str"):
+                    origenes = [arg.nombre]
+                prestados.extend(origenes)
 
         # Paso 2: los efectos, que ya ven los prestamos del paso 1. Esto es lo
         # que rechaza `empujar(s, vista(s))`: el fallo 2 de la especificacion.
