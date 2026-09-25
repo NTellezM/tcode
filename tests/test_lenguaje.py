@@ -1041,6 +1041,39 @@ RECHAZO = [
     ("un error dentro de un hueco dice la linea de la cadena",
      'fn main() {\n\n\n    imprimir($"[{1 +}]");\n}',
      "<test>:4: se esperaba una expresion"),
+
+    # Los encontro el oraculo de P11, o salieron al escribirlo. Un `-3`
+    # suelto ya no cabia en un `u8`; una cuenta negada pasaba y daba 249.
+    ("una cuenta de numeros escritos no se niega hacia un sin signo",
+     'fn main() { let r: u8 = -(3 + 4); imprimir(r); }',
+     "`u8` no tiene signo: no se puede negar"),
+
+    # Donde va un decimal, los numeros escritos son decimales: sin resto ni
+    # bits. Antes salia un C que no compilaba.
+    ("el resto de dos numeros escritos donde va un decimal",
+     'fn main() { let r: f64 = 7 % 2; imprimir(r); }',
+     "`%` es el resto de una division entera"),
+
+    ("los bits de dos numeros escritos donde va un decimal",
+     'fn main() { let a: f64 = 2.0; imprimir(a + (1 << 2)); }',
+     "`<<` trabaja sobre los bits de un entero, recibio `f64` y `f64`"),
+
+    # La rama de un `if` que es un numero escrito toma el tipo de la otra: sin
+    # mirarla, `300` se recortaba a 44 en un `u8`.
+    ("la rama escrita de un if tiene que caber en el tipo de la otra",
+     'fn main() { let x: u8 = 7; let c = x > 2;'
+     ' imprimir((if c { 300 } else { x }) + 0); }',
+     "el literal `300` no cabe en `u8`"),
+
+    ("y la de dos ramas escritas, en el del otro lado",
+     'fn main() { let x: u8 = 7; let c = x > 2;'
+     ' imprimir((if c { 300 } else { 2 }) + x); }',
+     "el literal `300` no cabe en `u8`"),
+
+    ("y el brazo escrito de un match, en el de los otros",
+     'enum E { A, B } fn main() { let x: u8 = 7; let e = E.A;'
+     ' imprimir(match e { E.A -> 300, E.B -> x }); }',
+     "el literal `300` no cabe en `u8`"),
 ]
 
 
@@ -2954,6 +2987,49 @@ fn main() {
     # pero el generador hacia la cuenta en el tipo del literal, `usize`:
     # `1 + x` con `x: f64` daba 3, `0 > x` con `x: i32` negativo daba
     # `false`, y `5 - 10` en un `i64` paraba por desbordamiento.
+    # Una generica deduce su tipo como el comprobador tipa: un numero escrito
+    # toma el del otro lado, y una conversion, un `if` o `absoluto` dicen el
+    # suyo. Antes `mismo(1 + x)` pedia un `usize` y rechazaba el `i16`.
+    ("una generica deduce su tipo de una cuenta, una conversion o un if",
+     '''fn mismo<T>(x: T) -> T { return x; }
+        fn main() {
+            let x: i16 = 5;
+            let c = x > 1;
+            imprimir($"{mismo(1 + x)} {mismo(x como u32)} ");
+            imprimir($"{mismo(if c { x } else { 2 })} {mismo(absoluto(x))}\\n");
+        }''',
+     "6 5 5 5\n"),
+
+    # Una rama entera y otra decimal son un decimal, como `1 + 2.5`.
+    ("un if con una rama entera y otra decimal",
+     '''fn main() {
+            let c = true;
+            let v: f64 = if c { 1 } else { 2.5 };
+            let w: f32 = if c { 2.5 } else { 1 };
+            imprimir($"{v} {w} {if c { 1 } else { 2.5 }}\\n");
+        }''',
+     "1.0 2.5 1.0\n"),
+
+    # De izquierda a derecha, tambien cuando un operando necesita sentencias
+    # propias: antes el `if` de la derecha corria antes que lo de la
+    # izquierda, y salia `der izq`.
+    ("el operando que necesita sentencias no adelanta a los de antes",
+     '''struct P { a: i64, b: i64 }
+        fn dice(t: view, n: i64) -> i64 { imprimir(t); return n; }
+        fn f(a: i64, b: i64) -> i64 { return a + b; }
+        fn main() {
+            let c = true;
+            let x = dice("izq ", 1) + (if c { dice("der ", 2) } else { 0 });
+            imprimir($"= {x}\\n");
+            let y = f(dice("a1 ", 1), if c { dice("a2 ", 2) } else { 0 });
+            imprimir($"= {y}\\n");
+            let p = P { a: dice("c1 ", 1), b: if c { dice("c2 ", 2) } else { 0 } };
+            imprimir($"= {p.a + p.b}\\n");
+            let arr: [i64; 2] = [dice("e1 ", 1), if c { dice("e2 ", 2) } else { 0 }];
+            imprimir($"= {arr[0] + arr[1]}\\n");
+        }''',
+     "izq der = 3\na1 a2 = 3\nc1 c2 = 3\ne1 e2 = 3\n"),
+
     ("un numero escrito se opera en el tipo del otro lado",
      '''fn main() {
             let x: f64 = 2.5;
@@ -3165,6 +3241,13 @@ ABORTA = [
     ("dos literales se operan en el tipo que se espera",
      'fn main() { let y: u8 = 200 + 100; imprimir(y); }',
      "desbordamiento en `+`"),
+
+    # La rama escrita de un `if` es del tipo de la otra: la cuenta es de
+    # `f32` y se pasa del maximo. Antes se hacia en `f64` y seguia.
+    ("un if con una rama escrita no saca la cuenta de su tipo",
+     'fn main() { let f: f32 = 3.4028235e38; let c = f < 1.0;'
+     ' imprimir((if c { 1.5 } else { f }) * f); }',
+     "`*` no dio un numero"),
 ]
 
 
@@ -4592,6 +4675,33 @@ fn main() {
 }
 """
 
+# Un operando que necesita sentencias propias, en una operacion, una llamada,
+# un struct y un arreglo: los de antes se adelantan en temporales.
+_ORDEN_TCODEC = r"""struct P { a: i64, b: i64 }
+fn dice(t: view, n: i64) -> i64 { imprimir(t); return n; }
+fn f(a: i64, b: i64) -> i64 { return a + b; }
+fn main() {
+    let c = true;
+    let x = dice("izq ", 1) + (if c { dice("der ", 2) } else { 0 });
+    let y = f(dice("a1 ", 1), if c { dice("a2 ", 2) } else { 0 });
+    let p = P { a: dice("c1 ", 1), b: if c { dice("c2 ", 2) } else { 0 } };
+    let arr: [i64; 2] = [dice("e1 ", 1), if c { dice("e2 ", 2) } else { 0 }];
+    imprimir($"{x} {y} {p.a + p.b} {arr[0] + arr[1]}\n");
+}
+"""
+
+# Copias de una generica dentro de otra: salen en el orden en que las hace
+# el comprobador, la de dentro antes solo si se hizo antes.
+_COPIAS_ANIDADAS_TCODEC = r"""fn mismo<T>(x: T) -> T { return x; }
+fn g(x: i32) -> u8 { return 1; }
+fn main() {
+    let x: i32 = 1;
+    let c = x > 0;
+    imprimir($"{mismo(g(mismo(x)))} {mismo(mismo(x) == x)}\n");
+    imprimir($"{mismo((mismo(x) como u32))} {mismo(if c { x } else { 2 })}\n");
+}
+"""
+
 _FN_ANIDADA_TCODEC = r"""fn doble(n: usize) -> usize { return n * 2; }
 fn aplicar(f: fn(usize) -> usize, n: usize) -> usize { return f(n); }
 fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
@@ -4860,7 +4970,9 @@ try:
                                        ("sacado2.t", _CAMPO_SACADO_RETORNO_TCODEC),
                                        ("prestado.t", _STRUCT_PRESTADO_TCODEC),
                                        ("corto.t", _CORTOCIRCUITO_TCODEC),
-                                       ("enum_st.t", _ENUM_CON_STRUCT_TCODEC)):
+                                       ("enum_st.t", _ENUM_CON_STRUCT_TCODEC),
+                                       ("orden.t", _ORDEN_TCODEC),
+                                       ("copias.t", _COPIAS_ANIDADAS_TCODEC)):
                 total += 1
                 ruta_cierre = os.path.join(tmp, nombre_c)
                 with open(ruta_cierre, "w", encoding="utf-8") as f:
