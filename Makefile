@@ -1,12 +1,15 @@
-# safestr — el lenguaje
+# Tcode
 #
-#   make check      la suite del lenguaje
-#   make ejemplos   compila y corre los ejemplos
-#   make limpiar
+#   make check        la suite del lenguaje
+#   make propiedades  solo los tests por propiedad (TCODE_PROGRAMAS=1000 para mas)
+#   make ejemplos     compila y corre los ejemplos
+#   make bench        Tcode contra el mismo programa en C a mano
+#   make formato      deja todo el codigo Tcode en el formato canonico
+#   make limpiar      borra lo que genera todo lo anterior
 
 PY ?= python3
 
-.PHONY: all check propiedades bench ejemplos limpiar
+.PHONY: all check propiedades bench ejemplos limpiar formato
 
 all: check
 
@@ -17,7 +20,6 @@ check:
 	@$(PY) tests/test_lenguaje.py
 	@$(PY) tests/test_propiedades.py
 
-# Mas programas generados. TCODE_PROGRAMAS=1000 make propiedades
 propiedades:
 	@$(PY) tests/test_propiedades.py
 
@@ -40,17 +42,21 @@ ejemplos:
 	@echo
 	@$(PY) -m tcode ejemplos/lexer/parser.t >/dev/null && ./ejemplos/lexer/parser ejemplos/lexer/parser.t --callado
 
+# El binario de un `.t` se llama como el sin la extension. Un `.c` solo se
+# borra si lo escribio el compilador: `ejemplos/externo/sistema.c` y
+# `lib/sistema_tcodec.c` son fuentes.
 limpiar:
-	@rm -f ejemplos/hola ejemplos/texto ejemplos/inventario ejemplos/contar ejemplos/*.c
-	@rm -f ejemplos/informe/informe ejemplos/informe/*.c
+	@for f in $$(find ejemplos bench -name '*.t'); do \
+	    b=$${f%.t}; if [ -f "$$b" ]; then rm -f "$$b"; fi; \
+	done
+	@grep -rl --include='*.c' 'Generado por el compilador de Tcode' ejemplos bench std 2>/dev/null \
+	    | xargs rm -f
+	@rm -f bench/*_c
 	@rm -rf tcode/__pycache__ tests/__pycache__
 
-# Deja todo el codigo Tcode en el formato canonico. Sin opciones: hay un
-# estilo y es este.
+# Sin opciones: hay un estilo y es este.
 formato:
 	@for f in $$(find std ejemplos bench -name '*.t'); do \
-	    python3 -m tcode.cli "$$f" --formatear --escribir; \
+	    $(PY) -m tcode "$$f" --formatear --escribir; \
 	done
 	@echo "listo"
-
-.PHONY: formato
