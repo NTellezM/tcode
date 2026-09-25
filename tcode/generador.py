@@ -2352,12 +2352,60 @@ class Generador:
         if isinstance(e, Binaria):
             if e.op in {"==", "!=", "<", "<=", ">", ">=", "&&", "||"}:
                 return "bool"
-            return self._tipo_de(e.izq)
+            return self._tipo_cuenta(e)
         if isinstance(e, Unaria):
-            return "bool" if e.op == "!" else self._tipo_de(e.valor)
+            if e.op == "!":
+                return "bool"
+            # `-1` sin mas contexto es un `i64`, como en el comprobador: un
+            # numero negativo no cabe en el `usize` de un numero escrito.
+            if e.op == "-" and self._literal_de(e.valor) == "entero":
+                return "i64"
+            return self._tipo_de(e.valor)
         if isinstance(e, Conversion):
             return e.a_tipo
         return "usize"
+
+    def _literal_de(self, e):
+        """`"entero"` o `"decimal"` si el comprobador ve aqui un numero
+        escrito que todavia no tiene tipo —`1`, `2.5`, `1 + 2`, `-0.5`—, y
+        None si no. Un numero asi toma el tipo del otro lado de la operacion,
+        y el C tiene que hacer la cuenta en ese tipo, no en `usize`."""
+        if isinstance(e, Entero):
+            return "entero"
+        if isinstance(e, Decimal):
+            return "decimal"
+        if isinstance(e, Unaria) and e.op == "-":
+            # `-1` ya es un `i64`; `-0.5` sigue sin decidir su ancho.
+            return "decimal" if self._literal_de(e.valor) == "decimal" else None
+        if (isinstance(e, Binaria)
+                and e.op not in {"==", "!=", "<", "<=", ">", ">=", "&&", "||"}):
+            izq, der = self._literal_de(e.izq), self._literal_de(e.der)
+            if izq and der:
+                return "decimal" if "decimal" in (izq, der) else "entero"
+        return None
+
+    def _tipo_cuenta(self, e, esperado=None):
+        """El tipo en que se hace la cuenta de una binaria: el mismo que
+        decide el comprobador. `1 + x` se hace en el tipo de `x`, y `1 + 2`
+        en el que se espera de ella."""
+        izq, der = self._literal_de(e.izq), self._literal_de(e.der)
+        if izq and der:
+            if esperado in ARITMETICA or esperado in DECIMALES:
+                return esperado
+            return "f64" if "decimal" in (izq, der) else "usize"
+        if izq:
+            t = self._tipo_de(e.der)
+            if t in ARITMETICA or t in DECIMALES:
+                return t
+        t = self._tipo_de(e.izq)
+        if t not in ARITMETICA and t not in DECIMALES:
+            t = self._tipo_de(e.der)
+        if t not in ARITMETICA and t not in DECIMALES:
+            if esperado in ARITMETICA or esperado in DECIMALES:
+                t = esperado
+            else:
+                t = "usize"
+        return t
 
     # ---------- expresiones ----------
 
@@ -2447,6 +2495,8 @@ class Generador:
                 t = self._tipo_de(e.valor)
                 if esperado in ARITMETICA or esperado in DECIMALES:
                     t = esperado
+                elif self._literal_de(e.valor) == "entero":
+                    t = "i64"
                 # Un literal ya fue validado estaticamente. Generarlo como una
                 # constante del tipo final evita pasar INT_MIN por el ayudante
                 # de negacion (que correctamente lo trataria como overflow en
@@ -2766,14 +2816,7 @@ class Generador:
             self.emitir("}")
             return vale
 
-        t = self._tipo_de(e.izq)
-        if t not in ARITMETICA and t not in DECIMALES:
-            t = self._tipo_de(e.der)
-        if t not in ARITMETICA and t not in DECIMALES:
-            if esperado in ARITMETICA or esperado in DECIMALES:
-                t = esperado
-            else:
-                t = "usize"
+        t = self._tipo_cuenta(e, esperado)
         pos = f"{self.arch(e)}, {e.linea}"
 
         # Salvo los operadores logicos anteriores, C no promete evaluar el
