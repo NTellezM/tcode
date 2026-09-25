@@ -2834,8 +2834,8 @@ fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> E
             return valor_sabido(false, r);
         }
         // Un negativo rellena con unos: redondea hacia abajo.
-        let p = (patron_escrito(a) como? i64) >> b.magnitud;
-        return desde_patron(p como? u64, tipo);
+        let p = (patron_escrito(a) como ? i64) >> b.magnitud;
+        return desde_patron(p como ? u64, tipo);
     }
     return escrito_sin_saber();
 }
