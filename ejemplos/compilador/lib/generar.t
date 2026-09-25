@@ -1935,7 +1935,7 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         || es_desconocido(vista(hasta)) {
             return no_se();
         }
-        var r = nuevo("sv_slice(");
+        var r = nuevo("ss_lang_rebanar_(");
         var previos: lista<str> = [];
         agregar_argumento_ordenado(b, r, previos, vista(v), "view",
             false, false, true);
@@ -1945,6 +1945,10 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         empujar(r, ", ");
         agregar_argumento_ordenado(b, r, previos, vista(hasta), "usize",
             false, false, true);
+        empujar(r, ", \"");
+        empujar(r, vista(s.archivo));
+        empujar(r, "\", ");
+        empujar(r, texto(n.linea));
         empujar(r, ")");
         b.ultima_linea = 0;
         marcar(b, s, n.linea);

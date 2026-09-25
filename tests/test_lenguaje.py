@@ -3478,6 +3478,9 @@ print("=== TIPAR: de que tipo es cada variable, dicho por Tcode ===")
 # el comprobador de Python.
 from tcode.nodos import Funcion as _Fn_t
 
+from tcode.nombres_c import escrito as _escrito_c, legible as _legible_c
+
+
 def _nombre_escrito(nombre, propias):
     """El nombre tal como esta en el archivo.
 
@@ -3520,8 +3523,11 @@ def _tipos_esperados(ruta):
         nombre = _nombre_escrito(f.nombre, propias)
         if nombre is None:
             continue
+        # Las variables y los tipos, como estan escritos: la capa en Tcode
+        # lee el arbol tal cual, sin el `ss_id_` de lo que choca con C.
         for sim in entrada["simbolos"]:
-            fuera.append(f"{nombre}\t{sim.nombre}\t{sim.tipo}")
+            fuera.append(f"{nombre}\t{_escrito_c(sim.nombre)}\t"
+                         f"{_legible_c(sim.tipo)}")
     return fuera
 
 tmp = tempfile.mkdtemp(prefix="tcode-tipar-")
@@ -3624,7 +3630,8 @@ def _propiedad_esperada(ruta):
                 d = f"mueve:{sim.movida_en}"
             else:
                 d = "libera"
-            fuera.append(f"{nombre}\t{sim.nombre}\t{sim.tipo}\t{d}")
+            fuera.append(f"{nombre}\t{_escrito_c(sim.nombre)}\t"
+                         f"{_legible_c(sim.tipo)}\t{d}")
     return fuera
 
 tmp = tempfile.mkdtemp(prefix="tcode-prop-")
@@ -3827,10 +3834,14 @@ def _renumera_tmp(texto):
 
 def _expresiones_esperadas(ruta):
     from tcode.parser import parsear as _p
+    from tcode import nombres_c as _nc
     try:
         arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set())
     except Exception:
         return None
+    # Con los nombres que chocan con C cambiados, como los deja el cargador
+    # y como los lee la capa en Tcode.
+    _nc.renombrar(arbol, _nc.externas(arbol) | {"main"})
     codigo, errores, comp = compilar_archivo(ruta, devolver_comp=True)
     if errores:
         return None

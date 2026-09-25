@@ -27,6 +27,7 @@ usar "std/lista";
 // lado: ejecutar el compilador de C, un temporal, y sustituir un archivo de
 // una vez.
 externo "lib/sistema_tcodec.c" {
+    fn tcodec_pila_honda() -> i32;
     fn tcodec_ejecutar(orden: str) -> i32;
     fn tcodec_directorio_temporal() -> cadena_c;
     fn tcodec_ruta_real(ruta: str) -> cadena_c;
@@ -2386,6 +2387,8 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
 }
 
 fn main() -> usize ! {
+    // Antes que nada, pila de sobra: el analisis es recursivo.
+    let _pila = tcodec_pila_honda();
     // Las mismas opciones que `tcode`, y una mas para ver el C sin escribir
     // ningun archivo, que es lo que usan la suite y el punto fijo.
     var fuente = vacio();

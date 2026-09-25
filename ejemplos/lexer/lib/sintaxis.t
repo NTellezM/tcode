@@ -32,13 +32,31 @@ struct Estado {
     // Los parametros de tipo de la funcion o el struct que se esta leyendo:
     // mientras dura, `T` es un tipo mas.
     tipo_params: mapa<str, usize>,
+    // Cuanto se ha bajado en el arbol hasta aqui: ver `limite_hondura`.
+    hondura: usize,
 }
 
 // Un estado nuevo sobre unos tokens.
 fn estado_de(toks: lista<Token>, archivo: view, structs: mapa<str, usize>,
     enums: mapa<str, usize>) -> Estado {
     return Estado { toks: toks, i: 0, alias: [], structs: structs, enums: enums,
-        archivo: nuevo(archivo), error: vacio(), tipo_params: [] };
+        archivo: nuevo(archivo), error: vacio(), tipo_params: [], hondura: 0 };
+}
+
+// Lo mas hondo que puede ser el arbol: anidamiento, y cadenas de operadores,
+// campos o `como`. Todo lo que viene despues es recursivo, y sin un limite un
+// archivo con cien mil parentesis agotaria la pila. Es el mismo que en el
+// parser de Python.
+fn limite_hondura() -> usize { return 5000; }
+
+// Un nivel mas de hondura en el arbol.
+fn entrar(e: mut Estado) ! {
+    e.hondura = e.hondura + 1;
+    if e.hondura > limite_hondura() {
+        let tope = limite_hondura();
+        error_aqui(e, $"el programa anida mas de {tope} niveles; parte la expresion o el bloque en trozos");
+        falla "sintaxis";
+    }
 }
 
 // ------------------------------------------------------------------
@@ -583,6 +601,7 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
         var sub = estado_de(suyos, vista(e.archivo), copiar(e.structs), copiar(e.enums));
         sub.alias = copiar(e.alias);
         sub.tipo_params = copiar(e.tipo_params);
+        sub.hondura = e.hondura;
         let x = expresion(sub) sino hoja("vacio", "", 0);
         if largo(sub.error) > 0 {
             if largo(e.error) == 0 { e.error = copiar(sub.error); }
@@ -900,9 +919,11 @@ fn primario(e: mut Estado) -> Nodo ! {
 
 fn postfijo(e: mut Estado) -> Nodo ! {
     var n = try primario(e);
+    let antes = e.hondura;
     while true {
         let l = linea_actual(e);
         if acepta(e, "simbolo", ".") {
+            try entrar(e);
             let campo = try espera(e, "ident", "");
             var p = rama("campo", l);
             empujar(p.texto, campo);
@@ -911,6 +932,7 @@ fn postfijo(e: mut Estado) -> Nodo ! {
             continue;
         }
         if acepta(e, "simbolo", "[") {
+            try entrar(e);
             let idx = try expresion(e);
             try espera(e, "simbolo", "]");
             var p = rama("indice", l);
@@ -921,10 +943,18 @@ fn postfijo(e: mut Estado) -> Nodo ! {
         }
         break;
     }
+    e.hondura = antes;
     return n;
 }
 
 fn unario(e: mut Estado) -> Nodo ! {
+    try entrar(e);
+    let n = try unario_dentro(e);
+    e.hondura = e.hondura - 1;
+    return n;
+}
+
+fn unario_dentro(e: mut Estado) -> Nodo ! {
     let l = linea_actual(e);
     if es(e, "palabra", "try") {
         avanzar(e);
@@ -965,6 +995,7 @@ fn en_lista(ops: view, sep: usize, cual: view) -> bool {
 
 fn nivel(e: mut Estado, ops: view, grado: usize) -> Nodo ! {
     var izq = try siguiente_nivel(e, grado);
+    let antes = e.hondura;
     var sigue = true;
     while sigue {
         if !es(e, "simbolo", "") || !en_lista(ops, 32, valor_en(e, 0)) {
@@ -973,6 +1004,7 @@ fn nivel(e: mut Estado, ops: view, grado: usize) -> Nodo ! {
             let l = linea_actual(e);
             let op = nuevo(valor_en(e, 0));
             avanzar(e);
+            try entrar(e);
             let der = try siguiente_nivel(e, grado);
             var n = rama("binaria", l);
             empujar(n.texto, op);
@@ -981,6 +1013,7 @@ fn nivel(e: mut Estado, ops: view, grado: usize) -> Nodo ! {
             izq = n;
         }
     }
+    e.hondura = antes;
     return izq;
 }
 
@@ -1004,9 +1037,11 @@ fn siguiente_nivel(e: mut Estado, grado: usize) -> Nodo ! {
 // `x como u8`, `x como? u8`: ata mas que cualquier binario.
 fn conversion(e: mut Estado) -> Nodo ! {
     var izq = try unario(e);
+    let antes = e.hondura;
     while es(e, "ident", "como") {
         let l = linea_actual(e);
         avanzar(e);
+        try entrar(e);
         var n = rama("conversion", l);
         if acepta(e, "simbolo", "?") { empujar(n.texto, "?"); }
         let t = try tipo(e);
@@ -1014,6 +1049,7 @@ fn conversion(e: mut Estado) -> Nodo ! {
         anadir(n.hijos, izq);
         izq = n;
     }
+    e.hondura = antes;
     return izq;
 }
 
@@ -1036,6 +1072,13 @@ fn expresion(e: mut Estado) -> Nodo ! {
 // ------------------------------------------------------------------
 
 fn bloque(e: mut Estado) -> Nodo ! {
+    try entrar(e);
+    let n = try bloque_dentro(e);
+    e.hondura = e.hondura - 1;
+    return n;
+}
+
+fn bloque_dentro(e: mut Estado) -> Nodo ! {
     let l = linea_actual(e);
     try espera(e, "simbolo", "{");
     var n = rama("bloque", l);

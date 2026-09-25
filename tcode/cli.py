@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 
 from tcode.lexer import ErrorLexico
 from tcode.parser import parsear, ErrorSintactico
@@ -142,7 +143,47 @@ def main(argv=None):
                          "duenio de que, quien presta a quien, donde se libera "
                          "cada cosa y de donde sale cada vista")
     args = ap.parse_args(argv)
+    return _con_pila_honda(_ejecutar, args)
 
+
+# El analisis es recursivo, como la gramatica: una suma de mil terminos es un
+# arbol de mil niveles. Con la pila y el limite de Python por defecto eso
+# reventaba con una traza; en un hilo con pila propia cabe de sobra, y si aun
+# asi no cabe, se dice como cualquier otro error.
+PILA = 512 * 1024 * 1024
+LIMITE_RECURSION = 200_000
+
+
+def _con_pila_honda(f, *args):
+    resultado = []
+
+    def correr():
+        try:
+            resultado.append(f(*args))
+        except RecursionError:
+            print(f"error: {args[0].fuente}: el programa anida demasiado "
+                  f"hondo para el compilador; parte las expresiones o los "
+                  f"bloques en trozos", file=sys.stderr)
+            resultado.append(1)
+        except BaseException as exc:
+            resultado.append(exc)
+
+    anterior_pila = threading.stack_size(PILA)
+    anterior_limite = sys.getrecursionlimit()
+    sys.setrecursionlimit(max(anterior_limite, LIMITE_RECURSION))
+    try:
+        hilo = threading.Thread(target=correr)
+        hilo.start()
+        hilo.join()
+    finally:
+        threading.stack_size(anterior_pila)
+        sys.setrecursionlimit(anterior_limite)
+    if isinstance(resultado[0], BaseException):
+        raise resultado[0]
+    return resultado[0]
+
+
+def _ejecutar(args):
     if not os.path.isfile(args.fuente):
         print(f"tcode: no encuentro {args.fuente}", file=sys.stderr)
         return 2
