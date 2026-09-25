@@ -4539,11 +4539,17 @@ fn descartar_c(b: mut Cuerpo, tipos: &I.Contexto, hecha: view, n: &P.Nodo) {
         return;
     }
     // `try f();` y `f() sino x;` ya emitieron todo su trabajo: lo que
-    // devuelven es el valor, y como sentencia no haria nada.
+    // devuelven es el valor, y como sentencia no haria nada. Lo que no es una
+    // llamada, como el `0` de un brazo, se tira con `(void)`, que es como C
+    // dice que es a proposito.
     if largo(hecha) > 0 && !igual(x, "try") && !igual(x, "sino") {
-        var l = nuevo(hecha);
-        empujar(l, ";");
-        emitir(b, vista(l));
+        if igual(x, "llamada") {
+            var l = nuevo(hecha);
+            empujar(l, ";");
+            emitir(b, vista(l));
+        } else {
+            emitir(b, $"(void) ({hecha});");
+        }
     }
 }
 

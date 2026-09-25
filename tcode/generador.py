@@ -1761,9 +1761,11 @@ class Generador:
         # `try f();` y `f() sino x;` ya emitieron todo el trabajo al
         # generarse; lo que devuelven es el valor, y como sentencia suelta
         # no haria nada. Emitirlo daria un aviso de C sobre codigo que el
-        # usuario no escribio.
+        # usuario no escribio. Lo que no es una llamada, como el `0` de un
+        # brazo, se tira con `(void)`, que es como C dice que es a proposito.
         if c and not isinstance(expr, (Try, Sino)):
-            self.emitir(c + ";")
+            self.emitir(c + ";" if isinstance(expr, Llamada)
+                        else f"(void) ({c});")
 
     def cuerpo_brazo(self, b, destino):
         """Lo que hace el brazo: dejar su valor en `destino`, o sus
