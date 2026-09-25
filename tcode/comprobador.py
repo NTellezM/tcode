@@ -413,6 +413,68 @@ def literal_de(e):
     return None
 
 
+# Una cuenta hecha solo de numeros escritos se hace al compilar, en el tipo
+# que le toca: si en marcha pararia el programa, es un error ya.
+AL_COMPILAR = ": es una cuenta de numeros escritos, y se hace al compilar"
+
+
+def _limites(t):
+    """(minimo, maximo, bits, con signo) de un entero."""
+    if t in SIN_SIGNO:
+        bits = SIN_SIGNO[t] or BITS_USIZE
+        return 0, (1 << bits) - 1, bits, False
+    bits = CON_SIGNO[t]
+    return -(1 << (bits - 1)), (1 << (bits - 1)) - 1, bits, True
+
+
+def _envolver(v, t):
+    """Los bits de abajo de `v`, leidos como un `t`."""
+    _, _, bits, con_signo = _limites(t)
+    v &= (1 << bits) - 1
+    if con_signo and v >> (bits - 1):
+        v -= 1 << bits
+    return v
+
+
+def _solapan(a, b):
+    """Si dos caminos pueden ser la misma memoria: `p.a` y `p.a.b` si, uno
+    contiene al otro; `p.a` y `p.b` no."""
+    return a == b or a.startswith(b + ".") or b.startswith(a + ".")
+
+
+class _Prestamos:
+    """Lo que dejan prestado los argumentos de una llamada, como caminos.
+    Dos prestamos de lo mismo solo conviven si ninguno modifica: si no, el
+    callee tendria dos nombres para la misma memoria."""
+
+    def __init__(self):
+        self.hechos = []        # (camino, quien, mutable)
+
+    def choque(self, camino, mutable):
+        """El prestamo anterior que no convive con este, como (lo que se
+        presta dos veces, quien lo presto), o None. Primero uno que modifica."""
+        for otro, quien, modifica in self.hechos:
+            if modifica and _solapan(camino, otro):
+                return (min(camino, otro, key=len), quien)
+        if mutable:
+            for otro, quien, modifica in self.hechos:
+                if not modifica and _solapan(camino, otro):
+                    return (min(camino, otro, key=len), quien)
+        return None
+
+    def apuntar(self, camino, quien, mutable):
+        self.hechos.append((camino, quien, mutable))
+
+
+class _CuentaParada(Exception):
+    """La cuenta de numeros escritos que pararia el programa, y donde."""
+
+    def __init__(self, nodo, mensaje):
+        super().__init__(mensaje)
+        self.nodo = nodo
+        self.mensaje = mensaje
+
+
 def _nombres_de_patron(args):
     """Los nombres que atrapa un patron, a cualquier hondura."""
     salida = set()
@@ -516,6 +578,10 @@ class Comprobador:
         self.falible_actual = False
         self.en_condicional = 0
         self.en_condicion_bucle = 0
+        # Las cuentas de numeros escritos que esperan su tipo, en el orden en
+        # que se comprobaron, y las que ya se hicieron.
+        self.escritas = []
+        self.contadas = set()
         # Dentro de la guarda de un brazo: ahi no se mueve nada, porque se
         # evalua aunque el brazo no llegue a casar.
         self.en_guarda = 0
@@ -1742,6 +1808,11 @@ class Comprobador:
         return salida
 
     def sentencia(self, s):
+        desde = len(self.escritas)
+        self._sentencia(s)
+        self.contar_pendientes(desde)
+
+    def _sentencia(self, s):
         if isinstance(s, Declaracion):
             if s.tipo is None:
                 # Sin tipo escrito: se deduce del valor. `destino=None` hace
@@ -2024,6 +2095,22 @@ class Comprobador:
             lugar = lugar.objeto if isinstance(lugar, Campo) else lugar.arreglo
         return lugar.nombre if isinstance(lugar, Variable) else None
 
+    def camino_de(self, lugar):
+        """Lo que presta un sitio, como camino: `p.a.b`. Un indice no se
+        sigue —`v[i]` y `v[j]` pueden ser el mismo elemento—, asi que
+        `v[i].x` presta todo `v`."""
+        partes = []
+        while isinstance(lugar, (Campo, Indice)):
+            if isinstance(lugar, Indice):
+                partes = []
+                lugar = lugar.arreglo
+            else:
+                partes.insert(0, lugar.nombre)
+                lugar = lugar.objeto
+        if not isinstance(lugar, Variable):
+            return None
+        return ".".join([lugar.nombre] + partes)
+
     def tipo_de_lugar(self, lugar):
         # Escribir en `x` no es leer `x`. Mirar su tipo tampoco, asi que la
         # variable suelta se resuelve sin pasar por `usar`.
@@ -2302,10 +2389,11 @@ class Comprobador:
         return salida
 
     def _prestados_por(self, arg, tipo):
-        """Las variables que un argumento deja prestadas mientras dura la
-        llamada, cuando va a un sitio que presta (`view`, un struct que
-        presta). Un `str` suelto donde se pide `view` se presta entero; una
-        vista con nombre ya tiene sus prestamos apuntados en sus duenios."""
+        """Lo que un argumento deja prestado mientras dura la llamada, como
+        caminos, cuando va a un sitio que presta (`view`, un struct que
+        presta). Un `str` suelto donde se pide `view` se presta entero, y
+        `vista(p.a)`, solo `p.a`; una vista con nombre ya tiene sus prestamos
+        apuntados en sus duenios, que se prestan enteros."""
         if isinstance(arg, Variable):
             sim = self.buscar(arg.nombre)
             if sim is not None and sin_prestamo(sim.tipo) == "str":
@@ -2313,8 +2401,13 @@ class Comprobador:
             return []
         if tipo is not None and sin_prestamo(tipo) == "str" \
                 and isinstance(arg, (Campo, Indice)):
-            base = self.variable_base(arg)
-            return [base] if base else []
+            camino = self.camino_de(arg)
+            return [camino] if camino else []
+        if (isinstance(arg, Llamada) and arg.nombre == "vista" and len(arg.args) == 1
+                and isinstance(arg.args[0], (Campo, Indice))):
+            # `vista` solo mira un `str`: lo demas ya es un error.
+            camino = self.camino_de(arg.args[0])
+            return [camino] if camino else []
         return [o for o in self._origenes_de(arg) if o != TEMPORAL]
 
     def _tipo_simple(self, e):
@@ -2449,25 +2542,105 @@ class Comprobador:
         e.tipo_resuelto = t
         if t in (LITERAL, LITERAL_DECIMAL) and sin_prestamo(destino or "") in NUMERICOS:
             self.fijar_literal(e, sin_prestamo(destino))
+        elif t == LITERAL and not isinstance(e, Entero):
+            # Una cuenta que todavia no sabe su tipo: se lo dira quien la
+            # use, o al acabar la sentencia sera `usize`.
+            self.escritas.append(e)
         return t
 
     def fijar_literal(self, e, tipo):
         """Un numero escrito ya sabe su tipo: se lo dice el otro lado de la
         operacion, o el sitio donde va. Se anota en el y en todo lo que es
-        numero escrito por debajo; un desplazamiento cuenta en `usize`."""
+        numero escrito por debajo; un desplazamiento cuenta en `usize`. Y si
+        es una cuenta de enteros, se hace ya."""
+        antes = getattr(e, "tipo_resuelto", LITERAL)
+        self._fijar_literal(e, tipo)
+        if antes == LITERAL and tipo in ENTEROS and literal_de(e) == "entero":
+            self.contar_escrita(e, tipo)
+
+    def _fijar_literal(self, e, tipo):
         if getattr(e, "tipo_resuelto", LITERAL) not in (LITERAL, LITERAL_DECIMAL):
             return
         if not literal_de(e):
             return
         e.tipo_resuelto = tipo
         if isinstance(e, Binaria):
-            self.fijar_literal(e.izq, tipo)
-            self.fijar_literal(e.der, "usize" if e.op in {"<<", ">>"} else tipo)
+            self._fijar_literal(e.izq, tipo)
+            self._fijar_literal(e.der, "usize" if e.op in {"<<", ">>"} else tipo)
         elif isinstance(e, Unaria):
-            self.fijar_literal(e.valor, tipo)
+            self._fijar_literal(e.valor, tipo)
         elif isinstance(e, SiExpr):
-            self.fijar_literal(e.entonces, tipo)
-            self.fijar_literal(e.sino_, tipo)
+            self._fijar_literal(e.entonces, tipo)
+            self._fijar_literal(e.sino_, tipo)
+
+    def contar_escrita(self, e, tipo):
+        """Hace una cuenta de numeros escritos en su tipo. Lo que en marcha
+        pararia el programa —desbordarse, dividir por cero, desplazar el
+        ancho o mas— para aqui, con su linea: `let x: u8 = 200 + 100;` no
+        es un programa que aborte, es un programa mal escrito."""
+        try:
+            self._valor_escrito(e, tipo)
+        except _CuentaParada as p:
+            self.error(p.nodo, p.mensaje)
+
+    def contar_pendientes(self, desde):
+        """Las cuentas de la sentencia que nadie tipo: son `usize`. De fuera
+        adentro, que la de fuera hace tambien las suyas."""
+        for e in reversed(self.escritas[desde:]):
+            if getattr(e, "tipo_resuelto", LITERAL) == LITERAL:
+                self.contar_escrita(e, "usize")
+        del self.escritas[desde:]
+
+    def _valor_escrito(self, e, tipo):
+        """El valor de la cuenta, o None si depende de algo que solo se sabe
+        en marcha: la condicion de un `if`. Cada nodo se cuenta una vez."""
+        if id(e) in self.contadas:
+            return None
+        self.contadas.add(id(e))
+        minimo, maximo, bits, con_signo = _limites(tipo)
+        if isinstance(e, Entero):
+            # Uno que no cabe ya tiene su error.
+            return e.valor if minimo <= e.valor <= maximo else None
+        if isinstance(e, SiExpr):
+            self._valor_escrito(e.entonces, tipo)
+            self._valor_escrito(e.sino_, tipo)
+            return None
+        if not isinstance(e, Binaria):
+            return None
+        op = e.op
+        a = self._valor_escrito(e.izq, tipo)
+        b = self._valor_escrito(e.der, "usize" if op in {"<<", ">>"} else tipo)
+        if a is None or b is None:
+            return None
+        cuenta = f"`{a} {op} {b}`"
+        if op in {"+", "-", "*", "+?", "-?", "*?"}:
+            r = a + b if op[0] == "+" else a - b if op[0] == "-" else a * b
+            if op.endswith("?"):
+                return _envolver(r, tipo)
+            if not minimo <= r <= maximo:
+                raise _CuentaParada(e, f"{cuenta} no cabe en `{tipo}`{AL_COMPILAR}")
+            return r
+        if op in {"/", "%"}:
+            if b == 0:
+                raise _CuentaParada(e, f"{cuenta} divide por cero{AL_COMPILAR}")
+            if con_signo and a == minimo and b == -1:
+                if op == "/":
+                    raise _CuentaParada(e, f"{cuenta} no cabe en `{tipo}`{AL_COMPILAR}")
+                return 0
+            # Como C: el cociente se trunca hacia cero.
+            q = abs(a) // abs(b)
+            if (a < 0) != (b < 0):
+                q = -q
+            return q if op == "/" else a - b * q
+        if op in {"&", "|", "^"}:
+            return _envolver(a & b if op == "&" else a | b if op == "|" else a ^ b,
+                             tipo)
+        if op in {"<<", ">>"}:
+            if b >= bits:
+                raise _CuentaParada(e, f"{cuenta} desplaza un `{tipo}` {b} bits, "
+                                       f"y tiene {bits}{AL_COMPILAR}")
+            return _envolver(a << b, tipo) if op == "<<" else a >> b
+        return None
 
     def _expresion(self, e, destino=None, mover_variables=False):
         if destino in NUMERICOS:
@@ -3381,7 +3554,7 @@ class Comprobador:
                               f"{len(e.args)}")
             # Los prestamos de una misma llamada, como en una funcion con
             # nombre: la firma del puntero dice lo mismo que la de ella.
-            prestados_mut, prestados_lec = {}, {}
+            prestamos = _Prestamos()
             for i, (arg, esperado_t) in enumerate(zip(e.args, params)):
                 # Un `&X` en la firma presta: se le pasa el sitio, no el valor.
                 presta = es_referencia(esperado_t)
@@ -3395,29 +3568,27 @@ class Comprobador:
                     sim_base = self.buscar(base) if base else None
                     if sim_base is not None:
                         mutable = es_referencia_mutable(esperado_t)
-                        otro = prestados_mut.get(base)
-                        if otro is None and mutable:
-                            otro = prestados_lec.get(base)
-                        if otro is not None:
-                            self.error(e, f"`{base}` se presta dos veces en "
+                        camino = self.camino_de(arg)
+                        choque = prestamos.choque(camino, mutable)
+                        if choque is not None:
+                            self.error(e, f"`{choque[0]}` se presta dos veces en "
                                           f"la misma llamada a `{nombre}` "
-                                          f"({otro} y {cual}), y al menos uno "
+                                          f"({choque[1]} y {cual}), y al menos uno "
                                           f"de los dos puede modificarlo")
+                        prestamos.apuntar(camino, cual, mutable)
                         if mutable:
                             self.mutar(arg, sim_base)
-                            prestados_mut[base] = cual
                         else:
                             self.usar(arg, sim_base)
-                            prestados_lec.setdefault(base, cual)
                 elif self.presta(interno):
-                    for base in self._prestados_por(arg, t):
-                        otro = prestados_mut.get(base)
-                        if otro is not None:
-                            self.error(e, f"`{base}` se presta dos veces en "
+                    for camino in self._prestados_por(arg, t):
+                        choque = prestamos.choque(camino, False)
+                        if choque is not None:
+                            self.error(e, f"`{choque[0]}` se presta dos veces en "
                                           f"la misma llamada a `{nombre}` "
-                                          f"({otro} y {cual}), y al menos "
+                                          f"({choque[1]} y {cual}), y al menos "
                                           f"uno de los dos puede modificarlo")
-                        prestados_lec.setdefault(base, cual)
+                        prestamos.apuntar(camino, cual, False)
                 if t is not None and not encaja(interno, sin_prestamo(t)):
                     if not (interno == "view" and sin_prestamo(t) == "str"):
                         self.error(e, f"`{nombre}` toma `{esperado_t}` ahi y "
@@ -3452,10 +3623,11 @@ class Comprobador:
             self.error(e, f"`{nombre}` espera {len(f.params)} argumento(s) y "
                           f"recibio {len(e.args)}")
 
-        # Prestar la misma variable dos veces en una llamada, con una de las
-        # dos mutable, deja al callee con dos nombres para lo mismo: puede
-        # modificar por uno y leer por el otro sin enterarse.
-        prestados_mut, prestados_lec = {}, {}
+        # Prestar lo mismo dos veces en una llamada, con una de las dos
+        # mutable, deja al callee con dos nombres para lo mismo: puede
+        # modificar por uno y leer por el otro sin enterarse. Dos campos
+        # distintos no son lo mismo: `g(p.a, p.b)` vale.
+        prestamos = _Prestamos()
 
         for arg, param in zip(e.args, f.params):
             if param.prestado:
@@ -3483,17 +3655,15 @@ class Comprobador:
                                   f"`{param.tipo}` y recibio `{tipo_arg}`")
 
                 # Dos prestamos de lo mismo solo conviven si ninguno modifica.
-                otro = prestados_mut.get(base)
-                if otro is None and param.mutable:
-                    otro = prestados_lec.get(base)
-                if otro is not None:
-                    a, b = sorted([param.nombre, otro])
-                    self.error(e, f"`{base}` se presta dos veces en la misma "
+                camino = self.camino_de(arg)
+                choque = prestamos.choque(camino, param.mutable)
+                if choque is not None:
+                    a, b = sorted([param.nombre, choque[1]])
+                    self.error(e, f"`{choque[0]}` se presta dos veces en la misma "
                                   f"llamada a `{nombre}` (como `{a}` y como "
                                   f"`{b}`), y al menos uno de los dos puede "
-                                  f"modificarlo. v0 mira la variable entera, "
-                                  f"asi que rechaza esto aunque sean campos "
-                                  f"distintos")
+                                  f"modificarlo")
+                prestamos.apuntar(camino, param.nombre, param.mutable)
 
                 if param.mutable:
                     self.mutar(arg, sim)
@@ -3501,10 +3671,8 @@ class Comprobador:
                     # casi siempre lee antes de escribir, y avisar de que
                     # "nunca se lee" seria falso.
                     sim.leida = True
-                    prestados_mut[base] = param.nombre
                 else:
                     self.usar(arg, sim)
-                    prestados_lec[base] = param.nombre
                 continue
 
             # Una funcion de C recibe un `const char*`: mira la cadena, no
@@ -3521,17 +3689,15 @@ class Comprobador:
             # un lado lo que lee por el otro, y al crecer el buffer la vista
             # quedaria colgando. Es el fallo 2 de la especificacion.
             if self.presta(param.tipo) and not f.externa:
-                for base in self._prestados_por(arg, t):
-                    otro = prestados_mut.get(base)
-                    if otro is not None:
-                        a, b = sorted([param.nombre, otro])
-                        self.error(e, f"`{base}` se presta dos veces en la "
+                for camino in self._prestados_por(arg, t):
+                    choque = prestamos.choque(camino, False)
+                    if choque is not None:
+                        a, b = sorted([param.nombre, choque[1]])
+                        self.error(e, f"`{choque[0]}` se presta dos veces en la "
                                       f"misma llamada a `{nombre}` (como `{a}` "
                                       f"y como `{b}`), y al menos uno de los "
-                                      f"dos puede modificarlo. v0 mira la "
-                                      f"variable entera, asi que rechaza esto "
-                                      f"aunque sean campos distintos")
-                    prestados_lec.setdefault(base, param.nombre)
+                                      f"dos puede modificarlo")
+                    prestamos.apuntar(camino, param.nombre, False)
 
             # Donde se pide una vista, un `str` se lee prestandolo. Es la
             # misma regla que ya valia para las internas: escribir `vista(s)`

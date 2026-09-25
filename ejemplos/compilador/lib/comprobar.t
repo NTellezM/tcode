@@ -725,6 +725,12 @@ struct Comprobacion {
     // Los campos sacados de su struct en todo el programa, para el
     // generador: `archivo\tlinea\tp.a.b`.
     sacados: lista<str>,
+    // Las cuentas de numeros escritos que esperan su tipo, en el orden en
+    // que se comprobaron, con el dueño de cada una; y las ya hechas, por su
+    // clave anotada.
+    escritas: lista<P.Nodo>,
+    escritas_duenos: lista<str>,
+    contadas: mapa<str, usize>,
 }
 
 fn estado(archivo: view, modulo: usize) -> Comprobacion {
@@ -734,7 +740,8 @@ fn estado(archivo: view, modulo: usize) -> Comprobacion {
         en_bucle_directo: 0, movidas_en_bucle: [], en_retorno: 0, instanciando: [],
         dueno: vacio(), avisos: [], historia: [], informe: [], en_cierre: false,
         capturas_mut: [], modificadas: [], plantillas: [], en_guarda: 0,
-        por_campo: 0, escribiendo: 0, sacados: [] };
+        por_campo: 0, escribiendo: 0, sacados: [], escritas: [],
+        escritas_duenos: [], contadas: [] };
 }
 
 // Lo que el mensaje dice en vez de los nombres que puso el compilador: una
@@ -1214,6 +1221,78 @@ fn variable_base(n: &P.Nodo) -> str {
     return vacio();
 }
 
+// Lo que presta un sitio, como camino: `p.a.b`. Un indice no se sigue
+// —`v[i]` y `v[j]` pueden ser el mismo elemento—, asi que `v[i].x` presta
+// todo `v`.
+fn camino_de(n: &P.Nodo) -> str {
+    var cortado = false;
+    return camino_y_corte(n, cortado);
+}
+
+fn camino_y_corte(n: &P.Nodo, cortado: mut bool) -> str {
+    let clase = vista(n.clase);
+    if igual(clase, "variable") { return copiar(n.texto); }
+    if largo(n.hijos) == 0 { return vacio(); }
+    if !igual(clase, "campo") && !igual(clase, "indice") { return vacio(); }
+    let dentro = camino_y_corte(n.hijos[0], cortado);
+    if largo(dentro) == 0 { return dentro; }
+    if igual(clase, "indice") {
+        cortado = true;
+        return dentro;
+    }
+    if cortado { return dentro; }
+    return $"{dentro}.{n.texto}";
+}
+
+// Si dos caminos pueden ser la misma memoria: `p.a` y `p.a.b` si, uno
+// contiene al otro; `p.a` y `p.b` no.
+fn solapan(a: view, b: view) -> bool {
+    if igual(a, b) { return true; }
+    return empieza_con(b, $"{a}.") || empieza_con(a, $"{b}.");
+}
+
+// Lo que dejan prestado los argumentos de una llamada, como caminos. Dos
+// prestamos de lo mismo solo conviven si ninguno modifica: si no, el callee
+// tendria dos nombres para la misma memoria.
+struct Prestamos {
+    caminos: lista<str>,
+    quienes: lista<str>,
+    mutables: lista<bool>,
+}
+
+fn prestamos() -> Prestamos {
+    return Prestamos { caminos: [], quienes: [], mutables: [] };
+}
+
+// El prestamo anterior que no convive con este: lo que se presta dos veces y
+// quien lo presto, o nada. Primero uno que modifica.
+fn choque_prestamo(p: &Prestamos, camino: view, mutable: bool) -> lista<str> {
+    var salida: lista<str> = [];
+    var vuelta = 0;
+    while vuelta < 2 {
+        var k = 0;
+        while k < largo(p.caminos) {
+            let modifica = p.mutables[k];
+            let toca = if vuelta == 0 { modifica } else { mutable && !modifica };
+            if toca && solapan(camino, vista(p.caminos[k])) {
+                if largo(camino) <= largo(p.caminos[k]) { anadir(salida, nuevo(camino)); }
+                else { anadir(salida, copiar(p.caminos[k])); }
+                anadir(salida, copiar(p.quienes[k]));
+                return salida;
+            }
+            k = k + 1;
+        }
+        vuelta = vuelta + 1;
+    }
+    return salida;
+}
+
+fn apuntar_prestamo(p: mut Prestamos, camino: view, quien: view, mutable: bool) {
+    anadir(p.caminos, nuevo(camino));
+    anadir(p.quienes, nuevo(quien));
+    anadir(p.mutables, mutable);
+}
+
 // ------------------------------------------------------------------
 // De donde sale la memoria de una vista
 // ------------------------------------------------------------------
@@ -1625,8 +1704,16 @@ fn prestados_por(c: &Comprobacion, m: &Mundo, arg: &P.Nodo, t: view) -> lista<st
     }
     let limpio = sin_prestamo(t);
     if igual(vista(limpio), "str") && (igual(clase, "campo") || igual(clase, "indice")) {
-        let base = variable_base(arg);
-        if largo(base) > 0 { anadir(salida, base); }
+        let camino = camino_de(arg);
+        if largo(camino) > 0 { anadir(salida, camino); }
+        return salida;
+    }
+    // `vista(p.a)` presta solo `p.a`. `vista` solo mira un `str`: lo demas
+    // ya es un error.
+    if igual(clase, "llamada") && igual(vista(arg.texto), "vista") && largo(arg.hijos) == 1
+    && (igual(vista(arg.hijos[0].clase), "campo") || igual(vista(arg.hijos[0].clase), "indice")) {
+        let camino = camino_de(arg.hijos[0]);
+        if largo(camino) > 0 { anadir(salida, camino); }
         return salida;
     }
     for o en origenes_de(c, m, arg) {
@@ -2438,6 +2525,11 @@ fn comprobar_expresion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n:
     if (igual(vista(t), literal()) || igual(vista(t), literal_decimal()))
     && es_numerico(vista(destino_p)) {
         fijar_literal(c, m, n, vista(destino_p));
+    } else if igual(vista(t), literal()) && !igual(vista(n.clase), "entero") && n.id > 0 {
+        // Una cuenta que todavia no sabe su tipo: se lo dira quien la use, o
+        // al acabar la sentencia sera `usize`.
+        anadir(c.escritas, copiar(n));
+        anadir(c.escritas_duenos, copiar(c.dueno));
     }
     return t;
 }
@@ -2455,7 +2547,22 @@ fn anotar(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, t: view) {
 // Un numero escrito ya sabe su tipo: se lo dice el otro lado de la operacion,
 // o el sitio donde va. Se anota en el y en todo lo que es numero escrito por
 // debajo; un desplazamiento cuenta en `usize`.
-fn fijar_literal(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) {
+// Y si es una cuenta de enteros, se hace ya.
+fn fijar_literal(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) {
+    if c.modulo >= largo(m.anotados) { return; }
+    var antes = nuevo(literal());
+    if n.id > 0 {
+        let clave = clave_anotada(c, n);
+        antes = nuevo(obtener(m.anotados[c.modulo], vista(clave)) sino literal());
+    }
+    fijar_literal_sin_contar(c, m, n, tipo);
+    if igual(vista(antes), literal()) && es_tipo_entero(tipo)
+    && igual(I.literal_de(n), "entero") && n.id > 0 {
+        contar_escrita(c, m, n, tipo);
+    }
+}
+
+fn fijar_literal_sin_contar(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) {
     if c.modulo >= largo(m.anotados) { return; }
     if n.id > 0 {
         let clave = clave_anotada(c, n);
@@ -2466,18 +2573,248 @@ fn fijar_literal(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) {
     anotar(c, m, n, tipo);
     let clase = vista(n.clase);
     if igual(clase, "binaria") && largo(n.hijos) == 2 {
-        fijar_literal(c, m, n.hijos[0], tipo);
+        fijar_literal_sin_contar(c, m, n.hijos[0], tipo);
         if igual(vista(n.texto), "<<") || igual(vista(n.texto), ">>") {
-            fijar_literal(c, m, n.hijos[1], "usize");
+            fijar_literal_sin_contar(c, m, n.hijos[1], "usize");
         } else {
-            fijar_literal(c, m, n.hijos[1], tipo);
+            fijar_literal_sin_contar(c, m, n.hijos[1], tipo);
         }
     } else if igual(clase, "unaria") && largo(n.hijos) == 1 {
-        fijar_literal(c, m, n.hijos[0], tipo);
+        fijar_literal_sin_contar(c, m, n.hijos[0], tipo);
     } else if igual(clase, "si_expr") && largo(n.hijos) == 3 {
-        fijar_literal(c, m, n.hijos[1], tipo);
-        fijar_literal(c, m, n.hijos[2], tipo);
+        fijar_literal_sin_contar(c, m, n.hijos[1], tipo);
+        fijar_literal_sin_contar(c, m, n.hijos[2], tipo);
     }
+}
+
+// ------------------------------------------------------------------
+// Cuentas de numeros escritos, hechas al compilar
+// ------------------------------------------------------------------
+//
+// `let x: u8 = 200 + 100;` no es un programa que aborte: es un programa mal
+// escrito. Una cuenta hecha solo de numeros escritos se hace aqui, en el tipo
+// que le toca, y lo que en marcha pararia el programa —desbordarse, dividir
+// por cero, desplazar el ancho o mas— para aqui, con su linea.
+//
+// Sin enteros de mas de 64 bits, un valor es su signo y su magnitud: cabe
+// todo `u64` y todo `i64`, y cada operacion mira si se sale antes de salirse.
+
+struct Escrito {
+    // False si depende de algo que solo se sabe en marcha: la condicion de
+    // un `if`.
+    sabido: bool,
+    negativo: bool,
+    magnitud: u64,
+    // La cuenta ya paro, con su error dicho: no se sigue.
+    parada: bool,
+}
+
+fn escrito_sin_saber() -> Escrito {
+    return Escrito { sabido: false, negativo: false, magnitud: 0, parada: false };
+}
+
+fn escrito_parado() -> Escrito {
+    return Escrito { sabido: false, negativo: false, magnitud: 0, parada: true };
+}
+
+fn escrito(negativo: bool, magnitud: u64) -> Escrito {
+    // El cero no tiene signo.
+    return Escrito { sabido: true, negativo: negativo && magnitud > 0,
+        magnitud: magnitud, parada: false };
+}
+
+fn texto_escrito(v: &Escrito) -> str {
+    if v.negativo { return $"-{v.magnitud}"; }
+    return $"{v.magnitud}";
+}
+
+fn bits_de_entero(t: view) -> u64 {
+    if igual(t, "u8") || igual(t, "i8") { return 8; }
+    if igual(t, "u16") || igual(t, "i16") { return 16; }
+    if igual(t, "u32") || igual(t, "i32") { return 32; }
+    return 64;
+}
+
+fn con_signo(t: view) -> bool { return empieza_con(t, "i"); }
+
+// Si el valor cabe en el tipo.
+fn cabe_escrito(v: &Escrito, t: view) -> bool {
+    let bits = bits_de_entero(t);
+    if !con_signo(t) {
+        if v.negativo { return false; }
+        if bits == 64 { return true; }
+        return v.magnitud <= (1 << bits) - 1;
+    }
+    let mitad: u64 = 1 << (bits - 1);
+    if v.negativo { return v.magnitud <= mitad; }
+    return v.magnitud < mitad;
+}
+
+// Los bits del valor en complemento a dos, sobre 64.
+fn patron_escrito(v: &Escrito) -> u64 {
+    if v.negativo { return 0 -? v.magnitud; }
+    return v.magnitud;
+}
+
+// Los bits de abajo de un patron, leidos como un `t`.
+fn desde_patron(p: u64, t: view) -> Escrito {
+    let bits = bits_de_entero(t);
+    var q = p;
+    if bits < 64 { q = p & ((1 << bits) - 1); }
+    if con_signo(t) && ((q >> (bits - 1)) & 1) == 1 {
+        if bits == 64 { return escrito(true, 0 -? q); }
+        return escrito(true, (1 << bits) - q);
+    }
+    return escrito(false, q);
+}
+
+fn sumar_escritos(a: &Escrito, b: &Escrito) -> Escrito {
+    if a.negativo == b.negativo {
+        let r = a.magnitud +? b.magnitud;
+        // Se salio de 64 bits: de cualquier tipo.
+        if r < a.magnitud { return escrito_sin_saber(); }
+        return escrito(a.negativo, r);
+    }
+    if a.magnitud >= b.magnitud { return escrito(a.negativo, a.magnitud - b.magnitud); }
+    return escrito(b.negativo, b.magnitud - a.magnitud);
+}
+
+fn cuenta_parada(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, que: view) -> Escrito {
+    error(c, m, n.linea, $"{que}: es una cuenta de numeros escritos, y se hace al compilar");
+    return escrito_parado();
+}
+
+fn contar_escrita(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) {
+    let _v = valor_escrito(c, m, n, tipo);
+}
+
+// Las cuentas de la sentencia que nadie tipo: son `usize`. De fuera adentro,
+// que la de fuera hace tambien las suyas.
+fn contar_pendientes(c: mut Comprobacion, m: mut Mundo, desde: usize) {
+    var k = largo(c.escritas);
+    while k > desde {
+        k = k - 1;
+        let dueno_antes = copiar(c.dueno);
+        c.dueno = copiar(c.escritas_duenos[k]);
+        let n = copiar(c.escritas[k]);
+        let clave = clave_anotada(c, n);
+        var actual = nuevo(literal());
+        if c.modulo < largo(m.anotados) {
+            actual = nuevo(obtener(m.anotados[c.modulo], vista(clave)) sino literal());
+        }
+        if igual(vista(actual), literal()) { contar_escrita(c, m, n, "usize"); }
+        c.dueno = dueno_antes;
+    }
+    if largo(c.escritas) == desde { return; }
+    var quedan: lista<P.Nodo> = [];
+    var quedan_d: lista<str> = [];
+    var j = 0;
+    while j < desde {
+        anadir(quedan, copiar(c.escritas[j]));
+        anadir(quedan_d, copiar(c.escritas_duenos[j]));
+        j = j + 1;
+    }
+    c.escritas = quedan;
+    c.escritas_duenos = quedan_d;
+}
+
+// El valor de la cuenta. Cada nodo se cuenta una vez.
+fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> Escrito {
+    let clave = clave_anotada(c, n);
+    if tiene(c.contadas, vista(clave)) { return escrito_sin_saber(); }
+    poner(c.contadas, vista(clave), 1);
+    let clase = vista(n.clase);
+    if igual(clase, "entero") {
+        // Uno que no cabe ya tiene su error.
+        let digitos = G.sin_ceros_izquierda(vista(n.texto));
+        if !G.cabe_literal_entero(digitos, tipo, false) { return escrito_sin_saber(); }
+        var v: u64 = 0;
+        var i = 0;
+        while i < largo(digitos) {
+            v = v * 10 + (byte(digitos, i) - 48) como u64;
+            i = i + 1;
+        }
+        return escrito(false, v);
+    }
+    if igual(clase, "si_expr") && largo(n.hijos) == 3 {
+        let a = valor_escrito(c, m, n.hijos[1], tipo);
+        if a.parada { return a; }
+        let b = valor_escrito(c, m, n.hijos[2], tipo);
+        if b.parada { return b; }
+        return escrito_sin_saber();
+    }
+    if !igual(clase, "binaria") || largo(n.hijos) != 2 { return escrito_sin_saber(); }
+    let op = vista(n.texto);
+    let desplaza = igual(op, "<<") || igual(op, ">>");
+    let a = valor_escrito(c, m, n.hijos[0], tipo);
+    if a.parada { return a; }
+    let b = valor_escrito(c, m, n.hijos[1], if desplaza { "usize" } else { tipo });
+    if b.parada { return b; }
+    if !a.sabido || !b.sabido { return escrito_sin_saber(); }
+    let ta = texto_escrito(a);
+    let tb = texto_escrito(b);
+    let cuenta = $"`{ta} {op} {tb}`";
+
+    if igual(op, "+?") || igual(op, "-?") || igual(op, "*?") {
+        let pa = patron_escrito(a);
+        let pb = patron_escrito(b);
+        var r: u64 = 0;
+        if igual(op, "+?") { r = pa +? pb; }
+        else if igual(op, "-?") { r = pa -? pb; }
+        else { r = pa *? pb; }
+        return desde_patron(r, tipo);
+    }
+    if igual(op, "+") || igual(op, "-") || igual(op, "*") {
+        var r = escrito_sin_saber();
+        if igual(op, "+") { r = sumar_escritos(a, b); }
+        else if igual(op, "-") {
+            let menos_b = escrito(!b.negativo, b.magnitud);
+            r = sumar_escritos(a, menos_b);
+        } else {
+            let tope: u64 = 18446744073709551615;
+            if a.magnitud == 0 || b.magnitud <= tope / a.magnitud {
+                r = escrito(a.negativo != b.negativo, a.magnitud * b.magnitud);
+            }
+        }
+        if !r.sabido || !cabe_escrito(r, tipo) {
+            return cuenta_parada(c, m, n, $"{cuenta} no cabe en `{tipo}`");
+        }
+        return r;
+    }
+    if igual(op, "/") || igual(op, "%") {
+        if b.magnitud == 0 {
+            return cuenta_parada(c, m, n, $"{cuenta} divide por cero");
+        }
+        // Como C: el cociente se trunca hacia cero, y el resto lleva el signo
+        // de lo dividido. `MIN / -1` se sale del tipo; `MIN % -1` es 0.
+        if igual(op, "%") { return escrito(a.negativo, a.magnitud % b.magnitud); }
+        let q = escrito(a.negativo != b.negativo, a.magnitud / b.magnitud);
+        if !cabe_escrito(q, tipo) {
+            return cuenta_parada(c, m, n, $"{cuenta} no cabe en `{tipo}`");
+        }
+        return q;
+    }
+    if igual(op, "&") || igual(op, "|") || igual(op, "^") {
+        let pa = patron_escrito(a);
+        let pb = patron_escrito(b);
+        var r: u64 = 0;
+        if igual(op, "&") { r = pa & pb; }
+        else if igual(op, "|") { r = pa | pb; }
+        else { r = pa ^ pb; }
+        return desde_patron(r, tipo);
+    }
+    if desplaza {
+        let bits = bits_de_entero(tipo);
+        if b.magnitud >= bits {
+            return cuenta_parada(c, m, n, $"{cuenta} desplaza un `{tipo}` {tb} bits, y tiene {bits}");
+        }
+        if igual(op, "<<") { return desde_patron(patron_escrito(a) << b.magnitud, tipo); }
+        if !a.negativo { return escrito(false, a.magnitud >> b.magnitud); }
+        // Un negativo rellena con unos: redondea hacia abajo.
+        let p = (patron_escrito(a) como? i64) >> b.magnitud;
+        return desde_patron(p como? u64, tipo);
+    }
+    return escrito_sin_saber();
 }
 
 fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
@@ -3629,9 +3966,9 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let dados = largo(n.hijos);
         error(c, m, n.linea, $"`{nombre}` espera {pide} argumento(s) y recibio {dados}");
     }
-    // Dos prestamos de lo mismo solo conviven si ninguno modifica.
-    var prestados_mut: mapa<str, str> = [];
-    var prestados_lec: mapa<str, str> = [];
+    // Dos prestamos de lo mismo solo conviven si ninguno modifica. Dos campos
+    // distintos no son lo mismo: `g(p.a, p.b)` vale.
+    var hechos = prestamos();
     var i = 0;
     while i < largo(n.hijos) && i < largo(f.params) {
         let arg = copiar(n.hijos[i]);
@@ -3653,25 +3990,22 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             if largo(tipo_arg) > 0 && !igual(vista(tipo_arg), vista(p.tipo)) {
                 error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `{p.tipo}` y recibio `{tipo_arg}`");
             }
-            var otro = nuevo(obtener(prestados_mut, vista(base)) sino "");
-            if largo(otro) == 0 && p.mutable {
-                otro = nuevo(obtener(prestados_lec, vista(base)) sino "");
-            }
-            if largo(otro) > 0 {
+            let camino = camino_de(arg);
+            let choque = choque_prestamo(hechos, vista(camino), p.mutable);
+            if largo(choque) == 2 {
                 var dos: lista<str> = [];
                 anadir(dos, copiar(p.nombre));
-                anadir(dos, copiar(otro));
+                anadir(dos, copiar(choque[1]));
                 ordenar(dos);
-                error(c, m, n.linea, $"`{base}` se presta dos veces en la misma llamada a `{nombre}` (como `{dos[0]}` y como `{dos[1]}`), y al menos uno de los dos puede modificarlo. v0 mira la variable entera, asi que rechaza esto aunque sean campos distintos");
+                error(c, m, n.linea, $"`{choque[0]}` se presta dos veces en la misma llamada a `{nombre}` (como `{dos[0]}` y como `{dos[1]}`), y al menos uno de los dos puede modificarlo");
             }
+            apuntar_prestamo(hechos, vista(camino), vista(p.nombre), p.mutable);
             if p.mutable {
                 mutar(c, m, arg, arg.linea, is, false);
                 // Quien lo recibe casi siempre lee antes de escribir.
                 c.simbolos[is].leida = true;
-                poner(prestados_mut, vista(base), copiar(p.nombre));
             } else {
                 let _l = leer(c, m, arg.linea, is);
-                poner(prestados_lec, vista(base), copiar(p.nombre));
             }
             continue;
         }
@@ -3686,18 +4020,16 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         // `g(s, vista(s))` con `a: mut str` dejaria a `g` modificando por un
         // lado lo que lee por el otro. Es el fallo 2 de la especificacion.
         if presta_tipo(m, vista(p.tipo)) && !f.externa {
-            for base en prestados_por(c, m, arg, vista(t)) {
-                let otro = nuevo(obtener(prestados_mut, vista(base)) sino "");
-                if largo(otro) > 0 {
+            for camino en prestados_por(c, m, arg, vista(t)) {
+                let choque = choque_prestamo(hechos, vista(camino), false);
+                if largo(choque) == 2 {
                     var dos: lista<str> = [];
                     anadir(dos, copiar(p.nombre));
-                    anadir(dos, copiar(otro));
+                    anadir(dos, copiar(choque[1]));
                     ordenar(dos);
-                    error(c, m, n.linea, $"`{base}` se presta dos veces en la misma llamada a `{nombre}` (como `{dos[0]}` y como `{dos[1]}`), y al menos uno de los dos puede modificarlo. v0 mira la variable entera, asi que rechaza esto aunque sean campos distintos");
+                    error(c, m, n.linea, $"`{choque[0]}` se presta dos veces en la misma llamada a `{nombre}` (como `{dos[0]}` y como `{dos[1]}`), y al menos uno de los dos puede modificarlo");
                 }
-                if !tiene(prestados_lec, vista(base)) {
-                    poner(prestados_lec, vista(base), copiar(p.nombre));
-                }
+                apuntar_prestamo(hechos, vista(camino), vista(p.nombre), false);
             }
         }
         if igual(vista(p.tipo), "view") && igual(vista(t), "str") { continue; }
@@ -3736,8 +4068,7 @@ fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &
     }
     // Los prestamos de una misma llamada, como en una funcion con nombre: la
     // firma del puntero dice lo mismo que la de ella.
-    var prestados_mut: mapa<str, str> = [];
-    var prestados_lec: mapa<str, str> = [];
+    var hechos = prestamos();
     var k = 0;
     while k < largo(n.hijos) && k < largo(params) {
         let esperado = vista(params[k]);
@@ -3751,32 +4082,25 @@ fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &
             let is = buscar_simbolo(c, vista(base));
             if largo(base) > 0 && existe(c, is) {
                 let mutable = es_referencia_mutable(esperado);
-                var otro = nuevo(obtener(prestados_mut, vista(base)) sino "");
-                if largo(otro) == 0 && mutable {
-                    otro = nuevo(obtener(prestados_lec, vista(base)) sino "");
+                let camino = camino_de(n.hijos[k]);
+                let choque = choque_prestamo(hechos, vista(camino), mutable);
+                if largo(choque) == 2 {
+                    error(c, m, n.linea, $"`{choque[0]}` se presta dos veces en la misma llamada a `{nombre}` ({choque[1]} y {cual}), y al menos uno de los dos puede modificarlo");
                 }
-                if largo(otro) > 0 {
-                    error(c, m, n.linea, $"`{base}` se presta dos veces en la misma llamada a `{nombre}` ({otro} y {cual}), y al menos uno de los dos puede modificarlo");
-                }
+                apuntar_prestamo(hechos, vista(camino), vista(cual), mutable);
                 if mutable {
                     mutar(c, m, n.hijos[k], n.hijos[k].linea, is, false);
-                    poner(prestados_mut, vista(base), copiar(cual));
                 } else {
                     let _u = leer(c, m, n.hijos[k].linea, is);
-                    if !tiene(prestados_lec, vista(base)) {
-                        poner(prestados_lec, vista(base), copiar(cual));
-                    }
                 }
             }
         } else if presta_tipo(m, vista(dentro)) {
-            for base en prestados_por(c, m, n.hijos[k], vista(t)) {
-                let otro = nuevo(obtener(prestados_mut, vista(base)) sino "");
-                if largo(otro) > 0 {
-                    error(c, m, n.linea, $"`{base}` se presta dos veces en la misma llamada a `{nombre}` ({otro} y {cual}), y al menos uno de los dos puede modificarlo");
+            for camino en prestados_por(c, m, n.hijos[k], vista(t)) {
+                let choque = choque_prestamo(hechos, vista(camino), false);
+                if largo(choque) == 2 {
+                    error(c, m, n.linea, $"`{choque[0]}` se presta dos veces en la misma llamada a `{nombre}` ({choque[1]} y {cual}), y al menos uno de los dos puede modificarlo");
                 }
-                if !tiene(prestados_lec, vista(base)) {
-                    poner(prestados_lec, vista(base), copiar(cual));
-                }
+                apuntar_prestamo(hechos, vista(camino), vista(cual), false);
             }
         }
         let limpio = sin_prestamo(vista(t));
@@ -4466,6 +4790,13 @@ fn comprobar_mapa_valido(c: mut Comprobacion, m: &Mundo, linea: usize, t: view) 
 }
 
 fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nodo) {
+    let desde = largo(c.escritas);
+    comprobar_sentencia_sin_contar(c, m, tipos, s);
+    contar_pendientes(c, m, desde);
+}
+
+fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
+    s: &P.Nodo) {
     let clase = vista(s.clase);
 
     if igual(clase, "declaracion") {
@@ -5179,6 +5510,9 @@ struct Revision {
     // Las copias de structs genericos, en el orden en que nacen: tambien
     // las que se deducen de un literal, que no estan escritas en ningun sitio.
     structs_aplicados: lista<str>,
+    // Todos los structs con su nombre de C —declarados, copias y los de las
+    // clausuras— en el orden en que nacen, que es el orden en que se escriben.
+    orden_structs: lista<str>,
 }
 
 fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
@@ -5461,5 +5795,6 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         cierres: copiar(m.cierres),
         cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion),
         sacados: copiar(c.sacados), anotados: copiar(m.anotados),
-        orden_copias: copiar(m.orden_copias), structs_aplicados: aplicados };
+        orden_copias: copiar(m.orden_copias), structs_aplicados: aplicados,
+        orden_structs: copiar(m.orden_structs) };
 }
