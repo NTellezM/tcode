@@ -34,15 +34,28 @@ que ya tiene.
 
 Un `str` es dueño de su memoria. Un `view` la toma prestada.
 
-Mientras exista un `view` derivado de un `str`, ese `str` **no se puede
-mutar ni mover**. Los préstamos terminan al cerrar el bloque donde se
-declararon.
+Mientras se vaya a usar un `view` derivado de un `str`, ese `str` **no se
+puede mutar ni mover**. El préstamo dura hasta el último uso de la vista, no
+hasta el final de su bloque:
 
 ```tcode
 var s: str = nuevo("hola");
 let v: view = vista(s);
 empujar(s, " mundo");   // error: `s` está prestado por `v`
+imprimir(v);            // ...porque `v` se usa aquí
+
+let w: view = vista(s);
+imprimir(w);            // último uso de `w`
+empujar(s, "!");        // bien: ya nadie mira a `s`
 ```
+
+Una vista se vuelve a usar si se nombra en la sentencia en curso, en las que
+la siguen dentro de su bloque, o en cualquier parte de un bucle que envuelva
+al punto donde se modifica: la vuelta siguiente puede volver a leerla. Es la
+regla de Rust desde 2018 (*non-lexical lifetimes*), dicha por nombres en vez
+de por un grafo de flujo: más conservadora, y cabe en una línea. Ante la duda
+—una rama de un `if` anterior que la usa, dentro de la misma sentencia—, la
+vista sigue viva.
 
 Esto es exactamente el caso 2 de la tabla, y también el "CONTRATO DE VIDA
 ÚTIL" que safestr documentaba y pedía respetar con criterio.
@@ -78,6 +91,7 @@ función:
 var s: str = nuevo("hola");
 let p: view = primero(vista(s));
 empujar(s, "x");          // error: `s` esta prestada por `p`
+imprimir(p);
 ```
 
 Ante la duda, la inferencia rechaza. Prefiere negarse a un programa correcto
@@ -92,10 +106,12 @@ struct que presta. En todos, la vista que sale presta de todo lo que entró:
 ```tcode
 let v = if c { vista(s) } else { "z" };
 empujar(s, "x");          // error: `s` esta prestada por `v`
+imprimir(v);
 
 let f: fn(view) -> view = primero;
 let w = f(vista(s));
 s = nuevo("otra");        // error: `s` esta prestada por `w`
+imprimir(w);
 ```
 
 Lo que un `match` enlaza también mira dentro del valor mirado, así que lo
@@ -105,6 +121,7 @@ presta mientras viva:
 var e = E.A(nuevo("hola"));
 let t = match e { E.A(x) -> x, E.B -> "z" };
 e = E.B;                  // error: `e` esta prestada por `t`
+imprimir(t);
 ```
 
 Vale igual para lo que llega prestado con `&T` o `mut T`: `vista(p.nombre)`
@@ -120,6 +137,7 @@ fn la_larga(a: &str, b: &str) -> view { ... }
 
 let v = la_larga(a, b);
 empujar(b, "x");        // error: `b` esta prestada por `v`
+imprimir(v);
 ```
 
 Y tres reglas que cierran lo que queda:
@@ -335,6 +353,7 @@ El envoltorio le devuelve la semántica de valor que el lenguaje promete.
   let s = nuevo("hola mundo");
   let p = Palabra { texto: rebanar(vista(s), 0, 4), n: 4 };
   empujar(s, "!");      // error: `s` esta prestada por `p`
+  imprimir(p.texto);
   ```
 
   Presta de lo que se le puso al construirlo; un campo `view` suyo presta
@@ -767,7 +786,8 @@ disfrazado es exactamente cómo se cuelan los errores.
   let h: view = obtener(cfg, "host") sino "(sin valor)";
   ```
 
-  Esa vista presta del mapa, así que modificarlo mientras viva es un error:
+  Esa vista presta del mapa, así que modificarlo mientras se vaya a usar es
+  un error:
 
   ```
   error: no se puede modificar `cfg`: esta prestada por `h`
