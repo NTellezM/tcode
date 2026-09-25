@@ -10,6 +10,7 @@
 usar "tipos.t" como T;
 usar "tipar.t" como I;
 usar "../../lexer/lib/sintaxis.t" como P;
+usar "../../lexer/lib/lexico.t" como L;
 usar "std/texto";
 usar "std/lista";
 
@@ -972,15 +973,9 @@ fn interpolada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         agregar_vista(b, s, vista(tmp), vista(dado), n.linea);
         cual = cual + 1;
 
-        // Saltar hasta la llave que cierra, contando las de dentro.
-        var prof = 1;
-        var j = i + 1;
-        while j < largo(crudo) && prof > 0 {
-            if byte(crudo, j) == 123 { prof = prof + 1; }
-            if byte(crudo, j) == 125 { prof = prof - 1; }
-            if prof > 0 { j = j + 1; }
-        }
-        i = j + 1;
+        // Saltar hasta la llave que cierra, contando las de dentro y
+        // saltando las cadenas del hueco, que sus llaves no son suyas.
+        i = L.cierre_de_hueco(crudo, i + 1) + 1;
     }
     if largo(trozo) > 0 {
         agregar_trozo(b, s, vista(tmp), vista(trozo), n.linea);

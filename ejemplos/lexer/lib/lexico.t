@@ -115,6 +115,23 @@ fn fin_de_cadena(fuente: view, desde: usize, interpolada: bool, prefijo: view,
                 continue;
             }
         }
+        // Un hueco se salta crudo: lo lee despues el lexer del hueco, con sus
+        // escapes. Una cadena de dentro se salta entera, que sus llaves y sus
+        // comillas no son del hueco.
+        if hondura > 0 {
+            let anidada = b == 36 && i + 1 < largo(fuente) && byte(fuente, i + 1) == 34;
+            if b == 34 || anidada {
+                var dentro = i + 1;
+                if anidada { dentro = i + 2; }
+                let cierre = try fin_de_cadena(fuente, dentro, anidada, prefijo, error);
+                i = cierre + 1;
+                continue;
+            }
+            if b == 92 {
+                i = i + 2;
+                continue;
+            }
+        }
         if interpolada {
             if b == 123 { hondura = hondura + 1; }
             if b == 125 && hondura > 0 { hondura = hondura - 1; }
@@ -151,6 +168,65 @@ fn fin_de_cadena(fuente: view, desde: usize, interpolada: bool, prefijo: view,
     return i;
 }
 
+// Donde acaba una cadena ya leida que va dentro de un hueco: `i` es su
+// comilla, o el `$` de una interpolada, y se devuelve lo que va detras de su
+// comilla. No comprueba nada: el lexer ya la leyo entera.
+fn fin_de_texto(t: view, i: usize) -> usize {
+    let interpolada = byte(t, i) == 36;
+    var j = i + 1;
+    if interpolada { j = i + 2; }
+    var hondura = 0;
+    while j < largo(t) {
+        let b = byte(t, j);
+        if interpolada && hondura == 0 && j + 1 < largo(t) {
+            let sig = byte(t, j + 1);
+            if (b == 123 && sig == 123) || (b == 125 && sig == 125) {
+                j = j + 2;
+                continue;
+            }
+        }
+        if hondura > 0 && (b == 34 || (b == 36 && j + 1 < largo(t) && byte(t, j + 1) == 34)) {
+            j = fin_de_texto(t, j);
+            continue;
+        }
+        if b == 92 {
+            j = j + 2;
+            continue;
+        }
+        if interpolada && b == 123 { hondura = hondura + 1; }
+        if interpolada && b == 125 && hondura > 0 { hondura = hondura - 1; }
+        if b == 34 && hondura == 0 { return j + 1; }
+        j = j + 1;
+    }
+    return largo(t);
+}
+
+// La `}` que cierra el hueco que se abre justo antes de `i`, o el largo del
+// texto si no la hay. Las cadenas de dentro se saltan enteras: sus llaves no
+// son del hueco.
+fn cierre_de_hueco(t: view, i: usize) -> usize {
+    var hondura = 1;
+    var j = i;
+    while j < largo(t) {
+        let b = byte(t, j);
+        if b == 34 || (b == 36 && j + 1 < largo(t) && byte(t, j + 1) == 34) {
+            j = fin_de_texto(t, j);
+            continue;
+        }
+        if b == 92 {
+            j = j + 2;
+            continue;
+        }
+        if b == 123 { hondura = hondura + 1; }
+        if b == 125 {
+            hondura = hondura - 1;
+            if hondura == 0 { return j; }
+        }
+        j = j + 1;
+    }
+    return largo(t);
+}
+
 fn es_hex(b: usize) -> bool {
     return (b >= 48 && b <= 57) || (b >= 97 && b <= 102) || (b >= 65 && b <= 70);
 }
@@ -182,17 +258,24 @@ fn analizar(fuente: view) -> lista<Token> ! {
 // Los tokens de un archivo. Si no se puede, `error` dice por que y donde,
 // con las mismas palabras que el lexer de Python.
 fn tokens_de(fuente: view, archivo: view, error: mut str) -> lista<Token> ! {
-    return try tokens_de_todo(fuente, archivo, false, error);
+    return try tokens_de_todo(fuente, archivo, false, 1, error);
+}
+
+// Lo mismo para un texto que empieza en la linea `linea`: el hueco de una
+// cadena interpolada se lee aparte, y sus errores tienen que decir donde
+// esta la cadena.
+fn tokens_desde(fuente: view, archivo: view, linea: usize, error: mut str) -> lista<Token> ! {
+    return try tokens_de_todo(fuente, archivo, false, linea, error);
 }
 
 // Con `comentarios`, tambien los comentarios, como tokens `comentario`: el
 // formateador los necesita para dejarlos donde estaban.
-fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool,
+fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: usize,
     error: mut str) -> lista<Token> ! {
     let reservadas = palabras_reservadas();
     var salida: lista<Token> = [];
     var i = 0;
-    var linea = 1;
+    var linea = desde_linea;
 
     while i < largo(fuente) {
         let b = byte(fuente, i);

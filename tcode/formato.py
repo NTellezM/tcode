@@ -23,7 +23,7 @@ un lenguaje joven, un formateador que se equivoca al partir una expresion
 hace mas daño que bien. Cuando la gramatica lleve años quieta, se puede.
 """
 
-from tcode.lexer import tokenizar, SIMBOLOS
+from tcode.lexer import tokenizar, SIMBOLOS, fin_de_cadena
 
 SANGRIA = "    "
 
@@ -133,7 +133,22 @@ def _texto(t):
     if t.tipo not in ("cadena", "interpolada"):
         return t.valor
     fuera = ['$"' if t.tipo == "interpolada" else '"']
-    for ch in t.valor:
+    v = t.valor
+    i = 0
+    while i < len(v):
+        ch = v[i]
+        i += 1
+        # Un hueco llega crudo, como se escribio: sale igual, con los `\xNN`
+        # en minusculas, como los de fuera.
+        if t.tipo == "interpolada" and ch in "{}" and v[i:i + 1] == ch:
+            fuera.append(ch + ch)
+            i += 1
+            continue
+        if t.tipo == "interpolada" and ch == "{":
+            fin = _fin_de_hueco(v, i)
+            fuera.append("{" + _hueco_escrito(v[i:fin]))
+            i = fin
+            continue
         o = ord(ch)
         if 0xDC00 <= o <= 0xDCFF:
             fuera.append(f"\\x{o - 0xDC00:02x}")
@@ -151,6 +166,43 @@ def _texto(t):
             fuera.append(ch)
     fuera.append('"')
     return "".join(fuera)
+
+
+def _hueco_escrito(h):
+    """Un hueco tal cual, salvo los `\\xNN`, que van en minusculas."""
+    fuera = []
+    i = 0
+    while i < len(h):
+        if h[i] == "\\":
+            par = h[i:i + 2]
+            if par == "\\x" and len(h[i + 2:i + 4]) == 2:
+                fuera.append(par + h[i + 2:i + 4].lower())
+                i += 4
+            else:
+                fuera.append(par)
+                i += 2
+            continue
+        fuera.append(h[i])
+        i += 1
+    return "".join(fuera)
+
+
+def _fin_de_hueco(v, i):
+    """Donde acaba el hueco que empieza en `v[i]`, con su `}` dentro."""
+    prof = 1
+    while i < len(v) and prof > 0:
+        if v[i] == '"' or v.startswith('$"', i):
+            i = fin_de_cadena(v, i, validar=False)
+            continue
+        if v[i] == "\\":
+            i += 2
+            continue
+        if v[i] == "{":
+            prof += 1
+        elif v[i] == "}":
+            prof -= 1
+        i += 1
+    return i
 
 
 def _escribir(lineas, generico, unario, toks):
