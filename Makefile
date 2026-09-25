@@ -1,7 +1,9 @@
 # Tcode
 #
-#   make check        la suite del lenguaje
+#   make check        la suite entera, y que el README diga lo que mide
+#   make rapido       lo que no pasa por el compilador escrito en Tcode: un minuto
 #   make propiedades  solo los tests por propiedad (TCODE_PROGRAMAS=1000 para mas)
+#   make cifras       pone en el README las cifras de la ultima `make check`
 #   make ejemplos     compila y corre los ejemplos
 #   make bench        Tcode contra el mismo programa en C a mano
 #   make formato      deja todo el codigo Tcode en el formato canonico
@@ -9,7 +11,7 @@
 
 PY ?= python3
 
-.PHONY: all check propiedades bench ejemplos limpiar formato
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato
 
 all: check
 
@@ -19,6 +21,18 @@ bench:
 check:
 	@$(PY) tests/test_lenguaje.py
 	@$(PY) tests/test_propiedades.py
+	@$(PY) tests/cifras.py --comprobar
+
+# Las secciones que no construyen el compilador escrito en Tcode, que es lo
+# que tarda. Una sola se pide por su nombre:
+# `python3 tests/test_lenguaje.py ACEPTA`.
+RAPIDAS = RECHAZO AVISA ACEPTA SALIDA ARCHIVOS ABORTA MODULOS FORMATO LINEAS EJEMPLOS
+
+rapido:
+	@$(PY) tests/test_lenguaje.py $(RAPIDAS)
+
+cifras:
+	@$(PY) tests/cifras.py
 
 propiedades:
 	@$(PY) tests/test_propiedades.py

@@ -723,15 +723,30 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         let etq = etiqueta(vista(en_t), vista(cual));
         var r = $"({en_t}){{ .etiqueta = {etq}";
         var previos: lista<str> = [];
+        abrir_marco(b);
         var i = 0;
         for h en n.hijos {
             let valor = expresion_c(b, s, h, vista(lleva[i]), tipos);
-            if es_desconocido(vista(valor)) { return no_se(); }
+            if es_desconocido(vista(valor)) {
+                let _m = cerrar_marco(b);
+                return no_se();
+            }
             reclamar(b, vista(valor));
+            agregar_argumento_marcado(b, h, vista(valor), vista(lleva[i]), false,
+                false, largo(n.hijos) > 1);
+            i = i + 1;
+        }
+        let marco_v = cerrar_marco(b);
+        i = 0;
+        for p_v en marco_v.entradas {
             let pieza = $", .dato.v_{cual}._{i} = ";
             empujar(r, vista(pieza));
-            agregar_argumento_ordenado(b, r, previos, vista(valor),
-                vista(lleva[i]), false, false, largo(n.hijos) > 1);
+            if largo(p_v.tmp) > 0 {
+                anadir(previos, $"{p_v.tmp} = {p_v.valor}");
+                empujar(r, vista(p_v.tmp));
+            } else {
+                empujar(r, vista(p_v.valor));
+            }
             i = i + 1;
         }
         empujar(r, " }");
@@ -744,7 +759,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
 
     if igual(clase, "interpolada") { return interpolada_c(b, s, n, tipos); }
 
-    if igual(clase, "si_expr") { return si_expr_c(b, s, n, tipos); }
+    if igual(clase, "si_expr") { return si_expr_c(b, s, n, esperado, tipos); }
 
     if igual(clase, "try") { return try_c(b, s, n, tipos); }
     if igual(clase, "sino") { return sino_c(b, s, n, tipos); }
@@ -802,16 +817,19 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         let elem = T.elemento(vista(t));
         var piezas = vacio();
         var previos: lista<str> = [];
-        var primera = true;
+        abrir_marco(b);
         for x en n.hijos {
             let valor = expresion_c(b, s, x, vista(elem), tipos);
-            if es_desconocido(vista(valor)) { return no_se(); }
+            if es_desconocido(vista(valor)) {
+                let _m = cerrar_marco(b);
+                return no_se();
+            }
             reclamar(b, vista(valor));
-            if !primera { empujar(piezas, ", "); }
-            primera = false;
-            agregar_argumento_ordenado(b, piezas, previos, vista(valor),
-                vista(elem), false, false, largo(n.hijos) > 1);
+            agregar_argumento_marcado(b, x, vista(valor), vista(elem), false, false,
+                largo(n.hijos) > 1);
         }
+        let marco_e = cerrar_marco(b);
+        escribir_argumentos(marco_e, piezas, previos, ", ");
         let tc = tipo_c(vista(t));
         let literal = $"({tc}){{{{ {piezas} }}}}";
         if largo(previos) > 0 {
@@ -1093,21 +1111,36 @@ fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
     empujar(r, tipo_c(escrito));
     empujar(r, "){ ");
     var previos: lista<str> = [];
-    var primero = true;
+    abrir_marco(b);
     for h en n.hijos {
-        if !igual(vista(h.clase), "campo") { return no_se(); }
-        if largo(h.hijos) != 1 { return no_se(); }
+        if !igual(vista(h.clase), "campo") || largo(h.hijos) != 1 {
+            let _m = cerrar_marco(b);
+            return no_se();
+        }
         let suyo = I.tipo_de_campo(tipos, escrito, vista(h.texto));
         let valor = expresion_c(b, s, h.hijos[0], vista(suyo), tipos);
-        if es_desconocido(vista(valor)) { return no_se(); }
+        if es_desconocido(vista(valor)) {
+            let _m = cerrar_marco(b);
+            return no_se();
+        }
         reclamar(b, vista(valor)); // el struct se lo queda
-        if !primero { empujar(r, ", "); }
-        primero = false;
+        agregar_argumento_marcado(b, h.hijos[0], vista(valor), vista(suyo), false,
+            false, largo(n.hijos) > 1);
+    }
+    let marco_c = cerrar_marco(b);
+    var k_c = 0;
+    for p_c en marco_c.entradas {
+        if k_c > 0 { empujar(r, ", "); }
         empujar(r, ".");
-        empujar(r, vista(h.texto));
+        empujar(r, vista(n.hijos[k_c].texto));
         empujar(r, " = ");
-        agregar_argumento_ordenado(b, r, previos, vista(valor), vista(suyo),
-            false, false, largo(n.hijos) > 1);
+        if largo(p_c.tmp) > 0 {
+            anadir(previos, $"{p_c.tmp} = {p_c.valor}");
+            empujar(r, vista(p_c.tmp));
+        } else {
+            empujar(r, vista(p_c.valor));
+        }
+        k_c = k_c + 1;
     }
     empujar(r, " }");
     if largo(previos) > 0 {
@@ -1277,8 +1310,15 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Con
     // omitirla por completo.
     var t_der = copiar(t);
     if igual(op, "<<") || igual(op, ">>") { t_der = nuevo("usize"); }
-    let valor_izq = expresion_c(b, s, n.hijos[0], vista(t), tipos);
+    let valor_izq_0 = expresion_c(b, s, n.hijos[0], vista(t), tipos);
+    // El izquierdo queda pendiente mientras se calcula el derecho: si este
+    // deja sentencias, aquel corre antes.
+    let tc_pendiente = tipo_c(vista(t));
+    abrir_marco(b);
+    apuntar_pendiente(b, operando(n.hijos[0], vista(valor_izq_0), vista(tc_pendiente)));
     let valor_der = expresion_c(b, s, n.hijos[1], vista(t_der), tipos);
+    let marco_izq = cerrar_marco(b);
+    let valor_izq = copiar(marco_izq.entradas[0].valor);
     if es_desconocido(vista(valor_izq)) || es_desconocido(vista(valor_der)) {
         return no_se();
     }
@@ -1380,7 +1420,12 @@ fn junta(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, op: view,
     let izq = expresion_c(b, s, n.hijos[0], esperado, tipos);
     let marca = largo(b.lineas);
     let base = largo(b.temporales);
+    // Lo que el lado derecho deje se mueve dentro de un `if`: lo de fuera no
+    // se puede adelantar ahi, correria solo a veces. Se adelanta despues, al
+    // escribir `bool vale = izq`.
+    poner_barrera(b);
     let der = expresion_c(b, s, n.hijos[1], esperado, tipos);
+    let _barrera = cerrar_marco(b);
     if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
         return no_se();
     }
@@ -1574,15 +1619,15 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         var uno = vacio();
         var dos = vacio();
         var tc = vacio();
-        if es_texto {
-            uno = como_vista(b, s, n.hijos[0], tipos);
-            dos = como_vista(b, s, n.hijos[1], tipos);
-            tc = nuevo("SafeView");
-        } else {
-            uno = expresion_c(b, s, n.hijos[0], vista(ta), tipos);
-            dos = expresion_c(b, s, n.hijos[1], vista(ta), tipos);
-            tc = tipo_c(vista(ta));
-        }
+        if es_texto { tc = nuevo("SafeView"); } else { tc = tipo_c(vista(ta)); }
+        abrir_marco(b);
+        if es_texto { uno = como_vista(b, s, n.hijos[0], tipos); }
+        else { uno = expresion_c(b, s, n.hijos[0], vista(ta), tipos); }
+        apuntar_pendiente(b, operando(n.hijos[0], vista(uno), vista(tc)));
+        if es_texto { dos = como_vista(b, s, n.hijos[1], tipos); }
+        else { dos = expresion_c(b, s, n.hijos[1], vista(ta), tipos); }
+        let marco_u = cerrar_marco(b);
+        uno = copiar(marco_u.entradas[0].valor);
         if es_desconocido(vista(uno)) || es_desconocido(vista(dos)) {
             return no_se();
         }
@@ -1922,9 +1967,15 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
 
     if igual(nombre, "rebanar") {
         if largo(n.hijos) != 3 { return no_se(); }
-        let v = como_vista(b, s, n.hijos[0], tipos);
-        let desde = expresion_c(b, s, n.hijos[1], "usize", tipos);
+        abrir_marco(b);
+        let v_0 = como_vista(b, s, n.hijos[0], tipos);
+        apuntar_pendiente(b, operando(n.hijos[0], vista(v_0), "SafeView"));
+        let desde_0 = expresion_c(b, s, n.hijos[1], "usize", tipos);
+        apuntar_pendiente(b, operando(n.hijos[1], vista(desde_0), "size_t"));
         let hasta = expresion_c(b, s, n.hijos[2], "usize", tipos);
+        let marco_r = cerrar_marco(b);
+        let v = copiar(marco_r.entradas[0].valor);
+        let desde = copiar(marco_r.entradas[1].valor);
         if es_desconocido(vista(v)) || es_desconocido(vista(desde))
         || es_desconocido(vista(hasta)) {
             return no_se();
@@ -2117,31 +2168,38 @@ fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -
     empujar(v, "(");
     var previos: lista<str> = [];
     let secuenciar = largo(n.hijos) > 1;
+    abrir_marco(b);
     var i = 0;
     for h en n.hijos {
-        if i > 0 { empujar(v, ", "); }
         var arg = vacio();
         var tc = vacio();
         if igual(vista(firmados[i]), "str") {
             let sitio = sitio_c(b, s, h, tipos);
-            if es_desconocido(vista(sitio)) { return no_se(); }
+            if es_desconocido(vista(sitio)) {
+                let _m = cerrar_marco(b);
+                return no_se();
+            }
             arg = $"ss_lang_cstr_(&{sitio}, \"{s.archivo}\", {n.linea})";
             tc = nuevo("const char*");
         } else {
             arg = expresion_c(b, s, h, vista(firmados[i]), tipos);
-            if es_desconocido(vista(arg)) { return no_se(); }
+            if es_desconocido(vista(arg)) {
+                let _m = cerrar_marco(b);
+                return no_se();
+            }
             tc = tipo_c(vista(firmados[i]));
         }
+        var p_arg = operando(h, vista(arg), vista(tc));
         if secuenciar {
             let tmp = nuevo_temporal(b);
             emitir(b, $"{tc} {tmp};");
-            anadir(previos, $"{tmp} = {arg}");
-            empujar(v, vista(tmp));
-        } else {
-            empujar(v, vista(arg));
+            p_arg.tmp = tmp;
         }
+        apuntar_pendiente(b, p_arg);
         i = i + 1;
     }
+    let marco_args = cerrar_marco(b);
+    escribir_argumentos(marco_args, v, previos, ", ");
     empujar(v, ")");
     if largo(previos) > 0 {
         var orden = nuevo("((");
@@ -2184,6 +2242,47 @@ fn agregar_argumento_ordenado(b: mut Cuerpo, llamada: mut str,
     emitir(b, vista(d));
     anadir(previos, $"{tmp} = {arg}");
     empujar(llamada, vista(tmp));
+}
+
+// Como `agregar_argumento_ordenado`, pero el argumento queda pendiente en el
+// marco abierto: se escribe al cerrarlo, con `escribir_argumentos`, cuando ya
+// se sabe si hubo que adelantarlo.
+fn agregar_argumento_marcado(b: mut Cuerpo, nodo: &P.Nodo, arg: view, tipo: view,
+    presta: bool, mutable: bool, secuenciar: bool) {
+    var tc_op = vacio();
+    if !presta { tc_op = tipo_c(tipo); }
+    var p = operando(nodo, arg, vista(tc_op));
+    if secuenciar {
+        let tmp = nuevo_temporal(b);
+        var d = vacio();
+        if presta && !mutable { empujar(d, "const "); }
+        empujar(d, tipo_c(tipo));
+        if presta { empujar(d, "*"); }
+        empujar(d, " ");
+        empujar(d, vista(tmp));
+        empujar(d, ";");
+        emitir(b, vista(d));
+        p.tmp = tmp;
+    }
+    apuntar_pendiente(b, p);
+}
+
+// Los argumentos de un marco ya cerrado, en orden: cada uno en su temporal si
+// la llamada los guarda, o tal cual. `antes` va delante de cada uno menos el
+// primero.
+fn escribir_argumentos(marco: &Marco, llamada: mut str, previos: mut lista<str>,
+    antes: view) {
+    var primero = true;
+    for p en marco.entradas {
+        if !primero { empujar(llamada, antes); }
+        primero = false;
+        if largo(p.tmp) > 0 {
+            anadir(previos, $"{p.tmp} = {p.valor}");
+            empujar(llamada, vista(p.tmp));
+        } else {
+            empujar(llamada, vista(p.valor));
+        }
+    }
 }
 
 fn envolver_llamada_ordenada(llamada: str, previos: &lista<str>) -> str {
@@ -2284,9 +2383,11 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
     empujar(v, "(");
     var previos: lista<str> = [];
     let secuenciar = largo(n.hijos) > 1;
+    // Cada argumento queda pendiente mientras se calculan los de despues: si
+    // uno de ellos deja sentencias, los de antes corren antes.
+    abrir_marco(b);
     var i = 0;
     for h en n.hijos {
-        if i > 0 { empujar(v, ", "); }
         var esperado = vacio();
         if i < largo(firmados) { esperado = copiar(firmados[i]); }
 
@@ -2304,19 +2405,28 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
             if igual(clase_h, "variable") || igual(clase_h, "campo")
             || igual(clase_h, "indice") {
                 let dir = direccion_del_sitio(b, s, h, tipos);
-                if es_desconocido(vista(dir)) { return no_se(); }
-                agregar_argumento_ordenado(b, v, previos, vista(dir),
-                    vista(esperado), true, presta_mut, secuenciar);
+                if es_desconocido(vista(dir)) {
+                    let _m = cerrar_marco(b);
+                    return no_se();
+                }
+                agregar_argumento_marcado(b, h, vista(dir), vista(esperado), true,
+                    presta_mut, secuenciar);
                 i = i + 1;
                 continue;
             }
             // Prestar algo recien hecho: se guarda en un temporal para poder
             // tomarle la direccion, y se suelta al acabar la sentencia como
             // cualquier otro valor descartado.
-            if largo(esperado) == 0 { return no_se(); }
+            if largo(esperado) == 0 {
+                let _m = cerrar_marco(b);
+                return no_se();
+            }
             let tmp = nuevo_temporal(b);
             let valor = expresion_c(b, s, h, vista(esperado), tipos);
-            if es_desconocido(vista(valor)) { return no_se(); }
+            if es_desconocido(vista(valor)) {
+                let _m = cerrar_marco(b);
+                return no_se();
+            }
             reclamar(b, vista(valor));
             let tc = tipo_c(vista(esperado));
             emitir(b, $"{tc} {tmp} = {valor};");
@@ -2325,8 +2435,8 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
             }
             var dir = nuevo("&");
             empujar(dir, vista(tmp));
-            agregar_argumento_ordenado(b, v, previos, vista(dir),
-                vista(esperado), true, presta_mut, secuenciar);
+            agregar_argumento_marcado(b, h, vista(dir), vista(esperado), true,
+                presta_mut, secuenciar);
             i = i + 1;
             continue;
         }
@@ -2337,9 +2447,12 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
             let suyo = I.tipo_de(tipos, h);
             if igual(vista(suyo), "str") {
                 let arg = como_vista(b, s, h, tipos);
-                if es_desconocido(vista(arg)) { return no_se(); }
-                agregar_argumento_ordenado(b, v, previos, vista(arg),
-                    "view", false, false, secuenciar);
+                if es_desconocido(vista(arg)) {
+                    let _m = cerrar_marco(b);
+                    return no_se();
+                }
+                agregar_argumento_marcado(b, h, vista(arg), "view", false, false,
+                    secuenciar);
                 i = i + 1;
                 continue;
             }
@@ -2348,15 +2461,27 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
         // Pasar una variable con duenio a algo que se la queda es moverla.
         // La bandera la apaga la sentencia; aqui basta con que exista.
         if !presta_el && entrega_variable(s, h, tipos) {
-            if !lleva_bandera(b, s, vista(h.texto)) { return no_se(); }
+            if !lleva_bandera(b, s, vista(h.texto)) {
+                let _m = cerrar_marco(b);
+                return no_se();
+            }
         }
         let arg = expresion_c(b, s, h, vista(esperado), tipos);
-        if es_desconocido(vista(arg)) { return no_se(); }
-        if secuenciar && largo(esperado) == 0 { return no_se(); }
-        agregar_argumento_ordenado(b, v, previos, vista(arg),
-            vista(esperado), false, false, secuenciar);
+        if es_desconocido(vista(arg)) || (secuenciar && largo(esperado) == 0) {
+            let _m = cerrar_marco(b);
+            return no_se();
+        }
+        // La funcion se lo queda: si venia de un temporal de la sentencia,
+        // deja de soltarse ahi.
+        if largo(esperado) > 0 && I.posee_con_formas(tipos, vista(esperado)) {
+            reclamar(b, vista(arg));
+        }
+        agregar_argumento_marcado(b, h, vista(arg), vista(esperado), false, false,
+            secuenciar);
         i = i + 1;
     }
+    let marco_args = cerrar_marco(b);
+    escribir_argumentos(marco_args, v, previos, ", ");
     // Despues de los argumentos: una generica que se llama dentro de otro
     // argumento se crea antes, como en el original.
     if largo(pedido) > 0 { anadir(b.instancias, nuevo(pedido)); }
@@ -2690,8 +2815,12 @@ fn interna_del_sistema(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     // La ruta y luego los datos, cada uno una sola vez.
     if igual(nombre, "escribir_archivo") {
         if largo(n.hijos) != 2 { return no_se(); }
-        let ruta = como_vista(b, s, n.hijos[0], tipos);
+        abrir_marco(b);
+        let ruta_0 = como_vista(b, s, n.hijos[0], tipos);
+        apuntar_pendiente(b, operando(n.hijos[0], vista(ruta_0), "SafeView"));
         let datos = como_vista(b, s, n.hijos[1], tipos);
+        let marco_a = cerrar_marco(b);
+        let ruta = copiar(marco_a.entradas[0].valor);
         if es_desconocido(vista(ruta)) || es_desconocido(vista(datos)) { return no_se(); }
         var r = nuevo("ss_lang_escribir_archivo_(");
         var previos: lista<str> = [];
@@ -2808,6 +2937,25 @@ struct Cuerpo {
     en_switch: usize,
     switch_en_bucle: lista<usize>,
     etiquetas_bucle: lista<str>,
+    // Lo ya calculado de una expresion que todavia no corrio: cada marco es
+    // una operacion o una llamada a medio escribir.
+    por_correr: lista<Marco>,
+}
+
+// Un operando ya calculado que todavia no corrio: su C, su tipo en C, si no
+// hace falta adelantarlo, y el temporal donde lo guarda la llamada, si lo
+// guarda.
+struct Pendiente {
+    valor: str,
+    tipo_c: str,
+    fijo: bool,
+    tmp: str,
+}
+
+// Una barrera corta: lo de fuera no se adelanta dentro de ella.
+struct Marco {
+    barrera: bool,
+    entradas: lista<Pendiente>,
 }
 
 // Lo apunta el sitio mas hondo, y solo la primera vez: si un `if` falla
@@ -2834,7 +2982,7 @@ fn cuerpo() -> Cuerpo {
     return Cuerpo { lineas: [], bloques: [], claves: [], sangria: 1, temporal: 0,
         ultima_linea: 0, bucle: 0, bucles: [], temporales: [], fuera: [], bucles_t: [],
         fallo_linea: 0, fallo_clase: vacio(), instancias: [], copias: [], etiquetas: 0,
-        en_switch: 0, switch_en_bucle: [], etiquetas_bucle: [] };
+        en_switch: 0, switch_en_bucle: [], etiquetas_bucle: [], por_correr: [] };
 }
 
 fn sangrar(b: &Cuerpo) -> str {
@@ -2848,9 +2996,154 @@ fn sangrar(b: &Cuerpo) -> str {
 }
 
 fn emitir(b: mut Cuerpo, texto_linea: view) {
+    if largo(texto_linea) > 0 && hace_algo(texto_linea) { adelantar(b); }
     var l = sangrar(b);
     empujar(l, texto_linea);
     anadir(b.lineas, l);
+}
+
+// Los operandos ya calculados que todavia no corrieron se calculan aqui, en
+// temporales, antes de la sentencia que viene: esa sentencia es de un
+// operando que va despues, y la evaluacion va de izquierda a derecha. Sin
+// esto, `f() + (if c { g() } else { 0 })` llamaba a `g` antes que a `f`.
+fn adelantar(b: mut Cuerpo) {
+    var inicio = 0;
+    var i = largo(b.por_correr);
+    while i > 0 {
+        if b.por_correr[i - 1].barrera {
+            inicio = i;
+            break;
+        }
+        i = i - 1;
+    }
+    var k = inicio;
+    while k < largo(b.por_correr) {
+        var j = 0;
+        while j < largo(b.por_correr[k].entradas) {
+            if !b.por_correr[k].entradas[j].fijo {
+                let tmp = nuevo_temporal(b);
+                let tc = copiar(b.por_correr[k].entradas[j].tipo_c);
+                let valor = copiar(b.por_correr[k].entradas[j].valor);
+                var l = sangrar(b);
+                empujar(l, $"{tc} {tmp} = {valor};");
+                anadir(b.lineas, l);
+                b.por_correr[k].entradas[j].valor = tmp;
+                b.por_correr[k].entradas[j].fijo = true;
+            }
+            j = j + 1;
+        }
+        k = k + 1;
+    }
+}
+
+// Lo que se puede llamar sin que se note cuando: no escribe, no para, no
+// cambia nada que se vea. Reservar memoria solo para si no queda.
+fn es_puro_c(nombre: view) -> bool {
+    if igual(nombre, "sizeof") || igual(nombre, "sv") || igual(nombre, "sv_len") { return true; }
+    if igual(nombre, "sv_len_of") || igual(nombre, "ss_view") { return true; }
+    if igual(nombre, "sv_equals") || igual(nombre, "sv_cmp") { return true; }
+    if igual(nombre, "ss_new") || igual(nombre, "ss_from") || igual(nombre, "ss_from_view") {
+        return true;
+    }
+    if igual(nombre, "ss_clone") { return true; }
+    return igual(nombre, "SS_LANG_USIZE_LIT");
+}
+
+fn empieza_nombre_c(c: usize) -> bool {
+    return (c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c == 95;
+}
+
+fn sigue_nombre_c(c: usize) -> bool {
+    return empieza_nombre_c(c) || (c >= 48 && c <= 57);
+}
+
+// Si correr esta linea antes que un operando ya calculado se puede notar:
+// abre un `if`, un bucle o un `switch` —lo que va dentro correria solo a
+// veces—, o llama a algo que escribe, para o cambia algo. Copiar un valor o
+// tomar una vista no.
+fn hace_algo(linea: view) -> bool {
+    var i = 0;
+    while i < largo(linea) && (byte(linea, i) == 32 || byte(linea, i) == 9) { i = i + 1; }
+    if i >= largo(linea) || byte(linea, i) == 35 { return false; }
+    // Una palabra de control al principio.
+    var fin = i;
+    while fin < largo(linea) && sigue_nombre_c(byte(linea, fin)) { fin = fin + 1; }
+    let primera = rebanar(linea, i, fin);
+    if igual(primera, "if") || igual(primera, "while") || igual(primera, "for")
+    || igual(primera, "switch") || igual(primera, "do") || igual(primera, "else")
+    || igual(primera, "goto") || igual(primera, "return") {
+        return true;
+    }
+    // Cada nombre seguido de `(`.
+    while i < largo(linea) {
+        if !empieza_nombre_c(byte(linea, i)) {
+            i = i + 1;
+            continue;
+        }
+        var j = i;
+        while j < largo(linea) && sigue_nombre_c(byte(linea, j)) { j = j + 1; }
+        var k = j;
+        while k < largo(linea) && (byte(linea, k) == 32 || byte(linea, k) == 9) { k = k + 1; }
+        if k < largo(linea) && byte(linea, k) == 40 {
+            if !es_puro_c(rebanar(linea, i, j)) { return true; }
+            i = k + 1;
+        } else {
+            i = j;
+        }
+    }
+    return false;
+}
+
+// Un numero, un texto o un booleano escritos: calcularlos antes o despues da
+// igual.
+fn es_constante(n: &P.Nodo) -> bool {
+    let clase = vista(n.clase);
+    if igual(clase, "unaria") && igual(vista(n.texto), "-") && largo(n.hijos) == 1 {
+        let hc = vista(n.hijos[0].clase);
+        return igual(hc, "entero") || igual(hc, "decimal");
+    }
+    return igual(clase, "entero") || igual(clase, "decimal") || igual(clase, "booleano")
+    || igual(clase, "cadena");
+}
+
+// La entrada de un marco para un operando ya calculado. No hace falta
+// adelantar un numero escrito, ni una direccion, que es lo que llega sin
+// tipo: el sitio no cambia. Un valor con duenio se adelanta tambien: pasa al
+// temporal, y de ahi a quien se lo queda.
+fn operando(n: &P.Nodo, valor: view, tipo_c_op: view) -> Pendiente {
+    let fijo = largo(tipo_c_op) == 0 || es_constante(n);
+    return Pendiente { valor: nuevo(valor), tipo_c: nuevo(tipo_c_op), fijo: fijo,
+        tmp: vacio() };
+}
+
+fn abrir_marco(b: mut Cuerpo) {
+    anadir(b.por_correr, Marco { barrera: false, entradas: [] });
+}
+
+fn poner_barrera(b: mut Cuerpo) {
+    anadir(b.por_correr, Marco { barrera: true, entradas: [] });
+}
+
+fn apuntar_pendiente(b: mut Cuerpo, p: Pendiente) {
+    let k = largo(b.por_correr);
+    if k > 0 { anadir(b.por_correr[k - 1].entradas, p); }
+}
+
+fn cerrar_marco(b: mut Cuerpo) -> Marco {
+    var quedan: lista<Marco> = [];
+    var ultimo = Marco { barrera: false, entradas: [] };
+    var i = 0;
+    let n = largo(b.por_correr);
+    while i < n {
+        if i + 1 < n {
+            anadir(quedan, intercambiar(b.por_correr[i], Marco { barrera: false, entradas: [] }));
+        } else {
+            ultimo = intercambiar(b.por_correr[i], Marco { barrera: false, entradas: [] });
+        }
+        i = i + 1;
+    }
+    b.por_correr = quedan;
+    return ultimo;
 }
 
 fn emitir_crudo(b: mut Cuerpo, texto_linea: view) {
@@ -4184,9 +4477,16 @@ fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
 // `if c { a } else { b }` como valor. Se baja a una variable y un `if`, no
 // al `?:` de C: cada rama puede necesitar emitir lineas propias, y dentro
 // de `?:` no caben.
-fn si_expr_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+fn si_expr_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
+    tipos: &I.Contexto) -> str {
     if largo(n.hijos) != 3 { return no_se(); }
     var t = I.tipo_de(tipos, n);
+    // Sin lo que anoto el comprobador, dos ramas que son numeros escritos
+    // toman el tipo que se espera del `if`, como las habria anotado el.
+    if largo(I.tipo_anotado(tipos, n)) == 0 && largo(I.literal_de(n)) > 0
+    && es_aritmetico(esperado) {
+        t = nuevo(esperado);
+    }
     if largo(t) == 0 { t = nuevo("usize"); }
     let tmp = nuevo_temporal(b);
     var d = nuevo(tipo_c(vista(t)));

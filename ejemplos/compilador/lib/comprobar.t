@@ -359,6 +359,14 @@ struct Mundo {
     // el nombre que les da el original (`Par__str_usize`) y su tipo aqui.
     orden_structs: lista<str>,
     tipo_de_struct: lista<str>,
+    // El tipo de cada expresion, por modulo: `dueno#id` -> tipo, con los
+    // numeros escritos ya decididos por su contexto. El generador lo lee de
+    // aqui en vez de deducirlo otra vez.
+    anotados: lista<mapa<str, str>>,
+    // Las copias de genericas y las clausuras, en el orden en que nacen: una
+    // clausura al verla, una copia despues de comprobar su cuerpo. Es el
+    // orden en que el generador las escribe.
+    orden_copias: lista<str>,
 }
 
 fn param_de(texto: view) -> Param {
@@ -1701,6 +1709,19 @@ fn apuntar(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, valor: &P.Nod
 fn comprobar_literal(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, destino: view) {
     let clase = vista(n.clase);
     if igual(clase, "binaria") && largo(n.hijos) == 2 {
+        let op_b = vista(n.texto);
+        // Los numeros escritos son decimales aqui, y con decimales no hay
+        // resto ni bits.
+        if es_decimal(destino) && largo(I.literal_de(n)) > 0
+        && (igual(op_b, "%") || igual(op_b, "&") || igual(op_b, "|")
+            || igual(op_b, "^") || igual(op_b, "<<") || igual(op_b, ">>")) {
+            if igual(op_b, "%") {
+                error(c, m, n.linea, "`%` es el resto de una division entera; con decimales no tiene un significado unico");
+            } else {
+                error(c, m, n.linea, $"`{op_b}` trabaja sobre los bits de un entero, recibio `{destino}` y `{destino}`");
+            }
+            return;
+        }
         comprobar_literal(c, m, n.hijos[0], destino);
         let op = vista(n.texto);
         if igual(op, "<<") || igual(op, ">>") {
@@ -1708,6 +1729,12 @@ fn comprobar_literal(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, destino: view) 
         } else {
             comprobar_literal(c, m, n.hijos[1], destino);
         }
+        return;
+    }
+    // Cada rama que sea un numero escrito tiene que caber.
+    if igual(clase, "si_expr") && largo(n.hijos) == 3 {
+        comprobar_literal(c, m, n.hijos[1], destino);
+        comprobar_literal(c, m, n.hijos[2], destino);
         return;
     }
     var negativo = false;
@@ -1870,12 +1897,30 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
     if igual(clase, "literal_struct") { return I.sin_modulo(vista(n.texto)); }
     if igual(clase, "unaria") && largo(n.hijos) > 0 {
         if igual(vista(n.texto), "!") { return nuevo("bool"); }
-        if igual(vista(n.texto), "-") && igual(vista(n.hijos[0].clase), "entero") {
+        if igual(vista(n.texto), "-") && igual(I.literal_de(n.hijos[0]), "entero") {
             return nuevo("i64");
         }
         let t = tipo_probable(c, m, tipos, n.hijos[0]);
         if igual(vista(t), literal()) { return nuevo("i64"); }
         return t;
+    }
+    if igual(clase, "conversion") {
+        let destino = vista(n.texto);
+        if empieza_con(destino, "?") { return nuevo(rebanar(destino, 1, largo(destino))); }
+        return nuevo(destino);
+    }
+    // Una rama que es un numero escrito toma el tipo de la otra.
+    if igual(clase, "si_expr") && largo(n.hijos) == 3 {
+        let lit_a = I.literal_de(n.hijos[1]);
+        let lit_b = I.literal_de(n.hijos[2]);
+        if largo(lit_a) > 0 && largo(lit_b) == 0 {
+            return tipo_probable(c, m, tipos, n.hijos[2]);
+        }
+        if largo(lit_a) > 0 {
+            if igual(lit_a, "decimal") || igual(lit_b, "decimal") { return nuevo("f64"); }
+            return nuevo("usize");
+        }
+        return tipo_probable(c, m, tipos, n.hijos[1]);
     }
     if igual(clase, "binaria") && largo(n.hijos) == 2 {
         let op = vista(n.texto);
@@ -1883,6 +1928,15 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
         || igual(op, "<") || igual(op, "<=") || igual(op, ">") || igual(op, ">=") {
             return nuevo("bool");
         }
+        // Un numero escrito no decide nada por su cuenta: toma el tipo del
+        // otro lado.
+        let lit_i = I.literal_de(n.hijos[0]);
+        let lit_d = I.literal_de(n.hijos[1]);
+        if largo(lit_i) > 0 && largo(lit_d) > 0 {
+            if igual(lit_i, "decimal") || igual(lit_d, "decimal") { return nuevo("f64"); }
+            return nuevo("usize");
+        }
+        if largo(lit_i) > 0 { return tipo_probable(c, m, tipos, n.hijos[1]); }
         let a = tipo_probable(c, m, tipos, n.hijos[0]);
         let b = tipo_probable(c, m, tipos, n.hijos[1]);
         if largo(a) == 0 || igual(vista(a), literal()) {
@@ -1893,6 +1947,17 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
     }
     if igual(clase, "llamada") {
         let nombre = I.sin_modulo(vista(n.texto));
+        // Las que devuelven el tipo de lo que reciben, como al comprobar.
+        if (igual(nombre, "absoluto") || igual(nombre, "raiz") || igual(nombre, "piso")
+            || igual(nombre, "techo") || igual(nombre, "redondear")) && largo(n.hijos) == 1 {
+            let lit = I.literal_de(n.hijos[0]);
+            if largo(lit) > 0 {
+                if igual(lit, "entero") && igual(nombre, "absoluto") { return nuevo("i64"); }
+                return nuevo("f64");
+            }
+            let t_a = tipo_probable(c, m, tipos, n.hijos[0]);
+            return T.apuntado_si(vista(t_a));
+        }
         let fi = firma_interna(vista(nombre));
         if fi.existe { return copiar(fi.retorno); }
         let k = funcion_llamada(m, tipos, vista(n.texto));
@@ -2034,6 +2099,7 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     if !hecha {
         anadir(m.copias, copiar(clave));
         comprobar_copia(c, m, n, k, inst, lig, false);
+        anadir(m.orden_copias, copiar(inst.copia));
     }
     return inst;
 }
@@ -2212,7 +2278,8 @@ fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>)
         cierres_mod: copiar(m.cierres_mod), n_cierres: m.n_cierres,
         cierres_mut: copiar(m.cierres_mut), numeracion: copiar(m.numeracion), arboles: [],
         modulos: [], contextos: [], copias: copiar(m.copias),
-        orden_structs: copiar(m.orden_structs), tipo_de_struct: copiar(m.tipo_de_struct) };
+        orden_structs: copiar(m.orden_structs), tipo_de_struct: copiar(m.tipo_de_struct),
+        anotados: [], orden_copias: copiar(m.orden_copias) };
     let antes = largo(c.errores);
     anadir(m.copias, copiar(clave));
     let nodo = copiar(m.arboles[f.modulo].hijos[f.posicion]);
@@ -2241,6 +2308,7 @@ fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>)
     m.cierres_mut = copiar(m_antes.cierres_mut);
     m.numeracion = copiar(m_antes.numeracion);
     m.copias = copiar(m_antes.copias);
+    m.orden_copias = copiar(m_antes.orden_copias);
     m.orden_structs = copiar(m_antes.orden_structs);
     m.tipo_de_struct = copiar(m_antes.tipo_de_struct);
     for x en nuevos {
@@ -2360,8 +2428,60 @@ fn tipo_de_lugar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
 // Expresiones
 // ------------------------------------------------------------------
 
+// El tipo de `n`, comprobandola. Queda anotado para el generador, que lo lee
+// en vez de deducirlo otra vez por su cuenta, que es como se equivocaba.
 fn comprobar_expresion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     destino: view, mover_variables: bool) -> str {
+    let t = comprobar_expresion_sin_anotar(c, m, tipos, n, destino, mover_variables);
+    anotar(c, m, n, vista(t));
+    let destino_p = sin_prestamo(destino);
+    if (igual(vista(t), literal()) || igual(vista(t), literal_decimal()))
+    && es_numerico(vista(destino_p)) {
+        fijar_literal(c, m, n, vista(destino_p));
+    }
+    return t;
+}
+
+fn clave_anotada(c: &Comprobacion, n: &P.Nodo) -> str {
+    return $"{c.dueno}#{n.id}";
+}
+
+fn anotar(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, t: view) {
+    if n.id == 0 || c.modulo >= largo(m.anotados) { return; }
+    let clave = clave_anotada(c, n);
+    poner(m.anotados[c.modulo], vista(clave), nuevo(t));
+}
+
+// Un numero escrito ya sabe su tipo: se lo dice el otro lado de la operacion,
+// o el sitio donde va. Se anota en el y en todo lo que es numero escrito por
+// debajo; un desplazamiento cuenta en `usize`.
+fn fijar_literal(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) {
+    if c.modulo >= largo(m.anotados) { return; }
+    if n.id > 0 {
+        let clave = clave_anotada(c, n);
+        let actual = obtener(m.anotados[c.modulo], vista(clave)) sino literal();
+        if !igual(actual, literal()) && !igual(actual, literal_decimal()) { return; }
+    }
+    if largo(I.literal_de(n)) == 0 { return; }
+    anotar(c, m, n, tipo);
+    let clase = vista(n.clase);
+    if igual(clase, "binaria") && largo(n.hijos) == 2 {
+        fijar_literal(c, m, n.hijos[0], tipo);
+        if igual(vista(n.texto), "<<") || igual(vista(n.texto), ">>") {
+            fijar_literal(c, m, n.hijos[1], "usize");
+        } else {
+            fijar_literal(c, m, n.hijos[1], tipo);
+        }
+    } else if igual(clase, "unaria") && largo(n.hijos) == 1 {
+        fijar_literal(c, m, n.hijos[0], tipo);
+    } else if igual(clase, "si_expr") && largo(n.hijos) == 3 {
+        fijar_literal(c, m, n.hijos[1], tipo);
+        fijar_literal(c, m, n.hijos[2], tipo);
+    }
+}
+
+fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
+    n: &P.Nodo, destino: view, mover_variables: bool) -> str {
     if es_numerico(destino) { comprobar_literal(c, m, n, destino); }
     let clase = vista(n.clase);
     if igual(clase, "entero") { return nuevo(literal()); }
@@ -2457,7 +2577,10 @@ fn unaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     let t = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
     let op = vista(n.texto);
     if igual(op, "~") {
-        if igual(vista(t), literal()) { return nuevo("usize"); }
+        if igual(vista(t), literal()) {
+            fijar_literal(c, m, n.hijos[0], "usize");
+            return nuevo("usize");
+        }
         if largo(t) > 0 && !es_tipo_entero(vista(t)) {
             error(c, m, n.linea, $"`~` da la vuelta a los bits de un entero, recibio `{t}`");
         }
@@ -2470,8 +2593,17 @@ fn unaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         return nuevo("bool");
     }
     if igual(vista(t), literal()) {
-        if es_numerico(destino) { return nuevo(destino); }
+        // Un `-3` suelto ya lo dice `comprobar_literal`: no cabe. Una cuenta,
+        // `-(3 + 4)`, no la mira nadie mas.
+        if es_sin_signo(destino) && !igual(vista(n.hijos[0].clase), "entero") {
+            error(c, m, n.linea, $"`{destino}` no tiene signo: no se puede negar");
+        }
+        if es_numerico(destino) {
+            fijar_literal(c, m, n.hijos[0], destino);
+            return nuevo(destino);
+        }
         comprobar_literal(c, m, n, "i64");
+        fijar_literal(c, m, n.hijos[0], "i64");
         return nuevo("i64");
     }
     if igual(vista(t), literal_decimal()) { return t; }
@@ -2500,6 +2632,25 @@ fn si_expr(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     let tras_b = foto(c);
     c.en_condicional = c.en_condicional - 1;
     juntar_ramas(c, tras_a, tras_b);
+    // Una rama que es un numero escrito toma el tipo de la otra, y tiene que
+    // caber en el.
+    let tb_p = T.apuntado_si(vista(tb));
+    let ta_p = T.apuntado_si(vista(ta));
+    if (igual(vista(ta), literal()) || igual(vista(ta), literal_decimal()))
+    && es_numerico(vista(tb_p)) {
+        comprobar_literal(c, m, n.hijos[1], vista(tb_p));
+        fijar_literal(c, m, n.hijos[1], vista(tb_p));
+    } else if (igual(vista(tb), literal()) || igual(vista(tb), literal_decimal()))
+    && es_numerico(vista(ta_p)) {
+        comprobar_literal(c, m, n.hijos[2], vista(ta_p));
+        fijar_literal(c, m, n.hijos[2], vista(ta_p));
+    } else if igual(vista(ta), literal()) && igual(vista(tb), literal_decimal()) {
+        fijar_literal(c, m, n.hijos[1], literal_decimal());
+        return copiar(tb);
+    } else if igual(vista(tb), literal()) && igual(vista(ta), literal_decimal()) {
+        fijar_literal(c, m, n.hijos[2], literal_decimal());
+        return copiar(ta);
+    }
     if largo(ta) > 0 && largo(tb) > 0 && !encaja(vista(ta), vista(tb))
     && !encaja(vista(tb), vista(ta)) {
         error(c, m, n.linea, $"las dos ramas de un `if` tienen que dar el mismo tipo, y dan `{ta}` y `{tb}`");
@@ -2558,6 +2709,9 @@ fn formas_legibles(m: &Mundo, en_t: view) -> str {
 fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
     let dado = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
     let t = sin_prestamo(vista(dado));
+    // Un numero escrito sin nada al lado sale de su tipo de siempre.
+    if igual(vista(t), literal()) { fijar_literal(c, m, n.hijos[0], "usize"); }
+    else if igual(vista(t), literal_decimal()) { fijar_literal(c, m, n.hijos[0], "f64"); }
     var a = copiar(n.texto);
     var envolviendo = false;
     if empieza_con(vista(a), "?") {
@@ -2930,18 +3084,26 @@ fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) ->
     var td = sin_prestamo(vista(crudo_d));
     let li = igual(vista(ti), literal()) || igual(vista(ti), literal_decimal());
     let ld = igual(vista(td), literal()) || igual(vista(td), literal_decimal());
+    let desplaza = igual(op, "<<") || igual(op, ">>");
     if li && es_numerico(vista(td)) {
         comprobar_literal(c, m, n.hijos[0], vista(td));
+        fijar_literal(c, m, n.hijos[0], vista(td));
         ti = copiar(td);
     } else if ld && es_numerico(vista(ti)) {
         comprobar_literal(c, m, n.hijos[1], vista(ti));
+        if desplaza { fijar_literal(c, m, n.hijos[1], "usize"); }
+        else { fijar_literal(c, m, n.hijos[1], vista(ti)); }
         td = copiar(ti);
     }
     if igual(vista(ti), literal()) && igual(vista(td), literal_decimal()) {
+        fijar_literal(c, m, n.hijos[0], literal_decimal());
         ti = copiar(td);
     } else if igual(vista(td), literal()) && igual(vista(ti), literal_decimal()) {
+        fijar_literal(c, m, n.hijos[1], literal_decimal());
         td = copiar(ti);
     }
+    // Cuanto se desplaza llega siempre como `usize`.
+    if desplaza && es_numerico(vista(td)) { fijar_literal(c, m, n.hijos[1], "usize"); }
     let a = vista(ti);
     let b = vista(td);
     if igual(op, "==") || igual(op, "!=") {
@@ -3024,6 +3186,7 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     var vistas: lista<str> = [];
     var con_brazo: lista<str> = [];
     var comun = vacio();
+    var escritos: lista<P.Nodo> = [];
     var hay_comodin = false;
     var k = 1;
     while k < largo(n.hijos) {
@@ -3089,6 +3252,9 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
             let hc = vista(h.clase);
             if igual(hc, "retorno") && largo(h.hijos) > 0 {
                 t = comprobar_expresion(c, m, tipos, h.hijos[0], destino, mover_variables);
+                if igual(vista(t), literal()) || igual(vista(t), literal_decimal()) {
+                    anadir(escritos, copiar(h.hijos[0]));
+                }
             } else if igual(hc, "bloque") {
                 for st en h.hijos { comprobar_sentencia(c, m, tipos, st); }
             }
@@ -3130,6 +3296,15 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         } else if largo(a_medias) > 0 {
             let cuales = con_comas(a_medias);
             error(c, m, n.linea, $"al `match` le pueden quedar casos de {cuales} sin mirar: sus brazos tienen guarda o un patron que puede no casar. Pon uno que valga para todos, o un brazo `_`");
+        }
+    }
+    // Un brazo que es un numero escrito toma el tipo de los demas, y tiene que
+    // caber en el.
+    let comun_p = sin_prestamo(vista(comun));
+    if es_numerico(vista(comun_p)) {
+        for v en escritos {
+            comprobar_literal(c, m, v, vista(comun_p));
+            fijar_literal(c, m, v, vista(comun_p));
         }
     }
     return comun;
@@ -3350,6 +3525,7 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
     if modifica { anadir(m.cierres_mut, copiar(st)); }
     let fn_nodo = nodo_de_cierre(n, numero, vistos, modifica);
     anadir(m.cierres, copiar(fn_nodo));
+    anadir(m.orden_copias, $"ss_cierre_{numero}");
     anadir(m.cierres_mod, c.modulo);
     let de_cierre = $"ss_cierre_{numero}";
     var f = funcion_de(fn_nodo, vista(de_cierre), vista(c.archivo), c.modulo,
@@ -4996,6 +5172,10 @@ struct Revision {
     numeracion: mapa<str, usize>,
     // Los campos sacados de su struct: `archivo\tlinea\tp.a.b`.
     sacados: lista<str>,
+    // El tipo de cada expresion, por modulo, para el generador.
+    anotados: lista<mapa<str, str>>,
+    // Las copias y las clausuras, en el orden en que se escriben.
+    orden_copias: lista<str>,
 }
 
 fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
@@ -5004,7 +5184,12 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         st_params: [], en_variantes: [], en_formas: [], bonitos: [],
         cierres: [], cierres_mod: [], n_cierres: 0, cierres_mut: [], numeracion: [],
         arboles: copiar(arboles), modulos: copiar(modulos),
-        contextos: copiar(contextos), copias: [], orden_structs: [], tipo_de_struct: [] };
+        contextos: copiar(contextos), copias: [], orden_structs: [], tipo_de_struct: [],
+        anotados: [], orden_copias: [] };
+    for _a en arboles {
+        let vacio_m: mapa<str, str> = [];
+        anadir(m.anotados, vacio_m);
+    }
     var c = estado("", 0);
     // Donde se definio cada struct y enum, para decir donde estaba el primero.
     var st_donde: mapa<str, str> = [];
@@ -5268,5 +5453,6 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         explicacion: explicacion(m, c.informe, principal),
         cierres: copiar(m.cierres),
         cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion),
-        sacados: copiar(c.sacados) };
+        sacados: copiar(c.sacados), anotados: copiar(m.anotados),
+        orden_copias: copiar(m.orden_copias) };
 }

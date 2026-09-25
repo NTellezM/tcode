@@ -47,13 +47,19 @@ struct Contexto {
     // Struct generico -> sus parametros de tipo: `Par` -> [A, B]. Un
     // `Par<str, usize>` se queda escrito asi, y sus campos se sacan de aqui.
     struct_params: mapa<str, lista<str>>,
+    // Lo que el comprobador dejo anotado: `dueno#id` -> el tipo de esa
+    // expresion, con los numeros escritos ya decididos por su contexto.
+    // `dueno` es la funcion que se esta escribiendo, con el nombre que le da
+    // el comprobador; vacio, no se mira nada y el tipo se deduce aqui.
+    anotados: mapa<str, str>,
+    dueno: str,
 }
 
 fn contexto() -> Contexto {
     return Contexto { ambitos: [], campos: [], nombres: [], retornos: [],
         tipo_params: [], params: [], params_marcados: [], formas: [],
         variantes: [], externas: [], repetidas: [],
-        renombradas: [], struct_params: [] };
+        renombradas: [], struct_params: [], anotados: [], dueno: vacio() };
 }
 
 fn abrir(c: mut Contexto) {
@@ -107,6 +113,8 @@ fn buscar(c: &Contexto, nombre: view) -> str {
 // ------------------------------------------------------------------
 
 fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
+    let anotado = tipo_anotado(c, n);
+    if largo(anotado) > 0 { return anotado; }
     let clase = vista(n.clase);
 
     if igual(clase, "entero") { return nuevo("usize"); }
@@ -251,9 +259,9 @@ fn posee_simple(c: &Contexto, t: view) -> bool {
 }
 
 // `"entero"` o `"decimal"` si el comprobador ve aqui un numero escrito que
-// todavia no tiene tipo —`1`, `2.5`, `1 + 2`, `-0.5`—, y `""` si no. Un
-// numero asi toma el tipo del otro lado de la operacion, y el C tiene que
-// hacer la cuenta en ese tipo, no en `usize`.
+// todavia no tiene tipo —`1`, `2.5`, `1 + 2`, `-0.5`, `if c { 1 } else { 2 }`—,
+// y `""` si no. Un numero asi toma el tipo del otro lado de la operacion, o
+// el que se espera de el; sin nada que lo decida, `usize` o `f64`.
 fn literal_de(n: &P.Nodo) -> view {
     let clase = vista(n.clase);
     if igual(clase, "entero") { return "entero"; }
@@ -275,7 +283,33 @@ fn literal_de(n: &P.Nodo) -> view {
             return "entero";
         }
     }
+    if igual(clase, "si_expr") && largo(n.hijos) == 3 {
+        let a = literal_de(n.hijos[1]);
+        let b = literal_de(n.hijos[2]);
+        if largo(a) > 0 && largo(b) > 0 {
+            if igual(a, "decimal") || igual(b, "decimal") { return "decimal"; }
+            return "entero";
+        }
+    }
     return "";
+}
+
+// Lo que el comprobador dejo anotado de esta expresion, si es un numero o un
+// `bool`: son los tipos que deciden en que se hace una cuenta y como se
+// escribe un numero, y los que esta capa deducia mal por su cuenta. `""` si
+// no dejo nada.
+fn tipo_anotado(c: &Contexto, n: &P.Nodo) -> str {
+    let t = anotado_crudo(c, n);
+    if igual(vista(t), "{entero}") { return nuevo("usize"); }
+    if igual(vista(t), "{decimal}") { return nuevo("f64"); }
+    if es_numero(vista(t)) || igual(vista(t), "bool") { return t; }
+    return vacio();
+}
+
+fn anotado_crudo(c: &Contexto, n: &P.Nodo) -> str {
+    if n.id == 0 || largo(c.dueno) == 0 { return vacio(); }
+    let clave = $"{c.dueno}#{n.id}";
+    return nuevo(obtener(c.anotados, vista(clave)) sino "");
 }
 
 fn es_numero(t: view) -> bool {
@@ -289,6 +323,16 @@ fn es_numero(t: view) -> bool {
 // comprobador. `1 + x` se hace en el tipo de `x`, y `1 + 2` en el que se
 // espera de ella.
 fn tipo_cuenta(c: &Contexto, n: &P.Nodo, esperado: view) -> str {
+    // Lo que anoto el comprobador: tras mirar la operacion, los dos lados
+    // tienen el mismo tipo, y un numero escrito ya tiene el del otro. En un
+    // desplazamiento manda el de la izquierda.
+    let desplaza = igual(vista(n.texto), "<<") || igual(vista(n.texto), ">>");
+    let a_izq = anotado_crudo(c, n.hijos[0]);
+    if es_numero(vista(a_izq)) { return a_izq; }
+    if !desplaza {
+        let a_der = anotado_crudo(c, n.hijos[1]);
+        if es_numero(vista(a_der)) { return a_der; }
+    }
     let izq = literal_de(n.hijos[0]);
     let der = literal_de(n.hijos[1]);
     if largo(izq) > 0 && largo(der) > 0 {
