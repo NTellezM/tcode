@@ -2471,6 +2471,11 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
             let _m = cerrar_marco(b);
             return no_se();
         }
+        // La funcion se lo queda: si venia de un temporal de la sentencia,
+        // deja de soltarse ahi.
+        if largo(esperado) > 0 && I.posee_con_formas(tipos, vista(esperado)) {
+            reclamar(b, vista(arg));
+        }
         agregar_argumento_marcado(b, h, vista(arg), vista(esperado), false, false,
             secuenciar);
         i = i + 1;
@@ -3040,6 +3045,7 @@ fn es_puro_c(nombre: view) -> bool {
     if igual(nombre, "ss_new") || igual(nombre, "ss_from") || igual(nombre, "ss_from_view") {
         return true;
     }
+    if igual(nombre, "ss_clone") { return true; }
     return igual(nombre, "SS_LANG_USIZE_LIT");
 }
 
@@ -3088,15 +3094,6 @@ fn hace_algo(linea: view) -> bool {
     return false;
 }
 
-// Lo que se puede calcular antes, en un temporal, sin cambiar lo que es.
-fn es_escalar_c(t: view) -> bool {
-    if igual(t, "size_t") || igual(t, "uint8_t") || igual(t, "uint16_t") { return true; }
-    if igual(t, "uint32_t") || igual(t, "uint64_t") || igual(t, "int8_t") { return true; }
-    if igual(t, "int16_t") || igual(t, "int32_t") || igual(t, "int64_t") { return true; }
-    if igual(t, "float") || igual(t, "double") || igual(t, "bool") { return true; }
-    return igual(t, "SafeView");
-}
-
 // Un numero, un texto o un booleano escritos: calcularlos antes o despues da
 // igual.
 fn es_constante(n: &P.Nodo) -> bool {
@@ -3110,10 +3107,11 @@ fn es_constante(n: &P.Nodo) -> bool {
 }
 
 // La entrada de un marco para un operando ya calculado. No hace falta
-// adelantar un numero escrito, ni lo que no es un escalar: una direccion no
-// cambia, y un valor con duenio no se copia.
+// adelantar un numero escrito, ni una direccion, que es lo que llega sin
+// tipo: el sitio no cambia. Un valor con duenio se adelanta tambien: pasa al
+// temporal, y de ahi a quien se lo queda.
 fn operando(n: &P.Nodo, valor: view, tipo_c_op: view) -> Pendiente {
-    let fijo = !es_escalar_c(tipo_c_op) || es_constante(n);
+    let fijo = largo(tipo_c_op) == 0 || es_constante(n);
     return Pendiente { valor: nuevo(valor), tipo_c: nuevo(tipo_c_op), fijo: fijo,
         tmp: vacio() };
 }

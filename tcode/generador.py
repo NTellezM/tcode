@@ -131,19 +131,11 @@ def mangle(t):
     return t.replace("()", "nada")
 
 
-# Lo que se puede calcular antes, en un temporal, sin cambiar lo que es.
-ESCALARES_C = frozenset({
-    "size_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t",
-    "int8_t", "int16_t", "int32_t", "int64_t", "float", "double", "bool",
-    "SafeView",
-})
-
-
 # Lo que se puede llamar sin que se note cuando: no escribe, no para, no
 # cambia nada que se vea. Reservar memoria solo para si no queda.
 PUROS_C = frozenset({
     "sizeof", "sv", "sv_len", "sv_len_of", "ss_view", "sv_equals", "sv_cmp",
-    "ss_new", "ss_from", "ss_from_view", "SS_LANG_USIZE_LIT",
+    "ss_new", "ss_from", "ss_from_view", "ss_clone", "SS_LANG_USIZE_LIT",
 })
 
 
@@ -642,9 +634,10 @@ class Generador:
 
     def operando(self, nodo, valor, tipo_c):
         """La entrada de un marco para un operando ya calculado. No hace
-        falta adelantar un numero escrito, ni lo que no es un escalar: una
-        direccion no cambia, y un valor con duenio no se copia."""
-        fijo = tipo_c not in ESCALARES_C or es_constante(nodo)
+        falta adelantar un numero escrito, ni una direccion, que es lo que
+        llega sin tipo: el sitio no cambia. Un valor con duenio se adelanta
+        tambien: pasa al temporal, y de ahi a quien se lo queda."""
+        fijo = not tipo_c or es_constante(nodo)
         return [valor, tipo_c, fijo]
 
     def en_orden(self, partes):
