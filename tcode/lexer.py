@@ -62,8 +62,8 @@ def fin_de_cadena(fuente, i, archivo="<entrada>", linea=1, validar=True):
         if i >= n or fuente[i] == "\n":
             if not validar:
                 return n
-            if not interpolada:
-                raise ErrorLexico(f"{archivo}:{linea}: cadena sin cerrar")
+            # La de fuera tampoco se cierra: lo mas probable es que falte la
+            # `}` del hueco, como en `$"hola {n"`.
             raise ErrorLexico(
                 f"{archivo}:{linea}: cadena interpolada sin cerrar; falta la "
                 f"comilla, o falta `}}` en algun hueco")

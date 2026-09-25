@@ -94,11 +94,19 @@ fn agregar(salida: mut lista<Token>, tipo: view, valor: view, linea: usize) {
 // Python.
 fn fin_de_cadena(fuente: view, desde: usize, interpolada: bool, prefijo: view,
     error: mut str) -> usize ! {
+    return try fin_de_cadena_en(fuente, desde, interpolada, false, prefijo, error);
+}
+
+// `en_hueco`: la cadena va dentro del hueco de otra. Si no se cierra, la de
+// fuera tampoco, y lo mas probable es que falte la `}` del hueco, como en
+// `$"hola {n"`.
+fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: bool,
+    prefijo: view, error: mut str) -> usize ! {
     var i = desde;
     var hondura = 0;
     while true {
         if i >= largo(fuente) || byte(fuente, i) == 10 {
-            if interpolada {
+            if interpolada || en_hueco {
                 error = $"{prefijo}cadena interpolada sin cerrar; falta la comilla, o falta `}}` en algun hueco";
             } else {
                 error = $"{prefijo}cadena sin cerrar";
@@ -123,7 +131,7 @@ fn fin_de_cadena(fuente: view, desde: usize, interpolada: bool, prefijo: view,
             if b == 34 || anidada {
                 var dentro = i + 1;
                 if anidada { dentro = i + 2; }
-                let cierre = try fin_de_cadena(fuente, dentro, anidada, prefijo, error);
+                let cierre = try fin_de_cadena_en(fuente, dentro, anidada, true, prefijo, error);
                 i = cierre + 1;
                 continue;
             }

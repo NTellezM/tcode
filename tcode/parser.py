@@ -666,7 +666,7 @@ class Parser:
                     j += 1
             if prof != 0:
                 self.error("falta `}` en una cadena interpolada", tok)
-            dentro = texto[i + 1:j].strip()
+            dentro = _comillas_de_antes(texto[i + 1:j].strip())
             if not dentro:
                 self.error("`{}` vacio en una cadena interpolada: pon dentro "
                            "lo que quieras mostrar", tok)
@@ -938,6 +938,27 @@ class Parser:
             return e
 
         self.error("se esperaba una expresion")
+
+
+def _comillas_de_antes(h):
+    """Antes, un hueco se leia ya descifrado, y sus cadenas se escribian
+    `{f(\\"x\\")}`. Sigue valiendo: fuera de una cadena, `\\"` es una
+    comilla."""
+    fuera = []
+    i = 0
+    while i < len(h):
+        if h[i] == '"' or h.startswith('$"', i):
+            j = fin_de_cadena(h, i, validar=False)
+            fuera.append(h[i:j])
+            i = j
+            continue
+        if h.startswith('\\"', i):
+            fuera.append('"')
+            i += 2
+            continue
+        fuera.append(h[i])
+        i += 1
+    return "".join(fuera)
 
 
 def _todos(nodo, vistos=None):
