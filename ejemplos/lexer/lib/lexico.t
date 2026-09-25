@@ -182,6 +182,13 @@ fn analizar(fuente: view) -> lista<Token> ! {
 // Los tokens de un archivo. Si no se puede, `error` dice por que y donde,
 // con las mismas palabras que el lexer de Python.
 fn tokens_de(fuente: view, archivo: view, error: mut str) -> lista<Token> ! {
+    return try tokens_de_todo(fuente, archivo, false, error);
+}
+
+// Con `comentarios`, tambien los comentarios, como tokens `comentario`: el
+// formateador los necesita para dejarlos donde estaban.
+fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool,
+    error: mut str) -> lista<Token> ! {
     let reservadas = palabras_reservadas();
     var salida: lista<Token> = [];
     var i = 0;
@@ -205,8 +212,12 @@ fn tokens_de(fuente: view, archivo: view, error: mut str) -> lista<Token> ! {
         if b == 47 && i + 1 < largo(fuente) {
             let sig = byte(fuente, i + 1);
             if sig == 47 {
+                let desde = i;
                 while i < largo(fuente) && byte(fuente, i) != 10 {
                     i = i + 1;
+                }
+                if comentarios {
+                    agregar(salida, "comentario", rebanar(fuente, desde, i), linea);
                 }
                 continue;
             }
@@ -225,6 +236,9 @@ fn tokens_de(fuente: view, archivo: view, error: mut str) -> lista<Token> ! {
                 if !cerrado {
                     error = $"{prefijo}comentario /* sin cerrar";
                     falla "comentario /* sin cerrar";
+                }
+                if comentarios {
+                    agregar(salida, "comentario", rebanar(fuente, i, j + 2), linea);
                 }
                 linea = linea + saltos;
                 i = j + 2;

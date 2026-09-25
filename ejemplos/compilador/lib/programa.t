@@ -270,16 +270,23 @@ fn cuenta_nueva() -> Cuenta {
 // el cargador renombra. Devuelve el arbol.
 fn preparar(ruta: view, tipos: mut I.Contexto) -> P.Nodo ! {
     var error = vacio();
-    return try preparar_con_error(ruta, tipos, error);
+    let ninguno: mapa<str, usize> = [];
+    return try preparar_con_error(ruta, tipos, error, ninguno, ninguno);
 }
 
 // Lo mismo, y si el archivo no se puede leer como Tcode, `error` dice por que
 // con las palabras del lexer y el parser de Python.
-fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str) -> P.Nodo ! {
+// `previos_st` y `previos_en` son los structs y enums de los modulos ya
+// leidos: el cargador de Python se los da al parser, y con ellos `Caja { .. }`
+// es un literal aunque `Caja` venga de un modulo que este no usa.
+fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
+    previos_st: &mapa<str, usize>, previos_en: &mapa<str, usize>) -> P.Nodo ! {
     let fuente = try leer_archivo(ruta);
     let tokens = try tokens_de(vista(fuente), ruta, error);
-    let nombres = P.structs_visibles(ruta, tokens);
-    let formas = P.enums_visibles(ruta, tokens);
+    var nombres = P.structs_visibles(ruta, tokens);
+    var formas = P.enums_visibles(ruta, tokens);
+    for x en claves(previos_st) { poner(nombres, vista(x), 1); }
+    for x en claves(previos_en) { poner(formas, vista(x), 1); }
     // Lo que traen los modulos, antes de nada: los tokens pasan a ser del
     // `Estado` en cuanto se construye.
     for m en P.modulos_usados(ruta, tokens) {
