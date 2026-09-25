@@ -687,7 +687,7 @@ fn legible(m: &Mundo, mensaje: view) -> str {
                 var k = j;
                 while k < largo(mensaje) {
                     if byte(mensaje, k) == 60 { hondo = hondo + 1; }
-                    if byte(mensaje, k) == 62 && ! (k > 0 && byte(mensaje, k - 1) == 45) {
+                    if byte(mensaje, k) == 62 && !(k > 0 && byte(mensaje, k - 1) == 45) {
                         hondo = hondo - 1;
                         if hondo == 0 { k = k + 1; break; }
                     }
@@ -696,7 +696,15 @@ fn legible(m: &Mundo, mensaje: view) -> str {
                 i = k;
                 continue;
             }
-            if empieza_con(palabra, "Cierre_") && largo(I.funcion_de_cierre(palabra)) > 0 {
+            // `ss_cierre_3` es la funcion de `Cierre_3`: tambien una clausura.
+            var como_struct = vacio();
+            if empieza_con(palabra, "ss_cierre_") {
+                como_struct = $"Cierre_{rebanar(palabra, 10, largo(palabra))}";
+            }
+            let de_fn = largo(como_struct) > 0
+            && largo(I.funcion_de_cierre(vista(como_struct))) > 0;
+            if de_fn || (empieza_con(palabra, "Cierre_")
+                && largo(I.funcion_de_cierre(palabra)) > 0) {
                 empujar(r, "clausura");
                 i = j;
                 continue;
@@ -2572,7 +2580,7 @@ fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &
         }
         let limpio = sin_prestamo(vista(t));
         if largo(t) > 0 && !encaja(vista(dentro), vista(limpio)) {
-            if ! (igual(vista(dentro), "view") && igual(vista(limpio), "str")) {
+            if !(igual(vista(dentro), "view") && igual(vista(limpio), "str")) {
                 error(c, m, n.linea, $"`{nombre}` toma `{esperado}` ahi y recibio `{t}`");
             }
         }
@@ -2618,7 +2626,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         }
         let texto_a = igual(vista(ta), "str") || igual(vista(ta), "view");
         let texto_b = igual(vista(tb), "str") || igual(vista(tb), "view");
-        if largo(ta) > 0 && largo(tb) > 0 && ! (texto_a && texto_b) {
+        if largo(ta) > 0 && largo(tb) > 0 && !(texto_a && texto_b) {
             var a = copiar(ta);
             var b = copiar(tb);
             if igual(vista(a), literal()) { a = nuevo("usize"); }
@@ -2878,7 +2886,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let t = comprobar_expresion(c, m, tipos, arg, "", false);
         if largo(t) > 0 && !igual(esperado, "@cualquiera") && !encaja(esperado, vista(t)) {
             let limpio = sin_prestamo(vista(t));
-            if ! (igual(esperado, "view") && igual(vista(limpio), "str")) {
+            if !(igual(esperado, "view") && igual(vista(limpio), "str")) {
                 error(c, m, n.linea, $"el argumento {k} de `{nombre}` debe ser `{esperado}` y es `{t}`");
             }
         }
@@ -2976,7 +2984,7 @@ fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nod
     }
     let tc = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
     if largo(tc) > 0 && !encaja(vista(kt), vista(tc))
-    && ! (igual(vista(kt), "str") && igual(vista(tc), "view")) {
+    && !(igual(vista(kt), "str") && igual(vista(tc), "view")) {
         error(c, m, n.linea, $"la clave del mapa es `{kt}` y se paso `{tc}`");
     }
     if igual(nombre, "tiene") {
@@ -3043,7 +3051,7 @@ fn validar_tipo(c: mut Comprobacion, m: mut Mundo, linea: usize, t: view) {
     let base = rebanar(t, 0, i);
     if largo(base) == 0 { return; }
     let primero = byte(base, 0);
-    if ! ((primero >= 65 && primero <= 90) || (primero >= 97 && primero <= 122)) { return; }
+    if !((primero >= 65 && primero <= 90) || (primero >= 97 && primero <= 122)) { return; }
     let args = T.partir_tipos(rebanar(t, i + 1, largo(t) - 1));
     for a en args { validar_tipo(c, m, linea, vista(a)); }
     if !tiene(m.st_params, base) {

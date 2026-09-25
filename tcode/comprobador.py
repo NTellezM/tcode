@@ -474,11 +474,13 @@ class Comprobador:
 
     def _legible(self, mensaje):
         """La copia de una generica se llama `primeras__str`, que es un nombre
-        que nadie escribio. En un mensaje va el nombre de verdad."""
-        for copia, original in self.nombre_original.items():
-            if copia in mensaje:
-                mensaje = mensaje.replace(copia, original)
-        return mensaje
+        que nadie escribio. En un mensaje va el nombre de verdad. Se cambian
+        nombres enteros: `Cierre_1` no es un trozo de `Cierre_10`."""
+        if not self.nombre_original:
+            return mensaje
+        return re.sub(r"[A-Za-z_][A-Za-z0-9_]*",
+                      lambda m: self.nombre_original.get(m.group(0), m.group(0)),
+                      mensaje)
 
     def _por_instanciar(self):
         """Un error dentro de una generica no se entiende sin saber con que
@@ -2329,8 +2331,9 @@ class Comprobador:
         st = Struct(nombre_struct, campos, linea=e.linea, archivo=e.archivo)
         self.structs[nombre_struct] = st
         self.structs_instanciados.append(st)
-        # En un mensaje, `Cierre_3` no le dice nada a nadie.
+        # En un mensaje, `Cierre_3` no le dice nada a nadie, ni `ss_cierre_3`.
         self.nombre_original[nombre_struct] = "clausura"
+        self.nombre_original[nombre_fn] = "clausura"
 
         # El cuerpo ve lo capturado como campos del entorno.
         cuerpo = _copy.deepcopy(e.cuerpo)

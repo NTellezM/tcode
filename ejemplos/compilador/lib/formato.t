@@ -135,7 +135,9 @@ fn texto_de(t: &Token) -> str {
             else if d == 48 { empujar(r, "\\0"); }
             else if d == 92 { empujar(r, "\\\\"); }
             else if d == 34 { empujar(r, "\\\""); }
-            // `\{` y `\}` son la llave suelta: se escriben tal cual.
+            // `\{` y `\}` son una llave escrita: se escriben `{{` y `}}`.
+            else if d == 123 { empujar(r, "{{"); }
+            else if d == 125 { empujar(r, "}}"); }
             else { empujar(r, rebanar(v, i + 1, i + 2)); }
             i = i + 2;
             continue;
@@ -202,6 +204,8 @@ fn pega(toks: &lista<Token>, i_ant: usize, i: usize, mc: &Marcas) -> bool {
     // Una llamada o un indice: `f(`, `xs[`, y tambien `f<T>(`.
     if ts && (igual(v, "(") || igual(v, "[")) {
         if as_ && mc.generico[i_ant] { return true; }
+        // Un unario va pegado tambien a su parentesis: `!(a)`.
+        if mc.unario[i_ant] { return true; }
         return igual(ta, "ident") || (as_ && (igual(va, ")") || igual(va, "]")));
     }
     // Un unario va pegado a lo suyo.

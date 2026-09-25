@@ -766,6 +766,13 @@ fn interpolada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     var i = 0;
     while i < largo(crudo) {
         let c = byte(crudo, i);
+        // Un escape va entero al trozo, que se descifra despues: `\{` es
+        // una llave escrita, y la barra de `\\` no deja la siguiente suelta.
+        if c == 92 && i + 1 < largo(crudo) {
+            empujar(trozo, rebanar(crudo, i, i + 2));
+            i = i + 2;
+            continue;
+        }
         // `{{` y `}}` son una llave escrita, no un hueco.
         if c == 123 && i + 1 < largo(crudo) && byte(crudo, i + 1) == 123 {
             empujar(trozo, "{");
@@ -4200,7 +4207,7 @@ fn es_identificador(v: view) -> bool {
         let c = byte(v, i);
         let letra = (c >= 97 && c <= 122) || (c >= 65 && c <= 90) || c == 95;
         let cifra = c >= 48 && c <= 57;
-        if !letra && ! (cifra && i > 0) { return false; }
+        if !letra && !(cifra && i > 0) { return false; }
         i = i + 1;
     }
     return true;

@@ -153,6 +153,29 @@ def prefijo_de(ruta):
     return re.sub(r"[^A-Za-z0-9_]", "_", base)
 
 
+def prefijos_unicos(mostradas):
+    """El prefijo de cada modulo que declara un mismo nombre, sin que dos
+    coincidan.
+
+    Casi siempre basta el nombre del archivo: `std/texto.t` es `texto`. Pero
+    si `x.t` y `lib/x.t` declaran los dos `f`, se llamarian igual y acabarian
+    siendo la misma funcion en C. A esos se les pone la ruta entera: `x` y
+    `lib_x`. Solo a esos: lo que no choca conserva su nombre corto.
+    """
+    base = {real: prefijo_de(real) for real in mostradas}
+    cuantos = {}
+    for p in base.values():
+        cuantos[p] = cuantos.get(p, 0) + 1
+    salida = {}
+    for real, mostrada in mostradas.items():
+        if cuantos[base[real]] == 1:
+            salida[real] = base[real]
+        else:
+            sin_ext = os.path.splitext(mostrada)[0]
+            salida[real] = re.sub(r"[^A-Za-z0-9_]", "_", sin_ext).strip("_")
+    return salida
+
+
 class ErrorDeModulo(Exception):
     pass
 
@@ -329,11 +352,12 @@ def cargar(ruta_principal, nombres_bonitos=None):
     # se sigue llamando `palabras` en el C generado.
     interno = {}        # (real, nombre) -> nombre interno
     for nombre, reales in duenios.items():
+        prefijo = prefijos_unicos({r: modulos[r]["mostrada"] for r in reales})
         for real in reales:
             if len(reales) == 1:
                 interno[(real, nombre)] = nombre
             else:
-                interno[(real, nombre)] = f"{prefijo_de(real)}__{nombre}"
+                interno[(real, nombre)] = f"{prefijo[real]}__{nombre}"
 
     # El mapa de cada archivo: lo suyo, mas lo que trae cada `usar`.
     for real, m in modulos.items():

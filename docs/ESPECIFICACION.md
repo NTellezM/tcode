@@ -382,6 +382,11 @@ generado se sigue llamando `palabras`. Eso importa porque el C generado es
 para leerlo: ensuciar todos los nombres para resolver un choque que casi
 nunca pasa sale caro y no compra nada.
 
+Cuando choca, lleva delante el nombre del archivo: `texto__palabras`. Si dos
+de los que lo declaran se llaman igual en carpetas distintas (`x.t` y
+`lib/x.t`), a esos dos les va la ruta entera, `x__f` y `lib_x__f`, para que
+no acaben siendo la misma función en C.
+
 ### 8. Fallos: no se pueden ignorar
 
 Una función que puede fallar lo declara con `!` después del tipo de retorno,
@@ -733,7 +738,8 @@ imprimir($"[{i}]");
 El `$` delante distingue una cadena interpolada de una normal, así que los
 literales de siempre siguen siendo literales. Dentro de `{}` cabe **cualquier
 expresión** del lenguaje, y se analiza con las reglas de siempre: `{n + 1}`,
-`{obtener(m, k) sino ""}`, `{a.campo}`. Para escribir una llave, `{{` y `}}`.
+`{obtener(m, k) sino ""}`, `{a.campo}`. Para escribir una llave, `{{` y `}}`, o
+`\{` y `\}`: son lo mismo, y el formateador las deja como `{{` y `}}`.
 
 No hay formato en tiempo de ejecución. Cada hueco se convierte con las
 mismas reglas que `imprimir`, y como el tipo se conoce al compilar, el C que

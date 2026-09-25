@@ -193,11 +193,18 @@ fn descifrado(t: view, interpolada: bool) -> str {
                 i = i + 4;
                 continue;
             }
+            // `\{` y `\}` en una interpolada son una llave escrita: quedan
+            // como `{{` y `}}`, que no abren ni cierran un hueco.
+            if interpolada && (d == 123 || d == 125) {
+                empujar(r, rebanar(t, i + 1, i + 2));
+                empujar(r, rebanar(t, i + 1, i + 2));
+                i = i + 2;
+                continue;
+            }
             empujar(r, rebanar(t, i + 1, i + 2));
             i = i + 2;
             continue;
         }
-        let _i = interpolada;
         empujar(r, rebanar(t, i, i + 1));
         i = i + 1;
     }
