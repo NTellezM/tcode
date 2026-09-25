@@ -1222,9 +1222,59 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Co
 fn junta(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, op: view,
     tipos: &I.Contexto) -> str {
     let izq = expresion_c(b, s, n.hijos[0], esperado, tipos);
+    let marca = largo(b.lineas);
+    let base = largo(b.temporales);
     let der = expresion_c(b, s, n.hijos[1], esperado, tipos);
     if es_desconocido(vista(izq)) || es_desconocido(vista(der)) {
         return no_se();
+    }
+    var hace_algo = false;
+    var k = marca;
+    while k < largo(b.lineas) {
+        let x = vista(b.lineas[k]);
+        if (contiene(x, "=") || contiene(x, "(")) && !empieza_con(x, "#") { hace_algo = true; }
+        k = k + 1;
+    }
+    if hace_algo {
+        // El lado derecho dejo lineas que hacen algo —un `str` recien hecho
+        // que se presta, por ejemplo—, y delante de la sentencia se harian
+        // siempre. Van dentro de un `if`, y lo que dejaron se suelta ahi
+        // mismo: el resultado ya es un `bool`.
+        var nuevas: lista<str> = [];
+        k = marca;
+        while k < largo(b.lineas) {
+            anadir(nuevas, copiar(b.lineas[k]));
+            k = k + 1;
+        }
+        recortar_lineas(b, marca);
+        var suyos: lista<str> = [];
+        var quedan: lista<str> = [];
+        k = 0;
+        while k < largo(b.temporales) {
+            if k < base { anadir(quedan, copiar(b.temporales[k])); }
+            else { anadir(suyos, copiar(b.temporales[k])); }
+            k = k + 1;
+        }
+        b.temporales = quedan;
+        let vale = nuevo_temporal(b);
+        emitir(b, $"bool {vale} = {izq};");
+        if igual(op, "&&") { emitir(b, $"if ({vale})"); } else { emitir(b, $"if (!{vale})"); }
+        emitir(b, "{");
+        for x en nuevas {
+            // Una directiva va pegada al margen.
+            if largo(x) == 0 || empieza_con(vista(x), "#") { anadir(b.lineas, copiar(x)); }
+            else { anadir(b.lineas, $"    {x}"); }
+        }
+        b.sangria = b.sangria + 1;
+        emitir(b, $"{vale} = {der};");
+        for entrada en suyos {
+            let nt = antes_de_dos_puntos(vista(entrada));
+            let tt = despues_de_dos_puntos(vista(entrada));
+            liberacion(b, tipos, vista(nt), vista(tt));
+        }
+        b.sangria = b.sangria - 1;
+        emitir(b, "}");
+        return vale;
     }
     var v = nuevo("(");
     empujar(v, vista(izq));

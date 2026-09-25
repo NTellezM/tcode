@@ -965,6 +965,10 @@ class Comprobador:
                 self.error(en, f"`{en.nombre}` ya esta definido en "
                                f"{previo.archivo or '<entrada>'}:{previo.linea}")
             self.enums[en.nombre] = en
+
+    def comprobar_formas(self, enums):
+        """Lo que lleva cada forma. Va despues de los structs: una forma
+        puede llevar uno, y antes no existia."""
         for en in enums:
             for v in en.variantes:
                 for i, t in enumerate(v.tipos):
@@ -981,6 +985,9 @@ class Comprobador:
                                        f"`{en.nombre}`: el tamaño no seria "
                                        f"finito. Metelo en una `lista`, que "
                                        f"guarda un puntero")
+                    # Tampoco un struct que presta.
+                    if self.es_prestado_st(v.tipos[i]):
+                        self.error_enum_prestado(en, v, v.tipos[i])
 
     def error_enum_prestado(self, en, v, t):
         self.error(en, f"`{en.nombre}.{v.nombre}` lleva un `{t}`, que presta: "
@@ -1051,12 +1058,6 @@ class Comprobador:
                 self.error(st, f"`{st.nombre}` se contiene a si mismo: no tiene "
                                f"un tamaño finito")
 
-        # Un enum tampoco lleva un struct que presta.
-        for en in self.enums.values():
-            for v in en.variantes:
-                for t in v.tipos:
-                    if self.es_prestado_st(t):
-                        self.error_enum_prestado(en, v, t)
 
     def _resolver_en_arbol(self, nodo, sitio=None):
         """Cambia cada `Par<usize, str>` escrito en el arbol por su copia.
@@ -1087,6 +1088,7 @@ class Comprobador:
         funciones = [d for d in funciones if isinstance(d, Funcion)]
         self.comprobar_enums(enums)
         self.comprobar_structs(structs)
+        self.comprobar_formas(enums)
         for f in funciones:
             if not f.tipo_params:
                 self._resolver_en_arbol(f, f)

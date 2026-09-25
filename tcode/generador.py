@@ -287,6 +287,10 @@ class Generador:
         elif tipo in self.c.structs:
             for c in self.c.structs[tipo].campos:
                 self.necesita_copiador(c.tipo)
+        elif tipo in self.c.enums:
+            for v in self.c.enums[tipo].variantes:
+                for t in v.tipos:
+                    self.necesita_copiador(t)
 
     def prototipo_externo(self, f):
         """La firma en C de una funcion que escribio otro."""
@@ -521,6 +525,31 @@ class Generador:
                     self._mirar_cuerpo(s.sino, mirar)
             elif isinstance(s, Mientras):
                 self._mirar_cuerpo(s.cuerpo, mirar)
+
+    def cuerpo_enum(self, en):
+        self.lineas.append(f"struct {en.nombre}")
+        self.lineas.append("{")
+        self.lineas.append("    uint32_t etiqueta;")
+        con_datos = [v for v in en.variantes if v.tipos]
+        if con_datos:
+            self.lineas.append("    union")
+            self.lineas.append("    {")
+            for v in con_datos:
+                campos = " ".join(
+                    f"{self.tipo_c(t)} _{i};" for i, t in enumerate(v.tipos))
+                self.lineas.append(
+                    f"        struct {{ {campos} }} v_{v.nombre};")
+            self.lineas.append("    } dato;")
+        self.lineas.append("};")
+        self.lineas.append("")
+
+    def cuerpo_struct(self, st):
+        self.lineas.append(f"struct {st.nombre}")
+        self.lineas.append("{")
+        for c in st.campos:
+            self.lineas.append(f"    {self.tipo_c(c.tipo)} {c.nombre};")
+        self.lineas.append("};")
+        self.lineas.append("")
 
     def orden_structs(self, structs):
         """Un struct por valor necesita el tamaño del que lleva dentro, asi
@@ -791,31 +820,33 @@ class Generador:
         if agregados:
             self.lineas.append("")
 
-        for en in enums:
-            self.lineas.append(f"struct {en.nombre}")
-            self.lineas.append("{")
-            self.lineas.append("    uint32_t etiqueta;")
-            con_datos = [v for v in en.variantes if v.tipos]
-            if con_datos:
-                self.lineas.append("    union")
-                self.lineas.append("    {")
-                for v in con_datos:
-                    campos = " ".join(
-                        f"{self.tipo_c(t)} _{i};" for i, t in enumerate(v.tipos))
-                    self.lineas.append(
-                        f"        struct {{ {campos} }} v_{v.nombre};")
-                self.lineas.append("    } dato;")
-            self.lineas.append("};")
-            self.lineas.append("")
+        # Los enums, y detras los structs en orden de dependencia. Pero un
+        # enum o un struct necesita el tamaño de lo que lleva por valor, asi
+        # que antes de cada uno va lo suyo: un enum que lleva un struct, o
+        # otro enum escrito mas abajo, lo encuentra ya definido.
+        por_nombre = {x.nombre: x for x in list(enums) + list(structs)}
+        definidos = set()
 
-        # structs, en orden de dependencia
+        def definir(nombre):
+            if nombre in definidos or nombre not in por_nombre:
+                return
+            definidos.add(nombre)
+            x = por_nombre[nombre]
+            lleva = ([t for v in x.variantes for t in v.tipos]
+                     if isinstance(x, Enum) else [c.tipo for c in x.campos])
+            for t in lleva:
+                while es_arreglo(t):
+                    t = elem_de(t)
+                definir(t)
+            if isinstance(x, Enum):
+                self.cuerpo_enum(x)
+            else:
+                self.cuerpo_struct(x)
+
+        for en in enums:
+            definir(en.nombre)
         for st in self.orden_structs(structs):
-            self.lineas.append(f"struct {st.nombre}")
-            self.lineas.append("{")
-            for c in st.campos:
-                self.lineas.append(f"    {self.tipo_c(c.tipo)} {c.nombre};")
-            self.lineas.append("};")
-            self.lineas.append("")
+            definir(st.nombre)
 
         # Prototipos primero: dos structs pueden referirse de forma finita a
         # traves de listas (A contiene lista<B>, B contiene lista<A>).
@@ -2692,8 +2723,35 @@ class Generador:
         # el lado derecho cuando el izquierdo decide el resultado.
         if e.op in {"&&", "||"}:
             izq = self.expr(e.izq, "bool")
+            marca = len(self.lineas)
+            base = len(self.temporales)
             der = self.expr(e.der, "bool")
-            return f"({izq} {e.op} {der})"
+            nuevas = self.lineas[marca:]
+            if not any(("=" in x or "(" in x) and not x.startswith("#")
+                       for x in nuevas):
+                return f"({izq} {e.op} {der})"
+            # El lado derecho dejo lineas que hacen algo —un `str` recien
+            # hecho que se presta, por ejemplo—, y delante de la sentencia se
+            # harian siempre. Van dentro de un `if`, y lo que dejaron se
+            # suelta ahi mismo: el resultado ya es un `bool`.
+            del self.lineas[marca:]
+            suyos = self.temporales[base:]
+            del self.temporales[base:]
+            vale = self.nuevo_tmp()
+            self.emitir(f"bool {vale} = {izq};")
+            self.emitir(f"if ({'' if e.op == '&&' else '!'}{vale})")
+            self.emitir("{")
+            for x in nuevas:
+                # Una directiva va pegada al margen.
+                self.lineas.append(x if not x or x.startswith("#")
+                                   else "    " + x)
+            self.sangria += 1
+            self.emitir(f"{vale} = {der};")
+            for t in suyos:
+                self.liberacion(t, self.tipo_var(t) or "str")
+            self.sangria -= 1
+            self.emitir("}")
+            return vale
 
         t = self._tipo_de(e.izq)
         if t not in ARITMETICA and t not in DECIMALES:

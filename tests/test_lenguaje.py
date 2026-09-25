@@ -1358,6 +1358,58 @@ ACEPTA = [
         }''',
      "arandano aguacate | 2 | pera arandano aguacate \n"),
 
+    ("`&&` y `||` no evaluan la derecha si la izquierda ya decide",
+     '''fn nombre(xs: &lista<str>) -> str {
+    imprimir("[se evaluo] ");
+    return copiar(xs[0]);
+}
+
+fn corto(v: view) -> bool { return largo(v) < 3; }
+
+fn main() {
+    var xs: lista<str> = [];
+    // Con la lista vacia, la derecha no se puede evaluar: el `&&` corta.
+    if largo(xs) == 1 && corto(nombre(xs)) { imprimir("no\\n"); }
+    if largo(xs) == 0 || corto(nombre(xs)) { imprimir("corta el ||\\n"); }
+    anadir(xs, nuevo("ab"));
+    if largo(xs) == 1 && corto(nombre(xs)) { imprimir("si\\n"); }
+    let a = largo(xs) > 5 || corto(nombre(xs));
+    imprimir($"{a}\\n");
+}''',
+     "corta el ||\n[se evaluo] si\n[se evaluo] true\n"),
+
+    ("un enum que lleva un struct, y otro enum escrito mas abajo",
+     '''// Un enum que lleva un struct, y otro enum escrito mas abajo.
+enum Figura { Nada, Punto(Punto), Con(Color, Punto), Nombrada(Etiqueta) }
+
+struct Punto { x: i64, y: i64 }
+struct Etiqueta { texto: str, color: Color }
+
+enum Color { Rojo, Otro(str) }
+
+fn describir(f: &Figura) -> str {
+    return match f {
+        Figura.Nada -> nuevo("nada"),
+        Figura.Punto(p) -> $"({p.x}, {p.y})",
+        Figura.Con(Color.Otro(c), p) -> $"{c} en ({p.x}, {p.y})",
+        Figura.Con(_, p) -> $"rojo en ({p.x}, {p.y})",
+        Figura.Nombrada(e) -> copiar(e.texto),
+    };
+}
+
+fn main() {
+    var fs: lista<Figura> = [];
+    anadir(fs, Figura.Nada);
+    anadir(fs, Figura.Punto(Punto { x: 1, y: -2 }));
+    anadir(fs, Figura.Con(Color.Otro(nuevo("azul")), Punto { x: 3, y: 4 }));
+    anadir(fs, Figura.Con(Color.Rojo, Punto { x: 0, y: 0 }));
+    anadir(fs, Figura.Nombrada(Etiqueta { texto: nuevo("hola"), color: Color.Rojo }));
+    for f en fs { imprimir($"{describir(f)}\\n"); }
+    let otra = copiar(fs[4]);
+    imprimir($"{describir(otra)}\\n");
+}''',
+     "nada\n(1, -2)\nazul en (3, 4)\nrojo en (0, 0)\nhola\nhola\n"),
+
     ("structs con un campo `view`",
      '''struct Palabra { texto: view, n: usize }
 struct Linea { primera: Palabra, resto: view }
@@ -4258,6 +4310,60 @@ fn main() {
 }
 """
 
+# `&&` con un `str` recien hecho prestado a la derecha: la derecha va dentro
+# de un `if`, y no delante de la sentencia.
+_CORTOCIRCUITO_TCODEC = r"""fn nombre(xs: &lista<str>) -> str {
+    imprimir("[se evaluo] ");
+    return copiar(xs[0]);
+}
+
+fn corto(v: view) -> bool { return largo(v) < 3; }
+
+fn main() {
+    var xs: lista<str> = [];
+    // Con la lista vacia, la derecha no se puede evaluar: el `&&` corta.
+    if largo(xs) == 1 && corto(nombre(xs)) { imprimir("no\n"); }
+    if largo(xs) == 0 || corto(nombre(xs)) { imprimir("corta el ||\n"); }
+    anadir(xs, nuevo("ab"));
+    if largo(xs) == 1 && corto(nombre(xs)) { imprimir("si\n"); }
+    let a = largo(xs) > 5 || corto(nombre(xs));
+    imprimir($"{a}\n");
+}
+"""
+
+# Un enum que lleva un struct y otro enum escrito mas abajo: los tipos van
+# en C en orden de dependencia, con los copiadores de lo que llevan.
+_ENUM_CON_STRUCT_TCODEC = r"""// Un enum que lleva un struct, y otro enum escrito mas abajo.
+enum Figura { Nada, Punto(Punto), Con(Color, Punto), Nombrada(Etiqueta) }
+
+struct Punto { x: i64, y: i64 }
+struct Etiqueta { texto: str, color: Color }
+
+enum Color { Rojo, Otro(str) }
+
+fn describir(f: &Figura) -> str {
+    return match f {
+        Figura.Nada -> nuevo("nada"),
+        Figura.Punto(p) -> $"({p.x}, {p.y})",
+        Figura.Con(Color.Otro(c), p) -> $"{c} en ({p.x}, {p.y})",
+        Figura.Con(_, p) -> $"rojo en ({p.x}, {p.y})",
+        Figura.Nombrada(e) -> copiar(e.texto),
+    };
+}
+
+fn main() {
+    var fs: lista<Figura> = [];
+    anadir(fs, Figura.Nada);
+    anadir(fs, Figura.Punto(Punto { x: 1, y: -2 }));
+    anadir(fs, Figura.Con(Color.Otro(nuevo("azul")), Punto { x: 3, y: 4 }));
+    anadir(fs, Figura.Con(Color.Rojo, Punto { x: 0, y: 0 }));
+    anadir(fs, Figura.Nombrada(Etiqueta { texto: nuevo("hola"), color: Color.Rojo }));
+    for f en fs { imprimir($"{describir(f)}\n"); }
+    let otra = copiar(fs[4]);
+    imprimir($"{describir(otra)}\n");
+}
+"""
+
 _FN_ANIDADA_TCODEC = r"""fn doble(n: usize) -> usize { return n * 2; }
 fn aplicar(f: fn(usize) -> usize, n: usize) -> usize { return f(n); }
 fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
@@ -4524,7 +4630,9 @@ try:
                                        ("patrones.t", _PATRONES_TCODEC),
                                        ("sacado.t", _CAMPO_SACADO_TCODEC),
                                        ("sacado2.t", _CAMPO_SACADO_RETORNO_TCODEC),
-                                       ("prestado.t", _STRUCT_PRESTADO_TCODEC)):
+                                       ("prestado.t", _STRUCT_PRESTADO_TCODEC),
+                                       ("corto.t", _CORTOCIRCUITO_TCODEC),
+                                       ("enum_st.t", _ENUM_CON_STRUCT_TCODEC)):
                 total += 1
                 ruta_cierre = os.path.join(tmp, nombre_c)
                 with open(ruta_cierre, "w", encoding="utf-8") as f:
