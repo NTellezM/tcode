@@ -131,10 +131,15 @@ fn apuntado_si(t: view) -> str {
 
 fn elemento(t: view) -> str {
     if es_arreglo(t) {
-        // `[usize; 4]`: lo que va antes del `;`
+        // `[usize; 4]`: lo que va antes del `;` de fuera. El de
+        // `[[usize; 2]; 3]` es `[usize; 2]`, no `[usize`.
+        var hondura = 0;
         var i = 1;
-        while i < largo(t) {
-            if byte(t, i) == 59 { return nuevo(rebanar(t, 1, i)); }
+        while i + 1 < largo(t) {
+            let b = byte(t, i);
+            if b == 91 || b == 60 { hondura = hondura + 1; }
+            if (b == 93 || b == 62) && hondura > 0 { hondura = hondura - 1; }
+            if b == 59 && hondura == 0 { return nuevo(rebanar(t, 1, i)); }
             i = i + 1;
         }
         return nuevo(rebanar(t, 1, largo(t) - 1));

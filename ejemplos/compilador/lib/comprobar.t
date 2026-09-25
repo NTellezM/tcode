@@ -5176,6 +5176,9 @@ struct Revision {
     anotados: lista<mapa<str, str>>,
     // Las copias y las clausuras, en el orden en que se escriben.
     orden_copias: lista<str>,
+    // Las copias de structs genericos, en el orden en que nacen: tambien
+    // las que se deducen de un literal, que no estan escritas en ningun sitio.
+    structs_aplicados: lista<str>,
 }
 
 fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
@@ -5449,10 +5452,14 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
     }
     comprobar_restricciones(c, m);
     let principal = vista(modulos[largo(modulos) - 1]);
+    var aplicados: lista<str> = [];
+    for t en m.tipo_de_struct {
+        if contiene(vista(t), "<") { anadir(aplicados, copiar(t)); }
+    }
     return Revision { errores: copiar(c.errores), avisos: copiar(c.avisos),
         explicacion: explicacion(m, c.informe, principal),
         cierres: copiar(m.cierres),
         cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion),
         sacados: copiar(c.sacados), anotados: copiar(m.anotados),
-        orden_copias: copiar(m.orden_copias) };
+        orden_copias: copiar(m.orden_copias), structs_aplicados: aplicados };
 }

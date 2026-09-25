@@ -86,12 +86,13 @@ fn mangle(t: view) -> str {
 
 // El `4` de `[usize; 4]`.
 fn cuantos_de_arreglo(t: view) -> str {
-    var i = 0;
-    while i < largo(t) {
+    // El `;` de fuera: el de `[[usize; 2]; 3]` es el que va antes del 3.
+    var i = largo(t);
+    while i > 0 {
+        i = i - 1;
         if byte(t, i) == 59 {
             return nuevo(recortar(rebanar(t, i + 1, largo(t) - 1)));
         }
-        i = i + 1;
     }
     return nuevo("0");
 }
@@ -764,6 +765,17 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
     if igual(clase, "try") { return try_c(b, s, n, tipos); }
     if igual(clase, "sino") { return sino_c(b, s, n, tipos); }
 
+    // Un `match` dentro de una expresion: su `switch` va delante, en lineas
+    // propias, y la expresion lee el temporal donde deja el valor. Lo que
+    // atrapan los brazos se declara en copias del sitio y de los tipos: al
+    // cerrar el `match` ya no se ve. Un brazo que pida salir de la funcion
+    // no se sabe hacer desde aqui, y la funcion entera se descarta.
+    if igual(clase, "match") {
+        var s_m = copiar(s);
+        var t_m = copiar(tipos);
+        return match_valor(b, s_m, n, t_m, vista(s.retorno), false);
+    }
+
     // Un decimal va tal cual se escribio, con sufijo si el destino es de
     // 32 bits: `2.5` en un `f32` sin la `f` seria un `double` recortado.
     if igual(clase, "decimal") {
@@ -830,6 +842,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         }
         let marco_e = cerrar_marco(b);
         escribir_argumentos(marco_e, piezas, previos, ", ");
+        apuntar_arreglo(b, vista(t));
         let tc = tipo_c(vista(t));
         let literal = $"({tc}){{{{ {piezas} }}}}";
         if largo(previos) > 0 {
@@ -1104,6 +1117,11 @@ fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
         let base_e = I.base_de_aplicacion(esperado);
         let corto_e = I.sin_modulo(vista(escrito_s));
         if igual(vista(base_e), vista(corto_e)) { escrito_s = nuevo(esperado); }
+    }
+    // Sin tipos escritos ni esperados, los que dedujo el comprobador.
+    if !contiene(vista(escrito_s), "<") {
+        let dicho = I.tipo_de(tipos, n);
+        if I.es_aplicacion(vista(dicho)) { escrito_s = dicho; }
     }
     let escrito = vista(escrito_s);
     var r = nuevo("(");
@@ -1561,7 +1579,9 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
 
     if igual(nombre, "largo") {
         if largo(n.hijos) != 1 { return no_se(); }
-        let sobre = I.tipo_de(tipos, n.hijos[0]);
+        // `let p: &mut bloque<usize> = ...` se mide por lo que apunta.
+        let suyo = I.tipo_de(tipos, n.hijos[0]);
+        let sobre = T.apuntado_si(vista(suyo));
         if T.es_mapa(vista(sobre)) {
             let donde = sitio_c(b, s, n.hijos[0], tipos);
             if es_desconocido(vista(donde)) { return no_se(); }
@@ -2663,6 +2683,13 @@ fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
     let clase = vista(n.clase);
     if igual(clase, "bloque") { return; }
 
+    // La alternativa de un `sino` solo corre si la llamada falla: lo que
+    // entrega lo apaga esa rama, no la sentencia entera.
+    if igual(clase, "sino") && largo(n.hijos) == 2 {
+        movidas_en(punteros, n.hijos[0], tipos, salida);
+        return;
+    }
+
     // `let y = x;` y `y = x;` mueven tanto como pasarla a una funcion.
     if igual(clase, "declaracion") && largo(n.hijos) == 1 {
         if entrega_suelta(punteros, n.hijos[0], tipos) {
@@ -2720,6 +2747,27 @@ fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
     for h en n.hijos { movidas_en(punteros, h, tipos, salida); }
 }
 
+// Lo que entrega la alternativa de un `sino`, que se apaga dentro de su rama.
+fn movidas_de_alternativa(punteros: &mapa<str, usize>, n: &P.Nodo,
+    tipos: &I.Contexto, salida: mut lista<str>) {
+    if entrega_suelta(punteros, n, tipos) {
+        apuntar_movida(salida, vista(n.texto));
+    }
+    movidas_en(punteros, n, tipos, salida);
+}
+
+// Lo que se entrega solo por un camino dentro de la sentencia: las
+// alternativas de sus `sino`. Tambien pide bandera, aunque no lo apague la
+// sentencia.
+fn movidas_por_caminos(punteros: &mapa<str, usize>, n: &P.Nodo,
+    tipos: &I.Contexto, salida: mut lista<str>) {
+    if igual(vista(n.clase), "bloque") { return; }
+    if igual(vista(n.clase), "sino") && largo(n.hijos) == 2 {
+        movidas_de_alternativa(punteros, n.hijos[1], tipos, salida);
+    }
+    for h en n.hijos { movidas_por_caminos(punteros, h, tipos, salida); }
+}
+
 // Lo mismo entrando en los bloques de dentro: es la pasada que decide quien
 // lleva bandera. Declara los locales segun los va encontrando, porque para
 // saber si una variable se entrega hay que saber primero que tiene duenio, y
@@ -2744,6 +2792,7 @@ fn movidas_hondo_en(punteros: &mapa<str, usize>, bloque: &P.Nodo,
         // declara: `let y = x;` entrega la `x` de fuera.
         var salen: lista<str> = [];
         movidas_en(punteros, st, tipos, salen);
+        movidas_por_caminos(punteros, st, tipos, salen);
         for nm en salen {
             let k = visible_en(mias, vista(nm));
             apuntar_movida(salida, vista(k));
@@ -2929,6 +2978,9 @@ struct Cuerpo {
     instancias: lista<str>,
     // Los tipos que se copian con un copiador generado, en orden.
     copias: lista<str>,
+    // Los arreglos que nombra un literal sin declararse en ningun sitio:
+    // `for x en [1, 2]`. Su typedef llega tarde, detras de los demas.
+    arreglos: lista<str>,
     // Las etiquetas de `goto` puestas en todo el archivo, los `switch`
     // abiertos, y cuantos habia al abrir cada bucle: un `break` dentro de un
     // `switch` saldria del `switch`, asi que sale con `goto` a una etiqueta
@@ -2978,11 +3030,22 @@ fn nombre_de_bucle(n: usize) -> str {
     return s;
 }
 
+// Un arreglo que pide typedef, con los arreglos que lleva dentro delante.
+fn apuntar_arreglo(b: mut Cuerpo, t: view) {
+    if !T.es_arreglo(t) { return; }
+    let dentro = T.elemento(t);
+    apuntar_arreglo(b, vista(dentro));
+    for x en b.arreglos {
+        if igual(vista(x), t) { return; }
+    }
+    anadir(b.arreglos, nuevo(t));
+}
+
 fn cuerpo() -> Cuerpo {
     return Cuerpo { lineas: [], bloques: [], claves: [], sangria: 1, temporal: 0,
         ultima_linea: 0, bucle: 0, bucles: [], temporales: [], fuera: [], bucles_t: [],
-        fallo_linea: 0, fallo_clase: vacio(), instancias: [], copias: [], etiquetas: 0,
-        en_switch: 0, switch_en_bucle: [], etiquetas_bucle: [], por_correr: [] };
+        fallo_linea: 0, fallo_clase: vacio(), instancias: [], copias: [], arreglos: [],
+        etiquetas: 0, en_switch: 0, switch_en_bucle: [], etiquetas_bucle: [], por_correr: [] };
 }
 
 fn sangrar(b: &Cuerpo) -> str {
@@ -3637,6 +3700,7 @@ fn lleva_coma(t: view) -> bool {
 fn mueve_algo(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     var salen: lista<str> = [];
     movidas_en(s.punteros, n, tipos, salen);
+    movidas_por_caminos(s.punteros, n, tipos, salen);
     return largo(salen) > 0;
 }
 
@@ -3680,6 +3744,10 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             // por el mismo camino sin tocar lo que ya esta vivo.
             if !falible { return false; }
             valor = try_c(b, s, n.hijos[0], tipos);
+        } else if igual(cual, "match") {
+            // Sus brazos pueden llevar sentencias: se genera desde aqui,
+            // donde el sitio se puede modificar, como en `return`.
+            valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible);
         } else {
             valor = expresion_c(b, s, n.hijos[0], vista(tipo), tipos);
         }
@@ -4000,7 +4068,12 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // la izquierda antes de que sepamos donde se escribira.
         let destino = expresion_c(b, s, n.hijos[0], vista(tipo), tipos);
         if es_desconocido(vista(destino)) { return false; }
-        let valor = expresion_c(b, s, n.hijos[1], vista(tipo), tipos);
+        var valor = vacio();
+        if igual(vista(n.hijos[1].clase), "match") {
+            valor = match_valor(b, s, n.hijos[1], tipos, retorno, falible);
+        } else {
+            valor = expresion_c(b, s, n.hijos[1], vista(tipo), tipos);
+        }
         if es_desconocido(vista(valor)) { return false; }
         reclamar(b, vista(valor));
 
@@ -4207,6 +4280,8 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         b.sangria = b.sangria - 1;
         emitir(b, "}");
         cerrar_bucle_saltos(b);
+        // `for c en filtradas(xs, f)` entrega `f` al calcular la coleccion.
+        if bien { apagar_las_de(b, s, n, tipos); }
         return bien;
     }
 
@@ -4318,7 +4393,8 @@ fn tipo_si_va_bien(n: &P.Nodo, tipos: &I.Contexto) -> str {
     }
     // Escribir sale bien o no, sin valor.
     if igual(llamado, "escribir_archivo") { return nuevo("()"); }
-    if igual(llamado, "obtener") || igual(llamado, "leer_archivo")
+    if igual(llamado, "obtener") || igual(llamado, "obtener_mut")
+    || igual(llamado, "leer_archivo")
     || igual(llamado, "leer_linea") || igual(llamado, "entrada_completa")
     || igual(llamado, "variable_entorno") {
         return I.tipo_de(tipos, n);
@@ -4418,6 +4494,14 @@ fn sino_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     empujar(pone, vista(alt));
     empujar(pone, ";");
     emitir(b, vista(pone));
+    // Lo que entrega la alternativa solo se entrega por esta rama.
+    var salen: lista<str> = [];
+    movidas_de_alternativa(s.punteros, n.hijos[1], tipos, salen);
+    var vivas: lista<str> = [];
+    for nm en salen {
+        if lleva_bandera(b, s, vista(nm)) { anadir(vivas, copiar(nm)); }
+    }
+    apagar(b, vivas);
     b.sangria = b.sangria - 1;
     emitir(b, "}");
     emitir(b, "else");
