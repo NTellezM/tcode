@@ -41,6 +41,15 @@ Las propiedades:
       despues no compila; el que la deja morir antes compila y corre limpio
       bajo ASan. Los programas validos por construccion no prueban esto
       nunca, y fue donde estaban los agujeros.
+  P11 Un programa de aritmetica imprime lo que tiene que imprimir, y para
+      donde tiene que parar. Las demas propiedades miran que el programa
+      corra limpio, no que el numero sea el bueno: `1 + x`, con
+      `x: f64 = 2.5`, imprimio `3` con todas en verde. Aqui cada programa
+      lleva su salida calculada aparte, en Python, con las reglas de la
+      especificacion (`tests/oraculo.py`), con todos los enteros y los dos
+      decimales, numeros escritos a los dos lados, conversiones, `if` como
+      valor, llamadas, genericas, campos y arreglos. Y el C que escribe
+      `tcodec` para ese programa es el mismo, byte a byte.
 """
 
 import concurrent.futures
@@ -63,6 +72,7 @@ from tcode.parser import ErrorSintactico
 from generador_programas import generar, generar_modulos
 from mutador import mutar
 from violaciones import casos as casos_de_violacion
+from oraculo import generar as generar_oraculo
 
 RUNTIME = os.path.join(RAIZ, "runtime")
 CUANTOS = int(os.environ.get("TCODE_PROGRAMAS", "60"))
@@ -237,6 +247,114 @@ def probar_violaciones(tmp):
                 falla("P10 lo valido corre limpio", nombre, problema, bueno)
 
 
+def construir_tcodec(tmp):
+    """`tcodec`, sin sanitizers: solo se le pide el C de cada programa."""
+    global total
+    total += 1
+    antes = os.getcwd()
+    try:
+        os.chdir(RAIZ)
+        codigo, errores = compilar_archivo(
+            os.path.join("ejemplos", "compilador", "tcodec.t"))
+    finally:
+        os.chdir(antes)
+    if errores:
+        falla("P11 tcodec se construye", "tcodec", "\n".join(errores))
+        return None
+    ruta_c = os.path.join(tmp, "tcodec.c")
+    binario = os.path.join(tmp, "tcodec")
+    with open(ruta_c, "w", encoding="utf-8") as f:
+        f.write(codigo)
+    r = subprocess.run(
+        ["cc", "-std=c17", "-O1", f"-I{RUNTIME}", ruta_c,
+         os.path.join(RUNTIME, "safestr.c"),
+         os.path.join(RAIZ, "ejemplos", "compilador", "lib", "sistema_tcodec.c"),
+         "-o", binario, "-lm"],
+        capture_output=True, text=True)
+    if r.returncode != 0:
+        falla("P11 tcodec se construye", "tcodec", r.stderr)
+        return None
+    return binario
+
+
+def probar_oraculo(tmp, tcodec):
+    """P11: la salida es la que dice el oraculo, y `tcodec` escribe el mismo
+    C que Python."""
+    global total
+    programas = []
+    for semilla in range(1, CUANTOS + 1):
+        fuente, salida, parada = generar_oraculo(semilla)
+        ruta = os.path.join(tmp, f"o{semilla}.t")
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write(fuente)
+        total += 1
+        try:
+            codigo, errores = compilar_a_c(fuente, ruta)
+        except Exception:
+            falla("P11 el oraculo compila", semilla, traceback.format_exc(), fuente)
+            continue
+        if errores:
+            falla("P11 el oraculo compila", semilla, "\n".join(errores), fuente)
+            continue
+        programas.append((semilla, fuente, ruta, codigo, salida, parada))
+
+    def correr(semilla, fuente, ruta, codigo, salida, parada):
+        problemas = []
+        if tcodec:
+            r = subprocess.run([tcodec, ruta, "--mostrar-c"], capture_output=True,
+                               text=True, cwd=RAIZ, timeout=300,
+                               env=dict(os.environ, TCODE_RAIZ="."))
+            if r.stdout != codigo:
+                problemas.append(("P11 mismo C en Tcode",
+                                  f"tcodec escribe otro C (codigo {r.returncode})\n"
+                                  + r.stderr[:400]))
+        ruta_c = ruta[:-2] + ".c"
+        binario = ruta[:-2]
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            return problemas + [("P11 C limpio", r.stderr)]
+        e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
+        if "Sanitizer" in e.stderr or "runtime error" in e.stderr:
+            problemas.append(("P11 memoria limpia", e.stderr))
+        if e.stdout != salida:
+            dados, esperados = e.stdout.splitlines(), salida.splitlines()
+            for i, (x, y) in enumerate(zip(dados, esperados)):
+                if x != y:
+                    problemas.append(("P11 salida correcta",
+                                      f"linea {i + 1} de la salida: da {x!r}, "
+                                      f"tenia que dar {y!r}"))
+                    break
+            else:
+                problemas.append(("P11 salida correcta",
+                                  f"da {len(dados)} lineas, tenia que dar "
+                                  f"{len(esperados)}\n{e.stderr[:300]}"))
+        if parada:
+            linea, mensaje = parada
+            if e.returncode == 0 or f"{ruta}:{linea}: {mensaje}" not in e.stderr:
+                problemas.append(("P11 para donde tiene que parar",
+                                  f"tenia que parar en la linea {linea}: "
+                                  f"{mensaje}\ncodigo {e.returncode}: "
+                                  f"{e.stderr[:300]}"))
+        elif e.returncode != 0:
+            problemas.append(("P11 no para sin motivo",
+                              f"codigo {e.returncode}: {e.stderr[:300]}"))
+        return problemas
+
+    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 2) as hilos:
+        resultados = hilos.map(lambda x: correr(*x), programas)
+        for (semilla, fuente, *_), problemas in zip(programas, resultados):
+            total += 1
+            for propiedad, detalle in problemas:
+                falla(propiedad, semilla, detalle, fuente)
+
+
 def probar_errores(tmp):
     """P4: todo error nombra un archivo y una linea que existen."""
     global total
@@ -409,6 +527,9 @@ def main():
 
         print("=== VIOLACIONES: una vista, su duenio invalidado, la vista usada ===")
         probar_violaciones(tmp)
+
+        print("=== ORACULO: la aritmetica da lo que tiene que dar ===")
+        probar_oraculo(tmp, construir_tcodec(tmp))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
