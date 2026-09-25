@@ -446,6 +446,12 @@ class Comprobador:
         self.args_instancia = {}    # copia -> (base, argumentos de tipo)
         self.cierres = {}       # struct de cierre -> nombre de su funcion
         self.n_cierres = 0
+        # Los structs de las clausuras que modifican lo que capturaron:
+        # llamarlas las modifica.
+        self.cierres_mut = set()
+        # Las clausuras que se estan comprobando, de dentro afuera: que
+        # capturaron con `mut` y que han modificado de verdad.
+        self.pila_cierres = []
         self.retorno_actual = None
         self.falible_actual = False
         self.en_condicional = 0
@@ -490,7 +496,8 @@ class Comprobador:
             return ""
         partes = []
         for nombre, ligaduras, sitio in reversed(self.contexto_instancia):
-            tipos = ", ".join(f"{k} = {v}" for k, v in ligaduras.items())
+            tipos = self._legible(
+                ", ".join(f"{k} = {v}" for k, v in ligaduras.items()))
             partes.append(f"\n  al usar `{nombre}` con {tipos}, desde {sitio}")
         return "".join(partes)
 
@@ -610,6 +617,8 @@ class Comprobador:
 
     def mutar(self, nodo, sim, por_referencia=False):
         """Modificar una variable en el sitio."""
+        if self._escribe_en_captura(nodo):
+            return
         sim.mutada = True
         if not self.usar(nodo, sim, lectura=False):
             return
@@ -630,9 +639,46 @@ class Comprobador:
             self.error(nodo, f"no se puede modificar `{sim.nombre}`: "
                              f"{self._ocupada(sim)}")
 
+    def _escribe_en_captura(self, lugar):
+        """Si `lugar` es algo que capturo la clausura que se comprueba, lo
+        apunta como modificado. Si se capturo sin `mut`, lo dice y devuelve
+        True: el error ya esta dado."""
+        campo = None
+        sitio = lugar
+        while isinstance(lugar, (Campo, Indice)):
+            if (isinstance(lugar, Campo) and isinstance(lugar.objeto, Variable)
+                    and lugar.objeto.nombre == "_ss_entorno"):
+                campo = lugar.nombre
+            lugar = lugar.objeto if isinstance(lugar, Campo) else lugar.arreglo
+        if campo is None or not self.pila_cierres:
+            return False
+        cierre = self.pila_cierres[-1]
+        if campo in cierre["mutables"]:
+            cierre["modificadas"].add(campo)
+            return False
+        self.error(sitio, f"`{campo}` se capturo para leer: para modificarlo "
+                          f"dentro de la clausura, capturalo con "
+                          f"`fn[mut {campo}]`")
+        return True
+
     def error_no_mutable(self, nodo, sim):
         """Por que no se puede modificar. La razon cambia el arreglo."""
-        if sim.prestado:
+        if sin_prestamo(sim.tipo) in self.cierres_mut:
+            # Lo que se modifica es la clausura: se la llama, y guarda lo que
+            # capturo con `mut`.
+            if isinstance(sim.decl, Parametro):
+                arreglo = "recibela con `mut` delante del tipo"
+                # En una generica, el tipo que se escribio: `f: mut F`.
+                if self.contexto_instancia:
+                    plantilla = self.genericas.get(self.contexto_instancia[-1][0])
+                    for p in (plantilla.params if plantilla else []):
+                        if p.nombre == sim.nombre:
+                            arreglo = f"recibela como `{p.nombre}: mut {p.tipo}`"
+            else:
+                arreglo = "declarala con `var`"
+            self.error(nodo, f"`{sim.nombre}` es una clausura que modifica lo "
+                             f"que capturo, y llamarla la modifica: {arreglo}")
+        elif sim.prestado:
             self.error(nodo, f"`{sim.nombre}` llego prestado solo para leer "
                              f"(`&`): para modificarlo, recibelo como "
                              f"`mut {sim.tipo}`")
@@ -1520,6 +1566,8 @@ class Comprobador:
             destino = self.tipo_de_lugar(s.lugar)
             tipo = self.expresion(s.valor, destino=destino, mover_variables=True)
 
+            if self._escribe_en_captura(s.lugar):
+                return
             sim.mutada = True
             # Escribir a traves de un `&mut T` no es reasignar la variable:
             # la variable sigue apuntando al mismo sitio. Lo que se exige es
@@ -2335,10 +2383,15 @@ class Comprobador:
         self.nombre_original[nombre_struct] = "clausura"
         self.nombre_original[nombre_fn] = "clausura"
 
-        # El cuerpo ve lo capturado como campos del entorno.
+        # El cuerpo ve lo capturado como campos del entorno. Si algo se
+        # capturo con `mut`, el entorno llega prestado para modificar: lo
+        # que cambie sigue ahi en la llamada siguiente.
         cuerpo = _copy.deepcopy(e.cuerpo)
         _renombrar_capturas(cuerpo, vistos, e.linea)
-        entorno = Parametro("_ss_entorno", nombre_struct, False, True)
+        modifica = bool(e.mutables)
+        if modifica:
+            self.cierres_mut.add(nombre_struct)
+        entorno = Parametro("_ss_entorno", nombre_struct, modifica, not modifica)
         f = Funcion(nombre_fn, [entorno] + list(e.params), e.retorno, cuerpo,
                     e.falible, linea=e.linea, archivo=e.archivo)
         self.funciones[nombre_fn] = f
@@ -2348,11 +2401,18 @@ class Comprobador:
         guardado = (self.retorno_actual, self.falible_actual,
                     self.simbolos_funcion, self.ambitos)
         self.ambitos = []
+        propia = {"mutables": set(e.mutables), "modificadas": set()}
+        self.pila_cierres.append(propia)
         try:
             self.comprobar_funcion(f)
         finally:
+            self.pila_cierres.pop()
             (self.retorno_actual, self.falible_actual,
              self.simbolos_funcion, self.ambitos) = guardado
+        for nombre in e.mutables:
+            if nombre not in propia["modificadas"] and not nombre.startswith("_"):
+                self.aviso(e, f"`{nombre}` se captura con `mut` y nunca se "
+                              f"modifica; puede ir sin `mut`")
 
         e.tipo_struct = nombre_struct
         e.funcion = nombre_fn

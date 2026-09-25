@@ -170,6 +170,23 @@ RECHAZO = [
      ' return g(1); }',
      "una clausura captura por valor"),
 
+    ("modificar lo capturado pide `mut` en la captura",
+     'fn main() { let n: usize = 0;'
+     ' let f = fn[n]() -> usize { n = n + 1; return n; }; imprimir(f()); }',
+     "capturalo con `fn[mut n]`"),
+
+    ("una clausura que modifica solo se llama desde un `var`",
+     'fn main() { let n: usize = 0;'
+     ' let f = fn[mut n]() -> usize { n = n + 1; return n; }; imprimir(f()); }',
+     "declarala con `var`"),
+
+    ("una generica llama a una clausura que modifica si la recibe `mut`",
+     'fn dos<F>(f: F) -> usize { return f() + f(); }'
+     ' fn main() { let n: usize = 0;'
+     ' var f = fn[mut n]() -> usize { n = n + 1; return n; };'
+     ' imprimir(dos(f)); }',
+     "recibela como `f: mut F`"),
+
     ("no se captura lo que no existe",
      'fn main() -> usize { let g = fn[nada](x: usize) -> usize { return x; };'
      ' return g(1); }',
@@ -1187,6 +1204,39 @@ ACEPTA = [
             imprimir("\\n");
         }''',
      "arandano aguacate | 2 | pera arandano aguacate \n"),
+
+    ("una clausura que modifica lo capturado guarda su estado entre llamadas",
+     '''fn repetir<F>(n: usize, f: mut F) {
+            var i: usize = 0;
+            while i < n {
+                f();
+                i = i + 1;
+            }
+        }
+
+        fn main() {
+            let n: usize = 0;
+            var contar = fn[mut n]() -> usize {
+                n = n + 1;
+                return n;
+            };
+            imprimir($"{contar()} {contar()} ");
+            // La generica la recibe `mut`: lo que cambia, cambia aqui.
+            repetir(3, contar);
+            // Lo capturado es una copia: la `n` de fuera no se entera.
+            imprimir($"{contar()} {n} | ");
+
+            let s = nuevo("a");
+            var acumula = fn[mut s](x: view) -> usize {
+                empujar(s, x);
+                return largo(s);
+            };
+            imprimir($"{acumula("bc")} ");
+            // Copiarla copia tambien su estado, y desde ahi van por separado.
+            var otra = copiar(acumula);
+            imprimir($"{otra("d")} {acumula("e")}\\n");
+        }''',
+     "1 2 6 0 | 3 4 4\n"),
 
     ("`if` como valor, con ramas que son una expresion",
      '''fn clasificar(n: usize) -> str {
@@ -2418,6 +2468,11 @@ AVISA = [
      'fn f() { var s: str = nuevo("a"); empujar(s, "b");'
      ' imprimir(largo(vista(s))); }',
      None),
+
+    ("una captura `mut` que nunca se modifica",
+     'fn f() { let n: usize = 1;'
+     ' var g = fn[mut n]() -> usize { return n; }; imprimir(g()); }',
+     "puede ir sin `mut`"),
 ]
 
 
@@ -3754,6 +3809,32 @@ _LLAVE_ESCRITA_TCODEC = r"""fn main() {
 }
 """
 
+# Una clausura que modifica lo capturado: su entorno llega para modificar, y
+# una generica la recibe `mut`.
+_CIERRE_QUE_MODIFICA_TCODEC = r"""fn repetir<F>(n: usize, f: mut F) {
+    var i: usize = 0;
+    while i < n {
+        f();
+        i = i + 1;
+    }
+}
+
+fn main() {
+    let n: usize = 0;
+    var contar = fn[mut n]() -> usize {
+        n = n + 1;
+        return n;
+    };
+    repetir(2, contar);
+    let s = nuevo("a");
+    var acumula = fn[mut s](x: view) -> usize {
+        empujar(s, x);
+        return largo(s);
+    };
+    imprimir($"{contar()} {acumula("bc")}\n");
+}
+"""
+
 _FN_ANIDADA_TCODEC = r"""fn doble(n: usize) -> usize { return n * 2; }
 fn aplicar(f: fn(usize) -> usize, n: usize) -> usize { return f(n); }
 fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
@@ -4015,7 +4096,8 @@ try:
                                        ("generica.t", _CIERRE_EN_GENERICA_TCODEC),
                                        ("captura.t", _CAPTURA_CON_DUENIO_TCODEC),
                                        ("escribe.t", _ESCRIBIR_ARCHIVO_TCODEC),
-                                       ("llave.t", _LLAVE_ESCRITA_TCODEC)):
+                                       ("llave.t", _LLAVE_ESCRITA_TCODEC),
+                                       ("modifica.t", _CIERRE_QUE_MODIFICA_TCODEC)):
                 total += 1
                 ruta_cierre = os.path.join(tmp, nombre_c)
                 with open(ruta_cierre, "w", encoding="utf-8") as f:

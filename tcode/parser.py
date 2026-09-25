@@ -764,15 +764,20 @@ class Parser:
     def primario(self):
         t = self.actual
 
-        # `fn[a, b](x: usize) -> bool { ... }`: una clausura. La lista de
-        # captura va delante y es explicita; se captura por valor.
+        # `fn[a, mut b](x: usize) -> bool { ... }`: una clausura. La lista de
+        # captura va delante y es explicita; se captura por valor, y con
+        # `mut` la clausura puede modificar su copia.
         if self.es("palabra", "fn"):
             self.i += 1
             capturas = []
+            mutables = []
             if self.acepta("simbolo", "["):
                 if not self.es("simbolo", "]"):
                     while True:
+                        mutable = self.acepta("palabra", "mut") is not None
                         capturas.append(self.espera("ident").valor)
+                        if mutable:
+                            mutables.append(capturas[-1])
                         if not self.acepta("simbolo", ","):
                             break
                 self.espera("simbolo", "]")
@@ -794,7 +799,7 @@ class Parser:
             retorno = self.tipo() if self.acepta("simbolo", "->") else None
             falible = self.acepta("simbolo", "!") is not None
             return Cierre(capturas, params, retorno, self.bloque(), falible,
-                          linea=t.linea)
+                          mutables, linea=t.linea)
 
         # `if c { a } else { b }` como valor. Cada rama es una expresion
         # suelta: sin punto y coma, sin sentencias, y con `else` obligatorio.

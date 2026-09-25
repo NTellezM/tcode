@@ -206,6 +206,8 @@ fn pega(toks: &lista<Token>, i_ant: usize, i: usize, mc: &Marcas) -> bool {
         if as_ && mc.generico[i_ant] { return true; }
         // Un unario va pegado tambien a su parentesis: `!(a)`.
         if mc.unario[i_ant] { return true; }
+        // Un tipo funcion o una clausura: `fn(usize) -> bool`, `fn[n](x)`.
+        if igual(ta, "palabra") && igual(va, "fn") { return true; }
         return igual(ta, "ident") || (as_ && (igual(va, ")") || igual(va, "]")));
     }
     // Un unario va pegado a lo suyo.

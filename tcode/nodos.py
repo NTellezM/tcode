@@ -89,6 +89,9 @@ class Cierre(Nodo):
     retorno: Optional[str]
     cuerpo: list
     falible: bool = False
+    # Los capturados con `mut`: la clausura puede modificar su copia, y lo
+    # modificado sigue ahi en la llamada siguiente.
+    mutables: list = field(default_factory=list)
     # Las rellena el comprobador al sintetizar el struct y la funcion.
     tipo_struct: Optional[str] = None
     funcion: Optional[str] = None

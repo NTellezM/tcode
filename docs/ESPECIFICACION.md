@@ -468,6 +468,7 @@ el código que es a propósito.
 - `var` que nunca se modifica: puede ser `let`
 - parámetro que no se usa
 - parámetro `mut T` que nunca se modifica: podría ser `&T`
+- captura `mut` de una clausura que nunca se modifica: puede ir sin `mut`
 
 `--avisos-como-errores` los convierte en errores; `--sin-avisos` los calla.
 
@@ -1416,9 +1417,53 @@ Y ese mismo `F` acepta también una función con nombre, así que una sola
 firma vale para las dos. Un `fn(&T, &T) -> bool` —puntero a función— no
 acepta clausuras, y el error lo dice y propone hacerlo genérico.
 
-No hay `FnMut`: la clausura recibe su entorno prestado para leer. Modificar
-lo capturado desde dentro es lo que obliga a Rust a tener el segundo trait, y
-v0 no lo necesita todavía.
+### Modificar lo capturado: `mut` en la captura
+
+```tcode
+let n: usize = 0;
+var contar = fn[mut n]() -> usize {
+    n = n + 1;
+    return n;
+};
+contar();    // 1
+contar();    // 2; la `n` de fuera sigue valiendo 0
+```
+
+Lo capturado con `mut` es **la copia de la clausura**, no la variable de
+fuera: capturar sigue siendo por valor. Lo que la clausura cambia se queda
+en su struct, y sigue ahí en la llamada siguiente. Un contador, un
+acumulador, un generador: estado propio, sin préstamos que vigilar.
+
+El `mut` va en la captura, igual que en un parámetro: se ve en la línea
+donde nace qué puede cambiar. Modificar algo capturado sin `mut` es un
+error que dice cómo arreglarlo, y un `mut` que nunca se usa, un aviso.
+
+Llamar a una clausura así **la modifica**, y eso se comprueba como
+cualquier otra modificación, sin reglas nuevas:
+
+- guardada en una variable, la variable tiene que ser `var`;
+- una genérica que la llame la recibe como `mut F`, y lo que cambie, cambia
+  en la de quien llama;
+- `copiar` da otra clausura con su propio estado, que desde ahí va por
+  separado.
+
+```tcode
+fn repetir<F>(n: usize, f: mut F) { ... }
+
+repetir(3, contar);   // `contar` sigue contando desde donde lo dejó
+```
+
+Es lo que en Rust separa `Fn` de `FnMut`, y aquí no necesita un trait: la
+clausura es un struct, y un struct ya se presta para leer (`&`) o para
+modificar (`mut`). Por dentro, su función recibe el entorno como `mut
+Cierre_N` en vez de `&Cierre_N`, y nada más cambia.
+
+```
+error: f.t:3: `n` se capturo para leer: para modificarlo dentro de la
+              clausura, capturalo con `fn[mut n]`
+error: f.t:9: `f` es una clausura que modifica lo que capturo, y llamarla
+              la modifica: recibela como `f: mut F`
+```
 
 En `std/lista` lo usan `filtradas`, `cuantas_cumplen` y `ordenadas_por`.
 
@@ -1831,8 +1876,7 @@ Está en `ejemplos/sistema.t`.
 
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: clausuras que modifiquen lo capturado
-(`FnMut`), comprobación del cuerpo genérico una sola vez contra la
+Es un v0 honesto. No hay: comprobación del cuerpo genérico una sola vez contra la
 restricción (eso es Rust, y es más), enums con parámetros de tipo, patrones
 anidados ni guardas, escritura incremental (un `escribir_archivo` deja el
 archivo entero), punteros crudos ni recolector. La

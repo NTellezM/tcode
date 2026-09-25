@@ -662,15 +662,19 @@ fn primario(e: mut Estado) -> Nodo ! {
     let l = linea_actual(e);
     let k = e.i;
 
-    // `fn[a, b](x: usize) -> bool { ... }`: una clausura.
+    // `fn[a, mut b](x: usize) -> bool { ... }`: una clausura. Lo que se
+    // captura con `mut` lleva un hijo `mut`.
     if es(e, "palabra", "fn") {
         avanzar(e);
         var n = rama("cierre", l);
         if acepta(e, "simbolo", "[") {
             if !es(e, "simbolo", "]") {
                 while true {
+                    let con_mut = acepta(e, "palabra", "mut");
                     let cap = try espera(e, "ident", "");
-                    anadir(n.hijos, hoja("captura", cap, l));
+                    var hc = hoja("captura", cap, l);
+                    if con_mut { anadir(hc.hijos, hoja("mut", "", l)); }
+                    anadir(n.hijos, hc);
                     if !acepta(e, "simbolo", ",") { break; }
                 }
             }
