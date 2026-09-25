@@ -743,8 +743,9 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 | **P8** | ante un programa **roto a propósito**, el compilador o lo acepta o lo rechaza diciendo dónde: nunca una excepción, nunca un cuelgue |
 | **P9** | un programa repartido en varios archivos, con `usar` en rombo, compila y corre igual: los structs y las funciones cruzan de módulo, y un `str` que nace en uno y muere en otro no se filtra |
 | **P10** | una vista no sobrevive a que su dueño se reasigne, crezca, se mueva o se libere, venga de `vista`, `rebanar`, un `if` o un `match`, una función, un puntero a función, una clausura, una genérica, un struct que presta o un mapa: el programa que la usa después no compila, y su gemelo que la deja morir antes corre limpio bajo ASan |
-| **P11** | un programa de aritmética imprime lo que tiene que imprimir y para donde tiene que parar —con los nueve enteros y los dos decimales, números escritos a cada lado, conversiones, `if` como valor, llamadas, genéricas, campos y arreglos—, y `tcodec` escribe para él el mismo C que Python, byte a byte |
+| **P11** | un programa de aritmética imprime lo que tiene que imprimir y para donde tiene que parar —con los nueve enteros y los dos decimales, números escritos a cada lado, conversiones, `if` como valor, llamadas, genéricas, campos y arreglos—, y `tcodec` escribe para él el mismo C que Python, byte a byte. Y una cuenta hecha sólo de números escritos que pararía no compila, con el error que dice el oráculo, en los dos compiladores |
 | **P12** | `tcodec`, el compilador escrito en Tcode, escribe byte a byte el mismo C que el de Python para todo programa generado y para cada programa válido de P10 |
+| **P13** | un préstamo dura hasta el último uso de la vista: en programas que toman vistas, modifican a sus dueños y las usan entre `if` y bucles, lo que el compilador acepta corre limpio bajo ASan, y los dos compiladores dicen lo mismo de cada uno |
 
 `tests/generador_programas.py` produce programas válidos por construcción
 —con cadenas propias, structs, arreglos, `lista<usize>` y `lista<str>`,
@@ -754,7 +755,8 @@ cuya alternativa es dueña de su memoria— y acotados para que no aborten ni
 se cuelguen. `tests/violaciones.py` hace lo contrario, para P10: programas
 que no deberían compilar. Y `tests/oraculo.py`, para P11, genera programas
 de aritmética y calcula en Python lo que tienen que imprimir, o dónde y con
-qué mensaje tienen que parar. Para insistir más:
+qué mensaje tienen que parar. `tests/prestamos.py`, para P13, toma vistas,
+modifica a sus dueños y las usa entre `if` y bucles. Para insistir más:
 
 ```
 TCODE_PROGRAMAS=1000 make propiedades
