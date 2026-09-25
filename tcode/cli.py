@@ -290,7 +290,7 @@ def _ejecutar(args):
               "nombre para no sobrescribir codigo.", file=sys.stderr)
         return 2
 
-    if "int main(" not in codigo:
+    if "main" not in comp.funciones:
         print(f"tcode: {args.fuente} no tiene `fn main`, asi que no es un "
               f"programa. Si es un modulo, compila el archivo que lo usa; "
               f"si no, anade `fn main() -> usize {{ ... }}`.", file=sys.stderr)

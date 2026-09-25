@@ -647,11 +647,6 @@ class Comprobador:
             sim.reasignada_directo = False
             if self.movidas_en_bucle:
                 self.movidas_en_bucle[-1].append((sim, nodo))
-        if sim.prestado:
-            self.error(nodo, f"`{sim.nombre}` llego prestado: esta funcion no "
-                             f"es su duenia y no puede entregarlo. Pasa una "
-                             f"copia, o recibelo por valor")
-            return
         if sim.prestamos:
             self.error(nodo, f"no se puede mover `{sim.nombre}`: "
                              f"{self._ocupada(sim)}")
