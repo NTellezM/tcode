@@ -218,7 +218,9 @@ genérica, los ayudantes del sistema, la aritmética que hace falta, los
 prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->18.743<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa) y el resultado se compara byte a
 byte con el del generador de Python: **los <!--c:programas_enteros-->25<!--/c--> programas del repositorio, idénticos**,
-entre ellos el lexer, el parser y el propio `tcodec`.
+entre ellos el lexer, el parser y el propio `tcodec`, y también **los
+<!--c:programas_suite-->162<!--/c--> programas de la suite que compilan** y cada programa que generan las
+propiedades.
 
 Y hace el último paso él solo: llama al compilador de C, enlaza lo que
 piden los `externo` y deja el binario, con las mismas opciones y las mismas
@@ -297,9 +299,20 @@ struct de la clausura, y las que van dentro de una genérica, una por copia
 y numeradas como el original—, tipos función, structs genéricos
 (`Par<A, B>`), bloques, `externo`, enums, arreglos `[T; N]`, funciones
 repetidas entre módulos, funciones con nombre de palabra de C (`union`),
-`else if` y `escribir_archivo`. Escribe los <!--c:programas_enteros-->25<!--/c--> programas del repositorio,
-`pruebas.t` incluido. Lo que todavía no sabe escribir lo rechaza diciendo
-qué es, sin dejar medio archivo.
+`else if` y `escribir_archivo`. Y escribe todo lo que escribe Python: los
+<!--c:programas_enteros-->25<!--/c--> programas del repositorio, los <!--c:programas_suite-->162<!--/c--> de la suite que compilan —uno por
+construcción del lenguaje— y los generados al azar de las propiedades (P12)
+salen byte a byte iguales, y la suite falla si uno solo no lo está, también
+si `tcodec` lo rechaza.
+
+Cerrar lo que faltaba encontró fallos de verdad en `tcodec`: con
+`leer_archivo(r) sino alterno`, `alterno` se soltaba dos veces si la lectura
+salía bien —la alternativa se entrega sólo por un camino, y eso pide
+bandera—; un arreglo de arreglos, `[[usize; 2]; 3]`, se cortaba por el
+primer `;` y salía otro tipo; y `largo(p)` con `p: &mut bloque<T>` no se
+sabía medir. Y lo que no escribía: `try obtener_mut(...)`, un `match` como
+valor fuera de un `return`, un struct genérico deducido de su literal
+(`Par { a: -3, b: 1 }`), listas y mapas de bloques, y `for x en [1, 2]`.
 
 Y las herramientas de alrededor, también con las mismas palabras que las de
 Python, comparadas en la suite: los errores de módulos (un ciclo, un módulo
@@ -716,6 +729,7 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 | **P9** | un programa repartido en varios archivos, con `usar` en rombo, compila y corre igual: los structs y las funciones cruzan de módulo, y un `str` que nace en uno y muere en otro no se filtra |
 | **P10** | una vista no sobrevive a que su dueño se reasigne, crezca, se mueva o se libere, venga de `vista`, `rebanar`, un `if` o un `match`, una función, un puntero a función, una clausura, una genérica, un struct que presta o un mapa: el programa que la usa después no compila, y su gemelo que la deja morir antes corre limpio bajo ASan |
 | **P11** | un programa de aritmética imprime lo que tiene que imprimir y para donde tiene que parar —con los nueve enteros y los dos decimales, números escritos a cada lado, conversiones, `if` como valor, llamadas, genéricas, campos y arreglos—, y `tcodec` escribe para él el mismo C que Python, byte a byte |
+| **P12** | `tcodec`, el compilador escrito en Tcode, escribe byte a byte el mismo C que el de Python para todo programa generado y para cada programa válido de P10 |
 
 `tests/generador_programas.py` produce programas válidos por construcción
 —con cadenas propias, structs, arreglos, `lista<usize>` y `lista<str>`,

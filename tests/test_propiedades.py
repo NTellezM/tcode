@@ -50,6 +50,11 @@ Las propiedades:
       decimales, numeros escritos a los dos lados, conversiones, `if` como
       valor, llamadas, genericas, campos y arreglos. Y el C que escribe
       `tcodec` para ese programa es el mismo, byte a byte.
+  P12 El compilador escrito en Tcode escribe, byte a byte, el mismo C que
+      el de Python para todo programa generado y para cada programa valido
+      de P10. Lo que uno sabe escribir y el otro no aparece aqui antes que
+      en ningun ejemplo escrito a mano: asi aparecio que `tcodec` soltaba
+      dos veces lo que entrega la alternativa de un `sino`.
 """
 
 import concurrent.futures
@@ -77,7 +82,7 @@ from oraculo import generar as generar_oraculo
 RUNTIME = os.path.join(RAIZ, "runtime")
 CUANTOS = int(os.environ.get("TCODE_PROGRAMAS", "60"))
 # Sin construir `tcodec`: P11 mira la salida pero no compara el C de los dos
-# compiladores. Es lo que hace `make rapido`.
+# compiladores, y P12 no corre. Es lo que hace `make rapido`.
 SIN_TCODEC = os.environ.get("TCODE_SIN_TCODEC") == "1"
 
 fallos = 0
@@ -358,6 +363,53 @@ def probar_oraculo(tmp, tcodec):
                 falla(propiedad, semilla, detalle, fuente)
 
 
+def probar_tcodec(tmp, tcodec):
+    """P12: `tcodec` escribe el mismo C que Python para los programas
+    generados y para los validos de P10."""
+    global total
+    programas = [(f"g{semilla}", generar(semilla))
+                 for semilla in range(1, CUANTOS + 1)]
+    programas += [(f"v{i}", bueno)
+                  for i, (_, _, bueno) in enumerate(casos_de_violacion())]
+    trabajos = []
+    for nombre, fuente in programas:
+        ruta = os.path.join(tmp, f"{nombre}_tcodec.t")
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write(fuente)
+        total += 1
+        try:
+            codigo, errores = compilar_archivo(ruta)
+        except Exception:
+            falla("P12 compila", nombre, traceback.format_exc(), fuente)
+            continue
+        if errores:
+            falla("P12 compila", nombre, "\n".join(errores), fuente)
+            continue
+        trabajos.append((nombre, fuente, ruta, codigo))
+
+    def escribir(nombre, fuente, ruta, codigo):
+        r = subprocess.run([tcodec, ruta, "--mostrar-c"], capture_output=True,
+                           text=True, cwd=RAIZ, timeout=300,
+                           env=dict(os.environ, TCODE_RAIZ="."))
+        if r.returncode != 0:
+            return f"tcodec no lo escribe:\n{r.stderr[-400:]}"
+        if r.stdout != codigo:
+            dado, bueno = r.stdout.splitlines(), codigo.splitlines()
+            n = next((i for i, (x, y) in enumerate(zip(dado, bueno)) if x != y),
+                     min(len(dado), len(bueno)))
+            return (f"linea {n + 1} del C:\n"
+                    f"  Tcode:  {dado[n] if n < len(dado) else '(fin)'!r}\n"
+                    f"  Python: {bueno[n] if n < len(bueno) else '(fin)'!r}")
+        return None
+
+    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 2) as hilos:
+        resultados = hilos.map(lambda x: escribir(*x), trabajos)
+        for (nombre, fuente, _, _), problema in zip(trabajos, resultados):
+            total += 1
+            if problema:
+                falla("P12 mismo C en Tcode", nombre, problema, fuente)
+
+
 def probar_errores(tmp):
     """P4: todo error nombra un archivo y una linea que existen."""
     global total
@@ -531,8 +583,13 @@ def main():
         print("=== VIOLACIONES: una vista, su duenio invalidado, la vista usada ===")
         probar_violaciones(tmp)
 
+        tcodec = None if SIN_TCODEC else construir_tcodec(tmp)
         print("=== ORACULO: la aritmetica da lo que tiene que dar ===")
-        probar_oraculo(tmp, None if SIN_TCODEC else construir_tcodec(tmp))
+        probar_oraculo(tmp, tcodec)
+
+        if tcodec:
+            print("=== TCODEC: el compilador en Tcode escribe el mismo C ===")
+            probar_tcodec(tmp, tcodec)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

@@ -4987,8 +4987,6 @@ fn main() {
     # Mutaciones por archivo para comparar los errores de sintaxis: se rompe un
     # token de cada archivo del repositorio de varias formas, siempre las mismas.
     _MUTACIONES_POR_ARCHIVO = 5
-    _OBLIGATORIOS_TCODEC = {os.path.join("ejemplos", "bloques.t"),
-                            os.path.join("ejemplos", "pruebas.t")}
 
     tmp = tempfile.mkdtemp(prefix="tcode-programa-")
     _cwd_antes = os.getcwd()
@@ -5396,15 +5394,13 @@ fn main() {
                         falla("tcodec en Tcode", f"{archivo}: sanitizer\n"
                                                 f"{e.stderr[:400]}")
                         continue
-                    if e.returncode != 0:
-                        if archivo in _OBLIGATORIOS_TCODEC:
-                            total += 1
-                            falla("tcodec en Tcode",
-                                  f"{archivo}: lo rechazo\n{e.stderr[:400]}")
-                        continue        # lo rechazo: todavia no lo escribe entero
                     intentados += 1
                     total += 1
-                    if e.stdout != esperado:
+                    if e.returncode != 0:
+                        # Lo que Python compila, `tcodec` lo escribe entero.
+                        falla("tcodec en Tcode",
+                              f"{archivo}: lo rechazo\n{e.stderr[:400]}")
+                    elif e.stdout != esperado:
                         dado, bueno = e.stdout.splitlines(), esperado.splitlines()
                         n = next((i for i, (x, y) in enumerate(zip(dado, bueno))
                                   if x != y), min(len(dado), len(bueno)))
@@ -5422,6 +5418,49 @@ fn main() {
                 cifra("programas_enteros", iguales)
                 print(f"    {iguales} programas enteros, mismo C que el generador "
                       f"de Python ({intentados} intentados)")
+
+                # Y cada programa de la suite que Python compila: los que
+                # corren, los que abortan y los que avisan. Son los que cubren
+                # el lenguaje construccion a construccion, asi que aqui se ve
+                # si a `tcodec` le falta alguna.
+                trabajos_s = []
+                for lista_s, casos_s in (("ACEPTA", ACEPTA), ("ABORTA", ABORTA),
+                                         ("AVISA", AVISA)):
+                    for i_s, caso_s in enumerate(casos_s):
+                        dir_s = os.path.join(tmp, f"suite_{lista_s}_{i_s}")
+                        os.makedirs(dir_s)
+                        ruta_s = os.path.join(dir_s, "p.t")
+                        with open(ruta_s, "w", encoding="utf-8") as f:
+                            f.write(caso_s[1])
+                        esperado_s, errores_s = compilar_archivo(ruta_s)
+                        if not errores_s:
+                            trabajos_s.append((caso_s[0], ruta_s, esperado_s))
+
+                def _tcodec_escribe(trabajo):
+                    return subprocess.run([binario, trabajo[1], "--mostrar-c"],
+                                          capture_output=True, text=True,
+                                          timeout=180, env=entorno)
+
+                iguales_s = 0
+                for (nombre_s, ruta_s, esperado_s), e in zip(
+                        trabajos_s, en_paralelo(_tcodec_escribe, trabajos_s)):
+                    total += 1
+                    if e.returncode != 0:
+                        falla("tcodec escribe los programas de la suite",
+                              f"{nombre_s}: lo rechazo\n{e.stderr[-400:]}")
+                    elif e.stdout != esperado_s:
+                        dado, bueno = e.stdout.splitlines(), esperado_s.splitlines()
+                        n = next((i for i, (x, y) in enumerate(zip(dado, bueno))
+                                  if x != y), min(len(dado), len(bueno)))
+                        falla("tcodec escribe los programas de la suite",
+                              f"{nombre_s}, linea {n + 1}:\n"
+                              f"  Tcode:  {dado[n] if n < len(dado) else '(fin)'!r}\n"
+                              f"  Python: {bueno[n] if n < len(bueno) else '(fin)'!r}")
+                    else:
+                        iguales_s += 1
+                cifra("programas_suite", iguales_s)
+                print(f"    {iguales_s} de {len(trabajos_s)} programas de la suite, "
+                      f"mismo C que el generador de Python")
 
                 # `tcodec` tambien hace el ultimo paso: llama al compilador de C,
                 # enlaza lo que piden los `externo`, y deja el binario.

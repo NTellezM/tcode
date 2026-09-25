@@ -346,6 +346,8 @@ struct Cuenta {
     instancias: lista<str>,
     // Los tipos que han pedido copiador, en el orden en que se pidieron.
     copias: lista<str>,
+    // Los arreglos que solo nombra un literal en algun cuerpo.
+    arreglos: lista<str>,
     // La funcion que se escribe, con el nombre que le da el comprobador: es
     // la clave de los tipos que dejo anotados. Vacio, no hay anotaciones y
     // los tipos se deducen.
@@ -355,7 +357,7 @@ struct Cuenta {
 fn cuenta_nueva() -> Cuenta {
     return Cuenta { temporal: 0, bucle: 0, etiquetas: 0, sacados: [], ultima_linea: 0,
         instancias: [],
-        copias: [], dueno: vacio() };
+        copias: [], arreglos: [], dueno: vacio() };
 }
 
 // Lee y analiza un archivo, y deja en `tipos` todo lo que hace falta saber
@@ -607,5 +609,6 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     cta.ultima_linea = b.ultima_linea;
     for x en b.instancias { anadir(cta.instancias, copiar(x)); }
     for x en b.copias { anadir(cta.copias, copiar(x)); }
+    for x en b.arreglos { anadir(cta.arreglos, copiar(x)); }
     return salida;
 }

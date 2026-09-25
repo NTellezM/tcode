@@ -852,7 +852,9 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
         let dentro_b = nuevo(rebanar(t, 7, largo(t) - 1));
         return mirar_tipo(vista(dentro_b), reg, global, structs);
     }
-    if es_bloque_o_arreglo(t) {
+    // Una lista o un mapa de bloques o arreglos registran lo de dentro al
+    // registrarse, como cualquier otra lista o mapa.
+    if es_bloque_o_arreglo(t) && !es_lista_t(t) && !es_mapa_t(t) {
         // Un prestamo no registra nada, como en el original.
         if empieza_con(t, "&") { return true; }
         imprimir_error($"tcodec: el tipo `{t}`\n");
@@ -874,7 +876,7 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     // El nombre en C de la clave y del valor, la lista que devuelve
     // `claves`, y los resultados de `obtener` y de `obtener_mut`.
     for x en partes {
-        if es_lista_t(vista(x)) || es_mapa_t(vista(x)) {
+        if es_lista_t(vista(x)) || es_mapa_t(vista(x)) || es_bloque_o_arreglo(vista(x)) {
             if !mirar_tipo(vista(x), reg, global, structs) { return false; }
         }
     }
@@ -2892,6 +2894,12 @@ fn main() -> usize ! {
         }
         k_fn = k_fn + 1;
     }
+    // Y las que nacen al comprobar los cuerpos, en el orden del comprobador:
+    // `Par { a: -3, b: 1 }` es un `Par<i64, usize>` que no esta escrito.
+    for t_ap en revision.structs_aplicados {
+        let _r = resolver_reg(vista(t_ap), stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+    }
 
     // Lo que tiene partes, para `obtener_mut`: structs y enums.
     var con_partes: mapa<str, usize> = [];
@@ -3323,10 +3331,38 @@ fn main() -> usize ! {
         }
     }
 
-    // Y con los arreglos.
+    // Y con los arreglos. Los que solo nombra un literal en un cuerpo —`for
+    // x en [1, 2]` no declara nada que el recorrido mire— llegan tarde: van
+    // detras de los demas, de dentro hacia fuera, como en el original.
+    var tardios_sin: lista<str> = [];
+    for t en cta.arreglos {
+        if !tiene(reg.arr_vistos, vista(t)) && !esta_en(tardios_sin, vista(t)) {
+            anadir(tardios_sin, copiar(t));
+        }
+    }
+    var envoltorios: lista<str> = [];
+    var hondo_t = 0;
+    var quedan_t = largo(tardios_sin);
+    while quedan_t > 0 {
+        for t en tardios_sin {
+            if cuantos_corchetes(vista(t)) == hondo_t {
+                let pa = partes_arreglo(vista(t));
+                let te = G.tipo_c(vista(pa[0]));
+                let tc = G.tipo_c(vista(t));
+                anadir(envoltorios, $"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
+                quedan_t = quedan_t - 1;
+            }
+        }
+        hondo_t = hondo_t + 1;
+    }
+    if largo(envoltorios) > 0 { anadir(envoltorios, vacio()); }
     var usados_a: mapa<str, usize> = [];
     for l en limpios { apuntar_nombres(vista(l), "ss_arr_", usados_a); }
     for x en reg.arreglos {
+        let nombre_c = G.tipo_c(vista(x));
+        poner(registradas, vista(nombre_c), 1);
+    }
+    for x en tardios_sin {
         let nombre_c = G.tipo_c(vista(x));
         poner(registradas, vista(nombre_c), 1);
     }
@@ -3585,6 +3621,7 @@ fn main() -> usize ! {
         anadir(todas, vacio());
     }
     for x en partes { anadir(todas, copiar(x)); }
+    for x en envoltorios { anadir(todas, copiar(x)); }
     for x en tipos_fn { anadir(todas, copiar(x)); }
     for a en arit { anadir(todas, copiar(a)); }
     for x en bloque_copias { anadir(todas, copiar(x)); }
