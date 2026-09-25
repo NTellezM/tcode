@@ -3030,6 +3030,17 @@ fn main() {
         }''',
      "izq der = 3\na1 a2 = 3\nc1 c2 = 3\ne1 e2 = 3\n"),
 
+    # Tambien un valor con duenio: pasa al temporal, y de ahi a la funcion.
+    ("un str que va antes tampoco se deja adelantar",
+     '''fn dice(t: view) -> str { imprimir(t); return nuevo(t); }
+        fn junta(a: str, b: str) -> usize { return largo(a) + largo(b); }
+        fn main() {
+            let c = true;
+            let n = junta(dice("a "), if c { dice("b ") } else { nuevo("") });
+            imprimir($"= {n}\\n");
+        }''',
+     "a b = 4\n"),
+
     ("un numero escrito se opera en el tipo del otro lado",
      '''fn main() {
             let x: f64 = 2.5;
@@ -4702,6 +4713,16 @@ fn main() {
 }
 """
 
+# Un `str` que sale de un `if` y se entrega a una funcion: la funcion se lo
+# queda, y la sentencia no lo suelta. `tcodec` lo soltaba otra vez.
+_STR_ENTREGADO_TCODEC = r"""fn junta(a: str, b: str) -> usize { return largo(a) + largo(b); }
+fn main() {
+    let c = true;
+    let n = junta(nuevo("a"), if c { nuevo("bb") } else { nuevo("") });
+    imprimir($"= {n}\n");
+}
+"""
+
 _FN_ANIDADA_TCODEC = r"""fn doble(n: usize) -> usize { return n * 2; }
 fn aplicar(f: fn(usize) -> usize, n: usize) -> usize { return f(n); }
 fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
@@ -4972,7 +4993,8 @@ try:
                                        ("corto.t", _CORTOCIRCUITO_TCODEC),
                                        ("enum_st.t", _ENUM_CON_STRUCT_TCODEC),
                                        ("orden.t", _ORDEN_TCODEC),
-                                       ("copias.t", _COPIAS_ANIDADAS_TCODEC)):
+                                       ("copias.t", _COPIAS_ANIDADAS_TCODEC),
+                                       ("entregado.t", _STR_ENTREGADO_TCODEC)):
                 total += 1
                 ruta_cierre = os.path.join(tmp, nombre_c)
                 with open(ruta_cierre, "w", encoding="utf-8") as f:
