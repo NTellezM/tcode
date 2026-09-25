@@ -567,7 +567,7 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
             error_en(e, "falta `}` en una cadena interpolada", k);
             falla "sintaxis";
         }
-        let dentro = recortar(rebanar(d, i + 1, j));
+        let dentro = comillas_de_antes(recortar(rebanar(d, i + 1, j)));
         if largo(dentro) == 0 {
             error_en(e, "`{}` vacio en una cadena interpolada: pon dentro lo que quieras mostrar", k);
             falla "sintaxis";
@@ -600,6 +600,30 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
         i = j + 1;
     }
     return;
+}
+
+// Antes, un hueco se leia ya descifrado, y sus cadenas se escribian
+// `{f(\"x\")}`. Sigue valiendo: fuera de una cadena, `\"` es una comilla.
+fn comillas_de_antes(h: view) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < largo(h) {
+        let b = byte(h, i);
+        if b == 34 || (b == 36 && i + 1 < largo(h) && byte(h, i + 1) == 34) {
+            let fin = fin_de_texto(h, i);
+            empujar(r, rebanar(h, i, fin));
+            i = fin;
+            continue;
+        }
+        if b == 92 && i + 1 < largo(h) && byte(h, i + 1) == 34 {
+            empujar(r, "\"");
+            i = i + 2;
+            continue;
+        }
+        empujar(r, rebanar(h, i, i + 1));
+        i = i + 1;
+    }
+    return r;
 }
 
 // El lexer deja las cadenas crudas, con los escapes sin resolver: para el
