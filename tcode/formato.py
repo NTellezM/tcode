@@ -267,9 +267,12 @@ def _pega(ant, i_ant, t, i, generico, unario):
         return True
     if t.tipo == "simbolo" and generico[i]:
         return True
-    # Una llamada o un indice: `f(`, `xs[`, y tambien `f<T>(`.
+    # Una llamada o un indice: `f(`, `xs[`, y tambien `f<T>(`. Y un unario
+    # delante de un parentesis va pegado a el, como a cualquier cosa: `!(a)`.
     if t.tipo == "simbolo" and t.valor in ("(", "["):
         if ant.tipo == "simbolo" and generico[i_ant]:
+            return True
+        if unario[i_ant]:
             return True
         # `f(` si, `return (` no: una palabra reservada no es una llamada.
         return ant.tipo == "ident" or (

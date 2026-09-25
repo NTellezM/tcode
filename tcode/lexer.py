@@ -136,8 +136,11 @@ def tokenizar(fuente: str, archivo: str = "<entrada>",
                         partes.append(chr(0xDC00 + int(hexa, 16)))
                         i += 4
                         continue
+                    # `\{` y `\}` son una llave escrita, lo mismo que `{{`
+                    # y `}}`: se dejan asi para que el parser no las tome
+                    # por un hueco.
                     mapa = {"n": "\n", "t": "\t", "\\": "\\", '"': '"',
-                            "0": "\0", "{": "{", "}": "}"}
+                            "0": "\0", "{": "{{", "}": "}}"}
                     if esc not in mapa:
                         raise ErrorLexico(
                             f"{archivo}:{linea}: escape desconocido \\{esc}")

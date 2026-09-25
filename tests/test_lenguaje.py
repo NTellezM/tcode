@@ -775,6 +775,15 @@ ACEPTA = [
         }''',
      "-3 1 -7\n"),
 
+    # `\{` y `\}` en una interpolada son una llave escrita, como `{{` y `}}`.
+    # Antes el lexer las descifraba y el parser las tomaba por un hueco.
+    ("una llave escrita con barra en una cadena interpolada",
+     '''fn main() {
+            let n: usize = 3;
+            imprimir($"a \\{ b \\} c {n} {{d}}\\n");
+        }''',
+     "a { b } c 3 {d}\n"),
+
     # `partir_tipos` cortaba por las comas de dentro de un `fn(...)` y
     # contaba la `>` de `->` como un angulo que se cierra.
     ("un tipo funcion que recibe otro",
@@ -3738,6 +3747,13 @@ fn main() -> usize ! {
 }
 """
 
+# `\{` en una interpolada es una llave escrita en los dos compiladores.
+_LLAVE_ESCRITA_TCODEC = r"""fn main() {
+    let n: usize = 3;
+    imprimir($"a \{ b \} c {n} {{d}}\n");
+}
+"""
+
 _FN_ANIDADA_TCODEC = r"""fn doble(n: usize) -> usize { return n * 2; }
 fn aplicar(f: fn(usize) -> usize, n: usize) -> usize { return f(n); }
 fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
@@ -3795,6 +3811,21 @@ MODULOS = [
                '    imprimir($"{contar(ss)} {d.contar(ns)}\\n");\n'
                '    return 0;\n}'},
      "a.t", None, "1 4\n"),
+
+    # `x.t` y `lib/x.t` se llaman igual: su prefijo interno lleva la
+    # carpeta, y no acaban siendo la misma funcion en C.
+    ("dos modulos con el mismo nombre de archivo en carpetas distintas",
+     {"x.t": 'fn f() -> usize { return 1; }',
+      "lib/x.t": 'fn f() -> usize { return 2; }',
+      "a.t": 'usar "x.t";\nusar "lib/x.t" como otra;\n'
+               'fn main() { imprimir($"{f()} {otra.f()}\\n"); }'},
+     "a.t", None, "1 2\n"),
+
+    ("sin alias, el mismo nombre de archivo en dos carpetas choca y lo dice",
+     {"x.t": 'fn f() -> usize { return 1; }',
+      "lib/x.t": 'fn f() -> usize { return 2; }',
+      "a.t": 'usar "x.t";\nusar "lib/x.t";\nfn main() { imprimir(f()); }'},
+     "a.t", "llega de dos sitios", None),
 
     ("un struct que llega con nombre de modulo",
      {"tipos.t": 'struct Caja { n: usize }\n'
@@ -3983,7 +4014,8 @@ try:
                                        ("precedencia.t", _PRECEDENCIA_TCODEC),
                                        ("generica.t", _CIERRE_EN_GENERICA_TCODEC),
                                        ("captura.t", _CAPTURA_CON_DUENIO_TCODEC),
-                                       ("escribe.t", _ESCRIBIR_ARCHIVO_TCODEC)):
+                                       ("escribe.t", _ESCRIBIR_ARCHIVO_TCODEC),
+                                       ("llave.t", _LLAVE_ESCRITA_TCODEC)):
                 total += 1
                 ruta_cierre = os.path.join(tmp, nombre_c)
                 with open(ruta_cierre, "w", encoding="utf-8") as f:
@@ -4422,6 +4454,30 @@ finally:
     shutil.rmtree(tmp, ignore_errors=True)
 
 print("=== FORMATO: un estilo, y el repositorio ya lo tiene ===")
+
+# Un unario va pegado a su parentesis: `!(a)`, no `! (a)`.
+total += 1
+_con_unario = _formatear_1 = None
+from tcode.formato import formatear as _formatear_1
+_con_unario = _formatear_1("fn main() {\nlet a = true;\nif !(a) { imprimir(-(1)); }\n}\n")
+if "!(a)" not in _con_unario or "-(1)" not in _con_unario:
+    falla("un unario va pegado a su parentesis", repr(_con_unario))
+
+# Un aviso sobre una clausura dice `clausura`, tambien pasada la decima:
+# los nombres se cambian enteros, y `Cierre_1` no es un trozo de `Cierre_10`.
+total += 1
+_once = "fn main() {\n" + "".join(
+    f"    let f{i} = fn(x: usize) -> usize {{ return x; }};\n    imprimir(f{i}(1));\n"
+    for i in range(10)) + "    let g = fn(x: usize, sobra: usize) -> usize { return x; };\n" \
+    "    imprimir(g(1, 2));\n}\n"
+with tempfile.TemporaryDirectory() as _tmp_av:
+    _ruta_av = os.path.join(_tmp_av, "once.t")
+    with open(_ruta_av, "w", encoding="utf-8") as f:
+        f.write(_once)
+    _, _errs_av, _comp_av = compilar_archivo(_ruta_av, devolver_comp=True)
+    if _errs_av or not any("de `clausura` no se usa" in a for a in _comp_av.avisos):
+        falla("un aviso sobre una clausura dice `clausura`",
+              f"{_errs_av} {_comp_av.avisos if _comp_av else None}")
 # Tres propiedades, y la primera es la que importa: el formateador no puede
 # perder ni cambiar nada, porque la salida lexea a los mismos tokens que la
 # entrada. Las otras dos son que es idempotente y que el repositorio esta

@@ -323,6 +323,53 @@ fn visitar(ruta: view, raiz: view, hechos: mut lista<str>,
 // error, y tambien usar algo de un modulo que este archivo no pidio aunque
 // lo pida otro.
 
+// El prefijo con el que se renombra lo que choca entre modulos. Basta el
+// nombre del archivo, salvo que otro de los que declaran ese mismo nombre se
+// llame igual (`x.t` y `lib/x.t`): entonces va la ruta entera, como en el
+// cargador. `modulos` son solo los que declaran el nombre.
+fn prefijo_unico(ruta: view, modulos: &lista<str>) -> str {
+    let base = F.prefijo_de(ruta);
+    var iguales = 0;
+    for m en modulos {
+        let otra = F.prefijo_de(vista(m));
+        if igual(vista(otra), vista(base)) { iguales = iguales + 1; }
+    }
+    if iguales <= 1 { return base; }
+    let sin = sin_extension(ruta);
+    var r = vacio();
+    for b en bytes_de(vista(sin)) {
+        // Un caracter de UTF-8 es un solo `_`, no uno por byte.
+        if b >= 128 && b < 192 { continue; }
+        if I.es_de_nombre(b) { empujar_byte(r, b como u8); } else { empujar(r, "_"); }
+    }
+    var desde = 0;
+    var hasta = largo(r);
+    while desde < hasta && byte(vista(r), desde) == 95 { desde = desde + 1; }
+    while hasta > desde && byte(vista(r), hasta - 1) == 95 { hasta = hasta - 1; }
+    return nuevo(rebanar(vista(r), desde, hasta));
+}
+
+fn bytes_de(t: view) -> lista<usize> {
+    var salida: lista<usize> = [];
+    var i = 0;
+    while i < largo(t) {
+        anadir(salida, byte(t, i));
+        i = i + 1;
+    }
+    return salida;
+}
+
+// Los modulos que declaran un nombre, en su orden.
+fn declarantes(arboles: &lista<P.Nodo>, modulos: &lista<str>, nombre: view) -> lista<str> {
+    var salida: lista<str> = [];
+    var k = 0;
+    while k < largo(arboles) {
+        if esta_en(nombres_declarados(arboles[k]), nombre) { anadir(salida, copiar(modulos[k])); }
+        k = k + 1;
+    }
+    return salida;
+}
+
 fn nombres_declarados(arbol: &P.Nodo) -> lista<str> {
     var salida: lista<str> = [];
     for d en arbol.hijos {
@@ -432,8 +479,9 @@ fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
                     // se llaman con el nombre del archivo delante: dos
                     // `x.t` en carpetas distintas no chocan aqui, como en el
                     // original.
-                    let pa = F.prefijo_de(vista(previo));
-                    let pb = F.prefijo_de(vista(modulos[jm]));
+                    let suyos = declarantes(arboles, modulos, vista(n));
+                    let pa = prefijo_unico(vista(previo), suyos);
+                    let pb = prefijo_unico(vista(modulos[jm]), suyos);
                     if varios && !igual(vista(pa), vista(pb)) {
                         error = $"{modulos[k]}:{texto_linea}: `{clave}` llega de dos sitios, {previo} y {modulos[jm]}. Dale un nombre a uno de los dos: `usar \"...\" como algo;` y luego `algo.{clave}`";
                         return false;
@@ -2591,9 +2639,10 @@ fn main() -> usize ! {
     }
     var mr = 0;
     while mr < largo(arboles) {
-        let base = F.prefijo_de(vista(modulos[mr]));
         for d en arboles[mr].hijos {
             if igual(vista(d.clase), "fn") && tiene(global.repetidas, vista(d.texto)) {
+                let suyos = declarantes(arboles, modulos, vista(d.texto));
+                let base = prefijo_unico(vista(modulos[mr]), suyos);
                 let otro = $"{base}__{d.texto}";
                 poner(contextos[mr].renombradas, vista(d.texto), otro);
                 quitar(contextos[mr].repetidas, vista(d.texto));
@@ -2611,12 +2660,13 @@ fn main() -> usize ! {
                 jm = jm + 1;
             }
             if jm == largo(modulos) { return rechazo("un modulo que no se cargo"); }
-            let base_d = F.prefijo_de(vista(destino));
             for d en arboles[jm].hijos {
                 if !igual(vista(d.clase), "fn") { continue; }
                 if !tiene(global.repetidas, vista(d.texto)) { continue; }
                 var clave = copiar(d.texto);
                 if largo(alias_p) > 0 { clave = $"{alias_p}.{d.texto}"; }
+                let suyos = declarantes(arboles, modulos, vista(d.texto));
+                let base_d = prefijo_unico(vista(destino), suyos);
                 let otro = $"{base_d}__{d.texto}";
                 poner(contextos[mr].renombradas, vista(clave), otro);
                 quitar(contextos[mr].repetidas, vista(clave));
