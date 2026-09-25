@@ -673,6 +673,9 @@ struct Simbolo {
     historia: usize,
     // A que funcion se entrego, si se entrego pasandola a una.
     movida_a: str,
+    // El bloque donde se declaro, por su numero: una vista no se menciona mas
+    // alla de el. 0 si no se sabe.
+    bloque_decl: usize,
 }
 
 struct Comprobacion {
@@ -731,6 +734,16 @@ struct Comprobacion {
     escritas: lista<P.Nodo>,
     escritas_duenos: lista<str>,
     contadas: mapa<str, usize>,
+    // Las sentencias que se estan comprobando, de fuera adentro, hasta
+    // `hondura`; las de la funcion en curso empiezan en `base`. De cada una:
+    // su clase, lo que menciona, lo que mencionan las que la siguen en su
+    // bloque, y el bloque. Dicen si una vista se vuelve a usar.
+    hondura: usize,
+    base: usize,
+    cadena_clases: lista<str>,
+    cadena_propias: lista<mapa<str, usize>>,
+    cadena_despues: lista<mapa<str, usize>>,
+    cadena_bloques: lista<usize>,
 }
 
 fn estado(archivo: view, modulo: usize) -> Comprobacion {
@@ -741,7 +754,8 @@ fn estado(archivo: view, modulo: usize) -> Comprobacion {
         dueno: vacio(), avisos: [], historia: [], informe: [], en_cierre: false,
         capturas_mut: [], modificadas: [], plantillas: [], en_guarda: 0,
         por_campo: 0, escribiendo: 0, sacados: [], escritas: [],
-        escritas_duenos: [], contadas: [] };
+        escritas_duenos: [], contadas: [], hondura: 0, base: 0, cadena_clases: [],
+        cadena_propias: [], cadena_despues: [], cadena_bloques: [] };
 }
 
 // Lo que el mensaje dice en vez de los nombres que puso el compilador: una
@@ -916,7 +930,8 @@ fn declarar_simbolo(c: mut Comprobacion, m: &Mundo, linea: usize, nombre: view, 
         bucle_al_declarar: c.en_bucle, condicional_al_declarar: c.en_condicional, sacados: [],
         prestamos: [], origen: vacio(), origenes: [],
         procedencia: vacio(), leida: false, mutada: false, linea_decl: linea,
-        es_param: false, historia: largo(c.historia), movida_a: vacio() };
+        es_param: false, historia: largo(c.historia), movida_a: vacio(),
+        bloque_decl: bloque_en_curso(c) };
     anadir(c.historia, copiar(nuevo_s));
     anadir(c.simbolos, nuevo_s);
     return largo(c.simbolos) - 1;
@@ -967,10 +982,10 @@ fn es_reserva(n: view) -> bool {
 }
 
 // Por que no se puede tocar: prestamos vivos, o una reserva.
-fn ocupada(c: &Comprobacion, i: usize) -> str {
+fn ocupada(vivos: &lista<str>) -> str {
     var prestamos: lista<str> = [];
     var reservas: lista<str> = [];
-    for p en c.simbolos[i].prestamos {
+    for p en vivos {
         if es_reserva(vista(p)) { anadir(reservas, copiar(p)); }
         else { anadir(prestamos, copiar(p)); }
     }
@@ -1011,9 +1026,10 @@ fn mover(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, directo: bool) 
             anadir(c.movidas_en_bucle[k], linea);
         }
     }
-    if largo(c.simbolos[i].prestamos) > 0 {
+    let vivos = prestamos_vivos(c, i);
+    if largo(vivos) > 0 {
         let n = copiar(c.simbolos[i].nombre);
-        let por = ocupada(c, i);
+        let por = ocupada(vivos);
         error(c, m, linea, $"no se puede mover `{n}`: {por}");
         return;
     }
@@ -1105,9 +1121,12 @@ fn mutar(c: mut Comprobacion, m: &Mundo, lugar: &P.Nodo, linea: usize, i: usize,
     if por_referencia && T.es_referencia(vista(t)) {
         if !es_referencia_mutable(vista(t)) {
             error_solo_lectura(c, m, linea, vista(n), vista(t));
-        } else if largo(c.simbolos[i].prestamos) > 0 {
-            let por = ocupada(c, i);
-            error(c, m, linea, $"no se puede modificar `{n}`: {por}");
+        } else {
+            let vivos_r = prestamos_vivos(c, i);
+            if largo(vivos_r) > 0 {
+                let por = ocupada(vivos_r);
+                error(c, m, linea, $"no se puede modificar `{n}`: {por}");
+            }
         }
         return;
     }
@@ -1115,8 +1134,9 @@ fn mutar(c: mut Comprobacion, m: &Mundo, lugar: &P.Nodo, linea: usize, i: usize,
         error_no_mutable(c, m, linea, i);
         return;
     }
-    if largo(c.simbolos[i].prestamos) > 0 {
-        let por = ocupada(c, i);
+    let vivos = prestamos_vivos(c, i);
+    if largo(vivos) > 0 {
+        let por = ocupada(vivos);
         error(c, m, linea, $"no se puede modificar `{n}`: {por}");
     }
 }
@@ -2617,7 +2637,7 @@ fn escrito_parado() -> Escrito {
     return Escrito { sabido: false, negativo: false, magnitud: 0, parada: true };
 }
 
-fn escrito(negativo: bool, magnitud: u64) -> Escrito {
+fn valor_sabido(negativo: bool, magnitud: u64) -> Escrito {
     // El cero no tiene signo.
     return Escrito { sabido: true, negativo: negativo && magnitud > 0,
         magnitud: magnitud, parada: false };
@@ -2662,10 +2682,10 @@ fn desde_patron(p: u64, t: view) -> Escrito {
     var q = p;
     if bits < 64 { q = p & ((1 << bits) - 1); }
     if con_signo(t) && ((q >> (bits - 1)) & 1) == 1 {
-        if bits == 64 { return escrito(true, 0 -? q); }
-        return escrito(true, (1 << bits) - q);
+        if bits == 64 { return valor_sabido(true, 0 -? q); }
+        return valor_sabido(true, (1 << bits) - q);
     }
-    return escrito(false, q);
+    return valor_sabido(false, q);
 }
 
 fn sumar_escritos(a: &Escrito, b: &Escrito) -> Escrito {
@@ -2673,10 +2693,10 @@ fn sumar_escritos(a: &Escrito, b: &Escrito) -> Escrito {
         let r = a.magnitud +? b.magnitud;
         // Se salio de 64 bits: de cualquier tipo.
         if r < a.magnitud { return escrito_sin_saber(); }
-        return escrito(a.negativo, r);
+        return valor_sabido(a.negativo, r);
     }
-    if a.magnitud >= b.magnitud { return escrito(a.negativo, a.magnitud - b.magnitud); }
-    return escrito(b.negativo, b.magnitud - a.magnitud);
+    if a.magnitud >= b.magnitud { return valor_sabido(a.negativo, a.magnitud - b.magnitud); }
+    return valor_sabido(b.negativo, b.magnitud - a.magnitud);
 }
 
 fn cuenta_parada(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, que: view) -> Escrito {
@@ -2734,7 +2754,7 @@ fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> E
             v = v * 10 + (byte(digitos, i) - 48) como u64;
             i = i + 1;
         }
-        return escrito(false, v);
+        return valor_sabido(false, v);
     }
     if igual(clase, "si_expr") && largo(n.hijos) == 3 {
         let a = valor_escrito(c, m, n.hijos[1], tipo);
@@ -2768,12 +2788,12 @@ fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> E
         var r = escrito_sin_saber();
         if igual(op, "+") { r = sumar_escritos(a, b); }
         else if igual(op, "-") {
-            let menos_b = escrito(!b.negativo, b.magnitud);
+            let menos_b = valor_sabido(!b.negativo, b.magnitud);
             r = sumar_escritos(a, menos_b);
         } else {
             let tope: u64 = 18446744073709551615;
             if a.magnitud == 0 || b.magnitud <= tope / a.magnitud {
-                r = escrito(a.negativo != b.negativo, a.magnitud * b.magnitud);
+                r = valor_sabido(a.negativo != b.negativo, a.magnitud * b.magnitud);
             }
         }
         if !r.sabido || !cabe_escrito(r, tipo) {
@@ -2787,8 +2807,8 @@ fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> E
         }
         // Como C: el cociente se trunca hacia cero, y el resto lleva el signo
         // de lo dividido. `MIN / -1` se sale del tipo; `MIN % -1` es 0.
-        if igual(op, "%") { return escrito(a.negativo, a.magnitud % b.magnitud); }
-        let q = escrito(a.negativo != b.negativo, a.magnitud / b.magnitud);
+        if igual(op, "%") { return valor_sabido(a.negativo, a.magnitud % b.magnitud); }
+        let q = valor_sabido(a.negativo != b.negativo, a.magnitud / b.magnitud);
         if !cabe_escrito(q, tipo) {
             return cuenta_parada(c, m, n, $"{cuenta} no cabe en `{tipo}`");
         }
@@ -2809,7 +2829,10 @@ fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> E
             return cuenta_parada(c, m, n, $"{cuenta} desplaza un `{tipo}` {tb} bits, y tiene {bits}");
         }
         if igual(op, "<<") { return desde_patron(patron_escrito(a) << b.magnitud, tipo); }
-        if !a.negativo { return escrito(false, a.magnitud >> b.magnitud); }
+        if !a.negativo {
+            let r = a.magnitud >> b.magnitud;
+            return valor_sabido(false, r);
+        }
         // Un negativo rellena con unos: redondea hacia abajo.
         let p = (patron_escrito(a) como? i64) >> b.magnitud;
         return desde_patron(p como? u64, tipo);
@@ -3137,8 +3160,9 @@ fn sacar_campo(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, base: view, raiz: vie
         error(c, m, n.linea, $"no se puede sacar `{nombre}` dentro de un `if`, un `match` o un bucle: despues no se sabria si sigue ahi. Sacalo donde vive `{raiz}`, o deja otro valor en su sitio con `intercambiar(...)`");
         return;
     }
-    if largo(c.simbolos[i].prestamos) > 0 {
-        let por = ocupada(c, i);
+    let vivos = prestamos_vivos(c, i);
+    if largo(vivos) > 0 {
+        let por = ocupada(vivos);
         error(c, m, n.linea, $"no se puede sacar `{nombre}`: {por}");
         return;
     }
@@ -3593,7 +3617,7 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
                     anadir(escritos, copiar(h.hijos[0]));
                 }
             } else if igual(hc, "bloque") {
-                for st en h.hijos { comprobar_sentencia(c, m, tipos, st); }
+                comprobar_sentencias(c, m, tipos, h);
             }
         }
         c.en_condicional = c.en_condicional - 1;
@@ -4720,7 +4744,7 @@ fn comprobar_bloque(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P
     c.en_bucle_directo = -1;
     abrir_ambito(c);
     if igual(vista(n.clase), "bloque") {
-        for s en n.hijos { comprobar_sentencia(c, m, tipos, s); }
+        comprobar_sentencias(c, m, tipos, n);
     } else {
         // `else if`: la rama es una sentencia suelta.
         comprobar_sentencia(c, m, tipos, n);
@@ -4733,7 +4757,7 @@ fn cuerpo_de_bucle(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     let anterior = c.en_bucle_directo;
     c.en_bucle_directo = c.en_bucle como i64;
     abrir_ambito(c);
-    for s en n.hijos { comprobar_sentencia(c, m, tipos, s); }
+    comprobar_sentencias(c, m, tipos, n);
     cerrar_ambito(c);
     c.en_bucle_directo = anterior;
     // Lo que sigue movido al cerrar la vuelta se moveria otra vez.
@@ -4789,10 +4813,124 @@ fn comprobar_mapa_valido(c: mut Comprobacion, m: &Mundo, linea: usize, t: view) 
     }
 }
 
+// Una sentencia suelta, sin nada detras: la rama de un `else if`.
 fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nodo) {
+    let nada: mapa<str, usize> = [];
+    comprobar_sentencia_en(c, m, tipos, s, nada, s.id);
+}
+
+// Las sentencias de un bloque, cada una sabiendo que nombres mencionan las
+// que la siguen.
+fn comprobar_sentencias(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) {
+    let despues = despues_de_cada(n);
+    var k = 0;
+    while k < largo(n.hijos) {
+        comprobar_sentencia_en(c, m, tipos, n.hijos[k], despues[k], n.id);
+        k = k + 1;
+    }
+}
+
+fn comprobar_sentencia_en(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nodo,
+    despues: &mapa<str, usize>, bloque: usize) {
     let desde = largo(c.escritas);
+    var clase = nuevo("otra");
+    if igual(vista(s.clase), "si") { clase = nuevo("si"); }
+    if igual(vista(s.clase), "mientras") || igual(vista(s.clase), "para") {
+        clase = nuevo("bucle");
+    }
+    var propias: mapa<str, usize> = [];
+    mencionados_en(s, propias);
+    let k = c.hondura;
+    if k < largo(c.cadena_clases) {
+        c.cadena_clases[k] = clase;
+        c.cadena_propias[k] = propias;
+        c.cadena_despues[k] = copiar(despues);
+        c.cadena_bloques[k] = bloque;
+    } else {
+        anadir(c.cadena_clases, clase);
+        anadir(c.cadena_propias, propias);
+        anadir(c.cadena_despues, copiar(despues));
+        anadir(c.cadena_bloques, bloque);
+    }
+    c.hondura = k + 1;
     comprobar_sentencia_sin_contar(c, m, tipos, s);
+    c.hondura = k;
     contar_pendientes(c, m, desde);
+}
+
+// Los nombres de variable que aparecen en `n`, a cualquier hondura.
+fn mencionados_en(n: &P.Nodo, salida: mut mapa<str, usize>) {
+    if igual(vista(n.clase), "variable") { poner(salida, vista(n.texto), 1); }
+    for h en n.hijos { mencionados_en(h, salida); }
+}
+
+// Por cada sentencia del bloque, los nombres que mencionan las que la siguen.
+fn despues_de_cada(n: &P.Nodo) -> lista<mapa<str, usize>> {
+    var al_reves: lista<mapa<str, usize>> = [];
+    var vistos: mapa<str, usize> = [];
+    var k = largo(n.hijos);
+    while k > 0 {
+        k = k - 1;
+        anadir(al_reves, copiar(vistos));
+        mencionados_en(n.hijos[k], vistos);
+    }
+    var salida: lista<mapa<str, usize>> = [];
+    var j = largo(al_reves);
+    while j > 0 {
+        j = j - 1;
+        anadir(salida, copiar(al_reves[j]));
+    }
+    return salida;
+}
+
+// El bloque de la sentencia en curso, o 0.
+fn bloque_en_curso(c: &Comprobacion) -> usize {
+    if c.hondura == 0 || c.hondura <= c.base { return 0; }
+    return c.cadena_bloques[c.hondura - 1];
+}
+
+// Si la vista `nombre` se vuelve a usar desde aqui. Un prestamo dura hasta
+// el ultimo uso de quien presta, no hasta el final de su bloque:
+//
+//     let v = vista(s);
+//     imprimir(v);        // ultimo uso de `v`
+//     empujar(s, "!");    // bien: nadie mira ya a `s`
+//
+// Se usa si se menciona en la sentencia en curso, en las que la siguen en su
+// bloque o en los de fuera hasta donde se declaro, o en cualquier parte de un
+// bucle que la envuelva: la vuelta siguiente vuelve a empezar. Ante la duda,
+// vive.
+fn vive_despues(c: &Comprobacion, nombre: view) -> bool {
+    let i = buscar_simbolo(c, nombre);
+    var tope = 0;
+    if existe(c, i) { tope = c.simbolos[i].bloque_decl; }
+    var j = c.hondura;
+    while j > c.base {
+        j = j - 1;
+        // De un `if` que envuelve a la sentencia en curso solo corre la rama
+        // en la que se esta; de lo demas, todo cuenta.
+        let en_curso = j + 1 == c.hondura;
+        if (en_curso || !igual(vista(c.cadena_clases[j]), "si"))
+        && tiene(c.cadena_propias[j], nombre) {
+            return true;
+        }
+        if tiene(c.cadena_despues[j], nombre) { return true; }
+        if tope > 0 && c.cadena_bloques[j] == tope { return false; }
+    }
+    return false;
+}
+
+// Los prestamos de `i` que siguen vivos aqui. Los de un `for` y las reservas
+// de `intercambiar` y `redimensionar` viven hasta que acaban; los de una
+// vista, hasta su ultimo uso.
+fn prestamos_vivos(c: &Comprobacion, i: usize) -> lista<str> {
+    var salida: lista<str> = [];
+    for p en c.simbolos[i].prestamos {
+        if es_reserva(vista(p)) || empieza_con(vista(p), "<") || vive_despues(c, vista(p)) {
+            anadir(salida, copiar(p));
+        }
+    }
+    return salida;
 }
 
 fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
@@ -4868,8 +5006,9 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         } else if !c.simbolos[i].mutable {
             error_no_mutable(c, m, s.linea, i);
         }
-        if largo(c.simbolos[i].prestamos) > 0 {
-            let por = ocupada(c, i);
+        let vivos = prestamos_vivos(c, i);
+        if largo(vivos) > 0 {
+            let por = ocupada(vivos);
             error(c, m, s.linea, $"no se puede modificar `{base}`: {por}");
         }
         if largo(destino) > 0 && largo(tipo) > 0 && !encaja(vista(destino), vista(tipo)) {
@@ -5179,12 +5318,17 @@ fn comprobar_funcion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, k: u
         }
     }
     var sale = false;
+    // Una copia de generica o una clausura se comprueban desde dentro de una
+    // sentencia de otra funcion: sus sentencias no son las de esta.
+    let base_antes = c.base;
+    c.base = c.hondura;
     for h en d.hijos {
         if igual(vista(h.clase), "bloque") {
             comprobar_bloque(c, m, tipos, h);
             sale = siempre_sale(h);
         }
     }
+    c.base = base_antes;
     cerrar_ambito(c);
     // Prometer un valor y no devolverlo deja al que llama leyendo basura.
     if largo(f.retorno) > 0 && !igual(vista(f.retorno), "()") && !igual(nombre, "main")

@@ -499,6 +499,21 @@ def _nodos_de(nodo):
             pila.extend(getattr(x, f.name) for f in fields(x))
 
 
+def _mencionados(nodo):
+    """Los nombres de variable que aparecen en `nodo`, a cualquier hondura."""
+    return {x.nombre for x in _nodos_de(nodo) if isinstance(x, Variable)}
+
+
+def _despues_de_cada(sentencias):
+    """Por cada sentencia, los nombres que mencionan las que la siguen."""
+    salida = [None] * len(sentencias)
+    vistos = frozenset()
+    for i in range(len(sentencias) - 1, -1, -1):
+        salida[i] = vistos
+        vistos = vistos | _mencionados(sentencias[i])
+    return salida
+
+
 class ErrorDeTipos(Exception):
     pass
 
@@ -527,6 +542,9 @@ class Simbolo:
         self.movida_en = 0
         # nombres de las vistas vivas que prestan de esta variable
         self.prestamos = []
+        # La lista de sentencias donde se declaro: una vista no se menciona
+        # mas alla de su bloque.
+        self.bloque_decl = None
         # si es una vista: de quien presta (None = literal, sin dueño), y
         # todos los duenios de los que puede venir, el primero delante
         self.origen = None
@@ -578,6 +596,10 @@ class Comprobador:
         self.falible_actual = False
         self.en_condicional = 0
         self.en_condicion_bucle = 0
+        # Las sentencias que se estan comprobando, de fuera adentro: cada una
+        # con su clase, lo que mencionan las que la siguen en su bloque, y el
+        # bloque. Dicen si una vista se vuelve a usar.
+        self.cadena = []
         # Las cuentas de numeros escritos que esperan su tipo, en el orden en
         # que se comprobaron, y las que ya se hicieron.
         self.escritas = []
@@ -686,6 +708,8 @@ class Comprobador:
                              f"de un bloque de fuera. Usa otro nombre")
 
         sim = Simbolo(nombre, tipo, mutable, len(self.ambitos), decl or nodo)
+        if self.cadena:
+            sim.bloque_decl = self.cadena[-1][3]
         sim.bucle_al_declarar = self.en_bucle
         sim.condicional_al_declarar = self.en_condicional
         self.ambitos[-1][nombre] = sim
@@ -739,9 +763,10 @@ class Comprobador:
             sim.reasignada_directo = False
             if self.movidas_en_bucle:
                 self.movidas_en_bucle[-1].append((sim, nodo))
-        if sim.prestamos:
+        vivos = self.prestamos_vivos(sim)
+        if vivos:
             self.error(nodo, f"no se puede mover `{sim.nombre}`: "
-                             f"{self._ocupada(sim)}")
+                             f"{self._ocupada(vivos)}")
             return
         # Una sola regla, en vez de un caso especial por construccion:
         #
@@ -779,16 +804,17 @@ class Comprobador:
                                  f"lectura (`{sim.tipo}`): para modificar lo "
                                  f"que apunta hace falta `&mut "
                                  f"{apuntado(sim.tipo)}`")
-            elif sim.prestamos:
+            elif self.prestamos_vivos(sim):
                 self.error(nodo, f"no se puede modificar `{sim.nombre}`: "
-                                 f"{self._ocupada(sim)}")
+                                 f"{self._ocupada(self.prestamos_vivos(sim))}")
             return
         if not sim.mutable:
             self.error_no_mutable(nodo, sim)
             return
-        if sim.prestamos:
+        vivos = self.prestamos_vivos(sim)
+        if vivos:
             self.error(nodo, f"no se puede modificar `{sim.nombre}`: "
-                             f"{self._ocupada(sim)}")
+                             f"{self._ocupada(vivos)}")
 
     def _escribe_en_captura(self, lugar):
         """Si `lugar` es algo que capturo la clausura que se comprueba, lo
@@ -843,11 +869,11 @@ class Comprobador:
         sim.prestamos.append(nombre_vista)
 
     @classmethod
-    def _ocupada(cls, sim):
+    def _ocupada(cls, vivos):
         """Por que no se puede tocar: prestamos vivos o una reserva de
         `intercambiar`/`redimensionar` mientras calculan su argumento."""
-        prestamos = [n for n in sim.prestamos if n not in RESERVAS]
-        reservas = [n for n in sim.prestamos if n in RESERVAS]
+        prestamos = [n for n in vivos if n not in RESERVAS]
+        reservas = [n for n in vivos if n in RESERVAS]
         if prestamos:
             return f"esta prestada por {cls._lista(prestamos)}"
         n = reservas[0]
@@ -1530,7 +1556,11 @@ class Comprobador:
             sim.prestado = p.prestado
             if p.tipo == "view" or (not p.prestado and self.es_prestado_st(p.tipo)):
                 sim.procedencia = PARAMETRO
+        # Una copia de generica o una clausura se comprueban desde dentro de
+        # una sentencia de otra funcion: sus sentencias no son las de esta.
+        cadena, self.cadena = self.cadena, []
         self.bloque(f.cuerpo)
+        self.cadena = cadena
         self.cerrar()
         # Prometer un valor y no devolverlo deja al que llama leyendo basura.
         # `main` es la excepcion: si no dice otra cosa, sale con cero.
@@ -1584,8 +1614,7 @@ class Comprobador:
         anterior = self.en_bucle_directo
         self.en_bucle_directo = self.en_bucle
         self.abrir()
-        for s in sentencias:
-            self.sentencia(s)
+        self.sentencias(sentencias)
         self.cerrar()
         self.en_bucle_directo = anterior
 
@@ -1700,6 +1729,7 @@ class Comprobador:
                     self.error(e, f"la guarda de un brazo tiene que ser "
                                   f"`bool`, es `{tg}`")
             t = None
+            despues = _despues_de_cada(b.cuerpo)
             for i, st in enumerate(b.cuerpo):
                 if b.es_expresion and isinstance(st, Retorno) and st.valor is not None:
                     t = self.expresion(st.valor, destino=destino,
@@ -1707,7 +1737,7 @@ class Comprobador:
                     if t in (LITERAL, LITERAL_DECIMAL):
                         escritos.append(st.valor)
                 else:
-                    self.sentencia(st)
+                    self.sentencia(st, despues[i], id(b.cuerpo))
             self.en_condicional -= 1
             self.cerrar()
             fotos.append(self._foto())
@@ -1801,16 +1831,62 @@ class Comprobador:
         anterior = self.en_bucle_directo
         self.en_bucle_directo = -1
         self.abrir()
-        for s in sentencias:
-            self.sentencia(s)
+        self.sentencias(sentencias)
         salida = self.cerrar()
         self.en_bucle_directo = anterior
         return salida
 
-    def sentencia(self, s):
+    def sentencias(self, sentencias):
+        """Una lista de sentencias, cada una sabiendo que nombres mencionan
+        las que la siguen."""
+        despues = _despues_de_cada(sentencias)
+        for i, s in enumerate(sentencias):
+            self.sentencia(s, despues[i], id(sentencias))
+
+    def sentencia(self, s, despues=frozenset(), bloque=None):
         desde = len(self.escritas)
-        self._sentencia(s)
+        clase = ("si" if isinstance(s, Si)
+                 else "bucle" if isinstance(s, (Mientras, Para)) else "otra")
+        self.cadena.append((clase, s, despues, bloque))
+        try:
+            self._sentencia(s)
+        finally:
+            self.cadena.pop()
         self.contar_pendientes(desde)
+
+    def vive_despues(self, nombre):
+        """Si la vista `nombre` se vuelve a usar desde aqui. Un prestamo dura
+        hasta el ultimo uso de quien presta, no hasta el final de su bloque:
+
+            let v = vista(s);
+            imprimir(v);        // ultimo uso de `v`
+            empujar(s, "!");    // bien: nadie mira ya a `s`
+
+        Se usa si se menciona en la sentencia en curso, en las que la siguen
+        en su bloque o en los de fuera hasta donde se declaro, o en cualquier
+        parte de un bucle que la envuelva: la vuelta siguiente vuelve a
+        empezar. Ante la duda, vive."""
+        sim = self.buscar(nombre)
+        tope = sim.bloque_decl if sim is not None else None
+        ultima = len(self.cadena) - 1
+        for j in range(ultima, -1, -1):
+            clase, s, despues, bloque = self.cadena[j]
+            # De un `if` que envuelve a la sentencia en curso solo corre la
+            # rama en la que se esta; de lo demas, todo cuenta.
+            if (j == ultima or clase != "si") and nombre in _mencionados(s):
+                return True
+            if nombre in despues:
+                return True
+            if tope is not None and bloque == tope:
+                return False
+        return False
+
+    def prestamos_vivos(self, sim):
+        """Los prestamos de `sim` que siguen vivos aqui. Los de un `for` y
+        las reservas de `intercambiar` y `redimensionar` viven hasta que
+        acaban; los de una vista, hasta su ultimo uso."""
+        return [n for n in sim.prestamos
+                if n in RESERVAS or n.startswith("<") or self.vive_despues(n)]
 
     def _sentencia(self, s):
         if isinstance(s, Declaracion):
@@ -1885,9 +1961,10 @@ class Comprobador:
                                   f"{apuntado(sim.tipo)}`")
             elif not sim.mutable:
                 self.error_no_mutable(s, sim)
-            if sim.prestamos:
+            vivos = self.prestamos_vivos(sim)
+            if vivos:
                 self.error(s, f"no se puede modificar `{base}`: "
-                              f"{self._ocupada(sim)}")
+                              f"{self._ocupada(vivos)}")
             if destino is not None and tipo is not None and not encaja(destino, tipo):
                 self.error(s, f"el destino es `{destino}` y se le asigna "
                               f"un `{tipo}`")
@@ -3081,9 +3158,10 @@ class Comprobador:
                           f"deja otro valor en su sitio con "
                           f"`intercambiar(...)`")
             return
-        if sim.prestamos:
+        vivos = self.prestamos_vivos(sim)
+        if vivos:
             self.error(e, f"no se puede sacar `{nombre}`: "
-                          f"{self._ocupada(sim)}")
+                          f"{self._ocupada(vivos)}")
             return
         sim.sacados[ruta] = e.linea
         e.sacado = True

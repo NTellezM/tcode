@@ -332,7 +332,7 @@ RECHAZO = [
 
     ("la vista que se saca de el presta de lo mismo",
      'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn main() { var s = nuevo("x"); let p = Palabra { texto: vista(s), n: 1 };'
-     ' let v = texto_de(p); empujar(s, "y"); imprimir(v); }',
+     ' let v = texto_de(p); empujar(s, "y"); imprimir(v); imprimir(p.n); }',
      "esta prestada por `p` y `v`"),
 
     ("una lista no guarda structs que prestan",
@@ -591,7 +591,7 @@ RECHAZO = [
     ("el prestamo atraviesa la llamada",
      'fn primero(v: view) -> view { return rebanar(v, 0, 1); }'
      ' fn main() -> usize { var s: str = nuevo("hola");'
-     ' let p: view = primero(vista(s)); empujar(s, "x"); return 0; }',
+     ' let p: view = primero(vista(s)); empujar(s, "x"); imprimir(p); return 0; }',
      "esta prestada por `p`"),
 
     # ---- propiedad ----
@@ -601,7 +601,7 @@ RECHAZO = [
 
     ("mover algo prestado",
      'fn g(x: str) {} fn f() { var s: str = nuevo("a");'
-     ' let v: view = vista(s); g(s); }',
+     ' let v: view = vista(s); g(s); imprimir(v); }',
      "no se puede mover"),
     ("mover en un bucle algo declarado fuera",
      'fn g(s: str) {} fn f() { let s: str = nuevo("a"); var i: usize = 0;'
@@ -613,11 +613,6 @@ RECHAZO = [
      ' while i < 3 { g(s); if c { s = nuevo("b"); } i = i + 1; } }',
      "se declaro fuera del bucle"),
 
-
-    ("devolver algo prestado",
-     'fn f() -> str { var s: str = nuevo("a"); let v: view = vista(s);'
-     ' return s; }',
-     "no se puede mover"),
 
     # ---- mutabilidad ----
     ("modificar un let",
@@ -644,8 +639,36 @@ RECHAZO = [
 
     ("prestar un campo bloquea el struct entero",
      'struct P { n: str } fn f() { var p: P = P { n: nuevo("a") };'
-     ' let v: view = vista(p.n); empujar(p.n, "b"); }',
+     ' let v: view = vista(p.n); empujar(p.n, "b"); imprimir(v); }',
      "esta prestada por `v`"),
+
+    # ---- un prestamo dura hasta el ultimo uso de quien presta ----
+    ("una vista usada despues de modificar a su duenio",
+     'fn main() { var s = nuevo("hola"); let v = vista(s);'
+     ' empujar(s, "!"); imprimir(v); }',
+     "no se puede modificar `s`: esta prestada por `v`"),
+
+    ("un bucle vuelve a usar la vista en la vuelta siguiente",
+     'fn main() { var s = nuevo("x"); let w = vista(s); var i: usize = 0;'
+     ' while i < 2 { imprimir(w); empujar(s, "y"); i = i + 1; } }',
+     "no se puede modificar `s`: esta prestada por `w`"),
+
+    ("una vista que se usa despues del if",
+     'fn main() { var s = nuevo("z"); let a = vista(s);'
+     ' if largo(s) > 0 { empujar(s, "w"); } imprimir(a); }',
+     "no se puede modificar `s`: esta prestada por `a`"),
+
+    ("la sentencia que modifica tambien usa la vista",
+     'fn crece(x: mut str) -> usize { empujar(x, "!"); return 1; }'
+     ' fn main() { var s = nuevo("z"); let a = vista(s);'
+     ' let n = crece(s) + largo(a); imprimir(n); }',
+     "no se puede modificar `s`: esta prestada por `a`"),
+
+    ("mover algo cuya vista se usa en un bucle de fuera",
+     'fn g(x: str) {} fn main() { var i: usize = 0; while i < 2 {'
+     ' var s = nuevo("a"); let v = vista(s); imprimir(v); var j: usize = 0;'
+     ' while j < 2 { if j == 1 { g(s); } imprimir(v); j = j + 1; } i = i + 1; } }',
+     "no se puede mover `s`: esta prestada por `v`"),
 
     ("usar un struct despues de moverlo",
      'struct P { n: str } fn g(p: P) {} fn f() { var p: P = P { n: nuevo("a") };'
@@ -1192,6 +1215,39 @@ RECHAZO = [
 
 
 ACEPTA = [
+    # Un prestamo dura hasta el ultimo uso de quien presta, no hasta el
+    # final de su bloque: despues de la ultima vez que se lee `v`, `s` se
+    # puede modificar, mover o devolver. Corre limpio bajo ASan.
+    ("un prestamo acaba con el ultimo uso de la vista",
+     '''fn g(x: str) -> usize { return largo(x); }
+        fn devuelve() -> str {
+            var s = nuevo("abc");
+            let v = vista(s);
+            imprimir(v);
+            return s;
+        }
+        fn main() {
+            var s = nuevo("hola");
+            let v = vista(s);
+            imprimir(v);
+            empujar(s, "!");
+            var t = nuevo("x");
+            let w = vista(t);
+            var i: usize = 0;
+            while i < 2 {
+                imprimir(w);
+                i = i + 1;
+            }
+            empujar(t, "y");
+            var u = nuevo("z");
+            let a = vista(u);
+            if largo(a) > 0 { imprimir(a); empujar(u, "w"); }
+            let n = g(u);
+            let d = devuelve();
+            imprimir($" {s} {t} {n} {d}\\n");
+        }''',
+     "holaxxzabc hola! xy 2 abc\n"),
+
     # Dos campos distintos de un struct son memoria distinta: se pueden
     # prestar a la vez, tambien para modificarlos, y `vista(p.b)` presta solo
     # `p.b`.

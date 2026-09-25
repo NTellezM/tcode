@@ -59,10 +59,11 @@ error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 ## Las reglas
 
 1. **Propiedad y préstamos.** Un `str` es dueño; un `view` toma prestado.
-   Mientras viva un `view` derivado de un `str`, ese `str` no se puede mutar
-   ni mover. Los préstamos terminan al cerrar el bloque, y **una vista no
-   puede sobrevivir a lo que presta**: al cruzar un `return` el compilador
-   infiere de dónde sale la memoria, sin anotaciones.
+   Mientras se vaya a usar un `view` derivado de un `str`, ese `str` no se
+   puede mutar ni mover. El préstamo acaba con el último uso de la vista, no
+   al cerrar el bloque, y **una vista no puede sobrevivir a lo que presta**:
+   al cruzar un `return` el compilador infiere de dónde sale la memoria, sin
+   anotaciones. Dos campos distintos de un struct se prestan por separado.
 2. **Aritmética comprobada por defecto.** `+`, `-` y `*` abortan al
    desbordar, diciendo archivo y línea. Para envolver hay que escribirlo:
    `a *? b`.
