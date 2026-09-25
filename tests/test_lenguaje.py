@@ -930,6 +930,117 @@ RECHAZO = [
      ' fn main() { var s = nuevo("a");'
      ' let old = intercambiar(s, reemplazar(s)); imprimir(old); }',
      "esta reservada por `intercambiar` mientras se calcula el reemplazo"),
+    # ---- prestamos que se escapaban: cada uno era un uso tras liberar ----
+    # El fallo 2 de la especificacion, en una funcion propia: `a` crece y
+    # `b` queda apuntando al buffer viejo.
+    ("una vista que se pasa presta durante la llamada",
+     'fn g(a: mut str, b: view) { empujar(a, "xxxxxxxxxxxxxxxxxxxxxxxx"); imprimir(b); }'
+     ' fn main() { var s = nuevo("hola"); g(s, vista(s)); }',
+     "`s` se presta dos veces en la misma llamada a `g`"),
+
+    ("un `str` donde se pide `view` tambien presta",
+     'fn g(a: mut str, b: view) { empujar(a, "x"); imprimir(b); }'
+     ' fn main() { var s = nuevo("hola"); g(s, s); }',
+     "`s` se presta dos veces en la misma llamada a `g`"),
+
+    ("un campo prestado y modificado en la misma llamada",
+     'struct P { a: str, b: str }'
+     ' fn g(a: mut str, b: view) { empujar(a, "x"); imprimir(b); }'
+     ' fn main() { var p = P { a: nuevo("a"), b: nuevo("b") }; g(p.a, vista(p.a)); }',
+     "`p` se presta dos veces en la misma llamada a `g`"),
+
+    ("un puntero a funcion no se salta los prestamos dobles",
+     'fn g(a: &mut lista<str>, b: &str) { anadir(a, nuevo("x")); imprimir(b); }'
+     ' fn main() { var xs: lista<str> = [nuevo("hola")];'
+     ' let f: fn(&mut lista<str>, &str) = g; f(xs, xs[0]); }',
+     "`xs` se presta dos veces en la misma llamada a `f`"),
+
+    ("la vista que devuelve un puntero a funcion presta de su argumento",
+     'fn primero(v: view) -> view { return v; }'
+     ' fn main() { var s = nuevo("hola"); let f: fn(view) -> view = primero;'
+     ' let v = f(vista(s)); s = nuevo("x"); imprimir(v); }',
+     "no se puede modificar `s`: esta prestada por `v`"),
+
+    ("la vista que devuelve una clausura presta de su argumento",
+     'fn main() { var s = nuevo("hola"); let c = fn(x: view) -> view { return x; };'
+     ' let v = c(vista(s)); s = nuevo("x"); imprimir(v); }',
+     "no se puede modificar `s`: esta prestada por `v`"),
+
+    ("la vista que devuelve una generica presta de su argumento",
+     'fn id<T>(x: T) -> T { return x; }'
+     ' fn main() { var s = nuevo("hola"); let v = id(vista(s));'
+     ' empujar(s, "x"); imprimir(v); }',
+     "no se puede modificar `s`: esta prestada por `v`"),
+
+    ("lo que atrapa un patron presta del valor mirado",
+     'enum E { A(str), B }'
+     ' fn main() { var e = E.A(nuevo("hola"));'
+     ' match e { E.A(s) -> { e = E.B; imprimir(s); } E.B -> {} } }',
+     "no se puede modificar `e`: esta prestada por `s`"),
+
+    ("lo atrapado guardado en una vista de fuera sigue prestando",
+     'enum E { A(str), B }'
+     ' fn main() { var e = E.A(nuevo("hola")); var v: view = "";'
+     ' match e { E.A(s) -> { v = s; } E.B -> {} } e = E.B; imprimir(v); }',
+     "no se puede modificar `e`: esta prestada por `v`"),
+
+    ("un `match` que da una vista presta del valor mirado",
+     'enum E { A(str), B }'
+     ' fn main() { var e = E.A(nuevo("hola"));'
+     ' let v: view = match e { E.A(s) -> s, E.B -> "" }; e = E.B; imprimir(v); }',
+     "no se puede modificar `e`: esta prestada por `v`"),
+
+    ("un `match` sobre un temporal no deja guardar lo que atrapa",
+     'enum E { A(str), B }'
+     ' fn hacer() -> E { return E.A(nuevo("hola")); }'
+     ' fn main() { let v: view = match hacer() { E.A(s) -> s, E.B -> "" };'
+     ' imprimir(v); }',
+     "apuntaria a un valor temporal"),
+
+    ("un `if` que da una vista presta de las dos ramas",
+     'fn main() { var a = nuevo("a"); var b = nuevo("b"); let c = true;'
+     ' let v = if c { vista(a) } else { vista(b) }; a = nuevo("x");'
+     ' imprimir(v); empujar(b, "y"); }',
+     "no se puede modificar `a`: esta prestada por `v`"),
+
+    ("`empujar` mira todos los duenios posibles de la vista",
+     'fn main() { var s = nuevo("s"); var t = nuevo("t"); let c = true;'
+     ' empujar(t, if c { vista(s) } else { vista(t) }); imprimir(t); }',
+     "`t` se presta y se modifica en la misma llamada a `empujar`"),
+
+    ("un arreglo no guarda vistas",
+     'fn main() { var arr: [view; 2] = ["", ""];'
+     ' if true { let s = nuevo("hola"); arr[0] = vista(s); } imprimir(arr[0]); }',
+     "no es un tipo almacenable"),
+
+    ("un arreglo no guarda structs que prestan",
+     'struct P { a: view }'
+     ' fn main() { var s = nuevo("hola"); let arr: [P; 1] = [P { a: vista(s) }];'
+     ' imprimir(arr[0].a); }',
+     "no es un tipo almacenable"),
+
+    # ---- aritmetica que daba la vuelta en silencio o C invalido ----
+    ("un entero sin signo no se niega",
+     'fn main() { let n: u8 = 5; let m: u8 = -n; imprimir(m); }',
+     "`u8` no tiene signo: no se puede negar"),
+
+    ("`/?` es de los decimales",
+     'fn main() { let n: i64 = 7; let m: i64 = 2; imprimir(n /? m); }',
+     "`/?` es la division IEEE de los decimales"),
+
+    ("`/?` entre dos enteros escritos tampoco",
+     'fn main() { let x: usize = 10 /? 3; imprimir(x); }',
+     "`/?` es la division IEEE de los decimales"),
+
+    # ---- lo que antes agotaba la pila del compilador ----
+    ("un arbol de mas de 5000 niveles",
+     'fn main() { let x: usize = ' + '(' * 6000 + '1' + ')' * 6000
+     + '; imprimir(x); }',
+     "el programa anida mas de 5000 niveles"),
+
+    ("un error dentro de un hueco dice la linea de la cadena",
+     'fn main() {\n\n\n    imprimir($"[{1 +}]");\n}',
+     "<test>:4: se esperaba una expresion"),
 ]
 
 
@@ -2776,6 +2887,68 @@ fn main() {
             imprimir(s); imprimir("\\n"); return 0;
         }''',
      "sin datos\n"),
+    # En C17 `??=` es un trigrafo: C lo cambiaba por `#` y el largo de al
+    # lado leia de mas.
+    ("una cadena con `??` sale con los mismos bytes",
+     'fn main() { imprimir("??= ??/ ??! ???=\\n"); imprimir(largo("??="));'
+     ' imprimir("\\n"); }',
+     "??= ??/ ??! ???=\n3\n"),
+
+    # Un `match` suelto con brazos que dan un valor no hacia nada.
+    ("un `match` suelto hace lo de sus brazos",
+     '''enum E { A, B }
+        fn efecto(xs: mut lista<usize>) -> usize { anadir(xs, 1); return 0; }
+        fn texto_de(e: &E) -> str {
+            return match e { E.A -> nuevo("una cadena en el heap"), E.B -> nuevo("b") };
+        }
+        fn main() {
+            var xs: lista<usize> = [];
+            let e = E.A;
+            match e { E.A -> imprimir("A\\n"), E.B -> imprimir("B\\n") }
+            match e { E.A -> efecto(xs), E.B -> 0 }
+            match e { E.A -> texto_de(e), E.B -> nuevo("otra cadena en el heap") }
+            imprimir(largo(xs));
+            imprimir("\\n");
+        }''',
+     "A\n1\n"),
+
+    # `%s` y `%.*s` se paraban en el primer cero.
+    ("`imprimir` saca los bytes cero de un `str`",
+     'fn main() { var s = nuevo("a\\x00b"); empujar(s, "c");'
+     ' imprimir(s); imprimir("|"); imprimir($"{s}|\\n"); }',
+     "a\x00bc|a\x00bc|\n"),
+
+    ("nombres que en C ya son otra cosa",
+     '''enum E { free, otra(str) }
+        struct tm { log: usize, EOF: usize }
+        fn exp(x: usize) -> usize { return x + 1; }
+        fn _Bool(ss_tmp1: usize) -> usize { return ss_tmp1 * 2; }
+        fn main() {
+            let e = E.otra(nuevo("hola"));
+            match e { E.free -> imprimir("f\\n"), E.otra(NAN) -> imprimir($"{NAN}\\n") }
+            let p = tm { log: 1, EOF: 2 };
+            let stdout = 3;
+            var m: mapa<str, usize> = [];
+            poner(m, "k", 4);
+            for k, argc en m { imprimir($"{k}={argc}\\n"); }
+            let size_t: usize = 5;
+            var puts = fn[mut size_t]() -> usize { size_t = size_t + 1; return size_t; };
+            imprimir(exp(p.log) + p.EOF + stdout + _Bool(1) + puts());
+            imprimir("\\n");
+        }''',
+     "hola\nk=4\n15\n"),
+
+    ("cadenas con llaves, comillas y escapes dentro de un hueco",
+     'fn f(a: view) -> view { return a; }'
+     ' fn main() {'
+     ' imprimir($"[{f("}")}] [{f("a\\"b")}] [{f("x\\ny")}] [{f($"{f("{")}")}]\\n");'
+     ' imprimir($"{f(\\"antes\\")}\\n"); }',
+     '[}] [a"b] [x\ny] [{]\nantes\n'),
+
+    ("mil parentesis anidados",
+     'fn main() { let x: usize = ' + '(' * 1000 + '1' + ')' * 1000
+     + '; imprimir(x); imprimir("\\n"); }',
+     "1\n"),
 ]
 
 
@@ -2835,6 +3008,16 @@ AVISA = [
 
 # Programas que compilan pero deben ABORTAR en tiempo de ejecucion.
 ABORTA = [
+    # Antes daba una vista vacia, un resultado equivocado que nadie veia.
+    ("`rebanar` fuera de rango detiene el programa",
+     'fn main() { let s = nuevo("hola"); let v = rebanar(vista(s), 3, 10);'
+     ' imprimir(largo(v)); }',
+     "rebanar(3, 10) fuera de rango (el texto tiene 4 bytes)"),
+
+    ("`rebanar` con el principio detras del final",
+     'fn main() { let s = nuevo("hola"); imprimir(rebanar(vista(s), 3, 2)); }',
+     "rebanar(3, 2) fuera de rango"),
+
     ("`azar(0)` pide un numero de un rango vacio",
      'fn main() -> usize { let n = 0; imprimir(azar(n)); return 0; }',
      "rango vacio"),
