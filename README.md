@@ -342,12 +342,36 @@ sin parar; `let a: i64 = 5 - 10;` paraba por desbordamiento, e
 `imprimir(-1)` escribía `18446744073709551615`. Ahora los dos generadores
 hacen la cuenta en el mismo tipo que decide el comprobador.
 
+La causa era de diseño, no de un caso: el generador volvía a deducir el tipo
+de cada expresión por su cuenta, y se equivocaba donde el comprobador ya
+sabía la respuesta. Por eso ahora **el comprobador anota el tipo de cada
+expresión** —con los números escritos ya decididos por su contexto— y los
+dos generadores lo leen de ahí. En Python va en el propio nodo; en el
+compilador escrito en Tcode, que no tiene punteros, cada nodo lleva un número
+y el comprobador devuelve un mapa `función#número → tipo`.
+
+Y para que un fallo así no vuelva a pasar desapercibido hay una propiedad
+más, **P11**: programas de aritmética con su salida calculada aparte, en
+Python, con las reglas de la especificación. Con el compilador anterior, 125
+de 200 daban otra cosa. Al escribirla salieron más:
+
+| el programa | qué pasaba |
+|---|---|
+| `(if c { 1.5 } else { f }) * f` con `f: f32` | la cuenta se hacía en `f64`: con `f` en el máximo daba `1.15792e+77` en vez de parar |
+| `(if c { 300 } else { x }) + 0` con `x: u8` | la rama escrita no se comprobaba: daba `44`. Lo mismo en un `match` |
+| `let r: u8 = -(3 + 4);` | compilaba y daba `249` |
+| `dice("izq") + (if c { dice("der") } else { 0 })` | escribía `der izq`: el operando que necesita sentencias propias corría antes que los de su izquierda, también en llamadas, structs y arreglos |
+| `mismo(1 + x)` con `x: i16` | la genérica deducía `usize` y rechazaba el programa |
+| `mismo(g(mismo(x)))` | `tcodec` escribía las dos copias en otro orden que Python |
+| `junta(nuevo("a"), if c { nuevo("bb") } else { nuevo("") })` | `tcodec` soltaba dos veces el `str` que el `if` le entregaba a la función |
+
 Lo que la dejó ver es la lección: la suite solo generaba programas válidos,
 y un comprobador de préstamos se equivoca justo con los que no lo son. Por
 eso ahora hay una propiedad más, P10, que genera a propósito programas que
 toman una vista, invalidan a su dueño y la usan, por cada forma que el
 lenguaje tiene de fabricar una vista. Con el compilador de antes, 26 de esos
-86 programas compilaban.
+86 programas compilaban. Y P11 es lo mismo para los números: la suite miraba
+que un programa corriera limpio, no que imprimiera lo correcto.
 
 ## Formato
 
@@ -686,6 +710,7 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 | **P8** | ante un programa **roto a propósito**, el compilador o lo acepta o lo rechaza diciendo dónde: nunca una excepción, nunca un cuelgue |
 | **P9** | un programa repartido en varios archivos, con `usar` en rombo, compila y corre igual: los structs y las funciones cruzan de módulo, y un `str` que nace en uno y muere en otro no se filtra |
 | **P10** | una vista no sobrevive a que su dueño se reasigne, crezca, se mueva o se libere, venga de `vista`, `rebanar`, un `if` o un `match`, una función, un puntero a función, una clausura, una genérica, un struct que presta o un mapa: el programa que la usa después no compila, y su gemelo que la deja morir antes corre limpio bajo ASan |
+| **P11** | un programa de aritmética imprime lo que tiene que imprimir y para donde tiene que parar —con los nueve enteros y los dos decimales, números escritos a cada lado, conversiones, `if` como valor, llamadas, genéricas, campos y arreglos—, y `tcodec` escribe para él el mismo C que Python, byte a byte |
 
 `tests/generador_programas.py` produce programas válidos por construcción
 —con cadenas propias, structs, arreglos, `lista<usize>` y `lista<str>`,
@@ -693,7 +718,9 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 movimientos, fallos, `texto`, `byte`, y las **dos** ramas de un `sino`
 cuya alternativa es dueña de su memoria— y acotados para que no aborten ni
 se cuelguen. `tests/violaciones.py` hace lo contrario, para P10: programas
-que no deberían compilar. Para insistir más:
+que no deberían compilar. Y `tests/oraculo.py`, para P11, genera programas
+de aritmética y calcula en Python lo que tienen que imprimir, o dónde y con
+qué mensaje tienen que parar. Para insistir más:
 
 ```
 TCODE_PROGRAMAS=1000 make propiedades
