@@ -665,7 +665,7 @@ temporal.
 ```
 $ make check
 1979 casos, 0 fallas
-558 comprobaciones sobre 60 programas, 0 fallas
+816 comprobaciones sobre 60 programas, 0 fallas
 ```
 
 La suite tiene dos mitades. La primera son **casos por ejemplo**: este
