@@ -13,6 +13,7 @@ from tcode.modulos import cargar, ErrorDeModulo
 from tcode.comprobador import comprobar
 from tcode.generador import generar
 from tcode.explicar import explicar
+from tcode import nombres_c
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNTIME = os.path.join(RAIZ, "runtime")
@@ -81,8 +82,9 @@ def _escribir_atomico(ruta, contenido):
 
 def compilar_a_c(fuente, archivo, devolver_comp=False, con_lineas=True):
     """Compila una fuente suelta, sin resolver `usar`. Lo usan los tests."""
-    return _compilar(parsear(fuente, archivo), archivo, devolver_comp,
-                     con_lineas=con_lineas)
+    arbol = parsear(fuente, archivo)
+    nombres_c.renombrar(arbol, nombres_c.externas(arbol) | {"main"})
+    return _compilar(arbol, archivo, devolver_comp, con_lineas=con_lineas)
 
 
 def compilar_archivo(ruta, devolver_comp=False, con_lineas=True):

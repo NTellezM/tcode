@@ -378,16 +378,30 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
     for x en claves(previos_en) { poner(formas, vista(x), 1); }
     // Lo que traen los modulos, antes de nada: los tokens pasan a ser del
     // `Estado` en cuanto se construye.
-    let usados = P.modulos_usados(ruta, tokens);
-    for m en usados {
-        recoger_de_modulo(m, tipos);
-    }
+    var usados = P.modulos_usados(ruta, tokens);
 
     var estado = P.estado_de(tokens, ruta, nombres, formas);
-    let arbol = P.programa(estado) sino P.rama("vacio", 0);
+    var arbol = P.programa(estado) sino P.rama("vacio", 0);
     if largo(estado.error) > 0 || igual(vista(arbol.clase), "vacio") {
         error = copiar(estado.error);
         falla "sintaxis";
+    }
+
+    // Lo que chocaria con C se renombra antes que nada, en este arbol y en
+    // los de lo que usa, como hace el cargador. Salvo `main` y lo que
+    // declara un `externo`: es el nombre de la funcion de C.
+    let de_c = G.nombres_de_c();
+    var intocables: lista<str> = [nuevo("main")];
+    G.externas_de(arbol, intocables);
+    for u en usados { G.externas_de(u.arbol, intocables); }
+    G.renombrar_para_c(arbol, de_c, intocables);
+    var k = 0;
+    while k < largo(usados) {
+        G.renombrar_para_c(usados[k].arbol, de_c, intocables);
+        k = k + 1;
+    }
+    for m en usados {
+        recoger_de_modulo(m, tipos);
     }
 
     // Y las suyas, que mandan sobre las de fuera.
