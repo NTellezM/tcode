@@ -83,9 +83,43 @@ empujar(s, "x");          // error: `s` esta prestada por `p`
 Ante la duda, la inferencia rechaza. Prefiere negarse a un programa correcto
 antes que aceptar uno colgante.
 
-Lo que **no** admite v0: devolver una vista de un parámetro `mut str`.
-Sería sólido, pero exige seguir el préstamo del que llama a través de la
-mutación, y eso todavía no está.
+Vale igual para lo que llega prestado con `&T` o `mut T`: `vista(p.nombre)`
+de un `p: &Persona`, `vista(xs[0])` de un `xs: &lista<str>`, o la de un
+`s: mut str` después de modificarlo. La memoria es de quien llama.
+
+En quien llama, **la vista presta de todo lo que se le prestó a la
+función**. La firma no dice de cuál de sus parámetros sale, así que se
+supone lo peor:
+
+```tcode
+fn la_larga(a: &str, b: &str) -> view { ... }
+
+let v = la_larga(a, b);
+empujar(b, "x");        // error: `b` esta prestada por `v`
+```
+
+Y tres reglas que cierran lo que queda:
+
+- **Una vista no vive más que su dueño.** Al guardarla —también al
+  reasignarla— el dueño tiene que estar declarado en el mismo bloque que la
+  vista o en uno de fuera:
+
+  ```tcode
+  var v: view = "";
+  if c {
+      let s = nuevo("hola");
+      v = vista(s);     // error: `v` vive mas que `s`
+  }
+  ```
+
+- **Reasignar no suelta lo anterior.** La vista sigue prestando de todo lo que
+  se le dio hasta que muere: si la asignación va en una rama, la otra puede
+  no haberla hecho. Y su procedencia es la peor de todas, así que
+  `v = vista(local); return v;` se rechaza igual que `return vista(local);`.
+
+- **Una vista de un temporal no se guarda.** `f(nuevo("x"))` presta de un
+  `str` que se libera al acabar la sentencia: usarlo ahí mismo vale
+  (`imprimir(f(nuevo("x")))`), guardarlo en una variable no.
 
 ### 2. Aritmética comprobada por defecto (mata los fallos 1 y 4)
 

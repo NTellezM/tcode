@@ -170,6 +170,44 @@ RECHAZO = [
      ' return g(1); }',
      "una clausura captura por valor"),
 
+    # ---- vistas que salen de una funcion: el que llama queda protegido ----
+    ("una vista reasignada no sobrevive al bloque de su duenio",
+     'fn main() { var v: view = "";'
+     ' if true { let s = nuevo("hola"); v = vista(s); } imprimir(v); }',
+     "`v` vive mas que `s`"),
+
+    ("tampoco si la vista sale de una funcion",
+     'fn f(s: &str) -> view { return vista(s); }'
+     ' fn main() { var v: view = "";'
+     ' if true { let s = nuevo("hola"); v = f(s); } imprimir(v); }',
+     "`v` vive mas que `s`"),
+
+    ("una vista reasignada presta de su duenio nuevo",
+     'fn main() { var s = nuevo("a"); var v: view = ""; v = vista(s);'
+     ' empujar(s, "z"); imprimir(v); }',
+     "esta prestada por `v`"),
+
+    ("una vista reasignada a algo local no sale de la funcion",
+     'fn f() -> view { var v: view = "x"; let s = nuevo("hola");'
+     ' v = vista(s); return v; } fn main() { imprimir(f()); }',
+     "no se puede devolver una vista de `s`"),
+
+    ("la vista que devuelve una funcion presta de todo lo que le prestaron",
+     'fn f(a: &str, b: &str) -> view { return vista(b); }'
+     ' fn main() { var a = nuevo("x"); var b = nuevo("y"); let v = f(a, b);'
+     ' empujar(b, "z"); imprimir(v); }',
+     "no se puede modificar `b`: esta prestada por `v`"),
+
+    ("no se guarda una vista de un temporal prestado",
+     'fn f(s: &str) -> view { return vista(s); }'
+     ' fn main() { let v = f(nuevo("temporal")); imprimir(v); }',
+     "apuntaria a un valor temporal"),
+
+    ("ni la de un `str` recien hecho pasado como vista",
+     'fn primero(x: view) -> view { return x; }'
+     ' fn main() { let v = primero(nuevo("temporal")); imprimir(v); }',
+     "apuntaria a un valor temporal"),
+
     ("modificar lo capturado pide `mut` en la captura",
      'fn main() { let n: usize = 0;'
      ' let f = fn[n]() -> usize { n = n + 1; return n; }; imprimir(f()); }',
@@ -1204,6 +1242,39 @@ ACEPTA = [
             imprimir("\\n");
         }''',
      "arandano aguacate | 2 | pera arandano aguacate \n"),
+
+    ("devolver una vista de un parametro prestado",
+     '''struct Persona { nombre: str, apellido: str }
+
+        fn nombre_de(p: &Persona) -> view { return vista(p.nombre); }
+        fn primera(xs: &lista<str>) -> view { return vista(xs[0]); }
+        fn inicial(s: &str) -> view { return rebanar(vista(s), 0, 1); }
+        fn la_larga(a: &str, b: &str) -> view {
+            if largo(a) >= largo(b) { return vista(a); }
+            return vista(b);
+        }
+        // Un `mut str` tambien: la vista sale despues de modificarlo.
+        fn con_punto(s: mut str) -> view {
+            empujar(s, ".");
+            return vista(s);
+        }
+
+        fn main() {
+            let p = Persona { nombre: nuevo("Ada"), apellido: nuevo("Lovelace") };
+            var xs: lista<str> = [];
+            anadir(xs, nuevo("uno"));
+            let a = nuevo("corto");
+            let b = nuevo("larguisimo");
+            var s = nuevo("fin");
+            imprimir($"{nombre_de(p)} {primera(xs)} {inicial(a)} {la_larga(a, b)} ");
+            // Reasignar en el mismo bloque, o con el duenio fuera, vale.
+            var v: view = "literal";
+            v = la_larga(a, b);
+            imprimir($"{v} {con_punto(s)} ");
+            // Pasar un temporal y usar la vista en la misma sentencia vale.
+            imprimir($"{inicial(nuevo("zeta"))}\\n");
+        }''',
+     "Ada uno c larguisimo larguisimo fin. z\n"),
 
     ("una clausura que modifica lo capturado guarda su estado entre llamadas",
      '''fn repetir<F>(n: usize, f: mut F) {
