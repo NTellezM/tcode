@@ -4827,32 +4827,6 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         k = k + 1;
     }
-    k = 0;
-    while k < largo(arboles) {
-        c.archivo = copiar(modulos[k]);
-        for d en arboles[k].hijos {
-            if !igual(vista(d.clase), "enum") { continue; }
-            let nombre = vista(d.texto);
-            for v en d.hijos {
-                if !igual(vista(v.clase), "variante") { continue; }
-                for x en v.hijos {
-                    if !igual(vista(x.clase), "lleva") { continue; }
-                    let t = I.sin_alias_tipo(vista(x.texto));
-                    validar_tipo(c, m, d.linea, vista(t));
-                    if !almacenable(m, vista(t)) {
-                        error(c, m, d.linea, $"`{nombre}.{v.texto}` lleva un `{t}`, que no es un tipo");
-                    } else if igual(vista(t), "view") {
-                        error_enum_prestado(c, m, d.linea, nombre, vista(v.texto), vista(t));
-                    }
-                    var vistos: lista<str> = [];
-                    if se_contiene(m, vista(t), nombre, vistos) {
-                        error(c, m, d.linea, $"`{nombre}.{v.texto}` contiene un `{nombre}`: el tamaño no seria finito. Metelo en una `lista`, que guarda un puntero");
-                    }
-                }
-            }
-        }
-        k = k + 1;
-    }
 
     // Los structs.
     k = 0;
@@ -4950,19 +4924,32 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         k = k + 1;
     }
 
-    // Un enum tampoco lleva un struct que presta.
+    // Lo que lleva cada forma. Va despues de los structs: una forma puede
+    // llevar uno, y antes no existia.
     k = 0;
     while k < largo(arboles) {
         c.archivo = copiar(modulos[k]);
         for d en arboles[k].hijos {
             if !igual(vista(d.clase), "enum") { continue; }
+            let nombre = vista(d.texto);
             for v en d.hijos {
                 if !igual(vista(v.clase), "variante") { continue; }
                 for x en v.hijos {
                     if !igual(vista(x.clase), "lleva") { continue; }
                     let t = I.sin_alias_tipo(vista(x.texto));
+                    validar_tipo(c, m, d.linea, vista(t));
+                    if !almacenable(m, vista(t)) {
+                        error(c, m, d.linea, $"`{nombre}.{v.texto}` lleva un `{t}`, que no es un tipo");
+                    } else if igual(vista(t), "view") {
+                        error_enum_prestado(c, m, d.linea, nombre, vista(v.texto), vista(t));
+                    }
+                    var vistos: lista<str> = [];
+                    if se_contiene(m, vista(t), nombre, vistos) {
+                        error(c, m, d.linea, $"`{nombre}.{v.texto}` contiene un `{nombre}`: el tamaño no seria finito. Metelo en una `lista`, que guarda un puntero");
+                    }
+                    // Tampoco un struct que presta.
                     if es_prestado_st(m, vista(t)) {
-                        error_enum_prestado(c, m, d.linea, vista(d.texto), vista(v.texto), vista(t));
+                        error_enum_prestado(c, m, d.linea, nombre, vista(v.texto), vista(t));
                     }
                 }
             }

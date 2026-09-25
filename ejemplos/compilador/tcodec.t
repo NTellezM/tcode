@@ -468,6 +468,90 @@ fn visitar_struct(nombre: view, indice: &mapa<str, usize>,
     anadir(salida, nuevo(nombre));
 }
 
+// Define en C el enum o struct `nombre`, y antes lo que lleve por valor.
+fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<lista<str>>,
+    en_lleva: &lista<lista<str>>, st_indice: &mapa<str, usize>,
+    st_campos: &lista<lista<str>>, st_tipos: &lista<lista<str>>,
+    definidos: mut mapa<str, usize>, partes: mut lista<str>) {
+    if tiene(definidos, nombre) { return; }
+    var ie = 0;
+    while ie < largo(en_nombres) && !igual(vista(en_nombres[ie]), nombre) { ie = ie + 1; }
+    let es_enum = ie < largo(en_nombres);
+    if !es_enum && !tiene(st_indice, nombre) { return; }
+    poner(definidos, nombre, 1);
+    var lleva: lista<str> = [];
+    if es_enum {
+        for x en en_lleva[ie] {
+            for t en partir_tab(vista(x)) { anadir(lleva, copiar(t)); }
+        }
+    } else {
+        let k = obtener(st_indice, nombre) sino 0;
+        for t en st_tipos[k] { anadir(lleva, copiar(t)); }
+    }
+    for t en lleva {
+        var base = copiar(t);
+        while empieza_con(vista(base), "[") {
+            let pa = partes_arreglo(vista(base));
+            if largo(pa) != 2 { break; }
+            base = copiar(pa[0]);
+        }
+        definir_tipo_c(vista(base), en_nombres, en_variantes, en_lleva, st_indice, st_campos,
+            st_tipos, definidos, partes);
+    }
+    if es_enum {
+        cuerpo_enum_c(ie, en_nombres, en_variantes, en_lleva, partes);
+    } else {
+        let k = obtener(st_indice, nombre) sino 0;
+        anadir(partes, $"struct {nombre}");
+        anadir(partes, nuevo("{"));
+        var j = 0;
+        while j < largo(st_campos[k]) {
+            let tc = G.tipo_c(vista(st_tipos[k][j]));
+            anadir(partes, $"    {tc} {st_campos[k][j]};");
+            j = j + 1;
+        }
+        anadir(partes, nuevo("};"));
+        anadir(partes, vacio());
+    }
+}
+
+// Un enum en C: la etiqueta y, a su lado, una union con lo de cada forma.
+fn cuerpo_enum_c(ie_s: usize, en_nombres: &lista<str>, en_variantes: &lista<lista<str>>,
+    en_lleva: &lista<lista<str>>, partes: mut lista<str>) {
+    let en_n = copiar(en_nombres[ie_s]);
+    anadir(partes, $"struct {en_n}");
+    anadir(partes, nuevo("{"));
+    anadir(partes, nuevo("    uint32_t etiqueta;"));
+    var hay_datos = false;
+    for ll en en_lleva[ie_s] {
+        if largo(ll) > 0 { hay_datos = true; }
+    }
+    if hay_datos {
+        anadir(partes, nuevo("    union"));
+        anadir(partes, nuevo("    {"));
+        var iv = 0;
+        while iv < largo(en_variantes[ie_s]) {
+            let tipos_v = partir_tab(vista(en_lleva[ie_s][iv]));
+            if largo(tipos_v) > 0 {
+                var campos_c = vacio();
+                var q = 0;
+                while q < largo(tipos_v) {
+                    let tc = G.tipo_c(vista(tipos_v[q]));
+                    if q > 0 { empujar(campos_c, " "); }
+                    let pieza = $"{tc} _{q};";
+                    empujar(campos_c, vista(pieza));
+                    q = q + 1;
+                }
+                anadir(partes, $"        struct {{ {campos_c} }} v_{en_variantes[ie_s][iv]};");
+            }
+            iv = iv + 1;
+        }
+        anadir(partes, nuevo("    } dato;"));
+    }
+    anadir(partes, nuevo("};"));
+    anadir(partes, vacio());
+}
+
 // Si en algun sitio de `n` se llama a la interna `nombre`.
 fn llama_a(n: &P.Nodo, nombre: view) -> bool {
     if igual(vista(n.clase), "llamada") && igual(vista(n.texto), nombre) {
@@ -1346,6 +1430,14 @@ fn necesita_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
         let k = obtener(st_indice, t) sino 0;
         for c en st_tipos[k] {
             necesita_copiador(vista(c), global, st_indice, st_tipos, vistos, salida);
+        }
+    }
+    if tiene(global.variantes, t) {
+        // Lo que llevan sus formas, en orden.
+        for v en I.lista_de(global.variantes, t) sino [] {
+            for x en I.lista_de(global.formas, $"{t}.{v}") sino [] {
+                necesita_copiador(vista(x), global, st_indice, st_tipos, vistos, salida);
+            }
         }
     }
 }
@@ -2923,55 +3015,18 @@ fn main() -> usize ! {
     var puestos: mapa<str, usize> = [];
     for x en ordenadas { poner_typedef(vista(x), reg, puestos, partes); }
     if largo(ordenadas) > 0 { anadir(partes, vacio()); }
-    // Los enums van antes que los structs: una etiqueta y una union.
-    var ie_s = 0;
-    while ie_s < largo(en_nombres) {
-        let en_n = copiar(en_nombres[ie_s]);
-        anadir(partes, $"struct {en_n}");
-        anadir(partes, nuevo("{"));
-        anadir(partes, nuevo("    uint32_t etiqueta;"));
-        var hay_datos = false;
-        for ll en en_lleva[ie_s] {
-            if largo(ll) > 0 { hay_datos = true; }
-        }
-        if hay_datos {
-            anadir(partes, nuevo("    union"));
-            anadir(partes, nuevo("    {"));
-            var iv = 0;
-            while iv < largo(en_variantes[ie_s]) {
-                let tipos_v = partir_tab(vista(en_lleva[ie_s][iv]));
-                if largo(tipos_v) > 0 {
-                    var campos_c = vacio();
-                    var q = 0;
-                    while q < largo(tipos_v) {
-                        let tc = G.tipo_c(vista(tipos_v[q]));
-                        if q > 0 { empujar(campos_c, " "); }
-                        let pieza = $"{tc} _{q};";
-                        empujar(campos_c, vista(pieza));
-                        q = q + 1;
-                    }
-                    anadir(partes, $"        struct {{ {campos_c} }} v_{en_variantes[ie_s][iv]};");
-                }
-                iv = iv + 1;
-            }
-            anadir(partes, nuevo("    } dato;"));
-        }
-        anadir(partes, nuevo("};"));
-        anadir(partes, vacio());
-        ie_s = ie_s + 1;
+    // Los enums, y detras los structs en orden de dependencia. Pero cada
+    // uno necesita el tamaño de lo que lleva por valor, asi que antes va lo
+    // suyo: un enum que lleva un struct, u otro enum escrito mas abajo, lo
+    // encuentra ya definido.
+    var definidos: mapa<str, usize> = [];
+    for en_n en en_nombres {
+        definir_tipo_c(vista(en_n), en_nombres, en_variantes, en_lleva, st_indice, st_campos,
+            st_tipos, definidos, partes);
     }
     for n en orden {
-        let k = obtener(st_indice, vista(n)) sino 0;
-        anadir(partes, $"struct {n}");
-        anadir(partes, nuevo("{"));
-        var j = 0;
-        while j < largo(st_campos[k]) {
-            let tc = G.tipo_c(vista(st_tipos[k][j]));
-            anadir(partes, $"    {tc} {st_campos[k][j]};");
-            j = j + 1;
-        }
-        anadir(partes, nuevo("};"));
-        anadir(partes, vacio());
+        definir_tipo_c(vista(n), en_nombres, en_variantes, en_lleva, st_indice, st_campos,
+            st_tipos, definidos, partes);
     }
     var alguno_posee = false;
     for n en orden {
