@@ -526,7 +526,7 @@ def probar_errores(tmp):
     r = random.Random(99)
     malos = [
         'fn f() { var s: str = nuevo("a"); let v: view = vista(s);\n'
-        ' empujar(s, "b"); }',
+        ' empujar(s, "b"); imprimir(v); }',
         'fn f() { let a: usize = 1; let b: i64 = 2;\n let c: usize = a + b; }',
         'struct P { v: view }\nfn f() -> P { let s: str = nuevo("h");\n'
         ' return P { v: vista(s) }; }',
