@@ -346,12 +346,16 @@ struct Cuenta {
     instancias: lista<str>,
     // Los tipos que han pedido copiador, en el orden en que se pidieron.
     copias: lista<str>,
+    // La funcion que se escribe, con el nombre que le da el comprobador: es
+    // la clave de los tipos que dejo anotados. Vacio, no hay anotaciones y
+    // los tipos se deducen.
+    dueno: str,
 }
 
 fn cuenta_nueva() -> Cuenta {
     return Cuenta { temporal: 0, bucle: 0, etiquetas: 0, sacados: [], ultima_linea: 0,
         instancias: [],
-        copias: [] };
+        copias: [], dueno: vacio() };
 }
 
 // Lee y analiza un archivo, y deja en `tipos` todo lo que hace falta saber
@@ -446,6 +450,7 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     var retorno = vacio();
     var falible = false;
 
+    tipos.dueno = copiar(cta.dueno);
     I.abrir(tipos);
     for h en d.hijos {
         if igual(vista(h.clase), "param") {
