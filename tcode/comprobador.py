@@ -17,7 +17,7 @@ from tcode.nodos import (
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
-    Enum, VarianteDef, EnumLit, Match, Brazo,
+    Enum, VarianteDef, EnumLit, Match, Brazo, PatronForma,
 )
 
 # Enteros de ancho fijo, mas `usize`, que es el que mide cosas de la maquina
@@ -403,6 +403,10 @@ class Simbolo:
         # Cuantos bucles habia abiertos al declararla. Moverla desde dentro
         # de un bucle mas hondo la moveria una vez por vuelta.
         self.bucle_al_declarar = 0
+        # En cuantos `if`/`match` estaba al declararse, y los campos que se
+        # le sacaron: `nombre` o `a.b` -> la linea.
+        self.condicional_al_declarar = 0
+        self.sacados = {}
         # Para el patron de plegado de un parser: se mueve dentro del bucle y
         # se reasigna en el mismo nivel antes de la siguiente vuelta.
         self.reasignada_directo = False
@@ -461,6 +465,13 @@ class Comprobador:
         self.falible_actual = False
         self.en_condicional = 0
         self.en_condicion_bucle = 0
+        # Dentro de la guarda de un brazo: ahi no se mueve nada, porque se
+        # evalua aunque el brazo no llegue a casar.
+        self.en_guarda = 0
+        # Mirando el objeto de un `p.x` (no es usar `p` entera), y
+        # escribiendo en un campo (no es leerlo).
+        self.por_campo = 0
+        self.escribiendo = 0
         self.en_bucle = 0
         # Profundidad de bucle cuyas sentencias estamos escribiendo
         # directamente, sin un `if` de por medio.
@@ -503,7 +514,13 @@ class Comprobador:
         for nombre, ligaduras, sitio in reversed(self.contexto_instancia):
             tipos = self._legible(
                 ", ".join(f"{k} = {v}" for k, v in ligaduras.items()))
-            partes.append(f"\n  al usar `{nombre}` con {tipos}, desde {sitio}")
+            if sitio is None:
+                partes.append(f"\n  al comprobar `{nombre}` con {tipos}: la "
+                              f"restriccion lo admite, asi que el cuerpo tiene "
+                              f"que valer tambien asi")
+            else:
+                partes.append(f"\n  al usar `{nombre}` con {tipos}, desde "
+                              f"{sitio}")
         return "".join(partes)
 
     def aviso(self, nodo, mensaje):
@@ -526,7 +543,7 @@ class Comprobador:
         # Al cerrar el bloque mueren las vistas declaradas aqui: se sueltan
         # los prestamos que tenian sobre variables de bloques exteriores.
         for sim in muerto.values():
-            if sim.tipo == "view" or es_referencia(sim.tipo):
+            if self.presta(sim.tipo):
                 for origen in sim.origenes:
                     duenio = self.buscar(origen)
                     if duenio is not None and sim.nombre in duenio.prestamos:
@@ -553,6 +570,7 @@ class Comprobador:
 
         sim = Simbolo(nombre, tipo, mutable, len(self.ambitos), decl or nodo)
         sim.bucle_al_declarar = self.en_bucle
+        sim.condicional_al_declarar = self.en_condicional
         self.ambitos[-1][nombre] = sim
         if self.simbolos_funcion is not None:
             self.simbolos_funcion.append(sim)
@@ -568,10 +586,22 @@ class Comprobador:
             self.error(nodo, f"`{sim.nombre}` ya se movio en la linea "
                              f"{sim.movida_en} y aqui se usa otra vez")
             return False
+        if sim.sacados and not self.por_campo:
+            ruta, linea = next(iter(sim.sacados.items()))
+            self.error(nodo, f"`{sim.nombre}` esta a medio mover: "
+                             f"`{sim.nombre}.{ruta}` se saco en la linea "
+                             f"{linea}. Dale otro valor antes de usarla "
+                             f"entera, o usa solo sus otros campos")
+            return False
         return True
 
     def mover(self, nodo, sim):
         """Consumir el valor de una variable duenia."""
+        if self.en_guarda:
+            self.error(nodo, f"una guarda no mueve nada: `{sim.nombre}` se "
+                             f"moveria aunque el brazo no case. Presta, o "
+                             f"usa `copiar(...)`")
+            return
         if not self.usar(nodo, sim):
             return
         # Si llego prestado, la razon de verdad es esa, y el mensaje de la
@@ -625,7 +655,11 @@ class Comprobador:
         if self._escribe_en_captura(nodo):
             return
         sim.mutada = True
-        if not self.usar(nodo, sim, lectura=False):
+        # Modificar un campo no es usar el struct entero.
+        self.por_campo += isinstance(nodo, Campo)
+        sigue = self.usar(nodo, sim, lectura=False)
+        self.por_campo -= isinstance(nodo, Campo)
+        if not sigue:
             return
         if por_referencia and es_referencia(sim.tipo):
             if not es_referencia_mutable(sim.tipo):
@@ -770,15 +804,20 @@ class Comprobador:
             return self.tipo_existe(elem_de(t))
         if es_mapa(t):
             k, v = partes_mapa(t)
-            return self.tipo_existe(k) and self.tipo_existe(v)
+            # Un mapa tampoco guarda vistas: nadie sabria cuanto viven.
+            return (self.tipo_existe(k) and self.tipo_existe(v)
+                    and not any(x == "view" or self.es_prestado_st(x)
+                                for x in (k, v)))
         if es_bloque(t):
             elem = elem_bloque(t)
             return (elem != "view" and not es_arreglo(elem)
+                    and not self.es_prestado_st(elem)
                     and self.tipo_existe(elem))
         if es_lista(t):
             elem = elem_lista(t)
             # Guardar vistas en una coleccion exigiria expresar su vida util.
-            return elem != "view" and not es_arreglo(elem) and self.tipo_existe(elem)
+            return (elem != "view" and not es_arreglo(elem)
+                    and not self.es_prestado_st(elem) and self.tipo_existe(elem))
         return False
 
     def contiene_a(self, tipo, buscado, visitados=None):
@@ -933,6 +972,8 @@ class Comprobador:
                     if not self.tipo_existe(v.tipos[i]):
                         self.error(en, f"`{en.nombre}.{v.nombre}` lleva un "
                                        f"`{v.tipos[i]}`, que no es un tipo")
+                    elif v.tipos[i] == "view":
+                        self.error_enum_prestado(en, v, v.tipos[i])
                     # Un enum que se contiene a si mismo por valor tendria
                     # tamaño infinito, igual que un struct.
                     if self.contiene_a(v.tipos[i], en.nombre):
@@ -940,6 +981,30 @@ class Comprobador:
                                        f"`{en.nombre}`: el tamaño no seria "
                                        f"finito. Metelo en una `lista`, que "
                                        f"guarda un puntero")
+
+    def error_enum_prestado(self, en, v, t):
+        self.error(en, f"`{en.nombre}.{v.nombre}` lleva un `{t}`, que presta: "
+                       f"un enum no guarda prestamos, porque al mirarlo nadie "
+                       f"sabria de quien presta. Usa `str`, o un struct con "
+                       f"duenio")
+
+    def es_prestado_st(self, t, vistos=None):
+        """Un struct que presta: lleva una `view`, o un struct que presta.
+        Se trata como una vista: apunta a memoria de otro."""
+        st = self.structs.get(t)
+        if st is None:
+            return False
+        vistos = set() if vistos is None else vistos
+        if t in vistos:
+            return False
+        vistos.add(t)
+        return any(c.tipo == "view" or self.es_prestado_st(c.tipo, vistos)
+                   for c in st.campos)
+
+    def presta(self, t):
+        """Si un valor de este tipo apunta a memoria de otro."""
+        return (t == "view" or es_referencia(t or "")
+                or self.es_prestado_st(t))
 
     def variante_de(self, tipo, nombre):
         en = self.enums.get(tipo)
@@ -976,20 +1041,22 @@ class Comprobador:
                                    f"`{c.nombre}`")
                 vistos.add(c.nombre)
 
-                if c.tipo == "view":
-                    # Este es el muro que v0 no cruza: una vista dentro de un
-                    # struct necesita que la vida util forme parte del tipo.
-                    self.error(st, f"en v0 un struct no puede tener un campo "
-                                   f"`view` (`{st.nombre}.{c.nombre}`): habria "
-                                   f"que llevar su vida util en el tipo. Usa "
-                                   f"`str`, que es duenio de su memoria")
-                elif not self.tipo_existe(c.tipo):
+                # Un campo `view` hace del struct uno que presta: se le trata
+                # como a una vista, sin anotar vidas en el tipo.
+                if not self.tipo_existe(c.tipo):
                     self.error(st, f"`{st.nombre}.{c.nombre}` usa el tipo "
                                    f"`{c.tipo}`, que no existe")
 
             if any(self.contiene_a(c.tipo, st.nombre) for c in st.campos):
                 self.error(st, f"`{st.nombre}` se contiene a si mismo: no tiene "
                                f"un tamaño finito")
+
+        # Un enum tampoco lleva un struct que presta.
+        for en in self.enums.values():
+            for v in en.variantes:
+                for t in v.tipos:
+                    if self.es_prestado_st(t):
+                        self.error_enum_prestado(en, v, t)
 
     def _resolver_en_arbol(self, nodo, sitio=None):
         """Cambia cada `Par<usize, str>` escrito en el arbol por su copia.
@@ -1051,7 +1118,70 @@ class Comprobador:
             if not f.tipo_params and not f.externa:
                 self.comprobar_funcion(f)
 
+        self.comprobar_restricciones()
         return self.errores
+
+    def comprobar_restricciones(self):
+        """El cuerpo de una generica con restriccion vale para CADA tipo que
+        la cumple, no solo para los que se usan: si compila, compila para
+        todo `T` del conjunto. Como los conjuntos son finitos, basta con
+        probarlos todos, salvo los que dejan la firma sin sentido. Un
+        parametro sin restriccion se deja en los tipos
+        con que se uso; si alguno no la tiene y nadie la usa, no se sabe con
+        que probar, y se deja."""
+        from itertools import product
+        for nombre, plantilla in list(self.genericas.items()):
+            if not plantilla.restricciones:
+                continue
+            params = plantilla.tipo_params
+            hechas = [tipos for (n, tipos) in list(self.instancias)
+                      if n == nombre]
+            bases = list(hechas)
+            if not bases and all(t in plantilla.restricciones for t in params):
+                bases = [None]
+            probadas = set(hechas)
+            for base in bases:
+                opciones = []
+                for i, t in enumerate(params):
+                    if t in plantilla.restricciones:
+                        r = plantilla.restricciones[t]
+                        opciones.append(sorted(RESTRICCIONES[r]))
+                    else:
+                        opciones.append([base[i]])
+                for juego in product(*opciones):
+                    if juego in probadas:
+                        continue
+                    probadas.add(juego)
+                    ligaduras = dict(zip(params, juego))
+                    if self._firma_valida(plantilla, ligaduras):
+                        self._probar_juego(plantilla, params, ligaduras)
+
+    def _firma_valida(self, plantilla, ligaduras):
+        """Si con estos tipos la firma tiene sentido. Un `T = view` sobre un
+        `&lista<T>` no lo tiene: nadie podria llamarla asi, y el cuerpo no
+        tiene que valer para lo que no se puede escribir."""
+        for p in plantilla.params:
+            t = sustituir_tipo(p.tipo, ligaduras)
+            if not self.tipo_existe(t) or (p.prestado and t == "view"):
+                return False
+        r = sustituir_tipo(plantilla.retorno, ligaduras)
+        return r in (None, UNIDAD) or self.tipo_existe(r)
+
+    def _probar_juego(self, plantilla, params, ligaduras):
+        """Comprueba la copia sin quedarsela: lo que cambie al hacerla se
+        deshace, y solo quedan los errores."""
+        import copy as _copy
+        guardado = {k: _copy.copy(v) for k, v in vars(self).items()}
+        antes = len(self.errores)
+        try:
+            self._instanciar_con(plantilla, plantilla, params, ligaduras, None)
+            nuevos = self.errores[antes:]
+        finally:
+            for k, v in guardado.items():
+                setattr(self, k, v)
+        for x in nuevos:
+            if x not in self.errores:
+                self.errores.append(x)
 
     # ---------- genericas: una copia por juego de tipos ----------
 
@@ -1187,6 +1317,14 @@ class Comprobador:
                               + ", ".join("`" + x + "`" for x in sorted(valido)))
                 return None
 
+        sitio = f"{getattr(e, 'archivo', '') or self.archivo}:{e.linea}"
+        return self._instanciar_con(e, plantilla, params, ligaduras, sitio)
+
+    def _instanciar_con(self, e, plantilla, params, ligaduras, sitio):
+        """La copia de `plantilla` para estos tipos, comprobada, si no estaba
+        hecha. `sitio` es desde donde se pide, para los mensajes; None si la
+        pide la comprobacion de la restriccion y no una llamada."""
+        import copy as _copy
         clave = (plantilla.nombre, tuple(ligaduras[t] for t in params))
         if clave in self.instancias:
             return self.instancias[clave]
@@ -1220,7 +1358,6 @@ class Comprobador:
                     self.simbolos_funcion, self.ambitos)
         self.ambitos = []
         self.instanciando.append(clave)
-        sitio = f"{getattr(e, 'archivo', '') or self.archivo}:{e.linea}"
         self.contexto_instancia.append((plantilla.nombre, dict(ligaduras), sitio))
         try:
             self.comprobar_funcion(copia)
@@ -1250,7 +1387,7 @@ class Comprobador:
                               f"vista ya es un prestamo. Quita el `{marca}`")
             sim = self.declarar(f, p.nombre, p.tipo, p.mutable, decl=p)
             sim.prestado = p.prestado
-            if p.tipo == "view":
+            if p.tipo == "view" or (not p.prestado and self.es_prestado_st(p.tipo)):
                 sim.procedencia = PARAMETRO
         self.bloque(f.cuerpo)
         self.cerrar()
@@ -1371,7 +1508,10 @@ class Comprobador:
 
         antes = self._foto()
         fotos = []
+        # Las formas con un brazo que vale para todas ellas, y las que tienen
+        # alguno, aunque sea con condiciones.
         vistas = {}
+        con_brazo = set()
         tipo_comun = None
         hay_comodin = False
         for b in e.brazos:
@@ -1380,10 +1520,15 @@ class Comprobador:
                               "nunca: el `_` vale para todo lo que quede")
                 break
             self._restaurar(antes)
+            # Un brazo con guarda, o con algo que no sea un nombre en alguna
+            # posicion, puede no casar: no cubre su forma el solo.
+            condicionado = (b.guarda is not None
+                            or any(not isinstance(a, str) for a in b.nombres))
             if b.variante is None:
-                hay_comodin = True
                 if b.nombres:
                     self.error(e, "el brazo `_` no atrapa nada")
+                if b.guarda is None:
+                    hay_comodin = True
             else:
                 v = self.variante_de(base, b.variante)
                 if v is None:
@@ -1395,32 +1540,23 @@ class Comprobador:
                 if b.variante in vistas:
                     self.error(e, f"`{base}.{b.variante}` se mira dos veces; "
                                   f"el segundo brazo no se ejecuta nunca")
-                vistas[b.variante] = True
-                if len(b.nombres) != len(v.tipos):
-                    cuantos = (f"{len(v.tipos)} valor"
-                               + ("es" if len(v.tipos) != 1 else ""))
-                    self.error(e, f"`{base}.{b.variante}` lleva {cuantos}, y "
-                                  f"el patron atrapa {len(b.nombres)}")
+                con_brazo.add(b.variante)
+                if not condicionado:
+                    vistas[b.variante] = True
+                if not self._patron_valido(e, base, b.variante, b.nombres):
                     continue
 
             self.abrir()
             self.en_condicional += 1
             if b.variante is not None:
-                v = self.variante_de(base, b.variante)
-                for nombre, t in zip(b.nombres, v.tipos):
-                    # Un `match` MIRA, no desmonta: lo que atrapa el patron
-                    # se presta siempre. Rust deja sacar el valor de dentro,
-                    # y a cambio tiene que llevar la cuenta de un enum medio
-                    # movido; aqui no hay medias tintas, y quien quiera
-                    # quedarse con lo de dentro escribe `copiar(...)`, que es
-                    # la misma regla explicita del resto del lenguaje.
-                    # Un `str` prestado es una `view`, que es lo que ya
-                    # significa en todas partes.
-                    if self.posee(t):
-                        tp = "view" if t == "str" else f"&{t}"
-                    else:
-                        tp = t
-                    self.declarar(e, nombre, tp, False)
+                self._declarar_patron(e, base, b.variante, b.nombres)
+            if b.guarda is not None:
+                self.en_guarda += 1
+                tg = self.expresion(b.guarda, mover_variables=False)
+                self.en_guarda -= 1
+                if tg is not None and tg != "bool":
+                    self.error(e, f"la guarda de un brazo tiene que ser "
+                                  f"`bool`, es `{tg}`")
             t = None
             for i, st in enumerate(b.cuerpo):
                 if b.es_expresion and isinstance(st, Retorno) and st.valor is not None:
@@ -1448,13 +1584,22 @@ class Comprobador:
                 juntas = self._foto()
 
         if not hay_comodin:
-            faltan = [v.nombre for v in en.variantes if v.nombre not in vistas]
+            faltan = [v.nombre for v in en.variantes
+                      if v.nombre not in con_brazo]
+            a_medias = [v.nombre for v in en.variantes
+                        if v.nombre in con_brazo and v.nombre not in vistas]
             if faltan:
                 lista_f = ", ".join(f"`{base}.{x}`" for x in faltan)
                 self.error(e, f"al `match` le faltan formas: {lista_f}. "
                               f"Ponlas, o pon un brazo `_` para lo que quede; "
                               f"si no, el dia que anadas una variante este "
                               f"sitio se quedaria callado")
+            elif a_medias:
+                lista_f = ", ".join(f"`{base}.{x}`" for x in a_medias)
+                self.error(e, f"al `match` le pueden quedar casos de "
+                              f"{lista_f} sin mirar: sus brazos tienen guarda "
+                              f"o un patron que puede no casar. Pon uno que "
+                              f"valga para todos, o un brazo `_`")
         e.resultado = tipo_comun or ""
         return tipo_comun
 
@@ -1549,7 +1694,7 @@ class Comprobador:
             sim = self.declarar(s, s.nombre, s.tipo, s.mutable, decl=s)
             # Una vista y un `&T` son lo mismo para esto: apuntan a memoria
             # de otro, y mientras vivan ese otro no se puede mover ni tocar.
-            if s.tipo == "view" or es_referencia(s.tipo):
+            if self.presta(s.tipo):
                 sim.procedencia = self.procedencia_de(s.valor)
                 sim.prestado = es_referencia(s.tipo)
                 self._apuntar(s, sim, s.valor)
@@ -1564,7 +1709,9 @@ class Comprobador:
                 self.expresion(s.valor)
                 return
 
+            self.escribiendo += 1
             destino = self.tipo_de_lugar(s.lugar)
+            self.escribiendo -= 1
             tipo = self.expresion(s.valor, destino=destino, mover_variables=True)
 
             if self._escribe_en_captura(s.lugar):
@@ -1589,11 +1736,41 @@ class Comprobador:
                 self.error(s, f"el destino es `{destino}` y se le asigna "
                               f"un `{tipo}`")
 
+            # Una vista guardada en un campo: el struct de la raiz presta
+            # tambien de ella. Si la raiz llego prestada, quien la presto no
+            # sabria de donde presta ahora, salvo que sea un literal.
+            if isinstance(s.lugar, Campo) and self.presta(tipo):
+                if sim.prestado or es_referencia(sim.tipo):
+                    if self.procedencia_de(s.valor) != ESTATICO:
+                        self.error(s, f"no se puede guardar un prestamo en "
+                                      f"`{base}`: llego prestada, y quien la "
+                                      f"presto no sabria de donde presta "
+                                      f"ahora. Guarda un literal, o devuelve "
+                                      f"el valor")
+                elif self.es_prestado_st(sim.tipo):
+                    nueva = self.procedencia_de(s.valor)
+                    for p in (LOCAL, PARAMETRO):
+                        if p in (sim.procedencia, nueva):
+                            sim.procedencia = p
+                            break
+                    self._apuntar(s, sim, s.valor)
+
+            # Lo que se habia sacado vuelve a estar, si se repone en el mismo
+            # nivel en que vive la variable. Dentro de un `if`, el otro camino
+            # no lo repuso.
+            if (self.en_condicional == sim.condicional_al_declarar
+                    and self.en_bucle == sim.bucle_al_declarar):
+                ruta = self._ruta_de_campo(s.lugar)[0]
+                if isinstance(s.lugar, Variable):
+                    sim.sacados = {}
+                elif ruta is not None:
+                    sim.sacados = {r: l for r, l in sim.sacados.items()
+                                   if r != ruta and not r.startswith(ruta + ".")}
             if isinstance(s.lugar, Variable):
                 sim.movida = False          # vuelve a tener un valor valido
                 if self.en_bucle_directo == self.en_bucle:
                     sim.reasignada_directo = True
-                if sim.tipo == "view" or es_referencia(sim.tipo):
+                if self.presta(sim.tipo):
                     # Lo peor de lo que tuvo y de lo que tiene ahora: si la
                     # asignacion va en una rama, la otra puede no haberla
                     # hecho.
@@ -1724,8 +1901,7 @@ class Comprobador:
                 return
             # Una vista solo puede salir de la funcion si la memoria a la
             # que apunta sobrevive: o es estatica, o es del que llama.
-            if (self.retorno_actual == "view"
-                    or es_referencia(self.retorno_actual or "")):
+            if self.presta(self.retorno_actual):
                 self.comprobar_vista_devuelta(s)
 
             # devolver una variable duenia la mueve fuera de la funcion (str,
@@ -1807,9 +1983,33 @@ class Comprobador:
             sim = self.buscar(e.nombre)
             if sim is None:
                 return LOCAL
-            if sim.tipo == "view":
+            if sim.tipo == "view" or self.es_prestado_st(sim.tipo):
                 return sim.procedencia or LOCAL
             return LOCAL            # es un `str`: el buffer es de esta funcion
+
+        if isinstance(e, LiteralStruct):
+            # Lo peor de lo que prestan sus campos.
+            st = self.structs.get(e.tipo)
+            tipos = {c.nombre: c.tipo for c in st.campos} if st else {}
+            peor = ESTATICO
+            for nombre, valor in e.campos:
+                if self.presta(tipos.get(nombre)):
+                    p = self.procedencia_de(valor)
+                    if p == LOCAL:
+                        return LOCAL
+                    if p == PARAMETRO:
+                        peor = PARAMETRO
+            return peor
+
+        if isinstance(e, Campo):
+            raiz = self.variable_base(e)
+            sim = self.buscar(raiz) if raiz else None
+            if sim is not None and self.presta(self._tipo_simple(e)):
+                if sim.prestado or es_referencia(sim.tipo):
+                    return PARAMETRO
+                if self.es_prestado_st(sim.tipo):
+                    return sim.procedencia or LOCAL
+            return LOCAL
 
         if isinstance(e, Llamada):
             n = e.nombre
@@ -1845,8 +2045,13 @@ class Comprobador:
             if n == "rebanar":
                 return self.procedencia_de(e.args[0]) if e.args else LOCAL
 
+            if (n == "copiar" and len(e.args) == 1
+                    and self.presta(self._tipo_simple(e.args[0]))):
+                return self.procedencia_de(e.args[0])
+
             f = self.funciones.get(n)
-            if f is None or f.retorno != "view":
+            if f is None or not self.presta(f.retorno) \
+                    or es_referencia(f.retorno or ""):
                 return LOCAL
 
             # A esa funcion se le aplico esta misma regla, asi que lo que
@@ -1855,7 +2060,8 @@ class Comprobador:
             # vistas que le pasamos nosotros.
             peor = ESTATICO
             for arg, param in zip(e.args, f.params):
-                if param.tipo == "view":
+                if param.tipo == "view" or (not param.prestado
+                                            and self.es_prestado_st(param.tipo)):
                     p = self.procedencia_de(arg)
                 elif param.prestado:
                     base = self.variable_base(arg)
@@ -1912,10 +2118,16 @@ class Comprobador:
             # derivado de lo que le prestaron: un parametro `view`, o uno
             # `&T`/`mut T`. No se sabe de cual, asi que de todos: el
             # prestamo del que llama sigue vivo mientras viva el resultado.
+            if (expr.nombre == "copiar" and len(expr.args) == 1
+                    and self.presta(self._tipo_simple(expr.args[0]))):
+                # La copia de algo que presta presta de lo mismo.
+                return self._origenes_de(expr.args[0])
             f = self.funciones.get(expr.nombre)
-            if f is not None and f.retorno == "view":
+            if f is not None and self.presta(f.retorno) \
+                    and not es_referencia(f.retorno or ""):
                 for arg, param in zip(expr.args, f.params):
-                    if param.tipo == "view":
+                    if param.tipo == "view" or (not param.prestado
+                                                and self.es_prestado_st(param.tipo)):
                         de_arg = self._origenes_de(arg)
                         if (not de_arg and not isinstance(arg, Variable)
                                 and self.procedencia_de(arg) == LOCAL):
@@ -1925,14 +2137,56 @@ class Comprobador:
                     elif param.prestado:
                         base = self.variable_base(arg)
                         junta([base] if base else [TEMPORAL])
+                        # Si lo prestado presta a su vez, tambien de lo suyo.
+                        sim_b = self.buscar(base) if base else None
+                        if sim_b is not None and self.es_prestado_st(sim_b.tipo):
+                            junta(sim_b.origenes)
             return salida
         if isinstance(expr, Variable):
             sim = self.buscar(expr.nombre)
-            if sim is not None and sim.tipo == "view":
+            if sim is not None and (sim.tipo == "view"
+                                    or self.es_prestado_st(sim.tipo)):
                 return list(sim.origenes)
             if sim is not None and sim.tipo == "str":
                 return [expr.nombre]
+        if isinstance(expr, LiteralStruct):
+            # Un struct que presta, de lo que prestan sus campos.
+            st = self.structs.get(expr.tipo)
+            tipos = {c.nombre: c.tipo for c in st.campos} if st else {}
+            for nombre, valor in expr.campos:
+                if self.presta(tipos.get(nombre)):
+                    de = self._origenes_de(valor)
+                    if (not de and not isinstance(valor, Variable)
+                            and self.procedencia_de(valor) == LOCAL):
+                        de = [TEMPORAL]
+                    junta(de)
+            return salida
+        if isinstance(expr, (Campo, Indice)):
+            # Un sitio dentro de una variable: presta de ella. Si es la vista
+            # de un struct que presta, de lo mismo que el. Si la variable
+            # llego prestada, la memoria es de quien llama.
+            raiz = self.variable_base(expr)
+            sim = self.buscar(raiz) if raiz else None
+            if sim is None or sim.prestado or es_referencia(sim.tipo):
+                return salida
+            if (self.es_prestado_st(sim.tipo)
+                    and self.presta(self._tipo_simple(expr))):
+                return list(sim.origenes)
+            return [raiz]
         return salida
+
+    def _tipo_simple(self, e):
+        """El tipo de una variable o de un campo, sin comprobar nada."""
+        if isinstance(e, Variable):
+            sim = self.buscar(e.nombre)
+            return sin_prestamo(sim.tipo) if sim is not None else None
+        if isinstance(e, Campo):
+            base = self._tipo_simple(e.objeto)
+            st = self.structs.get(base) if base else None
+            for c in (st.campos if st else []):
+                if c.nombre == e.nombre:
+                    return c.tipo
+        return None
 
     def _apuntar(self, nodo, sim, valor):
         """La vista `sim` pasa a apuntar a lo que da `valor`: cada duenio
@@ -2359,8 +2613,39 @@ class Comprobador:
             return None
         return self.llamada(interna, desenvuelta=True)
 
+    def _ruta_de_campo(self, e):
+        """`p.a.b` -> ("a.b", "p"): la cadena de campos desde una variable.
+        (None, None) si por medio hay un indice, una llamada u otra cosa."""
+        nombres = []
+        while isinstance(e, Campo):
+            nombres.append(e.nombre)
+            e = e.objeto
+        if not isinstance(e, Variable) or not nombres:
+            return None, None
+        return ".".join(reversed(nombres)), e.nombre
+
     def campo(self, e: Campo, mover_variables=False):
+        ruta, raiz = self._ruta_de_campo(e)
+        sim_raiz = self.buscar(raiz) if raiz else None
+        # Lo ya sacado no se usa; el error se da una vez y se sigue.
+        ya_sacado = False
+        if (not self.por_campo and not self.escribiendo
+                and sim_raiz is not None and sim_raiz.sacados):
+            for r, linea in sim_raiz.sacados.items():
+                if ruta == r or ruta.startswith(r + "."):
+                    self.error(e, f"`{raiz}.{r}` ya se saco en la linea "
+                                  f"{linea} y aqui se usa otra vez")
+                    ya_sacado = True
+                    break
+                if r.startswith(ruta + "."):
+                    self.error(e, f"`{raiz}.{ruta}` esta a medio mover: "
+                                  f"`{raiz}.{r}` se saco en la linea {linea}")
+                    ya_sacado = True
+                    break
+        encadenado = isinstance(e.objeto, (Variable, Campo))
+        self.por_campo += encadenado
         base = self.expresion(e.objeto)
+        self.por_campo -= encadenado
         if base is None:
             return None
         if es_referencia(base):
@@ -2371,13 +2656,50 @@ class Comprobador:
             return None
         for c in st.campos:
             if c.nombre == e.nombre:
-                if mover_variables and self.posee(c.tipo):
-                    self.error(e, f"en v0 no se puede sacar `{e.nombre}` de un "
-                                  f"struct: dejaria a `{base}` a medio mover. "
-                                  f"Mueve el struct entero")
+                if (mover_variables and self.posee(c.tipo)
+                        and not self.por_campo and not ya_sacado):
+                    self._sacar_campo(e, base, ruta, sim_raiz)
                 return c.tipo
         self.error(e, f"`{base}` no tiene un campo `{e.nombre}`")
         return None
+
+    def _sacar_campo(self, e, base, ruta, sim):
+        """Mover un campo con duenio fuera de su struct. En C se copia y su
+        sitio queda a ceros, que en Tcode es un valor valido: al liberar el
+        struct, ese campo no suelta nada. Aqui se apunta, para que nadie use
+        el campo, ni el struct entero, hasta que se reponga."""
+        if sim is None:
+            self.error(e, f"no se puede sacar `{e.nombre}` de un struct que "
+                          f"no esta en una variable: dejaria a `{base}` a "
+                          f"medio mover. Guarda antes el struct, o usa "
+                          f"`copiar(...)`")
+            return
+        nombre = f"{sim.nombre}.{ruta}"
+        if sim.prestado or es_referencia(sim.tipo) or sim.tipo == "view":
+            self.error(e, f"`{sim.nombre}` es prestada: no se puede sacar "
+                          f"`{nombre}` de algo que no es tuyo. Usa "
+                          f"`copiar(...)`")
+            return
+        if self.en_guarda:
+            self.error(e, f"una guarda no mueve nada: `{nombre}` se moveria "
+                          f"aunque el brazo no case. Presta, o usa "
+                          f"`copiar(...)`")
+            return
+        if not self.en_retorno and (
+                self.en_condicional > sim.condicional_al_declarar
+                or self.en_bucle > sim.bucle_al_declarar):
+            self.error(e, f"no se puede sacar `{nombre}` dentro de un `if`, "
+                          f"un `match` o un bucle: despues no se sabria si "
+                          f"sigue ahi. Sacalo donde vive `{sim.nombre}`, o "
+                          f"deja otro valor en su sitio con "
+                          f"`intercambiar(...)`")
+            return
+        if sim.prestamos:
+            self.error(e, f"no se puede sacar `{nombre}`: "
+                          f"{self._ocupada(sim)}")
+            return
+        sim.sacados[ruta] = e.linea
+        e.sacado = True
 
     def indice(self, e: Indice, mover_variables=False):
         base = self.expresion(e.arreglo)
@@ -2405,6 +2727,66 @@ class Comprobador:
                           f"leerlo, `copiar(...)`")
         return elem
 
+    def _patron_valido(self, e, base, variante, args):
+        """Si lo que va en cada posicion de `base.variante(...)` encaja con
+        lo que lleva la forma: el numero, las formas anidadas y los
+        literales."""
+        v = self.variante_de(base, variante)
+        if len(args) != len(v.tipos):
+            cuantos = (f"{len(v.tipos)} valor"
+                       + ("es" if len(v.tipos) != 1 else ""))
+            self.error(e, f"`{base}.{variante}` lleva {cuantos}, y "
+                          f"el patron atrapa {len(args)}")
+            return False
+        for i, (arg, t) in enumerate(zip(args, v.tipos)):
+            if isinstance(arg, str):
+                continue
+            if isinstance(arg, PatronForma):
+                otro = self.enums.get(t)
+                if otro is None or arg.enum != t:
+                    self.error(e, f"`{base}.{variante}` lleva un `{t}` en la "
+                                  f"posicion {i + 1}, y el patron pone "
+                                  f"`{arg.enum}.{arg.variante}`")
+                    return False
+                if self.variante_de(t, arg.variante) is None:
+                    cuales = ", ".join(f"`{t}.{x.nombre}`"
+                                       for x in otro.variantes)
+                    self.error(e, f"`{t}` no tiene la forma "
+                                  f"`{arg.variante}`; tiene {cuales}")
+                    return False
+                if not self._patron_valido(e, t, arg.variante, arg.args):
+                    return False
+                continue
+            lit = arg.valor
+            numero = (isinstance(lit, Entero)
+                      or (isinstance(lit, Unaria) and lit.op == "-"
+                          and isinstance(lit.valor, Entero)))
+            if numero and t in ENTEROS:
+                self.comprobar_literal(lit, t)
+            elif not ((isinstance(lit, Cadena) and t == "str")
+                      or (isinstance(lit, Booleano) and t == "bool")):
+                self.error(e, f"`{base}.{variante}` lleva un `{t}` en la "
+                              f"posicion {i + 1}, y el literal del patron no "
+                              f"es uno")
+                return False
+        return True
+
+    def _declarar_patron(self, e, base, variante, args):
+        """Lo que atrapa el patron, prestado: un `match` MIRA, no desmonta.
+        Rust deja sacar el valor de dentro, y a cambio tiene que llevar la
+        cuenta de un enum medio movido; aqui quien quiera quedarse con lo de
+        dentro escribe `copiar(...)`. Un `str` prestado es una `view`."""
+        v = self.variante_de(base, variante)
+        for arg, t in zip(args, v.tipos):
+            if isinstance(arg, PatronForma):
+                self._declarar_patron(e, t, arg.variante, arg.args)
+            elif isinstance(arg, str) and arg != "_":
+                if self.posee(t):
+                    tp = "view" if t == "str" else f"&{t}"
+                else:
+                    tp = t
+                self.declarar(e, arg, tp, False)
+
     def cierre(self, e: Cierre):
         """Una clausura se convierte en un struct con lo capturado y una
         funcion que lo recibe. A partir de ahi no hay nada nuevo: el struct
@@ -2428,11 +2810,14 @@ class Comprobador:
                 self.error(e, f"`{nombre}` no esta declarada, no se puede "
                               f"capturar")
                 continue
-            if sim.tipo == "view" or es_referencia(sim.tipo):
+            if self.presta(sim.tipo):
+                arreglo = (f"Captura un `str` con `copiar({nombre})`"
+                           if sim.tipo == "view" or es_referencia(sim.tipo)
+                           else f"Captura lo que necesites de `{nombre}`")
                 self.error(e, f"`{nombre}` es `{sim.tipo}`, un prestamo: una "
                               f"clausura captura por valor, y guardar un "
-                              f"prestamo exigiria saber cuanto vive. Captura "
-                              f"un `str` con `copiar({nombre})`")
+                              f"prestamo exigiria saber cuanto vive. "
+                              f"{arreglo}")
                 continue
             campos.append(CampoDef(nombre, sim.tipo, e.linea))
             # Capturar por valor mueve lo que posee memoria, igual que
@@ -3001,6 +3386,9 @@ class Comprobador:
                 self.expresion(valor)
                 return None
             t = self.tipo_de_lugar(destino_nodo)
+            if t is not None and self.presta(t):
+                self.error(e, f"`intercambiar` no cambia prestamos: `{t}` "
+                              f"apunta a memoria de otro. Asigna con `=`")
             self.mutar(destino_nodo, sim,
                        por_referencia=es_referencia(sim.tipo))
             # El sitio queda reservado hasta que se haya calculado el valor

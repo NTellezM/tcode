@@ -290,6 +290,9 @@ struct Sitio {
     pide_bandera: mapa<str, usize>,
     // lo que devuelve la funcion que se esta generando: `try` sale por ahi
     retorno: str,
+    // los campos que el comprobador vio sacar de su struct:
+    // `archivo\tlinea\tp.a.b`
+    sacados: mapa<str, usize>,
 }
 
 // Que nombres son un puntero en el C generado: los parametros prestados, y
@@ -678,6 +681,16 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         var r = copiar(base);
         empujar(r, ".");
         empujar(r, vista(n.texto));
+        let ruta = ruta_de_campo_c(n);
+        if largo(ruta) > 0 && tiene(s.sacados, $"{s.archivo}\t{n.linea}\t{ruta}") {
+            // Sacar un campo: se copia y su sitio queda a ceros, que es un
+            // valor valido y al liberar el struct no suelta nada.
+            let t = I.tipo_de(tipos, n);
+            let tc = tipo_c(vista(t));
+            let tmp = nuevo_temporal(b);
+            emitir(b, $"{tc} {tmp};");
+            return $"({tmp} = {r}, {r} = ({tc}){{0}}, {tmp})";
+        }
         return r;
     }
 
@@ -2588,6 +2601,14 @@ struct Cuerpo {
     instancias: lista<str>,
     // Los tipos que se copian con un copiador generado, en orden.
     copias: lista<str>,
+    // Las etiquetas de `goto` puestas en todo el archivo, los `switch`
+    // abiertos, y cuantos habia al abrir cada bucle: un `break` dentro de un
+    // `switch` saldria del `switch`, asi que sale con `goto` a una etiqueta
+    // detras del bucle. Esa etiqueta, si hizo falta, en `etiquetas_bucle`.
+    etiquetas: usize,
+    en_switch: usize,
+    switch_en_bucle: lista<usize>,
+    etiquetas_bucle: lista<str>,
 }
 
 // Lo apunta el sitio mas hondo, y solo la primera vez: si un `if` falla
@@ -2613,7 +2634,8 @@ fn nombre_de_bucle(n: usize) -> str {
 fn cuerpo() -> Cuerpo {
     return Cuerpo { lineas: [], bloques: [], claves: [], sangria: 1, temporal: 0,
         ultima_linea: 0, bucle: 0, bucles: [], temporales: [], fuera: [], bucles_t: [],
-        fallo_linea: 0, fallo_clase: vacio(), instancias: [], copias: [] };
+        fallo_linea: 0, fallo_clase: vacio(), instancias: [], copias: [], etiquetas: 0,
+        en_switch: 0, switch_en_bucle: [], etiquetas_bucle: [] };
 }
 
 fn sangrar(b: &Cuerpo) -> str {
@@ -2765,6 +2787,34 @@ fn soltar_temporales(b: mut Cuerpo, tipos: &I.Contexto) {
 fn olvidar_temporales(b: mut Cuerpo) {
     let vacia: lista<str> = [];
     b.temporales = vacia;
+}
+
+fn nueva_etiqueta(b: mut Cuerpo, que: view) -> str {
+    b.etiquetas = b.etiquetas + 1;
+    return $"ss_fin_{que}{b.etiquetas}";
+}
+
+fn abrir_bucle_saltos(b: mut Cuerpo) {
+    anadir(b.switch_en_bucle, b.en_switch);
+    anadir(b.etiquetas_bucle, vacio());
+}
+
+// Detras del bucle, la etiqueta a la que salta un `break` que iba dentro de
+// un `switch`, si lo hubo.
+fn cerrar_bucle_saltos(b: mut Cuerpo) {
+    if largo(b.etiquetas_bucle) == 0 { return; }
+    let etiqueta = copiar(b.etiquetas_bucle[largo(b.etiquetas_bucle) - 1]);
+    var quedan: lista<usize> = [];
+    var quedan_e: lista<str> = [];
+    var i = 0;
+    while i + 1 < largo(b.etiquetas_bucle) {
+        anadir(quedan, b.switch_en_bucle[i]);
+        anadir(quedan_e, copiar(b.etiquetas_bucle[i]));
+        i = i + 1;
+    }
+    b.switch_en_bucle = quedan;
+    b.etiquetas_bucle = quedan_e;
+    if largo(etiqueta) > 0 { emitir(b, $"{etiqueta}: ;"); }
 }
 
 fn quitar_ultimo_bucle(b: mut Cuerpo) {
@@ -3392,8 +3442,10 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             emitir(b, vista(l));
             anadir(b.bucles, largo(b.bloques));
             anadir(b.bucles_t, largo(b.fuera));
+            abrir_bucle_saltos(b);
             let salio = bloque_c(b, s, n.hijos[1], tipos, retorno, falible);
             quitar_ultimo_bucle(b);
+            cerrar_bucle_saltos(b);
             return salio;
         }
 
@@ -3408,6 +3460,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         abrir_bloque(b);
         anadir(b.bucles, largo(b.bloques) - 1);
         anadir(b.bucles_t, largo(b.fuera));
+        abrir_bucle_saltos(b);
         I.abrir(tipos);
         let base = largo(b.temporales);
         var dentro = expresion_c(b, s, n.hijos[0], "bool", tipos);
@@ -3463,6 +3516,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         I.cerrar(tipos);
         b.sangria = b.sangria - 1;
         emitir(b, "}");
+        cerrar_bucle_saltos(b);
         return bien;
     }
 
@@ -3618,6 +3672,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         abrir_bloque(b);
         anadir(b.bucles, largo(b.bloques) - 1);
         anadir(b.bucles_t, largo(b.fuera));
+        abrir_bucle_saltos(b);
         I.abrir(tipos);
 
         // El elemento se presta, no se copia: un `str` copiado tendria dos
@@ -3689,6 +3744,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         I.cerrar(tipos);
         b.sangria = b.sangria - 1;
         emitir(b, "}");
+        cerrar_bucle_saltos(b);
         return bien;
     }
 
@@ -3708,6 +3764,18 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         while i > desde {
             i = i - 1;
             liberar_uno(b, s, tipos, i, "");
+        }
+        if igual(clase, "romper") && largo(b.switch_en_bucle) > 0
+        && b.en_switch > b.switch_en_bucle[largo(b.switch_en_bucle) - 1] {
+            // Un `break` de C aqui saldria del `switch` del `match`.
+            let k = largo(b.etiquetas_bucle) - 1;
+            if largo(b.etiquetas_bucle[k]) == 0 {
+                let et = nueva_etiqueta(b, "bucle");
+                b.etiquetas_bucle[k] = et;
+            }
+            let destino = copiar(b.etiquetas_bucle[k]);
+            emitir(b, $"goto {destino};");
+            return true;
         }
         if igual(clase, "romper") { emitir(b, "break;"); }
         else { emitir(b, "continue;"); }
@@ -4008,12 +4076,35 @@ fn mayusculas(t: view) -> str {
     return r;
 }
 
+// `p.a.b`, si es una cadena de campos desde una variable; vacio si no.
+fn ruta_de_campo_c(n: &P.Nodo) -> str {
+    var nombres: lista<str> = [];
+    var x = copiar(n);
+    while igual(vista(x.clase), "campo") && largo(x.hijos) > 0 {
+        anadir(nombres, copiar(x.texto));
+        let dentro = copiar(x.hijos[0]);
+        x = dentro;
+    }
+    if !igual(vista(x.clase), "variable") || largo(nombres) == 0 { return vacio(); }
+    var r = copiar(x.texto);
+    var k = largo(nombres);
+    while k > 0 {
+        k = k - 1;
+        empujar(r, ".");
+        empujar(r, vista(nombres[k]));
+    }
+    return r;
+}
+
 // El `switch` de un `match` suelto. Cada brazo es un bloque propio: lo que
 // nazca dentro se suelta al salir. Lo que atrapa el patron se presta
 // siempre —un `match` mira, no desmonta—, asi que un `str` se ve como
 // `view` y lo demas con duenio como un puntero.
 // `destino` es la variable de C donde dejar el valor si el `match` da uno,
 // o vacio si es suelto.
+// Un `match` con guardas, literales o formas anidadas no cabe en un
+// `switch`: un brazo que no casa deja paso al siguiente. Ese va como una
+// fila de `if`, y el brazo que casa salta al final.
 fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     retorno: view, falible: bool, destino: view) -> bool {
     if largo(n.hijos) < 2 { return false; }
@@ -4023,126 +4114,275 @@ fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     if !tiene(tipos.variantes, vista(base)) { return false; }
     let sitio = sitio_c(b, s, n.hijos[0], tipos);
     if es_desconocido(vista(sitio)) { return false; }
-
-    var sw = nuevo("switch (");
-    empujar(sw, vista(sitio));
-    empujar(sw, ".etiqueta)");
-    emitir(b, vista(sw));
-    emitir(b, "{");
-    var todos = true;
     var k = 1;
     while k < largo(n.hijos) {
         if !igual(vista(n.hijos[k].clase), "brazo") { return false; }
-        let variante = I.tras_el_punto(vista(n.hijos[k].texto));
-        if largo(vista(n.hijos[k].texto)) == 0 {
+        k = k + 1;
+    }
+    if match_condicionado(n) {
+        return match_condiciones(b, s, n, tipos, retorno, falible, destino, vista(base),
+            vista(sitio));
+    }
+
+    emitir(b, $"switch ({sitio}.etiqueta)");
+    emitir(b, "{");
+    b.en_switch = b.en_switch + 1;
+    var todos = true;
+    k = 1;
+    while k < largo(n.hijos) {
+        let brazo = copiar(n.hijos[k]);
+        let variante = I.tras_el_punto(vista(brazo.texto));
+        if largo(vista(brazo.texto)) == 0 {
             todos = false;
             emitir(b, "default:");
         } else {
             let et = etiqueta(vista(base), vista(variante));
-            var c = nuevo("case ");
-            empujar(c, vista(et));
-            empujar(c, ":");
-            emitir(b, vista(c));
+            emitir(b, $"case {et}:");
         }
         emitir(b, "{");
         b.sangria = b.sangria + 1;
         abrir_bloque(b);
         I.abrir(tipos);
-
-        var clave = copiar(base);
-        empujar(clave, ".");
-        empujar(clave, vista(variante));
-        let lleva = I.lista_de(tipos.formas, vista(clave)) sino [];
-        var i = 0;
-        var bien = true;
-        for h en n.hijos[k].hijos {
-            let que = vista(h.clase);
-            if igual(que, "atrapa") {
-                if i >= largo(lleva) { return false; }
-                let t = vista(lleva[i]);
-                var dentro = copiar(sitio);
-                empujar(dentro, ".dato.v_");
-                empujar(dentro, vista(variante));
-                empujar(dentro, "._");
-                empujar(dentro, texto(i));
-                var l = nuevo("SS_LANG_QUIZA_SIN_USAR ");
-                if igual(t, "str") {
-                    empujar(l, "SafeView ");
-                    empujar(l, vista(h.texto));
-                    empujar(l, " = ss_view(&");
-                    empujar(l, vista(dentro));
-                    empujar(l, ");");
-                    I.declarar(tipos, vista(h.texto), "view");
-                } else {
-                    if I.posee_con_formas(tipos, t) {
-                        empujar(l, "const ");
-                        empujar(l, tipo_c(t));
-                        empujar(l, "* ");
-                        empujar(l, vista(h.texto));
-                        empujar(l, " = &");
-                        empujar(l, vista(dentro));
-                        empujar(l, ";");
-                        var ref = nuevo("&");
-                        empujar(ref, t);
-                        I.declarar(tipos, vista(h.texto), vista(ref));
-                    } else {
-                        empujar(l, tipo_c(t));
-                        empujar(l, " ");
-                        empujar(l, vista(h.texto));
-                        empujar(l, " = ");
-                        empujar(l, vista(dentro));
-                        empujar(l, ";");
-                        I.declarar(tipos, vista(h.texto), t);
-                    }
-                }
-                emitir(b, vista(l));
-                i = i + 1;
-            }
-            if igual(que, "bloque") {
-                for st en h.hijos {
-                    if bien {
-                        bien = sentencia_c(b, s, st, tipos, retorno, falible);
-                        if !bien { apuntar_fallo(b, st); }
-                    }
-                }
-                if !bien { return false; }
-                if termina_saliendo(h) { quitar_ultimo_bloque(b); }
-                else { cerrar_bloque(b, s, tipos); }
-            }
-            // Un brazo que da un valor: se deja en el destino. Sus
-            // temporales son suyos y se sueltan aqui, antes de salir del
-            // brazo, igual que los de una sentencia.
-            if igual(que, "retorno") {
-                if largo(destino) == 0 || largo(h.hijos) != 1 { return false; }
-                marcar(b, s, h.linea);
-                var antes: lista<str> = [];
-                for x en b.temporales { anadir(antes, copiar(x)); }
-                olvidar_temporales(b);
-                let tv = I.tipo_de(tipos, h.hijos[0]);
-                let valor = expresion_c(b, s, h.hijos[0], vista(tv), tipos);
-                if es_desconocido(vista(valor)) { return false; }
-                reclamar(b, vista(valor));
-                var pone = nuevo(destino);
-                empujar(pone, " = ");
-                empujar(pone, vista(valor));
-                empujar(pone, ";");
-                emitir(b, vista(pone));
-                soltar_temporales(b, tipos);
-                b.temporales = antes;
-                cerrar_bloque(b, s, tipos);
+        if largo(vista(brazo.texto)) > 0 {
+            if !atrapar_c(b, tipos, vista(base), vista(variante), posiciones_patron_c(brazo),
+                vista(sitio)) {
+                return false;
             }
         }
+        if !cuerpo_brazo_c(b, s, brazo, tipos, retorno, falible, destino) { return false; }
         emitir(b, "break;");
         I.cerrar(tipos);
         b.sangria = b.sangria - 1;
         emitir(b, "}");
         k = k + 1;
     }
+    b.en_switch = b.en_switch - 1;
     // Un `match` es exhaustivo, asi que este `default` no se alcanza nunca.
     // Esta para que el compilador de C no tenga que adivinarlo.
     if todos { emitir(b, "default: break;"); }
     emitir(b, "}");
     return true;
+}
+
+// Si algun brazo tiene guarda, o algo que no sea un nombre en una posicion.
+fn match_condicionado(n: &P.Nodo) -> bool {
+    var k = 1;
+    while k < largo(n.hijos) {
+        for h en n.hijos[k].hijos {
+            let hc = vista(h.clase);
+            if igual(hc, "guarda") || igual(hc, "patron") || igual(hc, "literal") {
+                return true;
+            }
+        }
+        k = k + 1;
+    }
+    return false;
+}
+
+// Un `if` por brazo, en orden: la forma, lo que pidan sus posiciones y,
+// dentro, la guarda. El que casa hace lo suyo y salta al final.
+fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
+    retorno: view, falible: bool, destino: view, base: view, sitio: view) -> bool {
+    let fin = nueva_etiqueta(b, "match");
+    var k = 1;
+    while k < largo(n.hijos) {
+        let brazo = copiar(n.hijos[k]);
+        k = k + 1;
+        let variante = I.tras_el_punto(vista(brazo.texto));
+        let con_forma = largo(vista(brazo.texto)) > 0;
+        var conds: lista<str> = [];
+        if con_forma {
+            let et = etiqueta(base, vista(variante));
+            anadir(conds, $"{sitio}.etiqueta == {et}");
+            if !condiciones_patron_c(b, s, tipos, base, vista(variante), posiciones_patron_c(brazo),
+                sitio, conds) {
+                return false;
+            }
+        }
+        if largo(conds) > 0 {
+            var todas = vacio();
+            var i = 0;
+            while i < largo(conds) {
+                if i > 0 { empujar(todas, " && "); }
+                empujar(todas, vista(conds[i]));
+                i = i + 1;
+            }
+            emitir(b, $"if ({todas})");
+        }
+        emitir(b, "{");
+        b.sangria = b.sangria + 1;
+        abrir_bloque(b);
+        I.abrir(tipos);
+        if con_forma {
+            if !atrapar_c(b, tipos, base, vista(variante), posiciones_patron_c(brazo), sitio) {
+                return false;
+            }
+        }
+        var guarda: i64 = -1;
+        var h_i = 0;
+        for h en brazo.hijos {
+            if igual(vista(h.clase), "guarda") { guarda = h_i como i64; }
+            h_i = h_i + 1;
+        }
+        if guarda < 0 {
+            if !cuerpo_brazo_c(b, s, brazo, tipos, retorno, falible, destino) { return false; }
+            emitir(b, $"goto {fin};");
+        } else {
+            // La guarda, con sus temporales soltados en el acto: el brazo
+            // puede no casar, y entonces no llega a su final.
+            let g = copiar(brazo.hijos[guarda como usize]);
+            var antes: lista<str> = [];
+            for x en b.temporales { anadir(antes, copiar(x)); }
+            olvidar_temporales(b);
+            let cond = expresion_c(b, s, g.hijos[0], "bool", tipos);
+            if es_desconocido(vista(cond)) { return false; }
+            let vale = nuevo_temporal(b);
+            emitir(b, $"bool {vale} = {cond};");
+            soltar_temporales(b, tipos);
+            b.temporales = antes;
+            emitir(b, $"if ({vale})");
+            emitir(b, "{");
+            b.sangria = b.sangria + 1;
+            abrir_bloque(b);
+            I.abrir(tipos);
+            if !cuerpo_brazo_c(b, s, brazo, tipos, retorno, falible, destino) { return false; }
+            emitir(b, $"goto {fin};");
+            I.cerrar(tipos);
+            b.sangria = b.sangria - 1;
+            emitir(b, "}");
+            quitar_ultimo_bloque(b);
+        }
+        I.cerrar(tipos);
+        b.sangria = b.sangria - 1;
+        emitir(b, "}");
+    }
+    emitir(b, $"{fin}: ;");
+    return true;
+}
+
+// Lo que tiene que cumplir lo de dentro para que el patron case: la forma
+// de lo anidado y el valor de cada literal.
+fn condiciones_patron_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto, base: view,
+    variante: view, posiciones: &lista<P.Nodo>, sitio: view, conds: mut lista<str>) -> bool {
+    let lleva = I.lista_de(tipos.formas, $"{base}.{variante}") sino [];
+    var i = 0;
+    while i < largo(posiciones) {
+        if i >= largo(lleva) { return false; }
+        let t = copiar(lleva[i]);
+        let p = copiar(posiciones[i]);
+        let dentro = $"{sitio}.dato.v_{variante}._{i}";
+        i = i + 1;
+        if igual(vista(p.clase), "patron") {
+            let otro = I.sin_modulo(vista(t));
+            let cual = I.tras_el_punto(vista(p.texto));
+            let et = etiqueta(vista(otro), vista(cual));
+            anadir(conds, $"{dentro}.etiqueta == {et}");
+            if !condiciones_patron_c(b, s, tipos, vista(otro), vista(cual), posiciones_patron_c(p),
+                vista(dentro), conds) {
+                return false;
+            }
+        } else if igual(vista(p.clase), "literal") {
+            if igual(vista(t), "str") {
+                let lit = expresion_c(b, s, p.hijos[0], "view", tipos);
+                if es_desconocido(vista(lit)) { return false; }
+                anadir(conds, $"sv_equals(ss_view(&{dentro}), {lit})");
+            } else {
+                let lit = expresion_c(b, s, p.hijos[0], vista(t), tipos);
+                if es_desconocido(vista(lit)) { return false; }
+                anadir(conds, $"{dentro} == {lit}");
+            }
+        }
+    }
+    return true;
+}
+
+// Lo que atrapa el patron, prestado: un `str` como `view`, lo demas con
+// duenio como puntero, y los escalares por valor.
+fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
+    posiciones: &lista<P.Nodo>, sitio: view) -> bool {
+    let lleva = I.lista_de(tipos.formas, $"{base}.{variante}") sino [];
+    var i = 0;
+    while i < largo(posiciones) {
+        if i >= largo(lleva) { return false; }
+        let t = copiar(lleva[i]);
+        let h = copiar(posiciones[i]);
+        let dentro = $"{sitio}.dato.v_{variante}._{i}";
+        i = i + 1;
+        if igual(vista(h.clase), "patron") {
+            let otro = I.sin_modulo(vista(t));
+            let cual = I.tras_el_punto(vista(h.texto));
+            if !atrapar_c(b, tipos, vista(otro), vista(cual), posiciones_patron_c(h), vista(dentro)) {
+                return false;
+            }
+            continue;
+        }
+        if !igual(vista(h.clase), "atrapa") || igual(vista(h.texto), "_") { continue; }
+        if igual(vista(t), "str") {
+            emitir(b, $"SS_LANG_QUIZA_SIN_USAR SafeView {h.texto} = ss_view(&{dentro});");
+            I.declarar(tipos, vista(h.texto), "view");
+        } else if I.posee_con_formas(tipos, vista(t)) {
+            let tc = tipo_c(vista(t));
+            emitir(b, $"SS_LANG_QUIZA_SIN_USAR const {tc}* {h.texto} = &{dentro};");
+            I.declarar(tipos, vista(h.texto), $"&{t}");
+        } else {
+            let tc = tipo_c(vista(t));
+            emitir(b, $"SS_LANG_QUIZA_SIN_USAR {tc} {h.texto} = {dentro};");
+            I.declarar(tipos, vista(h.texto), vista(t));
+        }
+    }
+    return true;
+}
+
+// Lo que hace el brazo: dejar su valor en `destino`, o sus sentencias. Y
+// soltar lo que haya nacido dentro.
+fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Contexto,
+    retorno: view, falible: bool, destino: view) -> bool {
+    for h en brazo.hijos {
+        let que = vista(h.clase);
+        if igual(que, "bloque") {
+            var bien = true;
+            for st en h.hijos {
+                if bien {
+                    bien = sentencia_c(b, s, st, tipos, retorno, falible);
+                    if !bien { apuntar_fallo(b, st); }
+                }
+            }
+            if !bien { return false; }
+            if termina_saliendo(h) { quitar_ultimo_bloque(b); }
+            else { cerrar_bloque(b, s, tipos); }
+        }
+        // Un brazo que da un valor: se deja en el destino. Sus temporales
+        // son suyos y se sueltan aqui, antes de salir del brazo, igual que
+        // los de una sentencia.
+        if igual(que, "retorno") {
+            if largo(destino) == 0 || largo(h.hijos) != 1 { return false; }
+            marcar(b, s, h.linea);
+            var antes: lista<str> = [];
+            for x en b.temporales { anadir(antes, copiar(x)); }
+            olvidar_temporales(b);
+            let tv = I.tipo_de(tipos, h.hijos[0]);
+            let valor = expresion_c(b, s, h.hijos[0], vista(tv), tipos);
+            if es_desconocido(vista(valor)) { return false; }
+            reclamar(b, vista(valor));
+            emitir(b, $"{destino} = {valor};");
+            soltar_temporales(b, tipos);
+            b.temporales = antes;
+            cerrar_bloque(b, s, tipos);
+        }
+    }
+    return true;
+}
+
+// Lo que va en cada posicion de un patron, en orden.
+fn posiciones_patron_c(b: &P.Nodo) -> lista<P.Nodo> {
+    var salida: lista<P.Nodo> = [];
+    for h en b.hijos {
+        let hc = vista(h.clase);
+        if igual(hc, "atrapa") || igual(hc, "patron") || igual(hc, "literal") {
+            anadir(salida, copiar(h));
+        }
+    }
+    return salida;
 }
 
 // El `match` usado como valor: un temporal a ceros y el `switch` encima. A

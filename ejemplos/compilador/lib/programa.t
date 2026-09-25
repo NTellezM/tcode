@@ -336,6 +336,11 @@ fn prefijo_unico(ruta: view, modulos: &lista<str>) -> str {
 struct Cuenta {
     temporal: usize,
     bucle: usize,
+    // Las etiquetas de `goto`: se numeran en todo el archivo.
+    etiquetas: usize,
+    // Los campos que el comprobador vio sacar de su struct:
+    // `archivo\tlinea\tp.a.b`.
+    sacados: mapa<str, usize>,
     ultima_linea: usize,
     // Las copias de genericas que han pedido las funciones escritas.
     instancias: lista<str>,
@@ -344,7 +349,8 @@ struct Cuenta {
 }
 
 fn cuenta_nueva() -> Cuenta {
-    return Cuenta { temporal: 0, bucle: 0, ultima_linea: 0, instancias: [],
+    return Cuenta { temporal: 0, bucle: 0, etiquetas: 0, sacados: [], ultima_linea: 0,
+        instancias: [],
         copias: [] };
 }
 
@@ -464,10 +470,11 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
 
     var sitio = G.Sitio { archivo: nuevo(ruta), tipos: de_tipo,
         punteros: puntos, pide_bandera: banderas,
-        retorno: copiar(retorno) };
+        retorno: copiar(retorno), sacados: copiar(cta.sacados) };
     var b = G.cuerpo();
     b.temporal = cta.temporal;
     b.bucle = cta.bucle;
+    b.etiquetas = cta.etiquetas;
     // La directiva de la funcion va antes de la firma; aqui solo hay que
     // saber que ya esta puesta, para no repetirla si la primera sentencia
     // esta en la misma linea.
@@ -577,6 +584,7 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     }
     cta.temporal = b.temporal;
     cta.bucle = b.bucle;
+    cta.etiquetas = b.etiquetas;
     cta.ultima_linea = b.ultima_linea;
     for x en b.instancias { anadir(cta.instancias, copiar(x)); }
     for x en b.copias { anadir(cta.copias, copiar(x)); }

@@ -602,10 +602,19 @@ cómo arreglarlo con `usar "..." como algo;`. El renombrado interno sólo
 ocurre donde de verdad choca: mientras `palabras` sea de un solo módulo, en
 el C generado se sigue llamando `palabras`.
 
-No hay: comprobación del cuerpo genérico una sola vez contra la restricción
-(eso es Rust, y es más), E/S incremental. Tampoco: campos `view` dentro de un
-struct (el muro real: exige la vida útil en el tipo), ni movimientos
-parciales de un campo o elemento.
+Y **structs que prestan**: un struct con un campo `view` se trata como una
+vista —la vida única implícita de un `struct Foo<'a>` de Rust, sin anotarla—:
+presta de lo que se le puso, no vive más que sus dueños y no se guarda en una
+lista, un mapa ni un enum. Se puede **sacar un campo** de un struct propio
+(`let n = p.nombre;`): su sitio queda a ceros, y el struct no se usa entero
+hasta que se reponga. El `match` admite **patrones anidados, literales y
+guardas**, con la exhaustividad pidiendo un brazo sin condiciones por forma. Y
+una **genérica con restricción compila para todo su conjunto**: el cuerpo se
+comprueba con cada tipo que la restricción admite, como en Rust, porque aquí
+los conjuntos son finitos.
+
+No hay: E/S incremental, enums con parámetros de tipo, ni patrones sobre
+rangos.
 
 Una función sí puede devolver una vista de lo que le prestaron —un `&str`,
 un campo de un `&T`, un elemento de una `&lista`, un `mut str`—, y quien

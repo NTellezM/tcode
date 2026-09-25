@@ -963,11 +963,13 @@ fn lineas_liberacion(global: &I.Contexto, donde: view, tipo: view,
     var b = G.cuerpo();
     b.temporal = cta.temporal;
     b.bucle = cta.bucle;
+    b.etiquetas = cta.etiquetas;
     b.sangria = sangria;
     G.liberacion(b, global, donde, tipo);
     for l en b.lineas { anadir(salida, copiar(l)); }
     cta.temporal = b.temporal;
     cta.bucle = b.bucle;
+    cta.etiquetas = b.etiquetas;
 }
 
 // Un juego de funciones por cada `mapa<K, V>` concreto: tabla de
@@ -1939,6 +1941,8 @@ struct Cierres {
     indice: mapa<str, usize>,
     // `dueno#k` -> N, como lo decidio el comprobador.
     numeracion: mapa<str, usize>,
+    // Los campos que el comprobador vio sacar de su struct.
+    sacados: mapa<str, usize>,
 }
 
 // Escribe en borrador cada copia pedida que no se haya visto, primero las
@@ -1977,6 +1981,7 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
             anadir(orden, copiar(p));
             let de = cierres.modulo[k];
             var borrador_c = F.cuenta_nueva();
+            borrador_c.sacados = copiar(cierres.sacados);
             let lineas_c = F.generar_funcion(cierres.fns[k], contextos[de],
                 vista(modulos[de]), borrador_c);
             if largo(lineas_c) == 0 {
@@ -1996,6 +2001,7 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
         let de = obtener(plantillas, vista(plantilla)) sino 0;
         let copia = nodo_instancia(vista(p), arboles, plantillas, cierres.numeracion);
         var borrador = F.cuenta_nueva();
+        borrador.sacados = copiar(cierres.sacados);
         let lineas = F.generar_funcion(copia, contextos[de], vista(modulos[de]), borrador);
         if largo(lineas) == 0 {
             imprimir_error($"tcodec: no se escribir la copia `{en_c}`\n");
@@ -2679,9 +2685,11 @@ fn main() -> usize ! {
     // copia en las genericas. Cada cuerpo lleva ahora el `Cierre_N` que le
     // toca en cada sitio, y su funcion se ve desde todos los modulos: una
     // copia de `filtradas` en std/lista llama a la clausura de quien la pidio.
+    var sacados: mapa<str, usize> = [];
+    for x en revision.sacados { poner(sacados, vista(x), 1); }
     var cierres = Cierres { fns: copiar(revision.cierres),
         modulo: copiar(revision.cierres_mod), indice: [],
-        numeracion: copiar(revision.numeracion) };
+        numeracion: copiar(revision.numeracion), sacados: sacados };
     var m_c = 0;
     while m_c < largo(arboles) {
         var k_d = 0;
@@ -2760,6 +2768,7 @@ fn main() -> usize ! {
         for d en arboles[k_desc].hijos {
             if !igual(vista(d.clase), "fn") || F.es_generica(d) { continue; }
             var borrador = F.cuenta_nueva();
+            borrador.sacados = copiar(cierres.sacados);
             let escritas = F.generar_funcion(d, contextos[k_desc],
                 vista(modulos[k_desc]), borrador);
             // Si no se sabe escribir, lo dira la pasada de verdad.
@@ -2888,6 +2897,7 @@ fn main() -> usize ! {
         visitar_struct(vista(n), st_indice, st_tipos, listos, orden);
     }
     var cta = F.cuenta_nueva();
+    cta.sacados = copiar(cierres.sacados);
 
     var partes: lista<str> = [];
     for n en st_nombres { anadir(partes, $"typedef struct {n} {n};"); }
@@ -3047,6 +3057,7 @@ fn main() -> usize ! {
         var b = G.cuerpo();
         b.temporal = cta.temporal;
         b.bucle = cta.bucle;
+        b.etiquetas = cta.etiquetas;
         var j = 0;
         while j < largo(st_campos[k]) {
             let donde = $"p->{st_campos[k][j]}";
@@ -3061,6 +3072,7 @@ fn main() -> usize ! {
         anadir(partes, vacio());
         cta.temporal = b.temporal;
         cta.bucle = b.bucle;
+        cta.etiquetas = b.etiquetas;
     }
 
     // Los liberadores de los enums: se mira la etiqueta y se suelta lo que

@@ -21,7 +21,7 @@ from tcode.nodos import (
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
-    Enum, EnumLit, Match, Externo,
+    Enum, EnumLit, Match, Externo, PatronForma, PatronLiteral,
 )
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
@@ -181,6 +181,14 @@ class Generador:
         # Cuantos habia al abrir cada bucle: `break` y `continue` sueltan solo
         # los de las sentencias de dentro del bucle, no los del propio bucle.
         self.bucles_tmp = []
+        # Los `switch` abiertos, y cuantos habia al abrir cada bucle: un
+        # `break` dentro de un `switch` saldria del `switch`, no del bucle,
+        # asi que sale con `goto` a una etiqueta detras del bucle. Esa
+        # etiqueta, si hizo falta, en `etiquetas_bucle`.
+        self.en_switch = 0
+        self.switch_en_bucle = []
+        self.etiquetas_bucle = []
+        self.etiquetas = 0
 
     # ---------- utilidades ----------
 
@@ -655,6 +663,22 @@ class Generador:
     def nuevo_tmp(self):
         self.tmp += 1
         return f"ss_tmp{self.tmp}"
+
+    def nueva_etiqueta(self, que):
+        self.etiquetas += 1
+        return f"ss_fin_{que}{self.etiquetas}"
+
+    def abrir_bucle_saltos(self):
+        self.switch_en_bucle.append(self.en_switch)
+        self.etiquetas_bucle.append(None)
+
+    def cerrar_bucle_saltos(self):
+        """Detras del bucle, la etiqueta a la que salta un `break` que iba
+        dentro de un `switch`, si lo hubo."""
+        self.switch_en_bucle.pop()
+        etiqueta = self.etiquetas_bucle.pop()
+        if etiqueta is not None:
+            self.emitir(f"{etiqueta}: ;")
 
     def arch(self, nodo=None):
         a = (getattr(nodo, "archivo", "") or self.archivo) if nodo else self.archivo
@@ -1542,11 +1566,21 @@ class Generador:
         `destino` es la variable de C donde dejar el valor, o None si este
         `match` no da ninguno. Cada brazo es un bloque propio: lo que nazca
         dentro se suelta al salir, como en cualquier otro bloque.
+
+        Un `match` con guardas, literales o formas anidadas no cabe en un
+        `switch`: un brazo que no casa deja paso al siguiente. Ese va como
+        una fila de `if`, y el brazo que casa salta al final.
         """
         base = sin_prestamo(self._tipo_de(e.valor) or e.tipo)
         sitio = self.como_lugar(e.valor)
+        if any(b.guarda is not None
+               or any(not isinstance(a, str) for a in b.nombres)
+               for b in e.brazos):
+            self.match_condiciones(e, base, sitio, destino)
+            return
         self.emitir(f"switch ({sitio}.etiqueta)")
         self.emitir("{")
+        self.en_switch += 1
         for b in e.brazos:
             if b.variante is None:
                 self.emitir("default:")
@@ -1558,53 +1592,137 @@ class Generador:
             self.vars.append({})
             with self.camino():
                 if b.variante is not None:
-                    v = self.c.variante_de(base, b.variante)
-                    for i, (nombre, t) in enumerate(zip(b.nombres, v.tipos)):
-                        dentro = f"{sitio}.dato.v_{b.variante}._{i}"
-                        if t == "str":
-                            # Un `str` prestado se ve como `view`.
-                            self.emitir(f"SS_LANG_QUIZA_SIN_USAR SafeView "
-                                        f"{nombre} = ss_view(&{dentro});")
-                            self.declarar(nombre, "view")
-                        elif self.c.posee(t):
-                            self.emitir(f"SS_LANG_QUIZA_SIN_USAR const "
-                                        f"{self.tipo_c(t)}* {nombre} = "
-                                        f"&{dentro};")
-                            self.declarar(nombre, t, True)
-                        else:
-                            self.emitir(f"SS_LANG_QUIZA_SIN_USAR "
-                                        f"{self.tipo_c(t)} {nombre} = "
-                                        f"{dentro};")
-                            self.declarar(nombre, t)
-
-                if b.es_expresion:
-                    st = b.cuerpo[0]
-                    anteriores = self.temporales
-                    self.temporales = []
-                    self.marcar(st)
-                    valor = self.expr(st.valor, self._tipo_de(st.valor))
-                    if destino is not None:
-                        self.reclamar(valor)
-                        self.emitir(f"{destino} = {valor};")
-                    for t in self.temporales:
-                        self.liberacion(t, self.tipo_var(t))
-                    self.temporales = anteriores
-                    self.liberar_bloque(self.pila[-1])
-                else:
-                    for st in b.cuerpo:
-                        self.sentencia(st)
-                    if not self._termina_en_retorno(b.cuerpo):
-                        self.liberar_bloque(self.pila[-1])
+                    self.atrapar(base, b.variante, b.nombres, sitio)
+                self.cuerpo_brazo(b, destino)
             self.emitir("break;")
             self.pila.pop()
             self.vars.pop()
             self.sangria -= 1
             self.emitir("}")
+        self.en_switch -= 1
         # Un `match` es exhaustivo, asi que este `default` no se alcanza
         # nunca. Esta para que el compilador de C no tenga que adivinarlo.
         if all(b.variante is not None for b in e.brazos):
             self.emitir("default: break;")
         self.emitir("}")
+
+    def match_condiciones(self, e, base, sitio, destino):
+        """Un `if` por brazo, en orden: la forma, lo que pidan sus posiciones
+        y, dentro, la guarda. El que casa hace lo suyo y salta al final."""
+        fin = self.nueva_etiqueta("match")
+        for b in e.brazos:
+            conds = []
+            if b.variante is not None:
+                conds.append(f"{sitio}.etiqueta == "
+                             f"{self.etiqueta(base, b.variante)}")
+                self.condiciones_patron(base, b.variante, b.nombres, sitio,
+                                        conds)
+            if conds:
+                self.emitir(f"if ({' && '.join(conds)})")
+            self.emitir("{")
+            self.sangria += 1
+            self.pila.append([])
+            self.vars.append({})
+            with self.camino():
+                if b.variante is not None:
+                    self.atrapar(base, b.variante, b.nombres, sitio)
+                if b.guarda is None:
+                    self.cuerpo_brazo(b, destino)
+                    self.emitir(f"goto {fin};")
+                else:
+                    # La guarda, con sus temporales soltados en el acto: el
+                    # brazo puede no casar, y entonces no llega a su final.
+                    anteriores = self.temporales
+                    self.temporales = []
+                    g = self.expr(b.guarda, "bool")
+                    vale = self.nuevo_tmp()
+                    self.emitir(f"bool {vale} = {g};")
+                    for t in self.temporales:
+                        self.liberacion(t, self.tipo_var(t))
+                    self.temporales = anteriores
+                    self.emitir(f"if ({vale})")
+                    self.emitir("{")
+                    self.sangria += 1
+                    self.pila.append([])
+                    self.vars.append({})
+                    self.cuerpo_brazo(b, destino)
+                    self.emitir(f"goto {fin};")
+                    self.pila.pop()
+                    self.vars.pop()
+                    self.sangria -= 1
+                    self.emitir("}")
+            self.pila.pop()
+            self.vars.pop()
+            self.sangria -= 1
+            self.emitir("}")
+        self.emitir(f"{fin}: ;")
+
+    def condiciones_patron(self, base, variante, args, sitio, conds):
+        """Lo que tiene que cumplir lo de dentro para que el patron case:
+        la forma de lo anidado y el valor de cada literal."""
+        v = self.c.variante_de(base, variante)
+        for i, (arg, t) in enumerate(zip(args, v.tipos)):
+            dentro = f"{sitio}.dato.v_{variante}._{i}"
+            if isinstance(arg, PatronForma):
+                conds.append(f"{dentro}.etiqueta == "
+                             f"{self.etiqueta(t, arg.variante)}")
+                self.condiciones_patron(t, arg.variante, arg.args, dentro,
+                                        conds)
+            elif isinstance(arg, PatronLiteral):
+                if t == "str":
+                    conds.append(f"sv_equals(ss_view(&{dentro}), "
+                                 f"{self.expr(arg.valor, 'view')})")
+                else:
+                    conds.append(f"{dentro} == {self.expr(arg.valor, t)}")
+
+    def atrapar(self, base, variante, args, sitio):
+        """Lo que atrapa el patron, prestado: un `str` como `view`, lo demas
+        con duenio como puntero, y los escalares por valor."""
+        v = self.c.variante_de(base, variante)
+        for i, (nombre, t) in enumerate(zip(args, v.tipos)):
+            dentro = f"{sitio}.dato.v_{variante}._{i}"
+            if isinstance(nombre, PatronForma):
+                self.atrapar(t, nombre.variante, nombre.args, dentro)
+                continue
+            if not isinstance(nombre, str) or nombre == "_":
+                continue
+            if t == "str":
+                # Un `str` prestado se ve como `view`.
+                self.emitir(f"SS_LANG_QUIZA_SIN_USAR SafeView "
+                            f"{nombre} = ss_view(&{dentro});")
+                self.declarar(nombre, "view")
+            elif self.c.posee(t):
+                self.emitir(f"SS_LANG_QUIZA_SIN_USAR const "
+                            f"{self.tipo_c(t)}* {nombre} = "
+                            f"&{dentro};")
+                self.declarar(nombre, t, True)
+            else:
+                self.emitir(f"SS_LANG_QUIZA_SIN_USAR "
+                            f"{self.tipo_c(t)} {nombre} = "
+                            f"{dentro};")
+                self.declarar(nombre, t)
+
+    def cuerpo_brazo(self, b, destino):
+        """Lo que hace el brazo: dejar su valor en `destino`, o sus
+        sentencias. Y soltar lo que haya nacido dentro."""
+        if b.es_expresion:
+            st = b.cuerpo[0]
+            anteriores = self.temporales
+            self.temporales = []
+            self.marcar(st)
+            valor = self.expr(st.valor, self._tipo_de(st.valor))
+            if destino is not None:
+                self.reclamar(valor)
+                self.emitir(f"{destino} = {valor};")
+            for t in self.temporales:
+                self.liberacion(t, self.tipo_var(t))
+            self.temporales = anteriores
+            self.liberar_bloque(self.pila[-1])
+        else:
+            for st in b.cuerpo:
+                self.sentencia(st)
+            if not self._termina_en_retorno(b.cuerpo):
+                self.liberar_bloque(self.pila[-1])
 
     def match_valor(self, e):
         """El `match` usado como valor: un temporal y el `switch` encima."""
@@ -1881,6 +1999,7 @@ class Generador:
             self.vars.append({})
             self.bucles.append(len(self.pila))
             self.bucles_tmp.append(len(self.temporales_fuera))
+            self.abrir_bucle_saltos()
 
             # El elemento se presta, no se copia: un `str` copiado tendria dos
             # duenios. Los escalares van por valor porque no hay nada que
@@ -1917,6 +2036,7 @@ class Generador:
             self.vars.pop()
             self.sangria -= 1
             self.emitir("}")
+            self.cerrar_bucle_saltos()
             return
 
         if isinstance(s, (Romper, Continuar)):
@@ -1935,12 +2055,20 @@ class Generador:
             desde = self.bucles[-1] - 1 if self.bucles else 0
             for marco in reversed(self.pila[desde:]):
                 self.liberar_bloque(marco)
+            if (isinstance(s, Romper) and self.switch_en_bucle
+                    and self.en_switch > self.switch_en_bucle[-1]):
+                # Un `break` de C aqui saldria del `switch` del `match`.
+                if self.etiquetas_bucle[-1] is None:
+                    self.etiquetas_bucle[-1] = self.nueva_etiqueta("bucle")
+                self.emitir(f"goto {self.etiquetas_bucle[-1]};")
+                return
             self.emitir("break;" if isinstance(s, Romper) else "continue;")
             return
 
         if isinstance(s, Mientras):
             self.bucles.append(len(self.pila) + 1)
             self.bucles_tmp.append(len(self.temporales_fuera))
+            self.abrir_bucle_saltos()
             # Casi todas las condiciones salen enteras en una expresion de C
             # y van donde van. Pero algunas necesitan lineas propias —`byte`
             # guarda la vista en un temporal antes de indexarla— y esas
@@ -1957,6 +2085,7 @@ class Generador:
                 self.bloque(s.cuerpo)
                 self.bucles.pop()
                 self.bucles_tmp.pop()
+                self.cerrar_bucle_saltos()
                 return
 
             # La condicion dejo lineas: se deshace y se rehace dentro.
@@ -2001,6 +2130,7 @@ class Generador:
             self.emitir("}")
             self.bucles.pop()
             self.bucles_tmp.pop()
+            self.cerrar_bucle_saltos()
             return
 
         if isinstance(s, Falla):
@@ -2356,6 +2486,16 @@ class Generador:
 
         if isinstance(e, Match):
             return self.match_valor(e)
+
+        if isinstance(e, Campo) and getattr(e, "sacado", False):
+            # Sacar un campo: se copia y su sitio queda a ceros, que es un
+            # valor valido y al liberar el struct no suelta nada.
+            sitio = self.lugar(e)
+            t = self._tipo_de(e)
+            tmp = self.nuevo_tmp()
+            self.emitir(f"{self.tipo_c(t)} {tmp};")
+            return (f"({tmp} = {sitio}, {sitio} = ({self.tipo_c(t)}){{0}}, "
+                    f"{tmp})")
 
         if isinstance(e, (Campo, Indice)):
             return self.lugar(e)

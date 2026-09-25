@@ -259,22 +259,10 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
         for h en n.hijos {
             if !igual(vista(h.clase), "brazo") { continue; }
             I.abrir(c);
-            let lleva = I.lista_de(c.formas, vista(h.texto)) sino [];
-            var k = 0;
+            atrapar(h, c, quien, salida, lineas);
             for x en h.hijos {
-                if igual(vista(x.clase), "atrapa") {
-                    var t = vacio();
-                    if k < largo(lleva) {
-                        t = I.tipo_atrapado(c, vista(lleva[k]));
-                    }
-                    I.declarar(c, vista(x.texto), vista(t));
-                    anadir(salida, $"{quien}\t{x.texto}\t{t}");
-                    anadir(lineas, x.linea);
-                    k = k + 1;
-                }
-            }
-            for x en h.hijos {
-                if !igual(vista(x.clase), "atrapa") {
+                let xc = vista(x.clase);
+                if !igual(xc, "atrapa") && !igual(xc, "patron") && !igual(xc, "literal") {
                     recorrer(x, c, quien, salida, lineas);
                 }
             }
@@ -390,10 +378,32 @@ fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
     }
 }
 
+// Lo que atrapa un patron, tambien dentro de una forma anidada: `n` es el
+// brazo o la rama `patron`, con la forma en su texto. `_` no atrapa nada.
+fn atrapar(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
+    lineas: mut lista<usize>) {
+    let lleva = I.lista_de(c.formas, vista(n.texto)) sino [];
+    var k = 0;
+    for x en n.hijos {
+        let xc = vista(x.clase);
+        if !igual(xc, "atrapa") && !igual(xc, "patron") && !igual(xc, "literal") { continue; }
+        if igual(xc, "patron") {
+            atrapar(x, c, quien, salida, lineas);
+        } else if igual(xc, "atrapa") && !igual(vista(x.texto), "_") {
+            var t = vacio();
+            if k < largo(lleva) { t = I.tipo_atrapado(c, vista(lleva[k])); }
+            I.declarar(c, vista(x.texto), vista(t));
+            anadir(salida, $"{quien}\t{x.texto}\t{t}");
+            anadir(lineas, x.linea);
+        }
+        k = k + 1;
+    }
+}
+
 // Variables que nacen al desarmar visualmente una variante. El `match` no
 // mueve esos valores fuera del enum: solo les da nombre dentro del brazo.
 fn recoger_atrapadas(n: &P.Nodo, salida: mut mapa<str, usize>) {
-    if igual(vista(n.clase), "atrapa") {
+    if igual(vista(n.clase), "atrapa") && !igual(vista(n.texto), "_") {
         poner(salida, $"{n.texto}\t{n.linea}", 1);
     }
     for h en n.hijos { recoger_atrapadas(h, salida); }

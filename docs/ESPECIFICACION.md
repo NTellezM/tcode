@@ -262,14 +262,44 @@ Los arreglos se generan envueltos en un struct de C. Un arreglo desnudo de C
 no se puede asignar, ni pasar por valor, ni devolver: se degrada a puntero.
 El envoltorio le devuelve la semántica de valor que el lenguaje promete.
 
-Lo que v0 **no** admite, y lo dice:
+- **Campos `view`: el struct presta.** Un struct con un campo `view` —o con
+  otro struct que presta— se trata como una vista, sin anotar vidas en el
+  tipo: es la vida única implícita de un `struct Foo<'a>` de Rust.
 
-- **Campos `view`.** Es el muro real: una vista dentro de un struct exige que
-  la vida útil forme parte del tipo, como `struct Foo<'a>` en Rust. Un campo
-  `view` da error y sugiere `str`.
-- **Movimientos parciales.** Sacar un `str` de un campo o de un elemento
-  dejaría el struct a medio mover o un hueco en el arreglo. Hay que mover el
-  contenedor entero.
+  ```tcode
+  struct Palabra { texto: view, n: usize }
+
+  let s = nuevo("hola mundo");
+  let p = Palabra { texto: rebanar(vista(s), 0, 4), n: 4 };
+  empujar(s, "!");      // error: `s` esta prestada por `p`
+  ```
+
+  Presta de lo que se le puso al construirlo; un campo `view` suyo presta
+  de lo mismo; no vive más que sus dueños, y no sale de la función si presta
+  de algo local. Una función que lo devuelve presta de todo lo que se le
+  prestó, igual que una que devuelve `view`. Y no se guarda donde nadie
+  sabría cuánto vive: ni en una `lista`, un `mapa` o un `bloque`, ni en un
+  enum, ni en lo que captura una clausura. Tampoco se guarda una vista en un
+  struct que llegó prestado: quien lo prestó no sabría de dónde presta ahora.
+- **Sacar un campo.** `let n = p.nombre;` saca el campo de una variable que
+  es dueña del struct. En C se copia y su sitio queda a ceros —que en Tcode
+  es un valor válido—, así que al liberar el struct ese campo no suelta nada.
+  Desde ahí, el campo no se usa, ni el struct entero, hasta que se le dé otro
+  valor; los otros campos, sí:
+
+  ```tcode
+  let n = p.nombre;
+  imprimir(p.edad);     // bien
+  entregar(p);          // error: `p` esta a medio mover
+  p.nombre = nuevo("eva");
+  entregar(p);          // bien: vuelve a estar entero
+  ```
+
+  Solo se saca donde vive la variable, no dentro de un `if`, un `match` o un
+  bucle —después no se sabría si sigue ahí—, salvo en un `return`, que se va
+  de la función. De algo prestado no se saca nada. Un elemento de una lista o
+  de un arreglo tampoco: su índice no se conoce al compilar, y para eso está
+  `intercambiar(...)`.
 - **Recursión directa por valor.** `struct Nodo { hijo: Nodo }` no tiene tamaño
   finito y da error; la recursión mediante `lista<Nodo>` sí está permitida.
 
@@ -1058,13 +1088,25 @@ cumple `numero` sin que nadie escriba nada en ningún sitio.
 | **C++20** | *concepts*, predicados sobre expresiones | la pragmática: el cuerpo se sigue comprobando por instancia |
 | **C++ pre-20** | SFINAE | el contraejemplo: el error sale de tres niveles más adentro |
 
-**Dónde somos peores que Rust, y hay que decirlo.** En Rust el cuerpo de una
-genérica se comprueba **una vez**, contra la restricción: si compila, compila
-para todo `T` que la cumpla. Aquí no. La restricción se comprueba en la
-llamada, y el cuerpo se sigue comprobando una vez por instancia. Puede pasar
-que una genérica con restricción falle igualmente dentro del cuerpo para
-algún tipo del conjunto. Es más débil, y es a propósito: un sistema de traits
-completo es mucho más de lo que v0 necesita.
+**Compila para todo `T` que la cumpla, como en Rust.** En Rust el cuerpo de
+una genérica se comprueba una vez, contra la restricción. Aquí las
+restricciones son **conjuntos finitos**, así que se consigue lo mismo sin
+traits: el cuerpo se comprueba con **cada tipo del conjunto**, también con los
+que nadie usa, y también si la genérica no se llama nunca.
+
+```
+fn primera<T: igualable>(xs: &lista<T>) -> T { let t = xs[0]; return t; }
+
+error: f.t:1: no se puede sacar un elemento de una lista y dejar el hueco
+              sin duenio. ...
+  al comprobar `primera` con T = str: la restriccion lo admite, asi que el
+  cuerpo tiene que valer tambien asi
+```
+
+aunque el programa solo la use con `usize`. Se saltan los tipos que dejan la
+firma sin sentido —`T = view` sobre un `&lista<T>`: nadie podría llamarla
+así—. Un parámetro sin restricción no tiene conjunto: se prueba con los tipos
+con que se usó.
 
 **Dónde somos mejores que no tenerlas.** El valor está en dónde aparece el
 error:
@@ -1752,9 +1794,35 @@ que lleve la forma que sea, y las que no llevan nada ni aparecen.
 | Zig | `union(enum)` | sí | por captura `|x|` |
 | **Tcode** | **sí** | **sí, con las que faltan nombradas** | **prestado siempre** |
 
+### Patrones anidados, literales y guardas
+
+En cada posición de un patrón va un nombre, `_`, un literal o otra forma, y
+el brazo puede llevar una guarda:
+
+```tcode
+match f {
+    Forma.Circulo(0) -> nuevo("vacio"),
+    Forma.Circulo(r) if r > 100 -> nuevo("grande"),
+    Forma.Etiqueta(s, Color.Otro(c)) -> $"{s} de color {c}",
+    Forma.Etiqueta("hola", _) -> nuevo("saludo"),
+    _ -> nuevo("otra"),
+}
+```
+
+Un brazo con guarda, o con un literal o una forma en alguna posición, puede
+no casar, así que no cubre su forma él solo: la exhaustividad pide un brazo
+sin condiciones para esa forma, o un `_`, y el error dice cuáles faltan. Lo
+anidado se atrapa igual que lo de fuera —prestado—, y `_` en una posición no
+atrapa nada. Una guarda no mueve nada: se evalúa aunque el brazo no llegue a
+casar.
+
+Un `match` así no cabe en un `switch` de C: sale como una fila de `if`, y el
+brazo que casa salta al final con un `goto`. De paso, un `break` dentro del
+`switch` de un `match` simple sale del bucle, no del `switch`.
+
 Lo que Tcode todavía no tiene: enums con parámetros de tipo
-(`enum Quiza<T>`), patrones anidados, patrones sobre literales o rangos, y
-guardas (`if` dentro de un brazo).
+(`enum Quiza<T>`) y patrones sobre rangos. Un enum no lleva vistas ni
+structs que prestan.
 
 ## La puerta a C: `externo`
 
@@ -1910,9 +1978,8 @@ Está en `ejemplos/sistema.t`.
 
 ## Qué NO tiene v0
 
-Es un v0 honesto. No hay: comprobación del cuerpo genérico una sola vez contra la
-restricción (eso es Rust, y es más), enums con parámetros de tipo, patrones
-anidados ni guardas, escritura incremental (un `escribir_archivo` deja el
+Es un v0 honesto. No hay: enums con parámetros de tipo, patrones sobre
+rangos, escritura incremental (un `escribir_archivo` deja el
 archivo entero), punteros crudos ni recolector. La
 puerta a C existe (`externo`) pero es estrecha a propósito: sin punteros, sin
 structs y sin varargs.

@@ -182,7 +182,8 @@ def probar_errores(tmp):
         'fn f() { var s: str = nuevo("a"); let v: view = vista(s);\n'
         ' empujar(s, "b"); }',
         'fn f() { let a: usize = 1; let b: i64 = 2;\n let c: usize = a + b; }',
-        'struct P { v: view }',
+        'struct P { v: view }\nfn f() -> P { let s: str = nuevo("h");\n'
+        ' return P { v: vista(s) }; }',
         'fn f() -> view { var s: str = nuevo("h");\n return vista(s); }',
         'fn f() -> usize ! { falla "x"; }\nfn g() -> usize { return f(); }',
         'fn f() { let a: [usize; 2] = [1,2];\n let b: bool = true;\n'
