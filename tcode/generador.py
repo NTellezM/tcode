@@ -2969,7 +2969,8 @@ class Generador:
                 (self.expr(e.args[2], "usize"), "size_t"),
             ]
             args, previos = self.argumentos_ordenados(e, valores)
-            llamada = f"sv_slice({', '.join(args)})"
+            llamada = (f"ss_lang_rebanar_({', '.join(args)}, "
+                       f"{self.arch(e)}, {e.linea})")
             return self.con_argumentos_ordenados(llamada, previos)
         if n == "empujar":
             direccion = self.dir_de(e.args[0])

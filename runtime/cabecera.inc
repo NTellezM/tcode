@@ -437,6 +437,24 @@ static size_t ss_lang_indice_(size_t i, size_t n, const char* arch, int ln)
     return i;
 }
 
+/* `rebanar(v, desde, hasta)`: fuera de rango detiene el programa, como un
+   indice. Una vista vacia seria un resultado equivocado que nadie ve. */
+SS_LANG_QUIZA_SIN_USAR
+static SafeView ss_lang_rebanar_(SafeView v, size_t desde, size_t hasta,
+                                 const char* arch, int ln)
+{
+    if (SS_LANG_RARO(desde > hasta || hasta > v.len))
+    {
+        fflush(stdout);
+        fprintf(stderr, "%s:%d: rebanar(%zu, %zu) fuera de rango (el texto "
+                        "tiene %zu byte%s)\n", arch, ln, desde, hasta, v.len,
+                v.len == 1 ? "" : "s");
+        abort();
+    }
+    SafeView r = { v.ptr == NULL ? NULL : v.ptr + desde, hasta - desde };
+    return r;
+}
+
 SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
 static void ss_lang_sin_memoria_(const char* archivo, int linea)
 {

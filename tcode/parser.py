@@ -29,6 +29,13 @@ RESTRICCIONES = {
 }
 
 
+# Lo mas hondo que puede ser el arbol: anidamiento, y cadenas de operadores,
+# campos o `como`. Todo lo que viene despues es recursivo, y sin un limite un
+# archivo con cien mil parentesis agotaria la pila. Es el mismo en el parser
+# escrito en Tcode.
+LIMITE_HONDURA = 5000
+
+
 class ErrorSintactico(Exception):
     pass
 
@@ -39,6 +46,8 @@ class Parser:
         self.toks = toks
         self.i = 0
         self.archivo = archivo
+        # Cuanto se ha bajado en el arbol hasta aqui: ver LIMITE_HONDURA.
+        self.hondura = 0
         # Se recogen antes de parsear porque hacen falta para desambiguar:
         # `Punto { x: 1 }` es un literal solo si `Punto` es un struct. Sin
         # esto, el `s` de `if s { }` se leeria como el inicio de uno.
@@ -102,6 +111,13 @@ class Parser:
             que = valor if valor is not None else tipo
             self.error(f"se esperaba {que!r}")
         return t
+
+    def entrar(self, cuantos=1):
+        """Un nivel mas de hondura en el arbol."""
+        self.hondura += cuantos
+        if self.hondura > LIMITE_HONDURA:
+            self.error(f"el programa anida mas de {LIMITE_HONDURA} niveles; "
+                       f"parte la expresion o el bloque en trozos")
 
     def entero_literal(self, tok: Token) -> int:
         """Convierte un entero sin dejar que ``int`` sea la frontera de error.
@@ -438,6 +454,12 @@ class Parser:
                    "lista<tipo>, mapa<clave, valor>, un struct, o [tipo; N])")
 
     def bloque(self) -> list:
+        self.entrar()
+        cuerpo = self._bloque()
+        self.hondura -= 1
+        return cuerpo
+
+    def _bloque(self) -> list:
         self.espera("simbolo", "{")
         cuerpo = []
         while not self.es("simbolo", "}"):
@@ -539,10 +561,13 @@ class Parser:
 
     def _binaria_izq(self, sub, ops):
         izq = sub()
+        antes = self.hondura
         while self.actual.tipo == "simbolo" and self.actual.valor in ops:
             op = self.actual
             self.i += 1
+            self.entrar()
             izq = Binaria(op.valor, izq, sub(), linea=op.linea)
+        self.hondura = antes
         return izq
 
     def expr(self):
@@ -591,14 +616,23 @@ class Parser:
         """`x como u8`, `x como? u8`. Ata mas que cualquier operador binario:
         `a + b como u8` es `a + (b como u8)`, que es lo que se lee."""
         e = self.unario()
+        antes = self.hondura
         while self.actual.tipo == "ident" and self.actual.valor == "como":
             tok = self.actual
             self.i += 1
+            self.entrar()
             envolviendo = self.acepta("simbolo", "?") is not None
             e = Conversion(e, self.tipo(), envolviendo, linea=tok.linea)
+        self.hondura = antes
         return e
 
     def unario(self):
+        self.entrar()
+        e = self._unario()
+        self.hondura -= 1
+        return e
+
+    def _unario(self):
         if self.es("palabra", "try"):
             tok = self.actual
             self.i += 1
@@ -611,16 +645,20 @@ class Parser:
 
     def postfijo(self):
         e = self.primario()
+        antes = self.hondura
         while True:
             t = self.actual
             if self.acepta("simbolo", "."):
+                self.entrar()
                 e = Campo(e, self.espera("ident").valor, linea=t.linea)
                 continue
             if self.acepta("simbolo", "["):
+                self.entrar()
                 idx = self.expr()
                 self.espera("simbolo", "]")
                 e = Indice(e, idx, linea=t.linea)
                 continue
+            self.hondura = antes
             return e
 
     def interpolada(self, tok):
@@ -681,6 +719,7 @@ class Parser:
             sub.alias = self.alias
             sub.tipo_params = self.tipo_params
             sub.enums = self.enums
+            sub.hondura = self.hondura
             expr = sub.expr()
             if not sub.es("fin"):
                 self.error(f"sobra algo despues de la expresion {dentro!r} "
