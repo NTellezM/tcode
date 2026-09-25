@@ -387,6 +387,32 @@ def encaja(esperado, dado):
     return False
 
 
+COMPARACIONES = frozenset({"==", "!=", "<", "<=", ">", ">=", "&&", "||"})
+
+
+def literal_de(e):
+    """`"entero"` o `"decimal"` si aqui hay un numero escrito que todavia no
+    tiene tipo —`1`, `2.5`, `1 + 2`, `-0.5`, `if c { 1 } else { 2 }`—, y
+    None si no. Un numero asi toma el tipo del otro lado de la operacion, o
+    el que se espera de el; sin nada que lo decida, `usize` o `f64`."""
+    if isinstance(e, Entero):
+        return "entero"
+    if isinstance(e, Decimal):
+        return "decimal"
+    if isinstance(e, Unaria) and e.op == "-":
+        # `-1` ya es un `i64`; `-0.5` sigue sin decidir su ancho.
+        return "decimal" if literal_de(e.valor) == "decimal" else None
+    if isinstance(e, Binaria) and e.op not in COMPARACIONES:
+        izq, der = literal_de(e.izq), literal_de(e.der)
+        if izq and der:
+            return "decimal" if "decimal" in (izq, der) else "entero"
+    if isinstance(e, SiExpr):
+        a, b = literal_de(e.entonces), literal_de(e.sino_)
+        if a and b:
+            return "decimal" if "decimal" in (a, b) else "entero"
+    return None
+
+
 def _nombres_de_patron(args):
     """Los nombres que atrapa un patron, a cualquier hondura."""
     salida = set()
@@ -1259,21 +1285,43 @@ class Comprobador:
             # Un numero escrito con `-` delante solo cabe en uno con signo:
             # sin mas contexto es un `i64`, como en `let x = -7;`. Aqui un
             # `Entero` suelto ya sale como `usize`, asi que se mira el nodo.
-            if e.op == "-" and isinstance(e.valor, Entero):
+            if e.op == "-" and literal_de(e.valor) == "entero":
                 return "i64"
             t = self.tipo_probable(e.valor)
             return "i64" if t == LITERAL else t
+        if isinstance(e, Conversion):
+            return e.a_tipo
+        if isinstance(e, SiExpr):
+            # Una rama que es un numero escrito toma el tipo de la otra.
+            if literal_de(e.entonces) and not literal_de(e.sino_):
+                return self.tipo_probable(e.sino_)
+            if literal_de(e):
+                return "f64" if literal_de(e) == "decimal" else "usize"
+            return self.tipo_probable(e.entonces)
         if isinstance(e, Binaria):
             if e.op in ("&&", "||", "==", "!=", "<", "<=", ">", ">="):
                 return "bool"
             # Aritmetica: el tipo es el de los operandos; un numero escrito
-            # no decide nada por su cuenta.
+            # no decide nada por su cuenta, toma el del otro lado.
+            izq, der = literal_de(e.izq), literal_de(e.der)
+            if izq and der:
+                return "f64" if "decimal" in (izq, der) else "usize"
+            if izq:
+                return self.tipo_probable(e.der)
             a = self.tipo_probable(e.izq)
             b = self.tipo_probable(e.der)
             if a in (None, LITERAL):
                 return b if b != LITERAL else "usize"
             return a
         if isinstance(e, Llamada):
+            # Las que devuelven el tipo de lo que reciben, como al comprobar.
+            if e.nombre in ("absoluto", "raiz", "piso", "techo", "redondear") \
+                    and len(e.args) == 1:
+                lit = literal_de(e.args[0])
+                if lit:
+                    return "i64" if lit == "entero" and e.nombre == "absoluto" else "f64"
+                t = self.tipo_probable(e.args[0])
+                return sin_prestamo(t) if t is not None else None
             if e.nombre in INTERNAS:
                 return INTERNAS[e.nombre].get("retorno")
             f = self.funciones.get(e.nombre)
@@ -1540,6 +1588,7 @@ class Comprobador:
         vistas = {}
         con_brazo = set()
         tipo_comun = None
+        escritos = []
         hay_comodin = False
         for b in e.brazos:
             if hay_comodin:
@@ -1589,6 +1638,8 @@ class Comprobador:
                 if b.es_expresion and isinstance(st, Retorno) and st.valor is not None:
                     t = self.expresion(st.valor, destino=destino,
                                        mover_variables=mover_variables)
+                    if t in (LITERAL, LITERAL_DECIMAL):
+                        escritos.append(st.valor)
                 else:
                     self.sentencia(st)
             self.en_condicional -= 1
@@ -1627,6 +1678,12 @@ class Comprobador:
                               f"{lista_f} sin mirar: sus brazos tienen guarda "
                               f"o un patron que puede no casar. Pon uno que "
                               f"valga para todos, o un brazo `_`")
+        # Un brazo que es un numero escrito toma el tipo de los demas, y tiene
+        # que caber en el.
+        if sin_prestamo(tipo_comun or "") in NUMERICOS:
+            for valor in escritos:
+                self.comprobar_literal(valor, sin_prestamo(tipo_comun))
+                self.fijar_literal(valor, sin_prestamo(tipo_comun))
         e.resultado = tipo_comun or ""
         return tipo_comun
 
@@ -2323,9 +2380,25 @@ class Comprobador:
         # solo por tener un operador en medio. En desplazamientos, la cantidad
         # es un `usize`, no el tipo del valor desplazado.
         if isinstance(e, Binaria):
+            if (destino in DECIMALES and literal_de(e)
+                    and e.op in {"%", "&", "|", "^", "<<", ">>"}):
+                # Los numeros escritos son decimales aqui, y con decimales
+                # no hay resto ni bits.
+                if e.op == "%":
+                    self.error(e, "`%` es el resto de una division entera; con "
+                                  "decimales no tiene un significado unico")
+                else:
+                    self.error(e, f"`{e.op}` trabaja sobre los bits de un "
+                                  f"entero, recibio `{destino}` y `{destino}`")
+                return
             self.comprobar_literal(e.izq, destino)
             self.comprobar_literal(
                 e.der, "usize" if e.op in {"<<", ">>"} else destino)
+            return
+        if isinstance(e, SiExpr):
+            # Cada rama que sea un numero escrito tiene que caber.
+            self.comprobar_literal(e.entonces, destino)
+            self.comprobar_literal(e.sino_, destino)
             return
 
         negativo = (isinstance(e, Unaria) and e.op == "-"
@@ -2369,6 +2442,34 @@ class Comprobador:
                               f"en `{destino}` como numero finito")
 
     def expresion(self, e, destino=None, mover_variables=False):
+        """El tipo de `e`, comprobandola. Queda anotado en el nodo, en
+        `tipo_resuelto`: el generador lo lee de ahi en vez de deducirlo otra
+        vez por su cuenta, que es como se equivocaba."""
+        t = self._expresion(e, destino, mover_variables)
+        e.tipo_resuelto = t
+        if t in (LITERAL, LITERAL_DECIMAL) and sin_prestamo(destino or "") in NUMERICOS:
+            self.fijar_literal(e, sin_prestamo(destino))
+        return t
+
+    def fijar_literal(self, e, tipo):
+        """Un numero escrito ya sabe su tipo: se lo dice el otro lado de la
+        operacion, o el sitio donde va. Se anota en el y en todo lo que es
+        numero escrito por debajo; un desplazamiento cuenta en `usize`."""
+        if getattr(e, "tipo_resuelto", LITERAL) not in (LITERAL, LITERAL_DECIMAL):
+            return
+        if not literal_de(e):
+            return
+        e.tipo_resuelto = tipo
+        if isinstance(e, Binaria):
+            self.fijar_literal(e.izq, tipo)
+            self.fijar_literal(e.der, "usize" if e.op in {"<<", ">>"} else tipo)
+        elif isinstance(e, Unaria):
+            self.fijar_literal(e.valor, tipo)
+        elif isinstance(e, SiExpr):
+            self.fijar_literal(e.entonces, tipo)
+            self.fijar_literal(e.sino_, tipo)
+
+    def _expresion(self, e, destino=None, mover_variables=False):
         if destino in NUMERICOS:
             self.comprobar_literal(e, destino)
         if isinstance(e, Entero):
@@ -2427,6 +2528,7 @@ class Comprobador:
             t = self.expresion(e.valor)
             if e.op == "~":
                 if t == LITERAL:
+                    self.fijar_literal(e.valor, "usize")
                     return "usize"
                 if t is not None and t not in ENTEROS:
                     self.error(e, f"`~` da la vuelta a los bits de un entero, "
@@ -2441,10 +2543,18 @@ class Comprobador:
                 # esencial para que su minimo (por ejemplo `-128` en i8) sea
                 # representable. Sin contexto conserva el valor por defecto.
                 if destino in CON_SIGNO or destino in DECIMALES:
+                    self.fijar_literal(e.valor, destino)
                     return destino
                 if destino in SIN_SIGNO:
+                    # Un `-3` suelto ya lo dice `comprobar_literal`: no cabe.
+                    # Una cuenta, `-(3 + 4)`, no la mira nadie mas.
+                    if not isinstance(e.valor, Entero):
+                        self.error(e, f"`{destino}` no tiene signo: no se "
+                                      f"puede negar")
+                    self.fijar_literal(e.valor, destino)
                     return destino
                 self.comprobar_literal(e, "i64")
+                self.fijar_literal(e.valor, "i64")
                 return "i64"
             if t == LITERAL_DECIMAL:
                 return LITERAL_DECIMAL
@@ -2477,6 +2587,20 @@ class Comprobador:
             tras_b = self._foto()
             self.en_condicional -= 1
             self._juntar_ramas(tras_a, tras_b)
+            # Una rama que es un numero escrito toma el tipo de la otra, y
+            # tiene que caber en el.
+            if ta in (LITERAL, LITERAL_DECIMAL) and sin_prestamo(tb or "") in NUMERICOS:
+                self.comprobar_literal(e.entonces, sin_prestamo(tb))
+                self.fijar_literal(e.entonces, sin_prestamo(tb))
+            elif tb in (LITERAL, LITERAL_DECIMAL) and sin_prestamo(ta or "") in NUMERICOS:
+                self.comprobar_literal(e.sino_, sin_prestamo(ta))
+                self.fijar_literal(e.sino_, sin_prestamo(ta))
+            elif ta == LITERAL and tb == LITERAL_DECIMAL:
+                self.fijar_literal(e.entonces, LITERAL_DECIMAL)
+                ta = LITERAL_DECIMAL
+            elif tb == LITERAL and ta == LITERAL_DECIMAL:
+                self.fijar_literal(e.sino_, LITERAL_DECIMAL)
+                tb = LITERAL_DECIMAL
             if ta is not None and tb is not None and not encaja(ta, tb) \
                     and not encaja(tb, ta):
                 self.error(e, f"las dos ramas de un `if` tienen que dar el "
@@ -2518,6 +2642,11 @@ class Comprobador:
 
         if isinstance(e, Conversion):
             t = sin_prestamo(self.expresion(e.valor) or "")
+            # Un numero escrito sin nada al lado sale de su tipo de siempre.
+            if t == LITERAL:
+                self.fijar_literal(e.valor, "usize")
+            elif t == LITERAL_DECIMAL:
+                self.fijar_literal(e.valor, "f64")
             if e.a_tipo not in NUMERICOS:
                 self.error(e, f"`como` convierte entre numeros, y `{e.a_tipo}` "
                               f"no es uno")
@@ -3137,16 +3266,24 @@ class Comprobador:
         ti, td = sin_prestamo(ti), sin_prestamo(td)
 
         # Un numero escrito toma el tipo del otro lado.
+        desplaza = e.op in {"<<", ">>"}
         if ti in (LITERAL, LITERAL_DECIMAL) and td in NUMERICOS:
             self.comprobar_literal(e.izq, td)
+            self.fijar_literal(e.izq, td)
             ti = td
         elif td in (LITERAL, LITERAL_DECIMAL) and ti in NUMERICOS:
             self.comprobar_literal(e.der, ti)
+            self.fijar_literal(e.der, "usize" if desplaza else ti)
             td = ti
         if ti == LITERAL and td == LITERAL_DECIMAL:
+            self.fijar_literal(e.izq, LITERAL_DECIMAL)
             ti = td
         elif td == LITERAL and ti == LITERAL_DECIMAL:
+            self.fijar_literal(e.der, LITERAL_DECIMAL)
             td = ti
+        if desplaza and td in NUMERICOS:
+            # Cuanto se desplaza llega siempre como `usize`.
+            self.fijar_literal(e.der, "usize")
 
         if e.op in {"==", "!="}:
             if ti != td:

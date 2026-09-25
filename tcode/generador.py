@@ -28,7 +28,7 @@ from tcode.comprobador import (
     es_lista, elem_lista, es_mapa, partes_mapa, ORDENABLES,
     es_bloque, elem_bloque,
     es_referencia, es_referencia_mutable, apuntado, sin_prestamo,
-    es_funcion, partes_funcion,
+    es_funcion, partes_funcion, literal_de, LITERAL, LITERAL_DECIMAL,
 )
 
 TIPOS_C = {
@@ -131,12 +131,54 @@ def mangle(t):
     return t.replace("()", "nada")
 
 
+# Lo que se puede calcular antes, en un temporal, sin cambiar lo que es.
+ESCALARES_C = frozenset({
+    "size_t", "uint8_t", "uint16_t", "uint32_t", "uint64_t",
+    "int8_t", "int16_t", "int32_t", "int64_t", "float", "double", "bool",
+    "SafeView",
+})
+
+
+# Lo que se puede llamar sin que se note cuando: no escribe, no para, no
+# cambia nada que se vea. Reservar memoria solo para si no queda.
+PUROS_C = frozenset({
+    "sizeof", "sv", "sv_len", "sv_len_of", "ss_view", "sv_equals", "sv_cmp",
+    "ss_new", "ss_from", "ss_from_view", "SS_LANG_USIZE_LIT",
+})
+
+
+def hace_algo(linea):
+    """Si correr esta linea antes que un operando ya calculado se puede
+    notar: abre un `if`, un bucle o un `switch` —lo que va dentro correria
+    solo a veces—, o llama a algo que escribe, para o cambia algo. Copiar un
+    valor o tomar una vista no."""
+    l = linea.lstrip()
+    if not l or l.startswith("#"):
+        return False
+    if re.match(r"(if|while|for|switch|do|else|goto|return)\b", l):
+        return True
+    return any(nombre not in PUROS_C
+               for nombre in re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\s*\(", l))
+
+
+def es_constante(e):
+    """Un numero, un texto o un booleano escritos: calcularlos antes o
+    despues da igual."""
+    if isinstance(e, Unaria) and e.op == "-":
+        return isinstance(e.valor, (Entero, Decimal))
+    return isinstance(e, (Entero, Decimal, Booleano, Cadena))
+
+
 class Generador:
     def __init__(self, comprobador, archivo="<entrada>"):
         self.c = comprobador
         self.archivo = archivo
         self.lineas = []
         self.sangria = 0
+        # Lo ya calculado de una expresion que todavia no corrio: cada marco
+        # es una operacion o una llamada a medio escribir, y cada entrada un
+        # operando `[valor_c, tipo_c, fijo]`. None es una barrera.
+        self.por_correr = []
         # pila de bloques: cada uno con los `str` declarados que hay que liberar
         self.pila = []
         self.copiadores = {}    # tipo -> nombre del copiador generado
@@ -573,7 +615,61 @@ class Generador:
         return salida
 
     def emitir(self, texto=""):
+        if texto and hace_algo(texto):
+            self.adelantar()
         self.lineas.append("    " * self.sangria + texto if texto else "")
+
+    def adelantar(self):
+        """Los operandos ya calculados que todavia no corrieron se calculan
+        aqui, en temporales, antes de la sentencia que viene: esa sentencia
+        es de un operando que va despues, y la evaluacion va de izquierda a
+        derecha. Sin esto, `f() + (if c { g() } else { 0 })` llamaba a `g`
+        antes que a `f`."""
+        inicio = 0
+        for i in range(len(self.por_correr) - 1, -1, -1):
+            if self.por_correr[i] is None:
+                inicio = i + 1
+                break
+        for marco in self.por_correr[inicio:]:
+            for entrada in marco:
+                if entrada[2]:
+                    continue
+                tmp = self.nuevo_tmp()
+                self.lineas.append("    " * self.sangria
+                                   + f"{entrada[1]} {tmp} = {entrada[0]};")
+                entrada[0] = tmp
+                entrada[2] = True
+
+    def operando(self, nodo, valor, tipo_c):
+        """La entrada de un marco para un operando ya calculado. No hace
+        falta adelantar un numero escrito, ni lo que no es un escalar: una
+        direccion no cambia, y un valor con duenio no se copia."""
+        fijo = tipo_c not in ESCALARES_C or es_constante(nodo)
+        return [valor, tipo_c, fijo]
+
+    def en_orden(self, partes):
+        """`[(nodo, calcular, tipo_c)]` -> `[(valor_c, tipo_c)]`, calculados
+        de izquierda a derecha: cada uno queda pendiente mientras se calculan
+        los que van despues."""
+        marco = []
+        self.por_correr.append(marco)
+        try:
+            for nodo, calcular, tipo_c in partes:
+                marco.append(self.operando(nodo, calcular(), tipo_c))
+        finally:
+            self.por_correr.pop()
+        return [(x[0], x[1]) for x in marco]
+
+    @contextlib.contextmanager
+    def marco(self, entradas=None):
+        """Un marco de operandos pendientes mientras se calcula lo que va
+        despues de ellos."""
+        marco = entradas if entradas is not None else []
+        self.por_correr.append(marco)
+        try:
+            yield marco
+        finally:
+            self.por_correr.pop()
 
     def marcar(self, nodo):
         """`#line`: le dice al compilador de C de que linea de Tcode viene lo
@@ -2268,7 +2364,25 @@ class Generador:
 
         raise AssertionError(type(s).__name__)
 
+    def _anotado(self, e):
+        """El tipo numerico, o `bool`, que el comprobador dejo anotado en la
+        expresion, con los numeros escritos ya decididos por su contexto; o
+        None si no dejo ninguno. Solo se leen esos: son los que deciden en
+        que tipo se hace una cuenta y como se escribe un numero, y los que
+        el generador deducia mal por su cuenta."""
+        t = getattr(e, "tipo_resuelto", None)
+        if t == LITERAL:
+            return "usize"
+        if t == LITERAL_DECIMAL:
+            return "f64"
+        if t in ARITMETICA or t in DECIMALES or t == "bool":
+            return t
+        return None
+
     def _tipo_de(self, e):
+        anotado = self._anotado(e)
+        if anotado is not None:
+            return anotado
         if isinstance(e, EnumLit):
             return e.tipo
         if isinstance(e, Match):
@@ -2358,37 +2472,27 @@ class Generador:
                 return "bool"
             # `-1` sin mas contexto es un `i64`, como en el comprobador: un
             # numero negativo no cabe en el `usize` de un numero escrito.
-            if e.op == "-" and self._literal_de(e.valor) == "entero":
+            if e.op == "-" and literal_de(e.valor) == "entero":
                 return "i64"
             return self._tipo_de(e.valor)
         if isinstance(e, Conversion):
             return e.a_tipo
         return "usize"
 
-    def _literal_de(self, e):
-        """`"entero"` o `"decimal"` si el comprobador ve aqui un numero
-        escrito que todavia no tiene tipo —`1`, `2.5`, `1 + 2`, `-0.5`—, y
-        None si no. Un numero asi toma el tipo del otro lado de la operacion,
-        y el C tiene que hacer la cuenta en ese tipo, no en `usize`."""
-        if isinstance(e, Entero):
-            return "entero"
-        if isinstance(e, Decimal):
-            return "decimal"
-        if isinstance(e, Unaria) and e.op == "-":
-            # `-1` ya es un `i64`; `-0.5` sigue sin decidir su ancho.
-            return "decimal" if self._literal_de(e.valor) == "decimal" else None
-        if (isinstance(e, Binaria)
-                and e.op not in {"==", "!=", "<", "<=", ">", ">=", "&&", "||"}):
-            izq, der = self._literal_de(e.izq), self._literal_de(e.der)
-            if izq and der:
-                return "decimal" if "decimal" in (izq, der) else "entero"
-        return None
-
     def _tipo_cuenta(self, e, esperado=None):
         """El tipo en que se hace la cuenta de una binaria: el mismo que
         decide el comprobador. `1 + x` se hace en el tipo de `x`, y `1 + 2`
         en el que se espera de ella."""
-        izq, der = self._literal_de(e.izq), self._literal_de(e.der)
+        # Lo que anoto el comprobador: tras mirar la operacion, los dos lados
+        # tienen el mismo tipo, y un numero escrito ya tiene el del otro.
+        # En un desplazamiento manda el de la izquierda.
+        for lado in (e.izq, e.der):
+            t = getattr(lado, "tipo_resuelto", None)
+            if t in ARITMETICA or t in DECIMALES:
+                return t
+            if e.op in {"<<", ">>"}:
+                break
+        izq, der = literal_de(e.izq), literal_de(e.der)
         if izq and der:
             if esperado in ARITMETICA or esperado in DECIMALES:
                 return esperado
@@ -2495,7 +2599,7 @@ class Generador:
                 t = self._tipo_de(e.valor)
                 if esperado in ARITMETICA or esperado in DECIMALES:
                     t = esperado
-                elif self._literal_de(e.valor) == "entero":
+                elif literal_de(e.valor) == "entero":
                     t = "i64"
                 # Un literal ya fue validado estaticamente. Generarlo como una
                 # constante del tipo final evita pasar INT_MIN por el ayudante
@@ -2563,14 +2667,23 @@ class Generador:
             v = self.c.variante_de(e.tipo, e.variante)
             partes = [f".etiqueta = {self.etiqueta(e.tipo, e.variante)}"]
             previos = []
+            marco = []
+            self.por_correr.append(marco)
             for i, (arg, t) in enumerate(zip(e.args, v.tipos)):
                 valor = self.expr(arg, t)
                 self.reclamar(valor)      # la variante se lo queda
+                entrada = self.operando(arg, valor, self.tipo_c(t))
                 if len(e.args) > 1:
                     tmp = self.nuevo_tmp()
                     self.emitir(f"{self.tipo_c(t)} {tmp};")
-                    previos.append(f"{tmp} = {valor}")
-                    valor = tmp
+                    entrada.append(tmp)
+                marco.append(entrada)
+            self.por_correr.pop()
+            for i, entrada in enumerate(marco):
+                valor = entrada[0]
+                if len(entrada) > 3:
+                    previos.append(f"{entrada[3]} = {valor}")
+                    valor = entrada[3]
                 partes.append(f".dato.v_{e.variante}._{i} = {valor}")
             if previos:
                 self.ultima_pos = None
@@ -2615,17 +2728,26 @@ class Generador:
             st = self.c.structs.get(e.tipo)
             tipos = {c.nombre: c.tipo for c in st.campos} if st else {}
             piezas, previos = [], []
+            marco = []
+            self.por_correr.append(marco)
             for n, v in e.campos:
                 t = tipos.get(n)
                 valor = self.expr(v, t)
                 # El struct se queda con el campo: si venia de un temporal de
                 # la sentencia, deja de liberarse ahi.
                 self.reclamar(valor)
+                entrada = self.operando(v, valor, self.tipo_c(t))
                 if len(e.campos) > 1:
                     tmp = self.nuevo_tmp()
                     self.emitir(f"{self.tipo_c(t)} {tmp};")
-                    previos.append(f"{tmp} = {valor}")
-                    valor = tmp
+                    entrada.append(tmp)
+                marco.append(entrada)
+            self.por_correr.pop()
+            for (n, _), entrada in zip(e.campos, marco):
+                valor = entrada[0]
+                if len(entrada) > 3:
+                    previos.append(f"{entrada[3]} = {valor}")
+                    valor = entrada[3]
                 piezas.append(f".{n} = {valor}")
             if previos:
                 self.ultima_pos = None
@@ -2653,14 +2775,23 @@ class Generador:
             t = esperado if (esperado and es_arreglo(esperado)) else self._tipo_de(e)
             elem = elem_de(t)
             args, previos = [], []
+            marco = []
+            self.por_correr.append(marco)
             for x in e.elementos:
                 valor = self.expr(x, elem)
                 self.reclamar(valor)
+                entrada = self.operando(x, valor, self.tipo_c(elem))
                 if len(e.elementos) > 1:
                     tmp = self.nuevo_tmp()
                     self.emitir(f"{self.tipo_c(elem)} {tmp};")
-                    previos.append(f"{tmp} = {valor}")
-                    valor = tmp
+                    entrada.append(tmp)
+                marco.append(entrada)
+            self.por_correr.pop()
+            for entrada in marco:
+                valor = entrada[0]
+                if len(entrada) > 3:
+                    previos.append(f"{entrada[3]} = {valor}")
+                    valor = entrada[3]
                 args.append(valor)
             if previos:
                 self.ultima_pos = None
@@ -2788,7 +2919,14 @@ class Generador:
             izq = self.expr(e.izq, "bool")
             marca = len(self.lineas)
             base = len(self.temporales)
-            der = self.expr(e.der, "bool")
+            # Lo que el lado derecho deje se mueve dentro de un `if`: lo de
+            # fuera no se puede adelantar ahi, correria solo a veces. Se
+            # adelanta despues, al escribir `bool vale = izq`.
+            self.por_correr.append(None)
+            try:
+                der = self.expr(e.der, "bool")
+            finally:
+                self.por_correr.pop()
             nuevas = self.lineas[marca:]
             if not any(("=" in x or "(" in x) and not x.startswith("#")
                        for x in nuevas):
@@ -2827,7 +2965,9 @@ class Generador:
         # `&&` o `||` exterior.
         t_der = "usize" if e.op in {"<<", ">>"} else t
         valor_izq = self.expr(e.izq, t)
-        valor_der = self.expr(e.der, t_der)
+        with self.marco([self.operando(e.izq, valor_izq, self.tipo_c(t))]) as m:
+            valor_der = self.expr(e.der, t_der)
+        valor_izq = m[0][0]
         tmp_izq = self.nuevo_tmp()
         tmp_der = self.nuevo_tmp()
         self.emitir(f"{self.tipo_c(t)} {tmp_izq};")
@@ -2986,8 +3126,10 @@ class Generador:
             ta = sin_prestamo(self._tipo_de(e.args[0]) or "view")
             op = "==" if n == "igual" else "<"
             if ta in ("str", "view"):
-                izq = self.como_vista(e.args[0])
-                der = self.como_vista(e.args[1])
+                (izq, _), (der, _) = self.en_orden([
+                    (e.args[0], lambda: self.como_vista(e.args[0]), "SafeView"),
+                    (e.args[1], lambda: self.como_vista(e.args[1]), "SafeView"),
+                ])
                 tmp_izq = self.nuevo_tmp()
                 tmp_der = self.nuevo_tmp()
                 self.emitir(f"SafeView {tmp_izq};")
@@ -2999,8 +3141,10 @@ class Generador:
                 return (f"(({tmp_izq} = {izq}, {tmp_der} = {der}, "
                         f"{comparacion}))")
             # Escalares: la comparacion de C, que es la que el lector espera.
-            izq = self.expr(e.args[0], ta)
-            der = self.expr(e.args[1], ta)
+            (izq, _), (der, _) = self.en_orden([
+                (e.args[0], lambda: self.expr(e.args[0], ta), self.tipo_c(ta)),
+                (e.args[1], lambda: self.expr(e.args[1], ta), self.tipo_c(ta)),
+            ])
             tmp_izq = self.nuevo_tmp()
             tmp_der = self.nuevo_tmp()
             self.emitir(f"{self.tipo_c(ta)} {tmp_izq};")
@@ -3008,11 +3152,11 @@ class Generador:
             return (f"(({tmp_izq} = {izq}, {tmp_der} = {der}, "
                     f"({tmp_izq} {op} {tmp_der})))")
         if n == "rebanar":
-            valores = [
-                (self.como_vista(e.args[0]), "SafeView"),
-                (self.expr(e.args[1], "usize"), "size_t"),
-                (self.expr(e.args[2], "usize"), "size_t"),
-            ]
+            valores = self.en_orden([
+                (e.args[0], lambda: self.como_vista(e.args[0]), "SafeView"),
+                (e.args[1], lambda: self.expr(e.args[1], "usize"), "size_t"),
+                (e.args[2], lambda: self.expr(e.args[2], "usize"), "size_t"),
+            ])
             args, previos = self.argumentos_ordenados(e, valores)
             llamada = (f"ss_lang_rebanar_({', '.join(args)}, "
                        f"{self.arch(e)}, {e.linea})")
@@ -3211,10 +3355,10 @@ class Generador:
             return self.imprimir(e.args[0], "stderr")
 
         if n == "escribir_archivo":
-            valores = [
-                (self.como_vista(e.args[0]), "SafeView"),
-                (self.como_vista(e.args[1]), "SafeView"),
-            ]
+            valores = self.en_orden([
+                (e.args[0], lambda: self.como_vista(e.args[0]), "SafeView"),
+                (e.args[1], lambda: self.como_vista(e.args[1]), "SafeView"),
+            ])
             args, previos = self.argumentos_ordenados(e, valores)
             llamada = f"ss_lang_escribir_archivo_({args[0]}, {args[1]})"
             return self.con_argumentos_ordenados(llamada, previos)
@@ -3252,6 +3396,10 @@ class Generador:
         # Las asignaciones quedan dentro de la expresion para no romper el
         # cortocircuito si la llamada vive a la derecha de `&&` o `||`.
         secuenciar = len(e.args) > 1
+        # Cada argumento queda pendiente mientras se calculan los de despues:
+        # si uno de ellos deja sentencias, los de antes corren antes.
+        marco = []
+        self.por_correr.append(marco)
         for i, a in enumerate(e.args):
             p = f.params[i] if f and i < len(f.params) else None
             if p is not None and p.prestado:
@@ -3279,6 +3427,8 @@ class Generador:
                     if p is not None and self.c.posee(p.tipo):
                         self.reclamar(arg_c)     # la funcion se lo queda
 
+            tipo_arg = "" if p is None or p.prestado else self.tipo_c(p.tipo)
+            entrada = self.operando(a, arg_c, tipo_arg)
             if secuenciar and p is not None:
                 tmp_arg = self.nuevo_tmp()
                 if p.prestado:
@@ -3286,10 +3436,15 @@ class Generador:
                     self.emitir(f"{const}{self.tipo_c(p.tipo)}* {tmp_arg};")
                 else:
                     self.emitir(f"{self.tipo_c(p.tipo)} {tmp_arg};")
-                previos.append(f"{tmp_arg} = {arg_c}")
-                args.append(tmp_arg)
+                entrada.append(tmp_arg)
+            marco.append(entrada)
+        self.por_correr.pop()
+        for entrada in marco:
+            if len(entrada) > 3:
+                previos.append(f"{entrada[3]} = {entrada[0]}")
+                args.append(entrada[3])
             else:
-                args.append(arg_c)
+                args.append(entrada[0])
         destino = "ss_main_" if n == "main" else n
         llamada = f"{destino}({', '.join(args)})"
         if previos:
@@ -3303,6 +3458,8 @@ class Generador:
         args = []
         previos = []
         secuenciar = len(e.args) > 1
+        marco = []
+        self.por_correr.append(marco)
         for a, p in zip(e.args, f.params):
             if p.tipo == "str":
                 sitio = self.como_lugar(a)
@@ -3312,13 +3469,19 @@ class Generador:
             else:
                 arg_c = self.expr(a, p.tipo)
                 tipo_c = self.tipo_c(p.tipo)
+            entrada = self.operando(a, arg_c, tipo_c)
             if secuenciar:
                 tmp_arg = self.nuevo_tmp()
                 self.emitir(f"{tipo_c} {tmp_arg};")
-                previos.append(f"{tmp_arg} = {arg_c}")
-                args.append(tmp_arg)
+                entrada.append(tmp_arg)
+            marco.append(entrada)
+        self.por_correr.pop()
+        for entrada in marco:
+            if len(entrada) > 3:
+                previos.append(f"{entrada[3]} = {entrada[0]}")
+                args.append(entrada[3])
             else:
-                args.append(arg_c)
+                args.append(entrada[0])
         llamada = f"{f.nombre}({', '.join(args)})"
         if previos:
             llamada = f"(({', '.join(previos)}, {llamada}))"

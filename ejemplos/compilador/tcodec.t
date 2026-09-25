@@ -1984,6 +1984,8 @@ fn lleva_tipo(clase: view) -> bool {
 
 fn copiar_sustituido(n: &P.Nodo, lig: &mapa<str, str>) -> P.Nodo {
     var r = P.rama(vista(n.clase), n.linea);
+    // El mismo numero: es por el que el comprobador dejo anotado su tipo.
+    r.id = n.id;
     if lleva_tipo(vista(n.clase)) {
         r.texto = I.sustituir(vista(n.texto), lig);
     } else {
@@ -2011,9 +2013,17 @@ fn nodo_instancia(p: view, arboles: &lista<P.Nodo>,
             break;
         }
     }
-    // Las clausuras de esta copia son suyas: `plantilla|T1|T2`, como las
-    // llama el comprobador.
-    var dueno = copiar(plantilla);
+    // Las clausuras de esta copia son suyas.
+    let dueno = dueno_de_pedido(p);
+    var cuenta: usize = 0;
+    numerar_cierres(r, vista(dueno), numeracion, cuenta);
+    return r;
+}
+
+// Como llama el comprobador a una copia: `plantilla|T1|T2`. Es de quien son
+// sus clausuras y la clave de los tipos que dejo anotados en ella.
+fn dueno_de_pedido(p: view) -> str {
+    var dueno = campo_pedido(p, 0);
     var k = 2;
     var pieza = campo_pedido(p, k);
     while largo(pieza) > 0 {
@@ -2023,9 +2033,34 @@ fn nodo_instancia(p: view, arboles: &lista<P.Nodo>,
         k = k + 1;
         pieza = campo_pedido(p, k);
     }
-    var cuenta: usize = 0;
-    numerar_cierres(r, vista(dueno), numeracion, cuenta);
-    return r;
+    return dueno;
+}
+
+// El orden de las copias por su puesto, sin mover las que empatan:
+// insercion, que son pocas.
+fn orden_por_puesto(puestos: &lista<usize>) -> lista<usize> {
+    var orden: lista<usize> = [];
+    var i = 0;
+    while i < largo(puestos) {
+        anadir(orden, i);
+        var j = i;
+        while j > 0 && puestos[orden[j - 1]] > puestos[orden[j]] {
+            let antes = orden[j - 1];
+            orden[j - 1] = orden[j];
+            orden[j] = antes;
+            j = j - 1;
+        }
+        i = i + 1;
+    }
+    return orden;
+}
+
+// Como llama el comprobador a una funcion del programa.
+fn dueno_de_funcion(d: &P.Nodo, tipos: &I.Contexto) -> str {
+    if tiene(tipos.renombradas, vista(d.texto)) {
+        return nuevo(obtener(tipos.renombradas, vista(d.texto)) sino "");
+    }
+    return copiar(d.texto);
 }
 
 // Las funciones de las clausuras, el modulo de cada una y el indice de cada
@@ -2077,6 +2112,7 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
             let de = cierres.modulo[k];
             var borrador_c = F.cuenta_nueva();
             borrador_c.sacados = copiar(cierres.sacados);
+            borrador_c.dueno = copiar(cierres.fns[k].texto);
             let lineas_c = F.generar_funcion(cierres.fns[k], contextos[de],
                 vista(modulos[de]), borrador_c);
             if largo(lineas_c) == 0 {
@@ -2097,6 +2133,7 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
         let copia = nodo_instancia(vista(p), arboles, plantillas, cierres.numeracion);
         var borrador = F.cuenta_nueva();
         borrador.sacados = copiar(cierres.sacados);
+        borrador.dueno = dueno_de_pedido(vista(p));
         let lineas = F.generar_funcion(copia, contextos[de], vista(modulos[de]), borrador);
         if largo(lineas) == 0 {
             imprimir_error($"tcodec: no se escribir la copia `{en_c}`\n");
@@ -2742,6 +2779,13 @@ fn main() -> usize ! {
     // El programa tiene que valer antes de escribir nada: mismas reglas y
     // mismos mensajes que el comprobador de Python.
     let revision = C.comprobar_programa(arboles, modulos, contextos);
+    // El tipo de cada expresion, tal como lo dejo el comprobador: el
+    // generador lo lee en vez de deducirlo.
+    var k_anot = 0;
+    while k_anot < largo(contextos) && k_anot < largo(revision.anotados) {
+        contextos[k_anot].anotados = copiar(revision.anotados[k_anot]);
+        k_anot = k_anot + 1;
+    }
     if largo(revision.errores) > 0 {
         for e en revision.errores { imprimir_error($"error: {e}\n"); }
         let n = largo(revision.errores);
@@ -2866,6 +2910,7 @@ fn main() -> usize ! {
             if !igual(vista(d.clase), "fn") || F.es_generica(d) { continue; }
             var borrador = F.cuenta_nueva();
             borrador.sacados = copiar(cierres.sacados);
+            borrador.dueno = dueno_de_funcion(d, contextos[k_desc]);
             let escritas = F.generar_funcion(d, contextos[k_desc],
                 vista(modulos[k_desc]), borrador);
             // Si no se sabe escribir, lo dira la pasada de verdad.
@@ -2900,15 +2945,18 @@ fn main() -> usize ! {
 
     var instancias: lista<P.Nodo> = [];
     var modulo_de: lista<usize> = [];
+    var duenos_inst: lista<str> = [];
     for p en orden_inst {
         if largo(campo_pedido(vista(p), 0)) == 0 {
             let en_c_i = campo_pedido(vista(p), 1);
             let k_ci = obtener(cierres.indice, vista(en_c_i)) sino 0;
             anadir(instancias, copiar(cierres.fns[k_ci]));
             anadir(modulo_de, cierres.modulo[k_ci]);
+            anadir(duenos_inst, copiar(cierres.fns[k_ci].texto));
             continue;
         }
         anadir(instancias, nodo_instancia(vista(p), arboles, plantillas, cierres.numeracion));
+        anadir(duenos_inst, dueno_de_pedido(vista(p)));
         let plantilla = campo_pedido(vista(p), 0);
         anadir(modulo_de, obtener(plantillas, vista(plantilla)) sino 0);
     }
@@ -3192,6 +3240,7 @@ fn main() -> usize ! {
         cta.ultima_linea = 0;
         for d en arboles[i].hijos {
             if !igual(vista(d.clase), "fn") || F.es_generica(d) { continue; }
+            cta.dueno = dueno_de_funcion(d, contextos[i]);
             if !emitir_funcion(d, contextos[i], vista(modulos[i]), cta, protos,
                 cuerpos, anchos, decimales, conversiones) {
                 return 1;
@@ -3199,13 +3248,41 @@ fn main() -> usize ! {
         }
         i = i + 1;
     }
-    // Las copias van detras de todo, `main` incluida.
+    // Las copias van detras de todo, `main` incluida, en el orden en que las
+    // hizo el comprobador; las que no hizo, detras, como se descubrieron.
+    var puesto_de: mapa<str, usize> = [];
+    var k_orden = 0;
+    while k_orden < largo(revision.orden_copias) {
+        if !tiene(puesto_de, vista(revision.orden_copias[k_orden])) {
+            poner(puesto_de, vista(revision.orden_copias[k_orden]), k_orden);
+        }
+        k_orden = k_orden + 1;
+    }
+    var puestos_copias: lista<usize> = [];
+    for p en orden_inst {
+        let en_c_o = campo_pedido(vista(p), 1);
+        anadir(puestos_copias,
+            obtener(puesto_de, vista(en_c_o)) sino largo(revision.orden_copias));
+    }
+    let orden_copias = orden_por_puesto(puestos_copias);
+    var instancias_o: lista<P.Nodo> = [];
+    var modulo_de_o: lista<usize> = [];
+    var duenos_o: lista<str> = [];
+    for k_o en orden_copias {
+        anadir(instancias_o, copiar(instancias[k_o]));
+        anadir(modulo_de_o, modulo_de[k_o]);
+        anadir(duenos_o, copiar(duenos_inst[k_o]));
+    }
+    instancias = instancias_o;
+    modulo_de = modulo_de_o;
+    duenos_inst = duenos_o;
     var ultima_ruta = copiar(modulos[largo(modulos) - 1]);
     var k_emite = 0;
     while k_emite < largo(instancias) {
         let de = modulo_de[k_emite];
         if !igual(vista(modulos[de]), vista(ultima_ruta)) { cta.ultima_linea = 0; }
         ultima_ruta = copiar(modulos[de]);
+        cta.dueno = copiar(duenos_inst[k_emite]);
         if !emitir_funcion(instancias[k_emite], contextos[de], vista(modulos[de]),
             cta, protos, cuerpos, anchos, decimales, conversiones) {
             return 1;
