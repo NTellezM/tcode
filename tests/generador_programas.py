@@ -1,10 +1,9 @@
 """
 Genera programas de Tcode aleatorios pero validos por construccion.
 
-La idea viene de los tests de ntvidia (~/Proyectos/ntvidia), que no comprueban
-ejemplos sino invariantes: `no_starvation`, `sigma_bounds`, `ordering_property`.
-Un test por ejemplo solo encuentra lo que a uno se le ocurrio escribir; un
-test por propiedad encuentra lo que no se le ocurrio.
+Los tests por propiedad no comprueban ejemplos sino invariantes. Un test por
+ejemplo solo encuentra lo que a uno se le ocurrio escribir; un test por
+propiedad encuentra lo que no se le ocurrio.
 
 Para que la propiedad "todo programa aceptado corre limpio" signifique algo,
 el generador tiene que producir programas que:
