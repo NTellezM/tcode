@@ -25,13 +25,7 @@ from tcode.lexer import tokenizar
 from tcode.parser import parsear
 from tcode.nodos import (Usar, Struct, Funcion, Llamada, LiteralStruct,
                          Enum, EnumLit, Match)
-
-
-def _externas(decls):
-    """Los nombres declarados en un `externo`. Esos NO se renombran nunca:
-    son el nombre de la funcion de C, y cambiarlo seria llamar a otra."""
-    return {d.nombre for d in decls
-            if isinstance(d, Funcion) and d.externa}
+from tcode import nombres_c
 
 
 def _solo_usar(fuente, archivo):
@@ -90,61 +84,6 @@ def renombrar_en_arbol(nodo, mapa):
             setattr(nodo, campo.name, renombrar_tipo(valor, mapa))
         elif campo.name != "nombre":
             renombrar_en_arbol(valor, mapa)
-
-
-# Palabras que en C significan algo. En Tcode no, asi que `union` o `enum`
-# son nombres legales — pero el C generado no compilaria. Se renombran todas
-# de una vez: como el cambio es el mismo en todas partes, el programa
-# significa exactamente lo mismo, y el mensaje de error sigue diciendo el
-# nombre que se escribio.
-PALABRAS_C = {
-    "auto", "break", "case", "char", "const", "continue", "default", "do",
-    "double", "else", "enum", "extern", "float", "for", "goto", "if",
-    "inline", "int", "long", "register", "restrict", "return", "short",
-    "signed", "sizeof", "static", "struct", "switch", "typedef", "union",
-    "unsigned", "void", "volatile", "while",
-    # `bool`, `true` y `false` NO: son de Tcode tambien, y significan lo
-    # mismo en los dos lados.
-    "complex", "imaginary", "noreturn", "alignas", "alignof", "thread_local",
-    "static_assert", "generic",
-    # de la biblioteca de C, que tambien esta incluida
-    "malloc", "free", "calloc", "realloc", "memcpy", "memset", "strlen",
-    "printf", "fprintf", "sprintf", "snprintf", "abort", "exit", "stdin",
-    "stdout", "stderr", "main", "NULL", "size_t", "errno",
-}
-
-
-def renombrar_identificadores(nodo, mapa):
-    """Cambia un identificador en todas partes: declaraciones, usos, campos y
-    tipos. Al ser el mismo cambio en todos lados, nada mas se entera."""
-    from dataclasses import fields, is_dataclass
-    if isinstance(nodo, (list, tuple)):
-        for x in nodo:
-            renombrar_identificadores(x, mapa)
-        return
-    if not is_dataclass(nodo):
-        return
-    for campo in fields(nodo):
-        valor = getattr(nodo, campo.name)
-        if isinstance(valor, str):
-            if campo.name in ("nombre", "variable", "clave"):
-                setattr(nodo, campo.name, mapa.get(valor, valor))
-            elif campo.name in ("tipo", "retorno"):
-                setattr(nodo, campo.name, renombrar_tipo(valor, mapa))
-        elif campo.name == "campos" and isinstance(valor, list):
-            nuevos = []
-            for c in valor:
-                if isinstance(c, tuple) and len(c) == 2:
-                    nuevos.append((mapa.get(c[0], c[0]), c[1]))
-                    renombrar_identificadores(c[1], mapa)
-                else:
-                    renombrar_identificadores(c, mapa)
-                    nuevos.append(c)
-            setattr(nodo, campo.name, nuevos)
-        elif campo.name == "capturas" and isinstance(valor, list):
-            setattr(nodo, campo.name, [mapa.get(x, x) for x in valor])
-        else:
-            renombrar_identificadores(valor, mapa)
 
 
 def prefijo_de(ruta):
@@ -240,7 +179,8 @@ def _sin_usar_directo(m, visible, duenios, modulos):
                 continue
             donde = ", ".join(modulos[r]["mostrada"] for r in duenios[nombre])
             raise ErrorDeModulo(
-                f"{m['mostrada']}:{n.linea}: `{nombre}` esta en {donde}, que "
+                f"{m['mostrada']}:{n.linea}: `{nombres_c.escrito(nombre)}` "
+                f"esta en {donde}, que "
                 f"este archivo no usa. Se veia porque lo usa otro modulo, "
                 f"pero cada archivo tiene que pedir lo suyo: añade "
                 f"`usar \"...\";`")
@@ -337,6 +277,17 @@ def cargar(ruta_principal, nombres_bonitos=None):
 
     cargar_uno(os.path.realpath(ruta_principal))
 
+    # Lo que chocaria con C se renombra antes que nada, igual en todos los
+    # modulos: desde aqui, `log` se llama `ss_id_log` en todas partes, y lo
+    # que choca entre modulos se renombra sobre eso. `main` se deja en paz:
+    # es el nombre que espera el generador. Y lo que declara un `externo`
+    # tambien: `strlen` tiene que seguir llamandose `strlen`.
+    intocables = {"main"}
+    for m in modulos.values():
+        intocables |= nombres_c.externas(m["decls"])
+    for m in modulos.values():
+        nombres_c.renombrar(m["decls"], intocables)
+
     # Que declara cada modulo, y quien declara cada nombre.
     declara = {}        # real -> {nombre: declaracion}
     duenios = {}        # nombre -> [real]
@@ -370,11 +321,12 @@ def cargar(ruta_principal, nombres_bonitos=None):
             if previo is not None and previo != valor:
                 otro = modulos[de_donde[clave]]["mostrada"]
                 este = modulos[destino_real]["mostrada"]
+                dicho = nombres_c.legible(clave)
                 raise ErrorDeModulo(
-                    f"{m['mostrada']}:{getattr(nodo, 'linea', 0)}: `{clave}` "
+                    f"{m['mostrada']}:{getattr(nodo, 'linea', 0)}: `{dicho}` "
                     f"llega de dos sitios, {otro} y {este}. Dale un nombre a "
                     f"uno de los dos: `usar \"...\" como algo;` y luego "
-                    f"`algo.{clave}`")
+                    f"`algo.{dicho}`")
             visible[clave] = valor
             de_donde[clave] = destino_real
 
@@ -395,20 +347,10 @@ def cargar(ruta_principal, nombres_bonitos=None):
             if isinstance(d, (Funcion, Struct, Enum)):
                 nuevo = interno[(real, d.nombre)]
                 if nuevo != d.nombre and nombres_bonitos is not None:
-                    nombres_bonitos[nuevo] = d.nombre
+                    nombres_bonitos[nuevo] = nombres_c.escrito(d.nombre)
                 d.nombre = nuevo
 
     decls = []
     for real in orden:
         decls.extend(modulos[real]["decls"])
-
-    # `main` se deja en paz: es el nombre que espera el generador. Y lo que
-    # declara un `externo` tambien: `strlen` tiene que seguir llamandose
-    # `strlen`, o se estaria llamando a otra funcion.
-    intocables = _externas(decls) | {"main"}
-    mapa_c = {p: f"ss_id_{p}" for p in PALABRAS_C if p not in intocables}
-    renombrar_identificadores(decls, mapa_c)
-    if nombres_bonitos is not None:
-        for original, nuevo in mapa_c.items():
-            nombres_bonitos[nuevo] = original
     return decls

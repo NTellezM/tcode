@@ -77,7 +77,11 @@ fn main() -> usize ! {
     let nombres = P.structs_visibles(argumento(1), tokens);
     let formas = P.enums_visibles(argumento(1), tokens);
     var estado = P.estado_de(tokens, argumento(1), nombres, formas);
-    let arbol = try P.programa(estado);
+    var arbol = try P.programa(estado);
+    // Lo que chocaria con C, renombrado como lo hace el cargador.
+    var intocables: lista<str> = [nuevo("main")];
+    G.externas_de(arbol, intocables);
+    G.renombrar_para_c(arbol, G.nombres_de_c(), intocables);
 
     for d en arbol.hijos {
         if igual(vista(d.clase), "fn") && !es_generica(d) {

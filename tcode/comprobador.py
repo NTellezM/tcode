@@ -10,6 +10,7 @@ import re
 from decimal import Decimal as NumeroDecimal, InvalidOperation
 
 from tcode.parser import RESTRICCIONES
+from tcode import nombres_c
 from tcode.nodos import (
     Entero, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
@@ -519,13 +520,13 @@ class Comprobador:
                             + self._por_instanciar())
 
     def _legible(self, mensaje):
-        """La copia de una generica se llama `primeras__str`, que es un nombre
-        que nadie escribio. En un mensaje va el nombre de verdad. Se cambian
-        nombres enteros: `Cierre_1` no es un trozo de `Cierre_10`."""
-        if not self.nombre_original:
-            return mensaje
+        """La copia de una generica se llama `primeras__str`, y lo que choca
+        con C, `ss_id_log`: nombres que nadie escribio. En un mensaje va el
+        nombre de verdad. Se cambian nombres enteros: `Cierre_1` no es un
+        trozo de `Cierre_10`."""
         return re.sub(r"[A-Za-z_][A-Za-z0-9_]*",
-                      lambda m: self.nombre_original.get(m.group(0), m.group(0)),
+                      lambda m: nombres_c.escrito(
+                          self.nombre_original.get(m.group(0), m.group(0))),
                       mensaje)
 
     def _por_instanciar(self):
@@ -1441,7 +1442,7 @@ class Comprobador:
         params = {p.nombre: p for p in f.params}
 
         for sim in simbolos:
-            if sim.nombre.startswith("_"):
+            if nombres_c.callado(sim.nombre):
                 continue
             nodo = sim.decl if sim.decl is not None else f
             p = params.get(sim.nombre)
@@ -2978,7 +2979,8 @@ class Comprobador:
             (self.retorno_actual, self.falible_actual,
              self.simbolos_funcion, self.ambitos) = guardado
         for nombre in e.mutables:
-            if nombre not in propia["modificadas"] and not nombre.startswith("_"):
+            if (nombre not in propia["modificadas"]
+                    and not nombres_c.callado(nombre)):
                 self.aviso(e, f"`{nombre}` se captura con `mut` y nunca se "
                               f"modifica; puede ir sin `mut`")
 

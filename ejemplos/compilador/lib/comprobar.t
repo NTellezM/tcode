@@ -745,7 +745,8 @@ fn legible(m: &Mundo, mensaje: view) -> str {
             if j < largo(mensaje) && byte(mensaje, j) == 60 && tiene(m.st_params, palabra)
             && !empieza_con(resto, "<...>") {
                 // `Par<i64, usize>` -> `Par`: se salta lo que va entre angulos.
-                empujar(r, palabra);
+                let dicho = G.escrito(palabra);
+                empujar(r, vista(dicho));
                 var hondo = 0;
                 var k = j;
                 while k < largo(mensaje) {
@@ -772,12 +773,16 @@ fn legible(m: &Mundo, mensaje: view) -> str {
                 i = j;
                 continue;
             }
+            // Lo que choca con C lleva `ss_id_` delante: se dice como se
+            // escribio.
             if tiene(m.bonitos, palabra) {
-                empujar(r, obtener(m.bonitos, palabra) sino "");
+                let dicho = G.escrito(obtener(m.bonitos, palabra) sino "");
+                empujar(r, vista(dicho));
                 i = j;
                 continue;
             }
-            empujar(r, palabra);
+            let dicho = G.escrito(palabra);
+            empujar(r, vista(dicho));
             i = j;
             continue;
         }
@@ -3378,7 +3383,8 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
     c.falible = falible;
     c.dueno = dueno;
     for nombre en mutables {
-        if !esta_entre(modificadas, vista(nombre)) && !empieza_con(vista(nombre), "_") {
+        let escrito_n = G.escrito(vista(nombre));
+        if !esta_entre(modificadas, vista(nombre)) && !empieza_con(vista(escrito_n), "_") {
             aviso(c, m, n.linea, $"`{nombre}` se captura con `mut` y nunca se modifica; puede ir sin `mut`");
         }
     }
@@ -4717,56 +4723,25 @@ fn sin_espacio_final(t: view) -> str {
     return nuevo(rebanar(t, 0, fin));
 }
 
-// Como se llama por dentro en el original: un nombre que es palabra de C
-// lleva `ss_id_` delante, salvo `main` y lo que declara un `externo`.
-fn id_c(m: &Mundo, n: view) -> str {
-    if igual(n, "main") { return nuevo(n); }
-    for f en m.funciones {
-        if f.externa && igual(vista(f.nombre), n) { return nuevo(n); }
-    }
-    return G.nombre_en_c(n);
-}
+// Un tipo como lo escribe el original. Los nombres que chocan con C ya
+// llegan cambiados en el arbol, como alli.
+fn tipo_informe(t: view) -> str { return I.nombre_resuelto(t); }
 
-// Lo mismo dentro de un tipo, nombre a nombre.
-fn tipo_c_ids(m: &Mundo, t: view) -> str {
-    var r = vacio();
-    var i = 0;
-    while i < largo(t) {
-        if I.es_de_nombre(byte(t, i)) && (i == 0 || !I.es_de_nombre(byte(t, i - 1))) {
-            var j = i;
-            while j < largo(t) && I.es_de_nombre(byte(t, j)) { j = j + 1; }
-            empujar(r, id_c(m, rebanar(t, i, j)));
-            i = j;
-            continue;
-        }
-        empujar(r, rebanar(t, i, i + 1));
-        i = i + 1;
-    }
-    return r;
-}
-
-fn tipo_informe(m: &Mundo, t: view) -> str {
-    let resuelto = I.nombre_resuelto(t);
-    return tipo_c_ids(m, vista(resuelto));
-}
-
-fn firma_legible(m: &Mundo, f: &Funcion) -> str {
+fn firma_legible(f: &Funcion) -> str {
     var partes = vacio();
     var i = 0;
     while i < largo(f.params) {
         if i > 0 { empujar(partes, ", "); }
-        let t = tipo_informe(m, vista(f.params[i].tipo));
-        let pn_c = id_c(m, vista(f.params[i].nombre));
-        let pn = vista(pn_c);
+        let t = tipo_informe(vista(f.params[i].tipo));
+        let pn = vista(f.params[i].nombre);
         if f.params[i].mutable { let x = $"{pn}: mut {t}"; empujar(partes, vista(x)); }
         else if f.params[i].compartido { let x = $"{pn}: &{t}"; empujar(partes, vista(x)); }
         else { let x = $"{pn}: {t}"; empujar(partes, vista(x)); }
         i = i + 1;
     }
-    let nombre_c = id_c(m, vista(f.nombre));
-    var firma = $"fn {nombre_c}({partes})";
+    var firma = $"fn {f.nombre}({partes})";
     if largo(f.retorno) > 0 && !igual(vista(f.retorno), "()") {
-        let r = tipo_informe(m, vista(f.retorno));
+        let r = tipo_informe(vista(f.retorno));
         empujar(firma, " -> ");
         empujar(firma, vista(r));
     }
@@ -4793,7 +4768,7 @@ fn destino_de(m: &Mundo, s: &Simbolo) -> str {
     if igual(vista(s.tipo), "view") {
         var origen = vacio();
         if largo(s.origen) > 0 {
-            let o = id_c(m, vista(s.origen));
+            let o = copiar(s.origen);
             origen = $" de `{o}`";
         }
         if igual(vista(s.procedencia), "estatico") {
@@ -4813,7 +4788,7 @@ fn destino_de(m: &Mundo, s: &Simbolo) -> str {
     if s.movida {
         var a = vacio();
         if largo(s.movida_a) > 0 {
-            let destino_c = id_c(m, vista(s.movida_a));
+            let destino_c = copiar(s.movida_a);
             a = $" a `{destino_c}`";
         }
         return $"se mueve{a} en la linea {s.movida_en}; lleva bandera por si el programa sale antes";
@@ -4829,7 +4804,7 @@ fn destino_de(m: &Mundo, s: &Simbolo) -> str {
 }
 
 fn informe_de(m: &Mundo, f: &Funcion, historia: &lista<Simbolo>) -> str {
-    let firma = firma_legible(m, f);
+    let firma = firma_legible(f);
     var t = $"  {firma}\n";
     if f.falible && igual(vista(f.nombre), "main") {
         empujar(t, "      puede fallar: si falla, el programa imprime `error: <motivo>` y sale con codigo 1\n");
@@ -4844,9 +4819,9 @@ fn informe_de(m: &Mundo, f: &Funcion, historia: &lista<Simbolo>) -> str {
     var at = 0;
     var ap = 0;
     for s en historia {
-        let nt = tipo_informe(m, vista(s.tipo));
+        let nt = tipo_informe(vista(s.tipo));
         let pa = papel_de(m, s);
-        let nc = id_c(m, vista(s.nombre));
+        let nc = copiar(s.nombre);
         if ancho_de(vista(nc)) > an { an = ancho_de(vista(nc)); }
         if ancho_de(vista(nt)) > at { at = ancho_de(vista(nt)); }
         if ancho_de(vista(pa)) > ap { ap = ancho_de(vista(pa)); }
@@ -4859,10 +4834,10 @@ fn informe_de(m: &Mundo, f: &Funcion, historia: &lista<Simbolo>) -> str {
         var marca = nuevo("let");
         if s.mutable { marca = nuevo("var"); }
         if s.es_param { marca = nuevo("arg"); }
-        let nt = tipo_informe(m, vista(s.tipo));
+        let nt = tipo_informe(vista(s.tipo));
         let pa = papel_de(m, s);
         let de = destino_de(m, s);
-        let nc = id_c(m, vista(s.nombre));
+        let nc = copiar(s.nombre);
         let c1 = a_la_izquierda(vista(nc), an);
         let c2 = a_la_izquierda(vista(nt), at);
         let c3 = a_la_izquierda(vista(pa), ap);
@@ -4913,7 +4888,7 @@ fn explicacion(m: &Mundo, informe: &lista<str>, archivo: view) -> str {
     }
     var k = 0;
     while k < largo(m.orden_structs) {
-        let nombre_c = tipo_c_ids(m, vista(m.orden_structs[k]));
+        let nombre_c = copiar(m.orden_structs[k]);
         let nombre = vista(nombre_c);
         let aqui = vista(m.tipo_de_struct[k]);
         let posee = posee_memoria(m, aqui);
@@ -4925,10 +4900,10 @@ fn explicacion(m: &Mundo, informe: &lista<str>, archivo: view) -> str {
         let ts = campos_tipos(m, aqui);
         var i = 0;
         while i < largo(ns) && i < largo(ts) {
-            let tc = tipo_informe(m, vista(ts[i]));
+            let tc = tipo_informe(vista(ts[i]));
             var marca = vacio();
             if posee_memoria(m, vista(ts[i])) { marca = nuevo("  <- duenio"); }
-            let campo_c = id_c(m, vista(ns[i]));
+            let campo_c = copiar(ns[i]);
             let linea = $"      {campo_c}: {tc}{marca}\n";
             empujar(t, vista(linea));
             i = i + 1;
@@ -4952,7 +4927,8 @@ fn avisar_sin_usar(c: mut Comprobacion, m: &Mundo, f: &Funcion) {
     let nombre_f = vista(f.nombre);
     for s en historia {
         let n = vista(s.nombre);
-        if empieza_con(n, "_") { continue; }
+        let escrito_n = G.escrito(n);
+        if empieza_con(vista(escrito_n), "_") { continue; }
         if s.es_param {
             if !s.leida && !s.mutada {
                 aviso(c, m, f.linea, $"el parametro `{n}` de `{nombre_f}` no se usa; si es a proposito llamalo `_{n}`");
