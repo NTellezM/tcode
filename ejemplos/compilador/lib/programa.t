@@ -245,6 +245,89 @@ fn prefijo_de(ruta: view) -> str {
     return r;
 }
 
+// `a/./b/../c.t` -> `a/c.t`. Sin preguntar al sistema: hace falta que dos
+// caminos al mismo archivo den la misma cadena, para no cargarlo dos veces.
+fn normalizar(ruta: view) -> str {
+    var partes: lista<str> = [];
+    let absoluta = largo(ruta) > 0 && byte(ruta, 0) == 47;
+    var desde = 0;
+    var i = 0;
+    while i <= largo(ruta) {
+        if i == largo(ruta) || byte(ruta, i) == 47 {
+            let trozo = rebanar(ruta, desde, i);
+            if largo(trozo) > 0 && !igual(trozo, ".") {
+                var atras = false;
+                if igual(trozo, "..") && largo(partes) > 0 {
+                    atras = !igual(vista(partes[largo(partes) - 1]), "..");
+                }
+                if atras { partes = sin_la_ultima(partes); }
+                else { anadir(partes, nuevo(trozo)); }
+            }
+            desde = i + 1;
+        }
+        i = i + 1;
+    }
+    var r = vacio();
+    if absoluta { empujar(r, "/"); }
+    var primera = true;
+    for x en partes {
+        if !primera { empujar(r, "/"); }
+        primera = false;
+        empujar(r, vista(x));
+    }
+    return r;
+}
+
+fn sin_la_ultima(xs: &lista<str>) -> lista<str> {
+    var quedan: lista<str> = [];
+    var i = 0;
+    while i + 1 < largo(xs) {
+        anadir(quedan, copiar(xs[i]));
+        i = i + 1;
+    }
+    return quedan;
+}
+
+// El prefijo con el que se renombra lo que choca entre modulos. Basta el
+// nombre del archivo, salvo que otro de los que declaran ese mismo nombre se
+// llame igual (`x.t` y `lib/x.t`): entonces va la ruta entera, como en el
+// cargador. `modulos` son solo los que declaran el nombre.
+fn prefijo_unico(ruta: view, modulos: &lista<str>) -> str {
+    let base = prefijo_de(ruta);
+    var iguales = 0;
+    for m en modulos {
+        let otra = prefijo_de(vista(m));
+        if igual(vista(otra), vista(base)) { iguales = iguales + 1; }
+    }
+    if iguales <= 1 { return base; }
+    // La ruta sin extension; `.oculto` no tiene, el punto es del nombre.
+    var hasta = largo(ruta);
+    var i = largo(ruta);
+    while i > 0 {
+        i = i - 1;
+        let b = byte(ruta, i);
+        if b == 47 { break; }
+        if b == 46 {
+            if i > 0 && byte(ruta, i - 1) != 47 { hasta = i; }
+            break;
+        }
+    }
+    var r = vacio();
+    var k = 0;
+    while k < hasta {
+        let b = byte(ruta, k);
+        k = k + 1;
+        // Un caracter de UTF-8 es un solo `_`, no uno por byte.
+        if b >= 128 && b < 192 { continue; }
+        if I.es_de_nombre(b) { empujar_byte(r, b como u8); } else { empujar(r, "_"); }
+    }
+    var desde = 0;
+    var fin = largo(r);
+    while desde < fin && byte(vista(r), desde) == 95 { desde = desde + 1; }
+    while fin > desde && byte(vista(r), fin - 1) == 95 { fin = fin - 1; }
+    return nuevo(rebanar(vista(r), desde, fin));
+}
+
 // Lo que el generador cuenta para el archivo entero y no por funcion: los
 // temporales, los indices de bucle y la ultima linea marcada siguen contando
 // de una funcion a la siguiente, tambien entre modulos. Quien compara
@@ -289,7 +372,8 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
     for x en claves(previos_en) { poner(formas, vista(x), 1); }
     // Lo que traen los modulos, antes de nada: los tokens pasan a ser del
     // `Estado` en cuanto se construye.
-    for m en P.modulos_usados(ruta, tokens) {
+    let usados = P.modulos_usados(ruta, tokens);
+    for m en usados {
         recoger_de_modulo(m, tipos);
     }
 
@@ -305,10 +389,13 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
     // Un nombre propio que tambien trae un modulo usado no es ambiguo: desde
     // aqui es el propio. El cargador lo renombra con el nombre de este
     // archivo delante, y asi se llama en C.
-    let base = prefijo_de(ruta);
     for d en arbol.hijos {
         if igual(vista(d.clase), "fn") && tiene(tipos.repetidas, vista(d.texto)) {
-            var otro = copiar(base);
+            var suyos: lista<str> = [normalizar(ruta)];
+            for u en usados {
+                if declara_fn(u.arbol, vista(d.texto)) { anadir(suyos, normalizar(vista(u.ruta))); }
+            }
+            var otro = prefijo_unico(ruta, suyos);
             empujar(otro, "__");
             empujar(otro, vista(d.texto));
             poner(tipos.renombradas, vista(d.texto), otro);
@@ -316,6 +403,13 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
         }
     }
     return arbol;
+}
+
+fn declara_fn(arbol: &P.Nodo, nombre: view) -> bool {
+    for d en arbol.hijos {
+        if igual(vista(d.clase), "fn") && igual(vista(d.texto), nombre) { return true; }
+    }
+    return false;
 }
 
 // Una funcion entera en C, linea a linea: su `#line`, la firma, el cuerpo y,

@@ -1363,6 +1363,8 @@ fn carpeta(ruta: view) -> str {
 // llaman `I.algo` desde aqui.
 struct Usado {
     alias: str,
+    // El archivo del que sale, tal como se encontro.
+    ruta: str,
     arbol: Nodo,
 }
 
@@ -1404,7 +1406,7 @@ fn modulos_usados(ruta: view, toks: &lista<Token>) -> lista<Usado> {
                     var e = estado_de(otros, vista(c), nombres, formas);
                     let arbol = programa(e) sino rama("programa", 1);
                     anadir(salida, Usado { alias: copiar(alias),
-                            arbol: arbol });
+                            ruta: copiar(c), arbol: arbol });
                     break;
                 }
             }
