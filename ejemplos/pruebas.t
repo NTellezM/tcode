@@ -54,12 +54,12 @@ fn main() -> usize ! {
     afirmar_igual_texto(p, "primeras", unir(primeras(ts, 2), ","),
         "pera,aguacate");
     afirmar_igual_texto(p, "filtradas con clausura",
-        unir(filtradas(ts, fn (x: &str) -> bool { return largo(x) < 5; }), ","),
+        unir(filtradas(ts, fn(x: &str) -> bool { return largo(x) < 5; }), ","),
         "pera,uva");
     afirmar_igual_numero(p, "cuantas cumplen",
         cuantas_cumplen(ts, corto), 2);
     afirmar_igual_texto(p, "ordenadas por largo",
-        unir(ordenadas_por(ts, fn (a: &str, b: &str) -> bool {
+        unir(ordenadas_por(ts, fn(a: &str, b: &str) -> bool {
                     return largo(a) < largo(b);
                 }), ","), "uva,pera,aguacate");
     afirmar_igual_texto(p, "aplanar",

@@ -274,6 +274,9 @@ def _pega(ant, i_ant, t, i, generico, unario):
             return True
         if unario[i_ant]:
             return True
+        # Un tipo funcion o una clausura: `fn(usize) -> bool`, `fn[n](x)`.
+        if ant.tipo == "palabra" and ant.valor == "fn":
+            return True
         # `f(` si, `return (` no: una palabra reservada no es una llamada.
         return ant.tipo == "ident" or (
             ant.tipo == "simbolo" and ant.valor in (")", "]"))

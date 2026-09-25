@@ -340,6 +340,9 @@ struct Mundo {
     cierres: lista<P.Nodo>,
     cierres_mod: lista<usize>,
     n_cierres: usize,
+    // Los structs de las clausuras que modifican lo que capturaron:
+    // llamarlas las modifica.
+    cierres_mut: lista<str>,
     // `dueno#k` -> N: la k-esima clausura del cuerpo de `dueno` (una
     // funcion, `plantilla|T1|T2` para la copia de una generica, o
     // `ss_cierre_M`) es `Cierre_N`.
@@ -656,6 +659,14 @@ struct Comprobacion {
     historia: lista<Simbolo>,
     // Lo que `--explicar` dice de cada funcion comprobada, en orden.
     informe: lista<str>,
+    // La clausura que se esta comprobando, si hay una: lo que capturo con
+    // `mut` y lo que de eso ha modificado de verdad.
+    en_cierre: bool,
+    capturas_mut: lista<str>,
+    modificadas: lista<str>,
+    // La plantilla de cada copia de generica que se esta comprobando, a la
+    // par que `instanciando`.
+    plantillas: lista<usize>,
 }
 
 fn estado(archivo: view, modulo: usize) -> Comprobacion {
@@ -663,7 +674,8 @@ fn estado(archivo: view, modulo: usize) -> Comprobacion {
         inicios: [], errores: [], retorno: vacio(), falible: false,
         en_condicional: 0, en_condicion_bucle: 0, en_bucle: 0,
         en_bucle_directo: 0, movidas_en_bucle: [], en_retorno: 0, instanciando: [],
-        dueno: vacio(), avisos: [], historia: [], informe: [] };
+        dueno: vacio(), avisos: [], historia: [], informe: [], en_cierre: false,
+        capturas_mut: [], modificadas: [], plantillas: [] };
 }
 
 // Lo que el mensaje dice en vez de los nombres que puso el compilador: una
@@ -912,7 +924,25 @@ fn mover(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, directo: bool) 
 
 fn error_no_mutable(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize) {
     let n = copiar(c.simbolos[i].nombre);
-    if c.simbolos[i].prestado {
+    let de_tipo = sin_prestamo(vista(c.simbolos[i].tipo));
+    if esta_entre(m.cierres_mut, vista(de_tipo)) {
+        // Lo que se modifica es la clausura: se la llama, y guarda lo que
+        // capturo con `mut`.
+        var arreglo = nuevo("declarala con `var`");
+        if c.simbolos[i].es_param {
+            arreglo = nuevo("recibela con `mut` delante del tipo");
+            // En una generica, el tipo que se escribio: `f: mut F`.
+            if largo(c.plantillas) > 0 {
+                let k = c.plantillas[largo(c.plantillas) - 1];
+                for p en m.funciones[k].params {
+                    if igual(vista(p.nombre), vista(n)) {
+                        arreglo = $"recibela como `{n}: mut {p.tipo}`";
+                    }
+                }
+            }
+        }
+        error(c, m, linea, $"`{n}` es una clausura que modifica lo que capturo, y llamarla la modifica: {arreglo}");
+    } else if c.simbolos[i].prestado {
         let t = copiar(c.simbolos[i].tipo);
         error(c, m, linea, $"`{n}` llego prestado solo para leer (`&`): para modificarlo, recibelo como `mut {t}`");
     } else {
@@ -925,8 +955,35 @@ fn error_solo_lectura(c: mut Comprobacion, m: &Mundo, linea: usize, nombre: view
     error(c, m, linea, $"`{nombre}` es un prestamo de solo lectura (`{t}`): para modificar lo que apunta hace falta `&mut {dentro}`");
 }
 
-// Modificar una variable en el sitio.
-fn mutar(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, por_referencia: bool) {
+// Si `lugar` es algo que capturo la clausura que se comprueba, lo apunta
+// como modificado. Si se capturo sin `mut`, lo dice y devuelve `true`: el
+// error ya esta dado.
+fn escribe_en_captura(c: mut Comprobacion, m: &Mundo, lugar: &P.Nodo) -> bool {
+    if !c.en_cierre { return false; }
+    var campo = vacio();
+    var x = copiar(lugar);
+    while (igual(vista(x.clase), "campo") || igual(vista(x.clase), "indice"))
+    && largo(x.hijos) > 0 {
+        if igual(vista(x.clase), "campo") && igual(vista(x.hijos[0].clase), "variable")
+        && igual(vista(x.hijos[0].texto), "_ss_entorno") {
+            campo = copiar(x.texto);
+        }
+        let dentro = copiar(x.hijos[0]);
+        x = dentro;
+    }
+    if largo(campo) == 0 { return false; }
+    if esta_entre(c.capturas_mut, vista(campo)) {
+        if !esta_entre(c.modificadas, vista(campo)) { anadir(c.modificadas, copiar(campo)); }
+        return false;
+    }
+    error(c, m, lugar.linea, $"`{campo}` se capturo para leer: para modificarlo dentro de la clausura, capturalo con `fn[mut {campo}]`");
+    return true;
+}
+
+// Modificar una variable en el sitio. `lugar` es lo que se modifica.
+fn mutar(c: mut Comprobacion, m: &Mundo, lugar: &P.Nodo, linea: usize, i: usize,
+    por_referencia: bool) {
+    if escribe_en_captura(c, m, lugar) { return; }
     c.simbolos[i].mutada = true;
     if c.simbolos[i].movida {
         let n = copiar(c.simbolos[i].nombre);
@@ -1572,7 +1629,9 @@ fn comprobar_copia(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, k: usize,
     let falible = c.falible;
     let archivo = copiar(c.archivo);
     let nombre = copiar(m.funciones[k].nombre);
-    anadir(c.instanciando, $"al usar `{nombre}` con {inst.ligadas}, desde {archivo}:{n.linea}");
+    let ligadas = legible(m, vista(inst.ligadas));
+    anadir(c.instanciando, $"al usar `{nombre}` con {ligadas}, desde {archivo}:{n.linea}");
+    anadir(c.plantillas, k);
     let dueno = copiar(c.dueno);
     let modulo_antes = c.modulo;
     c.simbolos = [];
@@ -1589,6 +1648,13 @@ fn comprobar_copia(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, k: usize,
         q = q + 1;
     }
     c.instanciando = quedan;
+    var otras: lista<usize> = [];
+    var q2 = 0;
+    while q2 + 1 < largo(c.plantillas) {
+        anadir(otras, c.plantillas[q2]);
+        q2 = q2 + 1;
+    }
+    c.plantillas = otras;
     c.simbolos = simbolos;
     c.inicios = inicios;
     c.retorno = retorno;
@@ -2306,12 +2372,16 @@ fn renombrar_capturas(n: mut P.Nodo, nombres: &lista<str>, linea: usize) {
 }
 
 // La funcion de una clausura: el entorno prestado delante, y despues lo
-// suyo, con lo capturado leido del entorno.
-fn nodo_de_cierre(n: &P.Nodo, numero: usize, capturadas: &lista<str>) -> P.Nodo {
+// suyo, con lo capturado leido del entorno. Si algo se capturo con `mut`, el
+// entorno llega para modificar: lo que cambie sigue ahi en la llamada
+// siguiente.
+fn nodo_de_cierre(n: &P.Nodo, numero: usize, capturadas: &lista<str>,
+    modifica: bool) -> P.Nodo {
     var f = P.rama("fn", n.linea);
     f.texto = $"ss_cierre_{numero}";
     var entorno = P.rama("param", n.linea);
     entorno.texto = $"_ss_entorno: &Cierre_{numero}";
+    if modifica { entorno.texto = $"_ss_entorno: mut Cierre_{numero}"; }
     anadir(f.hijos, entorno);
     for h en n.hijos {
         if igual(vista(h.clase), "captura") { continue; }
@@ -2353,6 +2423,12 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
     var nombres: lista<str> = [];
     var ts: lista<str> = [];
     var vistos: lista<str> = [];
+    var mutables: lista<str> = [];
+    for h en n.hijos {
+        if igual(vista(h.clase), "captura") && largo(h.hijos) > 0 {
+            anadir(mutables, copiar(h.texto));
+        }
+    }
     for h en n.hijos {
         if !igual(vista(h.clase), "captura") { continue; }
         let nombre = vista(h.texto);
@@ -2384,7 +2460,9 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
     poner(m.st_nombres, vista(st), nombres);
     anadir(m.orden_structs, copiar(st));
     anadir(m.tipo_de_struct, copiar(st));
-    let fn_nodo = nodo_de_cierre(n, numero, vistos);
+    let modifica = largo(mutables) > 0;
+    if modifica { anadir(m.cierres_mut, copiar(st)); }
+    let fn_nodo = nodo_de_cierre(n, numero, vistos, modifica);
     anadir(m.cierres, copiar(fn_nodo));
     anadir(m.cierres_mod, c.modulo);
     let de_cierre = $"ss_cierre_{numero}";
@@ -2400,14 +2478,29 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
     let retorno = copiar(c.retorno);
     let falible = c.falible;
     let dueno = copiar(c.dueno);
+    let en_cierre = c.en_cierre;
+    let capturas_mut = copiar(c.capturas_mut);
+    let modificadas_antes = copiar(c.modificadas);
     c.simbolos = [];
     c.inicios = [];
+    c.en_cierre = true;
+    c.capturas_mut = copiar(mutables);
+    c.modificadas = [];
     comprobar_funcion(c, m, tipos, k, fn_nodo, vista(de_cierre));
+    let modificadas = copiar(c.modificadas);
+    c.en_cierre = en_cierre;
+    c.capturas_mut = capturas_mut;
+    c.modificadas = modificadas_antes;
     c.simbolos = simbolos;
     c.inicios = inicios;
     c.retorno = retorno;
     c.falible = falible;
     c.dueno = dueno;
+    for nombre en mutables {
+        if !esta_entre(modificadas, vista(nombre)) && !empieza_con(vista(nombre), "_") {
+            aviso(c, m, n.linea, $"`{nombre}` se captura con `mut` y nunca se modifica; puede ir sin `mut`");
+        }
+    }
     return st;
 }
 
@@ -2509,7 +2602,7 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 error(c, m, n.linea, $"`{base}` se presta dos veces en la misma llamada a `{nombre}` (como `{dos[0]}` y como `{dos[1]}`), y al menos uno de los dos puede modificarlo. v0 mira la variable entera, asi que rechaza esto aunque sean campos distintos");
             }
             if p.mutable {
-                mutar(c, m, arg.linea, is, false);
+                mutar(c, m, arg, arg.linea, is, false);
                 // Quien lo recibe casi siempre lee antes de escribir.
                 c.simbolos[is].leida = true;
                 poner(prestados_mut, vista(base), copiar(p.nombre));
@@ -2572,7 +2665,7 @@ fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &
             let is = buscar_simbolo(c, vista(base));
             if largo(base) > 0 && existe(c, is) {
                 if es_referencia_mutable(esperado) {
-                    mutar(c, m, n.hijos[k].linea, is, false);
+                    mutar(c, m, n.hijos[k], n.hijos[k].linea, is, false);
                 } else {
                     let _u = leer(c, m, n.hijos[k].linea, is);
                 }
@@ -2697,7 +2790,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             return nuevo("()");
         }
         let por_ref = T.es_referencia(vista(c.simbolos[is].tipo));
-        mutar(c, m, n.hijos[0].linea, is, por_ref);
+        mutar(c, m, n.hijos[0], n.hijos[0].linea, is, por_ref);
         anadir(c.simbolos[is].prestamos, nuevo("redimensionar"));
         let t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
         soltar_prestamo(c, is, "redimensionar");
@@ -2722,7 +2815,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         }
         let t = tipo_de_lugar(c, m, tipos, n.hijos[0]);
         let por_ref = T.es_referencia(vista(c.simbolos[is].tipo));
-        mutar(c, m, n.hijos[0].linea, is, por_ref);
+        mutar(c, m, n.hijos[0], n.hijos[0].linea, is, por_ref);
         anadir(c.simbolos[is].prestamos, nuevo("intercambiar"));
         var mueve = false;
         if largo(t) > 0 { mueve = posee_memoria(m, vista(t)); }
@@ -2793,7 +2886,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             if largo(t) > 0 && !encaja(vista(elem), vista(t)) {
                 error(c, m, n.linea, $"la lista guarda `{elem}` y se intento agregar `{t}`");
             }
-            mutar(c, m, n.hijos[0].linea, is, false);
+            mutar(c, m, n.hijos[0], n.hijos[0].linea, is, false);
             return nuevo("()");
         }
         let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
@@ -2823,7 +2916,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 let cuales = con_comas(ords);
                 error(c, m, n.linea, $"`{e}` no tiene un orden natural; `ordenar` funciona sobre {cuales}");
             } else {
-                mutar(c, m, n.hijos[0].linea, is, false);
+                mutar(c, m, n.hijos[0], n.hijos[0].linea, is, false);
             }
         }
         return nuevo("()");
@@ -2930,7 +3023,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         }
         let por_ref = !igual(vista(arg.clase), "variable")
         || T.es_referencia(vista(c.simbolos[is].tipo));
-        mutar(c, m, arg.linea, is, por_ref);
+        mutar(c, m, arg, arg.linea, is, por_ref);
     }
     return copiar(fi.retorno);
 }
@@ -2996,11 +3089,11 @@ fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nod
             error(c, m, n.linea, $"`obtener_mut` presta para modificar algo que vive en el mapa; `{vt}` es un escalar, asi que usa `obtener` y vuelve a `poner`");
             return vt;
         }
-        mutar(c, m, linea_m, is, false);
+        mutar(c, m, n.hijos[0], linea_m, is, false);
         return $"&mut {vt}";
     }
     if igual(nombre, "quitar") {
-        mutar(c, m, linea_m, is, false);
+        mutar(c, m, n.hijos[0], linea_m, is, false);
         return nuevo("bool");
     }
     if igual(nombre, "obtener") {
@@ -3013,7 +3106,7 @@ fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nod
     if largo(tv) > 0 && !encaja(vista(vt), vista(tv)) {
         error(c, m, n.linea, $"el mapa guarda `{vt}` y se intento poner `{tv}`");
     }
-    mutar(c, m, linea_m, is, false);
+    mutar(c, m, n.hijos[0], linea_m, is, false);
     return nuevo("()");
 }
 
@@ -3321,6 +3414,7 @@ fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s:
         }
         let destino = tipo_de_lugar(c, m, tipos, lugar);
         let tipo = comprobar_expresion(c, m, tipos, s.hijos[1], vista(destino), true);
+        if escribe_en_captura(c, m, lugar) { return; }
         c.simbolos[i].mutada = true;
         let st = copiar(c.simbolos[i].tipo);
         if T.es_referencia(vista(st)) {
@@ -3941,7 +4035,7 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
     contextos: &lista<I.Contexto>) -> Revision {
     var m = Mundo { funciones: [], indice: [], st_tipos: [], st_nombres: [],
         st_params: [], en_variantes: [], en_formas: [], bonitos: [],
-        cierres: [], cierres_mod: [], n_cierres: 0, numeracion: [],
+        cierres: [], cierres_mod: [], n_cierres: 0, cierres_mut: [], numeracion: [],
         arboles: copiar(arboles), modulos: copiar(modulos),
         contextos: copiar(contextos), copias: [], orden_structs: [], tipo_de_struct: [] };
     var c = estado("", 0);
