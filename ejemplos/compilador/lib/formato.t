@@ -121,6 +121,22 @@ fn texto_de(t: &Token) -> str {
     var i = 0;
     while i < largo(v) {
         let b = byte(v, i);
+        // Un hueco sale como se escribio, con los `\xNN` en minusculas como
+        // los de fuera: es lo que hace Python, que lo guarda crudo.
+        if igual(clase, "interpolada") && b == 123 {
+            if i + 1 < largo(v) && byte(v, i + 1) == 123 {
+                empujar(r, "{{");
+                i = i + 2;
+                continue;
+            }
+            let cierre = cierre_de_hueco(v, i + 1);
+            empujar(r, "{");
+            let dentro = hueco_escrito(rebanar(v, i + 1, cierre));
+            empujar(r, vista(dentro));
+            if cierre < largo(v) { empujar(r, "}"); }
+            i = cierre + 1;
+            continue;
+        }
         if b == 92 && i + 1 < largo(v) {
             let d = byte(v, i + 1);
             if d == 120 && i + 3 < largo(v) {
@@ -149,6 +165,29 @@ fn texto_de(t: &Token) -> str {
         i = i + 1;
     }
     empujar(r, "\"");
+    return r;
+}
+
+// Un hueco tal cual, salvo los `\xNN`, que van en minusculas.
+fn hueco_escrito(h: view) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < largo(h) {
+        if byte(h, i) == 92 && i + 1 < largo(h) {
+            if byte(h, i + 1) == 120 && i + 3 < largo(h) {
+                empujar(r, "\\x");
+                empujar(r, hex_minuscula(byte(h, i + 2)));
+                empujar(r, hex_minuscula(byte(h, i + 3)));
+                i = i + 4;
+                continue;
+            }
+            empujar(r, rebanar(h, i, i + 2));
+            i = i + 2;
+            continue;
+        }
+        empujar(r, rebanar(h, i, i + 1));
+        i = i + 1;
+    }
     return r;
 }
 
@@ -247,7 +286,7 @@ fn juntar(indices: &lista<usize>, desde: usize, hasta: usize, toks: &lista<Token
 
 // Formatea un archivo. Si no se puede leer como Tcode, `error` dice por que.
 fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
-    let todos = try tokens_de_todo(fuente, archivo, true, error);
+    let todos = try tokens_de_todo(fuente, archivo, true, 1, error);
     var toks: lista<Token> = [];
     for t en todos {
         if !igual(vista(t.tipo), "fin") { anadir(toks, copiar(t)); }

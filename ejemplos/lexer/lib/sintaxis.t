@@ -182,6 +182,21 @@ fn descifrado(t: view, interpolada: bool) -> str {
     var i = 0;
     while i < largo(t) {
         let b = byte(t, i);
+        // Un hueco queda crudo, como lo deja Python: lo lee despues el lexer
+        // del hueco, que es quien resuelve sus escapes.
+        if interpolada && b == 123 {
+            if i + 1 < largo(t) && byte(t, i + 1) == 123 {
+                empujar(r, "{{");
+                i = i + 2;
+                continue;
+            }
+            let cierre = cierre_de_hueco(t, i + 1);
+            var hasta = cierre + 1;
+            if hasta > largo(t) { hasta = largo(t); }
+            empujar(r, rebanar(t, i, hasta));
+            i = hasta;
+            continue;
+        }
         if b == 92 && i + 1 < largo(t) {
             let d = byte(t, i + 1);
             if d == 110 { empujar_byte(r, 10); i = i + 2; continue; }
@@ -545,14 +560,10 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
             i = i + 1;
             continue;
         }
-        var prof = 1;
-        var j = i + 1;
-        while j < largo(d) && prof > 0 {
-            if byte(d, j) == 123 { prof = prof + 1; }
-            if byte(d, j) == 125 { prof = prof - 1; }
-            if prof > 0 { j = j + 1; }
-        }
-        if prof != 0 {
+        // El hueco llega crudo: sus cadenas se saltan enteras, que sus
+        // llaves y sus escapes no son del hueco.
+        let j = cierre_de_hueco(d, i + 1);
+        if j >= largo(d) {
             error_en(e, "falta `}` en una cadena interpolada", k);
             falla "sintaxis";
         }
@@ -561,8 +572,10 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
             error_en(e, "`{}` vacio en una cadena interpolada: pon dentro lo que quieras mostrar", k);
             falla "sintaxis";
         }
+        // Lo de dentro esta en la linea de la cadena: sus errores tienen que
+        // decirlo.
         var error_lex = vacio();
-        let suyos = tokens_de(dentro, vista(e.archivo), error_lex) sino [];
+        let suyos = tokens_desde(dentro, vista(e.archivo), n.linea, error_lex) sino [];
         if largo(error_lex) > 0 {
             if largo(e.error) == 0 { e.error = error_lex; }
             falla "sintaxis";
@@ -581,8 +594,7 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
             falla "sintaxis";
         }
         var x_l = x;
-        // El sub-analisis empieza a contar en la linea 1: lo de dentro de un
-        // hueco esta donde este la cadena, y los errores tienen que decirlo.
+        // Todo lo de dentro de un hueco esta en la linea de la cadena.
         poner_linea(x_l, n.linea);
         anadir(n.hijos, x_l);
         i = j + 1;

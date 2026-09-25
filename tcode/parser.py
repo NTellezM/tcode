@@ -1,6 +1,6 @@
 """Analisis sintactico de Tcode: tokens -> arbol. Descenso recursivo."""
 
-from tcode.lexer import tokenizar, Token
+from tcode.lexer import tokenizar, Token, fin_de_cadena
 from tcode.nodos import (
     Entero, Decimal, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
     Campo, Indice, LiteralStruct, LiteralArreglo, Try, Sino, Falla, Conversion,
@@ -646,10 +646,18 @@ class Parser:
             if c != "{":
                 actual.append(c); i += 1; continue
 
-            # {expresion}: se busca la llave de cierre respetando anidamiento
+            # {expresion}: se busca la llave de cierre respetando anidamiento.
+            # El hueco llega crudo: sus cadenas se saltan enteras, que sus
+            # llaves y sus escapes no son del hueco.
             prof = 1
             j = i + 1
             while j < len(texto) and prof > 0:
+                if texto[j] == '"' or texto.startswith('$"', j):
+                    j = fin_de_cadena(texto, j, validar=False)
+                    continue
+                if texto[j] == "\\":
+                    j += 2
+                    continue
                 if texto[j] == "{":
                     prof += 1
                 elif texto[j] == "}":
@@ -663,7 +671,10 @@ class Parser:
                 self.error("`{}` vacio en una cadena interpolada: pon dentro "
                            "lo que quieras mostrar", tok)
 
-            sub = Parser(tokenizar(dentro, self.archivo), self.archivo)
+            # Lo de dentro esta en la linea de la cadena: sus errores
+            # tienen que decirlo.
+            sub = Parser(tokenizar(dentro, self.archivo, linea=tok.linea),
+                         self.archivo)
             # El sub-parser tiene que saber lo mismo que este: dentro de un
             # hueco vale cualquier expresion, incluida `txt.palabras(v)`.
             sub.structs = self.structs
