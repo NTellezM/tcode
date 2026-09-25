@@ -1,0 +1,55 @@
+# La suite de Tcode en cada cambio.
+#
+# `rapido` corre en cada push y en cada pull request: las secciones que no
+# construyen el compilador escrito en Tcode, y una pasada corta de las
+# propiedades. Unos minutos.
+#
+# `completa` es `make check` entera, media hora larga: en cada pull request,
+# en `main` y cuando se pide a mano. Tambien comprueba que las cifras del
+# README sean las que mide la suite.
+name: suite
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+# Un push nuevo a la misma rama deja viejo al anterior.
+concurrency:
+  group: suite-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rapido:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # Con la aleatorizacion de direcciones al maximo, AddressSanitizer no
+      # encuentra donde poner su memoria sombra en algunos nucleos.
+      - name: sitio para AddressSanitizer
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+      - name: secciones rapidas
+        run: make rapido
+      - name: propiedades, una pasada corta
+        run: make propiedades
+        env:
+          TCODE_PROGRAMAS: "10"
+          TCODE_SIN_TCODEC: "1"
+
+  completa:
+    if: github.event_name != 'push' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: sitio para AddressSanitizer
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+      - name: make check
+        run: make check
