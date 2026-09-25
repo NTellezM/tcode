@@ -2949,6 +2949,23 @@ fn main() {
      'fn main() { let x: usize = ' + '(' * 1000 + '1' + ')' * 1000
      + '; imprimir(x); imprimir("\\n"); }',
      "1\n"),
+
+    # Un numero escrito toma el tipo del otro lado. El comprobador lo sabia,
+    # pero el generador hacia la cuenta en el tipo del literal, `usize`:
+    # `1 + x` con `x: f64` daba 3, `0 > x` con `x: i32` negativo daba
+    # `false`, y `5 - 10` en un `i64` paraba por desbordamiento.
+    ("un numero escrito se opera en el tipo del otro lado",
+     '''fn main() {
+            let x: f64 = 2.5;
+            let n: i32 = -3;
+            let k: u8 = 3;
+            let a: i64 = 5 - 10;
+            let d: f64 = 1 / 2;
+            let w = 0 -? k;
+            imprimir($"{1 + x} {2 * x} {0 > n} {1 + n} {a} {d} {w}\\n");
+            imprimir($"{-1} {-(2 + 3)} {(1 + n) como i64} {1 << k}\\n");
+        }''',
+     "3.5 5.0 true -2 -5 0.5 253\n-1 -5 -2 8\n"),
 ]
 
 
@@ -3131,6 +3148,23 @@ ABORTA = [
      'fn main() -> usize { let a: usize = 1; let b: usize = 0;'
      ' imprimir(a / b); return 0; }',
      "division por cero"),
+
+    # Con el literal delante, la cuenta se hacia en `usize` y no desbordaba.
+    ("un literal delante no esquiva el desbordamiento de un `u8`",
+     'fn main() { let x: u8 = 255; imprimir(1 + x); }',
+     "desbordamiento en `+`"),
+
+    ("ni el de un `i8`",
+     'fn main() { let q: i8 = 100; imprimir(100 + q); }',
+     "desbordamiento en `+`"),
+
+    ("ni el infinito de un `f32`",
+     'fn main() { let f: f32 = 10.0; imprimir(3e38 * f); }',
+     "no dio un numero"),
+
+    ("dos literales se operan en el tipo que se espera",
+     'fn main() { let y: u8 = 200 + 100; imprimir(y); }',
+     "desbordamiento en `+`"),
 ]
 
 

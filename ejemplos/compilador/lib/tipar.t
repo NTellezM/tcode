@@ -168,7 +168,7 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
         // Un numero escrito con `-` delante solo cabe en uno con signo: sin
         // mas contexto es un `i64`, como en el comprobador.
         if igual(vista(n.texto), "-") && largo(n.hijos) > 0
-        && igual(vista(n.hijos[0].clase), "entero") {
+        && igual(literal_de(n.hijos[0]), "entero") {
             return nuevo("i64");
         }
         if largo(n.hijos) > 0 { return tipo_de(c, n.hijos[0]); }
@@ -179,10 +179,8 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
         let op = vista(n.texto);
         if es_comparacion(op) { return nuevo("bool"); }
         if largo(n.hijos) == 0 { return vacio(); }
-        let izq = tipo_de(c, n.hijos[0]);
-        if largo(izq) > 0 && !igual(vista(izq), "{entero}") { return izq; }
-        if largo(n.hijos) > 1 { return tipo_de(c, n.hijos[1]); }
-        return izq;
+        if largo(n.hijos) == 1 { return tipo_de(c, n.hijos[0]); }
+        return tipo_cuenta(c, n, "");
     }
 
     if igual(clase, "try") || igual(clase, "sino") {
@@ -250,6 +248,64 @@ fn mirar_nombres(c: &Contexto, struct_: view) -> lista<str> ! {
 fn posee_simple(c: &Contexto, t: view) -> bool {
     var visitados: mapa<str, usize> = [];
     return T.posee(c.campos, t, visitados) sino false;
+}
+
+// `"entero"` o `"decimal"` si el comprobador ve aqui un numero escrito que
+// todavia no tiene tipo —`1`, `2.5`, `1 + 2`, `-0.5`—, y `""` si no. Un
+// numero asi toma el tipo del otro lado de la operacion, y el C tiene que
+// hacer la cuenta en ese tipo, no en `usize`.
+fn literal_de(n: &P.Nodo) -> view {
+    let clase = vista(n.clase);
+    if igual(clase, "entero") { return "entero"; }
+    if igual(clase, "decimal") { return "decimal"; }
+    // `-1` ya es un `i64`; `-0.5` sigue sin decidir su ancho.
+    if igual(clase, "unaria") && igual(vista(n.texto), "-")
+    && largo(n.hijos) == 1 {
+        if igual(literal_de(n.hijos[0]), "decimal") { return "decimal"; }
+        return "";
+    }
+    if igual(clase, "binaria") && !es_comparacion(vista(n.texto))
+    && largo(n.hijos) == 2 {
+        let izq = literal_de(n.hijos[0]);
+        let der = literal_de(n.hijos[1]);
+        if largo(izq) > 0 && largo(der) > 0 {
+            if igual(izq, "decimal") || igual(der, "decimal") {
+                return "decimal";
+            }
+            return "entero";
+        }
+    }
+    return "";
+}
+
+fn es_numero(t: view) -> bool {
+    if igual(t, "usize") || igual(t, "u8") || igual(t, "u16") { return true; }
+    if igual(t, "u32") || igual(t, "u64") || igual(t, "i8") { return true; }
+    if igual(t, "i16") || igual(t, "i32") || igual(t, "i64") { return true; }
+    return igual(t, "f32") || igual(t, "f64");
+}
+
+// El tipo en que se hace la cuenta de una binaria: el mismo que decide el
+// comprobador. `1 + x` se hace en el tipo de `x`, y `1 + 2` en el que se
+// espera de ella.
+fn tipo_cuenta(c: &Contexto, n: &P.Nodo, esperado: view) -> str {
+    let izq = literal_de(n.hijos[0]);
+    let der = literal_de(n.hijos[1]);
+    if largo(izq) > 0 && largo(der) > 0 {
+        if es_numero(esperado) { return nuevo(esperado); }
+        if igual(izq, "decimal") || igual(der, "decimal") { return nuevo("f64"); }
+        return nuevo("usize");
+    }
+    if largo(izq) > 0 {
+        let t = tipo_de(c, n.hijos[1]);
+        if es_numero(vista(t)) { return t; }
+    }
+    let a = tipo_de(c, n.hijos[0]);
+    if es_numero(vista(a)) { return a; }
+    let otro = tipo_de(c, n.hijos[1]);
+    if es_numero(vista(otro)) { return otro; }
+    if es_numero(esperado) { return nuevo(esperado); }
+    return nuevo("usize");
 }
 
 fn es_comparacion(op: view) -> bool {

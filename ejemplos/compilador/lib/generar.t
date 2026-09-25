@@ -883,6 +883,8 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
             var t = I.tipo_de(tipos, n.hijos[0]);
             if es_entero(esperado) || igual(esperado, "f32") || igual(esperado, "f64") {
                 t = nuevo(esperado);
+            } else {
+                if igual(I.literal_de(n.hijos[0]), "entero") { t = nuevo("i64"); }
             }
             if empieza_con(vista(t), "i")
             && igual(vista(n.hijos[0].clase), "entero") {
@@ -1256,7 +1258,7 @@ fn indice_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     return r;
 }
 
-fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Contexto) -> str {
+fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str {
     if largo(n.hijos) != 2 { return no_se(); }
     let op = vista(n.texto);
 
@@ -1266,7 +1268,7 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, _esperado: view, tipos: &I.Co
         return junta(b, s, n, "bool", op, tipos);
     }
 
-    let t = tipo_operando(s, n, tipos);
+    let t = I.tipo_cuenta(tipos, n, esperado);
     if largo(t) == 0 { return no_se(); }
 
     // Para todo lo demas, C no promete izquierda antes que derecha. Se
@@ -1441,14 +1443,6 @@ fn junta(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, op: view,
 }
 
 // El tipo con el que operar los dos lados: el del primero que se sepa.
-fn tipo_operando(_s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
-    let a = I.tipo_de(tipos, n.hijos[0]);
-    if es_aritmetico(vista(a)) { return a; }
-    let otro = I.tipo_de(tipos, n.hijos[1]);
-    if es_aritmetico(vista(otro)) { return otro; }
-    return nuevo("usize");
-}
-
 fn es_entero(t: view) -> bool {
     if igual(t, "usize") || igual(t, "i64") { return true; }
     if igual(t, "u8") || igual(t, "u16") || igual(t, "u32") { return true; }
