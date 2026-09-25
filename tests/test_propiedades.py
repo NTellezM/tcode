@@ -76,6 +76,9 @@ from oraculo import generar as generar_oraculo
 
 RUNTIME = os.path.join(RAIZ, "runtime")
 CUANTOS = int(os.environ.get("TCODE_PROGRAMAS", "60"))
+# Sin construir `tcodec`: P11 mira la salida pero no compara el C de los dos
+# compiladores. Es lo que hace `make rapido`.
+SIN_TCODEC = os.environ.get("TCODE_SIN_TCODEC") == "1"
 
 fallos = 0
 total = 0
@@ -529,11 +532,15 @@ def main():
         probar_violaciones(tmp)
 
         print("=== ORACULO: la aritmetica da lo que tiene que dar ===")
-        probar_oraculo(tmp, construir_tcodec(tmp))
+        probar_oraculo(tmp, None if SIN_TCODEC else construir_tcodec(tmp))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
     print(f"\n{total} comprobaciones sobre {CUANTOS} programas, {fallos} fallas")
+    # Solo una pasada como la de `make check` dice las cifras del README.
+    if "TCODE_PROGRAMAS" not in os.environ and not SIN_TCODEC:
+        from cifras import guardar
+        guardar("propiedades", {"comprobaciones": total, "programas": CUANTOS})
     return 1 if fallos else 0
 
 
