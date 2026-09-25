@@ -11,6 +11,10 @@ struct Nodo {
     texto: str,
     linea: usize,
     hijos: lista<Nodo>,
+    // Unico en su archivo, y 0 en lo que no sale del parser. Con el nombre
+    // de la funcion donde esta, es como el comprobador le dice al generador
+    // de que tipo es cada expresion.
+    id: usize,
 }
 
 struct Estado {
@@ -66,12 +70,23 @@ fn entrar(e: mut Estado) ! {
 
 fn hoja(clase: view, texto: view, linea: usize) -> Nodo {
     return Nodo { clase: nuevo(clase), texto: nuevo(texto), linea: linea,
-        hijos: [] };
+        hijos: [], id: 0 };
 }
 
 fn rama(clase: view, linea: usize) -> Nodo {
     return Nodo { clase: nuevo(clase), texto: vacio(), linea: linea,
-        hijos: [] };
+        hijos: [], id: 0 };
+}
+
+// Un numero a cada nodo, en preorden.
+fn numerar(n: mut Nodo, cuenta: mut usize) {
+    cuenta = cuenta + 1;
+    n.id = cuenta;
+    var i = 0;
+    while i < largo(n.hijos) {
+        numerar(n.hijos[i], cuenta);
+        i = i + 1;
+    }
 }
 
 fn contar_nodos(n: &Nodo) -> usize {
@@ -1616,6 +1631,8 @@ fn programa(e: mut Estado) -> Nodo ! {
         let d = try declaracion(e);
         anadir(raiz.hijos, d);
     }
+    var cuenta: usize = 0;
+    numerar(raiz, cuenta);
     return raiz;
 }
 

@@ -66,3 +66,6 @@ ejemplos/genericos
 # mutantes que escribe la suite junto a cada archivo, y borra
 .mut_*.t
 **/.mut_*.t
+
+# Lo que midio la ultima `make check`, para el README
+.cifras.json

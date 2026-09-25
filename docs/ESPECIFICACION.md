@@ -185,6 +185,13 @@ números escritos, la cuenta se hace en el tipo que se espera de ella:
 desbordamiento. Sin nada que lo decida, `1 + 2` es un `usize` y `-1` un
 `i64`.
 
+Lo mismo con las ramas de un `if` y los brazos de un `match`: una rama que es
+un número escrito toma el tipo de la otra, y tiene que caber en él. Con
+`x: u8`, `if c { 300 } else { x }` no compila. Una rama entera y otra decimal
+dan un decimal, como `1 + 2.5`. Donde va un decimal, los números escritos son
+decimales: `let r: f64 = 7 % 2;` no compila, porque con decimales no hay
+resto. Y `-(3 + 4)` no cabe en un `u8`, igual que `-7`.
+
 ### La complejidad vive en una capa, no en la superficie
 
 Las reglas de arriba las comprueba el compilador. Lo que **escribes** no tiene
@@ -266,6 +273,13 @@ evalúan los argumentos en el orden escrito; en una operación binaria, primero
 el operando izquierdo. Las funciones internas y las declaradas con `externo`
 siguen la misma regla. El C generado la hace explícita con temporales: no
 depende del orden que el compilador de C decida usar.
+
+Vale también cuando un operando necesita sentencias propias —un `if` o un
+`match` como valor—: lo que va antes de él se calcula antes, en temporales.
+
+```tcode
+let x = f() + (if c { g() } else { 0 });   // f, y despues g
+```
 
 `&&` y `||` además conservan cortocircuito: el lado derecho sólo se evalúa si
 el izquierdo no determina ya el resultado.
@@ -1068,6 +1082,9 @@ fuera.
 `f < str > (x)` sin mirar mucho más allá, y preferimos una gramática sin
 trucos. Si los argumentos no bastan para deducir un tipo, el compilador lo
 dice y pide que se guarde el argumento en una variable con su tipo escrito.
+Se deduce con las mismas reglas con que se comprueba: en `mismo(1 + x)` el
+`1` toma el tipo de `x`, y una conversión, un `if` o `absoluto(x)` dicen el
+suyo.
 
 Un mismo parámetro de tipo es un solo tipo en toda la llamada. `dos(1, s)`
 sobre `fn dos<T>(a: T, b: T)` no compila, y el error dice qué argumento
