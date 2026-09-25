@@ -139,39 +139,6 @@ fn necesita_lo_que_falta(l: view) -> bool {
 // Rutas y modulos, como el cargador
 // ------------------------------------------------------------------
 
-// `a/./b/../c.t` -> `a/c.t`. Sin preguntar al sistema: hace falta que dos
-// caminos al mismo archivo den la misma cadena, para no cargarlo dos veces.
-fn normalizar(ruta: view) -> str {
-    var partes: lista<str> = [];
-    let absoluta = largo(ruta) > 0 && byte(ruta, 0) == 47;
-    var desde = 0;
-    var i = 0;
-    while i <= largo(ruta) {
-        if i == largo(ruta) || byte(ruta, i) == 47 {
-            let trozo = rebanar(ruta, desde, i);
-            if largo(trozo) > 0 && !igual(trozo, ".") {
-                var atras = false;
-                if igual(trozo, "..") && largo(partes) > 0 {
-                    atras = !igual(vista(partes[largo(partes) - 1]), "..");
-                }
-                if atras { quitar_ultima(partes); }
-                else { anadir(partes, nuevo(trozo)); }
-            }
-            desde = i + 1;
-        }
-        i = i + 1;
-    }
-    var r = vacio();
-    if absoluta { empujar(r, "/"); }
-    var primera = true;
-    for x en partes {
-        if !primera { empujar(r, "/"); }
-        primera = false;
-        empujar(r, vista(x));
-    }
-    return r;
-}
-
 fn quitar_ultima(xs: mut lista<str>) {
     var quedan: lista<str> = [];
     var i = 0;
@@ -212,10 +179,10 @@ fn resolver(pedido: view, dir: view, raiz: view) -> str ! {
         anadir(candidatos, con_t);
     }
     for c en candidatos {
-        if tcodec_es_archivo(copiar(c)) == 1 { return normalizar(vista(c)); }
+        if tcodec_es_archivo(copiar(c)) == 1 { return F.normalizar(vista(c)); }
     }
     // La primera, para que el error diga algo reconocible.
-    return normalizar(vista(candidatos[0]));
+    return F.normalizar(vista(candidatos[0]));
 }
 
 // Los `usar` del principio de un archivo, en orden.
@@ -322,42 +289,6 @@ fn visitar(ruta: view, raiz: view, hechos: mut lista<str>,
 // cargador de Python, un nombre que llega de dos sitios distintos es un
 // error, y tambien usar algo de un modulo que este archivo no pidio aunque
 // lo pida otro.
-
-// El prefijo con el que se renombra lo que choca entre modulos. Basta el
-// nombre del archivo, salvo que otro de los que declaran ese mismo nombre se
-// llame igual (`x.t` y `lib/x.t`): entonces va la ruta entera, como en el
-// cargador. `modulos` son solo los que declaran el nombre.
-fn prefijo_unico(ruta: view, modulos: &lista<str>) -> str {
-    let base = F.prefijo_de(ruta);
-    var iguales = 0;
-    for m en modulos {
-        let otra = F.prefijo_de(vista(m));
-        if igual(vista(otra), vista(base)) { iguales = iguales + 1; }
-    }
-    if iguales <= 1 { return base; }
-    let sin = sin_extension(ruta);
-    var r = vacio();
-    for b en bytes_de(vista(sin)) {
-        // Un caracter de UTF-8 es un solo `_`, no uno por byte.
-        if b >= 128 && b < 192 { continue; }
-        if I.es_de_nombre(b) { empujar_byte(r, b como u8); } else { empujar(r, "_"); }
-    }
-    var desde = 0;
-    var hasta = largo(r);
-    while desde < hasta && byte(vista(r), desde) == 95 { desde = desde + 1; }
-    while hasta > desde && byte(vista(r), hasta - 1) == 95 { hasta = hasta - 1; }
-    return nuevo(rebanar(vista(r), desde, hasta));
-}
-
-fn bytes_de(t: view) -> lista<usize> {
-    var salida: lista<usize> = [];
-    var i = 0;
-    while i < largo(t) {
-        anadir(salida, byte(t, i));
-        i = i + 1;
-    }
-    return salida;
-}
 
 // Los modulos que declaran un nombre, en su orden.
 fn declarantes(arboles: &lista<P.Nodo>, modulos: &lista<str>, nombre: view) -> lista<str> {
@@ -480,8 +411,8 @@ fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
                     // `x.t` en carpetas distintas no chocan aqui, como en el
                     // original.
                     let suyos = declarantes(arboles, modulos, vista(n));
-                    let pa = prefijo_unico(vista(previo), suyos);
-                    let pb = prefijo_unico(vista(modulos[jm]), suyos);
+                    let pa = F.prefijo_unico(vista(previo), suyos);
+                    let pb = F.prefijo_unico(vista(modulos[jm]), suyos);
                     if varios && !igual(vista(pa), vista(pb)) {
                         error = $"{modulos[k]}:{texto_linea}: `{clave}` llega de dos sitios, {previo} y {modulos[jm]}. Dale un nombre a uno de los dos: `usar \"...\" como algo;` y luego `algo.{clave}`";
                         return false;
@@ -2447,7 +2378,7 @@ fn main() -> usize ! {
     }
 
     let raiz = variable_entorno("TCODE_RAIZ") sino nuevo(".");
-    let principal = normalizar(vista(fuente));
+    let principal = F.normalizar(vista(fuente));
     var modulos: lista<str> = [];
     var pila: lista<str> = [];
     var error_carga = vacio();
@@ -2642,7 +2573,7 @@ fn main() -> usize ! {
         for d en arboles[mr].hijos {
             if igual(vista(d.clase), "fn") && tiene(global.repetidas, vista(d.texto)) {
                 let suyos = declarantes(arboles, modulos, vista(d.texto));
-                let base = prefijo_unico(vista(modulos[mr]), suyos);
+                let base = F.prefijo_unico(vista(modulos[mr]), suyos);
                 let otro = $"{base}__{d.texto}";
                 poner(contextos[mr].renombradas, vista(d.texto), otro);
                 quitar(contextos[mr].repetidas, vista(d.texto));
@@ -2666,7 +2597,7 @@ fn main() -> usize ! {
                 var clave = copiar(d.texto);
                 if largo(alias_p) > 0 { clave = $"{alias_p}.{d.texto}"; }
                 let suyos = declarantes(arboles, modulos, vista(d.texto));
-                let base_d = prefijo_unico(vista(destino), suyos);
+                let base_d = F.prefijo_unico(vista(destino), suyos);
                 let otro = $"{base_d}__{d.texto}";
                 poner(contextos[mr].renombradas, vista(clave), otro);
                 quitar(contextos[mr].repetidas, vista(clave));
