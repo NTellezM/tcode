@@ -613,8 +613,11 @@ struct Simbolo {
     bucle_al_declarar: usize,
     // Las vistas vivas que prestan de esta variable, y las reservas.
     prestamos: lista<str>,
-    // Si es una vista: de quien presta, y de donde sale su memoria.
+    // Si es una vista: de quien presta, y de donde sale su memoria. En
+    // `origenes`, todos los duenios de los que puede venir, el primero
+    // delante.
     origen: str,
+    origenes: lista<str>,
     procedencia: str,
     // Para los avisos: se leyo alguna vez, se modifico alguna vez, donde se
     // declaro, si es un parametro, y su sitio en la historia de la funcion.
@@ -808,11 +811,12 @@ fn cerrar_ambito(c: mut Comprobacion) {
     }
     c.inicios = otros;
     for s en muertos {
-        if (igual(vista(s.tipo), "view") || T.es_referencia(vista(s.tipo)))
-        && largo(s.origen) > 0 {
-            let d = buscar_simbolo(c, vista(s.origen));
-            if existe(c, d) && esta_entre(c.simbolos[d].prestamos, vista(s.nombre)) {
-                soltar_prestamo(c, d, vista(s.nombre));
+        if igual(vista(s.tipo), "view") || T.es_referencia(vista(s.tipo)) {
+            for o en s.origenes {
+                let d = buscar_simbolo(c, vista(o));
+                if existe(c, d) && esta_entre(c.simbolos[d].prestamos, vista(s.nombre)) {
+                    soltar_prestamo(c, d, vista(s.nombre));
+                }
             }
         }
     }
@@ -840,7 +844,7 @@ fn declarar_simbolo(c: mut Comprobacion, m: &Mundo, linea: usize, nombre: view, 
     let nuevo_s = Simbolo { nombre: nuevo(nombre), tipo: nuevo(tipo),
         mutable: mutable, prestado: false, movida: false, movida_en: 0,
         entregada_en: 0, reasignada_directo: false,
-        bucle_al_declarar: c.en_bucle, prestamos: [], origen: vacio(),
+        bucle_al_declarar: c.en_bucle, prestamos: [], origen: vacio(), origenes: [],
         procedencia: vacio(), leida: false, mutada: false, linea_decl: linea,
         es_param: false, historia: largo(c.historia), movida_a: vacio() };
     anadir(c.historia, copiar(nuevo_s));
@@ -1187,47 +1191,123 @@ fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
 // Un contexto sin nada: para resolver nombres que no dependen del modulo.
 fn c_tipos_vacio() -> I.Contexto { return I.contexto(); }
 
-// De que variable duenia sale una vista, si sale de alguna.
+// De que variable duenia sale una vista, si sale de alguna: la primera de
+// las posibles.
 fn origen_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
+    for o en origenes_de(c, m, n) {
+        if !igual(vista(o), "<temporal>") { return copiar(o); }
+    }
+    return vacio();
+}
+
+fn juntar_origenes(salida: mut lista<str>, de: &lista<str>) {
+    for x en de {
+        if largo(x) > 0 && !esta_entre(salida, vista(x)) { anadir(salida, copiar(x)); }
+    }
+}
+
+// Todas las variables duenias de las que puede venir una vista, en orden y
+// sin repetir. `<temporal>` si puede venir de un valor sin nombre, recien
+// hecho, que se libera al acabar la sentencia: una vista suya no se guarda.
+fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
+    var salida: lista<str> = [];
     let clase = vista(n.clase);
-    if igual(clase, "try") && largo(n.hijos) > 0 { return origen_de(c, m, n.hijos[0]); }
+    if igual(clase, "try") && largo(n.hijos) > 0 { return origenes_de(c, m, n.hijos[0]); }
     if igual(clase, "sino") && largo(n.hijos) == 2 {
-        let a = origen_de(c, m, n.hijos[0]);
-        if largo(a) > 0 { return a; }
-        return origen_de(c, m, n.hijos[1]);
+        juntar_origenes(salida, origenes_de(c, m, n.hijos[0]));
+        juntar_origenes(salida, origenes_de(c, m, n.hijos[1]));
+        return salida;
     }
     if igual(clase, "llamada") {
         let nombre = I.sin_modulo(vista(n.texto));
         let nn = vista(nombre);
-        if (igual(nn, "vista") || igual(nn, "obtener") || igual(nn, "obtener_mut"))
-        && largo(n.hijos) > 0 {
-            return variable_base(n.hijos[0]);
+        if igual(nn, "vista") && largo(n.hijos) > 0 {
+            let base = variable_base(n.hijos[0]);
+            if largo(base) > 0 { anadir(salida, base); }
+            return salida;
         }
-        if igual(nn, "rebanar") && largo(n.hijos) > 0 { return origen_de(c, m, n.hijos[0]); }
+        if igual(nn, "rebanar") && largo(n.hijos) > 0 { return origenes_de(c, m, n.hijos[0]); }
+        if (igual(nn, "obtener") || igual(nn, "obtener_mut")) && largo(n.hijos) > 0 {
+            let base = variable_base(n.hijos[0]);
+            if largo(base) > 0 { anadir(salida, base); } else { anadir(salida, nuevo("<temporal>")); }
+            return salida;
+        }
+        // Una funcion que devuelve `view` solo puede devolver algo derivado
+        // de lo que le prestaron. No se sabe de cual, asi que de todos.
         let k = buscar_funcion(m, nn) sino largo(m.funciones);
         if k < largo(m.funciones) && !tiene_sueltos(m.funciones[k])
         && igual(vista(m.funciones[k].retorno), "view") {
             var i = 0;
             while i < largo(n.hijos) && i < largo(m.funciones[k].params) {
                 if igual(vista(m.funciones[k].params[i].tipo), "view") {
-                    let o = origen_de(c, m, n.hijos[i]);
-                    if largo(o) > 0 { return o; }
+                    var de_arg = origenes_de(c, m, n.hijos[i]);
+                    if largo(de_arg) == 0 && !igual(vista(n.hijos[i].clase), "variable")
+                    && es_local(procedencia_de(c, m, n.hijos[i])) {
+                        // Un `str` recien hecho donde se pide una vista.
+                        anadir(de_arg, nuevo("<temporal>"));
+                    }
+                    juntar_origenes(salida, de_arg);
                 } else if prestado(m.funciones[k].params[i]) {
-                    let o = variable_base(n.hijos[i]);
-                    if largo(o) > 0 { return o; }
+                    let base = variable_base(n.hijos[i]);
+                    var de_arg: lista<str> = [];
+                    if largo(base) > 0 { anadir(de_arg, base); } else { anadir(de_arg, nuevo("<temporal>")); }
+                    juntar_origenes(salida, de_arg);
                 }
                 i = i + 1;
             }
         }
-        return vacio();
+        return salida;
     }
     if igual(clase, "variable") {
         let i = buscar_simbolo(c, vista(n.texto));
         if existe(c, i) && igual(vista(c.simbolos[i].tipo), "view") {
-            return copiar(c.simbolos[i].origen);
+            return copiar(c.simbolos[i].origenes);
+        }
+        if existe(c, i) && igual(vista(c.simbolos[i].tipo), "str") {
+            anadir(salida, copiar(n.texto));
         }
     }
-    return vacio();
+    return salida;
+}
+
+fn es_local(procedencia: str) -> bool { return igual(vista(procedencia), "local"); }
+
+// En que bloque esta declarado el simbolo `i`: 0 es el de fuera.
+fn nivel_de_simbolo(c: &Comprobacion, i: usize) -> usize {
+    var n = 0;
+    var k = 0;
+    while k < largo(c.inicios) {
+        if c.inicios[k] <= i { n = k; }
+        k = k + 1;
+    }
+    return n;
+}
+
+// La vista `i` pasa a apuntar a lo que da `valor`: cada duenio queda
+// prestado mientras ella viva, y tiene que vivir al menos lo mismo. Lo que
+// ya prestaba lo sigue prestando: si la asignacion va en una rama, la otra
+// puede no haberla hecho.
+fn apuntar(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, valor: &P.Nodo) {
+    let nuevos = origenes_de(c, m, valor);
+    let nombre = copiar(c.simbolos[i].nombre);
+    if esta_entre(nuevos, "<temporal>") {
+        error(c, m, linea, $"`{nombre}` apuntaria a un valor temporal, que se libera al acabar esta sentencia: guarda ese valor en una variable y presta de ella");
+    }
+    let suyo = nivel_de_simbolo(c, i);
+    for o en nuevos {
+        if igual(vista(o), "<temporal>") || esta_entre(c.simbolos[i].origenes, vista(o)) { continue; }
+        let d = buscar_simbolo(c, vista(o));
+        if !existe(c, d) { continue; }
+        if nivel_de_simbolo(c, d) > suyo {
+            error(c, m, linea, $"`{nombre}` vive mas que `{o}`: `{o}` muere al cerrar su bloque y `{nombre}` seguiria apuntando a ella. Declara `{o}` fuera del bloque, o haz de `{nombre}` un `str` con `nuevo(...)`");
+            continue;
+        }
+        anadir(c.simbolos[i].origenes, copiar(o));
+        anadir(c.simbolos[d].prestamos, copiar(nombre));
+    }
+    if largo(c.simbolos[i].origen) == 0 && largo(c.simbolos[i].origenes) > 0 {
+        c.simbolos[i].origen = copiar(c.simbolos[i].origenes[0]);
+    }
 }
 
 // ------------------------------------------------------------------
@@ -3388,13 +3468,8 @@ fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s:
         let i = declarar_simbolo(c, m, s.linea, vista(nombre), vista(tipo), mutable);
         if igual(vista(tipo), "view") || T.es_referencia(vista(tipo)) {
             c.simbolos[i].procedencia = procedencia_de(c, m, s.hijos[0]);
-            c.simbolos[i].origen = origen_de(c, m, s.hijos[0]);
             c.simbolos[i].prestado = T.es_referencia(vista(tipo));
-            let origen = copiar(c.simbolos[i].origen);
-            if largo(origen) > 0 {
-                let d = buscar_simbolo(c, vista(origen));
-                if existe(c, d) { anadir(c.simbolos[d].prestamos, copiar(nombre)); }
-            }
+            apuntar(c, m, s.linea, i, s.hijos[0]);
         }
         return;
     }
@@ -3435,6 +3510,19 @@ fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s:
             c.simbolos[i].movida = false;
             if c.en_bucle_directo == c.en_bucle como i64 {
                 c.simbolos[i].reasignada_directo = true;
+            }
+            let ti = copiar(c.simbolos[i].tipo);
+            if igual(vista(ti), "view") || T.es_referencia(vista(ti)) {
+                // Lo peor de lo que tuvo y de lo que tiene ahora: si la
+                // asignacion va en una rama, la otra puede no haberla hecho.
+                let nueva = procedencia_de(c, m, s.hijos[1]);
+                let antes = copiar(c.simbolos[i].procedencia);
+                if igual(vista(antes), "local") || igual(vista(nueva), "local") {
+                    c.simbolos[i].procedencia = nuevo("local");
+                } else if igual(vista(antes), "parametro") || igual(vista(nueva), "parametro") {
+                    c.simbolos[i].procedencia = nuevo("parametro");
+                }
+                apuntar(c, m, s.linea, i, s.hijos[1]);
             }
         }
         return;

@@ -79,6 +79,9 @@ NUMEROS = set(NUMERICOS)
 ESTATICO = "estatico"      # un literal: vive lo que dura el programa
 PARAMETRO = "parametro"    # presta de un parametro `view`: es del que llama
 LOCAL = "local"            # presta de algo que muere al salir
+# Un duenio sin nombre: un valor recien hecho que se libera al acabar la
+# sentencia. Una vista suya no se puede guardar.
+TEMPORAL = "<temporal>"
 
 
 def es_arreglo(t):
@@ -407,8 +410,10 @@ class Simbolo:
         self.movida_en = 0
         # nombres de las vistas vivas que prestan de esta variable
         self.prestamos = []
-        # si es una vista: de quien presta (None = literal, sin dueño)
+        # si es una vista: de quien presta (None = literal, sin dueño), y
+        # todos los duenios de los que puede venir, el primero delante
         self.origen = None
+        self.origenes = []
         # si es una vista: de donde sale la memoria (ver ESTATICO/PARAMETRO/LOCAL)
         self.procedencia = None
         # parametro recibido en prestamo: no somos duenios, no se puede mover
@@ -521,11 +526,11 @@ class Comprobador:
         # Al cerrar el bloque mueren las vistas declaradas aqui: se sueltan
         # los prestamos que tenian sobre variables de bloques exteriores.
         for sim in muerto.values():
-            if (sim.tipo == "view" or es_referencia(sim.tipo)) \
-                    and sim.origen is not None:
-                duenio = self.buscar(sim.origen)
-                if duenio is not None and sim.nombre in duenio.prestamos:
-                    duenio.prestamos.remove(sim.nombre)
+            if sim.tipo == "view" or es_referencia(sim.tipo):
+                for origen in sim.origenes:
+                    duenio = self.buscar(origen)
+                    if duenio is not None and sim.nombre in duenio.prestamos:
+                        duenio.prestamos.remove(sim.nombre)
         return muerto
 
     def buscar(self, nombre):
@@ -1546,12 +1551,8 @@ class Comprobador:
             # de otro, y mientras vivan ese otro no se puede mover ni tocar.
             if s.tipo == "view" or es_referencia(s.tipo):
                 sim.procedencia = self.procedencia_de(s.valor)
-                sim.origen = self._origen_de(s.valor)
                 sim.prestado = es_referencia(s.tipo)
-                if sim.origen is not None:
-                    duenio = self.buscar(sim.origen)
-                    if duenio is not None:
-                        duenio.prestamos.append(s.nombre)
+                self._apuntar(s, sim, s.valor)
             return
 
         if isinstance(s, Asignacion):
@@ -1592,6 +1593,16 @@ class Comprobador:
                 sim.movida = False          # vuelve a tener un valor valido
                 if self.en_bucle_directo == self.en_bucle:
                     sim.reasignada_directo = True
+                if sim.tipo == "view" or es_referencia(sim.tipo):
+                    # Lo peor de lo que tuvo y de lo que tiene ahora: si la
+                    # asignacion va en una rama, la otra puede no haberla
+                    # hecho.
+                    nueva = self.procedencia_de(s.valor)
+                    for p in (LOCAL, PARAMETRO):
+                        if p in (sim.procedencia, nueva):
+                            sim.procedencia = p
+                            break
+                    self._apuntar(s, sim, s.valor)
             return
 
         if isinstance(s, Si):
@@ -1862,42 +1873,102 @@ class Comprobador:
         return LOCAL
 
     def _origen_de(self, expr):
-        # `try f(..)` y `f(..) sino alt` no cambian de donde sale el valor.
+        """De que variable duenia proviene una vista, si es que proviene de
+        una: la primera de las posibles."""
+        for o in self._origenes_de(expr):
+            if o != TEMPORAL:
+                return o
+        return None
+
+    def _origenes_de(self, expr):
+        """Todas las variables duenias de las que puede venir una vista, en
+        orden y sin repetir. TEMPORAL si puede venir de un valor sin nombre,
+        que se libera al acabar la sentencia."""
+        salida = []
+
+        def junta(xs):
+            for x in xs:
+                if x is not None and x not in salida:
+                    salida.append(x)
+
+        # `try f(..)` y `f(..) sino alt` no cambian de donde sale el valor;
+        # con `sino`, de cualquiera de los dos.
         if isinstance(expr, Try):
-            return self._origen_de(expr.expr)
+            return self._origenes_de(expr.expr)
         if isinstance(expr, Sino):
-            return (self._origen_de(expr.expr)
-                    or self._origen_de(expr.alternativa))
-        """De que variable duenia proviene una vista, si es que proviene de una."""
+            junta(self._origenes_de(expr.expr))
+            junta(self._origenes_de(expr.alternativa))
+            return salida
         if isinstance(expr, Llamada):
             if expr.nombre == "vista" and expr.args:
-                return self.variable_base(expr.args[0])
+                return [self.variable_base(expr.args[0])] \
+                    if self.variable_base(expr.args[0]) else []
             if expr.nombre == "rebanar" and expr.args:
-                return self._origen_de(expr.args[0])
-            # Una funcion que devuelve `view` solo puede devolver algo
-            # derivado de sus parametros `view`: el prestamo del que llama
-            # tiene que seguir vivo mientras viva el resultado.
+                return self._origenes_de(expr.args[0])
             if expr.nombre in ("obtener", "obtener_mut") and expr.args:
-                return self.variable_base(expr.args[0])
+                base = self.variable_base(expr.args[0])
+                return [base] if base else [TEMPORAL]
+            # Una funcion que devuelve `view` solo puede devolver algo
+            # derivado de lo que le prestaron: un parametro `view`, o uno
+            # `&T`/`mut T`. No se sabe de cual, asi que de todos: el
+            # prestamo del que llama sigue vivo mientras viva el resultado.
             f = self.funciones.get(expr.nombre)
             if f is not None and f.retorno == "view":
-                # La vista que devuelve solo puede venir de algo que le
-                # prestaron: un parametro `view`, o uno `&T`/`mut T`.
                 for arg, param in zip(expr.args, f.params):
                     if param.tipo == "view":
-                        o = self._origen_de(arg)
-                        if o is not None:
-                            return o
+                        de_arg = self._origenes_de(arg)
+                        if (not de_arg and not isinstance(arg, Variable)
+                                and self.procedencia_de(arg) == LOCAL):
+                            # Un `str` recien hecho donde se pide una vista.
+                            de_arg = [TEMPORAL]
+                        junta(de_arg)
                     elif param.prestado:
-                        o = self.variable_base(arg)
-                        if o is not None:
-                            return o
-                return None
+                        base = self.variable_base(arg)
+                        junta([base] if base else [TEMPORAL])
+            return salida
         if isinstance(expr, Variable):
             sim = self.buscar(expr.nombre)
             if sim is not None and sim.tipo == "view":
-                return sim.origen
-        return None
+                return list(sim.origenes)
+            if sim is not None and sim.tipo == "str":
+                return [expr.nombre]
+        return salida
+
+    def _apuntar(self, nodo, sim, valor):
+        """La vista `sim` pasa a apuntar a lo que da `valor`: cada duenio
+        queda prestado mientras ella viva, y tiene que vivir al menos lo
+        mismo. Lo que ya prestaba lo sigue prestando: si la asignacion va en
+        una rama, la otra puede no haberla hecho."""
+        nuevos = self._origenes_de(valor)
+        if TEMPORAL in nuevos:
+            self.error(nodo, f"`{sim.nombre}` apuntaria a un valor temporal, "
+                             f"que se libera al acabar esta sentencia: guarda "
+                             f"ese valor en una variable y presta de ella")
+        nivel = self._nivel(sim)
+        for origen in nuevos:
+            if origen == TEMPORAL or origen in sim.origenes:
+                continue
+            duenio = self.buscar(origen)
+            if duenio is None:
+                continue
+            if self._nivel(duenio) > nivel:
+                self.error(nodo, f"`{sim.nombre}` vive mas que `{origen}`: "
+                                 f"`{origen}` muere al cerrar su bloque y "
+                                 f"`{sim.nombre}` seguiria apuntando a ella. "
+                                 f"Declara `{origen}` fuera del bloque, o haz "
+                                 f"de `{sim.nombre}` un `str` con `nuevo(...)`")
+                continue
+            sim.origenes.append(origen)
+            duenio.prestamos.append(sim.nombre)
+        if sim.origen is None and sim.origenes:
+            sim.origen = sim.origenes[0]
+
+    def _nivel(self, sim):
+        """En que bloque esta declarado: 0 es el de fuera."""
+        for i in range(len(self.ambitos) - 1, -1, -1):
+            if self.ambitos[i].get(sim.nombre) is sim:
+                return i
+        return 0
 
     # ---------- expresiones ----------
 

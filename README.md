@@ -604,8 +604,14 @@ el C generado se sigue llamando `palabras`.
 
 No hay: comprobación del cuerpo genérico una sola vez contra la restricción
 (eso es Rust, y es más), E/S incremental. Tampoco: campos `view` dentro de un
-struct (el muro real: exige la vida útil en el tipo), movimientos parciales
-de un campo o elemento, ni devolver una vista de un parámetro prestado.
+struct (el muro real: exige la vida útil en el tipo), ni movimientos
+parciales de un campo o elemento.
+
+Una función sí puede devolver una vista de lo que le prestaron —un `&str`,
+un campo de un `&T`, un elemento de una `&lista`, un `mut str`—, y quien
+llama queda protegido: la vista presta de todo lo que se le pasó prestado,
+no vive más que su dueño aunque se reasigne, y no se guarda si sale de un
+temporal.
 
 ```
 $ make check
