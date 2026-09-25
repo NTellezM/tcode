@@ -434,16 +434,14 @@ fn match_(e: mut Estado) -> Nodo ! {
             empujar(b.texto, quien);
             empujar(b.texto, ".");
             empujar(b.texto, cual);
-            if acepta(e, "simbolo", "(") {
-                if !es(e, "simbolo", ")") {
-                    while true {
-                        let atrapa = try espera(e, "ident", "");
-                        anadir(b.hijos, hoja("atrapa", vista(atrapa), bl));
-                        if !acepta(e, "simbolo", ",") { break; }
-                    }
-                }
-                try espera(e, "simbolo", ")");
-            }
+            try posiciones_patron(e, b);
+        }
+        // Una guarda: el brazo solo vale si ademas se cumple esto.
+        if acepta(e, "palabra", "if") {
+            var g = rama("guarda", linea_actual(e));
+            let cond = try expresion(e);
+            anadir(g.hijos, cond);
+            anadir(b.hijos, g);
         }
         try espera(e, "simbolo", "->");
         brazos = brazos + 1;
@@ -470,6 +468,55 @@ fn match_(e: mut Estado) -> Nodo ! {
         falla "sintaxis";
     }
     return n;
+}
+
+// `(a, _, 3, Forma.Otra(b))` detras de una forma, colgado de `n` en orden:
+// un nombre es una hoja `atrapa` (tambien `_`), una forma anidada una rama
+// `patron` con lo suyo dentro, y un literal una rama `literal`.
+fn posiciones_patron(e: mut Estado, n: mut Nodo) ! {
+    if !acepta(e, "simbolo", "(") { return; }
+    if !es(e, "simbolo", ")") {
+        while true {
+            try posicion_patron(e, n);
+            if !acepta(e, "simbolo", ",") { break; }
+        }
+    }
+    try espera(e, "simbolo", ")");
+    return;
+}
+
+fn posicion_patron(e: mut Estado, n: mut Nodo) ! {
+    let l = linea_actual(e);
+    if es(e, "ident", "") && igual(tipo_en(e, 1), "simbolo") && igual(valor_en(e, 1), ".") {
+        let quien = try espera(e, "ident", "");
+        try espera(e, "simbolo", ".");
+        let cual = try espera(e, "ident", "");
+        if !tiene(e.enums, vista(quien)) {
+            error_aqui(e, $"`{quien}` no es un enum");
+            falla "sintaxis";
+        }
+        var p = rama("patron", l);
+        p.texto = $"{quien}.{cual}";
+        try posiciones_patron(e, p);
+        anadir(n.hijos, p);
+        return;
+    }
+    if es(e, "ident", "") {
+        let nombre = try espera(e, "ident", "");
+        anadir(n.hijos, hoja("atrapa", vista(nombre), l));
+        return;
+    }
+    if es(e, "entero", "") || es(e, "cadena", "") || es(e, "palabra", "true")
+    || es(e, "palabra", "false")
+    || (es(e, "simbolo", "-") && igual(tipo_en(e, 1), "entero")) {
+        var lit = rama("literal", l);
+        let x = try unario(e);
+        anadir(lit.hijos, x);
+        anadir(n.hijos, lit);
+        return;
+    }
+    error_aqui(e, "en un patron va un nombre, `_`, un literal o una forma");
+    falla "sintaxis";
 }
 
 // Analiza lo que hay entre llaves y lo cuelga en orden. `{{` y `}}` son una

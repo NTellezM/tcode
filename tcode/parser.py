@@ -8,7 +8,8 @@ from tcode.nodos import (
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Parametro, Funcion, CampoDef, Struct, Usar, Para, Romper, Continuar,
-    Enum, VarianteDef, EnumLit, Match, Brazo, Externo,
+    Enum, VarianteDef, EnumLit, Match, Brazo, Externo, PatronForma,
+    PatronLiteral,
 )
 
 ENTEROS = {"u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64"}
@@ -737,29 +738,61 @@ class Parser:
                 variante = self.espera("ident").valor
                 if enum_nombre not in self.enums:
                     self.error(f"`{enum_nombre}` no es un enum")
-                if self.acepta("simbolo", "("):
-                    if not self.es("simbolo", ")"):
-                        while True:
-                            nombres.append(self.espera("ident").valor)
-                            if not self.acepta("simbolo", ","):
-                                break
-                    self.espera("simbolo", ")")
+                nombres = self.posiciones_patron()
+            # Una guarda: el brazo solo vale si ademas se cumple esto.
+            guarda = self.expr() if self.acepta("palabra", "if") else None
             self.espera("simbolo", "->")
             if self.es("simbolo", "{"):
                 brazos.append(Brazo(variante, nombres, self.bloque(),
-                                    False, bt.linea))
+                                    False, bt.linea, guarda))
                 self.acepta("simbolo", ",")
             else:
                 e = self.expr()
                 brazos.append(Brazo(variante, nombres,
                                     [Retorno(e, linea=bt.linea)],
-                                    True, bt.linea))
+                                    True, bt.linea, guarda))
                 if not self.acepta("simbolo", ","):
                     break
         self.espera("simbolo", "}")
         if not brazos:
             self.error("un `match` sin brazos no mira nada")
         return Match(valor, brazos, linea=tok.linea)
+
+    def posiciones_patron(self):
+        """`(a, _, 3, Forma.Otra(b))` detras de una forma: lo que va en cada
+        posicion. Sin parentesis, ninguna."""
+        args = []
+        if not self.acepta("simbolo", "("):
+            return args
+        if not self.es("simbolo", ")"):
+            while True:
+                args.append(self.posicion_patron())
+                if not self.acepta("simbolo", ","):
+                    break
+        self.espera("simbolo", ")")
+        return args
+
+    def posicion_patron(self):
+        """Un nombre, `_`, un literal o una forma anidada."""
+        t = self.actual
+        if (t.tipo == "ident" and self.toks[self.i + 1].tipo == "simbolo"
+                and self.toks[self.i + 1].valor == "."):
+            enum_nombre = self.espera("ident").valor
+            self.espera("simbolo", ".")
+            variante = self.espera("ident").valor
+            if enum_nombre not in self.enums:
+                self.error(f"`{enum_nombre}` no es un enum")
+            return PatronForma(enum_nombre, variante, self.posiciones_patron(),
+                               linea=t.linea)
+        if t.tipo == "ident":
+            self.i += 1
+            return t.valor
+        if (t.tipo in ("entero", "cadena")
+                or (t.tipo == "palabra" and t.valor in ("true", "false"))
+                or (t.tipo == "simbolo" and t.valor == "-"
+                    and self.toks[self.i + 1].tipo == "entero")):
+            return PatronLiteral(self.unario(), linea=t.linea)
+        self.error("en un patron va un nombre, `_`, un literal o una forma")
 
     def primario(self):
         t = self.actual

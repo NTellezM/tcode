@@ -274,10 +274,26 @@ class Brazo:
     `variante` a None es el brazo `_`, que vale para todo lo que quede.
     """
     variante: str | None
-    nombres: list          # los que atrapa el patron, por posicion
+    # Lo que va en cada posicion: un nombre que atrapa, `_` que no atrapa
+    # nada, un `PatronForma` anidado o un `PatronLiteral`.
+    nombres: list
     cuerpo: list           # sentencias; una expresion suelta es un Retorno
     es_expresion: bool = False
     linea: int = 0
+    # `Forma(x) if x > 3 -> ...`: el brazo solo vale si esto da `true`.
+    guarda: Optional[Nodo] = None
+
+@dataclass
+class PatronForma(Nodo):
+    """`Enum.Forma(a, _, 3)` en una posicion de otro patron."""
+    enum: str
+    variante: str
+    args: list             # como `Brazo.nombres`
+
+@dataclass
+class PatronLiteral(Nodo):
+    """Un literal en una posicion del patron: casa si vale eso."""
+    valor: Nodo
 
 @dataclass
 class Match(Nodo):

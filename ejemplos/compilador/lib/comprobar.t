@@ -555,19 +555,48 @@ fn almacenable(m: &Mundo, t: view) -> bool {
     if T.es_mapa(t) {
         let ps = clave_y_valor(t);
         if largo(ps) != 2 { return false; }
-        return almacenable(m, vista(ps[0])) && almacenable(m, vista(ps[1]));
+        // Un mapa tampoco guarda vistas: nadie sabria cuanto viven.
+        return almacenable(m, vista(ps[0])) && almacenable(m, vista(ps[1]))
+        && !igual(vista(ps[0]), "view") && !es_prestado_st(m, vista(ps[0]))
+        && !igual(vista(ps[1]), "view") && !es_prestado_st(m, vista(ps[1]));
     }
     if T.es_bloque(t) {
         let e = elem_bloque(t);
         return !igual(vista(e), "view") && !T.es_arreglo(vista(e))
-        && almacenable(m, vista(e));
+        && !es_prestado_st(m, vista(e)) && almacenable(m, vista(e));
     }
     if T.es_lista(t) {
         let e = elem_lista(t);
         return !igual(vista(e), "view") && !T.es_arreglo(vista(e))
-        && almacenable(m, vista(e));
+        && !es_prestado_st(m, vista(e)) && almacenable(m, vista(e));
     }
     return false;
+}
+
+// Un struct que presta: lleva una `view`, o un struct que presta. Se trata
+// como una vista: apunta a memoria de otro.
+fn es_prestado_st(m: &Mundo, t: view) -> bool {
+    var vistos: lista<str> = [];
+    return presta_st(m, t, vistos);
+}
+
+fn presta_st(m: &Mundo, t: view, vistos: mut lista<str>) -> bool {
+    if !es_struct(m, t) || esta_entre(vistos, t) { return false; }
+    anadir(vistos, nuevo(t));
+    for ct en campos_tipos(m, t) {
+        if igual(vista(ct), "view") || presta_st(m, vista(ct), vistos) { return true; }
+    }
+    return false;
+}
+
+// Si un valor de este tipo apunta a memoria de otro.
+fn presta_tipo(m: &Mundo, t: view) -> bool {
+    return igual(t, "view") || T.es_referencia(t) || es_prestado_st(m, t);
+}
+
+fn error_enum_prestado(c: mut Comprobacion, m: &Mundo, linea: usize, en_n: view, forma: view,
+    t: view) {
+    error(c, m, linea, $"`{en_n}.{forma}` lleva un `{t}`, que presta: un enum no guarda prestamos, porque al mirarlo nadie sabria de quien presta. Usa `str`, o un struct con duenio");
 }
 
 // Un struct o enum que se contiene a si mismo por valor.
@@ -611,6 +640,10 @@ struct Simbolo {
     entregada_en: usize,
     reasignada_directo: bool,
     bucle_al_declarar: usize,
+    // En cuantos `if`/`match` estaba al declararse, y los campos que se le
+    // sacaron, en orden: `ruta\tlinea`, con `nombre` o `a.b` de ruta.
+    condicional_al_declarar: usize,
+    sacados: lista<str>,
     // Las vistas vivas que prestan de esta variable, y las reservas.
     prestamos: lista<str>,
     // Si es una vista: de quien presta, y de donde sale su memoria. En
@@ -670,6 +703,16 @@ struct Comprobacion {
     // La plantilla de cada copia de generica que se esta comprobando, a la
     // par que `instanciando`.
     plantillas: lista<usize>,
+    // Dentro de la guarda de un brazo: ahi no se mueve nada, porque se
+    // evalua aunque el brazo no llegue a casar.
+    en_guarda: usize,
+    // Mirando el objeto de un `p.x` (no es usar `p` entera), y escribiendo
+    // en un campo (no es leerlo).
+    por_campo: usize,
+    escribiendo: usize,
+    // Los campos sacados de su struct en todo el programa, para el
+    // generador: `archivo\tlinea\tp.a.b`.
+    sacados: lista<str>,
 }
 
 fn estado(archivo: view, modulo: usize) -> Comprobacion {
@@ -678,7 +721,8 @@ fn estado(archivo: view, modulo: usize) -> Comprobacion {
         en_condicional: 0, en_condicion_bucle: 0, en_bucle: 0,
         en_bucle_directo: 0, movidas_en_bucle: [], en_retorno: 0, instanciando: [],
         dueno: vacio(), avisos: [], historia: [], informe: [], en_cierre: false,
-        capturas_mut: [], modificadas: [], plantillas: [] };
+        capturas_mut: [], modificadas: [], plantillas: [], en_guarda: 0,
+        por_campo: 0, escribiendo: 0, sacados: [] };
 }
 
 // Lo que el mensaje dice en vez de los nombres que puso el compilador: una
@@ -810,8 +854,9 @@ fn cerrar_ambito(c: mut Comprobacion) {
         k = k + 1;
     }
     c.inicios = otros;
+    // Solo lo que presta tiene duenios apuntados.
     for s en muertos {
-        if igual(vista(s.tipo), "view") || T.es_referencia(vista(s.tipo)) {
+        if largo(s.origenes) > 0 {
             for o en s.origenes {
                 let d = buscar_simbolo(c, vista(o));
                 if existe(c, d) && esta_entre(c.simbolos[d].prestamos, vista(s.nombre)) {
@@ -844,7 +889,8 @@ fn declarar_simbolo(c: mut Comprobacion, m: &Mundo, linea: usize, nombre: view, 
     let nuevo_s = Simbolo { nombre: nuevo(nombre), tipo: nuevo(tipo),
         mutable: mutable, prestado: false, movida: false, movida_en: 0,
         entregada_en: 0, reasignada_directo: false,
-        bucle_al_declarar: c.en_bucle, prestamos: [], origen: vacio(), origenes: [],
+        bucle_al_declarar: c.en_bucle, condicional_al_declarar: c.en_condicional, sacados: [],
+        prestamos: [], origen: vacio(), origenes: [],
         procedencia: vacio(), leida: false, mutada: false, linea_decl: linea,
         es_param: false, historia: largo(c.historia), movida_a: vacio() };
     anadir(c.historia, copiar(nuevo_s));
@@ -865,7 +911,31 @@ fn leer(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize) -> bool {
         error(c, m, linea, $"`{n}` ya se movio en la linea {cuando} y aqui se usa otra vez");
         return false;
     }
+    return !a_medio_mover(c, m, linea, i);
+}
+
+// Si `i` tiene algun campo sacado y se usa entera, lo dice.
+fn a_medio_mover(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize) -> bool {
+    if largo(c.simbolos[i].sacados) == 0 || c.por_campo > 0 { return false; }
+    let n = copiar(c.simbolos[i].nombre);
+    let primero = copiar(c.simbolos[i].sacados[0]);
+    let ruta = antes_de_tab(vista(primero));
+    let cuando = despues_de_tab(vista(primero));
+    error(c, m, linea, $"`{n}` esta a medio mover: `{n}.{ruta}` se saco en la linea {cuando}. Dale otro valor antes de usarla entera, o usa solo sus otros campos");
     return true;
+}
+
+fn antes_de_tab(t: view) -> str {
+    var i = 0;
+    while i < largo(t) && byte(t, i) != 9 { i = i + 1; }
+    return nuevo(rebanar(t, 0, i));
+}
+
+fn despues_de_tab(t: view) -> str {
+    var i = 0;
+    while i < largo(t) && byte(t, i) != 9 { i = i + 1; }
+    if i >= largo(t) { return vacio(); }
+    return nuevo(rebanar(t, i + 1, largo(t)));
 }
 
 fn es_reserva(n: view) -> bool {
@@ -899,6 +969,11 @@ fn error_llego_prestado(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize) 
 // Consumir el valor de una variable duenia. `directo` es el `return x` que
 // la entrega ahi mismo.
 fn mover(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, directo: bool) {
+    if c.en_guarda > 0 {
+        let n = copiar(c.simbolos[i].nombre);
+        error(c, m, linea, $"una guarda no mueve nada: `{n}` se moveria aunque el brazo no case. Presta, o usa `copiar(...)`");
+        return;
+    }
     if !leer(c, m, linea, i) { return; }
     if c.simbolos[i].prestado {
         error_llego_prestado(c, m, linea, i);
@@ -995,6 +1070,12 @@ fn mutar(c: mut Comprobacion, m: &Mundo, lugar: &P.Nodo, linea: usize, i: usize,
         error(c, m, linea, $"`{n}` ya se movio en la linea {cuando} y aqui se usa otra vez");
         return;
     }
+    // Modificar un campo no es usar el struct entero.
+    let por_campo = igual(vista(lugar.clase), "campo");
+    if por_campo { c.por_campo = c.por_campo + 1; }
+    let a_medias = a_medio_mover(c, m, linea, i);
+    if por_campo { c.por_campo = c.por_campo - 1; }
+    if a_medias { return; }
     let t = copiar(c.simbolos[i].tipo);
     let n = copiar(c.simbolos[i].nombre);
     if por_referencia && T.es_referencia(vista(t)) {
@@ -1136,9 +1217,36 @@ fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
     if igual(clase, "variable") {
         let i = buscar_simbolo(c, vista(n.texto));
         if !existe(c, i) { return nuevo("local"); }
-        if igual(vista(c.simbolos[i].tipo), "view") {
+        if igual(vista(c.simbolos[i].tipo), "view") || es_prestado_st(m, vista(c.simbolos[i].tipo)) {
             if largo(c.simbolos[i].procedencia) > 0 { return copiar(c.simbolos[i].procedencia); }
             return nuevo("local");
+        }
+        return nuevo("local");
+    }
+    if igual(clase, "literal_struct") {
+        // Lo peor de lo que prestan sus campos.
+        let st = I.sin_modulo(vista(n.texto));
+        var peor = nuevo("estatico");
+        for h en n.hijos {
+            if largo(h.hijos) == 0 { continue; }
+            if !presta_tipo(m, tipo_del_campo(m, vista(st), vista(h.texto))) { continue; }
+            let p = procedencia_de(c, m, h.hijos[0]);
+            if igual(vista(p), "local") { return nuevo("local"); }
+            if igual(vista(p), "parametro") { peor = nuevo("parametro"); }
+        }
+        return peor;
+    }
+    if igual(clase, "campo") {
+        let raiz = variable_base(n);
+        let i = buscar_simbolo(c, vista(raiz));
+        let tc = tipo_simple(c, m, n);
+        if largo(raiz) > 0 && existe(c, i) && presta_tipo(m, vista(tc)) {
+            let t = copiar(c.simbolos[i].tipo);
+            if c.simbolos[i].prestado || T.es_referencia(vista(t)) { return nuevo("parametro"); }
+            if es_prestado_st(m, vista(t)) {
+                if largo(c.simbolos[i].procedencia) > 0 { return copiar(c.simbolos[i].procedencia); }
+                return nuevo("local");
+            }
         }
         return nuevo("local");
     }
@@ -1160,15 +1268,21 @@ fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
             if largo(n.hijos) > 0 { return procedencia_de(c, m, n.hijos[0]); }
             return nuevo("local");
         }
+        if igual(nn, "copiar") && largo(n.hijos) == 1 {
+            let tc = tipo_simple(c, m, n.hijos[0]);
+            if presta_tipo(m, vista(tc)) { return procedencia_de(c, m, n.hijos[0]); }
+        }
         let k = buscar_funcion(m, nn) sino largo(m.funciones);
         if k >= largo(m.funciones) || tiene_sueltos(m.funciones[k]) { return nuevo("local"); }
-        if !igual(vista(m.funciones[k].retorno), "view") { return nuevo("local"); }
+        let ret = copiar(m.funciones[k].retorno);
+        if !presta_tipo(m, vista(ret)) || T.es_referencia(vista(ret)) { return nuevo("local"); }
         var peor = nuevo("estatico");
         var i = 0;
         while i < largo(n.hijos) && i < largo(m.funciones[k].params) {
             var p = vacio();
             let pt = vista(m.funciones[k].params[i].tipo);
-            if igual(pt, "view") {
+            if igual(pt, "view")
+            || (!prestado(m.funciones[k].params[i]) && es_prestado_st(m, pt)) {
                 p = procedencia_de(c, m, n.hijos[i]);
             } else if prestado(m.funciones[k].params[i]) {
                 let base = variable_base(n.hijos[i]);
@@ -1232,14 +1346,23 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
             if largo(base) > 0 { anadir(salida, base); } else { anadir(salida, nuevo("<temporal>")); }
             return salida;
         }
+        if igual(nn, "copiar") && largo(n.hijos) == 1 {
+            // La copia de algo que presta presta de lo mismo. El tipo va
+            // aparte: dentro del `&&` se calcularia siempre.
+            let tc = tipo_simple(c, m, n.hijos[0]);
+            if presta_tipo(m, vista(tc)) { return origenes_de(c, m, n.hijos[0]); }
+        }
         // Una funcion que devuelve `view` solo puede devolver algo derivado
         // de lo que le prestaron. No se sabe de cual, asi que de todos.
         let k = buscar_funcion(m, nn) sino largo(m.funciones);
         if k < largo(m.funciones) && !tiene_sueltos(m.funciones[k])
-        && igual(vista(m.funciones[k].retorno), "view") {
+        && presta_tipo(m, vista(m.funciones[k].retorno))
+        && !T.es_referencia(vista(m.funciones[k].retorno)) {
             var i = 0;
             while i < largo(n.hijos) && i < largo(m.funciones[k].params) {
-                if igual(vista(m.funciones[k].params[i].tipo), "view") {
+                let pt = vista(m.funciones[k].params[i].tipo);
+                if igual(pt, "view")
+                || (!prestado(m.funciones[k].params[i]) && es_prestado_st(m, pt)) {
                     var de_arg = origenes_de(c, m, n.hijos[i]);
                     if largo(de_arg) == 0 && !igual(vista(n.hijos[i].clase), "variable")
                     && es_local(procedencia_de(c, m, n.hijos[i])) {
@@ -1250,8 +1373,13 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
                 } else if prestado(m.funciones[k].params[i]) {
                     let base = variable_base(n.hijos[i]);
                     var de_arg: lista<str> = [];
-                    if largo(base) > 0 { anadir(de_arg, base); } else { anadir(de_arg, nuevo("<temporal>")); }
+                    if largo(base) > 0 { anadir(de_arg, copiar(base)); } else { anadir(de_arg, nuevo("<temporal>")); }
                     juntar_origenes(salida, de_arg);
+                    // Si lo prestado presta a su vez, tambien de lo suyo.
+                    let j = buscar_simbolo(c, vista(base));
+                    if largo(base) > 0 && existe(c, j) && es_prestado_st(m, vista(c.simbolos[j].tipo)) {
+                        juntar_origenes(salida, c.simbolos[j].origenes);
+                    }
                 }
                 i = i + 1;
             }
@@ -1260,14 +1388,72 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
     }
     if igual(clase, "variable") {
         let i = buscar_simbolo(c, vista(n.texto));
-        if existe(c, i) && igual(vista(c.simbolos[i].tipo), "view") {
+        if existe(c, i) && (igual(vista(c.simbolos[i].tipo), "view")
+            || es_prestado_st(m, vista(c.simbolos[i].tipo))) {
             return copiar(c.simbolos[i].origenes);
         }
         if existe(c, i) && igual(vista(c.simbolos[i].tipo), "str") {
             anadir(salida, copiar(n.texto));
         }
     }
+    if igual(clase, "literal_struct") {
+        // Un struct que presta, de lo que prestan sus campos.
+        let st = I.sin_modulo(vista(n.texto));
+        for h en n.hijos {
+            if largo(h.hijos) == 0 { continue; }
+            if !presta_tipo(m, tipo_del_campo(m, vista(st), vista(h.texto))) { continue; }
+            var de = origenes_de(c, m, h.hijos[0]);
+            if largo(de) == 0 && !igual(vista(h.hijos[0].clase), "variable")
+            && es_local(procedencia_de(c, m, h.hijos[0])) {
+                anadir(de, nuevo("<temporal>"));
+            }
+            juntar_origenes(salida, de);
+        }
+        return salida;
+    }
+    if igual(clase, "campo") || igual(clase, "indice") {
+        // Un sitio dentro de una variable: presta de ella. Si es la vista de
+        // un struct que presta, de lo mismo que el. Si la variable llego
+        // prestada, la memoria es de quien llama.
+        let raiz = variable_base(n);
+        let i = buscar_simbolo(c, vista(raiz));
+        if largo(raiz) == 0 || !existe(c, i) { return salida; }
+        let t = copiar(c.simbolos[i].tipo);
+        if c.simbolos[i].prestado || T.es_referencia(vista(t)) { return salida; }
+        let tc = tipo_simple(c, m, n);
+        if es_prestado_st(m, vista(t)) && presta_tipo(m, vista(tc)) {
+            return copiar(c.simbolos[i].origenes);
+        }
+        anadir(salida, copiar(raiz));
+    }
     return salida;
+}
+
+// El tipo de un campo de un struct, o vacio.
+fn tipo_del_campo(m: &Mundo, st: view, campo_n: view) -> str {
+    let ns = campos_nombres(m, st);
+    let ts = campos_tipos(m, st);
+    var i = 0;
+    while i < largo(ns) && i < largo(ts) {
+        if igual(vista(ns[i]), campo_n) { return copiar(ts[i]); }
+        i = i + 1;
+    }
+    return vacio();
+}
+
+// El tipo de una variable o de un campo, sin comprobar nada.
+fn tipo_simple(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
+    if igual(vista(n.clase), "variable") {
+        let i = buscar_simbolo(c, vista(n.texto));
+        if existe(c, i) { return sin_prestamo(vista(c.simbolos[i].tipo)); }
+        return vacio();
+    }
+    if igual(vista(n.clase), "campo") && largo(n.hijos) > 0 {
+        let base = tipo_simple(c, m, n.hijos[0]);
+        if largo(base) == 0 || !es_struct(m, vista(base)) { return vacio(); }
+        return tipo_del_campo(m, vista(base), vista(n.texto));
+    }
+    return vacio();
 }
 
 fn es_local(procedencia: str) -> bool { return igual(vista(procedencia), "local"); }
@@ -1649,9 +1835,219 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         ligadas: ligadas, clave: copiar(clave), copia: copiar(copia) };
     if !hecha {
         anadir(m.copias, copiar(clave));
-        comprobar_copia(c, m, n, k, inst, lig);
+        comprobar_copia(c, m, n, k, inst, lig, false);
     }
     return inst;
+}
+
+// El cuerpo de una generica con restriccion vale para CADA tipo que la
+// cumple, no solo para los que se usan: si compila, compila para todo `T`
+// del conjunto. Como los conjuntos son finitos, basta con probarlos todos,
+// salvo los que dejan la firma sin sentido. Un parametro sin restriccion se
+// deja en los tipos con que se uso; si alguno no la tiene y nadie la usa, no
+// se sabe con que probar, y se deja.
+fn comprobar_restricciones(c: mut Comprobacion, m: mut Mundo) {
+    let total = largo(m.funciones);
+    var e = 0;
+    while e < total {
+        let f = copiar(m.funciones[e]);
+        let k = e;
+        e = e + 1;
+        if f.de_cierre || f.externa || !tiene_sueltos(f) || largo(f.restricciones) == 0 {
+            continue;
+        }
+        var restr: mapa<str, str> = [];
+        for r en f.restricciones {
+            var corte = 0;
+            while corte < largo(r) && byte(vista(r), corte) != 61 { corte = corte + 1; }
+            poner(restr, rebanar(vista(r), 0, corte), nuevo(rebanar(vista(r), corte + 1, largo(r))));
+        }
+        let prefijo = $"{f.nombre}|";
+        var probadas: lista<str> = [];
+        var bases: lista<lista<str>> = [];
+        for cl en m.copias {
+            if empieza_con(vista(cl), vista(prefijo)) {
+                anadir(probadas, copiar(cl));
+                anadir(bases, partir_por_barra(rebanar(vista(cl), largo(prefijo), largo(cl))));
+            }
+        }
+        if largo(bases) == 0 {
+            var todos = true;
+            for tp en f.tipo_params {
+                if !tiene(restr, vista(tp)) { todos = false; }
+            }
+            if todos {
+                let ninguna: lista<str> = [];
+                anadir(bases, ninguna);
+            }
+        }
+        for base en bases {
+            var opciones: lista<lista<str>> = [];
+            var i = 0;
+            var alguna_vacia = false;
+            while i < largo(f.tipo_params) {
+                let tp = vista(f.tipo_params[i]);
+                if tiene(restr, tp) {
+                    let cual = obtener(restr, tp) sino "";
+                    anadir(opciones, restriccion_admite(cual));
+                } else {
+                    var una: lista<str> = [];
+                    if i < largo(base) { anadir(una, copiar(base[i])); }
+                    if largo(una) == 0 { alguna_vacia = true; }
+                    anadir(opciones, una);
+                }
+                i = i + 1;
+            }
+            if alguna_vacia || largo(opciones) == 0 { continue; }
+            // Todas las combinaciones, la ultima posicion la que mas cambia.
+            var cuenta: lista<usize> = [];
+            for _o en opciones { anadir(cuenta, 0); }
+            var sigue = true;
+            while sigue {
+                var juego: lista<str> = [];
+                var clave = copiar(f.nombre);
+                var j = 0;
+                while j < largo(opciones) {
+                    let t = copiar(opciones[j][cuenta[j]]);
+                    empujar(clave, "|");
+                    empujar(clave, vista(t));
+                    anadir(juego, t);
+                    j = j + 1;
+                }
+                if !esta_entre(probadas, vista(clave)) {
+                    anadir(probadas, copiar(clave));
+                    if firma_valida(m, f, juego) { probar_juego(c, m, k, juego); }
+                }
+                // La siguiente.
+                var p = largo(opciones);
+                sigue = false;
+                while p > 0 && !sigue {
+                    p = p - 1;
+                    if cuenta[p] + 1 < largo(opciones[p]) {
+                        cuenta[p] = cuenta[p] + 1;
+                        sigue = true;
+                    } else {
+                        cuenta[p] = 0;
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn partir_por_barra(t: view) -> lista<str> {
+    var salida: lista<str> = [];
+    var desde = 0;
+    var i = 0;
+    while i <= largo(t) {
+        if i == largo(t) || byte(t, i) == 124 {
+            anadir(salida, nuevo(rebanar(t, desde, i)));
+            desde = i + 1;
+        }
+        i = i + 1;
+    }
+    return salida;
+}
+
+// Las ligaduras de `f` para un juego de tipos, en el orden de la plantilla.
+fn ligaduras_de_juego(f: &Funcion, juego: &lista<str>) -> mapa<str, str> {
+    var lig: mapa<str, str> = [];
+    var orden = vacio();
+    var i = 0;
+    while i < largo(f.tipo_params) && i < largo(juego) {
+        poner(lig, vista(f.tipo_params[i]), copiar(juego[i]));
+        empujar(orden, vista(f.tipo_params[i]));
+        empujar(orden, "\t");
+        i = i + 1;
+    }
+    poner(lig, "\t", orden);
+    return lig;
+}
+
+// Si con estos tipos la firma tiene sentido. Un `T = view` sobre un
+// `&lista<T>` no lo tiene: nadie podria llamarla asi, y el cuerpo no tiene
+// que valer para lo que no se puede escribir.
+fn firma_valida(m: &Mundo, f: &Funcion, juego: &lista<str>) -> bool {
+    let lig = ligaduras_de_juego(f, juego);
+    for p en f.params {
+        let t = I.sustituir(vista(p.tipo), lig);
+        if !almacenable(m, vista(t)) || (prestado(p) && igual(vista(t), "view")) { return false; }
+    }
+    let r = I.sustituir(vista(f.retorno), lig);
+    return largo(r) == 0 || igual(vista(r), "()") || almacenable(m, vista(r));
+}
+
+// Comprueba la copia de `k` para este juego sin quedarsela: lo que cambie
+// al hacerla se deshace, y solo quedan los errores.
+fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>) {
+    let f = copiar(m.funciones[k]);
+    let lig = ligaduras_de_juego(f, juego);
+    var ps: lista<Param> = [];
+    for p en f.params {
+        anadir(ps, Param { nombre: copiar(p.nombre), tipo: I.sustituir(vista(p.tipo), lig),
+                mutable: p.mutable, compartido: p.compartido });
+    }
+    var ligadas = vacio();
+    var clave = copiar(f.nombre);
+    var copia = copiar(f.nombre);
+    empujar(copia, "__");
+    var i = 0;
+    while i < largo(f.tipo_params) && i < largo(juego) {
+        if i > 0 {
+            empujar(ligadas, ", ");
+            empujar(copia, "_");
+        }
+        empujar(ligadas, $"{f.tipo_params[i]} = {juego[i]}");
+        empujar(clave, "|");
+        empujar(clave, vista(juego[i]));
+        let resuelto = I.nombre_resuelto(vista(juego[i]));
+        empujar(copia, G.sanear(vista(resuelto)));
+        i = i + 1;
+    }
+    let inst = Instancia { ok: true, params: ps, retorno: I.sustituir(vista(f.retorno), lig),
+        ligadas: ligadas, clave: copiar(clave), copia: copia };
+    let c_antes = copiar(c);
+    let m_antes = Mundo { funciones: copiar(m.funciones), indice: copiar(m.indice),
+        st_tipos: copiar(m.st_tipos), st_nombres: copiar(m.st_nombres),
+        st_params: copiar(m.st_params), en_variantes: copiar(m.en_variantes),
+        en_formas: copiar(m.en_formas), bonitos: copiar(m.bonitos), cierres: copiar(m.cierres),
+        cierres_mod: copiar(m.cierres_mod), n_cierres: m.n_cierres,
+        cierres_mut: copiar(m.cierres_mut), numeracion: copiar(m.numeracion), arboles: [],
+        modulos: [], contextos: [], copias: copiar(m.copias),
+        orden_structs: copiar(m.orden_structs), tipo_de_struct: copiar(m.tipo_de_struct) };
+    let antes = largo(c.errores);
+    anadir(m.copias, copiar(clave));
+    let nodo = copiar(m.arboles[f.modulo].hijos[f.posicion]);
+    let archivo_antes = copiar(c.archivo);
+    c.archivo = copiar(f.archivo);
+    comprobar_copia(c, m, nodo, k, inst, lig, true);
+    var nuevos: lista<str> = [];
+    var q = antes;
+    while q < largo(c.errores) {
+        anadir(nuevos, copiar(c.errores[q]));
+        q = q + 1;
+    }
+    c = c_antes;
+    c.archivo = archivo_antes;
+    m.funciones = copiar(m_antes.funciones);
+    m.indice = copiar(m_antes.indice);
+    m.st_tipos = copiar(m_antes.st_tipos);
+    m.st_nombres = copiar(m_antes.st_nombres);
+    m.st_params = copiar(m_antes.st_params);
+    m.en_variantes = copiar(m_antes.en_variantes);
+    m.en_formas = copiar(m_antes.en_formas);
+    m.bonitos = copiar(m_antes.bonitos);
+    m.cierres = copiar(m_antes.cierres);
+    m.cierres_mod = copiar(m_antes.cierres_mod);
+    m.n_cierres = m_antes.n_cierres;
+    m.cierres_mut = copiar(m_antes.cierres_mut);
+    m.numeracion = copiar(m_antes.numeracion);
+    m.copias = copiar(m_antes.copias);
+    m.orden_structs = copiar(m_antes.orden_structs);
+    m.tipo_de_struct = copiar(m_antes.tipo_de_struct);
+    for x en nuevos {
+        if !esta_entre(c.errores, vista(x)) { anadir(c.errores, copiar(x)); }
+    }
 }
 
 // Los tipos puestos en el arbol de una copia: en los parametros, el
@@ -1680,7 +2076,7 @@ fn sustituir_en_arbol(n: mut P.Nodo, lig: &mapa<str, str>) {
 // El cuerpo de una generica se comprueba con los tipos puestos, en mitad de
 // quien la llama, como otra funcion entera.
 fn comprobar_copia(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, k: usize,
-    inst: &Instancia, lig: &mapa<str, str>) {
+    inst: &Instancia, lig: &mapa<str, str>, sin_llamada: bool) {
     var f = copiar(m.funciones[k]);
     f.params = copiar(inst.params);
     f.retorno = copiar(inst.retorno);
@@ -1710,7 +2106,11 @@ fn comprobar_copia(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, k: usize,
     let archivo = copiar(c.archivo);
     let nombre = copiar(m.funciones[k].nombre);
     let ligadas = legible(m, vista(inst.ligadas));
-    anadir(c.instanciando, $"al usar `{nombre}` con {ligadas}, desde {archivo}:{n.linea}");
+    if sin_llamada {
+        anadir(c.instanciando, $"al comprobar `{nombre}` con {ligadas}: la restriccion lo admite, asi que el cuerpo tiene que valer tambien asi");
+    } else {
+        anadir(c.instanciando, $"al usar `{nombre}` con {ligadas}, desde {archivo}:{n.linea}");
+    }
     anadir(c.plantillas, k);
     let dueno = copiar(c.dueno);
     let modulo_antes = c.modulo;
@@ -2000,9 +2400,91 @@ fn desenvolver(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, nodo: &P.N
     return llamada(c, m, tipos, dentro, true, "");
 }
 
+// `p.a.b` -> `p\ta.b`: la cadena de campos desde una variable. Vacio si
+// por medio hay un indice, una llamada u otra cosa.
+fn ruta_de_campo(n: &P.Nodo) -> str {
+    var nombres: lista<str> = [];
+    var x = copiar(n);
+    while igual(vista(x.clase), "campo") && largo(x.hijos) > 0 {
+        anadir(nombres, copiar(x.texto));
+        let dentro = copiar(x.hijos[0]);
+        x = dentro;
+    }
+    if !igual(vista(x.clase), "variable") || largo(nombres) == 0 { return vacio(); }
+    var r = copiar(x.texto);
+    empujar(r, "\t");
+    var k = largo(nombres);
+    while k > 0 {
+        k = k - 1;
+        empujar(r, vista(nombres[k]));
+        if k > 0 { empujar(r, "."); }
+    }
+    return r;
+}
+
+// Mover un campo con duenio fuera de su struct. En C se copia y su sitio
+// queda a ceros, que en Tcode es un valor valido: al liberar el struct, ese
+// campo no suelta nada. Aqui se apunta, para que nadie use el campo, ni el
+// struct entero, hasta que se reponga.
+fn sacar_campo(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, base: view, raiz: view, ruta: view,
+    i: usize) {
+    if !existe(c, i) {
+        let campo_n = copiar(n.texto);
+        error(c, m, n.linea, $"no se puede sacar `{campo_n}` de un struct que no esta en una variable: dejaria a `{base}` a medio mover. Guarda antes el struct, o usa `copiar(...)`");
+        return;
+    }
+    let nombre = $"{raiz}.{ruta}";
+    let t = copiar(c.simbolos[i].tipo);
+    if c.simbolos[i].prestado || T.es_referencia(vista(t)) || igual(vista(t), "view") {
+        error(c, m, n.linea, $"`{raiz}` es prestada: no se puede sacar `{nombre}` de algo que no es tuyo. Usa `copiar(...)`");
+        return;
+    }
+    if c.en_guarda > 0 {
+        error(c, m, n.linea, $"una guarda no mueve nada: `{nombre}` se moveria aunque el brazo no case. Presta, o usa `copiar(...)`");
+        return;
+    }
+    if c.en_retorno == 0 && (c.en_condicional > c.simbolos[i].condicional_al_declarar
+        || c.en_bucle > c.simbolos[i].bucle_al_declarar) {
+        error(c, m, n.linea, $"no se puede sacar `{nombre}` dentro de un `if`, un `match` o un bucle: despues no se sabria si sigue ahi. Sacalo donde vive `{raiz}`, o deja otro valor en su sitio con `intercambiar(...)`");
+        return;
+    }
+    if largo(c.simbolos[i].prestamos) > 0 {
+        let por = ocupada(c, i);
+        error(c, m, n.linea, $"no se puede sacar `{nombre}`: {por}");
+        return;
+    }
+    anadir(c.simbolos[i].sacados, $"{ruta}\t{n.linea}");
+    anadir(c.sacados, $"{c.archivo}\t{n.linea}\t{nombre}");
+}
+
 fn campo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     mover_variables: bool) -> str {
+    let camino = ruta_de_campo(n);
+    let raiz = antes_de_tab(vista(camino));
+    let ruta = despues_de_tab(vista(camino));
+    var ir = largo(c.simbolos);
+    if largo(camino) > 0 { ir = buscar_simbolo(c, vista(raiz)); }
+    // Lo ya sacado no se usa; el error se da una vez y se sigue.
+    var ya_sacado = false;
+    if c.por_campo == 0 && c.escribiendo == 0 && existe(c, ir) {
+        for sacado en copiar(c.simbolos[ir].sacados) {
+            if ya_sacado { break; }
+            let r = antes_de_tab(vista(sacado));
+            let cuando = despues_de_tab(vista(sacado));
+            if igual(vista(ruta), vista(r)) || empieza_con(vista(ruta), $"{r}.") {
+                error(c, m, n.linea, $"`{raiz}.{r}` ya se saco en la linea {cuando} y aqui se usa otra vez");
+                ya_sacado = true;
+            } else if empieza_con(vista(r), $"{ruta}.") {
+                error(c, m, n.linea, $"`{raiz}.{ruta}` esta a medio mover: `{raiz}.{r}` se saco en la linea {cuando}");
+                ya_sacado = true;
+            }
+        }
+    }
+    let oc = vista(n.hijos[0].clase);
+    let encadenado = igual(oc, "variable") || igual(oc, "campo");
+    if encadenado { c.por_campo = c.por_campo + 1; }
     let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
+    if encadenado { c.por_campo = c.por_campo - 1; }
     if largo(crudo) == 0 { return vacio(); }
     let base = sin_prestamo(vista(crudo));
     if !es_struct(m, vista(base)) {
@@ -2015,8 +2497,9 @@ fn campo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     var i = 0;
     while i < largo(ns) && i < largo(ts) {
         if igual(vista(ns[i]), nombre) {
-            if mover_variables && posee_memoria(m, vista(ts[i])) {
-                error(c, m, n.linea, $"en v0 no se puede sacar `{nombre}` de un struct: dejaria a `{base}` a medio mover. Mueve el struct entero");
+            if mover_variables && posee_memoria(m, vista(ts[i])) && c.por_campo == 0
+            && !ya_sacado {
+                sacar_campo(c, m, n, vista(base), vista(raiz), vista(ruta), ir);
             }
             return copiar(ts[i]);
         }
@@ -2331,7 +2814,10 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     }
     let antes = foto(c);
     var fotos: lista<lista<usize>> = [];
+    // Las formas con un brazo que vale para todas ellas, y las que tienen
+    // alguno, aunque sea con condiciones.
     var vistas: lista<str> = [];
+    var con_brazo: lista<str> = [];
     var comun = vacio();
     var hay_comodin = false;
     var k = 1;
@@ -2343,14 +2829,23 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
             break;
         }
         restaurar_foto(c, antes);
-        var atrapa: lista<str> = [];
+        let posiciones = posiciones_de(b);
+        var guarda: i64 = -1;
+        var h_i = 0;
         for h en b.hijos {
-            if igual(vista(h.clase), "atrapa") { anadir(atrapa, copiar(h.texto)); }
+            if igual(vista(h.clase), "guarda") { guarda = h_i como i64; }
+            h_i = h_i + 1;
+        }
+        // Un brazo con guarda, o con algo que no sea un nombre en alguna
+        // posicion, puede no casar: no cubre su forma el solo.
+        var condicionado = guarda >= 0;
+        for p en posiciones {
+            if !igual(vista(p.clase), "atrapa") { condicionado = true; }
         }
         var forma = vacio();
         if largo(b.texto) == 0 {
-            hay_comodin = true;
-            if largo(atrapa) > 0 { error(c, m, n.linea, "el brazo `_` no atrapa nada"); }
+            if largo(posiciones) > 0 { error(c, m, n.linea, "el brazo `_` no atrapa nada"); }
+            if guarda < 0 { hay_comodin = true; }
         } else {
             forma = I.tras_el_punto(vista(b.texto));
             if !tiene_forma(m, vista(base), vista(forma)) {
@@ -2361,28 +2856,20 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
             if esta_entre(vistas, vista(forma)) {
                 error(c, m, n.linea, $"`{base}.{forma}` se mira dos veces; el segundo brazo no se ejecuta nunca");
             }
-            anadir(vistas, copiar(forma));
-            let lleva = formas_de(m, vista(base), vista(forma));
-            if largo(atrapa) != largo(lleva) {
-                let cuantos = cuantos_valores(largo(lleva));
-                let atrapados = largo(atrapa);
-                error(c, m, n.linea, $"`{base}.{forma}` lleva {cuantos}, y el patron atrapa {atrapados}");
-                continue;
-            }
+            if !esta_entre(con_brazo, vista(forma)) { anadir(con_brazo, copiar(forma)); }
+            if !condicionado { anadir(vistas, copiar(forma)); }
+            if !patron_valido(c, m, n.linea, vista(base), vista(forma), posiciones) { continue; }
         }
         abrir_ambito(c);
         c.en_condicional = c.en_condicional + 1;
-        if largo(forma) > 0 {
-            let lleva = formas_de(m, vista(base), vista(forma));
-            var i = 0;
-            while i < largo(atrapa) {
-                let t = vista(lleva[i]);
-                var tp = nuevo(t);
-                if posee_memoria(m, t) {
-                    if igual(t, "str") { tp = nuevo("view"); } else { tp = $"&{t}"; }
-                }
-                let _s = declarar_simbolo(c, m, n.linea, vista(atrapa[i]), vista(tp), false);
-                i = i + 1;
+        if largo(forma) > 0 { declarar_patron(c, m, n.linea, vista(base), vista(forma), posiciones); }
+        if guarda >= 0 {
+            let g = copiar(b.hijos[guarda como usize]);
+            c.en_guarda = c.en_guarda + 1;
+            let tg = comprobar_expresion(c, m, tipos, g.hijos[0], "", false);
+            c.en_guarda = c.en_guarda - 1;
+            if largo(tg) > 0 && !igual(vista(tg), "bool") {
+                error(c, m, n.linea, $"la guarda de un brazo tiene que ser `bool`, es `{tg}`");
             }
         }
         var t = vacio();
@@ -2421,15 +2908,109 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     }
     if !hay_comodin {
         var faltan: lista<str> = [];
+        var a_medias: lista<str> = [];
         for v en I.lista_de(m.en_variantes, vista(base)) sino [] {
-            if !esta_entre(vistas, vista(v)) { anadir(faltan, $"{base}.{v}"); }
+            if !esta_entre(con_brazo, vista(v)) {
+                anadir(faltan, $"{base}.{v}");
+            } else if !esta_entre(vistas, vista(v)) {
+                anadir(a_medias, $"{base}.{v}");
+            }
         }
         if largo(faltan) > 0 {
             let cuales = con_comas(faltan);
             error(c, m, n.linea, $"al `match` le faltan formas: {cuales}. Ponlas, o pon un brazo `_` para lo que quede; si no, el dia que anadas una variante este sitio se quedaria callado");
+        } else if largo(a_medias) > 0 {
+            let cuales = con_comas(a_medias);
+            error(c, m, n.linea, $"al `match` le pueden quedar casos de {cuales} sin mirar: sus brazos tienen guarda o un patron que puede no casar. Pon uno que valga para todos, o un brazo `_`");
         }
     }
     return comun;
+}
+
+// Lo que va en cada posicion de un patron, en orden: hojas `atrapa` y ramas
+// `patron` y `literal`.
+fn posiciones_de(b: &P.Nodo) -> lista<P.Nodo> {
+    var salida: lista<P.Nodo> = [];
+    for h en b.hijos {
+        let hc = vista(h.clase);
+        if igual(hc, "atrapa") || igual(hc, "patron") || igual(hc, "literal") {
+            anadir(salida, copiar(h));
+        }
+    }
+    return salida;
+}
+
+// Si lo que va en cada posicion de `base.forma(...)` encaja con lo que lleva
+// la forma: el numero, las formas anidadas y los literales.
+fn patron_valido(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma: view,
+    posiciones: &lista<P.Nodo>) -> bool {
+    let lleva = formas_de(m, base, forma);
+    if largo(posiciones) != largo(lleva) {
+        let cuantos = cuantos_valores(largo(lleva));
+        let atrapados = largo(posiciones);
+        error(c, m, linea, $"`{base}.{forma}` lleva {cuantos}, y el patron atrapa {atrapados}");
+        return false;
+    }
+    var i = 0;
+    while i < largo(posiciones) {
+        let t = copiar(lleva[i]);
+        let p = copiar(posiciones[i]);
+        i = i + 1;
+        let pc = vista(p.clase);
+        if igual(pc, "atrapa") { continue; }
+        if igual(pc, "patron") {
+            let quien = I.antes_del_punto(vista(p.texto));
+            let cual = I.tras_el_punto(vista(p.texto));
+            if !es_enum(m, vista(t)) || !igual(vista(quien), vista(t)) {
+                error(c, m, linea, $"`{base}.{forma}` lleva un `{t}` en la posicion {i}, y el patron pone `{p.texto}`");
+                return false;
+            }
+            if !tiene_forma(m, vista(t), vista(cual)) {
+                let cuales = formas_legibles(m, vista(t));
+                error(c, m, linea, $"`{t}` no tiene la forma `{cual}`; tiene {cuales}");
+                return false;
+            }
+            if !patron_valido(c, m, linea, vista(t), vista(cual), posiciones_de(p)) { return false; }
+            continue;
+        }
+        let lit = copiar(p.hijos[0]);
+        let lc = vista(lit.clase);
+        var numero = igual(lc, "entero");
+        if igual(lc, "unaria") && igual(vista(lit.texto), "-") && largo(lit.hijos) > 0 {
+            numero = igual(vista(lit.hijos[0].clase), "entero");
+        }
+        if numero && es_tipo_entero(vista(t)) {
+            comprobar_literal(c, m, lit, vista(t));
+        } else if !((igual(lc, "cadena") && igual(vista(t), "str"))
+            || (igual(lc, "booleano") && igual(vista(t), "bool"))) {
+            error(c, m, linea, $"`{base}.{forma}` lleva un `{t}` en la posicion {i}, y el literal del patron no es uno");
+            return false;
+        }
+    }
+    return true;
+}
+
+// Lo que atrapa el patron, prestado: un `match` mira, no desmonta. Un `str`
+// prestado es una `view`, y lo demas con duenio un `&T`.
+fn declarar_patron(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma: view,
+    posiciones: &lista<P.Nodo>) {
+    let lleva = formas_de(m, base, forma);
+    var i = 0;
+    while i < largo(posiciones) && i < largo(lleva) {
+        let t = copiar(lleva[i]);
+        let p = copiar(posiciones[i]);
+        i = i + 1;
+        if igual(vista(p.clase), "patron") {
+            let cual = I.tras_el_punto(vista(p.texto));
+            declarar_patron(c, m, linea, vista(t), vista(cual), posiciones_de(p));
+        } else if igual(vista(p.clase), "atrapa") && !igual(vista(p.texto), "_") {
+            var tp = copiar(t);
+            if posee_memoria(m, vista(t)) {
+                if igual(vista(t), "str") { tp = nuevo("view"); } else { tp = $"&{t}"; }
+            }
+            let _s = declarar_simbolo(c, m, linea, vista(p.texto), vista(tp), false);
+        }
+    }
 }
 
 // Una clausura es su struct con lo capturado mas su funcion, que se
@@ -2523,8 +3104,12 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
             continue;
         }
         let t = copiar(c.simbolos[i].tipo);
-        if igual(vista(t), "view") || T.es_referencia(vista(t)) {
-            error(c, m, n.linea, $"`{nombre}` es `{t}`, un prestamo: una clausura captura por valor, y guardar un prestamo exigiria saber cuanto vive. Captura un `str` con `copiar({nombre})`");
+        if presta_tipo(m, vista(t)) {
+            var arreglo = $"Captura lo que necesites de `{nombre}`";
+            if igual(vista(t), "view") || T.es_referencia(vista(t)) {
+                arreglo = $"Captura un `str` con `copiar({nombre})`";
+            }
+            error(c, m, n.linea, $"`{nombre}` es `{t}`, un prestamo: una clausura captura por valor, y guardar un prestamo exigiria saber cuanto vive. {arreglo}");
             continue;
         }
         anadir(nombres, nuevo(nombre));
@@ -2894,6 +3479,9 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             return vacio();
         }
         let t = tipo_de_lugar(c, m, tipos, n.hijos[0]);
+        if largo(t) > 0 && presta_tipo(m, vista(t)) {
+            error(c, m, n.linea, $"`intercambiar` no cambia prestamos: `{t}` apunta a memoria de otro. Asigna con `=`");
+        }
         let por_ref = T.es_referencia(vista(c.simbolos[is].tipo));
         mutar(c, m, n.hijos[0], n.hijos[0].linea, is, por_ref);
         anadir(c.simbolos[is].prestamos, nuevo("intercambiar"));
@@ -3466,7 +4054,7 @@ fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s:
             }
         }
         let i = declarar_simbolo(c, m, s.linea, vista(nombre), vista(tipo), mutable);
-        if igual(vista(tipo), "view") || T.es_referencia(vista(tipo)) {
+        if presta_tipo(m, vista(tipo)) {
             c.simbolos[i].procedencia = procedencia_de(c, m, s.hijos[0]);
             c.simbolos[i].prestado = T.es_referencia(vista(tipo));
             apuntar(c, m, s.linea, i, s.hijos[0]);
@@ -3487,7 +4075,9 @@ fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s:
             let _t = comprobar_expresion(c, m, tipos, s.hijos[1], "", false);
             return;
         }
+        c.escribiendo = c.escribiendo + 1;
         let destino = tipo_de_lugar(c, m, tipos, lugar);
+        c.escribiendo = c.escribiendo - 1;
         let tipo = comprobar_expresion(c, m, tipos, s.hijos[1], vista(destino), true);
         if escribe_en_captura(c, m, lugar) { return; }
         c.simbolos[i].mutada = true;
@@ -3506,13 +4096,56 @@ fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s:
         if largo(destino) > 0 && largo(tipo) > 0 && !encaja(vista(destino), vista(tipo)) {
             error(c, m, s.linea, $"el destino es `{destino}` y se le asigna un `{tipo}`");
         }
+        // Una vista guardada en un campo: el struct de la raiz presta tambien
+        // de ella. Si la raiz llego prestada, quien la presto no sabria de
+        // donde presta ahora, salvo que sea un literal.
+        if igual(vista(lugar.clase), "campo") && presta_tipo(m, vista(tipo)) {
+            let de_raiz = copiar(c.simbolos[i].tipo);
+            if c.simbolos[i].prestado || T.es_referencia(vista(de_raiz)) {
+                if !igual(procedencia_de(c, m, s.hijos[1]), "estatico") {
+                    error(c, m, s.linea, $"no se puede guardar un prestamo en `{base}`: llego prestada, y quien la presto no sabria de donde presta ahora. Guarda un literal, o devuelve el valor");
+                }
+            } else if es_prestado_st(m, vista(de_raiz)) {
+                let nueva = procedencia_de(c, m, s.hijos[1]);
+                let antes = copiar(c.simbolos[i].procedencia);
+                if igual(vista(antes), "local") || igual(vista(nueva), "local") {
+                    c.simbolos[i].procedencia = nuevo("local");
+                } else if igual(vista(antes), "parametro") || igual(vista(nueva), "parametro") {
+                    c.simbolos[i].procedencia = nuevo("parametro");
+                }
+                apuntar(c, m, s.linea, i, s.hijos[1]);
+            }
+        }
+
+        // Lo que se habia sacado vuelve a estar, si se repone en el mismo
+        // nivel en que vive la variable. Dentro de un `if`, el otro camino no
+        // lo repuso.
+        if c.en_condicional == c.simbolos[i].condicional_al_declarar
+        && c.en_bucle == c.simbolos[i].bucle_al_declarar {
+            if igual(vista(lugar.clase), "variable") {
+                c.simbolos[i].sacados = [];
+            } else {
+                let camino = ruta_de_campo(lugar);
+                if largo(camino) > 0 {
+                    let ruta = despues_de_tab(vista(camino));
+                    var quedan: lista<str> = [];
+                    for x en c.simbolos[i].sacados {
+                        let r = antes_de_tab(vista(x));
+                        if !igual(vista(r), vista(ruta)) && !empieza_con(vista(r), $"{ruta}.") {
+                            anadir(quedan, copiar(x));
+                        }
+                    }
+                    c.simbolos[i].sacados = quedan;
+                }
+            }
+        }
         if igual(vista(lugar.clase), "variable") {
             c.simbolos[i].movida = false;
             if c.en_bucle_directo == c.en_bucle como i64 {
                 c.simbolos[i].reasignada_directo = true;
             }
             let ti = copiar(c.simbolos[i].tipo);
-            if igual(vista(ti), "view") || T.es_referencia(vista(ti)) {
+            if presta_tipo(m, vista(ti)) {
                 // Lo peor de lo que tuvo y de lo que tiene ahora: si la
                 // asignacion va en una rama, la otra puede no haberla hecho.
                 let nueva = procedencia_de(c, m, s.hijos[1]);
@@ -3675,7 +4308,7 @@ fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s:
             }
             return;
         }
-        if igual(vista(r), "view") || T.es_referencia(vista(r)) {
+        if presta_tipo(m, vista(r)) {
             comprobar_vista_devuelta(c, m, s);
         }
         c.en_retorno = c.en_retorno + 1;
@@ -3762,7 +4395,9 @@ fn comprobar_funcion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, k: u
         c.simbolos[i].es_param = true;
         let h = c.simbolos[i].historia;
         c.historia[h].es_param = true;
-        if igual(vista(p.tipo), "view") { c.simbolos[i].procedencia = nuevo("parametro"); }
+        if igual(vista(p.tipo), "view") || (!prestado(p) && es_prestado_st(m, vista(p.tipo))) {
+            c.simbolos[i].procedencia = nuevo("parametro");
+        }
     }
     var sale = false;
     for h en d.hijos {
@@ -4117,6 +4752,8 @@ struct Revision {
     cierres: lista<P.Nodo>,
     cierres_mod: lista<usize>,
     numeracion: mapa<str, usize>,
+    // Los campos sacados de su struct: `archivo\tlinea\tp.a.b`.
+    sacados: lista<str>,
 }
 
 fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
@@ -4204,6 +4841,8 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
                     validar_tipo(c, m, d.linea, vista(t));
                     if !almacenable(m, vista(t)) {
                         error(c, m, d.linea, $"`{nombre}.{v.texto}` lleva un `{t}`, que no es un tipo");
+                    } else if igual(vista(t), "view") {
+                        error_enum_prestado(c, m, d.linea, nombre, vista(v.texto), vista(t));
                     }
                     var vistos: lista<str> = [];
                     if se_contiene(m, vista(t), nombre, vistos) {
@@ -4293,9 +4932,9 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
                 }
                 anadir(vistos_c, copiar(cn));
                 anadir(tipos_c, copiar(ct));
-                if igual(vista(ct), "view") {
-                    error(c, m, d.linea, $"en v0 un struct no puede tener un campo `view` (`{nombre}.{cn}`): habria que llevar su vida util en el tipo. Usa `str`, que es duenio de su memoria");
-                } else if !almacenable(m, vista(ct)) {
+                // Un campo `view` hace del struct uno que presta: se le trata
+                // como a una vista, sin anotar vidas en el tipo.
+                if !almacenable(m, vista(ct)) {
                     error(c, m, d.linea, $"`{nombre}.{cn}` usa el tipo `{ct}`, que no existe");
                 }
             }
@@ -4306,6 +4945,26 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
             }
             if ciclo {
                 error(c, m, d.linea, $"`{nombre}` se contiene a si mismo: no tiene un tamaño finito");
+            }
+        }
+        k = k + 1;
+    }
+
+    // Un enum tampoco lleva un struct que presta.
+    k = 0;
+    while k < largo(arboles) {
+        c.archivo = copiar(modulos[k]);
+        for d en arboles[k].hijos {
+            if !igual(vista(d.clase), "enum") { continue; }
+            for v en d.hijos {
+                if !igual(vista(v.clase), "variante") { continue; }
+                for x en v.hijos {
+                    if !igual(vista(x.clase), "lleva") { continue; }
+                    let t = I.sin_alias_tipo(vista(x.texto));
+                    if es_prestado_st(m, vista(t)) {
+                        error_enum_prestado(c, m, d.linea, vista(d.texto), vista(v.texto), vista(t));
+                    }
+                }
             }
         }
         k = k + 1;
@@ -4374,9 +5033,11 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         e = e + 1;
     }
+    comprobar_restricciones(c, m);
     let principal = vista(modulos[largo(modulos) - 1]);
     return Revision { errores: copiar(c.errores), avisos: copiar(c.avisos),
         explicacion: explicacion(m, c.informe, principal),
         cierres: copiar(m.cierres),
-        cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion) };
+        cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion),
+        sacados: copiar(c.sacados) };
 }

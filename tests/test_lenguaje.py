@@ -208,6 +208,125 @@ RECHAZO = [
      ' fn main() { let v = primero(nuevo("temporal")); imprimir(v); }',
      "apuntaria a un valor temporal"),
 
+    # ---- una generica con restriccion vale para todo su conjunto ----
+    ("el cuerpo de una generica se comprueba con todo lo que admite",
+     'fn primera<T: igualable>(xs: &lista<T>) -> T { let t = xs[0]; return t; }'
+     ' fn main() { var xs: lista<usize> = []; anadir(xs, 1);'
+     ' imprimir(primera(xs)); }',
+     "al comprobar `primera` con T = str: la restriccion lo admite"),
+
+    ("tambien si nadie la usa",
+     'fn mala<T: texto>(x: T) -> usize { return x + 1; }',
+     "al comprobar `mala` con T = str"),
+
+    ("un parametro sin restriccion se prueba con lo que se uso",
+     'fn cuenta<T: ordenable, U>(x: T, u: U) -> U { let y = x;'
+     ' imprimir(largo(y)); return u; }'
+     ' fn main() { imprimir(cuenta("a", 3)); }',
+     "con T = f32, U = usize"),
+
+    # ---- structs con un campo `view`: prestan, como una vista ----
+    ("un struct que presta no vive mas que su duenio",
+     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn main() { var p = Palabra { texto: "", n: 0 };'
+     ' if true { let s = nuevo("x"); p = Palabra { texto: vista(s), n: 1 }; }'
+     ' imprimir(p.texto); }',
+     "`p` vive mas que `s`"),
+
+    ("mientras vive, su duenio no se modifica",
+     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn main() { var s = nuevo("x"); let p = Palabra { texto: vista(s), n: 1 };'
+     ' empujar(s, "y"); imprimir(p.texto); }',
+     "no se puede modificar `s`: esta prestada por `p`"),
+
+    ("no sale de la funcion si presta de algo local",
+     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn f() -> Palabra { let s = nuevo("x");'
+     ' return Palabra { texto: vista(s), n: 1 }; }',
+     "no se puede devolver una vista de `s`"),
+
+    ("la vista que se saca de el presta de lo mismo",
+     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn main() { var s = nuevo("x"); let p = Palabra { texto: vista(s), n: 1 };'
+     ' let v = texto_de(p); empujar(s, "y"); imprimir(v); }',
+     "esta prestada por `p` y `v`"),
+
+    ("una lista no guarda structs que prestan",
+     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn main() { var xs: lista<Palabra> = []; imprimir(largo(xs)); }',
+     "no es un tipo almacenable"),
+
+    ("un mapa tampoco guarda vistas",
+     'fn main() { var m: mapa<str, view> = []; imprimir(largo(m)); }',
+     "no es un tipo almacenable"),
+
+    ("un enum no lleva vistas",
+     'enum E { A(view), B } fn main() { }',
+     "un enum no guarda prestamos"),
+
+    ("no se guarda una vista en algo prestado",
+     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn g(p: mut Palabra, v: view) { p.texto = v; }',
+     "no se puede guardar un prestamo en `p`"),
+
+    ("una clausura no captura un struct que presta",
+     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn main() { let s = nuevo("x"); let p = Palabra { texto: vista(s), n: 1 };'
+     ' let f = fn[p]() -> usize { return 1; }; imprimir(f()); }',
+     "`p` es `Palabra`, un prestamo"),
+
+    # ---- sacar un campo de su struct ----
+    ("un struct a medio mover no se usa entero",
+     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn main() { let p = nuevo_p(); let n = p.nombre; imprimir(toma(p));'
+     ' imprimir(n); }',
+     "`p` esta a medio mover: `p.nombre` se saco"),
+
+    ("un campo sacado no se usa otra vez",
+     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn main() { let p = nuevo_p(); let n = p.nombre; let m = p.nombre;'
+     ' imprimir(n); imprimir(m); }',
+     "`p.nombre` ya se saco"),
+
+    ("un campo no se saca dentro de un `if`",
+     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn main() { let p = nuevo_p(); if true { let n = p.nombre;'
+     ' imprimir(n); } }',
+     "no se puede sacar `p.nombre` dentro de un `if`"),
+
+    ("ni de algo prestado",
+     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn f(p: &P) -> str { return p.nombre; }',
+     "`p` es prestada: no se puede sacar `p.nombre`"),
+
+    ("ni mientras una vista lo mira",
+     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn main() { var p = nuevo_p(); let v = vista(p.nombre);'
+     ' let n = p.nombre; imprimir(v); imprimir(n); }',
+     "no se puede sacar `p.nombre`: esta prestada por `v`"),
+
+    ("reponerlo dentro de un `if` no lo repone para despues",
+     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn main() { var p = nuevo_p(); let n = p.nombre;'
+     ' if true { p.nombre = nuevo("x"); } imprimir(toma(p)); imprimir(n); }',
+     "`p` esta a medio mover"),
+
+    # ---- patrones anidados, literales y guardas ----
+    ("un brazo con condiciones no cubre su forma el solo",
+     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn f(e: &E) -> usize { return match e { E.X -> 0, E.Y(1) -> 1,'
+     ' E.Z(_, _) -> 2, }; }',
+     "le pueden quedar casos de `E.Y` sin mirar"),
+
+    ("un brazo detras de otro que ya lo cubre no se ejecuta nunca",
+     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn f(e: &E) -> usize { return match e { E.X -> 0, E.Y(_) -> 1,'
+     ' E.Y(3) -> 2, E.Z(_, _) -> 3, }; }',
+     "`E.Y` se mira dos veces"),
+
+    ("un literal del patron tiene que ser del tipo de su posicion",
+     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn f(e: &E) -> usize { return match e { E.Y("a") -> 1, _ -> 2, }; }',
+     "el literal del patron no es uno"),
+
+    ("una forma anidada tiene que ser del enum de su posicion",
+     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn f(e: &E) -> usize { return match e { E.Y(E2.A) -> 1, _ -> 2, }; }',
+     "el patron pone `E2.A`"),
+
+    ("la guarda es un `bool`",
+     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn f(e: &E) -> usize { return match e { E.Y(n) if n -> 1, _ -> 2, }; }',
+     "la guarda de un brazo tiene que ser `bool`"),
+
+    ("una guarda no mueve nada",
+     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn g(s: str) -> bool { return largo(s) > 0; }'
+     ' fn f(e: &E, s: str) -> usize { return match e { E.Y(_) if g(s) -> 1,'
+     ' _ -> 2, }; }',
+     "una guarda no mueve nada"),
+
     ("modificar lo capturado pide `mut` en la captura",
      'fn main() { let n: usize = 0;'
      ' let f = fn[n]() -> usize { n = n + 1; return n; }; imprimir(f()); }',
@@ -422,18 +541,14 @@ RECHAZO = [
      "no se puede modificar"),
 
     # ---- structs y arreglos ----
-    ("un campo `view` necesita vidas utiles en el tipo",
-     'struct P { v: view }',
-     "no puede tener un campo `view`"),
-
     ("struct que se contiene a si mismo",
      'struct P { hijo: P }',
      "se contiene a si mismo"),
 
-    ("sacar un `str` de un struct dejaria un hueco",
-     'struct P { n: str } fn f() { var p: P = P { n: nuevo("a") };'
-     ' let s: str = p.n; }',
-     "no se puede sacar `n` de un struct"),
+    ("sacar un `str` de un struct sin variable dejaria un hueco",
+     'struct P { n: str } fn hacer() -> P { return P { n: nuevo("a") }; }'
+     ' fn f() { let s: str = hacer().n; }',
+     "no se puede sacar `n` de un struct que no esta en una variable"),
 
     ("sacar un `str` de un arreglo dejaria un hueco",
      'fn f() { var a: [str; 2] = [nuevo("x"), nuevo("y")]; let s: str = a[0]; }',
@@ -1242,6 +1357,125 @@ ACEPTA = [
             imprimir("\\n");
         }''',
      "arandano aguacate | 2 | pera arandano aguacate \n"),
+
+    ("structs con un campo `view`",
+     '''struct Palabra { texto: view, n: usize }
+struct Linea { primera: Palabra, resto: view }
+
+fn primera_de(s: &str) -> Palabra {
+    return Palabra { texto: rebanar(vista(s), 0, 3), n: 3 };
+}
+
+fn texto_de(p: Palabra) -> view { return p.texto; }
+
+fn mas_larga(a: Palabra, b: Palabra) -> Palabra {
+    if a.n >= b.n { return a; }
+    return b;
+}
+
+fn main() {
+    let s = nuevo("hola mundo");
+    let t = nuevo("adios");
+    let p = primera_de(s);
+    var q = Palabra { texto: vista(t), n: 5 };
+    let l = Linea { primera: p, resto: rebanar(vista(s), 5, 10) };
+    q.n = 2;
+    let m = mas_larga(p, q);
+    imprimir($"{p.texto} {texto_de(q)} {l.primera.texto}|{l.resto} {m.texto} {copiar(m).n}\\n");
+}''',
+     "hol adios hol|mundo hol 3\n"),
+
+    ("sacar un campo de su struct, y reponerlo",
+     '''struct Interior { texto: str, n: usize }
+struct P { nombre: str, edad: usize, tags: lista<str>, dentro: Interior }
+
+fn usa(s: str) -> usize { return largo(s); }
+
+fn entrega(p: P) -> str {
+    return p.nombre;
+}
+
+fn main() {
+    var p = P { nombre: nuevo("ana"), edad: 3, tags: [], dentro: Interior { texto: nuevo("hondo"), n: 1 } };
+    anadir(p.tags, nuevo("x"));
+    let n = p.nombre;
+    let t = p.dentro.texto;
+    imprimir($"{n} {t} {p.edad} {largo(p.tags)} {p.dentro.n} ");
+    imprimir($"{usa(copiar(p.tags[0]))}\\n");
+    p.nombre = nuevo("eva");
+    p.dentro.texto = nuevo("otra");
+    let q = p;
+    imprimir($"{q.nombre} {q.dentro.texto} {entrega(q)}\\n");
+}''',
+     "ana hondo 3 1 1 1\neva otra eva\n"),
+
+    ("sacar un campo en un `return`, en cualquier rama",
+     '''struct P { nombre: str, edad: usize, sub: Q }
+struct Q { t: str }
+
+fn nuevo_p(n: view) -> P { return P { nombre: nuevo(n), edad: 1, sub: Q { t: nuevo("b") } }; }
+
+// Sacar en un `return` vale en cualquier rama: la funcion se va, y lo que
+// queda del struct se suelta ahi.
+fn nombre_si(p: P, c: bool) -> str {
+    if c { return p.nombre; }
+    return nuevo("ninguno");
+}
+
+fn main() {
+    var p = nuevo_p("ana");
+    let n = p.nombre;
+    p.nombre = nuevo("eva");
+    imprimir($"{n} {nombre_si(p, true)} {nombre_si(nuevo_p("x"), false)}\\n");
+}''',
+     "ana eva ninguno\n"),
+
+    ("patrones anidados, literales y guardas; y un `break` dentro de un `match`",
+     '''enum Forma2 { A, B(i64) }
+enum Color { Rojo, Verde, Otro(str) }
+enum Forma { Punto, Circulo(i64), Etiqueta(str, Color), Par(Forma2, usize) }
+
+fn describir(f: &Forma) -> str {
+    return match f {
+        Forma.Punto -> nuevo("punto"),
+        Forma.Circulo(0) -> nuevo("circulo vacio"),
+        Forma.Circulo(-1) -> nuevo("circulo raro"),
+        Forma.Circulo(r) if r > 100 -> nuevo("circulo grande"),
+        Forma.Circulo(_) -> nuevo("circulo"),
+        Forma.Etiqueta("hola", _) -> nuevo("saludo"),
+        Forma.Etiqueta(s, Color.Otro(c)) -> $"{s} de color {c}",
+        Forma.Etiqueta(s, _) -> $"etiqueta {s}",
+        Forma.Par(Forma2.B(x), n) if x > 0 -> $"par {x} {n}",
+        Forma.Par(_, n) -> $"par cualquiera {n}",
+    };
+}
+
+fn main() {
+    var i: usize = 0;
+    var fs: lista<Forma> = [];
+    anadir(fs, Forma.Punto);
+    anadir(fs, Forma.Circulo(0));
+    anadir(fs, Forma.Circulo(-1));
+    anadir(fs, Forma.Circulo(500));
+    anadir(fs, Forma.Circulo(5));
+    anadir(fs, Forma.Etiqueta(nuevo("hola"), Color.Rojo));
+    anadir(fs, Forma.Etiqueta(nuevo("cielo"), Color.Otro(nuevo("azul"))));
+    anadir(fs, Forma.Etiqueta(nuevo("x"), Color.Verde));
+    anadir(fs, Forma.Par(Forma2.B(3), 7));
+    anadir(fs, Forma.Par(Forma2.A, 8));
+    for f en fs { imprimir($"{describir(f)}\\n"); }
+    // Un `break` dentro de un `match` sale del bucle, no del `match`.
+    while i < 10 {
+        match fs[i] {
+            Forma.Punto -> { i = i + 1; }
+            Forma.Circulo(r) -> { if r == 500 { break; } i = i + 1; }
+            _ -> { i = i + 1; }
+        }
+    }
+    imprimir($"parado en {i}\\n");
+}''',
+     "punto\ncirculo vacio\ncirculo raro\ncirculo grande\ncirculo\nsaludo\n"
+     "cielo de color azul\netiqueta x\npar 3 7\npar cualquiera 8\nparado en 3\n"),
 
     ("devolver una vista de un parametro prestado",
      '''struct Persona { nombre: str, apellido: str }
@@ -3906,6 +4140,124 @@ fn main() {
 }
 """
 
+# Patrones anidados, literales y guardas: una fila de `if` con `goto` al
+# final; y un `break` dentro del `switch` de un `match`, que sale del bucle.
+_PATRONES_TCODEC = r"""enum Forma2 { A, B(i64) }
+enum Color { Rojo, Verde, Otro(str) }
+enum Forma { Punto, Circulo(i64), Etiqueta(str, Color), Par(Forma2, usize) }
+
+fn describir(f: &Forma) -> str {
+    return match f {
+        Forma.Punto -> nuevo("punto"),
+        Forma.Circulo(0) -> nuevo("circulo vacio"),
+        Forma.Circulo(-1) -> nuevo("circulo raro"),
+        Forma.Circulo(r) if r > 100 -> nuevo("circulo grande"),
+        Forma.Circulo(_) -> nuevo("circulo"),
+        Forma.Etiqueta("hola", _) -> nuevo("saludo"),
+        Forma.Etiqueta(s, Color.Otro(c)) -> $"{s} de color {c}",
+        Forma.Etiqueta(s, _) -> $"etiqueta {s}",
+        Forma.Par(Forma2.B(x), n) if x > 0 -> $"par {x} {n}",
+        Forma.Par(_, n) -> $"par cualquiera {n}",
+    };
+}
+
+fn main() {
+    var i: usize = 0;
+    var fs: lista<Forma> = [];
+    anadir(fs, Forma.Punto);
+    anadir(fs, Forma.Circulo(0));
+    anadir(fs, Forma.Circulo(-1));
+    anadir(fs, Forma.Circulo(500));
+    anadir(fs, Forma.Circulo(5));
+    anadir(fs, Forma.Etiqueta(nuevo("hola"), Color.Rojo));
+    anadir(fs, Forma.Etiqueta(nuevo("cielo"), Color.Otro(nuevo("azul"))));
+    anadir(fs, Forma.Etiqueta(nuevo("x"), Color.Verde));
+    anadir(fs, Forma.Par(Forma2.B(3), 7));
+    anadir(fs, Forma.Par(Forma2.A, 8));
+    for f en fs { imprimir($"{describir(f)}\n"); }
+    // Un `break` dentro de un `match` sale del bucle, no del `match`.
+    while i < 10 {
+        match fs[i] {
+            Forma.Punto -> { i = i + 1; }
+            Forma.Circulo(r) -> { if r == 500 { break; } i = i + 1; }
+            _ -> { i = i + 1; }
+        }
+    }
+    imprimir($"parado en {i}\n");
+}
+"""
+
+# Sacar un campo de su struct: se copia y su sitio queda a ceros.
+_CAMPO_SACADO_TCODEC = r"""struct Interior { texto: str, n: usize }
+struct P { nombre: str, edad: usize, tags: lista<str>, dentro: Interior }
+
+fn usa(s: str) -> usize { return largo(s); }
+
+fn entrega(p: P) -> str {
+    return p.nombre;
+}
+
+fn main() {
+    var p = P { nombre: nuevo("ana"), edad: 3, tags: [], dentro: Interior { texto: nuevo("hondo"), n: 1 } };
+    anadir(p.tags, nuevo("x"));
+    let n = p.nombre;
+    let t = p.dentro.texto;
+    imprimir($"{n} {t} {p.edad} {largo(p.tags)} {p.dentro.n} ");
+    imprimir($"{usa(copiar(p.tags[0]))}\n");
+    p.nombre = nuevo("eva");
+    p.dentro.texto = nuevo("otra");
+    let q = p;
+    imprimir($"{q.nombre} {q.dentro.texto} {entrega(q)}\n");
+}
+"""
+
+_CAMPO_SACADO_RETORNO_TCODEC = r"""struct P { nombre: str, edad: usize, sub: Q }
+struct Q { t: str }
+
+fn nuevo_p(n: view) -> P { return P { nombre: nuevo(n), edad: 1, sub: Q { t: nuevo("b") } }; }
+
+// Sacar en un `return` vale en cualquier rama: la funcion se va, y lo que
+// queda del struct se suelta ahi.
+fn nombre_si(p: P, c: bool) -> str {
+    if c { return p.nombre; }
+    return nuevo("ninguno");
+}
+
+fn main() {
+    var p = nuevo_p("ana");
+    let n = p.nombre;
+    p.nombre = nuevo("eva");
+    imprimir($"{n} {nombre_si(p, true)} {nombre_si(nuevo_p("x"), false)}\n");
+}
+"""
+
+# Structs con un campo `view`: en C, un `SafeView` dentro del struct.
+_STRUCT_PRESTADO_TCODEC = r"""struct Palabra { texto: view, n: usize }
+struct Linea { primera: Palabra, resto: view }
+
+fn primera_de(s: &str) -> Palabra {
+    return Palabra { texto: rebanar(vista(s), 0, 3), n: 3 };
+}
+
+fn texto_de(p: Palabra) -> view { return p.texto; }
+
+fn mas_larga(a: Palabra, b: Palabra) -> Palabra {
+    if a.n >= b.n { return a; }
+    return b;
+}
+
+fn main() {
+    let s = nuevo("hola mundo");
+    let t = nuevo("adios");
+    let p = primera_de(s);
+    var q = Palabra { texto: vista(t), n: 5 };
+    let l = Linea { primera: p, resto: rebanar(vista(s), 5, 10) };
+    q.n = 2;
+    let m = mas_larga(p, q);
+    imprimir($"{p.texto} {texto_de(q)} {l.primera.texto}|{l.resto} {m.texto} {copiar(m).n}\n");
+}
+"""
+
 _FN_ANIDADA_TCODEC = r"""fn doble(n: usize) -> usize { return n * 2; }
 fn aplicar(f: fn(usize) -> usize, n: usize) -> usize { return f(n); }
 fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
@@ -4168,7 +4520,11 @@ try:
                                        ("captura.t", _CAPTURA_CON_DUENIO_TCODEC),
                                        ("escribe.t", _ESCRIBIR_ARCHIVO_TCODEC),
                                        ("llave.t", _LLAVE_ESCRITA_TCODEC),
-                                       ("modifica.t", _CIERRE_QUE_MODIFICA_TCODEC)):
+                                       ("modifica.t", _CIERRE_QUE_MODIFICA_TCODEC),
+                                       ("patrones.t", _PATRONES_TCODEC),
+                                       ("sacado.t", _CAMPO_SACADO_TCODEC),
+                                       ("sacado2.t", _CAMPO_SACADO_RETORNO_TCODEC),
+                                       ("prestado.t", _STRUCT_PRESTADO_TCODEC)):
                 total += 1
                 ruta_cierre = os.path.join(tmp, nombre_c)
                 with open(ruta_cierre, "w", encoding="utf-8") as f:
