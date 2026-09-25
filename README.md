@@ -148,7 +148,7 @@ comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
 Sobre los 49 `.t` del repositorio —incluido el suyo propio— produce
-**146.983 tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+**163.887 tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -171,7 +171,7 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 `ejemplos/lexer/lib/sintaxis.t` son 1.624 líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba. Acepta y rechaza **exactamente** los mismos 49 archivos que
-el parser del compilador, y sobre ellos produce 73.791 nodos:
+el parser del compilador, y sobre ellos produce 82.349 nodos:
 
 ```
 $ ./ejemplos/lexer/parser ejemplos/lexer/parser.t --callado
@@ -181,22 +181,22 @@ ejemplos/lexer/parser.t: 87 nodos, hondura 10
 Y dos capas más del comprobador, en `ejemplos/compilador/`:
 
 - `lib/tipos.t` responde las dos preguntas de las que cuelga todo —¿este tipo
-  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **49 archivos, 361
+  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **49 archivos, 367
   tipos**, las mismas respuestas que el comprobador de Python.
 - `lib/tipar.t` dice **de qué tipo es cada variable de cada función**, con
   llamadas, campos, índices, préstamos y genéricas instanciadas: **44
-  archivos, 4.229 variables**, los mismos tipos.
+  archivos, 4.797 variables**, los mismos tipos.
 - `lib/propiedad.t` dice **qué le pasa a cada valor con dueño** —se presta,
   se entrega en la línea N, se mueve en la línea N, o se libera al cerrar su
   bloque—, que es lo único que de verdad separa a Tcode de C: **44 archivos,
-  4.229 variables**, el mismo destino, sin ningún archivo pendiente.
+  4.797 variables**, el mismo destino, sin ningún archivo pendiente.
 - `lib/generar.t` es **el generador**: cómo se llama cada tipo en C, cómo
-  queda la firma de cada función —**44 archivos, 567 firmas**— y el C de cada
-  expresión que se devuelve: **1.348 de 1.560 expresiones, carácter por
+  queda la firma de cada función —**44 archivos, 629 firmas**— y el C de cada
+  expresión que se devuelve: **1.441 de 1.667 expresiones, carácter por
   carácter**, las mismas que emite el generador de Python. Lo que aún no
   cubre sale marcado y no se compara; la suite exige un mínimo en vez de
   hacer como que están todas. Y **la función entera** —firma, cuerpo, y los
-  `ss_free` puestos solos donde tocan—: **643 funciones idénticas**, línea por
+  `ss_free` puestos solos donde tocan—: **714 funciones idénticas**, línea por
   línea, normalizando sólo los números de temporal.
 
 Las dos se comparan contra el comprobador de Python en cada ejecución de la
@@ -238,7 +238,7 @@ igual
 ```
 
 El `tcodec` construido por sí mismo vuelve a escribir exactamente los mismos
-bytes (4,17 MB), y el construido desde su propio C también, bajo
+bytes (4,72 MB), y el construido desde su propio C también, bajo
 AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
 A partir de ahí el compilador ya no necesita a Python para existir, que es el
 paso que dieron Go en la 1.5 y Rust con su primer `rustc` escrito en Rust. Lo
@@ -263,7 +263,7 @@ error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 ```
 
 La suite pasa por los dos compiladores cada programa que tiene que
-rechazarse: **los 157 dan el mismo primer error, carácter por carácter**,
+rechazarse: **los 210 dan el mismo primer error, carácter por carácter**,
 también los de sintaxis, que salen del lexer y el parser en Tcode con su
 archivo, su línea y lo que encontraron:
 
@@ -275,8 +275,8 @@ error: roto.t:3: se esperaba ';', se encontro ')'
 Y como siete casos no bastan para fiarse de un parser, la suite rompe cada
 archivo del repositorio de varias formas —un token de menos o de más, un
 símbolo fuera de sitio, una cadena sin cerrar, un carácter que no existe— y
-exige el mismo primer error en todos: **238 de 238**. Y el otro lado, que
-importa más: **ninguno de los 150 programas correctos** —los del repositorio
+exige el mismo primer error en todos: **243 de 243**. Y el otro lado, que
+importa más: **ninguno de los 167 programas correctos** —los del repositorio
 y los de la suite— se rechaza. `tcodec --solo-comprobar` hace sólo esta
 parte.
 
@@ -664,7 +664,7 @@ temporal.
 
 ```
 $ make check
-576 casos, 0 fallas
+1979 casos, 0 fallas
 558 comprobaciones sobre 60 programas, 0 fallas
 ```
 
