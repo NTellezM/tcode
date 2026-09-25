@@ -3746,6 +3746,143 @@ fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
 fn main() { imprimir($"{dos_veces(aplicar, 3)}\n"); }
 """
 
+
+MODULOS = [
+    ("un `usar` en rombo carga el modulo una sola vez",
+     {"lib/base.t": 'fn doble(n: usize) -> usize { return n * 2; }',
+      "lib/medio.t": 'usar "base.t";\n'
+                       'fn cuadruple(n: usize) -> usize { return doble(doble(n)); }',
+      "app.t": 'usar "lib/medio.t";\nusar "lib/base.t";\n'
+                 'fn main() -> usize { imprimir(cuadruple(3)); imprimir("\\n");'
+                 ' imprimir(doble(5)); imprimir("\\n"); return 0; }'},
+     "app.t", None, "12\n10\n"),
+
+    ("dependencia circular",
+     {"a.t": 'usar "b.t";\nfn a() {}',
+      "b.t": 'usar "a.t";\nfn b() {}'},
+     "a.t", "dependencia circular", None),
+
+    ("modulo que no existe",
+     {"a.t": 'usar "fantasma.t";\nfn main() -> usize { return 0; }'},
+     "a.t", "no encuentro el modulo", None),
+
+    ("el mismo nombre desde dos sitios, y como arreglarlo",
+     {"x.t": 'fn dos() -> usize { return 2; }',
+      "a.t": 'usar "x.t";\nfn dos() -> usize { return 3; }\n'
+               'fn main() -> usize { return dos(); }'},
+     "a.t", "llega de dos sitios", None),
+
+    ("lo que usa un modulo usado no se ve sin pedirlo",
+     {"hondo.t": 'fn doble(n: usize) -> usize { return n * 2; }',
+      "medio.t": 'usar "hondo.t"; fn cuatro(n: usize) -> usize { return doble(doble(n)); }',
+      "app.t": 'usar "medio.t"; fn main() { imprimir($"{doble(cuatro(1))}\\n"); }'},
+     "app.t", "que este archivo no usa", None),
+
+    ("una variable local con el nombre de una funcion de otro modulo",
+     {"hondo.t": 'fn doble(n: usize) -> usize { return n * 2; }',
+      "medio.t": 'usar "hondo.t"; fn cuatro(n: usize) -> usize { return doble(doble(n)); }',
+      "app.t": 'usar "medio.t"; fn main() { let doble = fn(n: usize) -> usize { return n + n; };'
+               ' imprimir($"{doble(cuatro(1))}\\n"); }'},
+     "app.t", None, "8\n"),
+
+    ("dos modulos con el mismo nombre no se estorban si no se cruzan",
+     {"uno.t": 'fn contar(xs: &lista<str>) -> usize { return largo(xs); }',
+      "dos.t": 'fn contar(xs: &lista<usize>) -> usize { return largo(xs) * 2; }',
+      "a.t": 'usar "uno.t";\nusar "dos.t" como d;\n'
+               'fn main() -> usize {\n'
+               '    var ss: lista<str> = []; anadir(ss, nuevo("a"));\n'
+               '    var ns: lista<usize> = []; anadir(ns, 1); anadir(ns, 2);\n'
+               '    imprimir($"{contar(ss)} {d.contar(ns)}\\n");\n'
+               '    return 0;\n}'},
+     "a.t", None, "1 4\n"),
+
+    ("un struct que llega con nombre de modulo",
+     {"tipos.t": 'struct Caja { n: usize }\n'
+                   'fn hacer(n: usize) -> Caja { return Caja { n: n }; }',
+      "a.t": 'usar "tipos.t" como t;\n'
+               'fn leer(c: &t.Caja) -> usize { return c.n; }\n'
+               'fn main() -> usize {\n'
+               '    let c: t.Caja = t.Caja { n: 7 };\n'
+               '    let d = t.hacer(9);\n'
+               '    imprimir($"{leer(c)} {leer(d)}\\n");\n'
+               '    return 0;\n}'},
+     "a.t", None, "7 9\n"),
+
+    ("un error dentro de un modulo dice de que archivo es",
+     {"roto.t": 'fn r() { let a: usize = 1; let b: i64 = 2;'
+                  ' let c: usize = a + b; }',
+      "a.t": 'usar "roto.t";\nfn main() -> usize { return 0; }'},
+     "a.t", "roto.t:1", None),
+]
+
+# Mas casos de modulos que los de MODULOS: ciclos de tres, modulos que no
+# estan de varias formas, un nombre propio contra uno traido, y lo que se usa
+# sin pedirlo. `tcodec` tiene que decir lo mismo que el cargador de Python.
+M = 'fn main() { imprimir("x"); }'
+_MODULOS_EXTRA_TCODEC = [
+ ("ciclo de tres", {"a.t": 'usar "b.t";\n'+M, "b.t": 'usar "c.t";\nfn b() {}', "c.t": 'usar "a.t";\nfn c() {}'}, "a.t"),
+ ("falta sin .t", {"a.t": 'usar "fantasma";\n'+M}, "a.t"),
+ ("falta de std", {"a.t": 'usar "std/fantasma";\n'+M}, "a.t"),
+ ("falta dentro de otro", {"a.t": 'usar "lib/b.t";\n'+M, "lib/b.t": '\n\nusar "nada.t";\nfn b() {}'}, "a.t"),
+ ("propio contra traido", {"x.t": 'fn dos() -> usize { return 2; }', "app.t": 'usar "x.t";\nfn dos() -> usize { return 3; }\n'+M}, "app.t"),
+ ("con alias no choca", {"x.t": 'fn dos() -> usize { return 2; }', "y.t": 'fn dos() -> usize { return 22; }', "app.t": 'usar "x.t";\nusar "y.t" como y;\nfn main() { imprimir(dos() + y.dos()); }'}, "app.t"),
+ ("sin pedir una funcion", {"c.t": 'fn tres() -> usize { return 3; }', "b.t": 'usar "c.t";\nfn b() -> usize { return tres(); }', "app.t": 'usar "b.t";\nfn main() {\n    imprimir(b());\n    imprimir(tres());\n}'}, "app.t"),
+ ("sin pedir un struct", {"c.t": 'struct Caja { n: usize }', "b.t": 'usar "c.t";\nfn b() -> usize { let k = Caja { n: 1 }; return k.n; }', "app.t": 'usar "b.t";\nfn main() {\n    let k = Caja { n: 2 };\n    imprimir(k.n);\n}'}, "app.t"),
+ ("sin pedir un enum", {"c.t": 'enum Color { Rojo, Verde }', "b.t": 'usar "c.t";\nfn b() -> usize { let k = Color.Rojo; return 1; }', "app.t": 'usar "b.t";\nfn main() {\n    let k = Color.Verde;\n    imprimir(b());\n}'}, "app.t"),
+ ("local con nombre de fuera", {"c.t": 'fn tres() -> usize { return 3; }', "b.t": 'usar "c.t";\nfn b() -> usize { return tres(); }', "app.t": 'usar "b.t";\nfn main() {\n    let f = fn(x: usize) -> usize { return x; };\n    imprimir(b());\n}'}, "app.t"),
+ ("dos usar del mismo", {"x.t": 'fn uno() -> usize { return 1; }', "app.t": 'usar "x.t";\nusar "x.t" como otra;\nfn main() { imprimir(uno() + otra.uno()); }'}, "app.t"),
+ ("rombo con choque", {"x.t": 'fn f() -> usize { return 1; }', "lib/x.t": 'fn f() -> usize { return 2; }', "app.t": 'usar "x.t";\nusar "lib/x.t";\nfn main() { imprimir(f()); }'}, "app.t"),
+]
+
+# Un programa para cada aviso, y los casos raros: `_x`, lo que atrapa un
+# `match`, las variables de un `for`, una clausura y una generica con dos
+# copias, que avisa una vez.
+_AVISOS_TCODEC = [r"""fn f(x: usize, y: usize, _z: usize) -> usize { return x; }
+fn g(s: mut str) -> usize { return largo(vista(s)); }
+fn h(s: mut str) { empujar(s, "!"); }
+fn main() {
+    let a = 1;
+    var b: usize = 2;
+    var c: usize = 3;
+    c = 4;
+    var d: usize = 5;
+    imprimir($"{b}\n");
+    var t = nuevo("x");
+    h(t);
+    let _u = 9;
+    imprimir($"{f(1, 2, 3)} {g(t)} {d}\n");
+}
+""", r"""enum Forma { Punto, Circulo(f64), Texto(str) }
+fn area(f: &Forma) -> f64 {
+    return match f {
+        Forma.Punto -> 0.0,
+        Forma.Circulo(r) -> 3.0,
+        Forma.Texto(s) -> 1.0,
+    };
+}
+fn main() {
+    let x: f64 = 1.5;
+    let y = x como f64;
+    if x == 1.5 { imprimir("igual\n"); }
+    var ns: lista<usize> = [];
+    anadir(ns, 1);
+    for n en ns { imprimir("v\n"); }
+    let k = fn(q: usize, w: usize) -> usize { let sin = 1; return q; };
+    imprimir($"{area(Forma.Punto)} {y} {k(1, 2)}\n");
+}
+""", r"""fn primero<T>(xs: &lista<T>, n: usize) -> usize {
+    let nada = 0;
+    var v: usize = 1;
+    return largo(xs);
+}
+fn main() {
+    var a: lista<usize> = [];
+    var b: lista<str> = [];
+    anadir(b, nuevo("x"));
+    imprimir($"{primero(a, 1)} {primero(b, 2)}\n");
+}
+"""]
+
 _MINIMO_PROGRAMAS = 25
 # Lo que `tcodec` necesita del sistema, en C, junto a el.
 _SISTEMA_TCODEC = os.path.join("ejemplos", "compilador", "lib", "sistema_tcodec.c")
@@ -3997,6 +4134,138 @@ try:
                             os.remove(ruta_m)
             print(f"    sintaxis: {iguales_s} de {rotos} programas rotos, mismo "
                   f"primer error que el lexer y el parser de Python")
+
+
+            # Las herramientas de alrededor, contra las de Python: los errores
+            # de modulos, los avisos, el formato y `--explicar`.
+            def _stderr_bloques(texto, marca):
+                salida = []
+                for linea in texto.splitlines():
+                    if linea.startswith(marca):
+                        salida.append(linea[len(marca):])
+                    elif linea.startswith("  ") and salida:
+                        salida[-1] += "\n" + linea
+                return salida
+
+            mods_iguales = mods_total = 0
+            for nombre_m, archivos_m, principal_m, *_ in (
+                    list(MODULOS) + [(n, a, p) for n, a, p in _MODULOS_EXTRA_TCODEC]):
+                dir_m = tempfile.mkdtemp(dir=tmp)
+                for r_m, t_m in archivos_m.items():
+                    d_m = os.path.join(dir_m, r_m)
+                    os.makedirs(os.path.dirname(d_m), exist_ok=True)
+                    with open(d_m, "w", encoding="utf-8") as f:
+                        f.write(t_m)
+                ruta_m = os.path.join(dir_m, principal_m)
+                de_python = _errores_python(ruta_m)
+                r_m = subprocess.run([binario, ruta_m, "--solo-comprobar"],
+                                     capture_output=True, text=True, timeout=120,
+                                     env=entorno)
+                de_tcodec = _stderr_bloques(r_m.stderr, "error: ")
+                total += 1
+                mods_total += 1
+                if (de_python[:1] == de_tcodec[:1]
+                        and (r_m.returncode == 0) == (not de_python)):
+                    mods_iguales += 1
+                else:
+                    falla("los errores de modulos en Tcode",
+                          f"{nombre_m}:\n  Python: {de_python[:1]!r}\n"
+                          f"  Tcode:  {de_tcodec[:1] or r_m.stderr[:200]!r}")
+
+            def _avisos_python(ruta):
+                try:
+                    _, errs, comp_a = compilar_archivo(ruta, devolver_comp=True)
+                except Exception:
+                    return None
+                return None if errs else comp_a.avisos
+
+            aceptados_rutas = []
+            for i_a, (n_a, f_a, *_ ) in enumerate(ACEPTA):
+                r_a = os.path.join(tmp, f"acepta-h-{i_a}.t")
+                with open(r_a, "w", encoding="utf-8") as f:
+                    f.write(f_a)
+                aceptados_rutas.append(r_a)
+            for i_a, f_a in enumerate(_AVISOS_TCODEC):
+                r_a = os.path.join(tmp, f"avisos-{i_a}.t")
+                with open(r_a, "w", encoding="utf-8") as f:
+                    f.write(f_a)
+                aceptados_rutas.append(r_a)
+            del_repo = sorted(glob.glob(os.path.join("std", "*.t"))
+                              + glob.glob(os.path.join("ejemplos", "**", "*.t"),
+                                          recursive=True))
+            av_iguales = av_cuantos = 0
+            ex_iguales = 0
+            for ruta_a in del_repo + aceptados_rutas:
+                esperados = _avisos_python(ruta_a)
+                if esperados is None:
+                    continue
+                r_a = subprocess.run([binario, ruta_a, "--solo-comprobar"],
+                                     capture_output=True, text=True, timeout=120,
+                                     env=entorno)
+                total += 1
+                dados_a = _stderr_bloques(r_a.stderr, "aviso: ")
+                av_cuantos += len(esperados)
+                if dados_a == esperados:
+                    av_iguales += 1
+                else:
+                    falla("los avisos en Tcode",
+                          f"{ruta_a}:\n  Python: {esperados[:3]!r}\n"
+                          f"  Tcode:  {dados_a[:3]!r}")
+                total += 1
+                py_e = subprocess.run([sys.executable, "-m", "tcode", ruta_a,
+                                       "--explicar", "--sin-avisos"],
+                                      capture_output=True, text=True, timeout=120)
+                tc_e = subprocess.run([binario, ruta_a, "--explicar", "--sin-avisos"],
+                                      capture_output=True, text=True, timeout=120,
+                                      env=entorno)
+                if py_e.stdout == tc_e.stdout:
+                    ex_iguales += 1
+                else:
+                    a_e, b_e = py_e.stdout.splitlines(), tc_e.stdout.splitlines()
+                    d_e = next((i for i, (x, y) in enumerate(zip(a_e, b_e)) if x != y),
+                               min(len(a_e), len(b_e)))
+                    falla("--explicar en Tcode",
+                          f"{ruta_a}, linea {d_e + 1}:\n"
+                          f"  Python: {a_e[d_e] if d_e < len(a_e) else '(fin)'!r}\n"
+                          f"  Tcode:  {b_e[d_e] if d_e < len(b_e) else '(fin)'!r}")
+
+            from tcode.formato import formatear as _formatear
+            fm_iguales = fm_total = 0
+            for archivo_f in del_repo:
+                with open(archivo_f, encoding="utf-8") as f:
+                    original_f = f.read()
+                rnd_f = _random.Random(archivo_f)
+                deformado = []
+                for li in original_f.split("\n"):
+                    x = rnd_f.random()
+                    if x < 0.3:
+                        li = li.lstrip()
+                    elif x < 0.4:
+                        li = "  " + li
+                    if rnd_f.random() < 0.2:
+                        li += "   "
+                    deformado.append(li)
+                    if rnd_f.random() < 0.05:
+                        deformado.extend(["", "", ""])
+                for k_f, fuente_f in enumerate((original_f, "\n".join(deformado))):
+                    ruta_f = os.path.join(tmp, f"formato-{k_f}.t")
+                    with open(ruta_f, "w", encoding="utf-8") as f:
+                        f.write(fuente_f)
+                    esperado_f = _formatear(fuente_f, ruta_f)
+                    r_f = subprocess.run([binario, ruta_f, "--formatear"],
+                                         capture_output=True, text=True, timeout=120,
+                                         env=entorno)
+                    total += 1
+                    fm_total += 1
+                    if r_f.returncode == 0 and r_f.stdout == esperado_f:
+                        fm_iguales += 1
+                    else:
+                        falla("--formatear en Tcode",
+                              f"{archivo_f} ({'deformado' if k_f else 'tal cual'})")
+            print(f"    herramientas: {mods_iguales} de {mods_total} casos de "
+                  f"modulos, avisos iguales en {av_iguales} programas "
+                  f"({av_cuantos} avisos), --explicar igual en {ex_iguales}, "
+                  f"--formatear igual en {fm_iguales} de {fm_total}")
 
             iguales = intentados = 0
             for archivo in sorted(
@@ -4324,73 +4593,6 @@ import shutil
 from tcode.modulos import cargar, ErrorDeModulo
 from tcode.cli import _compilar
 
-MODULOS = [
-    ("un `usar` en rombo carga el modulo una sola vez",
-     {"lib/base.t": 'fn doble(n: usize) -> usize { return n * 2; }',
-      "lib/medio.t": 'usar "base.t";\n'
-                       'fn cuadruple(n: usize) -> usize { return doble(doble(n)); }',
-      "app.t": 'usar "lib/medio.t";\nusar "lib/base.t";\n'
-                 'fn main() -> usize { imprimir(cuadruple(3)); imprimir("\\n");'
-                 ' imprimir(doble(5)); imprimir("\\n"); return 0; }'},
-     "app.t", None, "12\n10\n"),
-
-    ("dependencia circular",
-     {"a.t": 'usar "b.t";\nfn a() {}',
-      "b.t": 'usar "a.t";\nfn b() {}'},
-     "a.t", "dependencia circular", None),
-
-    ("modulo que no existe",
-     {"a.t": 'usar "fantasma.t";\nfn main() -> usize { return 0; }'},
-     "a.t", "no encuentro el modulo", None),
-
-    ("el mismo nombre desde dos sitios, y como arreglarlo",
-     {"x.t": 'fn dos() -> usize { return 2; }',
-      "a.t": 'usar "x.t";\nfn dos() -> usize { return 3; }\n'
-               'fn main() -> usize { return dos(); }'},
-     "a.t", "llega de dos sitios", None),
-
-    ("lo que usa un modulo usado no se ve sin pedirlo",
-     {"hondo.t": 'fn doble(n: usize) -> usize { return n * 2; }',
-      "medio.t": 'usar "hondo.t"; fn cuatro(n: usize) -> usize { return doble(doble(n)); }',
-      "app.t": 'usar "medio.t"; fn main() { imprimir($"{doble(cuatro(1))}\\n"); }'},
-     "app.t", "que este archivo no usa", None),
-
-    ("una variable local con el nombre de una funcion de otro modulo",
-     {"hondo.t": 'fn doble(n: usize) -> usize { return n * 2; }',
-      "medio.t": 'usar "hondo.t"; fn cuatro(n: usize) -> usize { return doble(doble(n)); }',
-      "app.t": 'usar "medio.t"; fn main() { let doble = fn(n: usize) -> usize { return n + n; };'
-               ' imprimir($"{doble(cuatro(1))}\\n"); }'},
-     "app.t", None, "8\n"),
-
-    ("dos modulos con el mismo nombre no se estorban si no se cruzan",
-     {"uno.t": 'fn contar(xs: &lista<str>) -> usize { return largo(xs); }',
-      "dos.t": 'fn contar(xs: &lista<usize>) -> usize { return largo(xs) * 2; }',
-      "a.t": 'usar "uno.t";\nusar "dos.t" como d;\n'
-               'fn main() -> usize {\n'
-               '    var ss: lista<str> = []; anadir(ss, nuevo("a"));\n'
-               '    var ns: lista<usize> = []; anadir(ns, 1); anadir(ns, 2);\n'
-               '    imprimir($"{contar(ss)} {d.contar(ns)}\\n");\n'
-               '    return 0;\n}'},
-     "a.t", None, "1 4\n"),
-
-    ("un struct que llega con nombre de modulo",
-     {"tipos.t": 'struct Caja { n: usize }\n'
-                   'fn hacer(n: usize) -> Caja { return Caja { n: n }; }',
-      "a.t": 'usar "tipos.t" como t;\n'
-               'fn leer(c: &t.Caja) -> usize { return c.n; }\n'
-               'fn main() -> usize {\n'
-               '    let c: t.Caja = t.Caja { n: 7 };\n'
-               '    let d = t.hacer(9);\n'
-               '    imprimir($"{leer(c)} {leer(d)}\\n");\n'
-               '    return 0;\n}'},
-     "a.t", None, "7 9\n"),
-
-    ("un error dentro de un modulo dice de que archivo es",
-     {"roto.t": 'fn r() { let a: usize = 1; let b: i64 = 2;'
-                  ' let c: usize = a + b; }',
-      "a.t": 'usar "roto.t";\nfn main() -> usize { return 0; }'},
-     "a.t", "roto.t:1", None),
-]
 
 for nombre, archivos, principal, error_esperado, salida in MODULOS:
     total += 1

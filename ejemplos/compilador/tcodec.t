@@ -19,6 +19,7 @@ usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
 usar "lib/tipos.t" como T;
 usar "lib/comprobar.t" como C;
+usar "lib/formato.t" como FMT;
 usar "std/texto";
 usar "std/lista";
 
@@ -211,10 +212,10 @@ fn resolver(pedido: view, dir: view, raiz: view) -> str ! {
         anadir(candidatos, con_t);
     }
     for c en candidatos {
-        let prueba = leer_archivo(vista(c)) sino vacio();
-        if largo(vista(prueba)) > 0 { return normalizar(vista(c)); }
+        if tcodec_es_archivo(copiar(c)) == 1 { return normalizar(vista(c)); }
     }
-    falla "no encuentro un modulo que se usa";
+    // La primera, para que el error diga algo reconocible.
+    return normalizar(vista(candidatos[0]));
 }
 
 // Los `usar` del principio de un archivo, en orden.
@@ -227,7 +228,9 @@ fn usar_de(fuente: view) -> lista<str> ! {
     while i + 1 < largo(toks) {
         if !igual(vista(toks[i].valor), "usar") { break; }
         if !igual(vista(toks[i + 1].tipo), "cadena") { break; }
-        anadir(salida, copiar(toks[i + 1].valor));
+        // `ruta\tlinea`: la linea es la del `usar`, para decir donde se pidio
+        // un modulo que no esta.
+        anadir(salida, $"{toks[i + 1].valor}\t{toks[i].linea}");
         i = i + 2;
         if i + 1 < largo(toks) && igual(vista(toks[i].valor), "como") {
             i = i + 2;
@@ -237,8 +240,8 @@ fn usar_de(fuente: view) -> lista<str> ! {
     return salida;
 }
 
-// Los `usar` del principio con su alias: `ruta\talias`, alias vacio si no
-// lleva.
+// Los `usar` del principio con su alias: `ruta\talias\tlinea`, alias vacio
+// si no lleva.
 fn usar_con_alias(fuente: view) -> lista<str> ! {
     let toks = try analizar(fuente);
     var salida: lista<str> = [];
@@ -248,11 +251,14 @@ fn usar_con_alias(fuente: view) -> lista<str> ! {
         if !igual(vista(toks[i + 1].tipo), "cadena") { break; }
         var junto = copiar(toks[i + 1].valor);
         empujar(junto, "\t");
+        let linea = toks[i].linea;
         i = i + 2;
         if i + 1 < largo(toks) && igual(vista(toks[i].valor), "como") {
             empujar(junto, vista(toks[i + 1].valor));
             i = i + 2;
         }
+        let pieza = $"\t{linea}";
+        empujar(junto, vista(pieza));
         anadir(salida, junto);
         i = i + 1; // el `;`
     }
@@ -261,21 +267,201 @@ fn usar_con_alias(fuente: view) -> lista<str> ! {
 
 // Primero las dependencias, en el orden de los `usar`, y cada modulo una sola
 // vez: el mismo recorrido que el cargador, que es el orden en que salen las
-// funciones en el C.
+// funciones en el C. Si algo falla, `error` lo dice como el cargador de
+// Python: un ciclo, o un modulo que no esta y quien lo pedia.
 fn visitar(ruta: view, raiz: view, hechos: mut lista<str>,
-    pila: mut lista<str>) ! {
-    if esta_en(pila, ruta) { falla "dependencia circular entre modulos"; }
-    if esta_en(hechos, ruta) { return; }
-    let fuente = try leer_archivo(ruta);
+    pila: mut lista<str>, error: mut str, quien: view, linea: usize) -> bool {
+    if esta_en(pila, ruta) {
+        var ciclo = vacio();
+        var dentro = false;
+        for p en pila {
+            if igual(vista(p), ruta) { dentro = true; }
+            if dentro {
+                empujar(ciclo, nombre_suelto(vista(p)));
+                empujar(ciclo, " -> ");
+            }
+        }
+        empujar(ciclo, nombre_suelto(ruta));
+        error = $"dependencia circular entre modulos: {ciclo}";
+        return false;
+    }
+    if esta_en(hechos, ruta) { return true; }
+    if tcodec_es_archivo(nuevo(ruta)) == 0 {
+        var de = vacio();
+        if largo(quien) > 0 { de = $"{quien}:{linea}: "; }
+        var pista = vacio();
+        if empieza_con(ruta, "std/") || contiene(ruta, "/std/") {
+            pista = nuevo("; los modulos de `std/` viven junto al compilador");
+        }
+        let suelto = nombre_suelto(ruta);
+        let dicho = repr_texto(vista(suelto));
+        error = $"{de}no encuentro el modulo {dicho}{pista}";
+        return false;
+    }
+    let fuente = leer_archivo(ruta) sino vacio();
     anadir(pila, nuevo(ruta));
-    let pedidos = try usar_de(vista(fuente));
+    let pedidos = usar_de(vista(fuente)) sino [];
     let dir = P.carpeta(ruta);
     for pedido en pedidos {
-        let destino = try resolver(vista(pedido), vista(dir), raiz);
-        try visitar(vista(destino), raiz, hechos, pila);
+        let pedida = campo_pedido(vista(pedido), 0);
+        let texto_linea = campo_pedido(vista(pedido), 1);
+        let n = a_entero(vista(texto_linea)) sino 0;
+        let destino = resolver(vista(pedida), vista(dir), raiz) sino vacio();
+        if !visitar(vista(destino), raiz, hechos, pila, error, ruta, n) { return false; }
     }
     quitar_ultima(pila);
     anadir(hechos, nuevo(ruta));
+    return true;
+}
+
+// ------------------------------------------------------------------
+// Que ve cada archivo
+// ------------------------------------------------------------------
+//
+// Cada archivo ve lo suyo y lo que trae cada `usar`, y nada mas. Como en el
+// cargador de Python, un nombre que llega de dos sitios distintos es un
+// error, y tambien usar algo de un modulo que este archivo no pidio aunque
+// lo pida otro.
+
+fn nombres_declarados(arbol: &P.Nodo) -> lista<str> {
+    var salida: lista<str> = [];
+    for d en arbol.hijos {
+        let clase = vista(d.clase);
+        if igual(clase, "fn") || igual(clase, "struct") || igual(clase, "enum") {
+            if !esta_en(salida, vista(d.texto)) { anadir(salida, copiar(d.texto)); }
+        }
+    }
+    return salida;
+}
+
+// Los nombres que una funcion declara dentro: parametros, variables, los de
+// un `for` y los que atrapa un `match`.
+fn locales_de(n: &P.Nodo, salida: mut lista<str>) {
+    let clase = vista(n.clase);
+    if igual(clase, "param") {
+        var i = 0;
+        while i < largo(n.texto) && byte(vista(n.texto), i) != 58 { i = i + 1; }
+        anadir(salida, nuevo(recortar(rebanar(vista(n.texto), 0, i))));
+    }
+    if igual(clase, "declaracion") {
+        let t = vista(n.texto);
+        var i = 0;
+        while i < largo(t) && byte(t, i) != 32 { i = i + 1; }
+        var j = i + 1;
+        while j < largo(t) && byte(t, j) != 58 { j = j + 1; }
+        if i + 1 <= largo(t) { anadir(salida, nuevo(recortar(rebanar(t, i + 1, j)))); }
+    }
+    if igual(clase, "para") {
+        let t = vista(n.texto);
+        var i = 0;
+        while i < largo(t) && byte(t, i) != 44 { i = i + 1; }
+        anadir(salida, nuevo(recortar(rebanar(t, 0, i))));
+        if i < largo(t) { anadir(salida, nuevo(recortar(rebanar(t, i + 1, largo(t))))); }
+    }
+    if igual(clase, "atrapa") { anadir(salida, copiar(n.texto)); }
+    for h en n.hijos { locales_de(h, salida); }
+}
+
+// El primer nombre que se usa sin haberlo pedido, en preorden: `nombre\tlinea`.
+fn sin_pedir(n: &P.Nodo, visible: &mapa<str, str>, duenios: &mapa<str, str>,
+    locales: &lista<str>) -> str {
+    let clase = vista(n.clase);
+    var nombre = vacio();
+    if igual(clase, "llamada") { nombre = copiar(n.texto); }
+    if igual(clase, "literal_struct") { nombre = copiar(n.texto); }
+    if igual(clase, "enum_lit") { nombre = I.antes_del_punto(vista(n.texto)); }
+    if largo(nombre) > 0 {
+        let nv = vista(nombre);
+        if !tiene(visible, nv) && tiene(duenios, nv) && !C.nombra_interna(nv)
+        && !esta_en(locales, nv) {
+            return $"{nombre}\t{n.linea}";
+        }
+    }
+    for h en n.hijos {
+        let dentro = sin_pedir(h, visible, duenios, locales);
+        if largo(dentro) > 0 { return dentro; }
+    }
+    return vacio();
+}
+
+fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
+    error: mut str) -> bool {
+    // Quien declara cada nombre, en el orden de los modulos.
+    var duenios: mapa<str, str> = [];
+    var cuantos: mapa<str, usize> = [];
+    var k = 0;
+    while k < largo(arboles) {
+        for n en nombres_declarados(arboles[k]) {
+            var junto = nuevo(obtener(duenios, vista(n)) sino "");
+            if largo(junto) > 0 { empujar(junto, ", "); }
+            empujar(junto, vista(modulos[k]));
+            poner(duenios, vista(n), junto);
+            let c = obtener(cuantos, vista(n)) sino 0;
+            poner(cuantos, vista(n), c + 1);
+        }
+        k = k + 1;
+    }
+    k = 0;
+    while k < largo(arboles) {
+        // clave -> `modulo` que la trae; el valor interno es modulo+nombre,
+        // salvo que el nombre lo declare uno solo.
+        var visible: mapa<str, str> = [];
+        for n en nombres_declarados(arboles[k]) {
+            poner(visible, vista(n), copiar(modulos[k]));
+        }
+        let fuente = leer_archivo(vista(modulos[k])) sino vacio();
+        let pedidos = usar_con_alias(vista(fuente)) sino [];
+        let dir = P.carpeta(vista(modulos[k]));
+        for pedido en pedidos {
+            let ruta_p = campo_pedido(vista(pedido), 0);
+            let alias = campo_pedido(vista(pedido), 1);
+            let texto_linea = campo_pedido(vista(pedido), 2);
+            let destino = resolver(vista(ruta_p), vista(dir), raiz) sino vacio();
+            var jm = 0;
+            while jm < largo(modulos) && !igual(vista(modulos[jm]), vista(destino)) {
+                jm = jm + 1;
+            }
+            if jm == largo(modulos) { continue; }
+            for n en nombres_declarados(arboles[jm]) {
+                var clave = copiar(n);
+                if largo(alias) > 0 { clave = $"{alias}.{n}"; }
+                if tiene(visible, vista(clave)) {
+                    let previo = nuevo(obtener(visible, vista(clave)) sino "");
+                    let varios = (obtener(cuantos, vista(n)) sino 0) > 1;
+                    // Chocan si por dentro se llamarian distinto, y por dentro
+                    // se llaman con el nombre del archivo delante: dos
+                    // `x.t` en carpetas distintas no chocan aqui, como en el
+                    // original.
+                    let pa = F.prefijo_de(vista(previo));
+                    let pb = F.prefijo_de(vista(modulos[jm]));
+                    if varios && !igual(vista(pa), vista(pb)) {
+                        error = $"{modulos[k]}:{texto_linea}: `{clave}` llega de dos sitios, {previo} y {modulos[jm]}. Dale un nombre a uno de los dos: `usar \"...\" como algo;` y luego `algo.{clave}`";
+                        return false;
+                    }
+                }
+                poner(visible, vista(clave), copiar(modulos[jm]));
+            }
+        }
+        // Y lo que se usa sin pedirlo.
+        for d en arboles[k].hijos {
+            if !igual(vista(d.clase), "fn") { continue; }
+            var locales: lista<str> = [];
+            locales_de(d, locales);
+            for h en d.hijos {
+                if !igual(vista(h.clase), "bloque") { continue; }
+                let hallado = sin_pedir(h, visible, duenios, locales);
+                if largo(hallado) > 0 {
+                    let nombre = campo_pedido(vista(hallado), 0);
+                    let linea = campo_pedido(vista(hallado), 1);
+                    let donde = obtener(duenios, vista(nombre)) sino "";
+                    error = $"{modulos[k]}:{linea}: `{nombre}` esta en {donde}, que este archivo no usa. Se veia porque lo usa otro modulo, pero cada archivo tiene que pedir lo suyo: añade `usar \"...\";`";
+                    return false;
+                }
+            }
+        }
+        k = k + 1;
+    }
+    return true;
 }
 
 // ------------------------------------------------------------------
@@ -2128,6 +2314,9 @@ fn main() -> usize ! {
     var nivel = nuevo("2");
     var cc = variable_entorno("CC") sino nuevo("cc");
     var modo = nuevo("binario");
+    var sin_avisos = false;
+    var escribir_en_su_sitio = false;
+    var avisos_como_errores = false;
     var ia = 1;
     while ia < n_argumentos() {
         let a = argumento(ia);
@@ -2158,6 +2347,16 @@ fn main() -> usize ! {
             modo = nuevo("mostrar");
         } else if igual(a, "--solo-comprobar") {
             modo = nuevo("comprobar");
+        } else if igual(a, "--explicar") {
+            modo = nuevo("explicar");
+        } else if igual(a, "--formatear") {
+            modo = nuevo("formatear");
+        } else if igual(a, "--escribir") {
+            escribir_en_su_sitio = true;
+        } else if igual(a, "--sin-avisos") {
+            sin_avisos = true;
+        } else if igual(a, "--avisos-como-errores") {
+            avisos_como_errores = true;
         } else if empieza_con(a, "-") {
             imprimir_error($"tcodec: no conozco la opcion `{a}`\n");
             return 2;
@@ -2169,18 +2368,45 @@ fn main() -> usize ! {
         }
     }
     if largo(fuente) == 0 {
-        imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar]\n");
+        imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--sin-avisos] [--avisos-como-errores] [--formatear [--escribir]] [--explicar]\n");
         return 2;
     }
     if tcodec_es_archivo(copiar(fuente)) == 0 {
         imprimir_error($"tcodec: no encuentro {fuente}\n");
         return 2;
     }
+    // Un estilo y es este: sin opciones, como `gofmt`.
+    if igual(vista(modo), "formatear") {
+        let original = leer_archivo(vista(fuente)) sino vacio();
+        var error_f = vacio();
+        let salida_f = FMT.formatear(vista(original), vista(fuente), error_f) sino vacio();
+        if largo(error_f) > 0 {
+            imprimir_error($"error: {error_f}\n");
+            return 1;
+        }
+        if !escribir_en_su_sitio {
+            imprimir(salida_f);
+            return 0;
+        }
+        if !igual(vista(salida_f), vista(original)) {
+            if !escribir_de_una_vez(vista(fuente), vista(salida_f), false) {
+                imprimir_error($"tcodec: no se pudo escribir `{fuente}`\n");
+                return 2;
+            }
+            imprimir($"formateado {fuente}\n");
+        }
+        return 0;
+    }
+
     let raiz = variable_entorno("TCODE_RAIZ") sino nuevo(".");
     let principal = normalizar(vista(fuente));
     var modulos: lista<str> = [];
     var pila: lista<str> = [];
-    try visitar(vista(principal), vista(raiz), modulos, pila);
+    var error_carga = vacio();
+    if !visitar(vista(principal), vista(raiz), modulos, pila, error_carga, "", 0) {
+        imprimir_error($"error: {error_carga}\n");
+        return 1;
+    }
 
     // Pase 1: cada modulo con su propio contexto —los nombres se resuelven
     // por archivo, como en el cargador—, y uno de todo el programa para saber
@@ -2212,10 +2438,13 @@ fn main() -> usize ! {
     var en_lleva: lista<lista<str>> = [];
     // Cada generica, con el indice del modulo que la declara.
     var plantillas: mapa<str, usize> = [];
+    var previos_st: mapa<str, usize> = [];
+    var previos_en: mapa<str, usize> = [];
     for m en modulos {
         var tipos = I.contexto();
         var error_m = vacio();
-        let arbol = F.preparar_con_error(vista(m), tipos, error_m) sino P.rama("vacio", 0);
+        let arbol = F.preparar_con_error(vista(m), tipos, error_m, previos_st, previos_en)
+        sino P.rama("vacio", 0);
         if largo(error_m) > 0 {
             // Como el cargador de Python: el primer error y nada mas.
             imprimir_error($"error: {error_m}\n");
@@ -2224,6 +2453,14 @@ fn main() -> usize ! {
         if igual(vista(arbol.clase), "vacio") {
             imprimir_error($"tcodec: no se pudo leer `{m}`\n");
             return 1;
+        }
+        // Lo que este declara lo ven los siguientes al leerse, como en el
+        // cargador: un enum tambien es un nombre de tipo.
+        for d en arbol.hijos {
+            if igual(vista(d.clase), "struct") || igual(vista(d.clase), "enum") {
+                poner(previos_st, vista(d.texto), 1);
+            }
+            if igual(vista(d.clase), "enum") { poner(previos_en, vista(d.texto), 1); }
         }
         F.recoger_firmas(arbol, global);
         for d en arbol.hijos {
@@ -2337,6 +2574,13 @@ fn main() -> usize ! {
         anadir(arboles, arbol);
         anadir(contextos, tipos);
     }
+    // Lo que ve cada archivo, con los modulos ya leidos todos.
+    var error_nombres = vacio();
+    if !revisar_nombres(arboles, modulos, vista(raiz), error_nombres) {
+        imprimir_error($"error: {error_nombres}\n");
+        return 1;
+    }
+
     // Un nombre de funcion que declaran dos modulos se llama en C con el del
     // archivo delante, en los dos: `celsius__nombre`. Cada archivo lo ve con
     // el nombre o el alias con que lo pide, como en el cargador.
@@ -2421,8 +2665,32 @@ fn main() -> usize ! {
         else { imprimir_error($"\n{n} errores. No se genero nada.\n"); }
         return 1;
     }
+    // Un aviso no impide compilar, salvo que se pida.
+    let n_avisos = largo(revision.avisos);
+    if n_avisos > 0 && !sin_avisos {
+        for a en revision.avisos { imprimir_error($"aviso: {a}\n"); }
+        if avisos_como_errores {
+            if n_avisos == 1 {
+                imprimir_error("\n1 aviso tratado como error. No se genero nada.\n");
+            } else {
+                imprimir_error($"\n{n_avisos} avisos tratados como error. No se genero nada.\n");
+            }
+            return 1;
+        }
+    }
+    // Lo que se infirio: quien es duenio de que, quien presta a quien, y donde
+    // se libera cada cosa.
+    if igual(vista(modo), "explicar") {
+        let texto_e = vista(revision.explicacion);
+        var salto = 0;
+        while salto < largo(texto_e) && byte(texto_e, salto) != 10 { salto = salto + 1; }
+        imprimir($"{fuente}{rebanar(texto_e, salto, largo(texto_e))}\n");
+        return 0;
+    }
     if igual(vista(modo), "comprobar") {
-        imprimir($"{fuente}: sin errores\n");
+        if n_avisos == 0 { imprimir($"{fuente}: sin errores\n"); }
+        else if n_avisos == 1 { imprimir($"{fuente}: sin errores, 1 aviso\n"); }
+        else { imprimir($"{fuente}: sin errores, {n_avisos} avisos\n"); }
         return 0;
     }
 

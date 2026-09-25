@@ -351,6 +351,11 @@ struct Mundo {
     contextos: lista<I.Contexto>,
     // Las copias ya creadas: `plantilla|T1|T2`.
     copias: lista<str>,
+    // Los structs en el orden en que existen para el original: los escritos,
+    // y despues cada copia de un generico y cada clausura segun nacen, con
+    // el nombre que les da el original (`Par__str_usize`) y su tipo aqui.
+    orden_structs: lista<str>,
+    tipo_de_struct: lista<str>,
 }
 
 fn param_de(texto: view) -> Param {
@@ -608,6 +613,15 @@ struct Simbolo {
     // Si es una vista: de quien presta, y de donde sale su memoria.
     origen: str,
     procedencia: str,
+    // Para los avisos: se leyo alguna vez, se modifico alguna vez, donde se
+    // declaro, si es un parametro, y su sitio en la historia de la funcion.
+    leida: bool,
+    mutada: bool,
+    linea_decl: usize,
+    es_param: bool,
+    historia: usize,
+    // A que funcion se entrego, si se entrego pasandola a una.
+    movida_a: str,
 }
 
 struct Comprobacion {
@@ -635,6 +649,13 @@ struct Comprobacion {
     instanciando: lista<str>,
     // De quien es el cuerpo que se esta mirando, para numerar sus clausuras.
     dueno: str,
+    // Los avisos: no impiden compilar.
+    avisos: lista<str>,
+    // Cada simbolo que ha declarado la funcion en curso, con su estado final:
+    // al cerrar su bloque se guarda aqui como quedo.
+    historia: lista<Simbolo>,
+    // Lo que `--explicar` dice de cada funcion comprobada, en orden.
+    informe: lista<str>,
 }
 
 fn estado(archivo: view, modulo: usize) -> Comprobacion {
@@ -642,7 +663,7 @@ fn estado(archivo: view, modulo: usize) -> Comprobacion {
         inicios: [], errores: [], retorno: vacio(), falible: false,
         en_condicional: 0, en_condicion_bucle: 0, en_bucle: 0,
         en_bucle_directo: 0, movidas_en_bucle: [], en_retorno: 0, instanciando: [],
-        dueno: vacio() };
+        dueno: vacio(), avisos: [], historia: [], informe: [] };
 }
 
 // Lo que el mensaje dice en vez de los nombres que puso el compilador: una
@@ -709,6 +730,15 @@ fn error(c: mut Comprobacion, m: &Mundo, linea: usize, mensaje: view) {
     anadir(c.errores, todo);
 }
 
+// Un aviso no impide compilar. Dentro de una generica es el mismo por cada
+// juego de tipos: se dice una vez.
+fn aviso(c: mut Comprobacion, m: &Mundo, linea: usize, mensaje: view) {
+    let claro = legible(m, mensaje);
+    let todo = $"{c.archivo}:{linea}: {claro}";
+    if largo(c.instanciando) > 0 && esta_entre(c.avisos, vista(todo)) { return; }
+    anadir(c.avisos, todo);
+}
+
 fn abrir_ambito(c: mut Comprobacion) { anadir(c.inicios, largo(c.simbolos)); }
 
 // Buscar de dentro hacia fuera. `largo(simbolos)` si no esta.
@@ -747,6 +777,9 @@ fn cerrar_ambito(c: mut Comprobacion) {
         i = i + 1;
     }
     c.simbolos = vivos;
+    for s en muertos {
+        if s.historia < largo(c.historia) { c.historia[s.historia] = copiar(s); }
+    }
     var otros: lista<usize> = [];
     var k = 0;
     while k + 1 < largo(c.inicios) {
@@ -784,11 +817,14 @@ fn declarar_simbolo(c: mut Comprobacion, m: &Mundo, linea: usize, nombre: view, 
     } else if fuera {
         error(c, m, linea, $"`{nombre}` tapa a una variable del mismo nombre de un bloque de fuera. Usa otro nombre");
     }
-    anadir(c.simbolos, Simbolo { nombre: nuevo(nombre), tipo: nuevo(tipo),
-            mutable: mutable, prestado: false, movida: false, movida_en: 0,
-            entregada_en: 0, reasignada_directo: false,
-            bucle_al_declarar: c.en_bucle, prestamos: [], origen: vacio(),
-            procedencia: vacio() });
+    let nuevo_s = Simbolo { nombre: nuevo(nombre), tipo: nuevo(tipo),
+        mutable: mutable, prestado: false, movida: false, movida_en: 0,
+        entregada_en: 0, reasignada_directo: false,
+        bucle_al_declarar: c.en_bucle, prestamos: [], origen: vacio(),
+        procedencia: vacio(), leida: false, mutada: false, linea_decl: linea,
+        es_param: false, historia: largo(c.historia), movida_a: vacio() };
+    anadir(c.historia, copiar(nuevo_s));
+    anadir(c.simbolos, nuevo_s);
     return largo(c.simbolos) - 1;
 }
 
@@ -798,6 +834,7 @@ fn declarar_simbolo(c: mut Comprobacion, m: &Mundo, linea: usize, nombre: view, 
 
 // Leer una variable. Falla si ya se movio.
 fn leer(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize) -> bool {
+    c.simbolos[i].leida = true;
     if c.simbolos[i].movida {
         let n = copiar(c.simbolos[i].nombre);
         let cuando = c.simbolos[i].movida_en;
@@ -882,6 +919,7 @@ fn error_solo_lectura(c: mut Comprobacion, m: &Mundo, linea: usize, nombre: view
 
 // Modificar una variable en el sitio.
 fn mutar(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, por_referencia: bool) {
+    c.simbolos[i].mutada = true;
     if c.simbolos[i].movida {
         let n = copiar(c.simbolos[i].nombre);
         let cuando = c.simbolos[i].movida_en;
@@ -1362,6 +1400,8 @@ struct Instancia {
     ligadas: str,
     // `plantilla|T1|T2`, con los tipos en el orden de la plantilla.
     clave: str,
+    // Como se llama la copia en el original: `primeras__str`.
+    copia: str,
 }
 
 fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
@@ -1371,7 +1411,7 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     let sueltos = copiar(f.tipo_params);
     var lig: mapa<str, str> = [];
     let fallo = Instancia { ok: false, params: [], retorno: vacio(), ligadas: vacio(),
-        clave: vacio() };
+        clave: vacio(), copia: vacio() };
     if largo(n.hijos) == largo(f.params) {
         var i = 0;
         while i < largo(f.params) {
@@ -1447,13 +1487,21 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         i = i + 1;
     }
     var clave = copiar(f.nombre);
+    var copia = copiar(f.nombre);
+    empujar(copia, "__");
+    var primero_t = true;
     for tp en sueltos {
         empujar(clave, "|");
         empujar(clave, obtener(lig, vista(tp)) sino "");
+        let puesto = nuevo(obtener(lig, vista(tp)) sino "");
+        let resuelto = I.nombre_resuelto(vista(puesto));
+        if !primero_t { empujar(copia, "_"); }
+        primero_t = false;
+        empujar(copia, G.sanear(vista(resuelto)));
     }
     let hecha = esta_entre(m.copias, vista(clave));
     let inst = Instancia { ok: true, params: ps, retorno: I.sustituir(vista(f.retorno), lig),
-        ligadas: ligadas, clave: copiar(clave) };
+        ligadas: ligadas, clave: copiar(clave), copia: copiar(copia) };
     if !hecha {
         anadir(m.copias, copiar(clave));
         comprobar_copia(c, m, n, k, inst, lig);
@@ -1494,9 +1542,19 @@ fn comprobar_copia(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, k: usize,
     f.tipo_params = [];
     // La copia vive solo aqui: el bucle del programa no la vuelve a mirar.
     f.de_cierre = true;
+    // Se llama como en el original, y los mensajes dicen el de la plantilla.
+    let plantilla = copiar(f.nombre);
+    f.nombre = copiar(inst.copia);
+    poner(m.bonitos, vista(inst.copia), plantilla);
     let modulo = f.modulo;
     var nodo = copiar(m.arboles[modulo].hijos[f.posicion]);
     sustituir_en_arbol(nodo, lig);
+    // Sus tipos, ya puestos, piden las copias de structs que haga falta.
+    registrar_tipo(m, vista(f.retorno));
+    for p en copiar(f.params) { registrar_tipo(m, vista(p.tipo)); }
+    for h en nodo.hijos {
+        if igual(vista(h.clase), "bloque") { registrar_en_nodo(m, h); }
+    }
     let kc = largo(m.funciones);
     anadir(m.funciones, f);
     let tipos = copiar(m.contextos[modulo]);
@@ -1763,6 +1821,8 @@ fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n
     } else if envolviendo && es_tipo_entero(vista(a))
     && (es_decimal(vista(t)) || igual(vista(t), literal_decimal())) {
         error(c, m, n.linea, $"`como?` de un decimal a `{a}` no tiene sentido: di que quieres con la parte decimal —`piso`, `techo` o `redondear` de `std/numero`— y luego `como {a}`");
+    } else if igual(vista(t), vista(a)) {
+        aviso(c, m, n.linea, $"`como {a}` sobre algo que ya es `{a}`: no hace nada");
     }
     return a;
 }
@@ -1847,7 +1907,10 @@ fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Context
     if largo(destino) > 0 && I.es_aplicacion(destino) {
         let bd = I.base_de_aplicacion(destino);
         let args = T.partir_tipos(T.entre_angulos(destino));
-        if igual(vista(bd), base) && largo(args) == largo(sueltos) { return nuevo(destino); }
+        if igual(vista(bd), base) && largo(args) == largo(sueltos) {
+            registrar_tipo(m, destino);
+            return nuevo(destino);
+        }
     }
     var lig: mapa<str, str> = [];
     let ns = I.lista_de(m.st_nombres, base) sino [];
@@ -1880,6 +1943,7 @@ fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Context
         i = i + 1;
     }
     empujar(t, ">");
+    registrar_tipo(m, vista(t));
     return t;
 }
 
@@ -2051,6 +2115,9 @@ fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) ->
         }
         if igual(a, "str") {
             error(c, m, n.linea, "no se comparan `str` con `==`: usa `igual(vista(a), vista(b))`");
+        }
+        if es_decimal(a) {
+            aviso(c, m, n.linea, $"`{op}` entre decimales compara bit a bit: `0.1 + 0.2` no es `0.3`. Si querias 'aproximadamente', usa `cerca(a, b, tolerancia)` de `std/numero`");
         }
         return nuevo("bool");
     }
@@ -2307,6 +2374,8 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
     }
     poner(m.st_tipos, vista(st), ts);
     poner(m.st_nombres, vista(st), nombres);
+    anadir(m.orden_structs, copiar(st));
+    anadir(m.tipo_de_struct, copiar(st));
     let fn_nodo = nodo_de_cierre(n, numero, vistos);
     anadir(m.cierres, copiar(fn_nodo));
     anadir(m.cierres_mod, c.modulo);
@@ -2375,6 +2444,8 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         return vacio();
     }
     var f = copiar(m.funciones[k]);
+    // A quien se entrega lo que se mueve: la copia, si es una generica.
+    var destinataria = copiar(f.nombre);
     if tiene_sueltos(f) {
         let inst = instanciar(c, m, tipos, n, k);
         if !inst.ok {
@@ -2383,6 +2454,7 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         }
         f.params = copiar(inst.params);
         f.retorno = copiar(inst.retorno);
+        destinataria = copiar(inst.copia);
     }
     let nombre = vista(f.nombre);
     if f.falible && !desenvuelta {
@@ -2430,6 +2502,8 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             }
             if p.mutable {
                 mutar(c, m, arg.linea, is, false);
+                // Quien lo recibe casi siempre lee antes de escribir.
+                c.simbolos[is].leida = true;
                 poner(prestados_mut, vista(base), copiar(p.nombre));
             } else {
                 let _l = leer(c, m, arg.linea, is);
@@ -2439,6 +2513,10 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         }
         // Una funcion de C mira la cadena, no se la queda.
         let mueve = posee_memoria(m, vista(p.tipo)) && !f.externa;
+        if mueve && igual(vista(arg.clase), "variable") {
+            let ia = buscar_simbolo(c, vista(arg.texto));
+            if existe(c, ia) { c.simbolos[ia].movida_a = copiar(destinataria); }
+        }
         let t = comprobar_expresion(c, m, tipos, arg, vista(p.tipo), mueve);
         if igual(vista(p.tipo), "view") && igual(vista(t), "str") { continue; }
         if largo(t) > 0 && !encaja(vista(p.tipo), vista(t)) {
@@ -2936,7 +3014,7 @@ fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nod
 // ese numero de tipos
 // ------------------------------------------------------------------
 
-fn validar_tipo(c: mut Comprobacion, m: &Mundo, linea: usize, t: view) {
+fn validar_tipo(c: mut Comprobacion, m: mut Mundo, linea: usize, t: view) {
     if !contiene(t, "<") && !contiene(t, "[") { return; }
     if empieza_con(t, "&mut ") { validar_tipo(c, m, linea, rebanar(t, 5, largo(t))); return; }
     if empieza_con(t, "&") { validar_tipo(c, m, linea, rebanar(t, 1, largo(t))); return; }
@@ -2977,12 +3055,73 @@ fn validar_tipo(c: mut Comprobacion, m: &Mundo, linea: usize, t: view) {
         let pide = largo(sueltos);
         let dados = largo(args);
         error(c, m, linea, $"`{base}` toma {pide} tipo(s) y se le dieron {dados}");
+        return;
     }
+    registrar_aplicacion(m, t);
+}
+
+// Una copia de struct generico nace la primera vez que se nombra: se apunta
+// y despues sus campos, que pueden pedir otras.
+fn registrar_aplicacion(m: mut Mundo, t: view) {
+    let nombre = I.nombre_resuelto(t);
+    if esta_entre(m.orden_structs, vista(nombre)) { return; }
+    anadir(m.orden_structs, nombre);
+    anadir(m.tipo_de_struct, nuevo(t));
+    for x en campos_tipos(m, t) { registrar_tipo(m, vista(x)); }
+}
+
+// Las copias que pide un tipo, sin errores: los de un tipo ya comprobado.
+fn registrar_tipo(m: mut Mundo, t: view) {
+    if !contiene(t, "<") && !contiene(t, "[") { return; }
+    if empieza_con(t, "&mut ") { registrar_tipo(m, rebanar(t, 5, largo(t))); return; }
+    if empieza_con(t, "&") { registrar_tipo(m, rebanar(t, 1, largo(t))); return; }
+    if T.es_bloque(t) {
+        let e = elem_bloque(t);
+        registrar_tipo(m, vista(e));
+        return;
+    }
+    if T.es_lista(t) {
+        let e = elem_lista(t);
+        registrar_tipo(m, vista(e));
+        return;
+    }
+    if T.es_mapa(t) {
+        for x en clave_y_valor(t) { registrar_tipo(m, vista(x)); }
+        return;
+    }
+    if T.es_arreglo(t) {
+        let e = elem_arreglo(t);
+        registrar_tipo(m, vista(e));
+        return;
+    }
+    if !es_struct_aplicado(m, t) { return; }
+    for a en T.partir_tipos(T.entre_angulos(t)) { registrar_tipo(m, vista(a)); }
+    registrar_aplicacion(m, t);
+}
+
+// Lo mismo en el cuerpo de una copia: sus declaraciones y clausuras.
+fn registrar_en_nodo(m: mut Mundo, n: &P.Nodo) {
+    let clase = vista(n.clase);
+    if igual(clase, "declaracion") {
+        var nombre = vacio();
+        var escrito = vacio();
+        let _mutable = partes_declaracion(vista(n.texto), nombre, escrito);
+        if largo(escrito) > 0 { registrar_tipo(m, vista(escrito)); }
+    }
+    if igual(clase, "param") {
+        let p = param_de(vista(n.texto));
+        registrar_tipo(m, vista(p.tipo));
+    }
+    if igual(clase, "retorno_tipo") {
+        let t = I.sin_alias_tipo(vista(n.texto));
+        registrar_tipo(m, vista(t));
+    }
+    for h en n.hijos { registrar_en_nodo(m, h); }
 }
 
 // Los tipos escritos dentro de una funcion, en orden: parametros, retorno,
 // y las declaraciones y clausuras de su cuerpo.
-fn validar_en_funcion(c: mut Comprobacion, m: &Mundo, d: &P.Nodo) {
+fn validar_en_funcion(c: mut Comprobacion, m: mut Mundo, d: &P.Nodo) {
     for h en d.hijos {
         if igual(vista(h.clase), "param") {
             let p = param_de(vista(h.texto));
@@ -3000,7 +3139,7 @@ fn validar_en_funcion(c: mut Comprobacion, m: &Mundo, d: &P.Nodo) {
     }
 }
 
-fn validar_en_nodo(c: mut Comprobacion, m: &Mundo, n: &P.Nodo) {
+fn validar_en_nodo(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo) {
     if igual(vista(n.clase), "declaracion") {
         var nombre = vacio();
         var escrito = vacio();
@@ -3174,6 +3313,7 @@ fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s:
         }
         let destino = tipo_de_lugar(c, m, tipos, lugar);
         let tipo = comprobar_expresion(c, m, tipos, s.hijos[1], vista(destino), true);
+        c.simbolos[i].mutada = true;
         let st = copiar(c.simbolos[i].tipo);
         if T.es_referencia(vista(st)) {
             if !es_referencia_mutable(vista(st)) {
@@ -3294,9 +3434,11 @@ fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s:
         if largo(elem) > 0 {
             let i = declarar_simbolo(c, m, s.linea, vista(variable), vista(elem), false);
             c.simbolos[i].prestado = true;
+            c.simbolos[i].leida = true;
         }
         if largo(tipo_valor) > 0 && largo(valor) > 0 {
             let j = declarar_simbolo(c, m, s.linea, vista(valor), vista(tipo_valor), false);
+            c.simbolos[j].leida = true;
             if posee_memoria(m, vista(tipo_valor)) { c.simbolos[j].prestado = true; }
         }
         cuerpo_de_bucle(c, m, tipos, s.hijos[1]);
@@ -3406,6 +3548,8 @@ fn comprobar_funcion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, k: u
     var cuenta: usize = 0;
     etiquetar_cierres(d, cuenta);
     c.dueno = nuevo(dueno);
+    let historia_antes = copiar(c.historia);
+    c.historia = [];
     let f = copiar(m.funciones[k]);
     let nombre = vista(f.nombre);
     c.retorno = copiar(f.retorno);
@@ -3425,6 +3569,9 @@ fn comprobar_funcion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, k: u
         }
         let i = declarar_simbolo(c, m, f.linea, vista(p.nombre), vista(p.tipo), p.mutable);
         c.simbolos[i].prestado = prestado(p);
+        c.simbolos[i].es_param = true;
+        let h = c.simbolos[i].historia;
+        c.historia[h].es_param = true;
         if igual(vista(p.tipo), "view") { c.simbolos[i].procedencia = nuevo("parametro"); }
     }
     var sale = false;
@@ -3440,8 +3587,297 @@ fn comprobar_funcion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, k: u
     && !sale {
         error(c, m, f.linea, $"`{nombre}` promete devolver `{f.retorno}` pero hay un camino que llega al final sin `return`");
     }
+    avisar_sin_usar(c, m, f);
+    anadir(c.informe, informe_de(m, f, c.historia));
+    c.historia = historia_antes;
     c.retorno = vacio();
     c.falible = false;
+}
+
+// ------------------------------------------------------------------
+// `--explicar`: lo que se infirio, dicho como el original
+// ------------------------------------------------------------------
+
+// Los caracteres de un texto: lo que mide Python al alinear columnas.
+fn ancho_de(t: view) -> usize {
+    var n = 0;
+    var i = 0;
+    while i < largo(t) {
+        let b = byte(t, i);
+        if b < 128 || b >= 192 { n = n + 1; }
+        i = i + 1;
+    }
+    return n;
+}
+
+fn a_la_izquierda(t: view, cuanto: usize) -> str {
+    var r = nuevo(t);
+    var n = ancho_de(t);
+    while n < cuanto {
+        empujar(r, " ");
+        n = n + 1;
+    }
+    return r;
+}
+
+fn sin_espacio_final(t: view) -> str {
+    var fin = largo(t);
+    while fin > 0 && (byte(t, fin - 1) == 32 || byte(t, fin - 1) == 10) { fin = fin - 1; }
+    return nuevo(rebanar(t, 0, fin));
+}
+
+// Como se llama por dentro en el original: un nombre que es palabra de C
+// lleva `ss_id_` delante, salvo `main` y lo que declara un `externo`.
+fn id_c(m: &Mundo, n: view) -> str {
+    if igual(n, "main") { return nuevo(n); }
+    for f en m.funciones {
+        if f.externa && igual(vista(f.nombre), n) { return nuevo(n); }
+    }
+    return G.nombre_en_c(n);
+}
+
+// Lo mismo dentro de un tipo, nombre a nombre.
+fn tipo_c_ids(m: &Mundo, t: view) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < largo(t) {
+        if I.es_de_nombre(byte(t, i)) && (i == 0 || !I.es_de_nombre(byte(t, i - 1))) {
+            var j = i;
+            while j < largo(t) && I.es_de_nombre(byte(t, j)) { j = j + 1; }
+            empujar(r, id_c(m, rebanar(t, i, j)));
+            i = j;
+            continue;
+        }
+        empujar(r, rebanar(t, i, i + 1));
+        i = i + 1;
+    }
+    return r;
+}
+
+fn tipo_informe(m: &Mundo, t: view) -> str {
+    let resuelto = I.nombre_resuelto(t);
+    return tipo_c_ids(m, vista(resuelto));
+}
+
+fn firma_legible(m: &Mundo, f: &Funcion) -> str {
+    var partes = vacio();
+    var i = 0;
+    while i < largo(f.params) {
+        if i > 0 { empujar(partes, ", "); }
+        let t = tipo_informe(m, vista(f.params[i].tipo));
+        let pn_c = id_c(m, vista(f.params[i].nombre));
+        let pn = vista(pn_c);
+        if f.params[i].mutable { let x = $"{pn}: mut {t}"; empujar(partes, vista(x)); }
+        else if f.params[i].compartido { let x = $"{pn}: &{t}"; empujar(partes, vista(x)); }
+        else { let x = $"{pn}: {t}"; empujar(partes, vista(x)); }
+        i = i + 1;
+    }
+    let nombre_c = id_c(m, vista(f.nombre));
+    var firma = $"fn {nombre_c}({partes})";
+    if largo(f.retorno) > 0 && !igual(vista(f.retorno), "()") {
+        let r = tipo_informe(m, vista(f.retorno));
+        empujar(firma, " -> ");
+        empujar(firma, vista(r));
+    }
+    if f.falible { empujar(firma, " !"); }
+    return firma;
+}
+
+// Que es la variable.
+fn papel_de(m: &Mundo, s: &Simbolo) -> str {
+    if s.prestado {
+        if s.mutable { return nuevo("prestado, modificable"); }
+        return nuevo("prestado para leer");
+    }
+    if igual(vista(s.tipo), "view") { return nuevo("vista"); }
+    if posee_memoria(m, vista(s.tipo)) {
+        if s.es_param { return nuevo("DUEÑA (recibida)"); }
+        return nuevo("DUEÑA");
+    }
+    return nuevo("valor");
+}
+
+// Que pasa con su memoria.
+fn destino_de(m: &Mundo, s: &Simbolo) -> str {
+    if igual(vista(s.tipo), "view") {
+        var origen = vacio();
+        if largo(s.origen) > 0 {
+            let o = id_c(m, vista(s.origen));
+            origen = $" de `{o}`";
+        }
+        if igual(vista(s.procedencia), "estatico") {
+            return nuevo("apunta a un literal: vive todo el programa");
+        }
+        if igual(vista(s.procedencia), "parametro") {
+            if largo(origen) == 0 { origen = nuevo(" de un parametro"); }
+            return $"presta{origen}: la memoria es de quien llama";
+        }
+        return $"presta{origen}: muere con el";
+    }
+    if s.prestado { return nuevo("no se libera aqui: es de quien llama"); }
+    if !posee_memoria(m, vista(s.tipo)) { return vacio(); }
+    if s.entregada_en > 0 {
+        return $"se entrega en la linea {s.entregada_en} (return)";
+    }
+    if s.movida {
+        var a = vacio();
+        if largo(s.movida_a) > 0 {
+            let destino_c = id_c(m, vista(s.movida_a));
+            a = $" a `{destino_c}`";
+        }
+        return $"se mueve{a} en la linea {s.movida_en}; lleva bandera por si el programa sale antes";
+    }
+    if T.es_arreglo(vista(s.tipo)) {
+        let e = elem_arreglo(vista(s.tipo));
+        if posee_memoria(m, vista(e)) {
+            let n = largo_arreglo(vista(s.tipo));
+            return $"se libera sola al cerrar su bloque, elemento por elemento ({n})";
+        }
+    }
+    return nuevo("se libera sola al cerrar su bloque");
+}
+
+fn informe_de(m: &Mundo, f: &Funcion, historia: &lista<Simbolo>) -> str {
+    let firma = firma_legible(m, f);
+    var t = $"  {firma}\n";
+    if f.falible && igual(vista(f.nombre), "main") {
+        empujar(t, "      puede fallar: si falla, el programa imprime `error: <motivo>` y sale con codigo 1\n");
+    } else if f.falible {
+        empujar(t, "      puede fallar: quien la llame tiene que usar `try` o `sino`\n");
+    }
+    if largo(historia) == 0 {
+        empujar(t, "      (sin variables)\n\n");
+        return t;
+    }
+    var an = 0;
+    var at = 0;
+    var ap = 0;
+    for s en historia {
+        let nt = tipo_informe(m, vista(s.tipo));
+        let pa = papel_de(m, s);
+        let nc = id_c(m, vista(s.nombre));
+        if ancho_de(vista(nc)) > an { an = ancho_de(vista(nc)); }
+        if ancho_de(vista(nt)) > at { at = ancho_de(vista(nt)); }
+        if ancho_de(vista(pa)) > ap { ap = ancho_de(vista(pa)); }
+    }
+    var duenias = 0;
+    var solas = 0;
+    var entregadas = 0;
+    var movidas = 0;
+    for s en historia {
+        var marca = nuevo("let");
+        if s.mutable { marca = nuevo("var"); }
+        if s.es_param { marca = nuevo("arg"); }
+        let nt = tipo_informe(m, vista(s.tipo));
+        let pa = papel_de(m, s);
+        let de = destino_de(m, s);
+        let nc = id_c(m, vista(s.nombre));
+        let c1 = a_la_izquierda(vista(nc), an);
+        let c2 = a_la_izquierda(vista(nt), at);
+        let c3 = a_la_izquierda(vista(pa), ap);
+        let fila = $"      {marca} {c1}  {c2}  {c3}  {de}";
+        empujar(t, sin_espacio_final(vista(fila)));
+        empujar(t, "\n");
+        if posee_memoria(m, vista(s.tipo)) && !s.prestado {
+            duenias = duenias + 1;
+            if !s.movida && s.entregada_en == 0 { solas = solas + 1; }
+            if s.entregada_en > 0 { entregadas = entregadas + 1; }
+            if s.movida { movidas = movidas + 1; }
+        }
+    }
+    if duenias > 0 {
+        var trozos: lista<str> = [];
+        if solas > 0 {
+            if solas > 1 { anadir(trozos, $"{solas} se liberan solas"); }
+            else { anadir(trozos, $"{solas} se libera sola"); }
+        }
+        if entregadas > 0 {
+            if entregadas > 1 { anadir(trozos, $"{entregadas} se entregan"); }
+            else { anadir(trozos, $"{entregadas} se entrega"); }
+        }
+        if movidas > 0 {
+            if movidas > 1 { anadir(trozos, $"{movidas} se mueven"); }
+            else { anadir(trozos, $"{movidas} se mueve"); }
+        }
+        var junto = vacio();
+        var i = 0;
+        while i < largo(trozos) {
+            if i > 0 { empujar(junto, ", "); }
+            empujar(junto, vista(trozos[i]));
+            i = i + 1;
+        }
+        let linea = $"      {duenias} valor(es) con memoria propia: {junto}\n";
+        empujar(t, vista(linea));
+    }
+    empujar(t, "\n");
+    return t;
+}
+
+// El informe entero: los structs, y cada funcion comprobada en su orden.
+fn explicacion(m: &Mundo, informe: &lista<str>, archivo: view) -> str {
+    var t = $"{archivo}\n\n";
+    if largo(m.orden_structs) == 0 && largo(informe) == 0 {
+        empujar(t, "  (nada que explicar)");
+        return t;
+    }
+    var k = 0;
+    while k < largo(m.orden_structs) {
+        let nombre_c = tipo_c_ids(m, vista(m.orden_structs[k]));
+        let nombre = vista(nombre_c);
+        let aqui = vista(m.tipo_de_struct[k]);
+        let posee = posee_memoria(m, aqui);
+        empujar(t, "  struct ");
+        empujar(t, nombre);
+        if posee { empujar(t, "   es DUEÑO: contiene memoria que hay que liberar\n"); }
+        else { empujar(t, "   solo datos: nada que liberar\n"); }
+        let ns = campos_nombres(m, aqui);
+        let ts = campos_tipos(m, aqui);
+        var i = 0;
+        while i < largo(ns) && i < largo(ts) {
+            let tc = tipo_informe(m, vista(ts[i]));
+            var marca = vacio();
+            if posee_memoria(m, vista(ts[i])) { marca = nuevo("  <- duenio"); }
+            let campo_c = id_c(m, vista(ns[i]));
+            let linea = $"      {campo_c}: {tc}{marca}\n";
+            empujar(t, vista(linea));
+            i = i + 1;
+        }
+        if posee {
+            let linea = $"      el compilador genera `ss_drop_{nombre}` y lo llama donde haga falta\n";
+            empujar(t, vista(linea));
+        }
+        empujar(t, "\n");
+        k = k + 1;
+    }
+    for x en informe { empujar(t, vista(x)); }
+    var limpio = sin_espacio_final(vista(t));
+    empujar(limpio, "\n");
+    return limpio;
+}
+
+// Un `_` delante silencia el aviso, como en Rust: dice que es a proposito.
+fn avisar_sin_usar(c: mut Comprobacion, m: &Mundo, f: &Funcion) {
+    let historia = copiar(c.historia);
+    let nombre_f = vista(f.nombre);
+    for s en historia {
+        let n = vista(s.nombre);
+        if empieza_con(n, "_") { continue; }
+        if s.es_param {
+            if !s.leida && !s.mutada {
+                aviso(c, m, f.linea, $"el parametro `{n}` de `{nombre_f}` no se usa; si es a proposito llamalo `_{n}`");
+            } else if s.mutable && !s.mutada {
+                aviso(c, m, f.linea, $"`{n}` se recibe como `mut {s.tipo}` y nunca se modifica; podria ser `&{s.tipo}`");
+            }
+            continue;
+        }
+        if !s.leida && !s.mutada {
+            aviso(c, m, s.linea_decl, $"`{n}` se declara y no se usa; si es a proposito llamala `_{n}`");
+        } else if !s.leida {
+            aviso(c, m, s.linea_decl, $"a `{n}` se le asignan valores que nunca se leen");
+        } else if s.mutable && !s.mutada {
+            aviso(c, m, s.linea_decl, $"`{n}` se declara `var` y nunca se modifica; puede ser `let`");
+        }
+    }
 }
 
 // Lo que va a un lado y otro del borde con C: numeros, `bool` y `str` de
@@ -3485,6 +3921,9 @@ fn campo_de(texto: view, nombre: mut str, tipo: mut str) {
 // nacieron y donde va cada una.
 struct Revision {
     errores: lista<str>,
+    avisos: lista<str>,
+    // Lo que dice `--explicar`.
+    explicacion: str,
     cierres: lista<P.Nodo>,
     cierres_mod: lista<usize>,
     numeracion: mapa<str, usize>,
@@ -3496,7 +3935,7 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         st_params: [], en_variantes: [], en_formas: [], bonitos: [],
         cierres: [], cierres_mod: [], n_cierres: 0, numeracion: [],
         arboles: copiar(arboles), modulos: copiar(modulos),
-        contextos: copiar(contextos), copias: [] };
+        contextos: copiar(contextos), copias: [], orden_structs: [], tipo_de_struct: [] };
     var c = estado("", 0);
     // Donde se definio cada struct y enum, para decir donde estaba el primero.
     var st_donde: mapa<str, str> = [];
@@ -3614,6 +4053,10 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
             poner(m.st_nombres, nombre, ns);
             poner(m.st_tipos, nombre, ts);
             if largo(ps) > 0 { poner(m.st_params, nombre, ps); }
+            else if !esta_entre(m.orden_structs, nombre) {
+                anadir(m.orden_structs, nuevo(nombre));
+                anadir(m.tipo_de_struct, nuevo(nombre));
+            }
         }
         k = k + 1;
     }
@@ -3741,6 +4184,9 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         e = e + 1;
     }
-    return Revision { errores: copiar(c.errores), cierres: copiar(m.cierres),
+    let principal = vista(modulos[largo(modulos) - 1]);
+    return Revision { errores: copiar(c.errores), avisos: copiar(c.avisos),
+        explicacion: explicacion(m, c.informe, principal),
+        cierres: copiar(m.cierres),
         cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion) };
 }
