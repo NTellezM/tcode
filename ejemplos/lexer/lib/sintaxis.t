@@ -32,13 +32,31 @@ struct Estado {
     // Los parametros de tipo de la funcion o el struct que se esta leyendo:
     // mientras dura, `T` es un tipo mas.
     tipo_params: mapa<str, usize>,
+    // Cuanto se ha bajado en el arbol hasta aqui: ver `limite_hondura`.
+    hondura: usize,
 }
 
 // Un estado nuevo sobre unos tokens.
 fn estado_de(toks: lista<Token>, archivo: view, structs: mapa<str, usize>,
     enums: mapa<str, usize>) -> Estado {
     return Estado { toks: toks, i: 0, alias: [], structs: structs, enums: enums,
-        archivo: nuevo(archivo), error: vacio(), tipo_params: [] };
+        archivo: nuevo(archivo), error: vacio(), tipo_params: [], hondura: 0 };
+}
+
+// Lo mas hondo que puede ser el arbol: anidamiento, y cadenas de operadores,
+// campos o `como`. Todo lo que viene despues es recursivo, y sin un limite un
+// archivo con cien mil parentesis agotaria la pila. Es el mismo que en el
+// parser de Python.
+fn limite_hondura() -> usize { return 5000; }
+
+// Un nivel mas de hondura en el arbol.
+fn entrar(e: mut Estado) ! {
+    e.hondura = e.hondura + 1;
+    if e.hondura > limite_hondura() {
+        let tope = limite_hondura();
+        error_aqui(e, $"el programa anida mas de {tope} niveles; parte la expresion o el bloque en trozos");
+        falla "sintaxis";
+    }
 }
 
 // ------------------------------------------------------------------
@@ -182,6 +200,21 @@ fn descifrado(t: view, interpolada: bool) -> str {
     var i = 0;
     while i < largo(t) {
         let b = byte(t, i);
+        // Un hueco queda crudo, como lo deja Python: lo lee despues el lexer
+        // del hueco, que es quien resuelve sus escapes.
+        if interpolada && b == 123 {
+            if i + 1 < largo(t) && byte(t, i + 1) == 123 {
+                empujar(r, "{{");
+                i = i + 2;
+                continue;
+            }
+            let cierre = cierre_de_hueco(t, i + 1);
+            var hasta = cierre + 1;
+            if hasta > largo(t) { hasta = largo(t); }
+            empujar(r, rebanar(t, i, hasta));
+            i = hasta;
+            continue;
+        }
         if b == 92 && i + 1 < largo(t) {
             let d = byte(t, i + 1);
             if d == 110 { empujar_byte(r, 10); i = i + 2; continue; }
@@ -545,24 +578,22 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
             i = i + 1;
             continue;
         }
-        var prof = 1;
-        var j = i + 1;
-        while j < largo(d) && prof > 0 {
-            if byte(d, j) == 123 { prof = prof + 1; }
-            if byte(d, j) == 125 { prof = prof - 1; }
-            if prof > 0 { j = j + 1; }
-        }
-        if prof != 0 {
+        // El hueco llega crudo: sus cadenas se saltan enteras, que sus
+        // llaves y sus escapes no son del hueco.
+        let j = cierre_de_hueco(d, i + 1);
+        if j >= largo(d) {
             error_en(e, "falta `}` en una cadena interpolada", k);
             falla "sintaxis";
         }
-        let dentro = recortar(rebanar(d, i + 1, j));
+        let dentro = comillas_de_antes(recortar(rebanar(d, i + 1, j)));
         if largo(dentro) == 0 {
             error_en(e, "`{}` vacio en una cadena interpolada: pon dentro lo que quieras mostrar", k);
             falla "sintaxis";
         }
+        // Lo de dentro esta en la linea de la cadena: sus errores tienen que
+        // decirlo.
         var error_lex = vacio();
-        let suyos = tokens_de(dentro, vista(e.archivo), error_lex) sino [];
+        let suyos = tokens_desde(dentro, vista(e.archivo), n.linea, error_lex) sino [];
         if largo(error_lex) > 0 {
             if largo(e.error) == 0 { e.error = error_lex; }
             falla "sintaxis";
@@ -570,6 +601,7 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
         var sub = estado_de(suyos, vista(e.archivo), copiar(e.structs), copiar(e.enums));
         sub.alias = copiar(e.alias);
         sub.tipo_params = copiar(e.tipo_params);
+        sub.hondura = e.hondura;
         let x = expresion(sub) sino hoja("vacio", "", 0);
         if largo(sub.error) > 0 {
             if largo(e.error) == 0 { e.error = copiar(sub.error); }
@@ -581,13 +613,36 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
             falla "sintaxis";
         }
         var x_l = x;
-        // El sub-analisis empieza a contar en la linea 1: lo de dentro de un
-        // hueco esta donde este la cadena, y los errores tienen que decirlo.
+        // Todo lo de dentro de un hueco esta en la linea de la cadena.
         poner_linea(x_l, n.linea);
         anadir(n.hijos, x_l);
         i = j + 1;
     }
     return;
+}
+
+// Antes, un hueco se leia ya descifrado, y sus cadenas se escribian
+// `{f(\"x\")}`. Sigue valiendo: fuera de una cadena, `\"` es una comilla.
+fn comillas_de_antes(h: view) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < largo(h) {
+        let b = byte(h, i);
+        if b == 34 || (b == 36 && i + 1 < largo(h) && byte(h, i + 1) == 34) {
+            let fin = fin_de_texto(h, i);
+            empujar(r, rebanar(h, i, fin));
+            i = fin;
+            continue;
+        }
+        if b == 92 && i + 1 < largo(h) && byte(h, i + 1) == 34 {
+            empujar(r, "\"");
+            i = i + 2;
+            continue;
+        }
+        empujar(r, rebanar(h, i, i + 1));
+        i = i + 1;
+    }
+    return r;
 }
 
 // El lexer deja las cadenas crudas, con los escapes sin resolver: para el
@@ -864,9 +919,11 @@ fn primario(e: mut Estado) -> Nodo ! {
 
 fn postfijo(e: mut Estado) -> Nodo ! {
     var n = try primario(e);
+    let antes = e.hondura;
     while true {
         let l = linea_actual(e);
         if acepta(e, "simbolo", ".") {
+            try entrar(e);
             let campo = try espera(e, "ident", "");
             var p = rama("campo", l);
             empujar(p.texto, campo);
@@ -875,6 +932,7 @@ fn postfijo(e: mut Estado) -> Nodo ! {
             continue;
         }
         if acepta(e, "simbolo", "[") {
+            try entrar(e);
             let idx = try expresion(e);
             try espera(e, "simbolo", "]");
             var p = rama("indice", l);
@@ -885,10 +943,18 @@ fn postfijo(e: mut Estado) -> Nodo ! {
         }
         break;
     }
+    e.hondura = antes;
     return n;
 }
 
 fn unario(e: mut Estado) -> Nodo ! {
+    try entrar(e);
+    let n = try unario_dentro(e);
+    e.hondura = e.hondura - 1;
+    return n;
+}
+
+fn unario_dentro(e: mut Estado) -> Nodo ! {
     let l = linea_actual(e);
     if es(e, "palabra", "try") {
         avanzar(e);
@@ -929,6 +995,7 @@ fn en_lista(ops: view, sep: usize, cual: view) -> bool {
 
 fn nivel(e: mut Estado, ops: view, grado: usize) -> Nodo ! {
     var izq = try siguiente_nivel(e, grado);
+    let antes = e.hondura;
     var sigue = true;
     while sigue {
         if !es(e, "simbolo", "") || !en_lista(ops, 32, valor_en(e, 0)) {
@@ -937,6 +1004,7 @@ fn nivel(e: mut Estado, ops: view, grado: usize) -> Nodo ! {
             let l = linea_actual(e);
             let op = nuevo(valor_en(e, 0));
             avanzar(e);
+            try entrar(e);
             let der = try siguiente_nivel(e, grado);
             var n = rama("binaria", l);
             empujar(n.texto, op);
@@ -945,6 +1013,7 @@ fn nivel(e: mut Estado, ops: view, grado: usize) -> Nodo ! {
             izq = n;
         }
     }
+    e.hondura = antes;
     return izq;
 }
 
@@ -968,9 +1037,11 @@ fn siguiente_nivel(e: mut Estado, grado: usize) -> Nodo ! {
 // `x como u8`, `x como? u8`: ata mas que cualquier binario.
 fn conversion(e: mut Estado) -> Nodo ! {
     var izq = try unario(e);
+    let antes = e.hondura;
     while es(e, "ident", "como") {
         let l = linea_actual(e);
         avanzar(e);
+        try entrar(e);
         var n = rama("conversion", l);
         if acepta(e, "simbolo", "?") { empujar(n.texto, "?"); }
         let t = try tipo(e);
@@ -978,6 +1049,7 @@ fn conversion(e: mut Estado) -> Nodo ! {
         anadir(n.hijos, izq);
         izq = n;
     }
+    e.hondura = antes;
     return izq;
 }
 
@@ -1000,6 +1072,13 @@ fn expresion(e: mut Estado) -> Nodo ! {
 // ------------------------------------------------------------------
 
 fn bloque(e: mut Estado) -> Nodo ! {
+    try entrar(e);
+    let n = try bloque_dentro(e);
+    e.hondura = e.hondura - 1;
+    return n;
+}
+
+fn bloque_dentro(e: mut Estado) -> Nodo ! {
     let l = linea_actual(e);
     try espera(e, "simbolo", "{");
     var n = rama("bloque", l);

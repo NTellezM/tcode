@@ -7,11 +7,11 @@ encuentran lo que a uno se le ocurrio escribir. Estos comprueban invariantes
 sobre programas generados al azar, que es lo que encuentra lo que no se le
 ocurrio a nadie.
 
-La idea sale de los tests de ~/Proyectos/ntvidia, que en vez de casos
-concretos afirman propiedades del modelo: `no_starvation`, `sigma_bounds`,
-`ordering_property`, `decay_eventually_drops`.
+En vez de casos concretos, afirman propiedades del modelo, como hacen los
+tests por propiedad de cualquier otro proyecto: `no_starvation`,
+`sigma_bounds`, `ordering_property`.
 
-Las cinco propiedades:
+Las propiedades:
 
   P1  Todo programa aceptado genera C que el compilador de C acepta con
       -Wall -Wextra -Werror. Si no, el fallo es del compilador de Tcode.
@@ -34,8 +34,16 @@ Las cinco propiedades:
       rechaza diciendo archivo y linea. Nunca una excepcion, nunca un
       cuelgue. Es la mitad del compilador que el generador de programas
       validos no toca, y la que crece con cada construccion nueva.
+  P10 Una vista no sobrevive a que su duenio se reasigne, crezca, se mueva
+      o se libere, venga de donde venga: `vista`, `rebanar`, un `if` o un
+      `match` que la dan, una funcion, un puntero a funcion, una clausura,
+      una generica, un struct que presta, un mapa. El programa que la usa
+      despues no compila; el que la deja morir antes compila y corre limpio
+      bajo ASan. Los programas validos por construccion no prueban esto
+      nunca, y fue donde estaban los agujeros.
 """
 
+import concurrent.futures
 import os
 import random
 import shutil
@@ -54,6 +62,7 @@ from tcode.lexer import ErrorLexico
 from tcode.parser import ErrorSintactico
 from generador_programas import generar, generar_modulos
 from mutador import mutar
+from violaciones import casos as casos_de_violacion
 
 RUNTIME = os.path.join(RAIZ, "runtime")
 CUANTOS = int(os.environ.get("TCODE_PROGRAMAS", "60"))
@@ -172,6 +181,60 @@ def probar_programa(semilla, tmp):
     if e.returncode != 0 or "Sanitizer" in e.stderr or "runtime error" in e.stderr:
         falla("P2 memoria limpia", semilla,
               f"codigo {e.returncode}\n{e.stderr}", fuente)
+
+
+def probar_violaciones(tmp):
+    """P10: una vista no sobrevive a que su duenio se invalide."""
+    global total
+    buenos = []
+    for nombre, malo, bueno in casos_de_violacion():
+        total += 1
+        try:
+            _, errores = compilar_a_c(malo, "malo.t")
+        except Exception:
+            falla("P10 lo colgante no compila", nombre,
+                  traceback.format_exc(), malo)
+            continue
+        if not errores:
+            falla("P10 lo colgante no compila", nombre,
+                  "el compilador acepto un programa que usa una vista "
+                  "despues de invalidar a su duenio", malo)
+        total += 1
+        try:
+            codigo, errores = compilar_a_c(bueno, "bueno.t")
+        except Exception:
+            falla("P10 lo valido compila", nombre, traceback.format_exc(), bueno)
+            continue
+        if errores:
+            falla("P10 lo valido compila", nombre, "\n".join(errores), bueno)
+            continue
+        buenos.append((nombre, codigo, bueno))
+
+    def correr(i, nombre, codigo):
+        ruta_c = os.path.join(tmp, f"v{i}.c")
+        binario = os.path.join(tmp, f"v{i}")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        r = subprocess.run(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            return r.stderr
+        e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
+        if e.returncode != 0 or "Sanitizer" in e.stderr or "runtime error" in e.stderr:
+            return f"codigo {e.returncode}\n{e.stderr}"
+        return None
+
+    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 2) as hilos:
+        resultados = hilos.map(lambda x: correr(*x),
+                               [(i, n, c) for i, (n, c, _) in enumerate(buenos)])
+        for (nombre, _, bueno), problema in zip(buenos, resultados):
+            total += 1
+            if problema:
+                falla("P10 lo valido corre limpio", nombre, problema, bueno)
 
 
 def probar_errores(tmp):
@@ -343,6 +406,9 @@ def main():
         print("=== MUTANTES: programas rotos a proposito ===")
         for semilla in range(1, max(4, CUANTOS // 4) + 1):
             probar_mutantes(semilla)
+
+        print("=== VIOLACIONES: una vista, su duenio invalidado, la vista usada ===")
+        probar_violaciones(tmp)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

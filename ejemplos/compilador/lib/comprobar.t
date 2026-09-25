@@ -549,8 +549,12 @@ fn almacenable(m: &Mundo, t: view) -> bool {
     }
     if es_struct(m, t) || es_enum(m, t) { return true; }
     if T.es_arreglo(t) {
+        // Un arreglo tampoco guarda vistas: cada elemento se puede reasignar
+        // por un indice que no se conoce al compilar, y no habria forma de
+        // saber de quien presta cada uno.
         let e = elem_arreglo(t);
-        return almacenable(m, vista(e));
+        return !igual(vista(e), "view") && !es_prestado_st(m, vista(e))
+        && almacenable(m, vista(e));
     }
     if T.es_mapa(t) {
         let ps = clave_y_valor(t);
@@ -741,7 +745,8 @@ fn legible(m: &Mundo, mensaje: view) -> str {
             if j < largo(mensaje) && byte(mensaje, j) == 60 && tiene(m.st_params, palabra)
             && !empieza_con(resto, "<...>") {
                 // `Par<i64, usize>` -> `Par`: se salta lo que va entre angulos.
-                empujar(r, palabra);
+                let dicho = G.escrito(palabra);
+                empujar(r, vista(dicho));
                 var hondo = 0;
                 var k = j;
                 while k < largo(mensaje) {
@@ -768,12 +773,16 @@ fn legible(m: &Mundo, mensaje: view) -> str {
                 i = j;
                 continue;
             }
+            // Lo que choca con C lleva `ss_id_` delante: se dice como se
+            // escribio.
             if tiene(m.bonitos, palabra) {
-                empujar(r, obtener(m.bonitos, palabra) sino "");
+                let dicho = G.escrito(obtener(m.bonitos, palabra) sino "");
+                empujar(r, vista(dicho));
                 i = j;
                 continue;
             }
-            empujar(r, palabra);
+            let dicho = G.escrito(palabra);
+            empujar(r, vista(dicho));
             i = j;
             continue;
         }
@@ -1354,35 +1363,65 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
         }
         // Una funcion que devuelve `view` solo puede devolver algo derivado
         // de lo que le prestaron. No se sabe de cual, asi que de todos.
-        let k = buscar_funcion(m, nn) sino largo(m.funciones);
-        if k < largo(m.funciones) && !tiene_sueltos(m.funciones[k])
-        && presta_tipo(m, vista(m.funciones[k].retorno))
-        && !T.es_referencia(vista(m.funciones[k].retorno)) {
-            var i = 0;
-            while i < largo(n.hijos) && i < largo(m.funciones[k].params) {
-                let pt = vista(m.funciones[k].params[i].tipo);
-                if igual(pt, "view")
-                || (!prestado(m.funciones[k].params[i]) && es_prestado_st(m, pt)) {
-                    var de_arg = origenes_de(c, m, n.hijos[i]);
-                    if largo(de_arg) == 0 && !igual(vista(n.hijos[i].clase), "variable")
-                    && es_local(procedencia_de(c, m, n.hijos[i])) {
-                        // Un `str` recien hecho donde se pide una vista.
-                        anadir(de_arg, nuevo("<temporal>"));
-                    }
-                    juntar_origenes(salida, de_arg);
-                } else if prestado(m.funciones[k].params[i]) {
-                    let base = variable_base(n.hijos[i]);
-                    var de_arg: lista<str> = [];
-                    if largo(base) > 0 { anadir(de_arg, copiar(base)); } else { anadir(de_arg, nuevo("<temporal>")); }
-                    juntar_origenes(salida, de_arg);
-                    // Si lo prestado presta a su vez, tambien de lo suyo.
-                    let j = buscar_simbolo(c, vista(base));
-                    if largo(base) > 0 && existe(c, j) && es_prestado_st(m, vista(c.simbolos[j].tipo)) {
-                        juntar_origenes(salida, c.simbolos[j].origenes);
-                    }
-                }
-                i = i + 1;
+        let k = funcion_vista(c, m, vista(n.texto));
+        if k < largo(m.funciones) {
+            let ret = vista(m.funciones[k].retorno);
+            if largo(ret) > 0 && !T.es_referencia(ret)
+            && (presta_tipo(m, ret) || lleva_suelto(ret, m.funciones[k].tipo_params)) {
+                juntar_origenes(salida, origenes_de_args(c, m, n, 0, k));
             }
+            return salida;
+        }
+        let iv = buscar_simbolo(c, vista(n.texto));
+        if existe(c, iv) {
+            // Una clausura: el entorno va delante, prestado, y lo demas como
+            // en su funcion.
+            let tv = sin_prestamo(vista(c.simbolos[iv].tipo));
+            let de_cierre = I.funcion_de_cierre(vista(tv));
+            let kc = buscar_funcion(m, vista(de_cierre)) sino largo(m.funciones);
+            if largo(de_cierre) > 0 && kc < largo(m.funciones) {
+                let ret = vista(m.funciones[kc].retorno);
+                if presta_tipo(m, ret) && !T.es_referencia(ret) {
+                    var entorno: lista<str> = [];
+                    anadir(entorno, copiar(n.texto));
+                    juntar_origenes(salida, entorno);
+                    juntar_origenes(salida, origenes_de_args(c, m, n, 1, kc));
+                }
+            } else if T.es_funcion(vista(c.simbolos[iv].tipo)) {
+                // Un puntero a funcion: su tipo dice lo mismo que la firma.
+                juntar_origenes(salida, origenes_de_puntero(c, m, n, vista(c.simbolos[iv].tipo)));
+            }
+        }
+        return salida;
+    }
+    if igual(clase, "si_expr") && largo(n.hijos) == 3 {
+        // Puede ser cualquiera de las dos ramas.
+        juntar_origenes(salida, origenes_de(c, m, n.hijos[1]));
+        juntar_origenes(salida, origenes_de(c, m, n.hijos[2]));
+        return salida;
+    }
+    if igual(clase, "match") && largo(n.hijos) > 0 {
+        // Lo que da cada brazo; y si da algo que atrapo el patron, el valor
+        // mirado: lo atrapado es un prestamo suyo.
+        var mirado: lista<str> = [];
+        var visto = false;
+        var k = 1;
+        while k < largo(n.hijos) {
+            for h en n.hijos[k].hijos {
+                if !igual(vista(h.clase), "retorno") || largo(h.hijos) != 1 { continue; }
+                juntar_origenes(salida, origenes_de(c, m, h.hijos[0]));
+                var atrapados: lista<str> = [];
+                atrapados_de(n.hijos[k], atrapados);
+                if largo(atrapados) > 0 && menciona(h.hijos[0], atrapados) {
+                    if !visto {
+                        mirado = origenes_mirado(c, m, n.hijos[0]);
+                        if largo(mirado) == 0 { anadir(mirado, nuevo("<temporal>")); }
+                        visto = true;
+                    }
+                    juntar_origenes(salida, mirado);
+                }
+            }
+            k = k + 1;
         }
         return salida;
     }
@@ -1425,6 +1464,165 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
             return copiar(c.simbolos[i].origenes);
         }
         anadir(salida, copiar(raiz));
+    }
+    return salida;
+}
+
+// La funcion de un nombre como la ve el modulo que se comprueba. Sin su
+// contexto, por el nombre sin modulo.
+fn funcion_vista(c: &Comprobacion, m: &Mundo, escrito: view) -> usize {
+    if c.modulo < largo(m.contextos) {
+        return funcion_llamada(m, m.contextos[c.modulo], escrito);
+    }
+    let corto = I.sin_modulo(escrito);
+    return buscar_funcion(m, vista(corto)) sino largo(m.funciones);
+}
+
+// Si el tipo `t` nombra alguno de los parametros de tipo `sueltos`.
+fn lleva_suelto(t: view, sueltos: &lista<str>) -> bool {
+    var i = 0;
+    while i < largo(t) {
+        if I.es_de_nombre(byte(t, i)) {
+            var j = i;
+            while j < largo(t) && I.es_de_nombre(byte(t, j)) { j = j + 1; }
+            if esta_entre(sueltos, rebanar(t, i, j)) { return true; }
+            i = j;
+        } else {
+            i = i + 1;
+        }
+    }
+    return false;
+}
+
+// Lo que presta el resultado de llamar a `m.funciones[k]` con los
+// argumentos de `n`, desde el parametro `desde` (en una clausura, el 0 es su
+// entorno). En una generica cuenta tambien todo parametro cuyo tipo lleve
+// uno suelto: aqui no se sabe con que tipos se copio, salvo que el argumento
+// sea un `str`, que no presta de nada.
+fn origenes_de_args(c: &Comprobacion, m: &Mundo, n: &P.Nodo, desde: usize,
+    k: usize) -> lista<str> {
+    var salida: lista<str> = [];
+    var i = desde;
+    while i < largo(m.funciones[k].params) && i - desde < largo(n.hijos) {
+        let arg = copiar(n.hijos[i - desde]);
+        let pt = vista(m.funciones[k].params[i].tipo);
+        let del_arg = tipo_simple(c, m, arg);
+        let suelto = lleva_suelto(pt, m.funciones[k].tipo_params)
+        && !igual(vista(del_arg), "str");
+        if igual(pt, "view")
+        || (!prestado(m.funciones[k].params[i]) && (es_prestado_st(m, pt) || suelto)) {
+            var de_arg = origenes_de(c, m, arg);
+            if !suelto && largo(de_arg) == 0 && !igual(vista(arg.clase), "variable")
+            && es_local(procedencia_de(c, m, arg)) {
+                // Un `str` recien hecho donde se pide una vista.
+                anadir(de_arg, nuevo("<temporal>"));
+            }
+            juntar_origenes(salida, de_arg);
+        } else if prestado(m.funciones[k].params[i]) {
+            let base = variable_base(arg);
+            var de_arg: lista<str> = [];
+            if largo(base) > 0 { anadir(de_arg, copiar(base)); } else { anadir(de_arg, nuevo("<temporal>")); }
+            juntar_origenes(salida, de_arg);
+            // Si lo prestado presta a su vez, tambien de lo suyo.
+            let j = buscar_simbolo(c, vista(base));
+            if largo(base) > 0 && existe(c, j) && es_prestado_st(m, vista(c.simbolos[j].tipo)) {
+                juntar_origenes(salida, c.simbolos[j].origenes);
+            }
+        }
+        i = i + 1;
+    }
+    return salida;
+}
+
+// Lo que presta el resultado de llamar a una variable que guarda una funcion:
+// su tipo dice lo mismo que una firma.
+fn origenes_de_puntero(c: &Comprobacion, m: &Mundo, n: &P.Nodo, tipo: view) -> lista<str> {
+    var salida: lista<str> = [];
+    let partes = T.partes_de_funcion(tipo);
+    if largo(partes) == 0 { return salida; }
+    if !presta_tipo(m, vista(partes[largo(partes) - 1])) { return salida; }
+    var i = 0;
+    while i + 1 < largo(partes) && i < largo(n.hijos) {
+        let pt = vista(partes[i]);
+        if T.es_referencia(pt) {
+            let base = variable_base(n.hijos[i]);
+            var de_arg: lista<str> = [];
+            if largo(base) > 0 { anadir(de_arg, copiar(base)); } else { anadir(de_arg, nuevo("<temporal>")); }
+            juntar_origenes(salida, de_arg);
+            let j = buscar_simbolo(c, vista(base));
+            if largo(base) > 0 && existe(c, j) && presta_tipo(m, vista(c.simbolos[j].tipo)) {
+                juntar_origenes(salida, c.simbolos[j].origenes);
+            }
+        } else if presta_tipo(m, pt) {
+            var de_arg = origenes_de(c, m, n.hijos[i]);
+            if largo(de_arg) == 0 && !igual(vista(n.hijos[i].clase), "variable")
+            && es_local(procedencia_de(c, m, n.hijos[i])) {
+                anadir(de_arg, nuevo("<temporal>"));
+            }
+            juntar_origenes(salida, de_arg);
+        }
+        i = i + 1;
+    }
+    return salida;
+}
+
+// De que variables es lo que atrapa un patron: de la del valor mirado, y si
+// esa es un prestamo, tambien de lo que presta.
+fn origenes_mirado(c: &Comprobacion, m: &Mundo, valor: &P.Nodo) -> lista<str> {
+    var salida: lista<str> = [];
+    let base = variable_base(valor);
+    let i = buscar_simbolo(c, vista(base));
+    if largo(base) == 0 || !existe(c, i) { return salida; }
+    anadir(salida, copiar(base));
+    if presta_tipo(m, vista(c.simbolos[i].tipo)) {
+        juntar_origenes(salida, c.simbolos[i].origenes);
+    }
+    return salida;
+}
+
+// Los nombres que atrapa el patron de un brazo, a cualquier hondura.
+fn atrapados_de(b: &P.Nodo, salida: mut lista<str>) {
+    for h en b.hijos {
+        if igual(vista(h.clase), "atrapa") && !igual(vista(h.texto), "_") {
+            anadir(salida, copiar(h.texto));
+        } else if igual(vista(h.clase), "patron") {
+            atrapados_de(h, salida);
+        }
+    }
+}
+
+// Si en `n` se lee alguna de estas variables.
+fn menciona(n: &P.Nodo, nombres: &lista<str>) -> bool {
+    if igual(vista(n.clase), "variable") && esta_entre(nombres, vista(n.texto)) { return true; }
+    for h en n.hijos {
+        if menciona(h, nombres) { return true; }
+    }
+    return false;
+}
+
+// Las variables que un argumento deja prestadas mientras dura la llamada,
+// cuando va a un sitio que presta (`view`, un struct que presta). Un `str`
+// suelto donde se pide `view` se presta entero; una vista con nombre ya
+// tiene sus prestamos apuntados en sus duenios.
+fn prestados_por(c: &Comprobacion, m: &Mundo, arg: &P.Nodo, t: view) -> lista<str> {
+    var salida: lista<str> = [];
+    let clase = vista(arg.clase);
+    if igual(clase, "variable") {
+        let i = buscar_simbolo(c, vista(arg.texto));
+        if existe(c, i) {
+            let limpio = sin_prestamo(vista(c.simbolos[i].tipo));
+            if igual(vista(limpio), "str") { anadir(salida, copiar(arg.texto)); }
+        }
+        return salida;
+    }
+    let limpio = sin_prestamo(t);
+    if igual(vista(limpio), "str") && (igual(clase, "campo") || igual(clase, "indice")) {
+        let base = variable_base(arg);
+        if largo(base) > 0 { anadir(salida, base); }
+        return salida;
+    }
+    for o en origenes_de(c, m, arg) {
+        if !igual(vista(o), "<temporal>") { anadir(salida, copiar(o)); }
     }
     return salida;
 }
@@ -2281,8 +2479,8 @@ fn unaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     if largo(t) > 0 && !es_tipo_entero(vista(t)) {
         error(c, m, n.linea, $"`-` necesita un entero, recibio `{t}`");
     }
-    if igual(vista(t), "usize") {
-        error(c, m, n.linea, "`usize` no tiene signo: no se puede negar");
+    if es_sin_signo(vista(t)) {
+        error(c, m, n.linea, $"`{t}` no tiene signo: no se puede negar");
     }
     return t;
 }
@@ -2780,6 +2978,13 @@ fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) ->
         return nuevo(a);
     }
     // aritmetica
+    if igual(op, "/?") && !igual(a, literal_decimal()) && !igual(b, literal_decimal())
+    && !es_decimal(a) && !es_decimal(b) {
+        // Entre enteros no hay IEEE que pedir: dividir por cero o `MIN / -1`
+        // no tienen un resultado al que volver.
+        error(c, m, n.linea, "`/?` es la division IEEE de los decimales; entre enteros no hay vuelta que dar. Usa `/`, que se detiene al dividir por cero");
+        return vacio();
+    }
     let lit_a = igual(a, literal()) || igual(a, literal_decimal());
     let lit_b = igual(b, literal()) || igual(b, literal_decimal());
     if lit_a && lit_b {
@@ -2862,7 +3067,10 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         }
         abrir_ambito(c);
         c.en_condicional = c.en_condicional + 1;
-        if largo(forma) > 0 { declarar_patron(c, m, n.linea, vista(base), vista(forma), posiciones); }
+        if largo(forma) > 0 {
+            let mirado = origenes_mirado(c, m, n.hijos[0]);
+            declarar_patron(c, m, n.linea, vista(base), vista(forma), posiciones, mirado);
+        }
         if guarda >= 0 {
             let g = copiar(b.hijos[guarda como usize]);
             c.en_guarda = c.en_guarda + 1;
@@ -2993,7 +3201,7 @@ fn patron_valido(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma
 // Lo que atrapa el patron, prestado: un `match` mira, no desmonta. Un `str`
 // prestado es una `view`, y lo demas con duenio un `&T`.
 fn declarar_patron(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma: view,
-    posiciones: &lista<P.Nodo>) {
+    posiciones: &lista<P.Nodo>, mirado: &lista<str>) {
     let lleva = formas_de(m, base, forma);
     var i = 0;
     while i < largo(posiciones) && i < largo(lleva) {
@@ -3002,13 +3210,26 @@ fn declarar_patron(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, for
         i = i + 1;
         if igual(vista(p.clase), "patron") {
             let cual = I.tras_el_punto(vista(p.texto));
-            declarar_patron(c, m, linea, vista(t), vista(cual), posiciones_de(p));
+            declarar_patron(c, m, linea, vista(t), vista(cual), posiciones_de(p), mirado);
         } else if igual(vista(p.clase), "atrapa") && !igual(vista(p.texto), "_") {
             var tp = copiar(t);
             if posee_memoria(m, vista(t)) {
                 if igual(vista(t), "str") { tp = nuevo("view"); } else { tp = $"&{t}"; }
             }
-            let _s = declarar_simbolo(c, m, linea, vista(p.texto), vista(tp), false);
+            let si = declarar_simbolo(c, m, linea, vista(p.texto), vista(tp), false);
+            if !igual(vista(tp), vista(t)) {
+                // Lo atrapado apunta dentro del valor mirado: mientras viva,
+                // ese valor no se mueve ni se modifica.
+                for o en mirado {
+                    let d = buscar_simbolo(c, vista(o));
+                    if !existe(c, d) || esta_entre(c.simbolos[si].origenes, vista(o)) { continue; }
+                    anadir(c.simbolos[si].origenes, copiar(o));
+                    anadir(c.simbolos[d].prestamos, copiar(p.texto));
+                }
+                if largo(c.simbolos[si].origenes) > 0 {
+                    c.simbolos[si].origen = copiar(c.simbolos[si].origenes[0]);
+                }
+            }
         }
     }
 }
@@ -3162,7 +3383,8 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
     c.falible = falible;
     c.dueno = dueno;
     for nombre en mutables {
-        if !esta_entre(modificadas, vista(nombre)) && !empieza_con(vista(nombre), "_") {
+        let escrito_n = G.escrito(vista(nombre));
+        if !esta_entre(modificadas, vista(nombre)) && !empieza_con(vista(escrito_n), "_") {
             aviso(c, m, n.linea, $"`{nombre}` se captura con `mut` y nunca se modifica; puede ir sin `mut`");
         }
     }
@@ -3284,6 +3506,24 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             if existe(c, ia) { c.simbolos[ia].movida_a = copiar(destinataria); }
         }
         let t = comprobar_expresion(c, m, tipos, arg, vista(p.tipo), mueve);
+        // Una vista que se pasa tambien presta, aunque no tenga nombre:
+        // `g(s, vista(s))` con `a: mut str` dejaria a `g` modificando por un
+        // lado lo que lee por el otro. Es el fallo 2 de la especificacion.
+        if presta_tipo(m, vista(p.tipo)) && !f.externa {
+            for base en prestados_por(c, m, arg, vista(t)) {
+                let otro = nuevo(obtener(prestados_mut, vista(base)) sino "");
+                if largo(otro) > 0 {
+                    var dos: lista<str> = [];
+                    anadir(dos, copiar(p.nombre));
+                    anadir(dos, copiar(otro));
+                    ordenar(dos);
+                    error(c, m, n.linea, $"`{base}` se presta dos veces en la misma llamada a `{nombre}` (como `{dos[0]}` y como `{dos[1]}`), y al menos uno de los dos puede modificarlo. v0 mira la variable entera, asi que rechaza esto aunque sean campos distintos");
+                }
+                if !tiene(prestados_lec, vista(base)) {
+                    poner(prestados_lec, vista(base), copiar(p.nombre));
+                }
+            }
+        }
         if igual(vista(p.tipo), "view") && igual(vista(t), "str") { continue; }
         if largo(t) > 0 && !encaja(vista(p.tipo), vista(t)) {
             if largo(I.funcion_de_cierre(vista(t))) > 0 && T.es_funcion(vista(p.tipo)) {
@@ -3318,6 +3558,10 @@ fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &
         let dados = largo(n.hijos);
         error(c, m, n.linea, $"`{nombre}` es `{tv}` y espera {pide} argumento(s), recibio {dados}");
     }
+    // Los prestamos de una misma llamada, como en una funcion con nombre: la
+    // firma del puntero dice lo mismo que la de ella.
+    var prestados_mut: mapa<str, str> = [];
+    var prestados_lec: mapa<str, str> = [];
     var k = 0;
     while k < largo(n.hijos) && k < largo(params) {
         let esperado = vista(params[k]);
@@ -3325,14 +3569,37 @@ fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &
         let dentro = sin_prestamo(esperado);
         let mueve = !presta && posee_memoria(m, vista(dentro));
         let t = comprobar_expresion(c, m, tipos, n.hijos[k], vista(dentro), mueve);
+        let cual = $"el argumento {k + 1}";
         if presta {
             let base = variable_base(n.hijos[k]);
             let is = buscar_simbolo(c, vista(base));
             if largo(base) > 0 && existe(c, is) {
-                if es_referencia_mutable(esperado) {
+                let mutable = es_referencia_mutable(esperado);
+                var otro = nuevo(obtener(prestados_mut, vista(base)) sino "");
+                if largo(otro) == 0 && mutable {
+                    otro = nuevo(obtener(prestados_lec, vista(base)) sino "");
+                }
+                if largo(otro) > 0 {
+                    error(c, m, n.linea, $"`{base}` se presta dos veces en la misma llamada a `{nombre}` ({otro} y {cual}), y al menos uno de los dos puede modificarlo");
+                }
+                if mutable {
                     mutar(c, m, n.hijos[k], n.hijos[k].linea, is, false);
+                    poner(prestados_mut, vista(base), copiar(cual));
                 } else {
                     let _u = leer(c, m, n.hijos[k].linea, is);
+                    if !tiene(prestados_lec, vista(base)) {
+                        poner(prestados_lec, vista(base), copiar(cual));
+                    }
+                }
+            }
+        } else if presta_tipo(m, vista(dentro)) {
+            for base en prestados_por(c, m, n.hijos[k], vista(t)) {
+                let otro = nuevo(obtener(prestados_mut, vista(base)) sino "");
+                if largo(otro) > 0 {
+                    error(c, m, n.linea, $"`{base}` se presta dos veces en la misma llamada a `{nombre}` ({otro} y {cual}), y al menos uno de los dos puede modificarlo");
+                }
+                if !tiene(prestados_lec, vista(base)) {
+                    poner(prestados_lec, vista(base), copiar(cual));
                 }
             }
         }
@@ -3656,11 +3923,16 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             error(c, m, n.linea, $"`{nombre}` no sabe mostrar un `{t}`: muestra sus campos o elementos por separado");
         }
         if igual(esperado, "view") {
-            var origen = origen_de(c, m, arg);
-            if largo(origen) == 0 && igual(vista(arg.clase), "variable") && igual(vista(t), "str") {
-                origen = copiar(arg.texto);
+            // Todos los duenios posibles, no el primero: con
+            // `if c { vista(a) } else { vista(b) }` puede ser cualquiera.
+            var origenes: lista<str> = [];
+            for o en origenes_de(c, m, arg) {
+                if !igual(vista(o), "<temporal>") { anadir(origenes, copiar(o)); }
             }
-            if largo(origen) > 0 { anadir(prestados, origen); }
+            if largo(origenes) == 0 && igual(vista(arg.clase), "variable") && igual(vista(t), "str") {
+                anadir(origenes, copiar(arg.texto));
+            }
+            for o en origenes { anadir(prestados, copiar(o)); }
         }
     }
 
@@ -4045,7 +4317,7 @@ fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s:
                     let dentro = T.apuntado(vista(tipo));
                     error(c, m, s.linea, $"`{tipo}` no tiene sentido: `{dentro}` es un escalar, y prestarlo no aporta nada sobre copiarlo");
                 } else {
-                    error(c, m, s.linea, $"`{tipo}` no es un tipo almacenable; las listas no pueden guardar `view` ni arreglos fijos");
+                    error(c, m, s.linea, $"`{tipo}` no es un tipo almacenable; las listas y los arreglos no pueden guardar `view`, y las listas tampoco arreglos fijos");
                 }
             }
             let t = comprobar_expresion(c, m, tipos, s.hijos[0], vista(tipo), true);
@@ -4451,56 +4723,25 @@ fn sin_espacio_final(t: view) -> str {
     return nuevo(rebanar(t, 0, fin));
 }
 
-// Como se llama por dentro en el original: un nombre que es palabra de C
-// lleva `ss_id_` delante, salvo `main` y lo que declara un `externo`.
-fn id_c(m: &Mundo, n: view) -> str {
-    if igual(n, "main") { return nuevo(n); }
-    for f en m.funciones {
-        if f.externa && igual(vista(f.nombre), n) { return nuevo(n); }
-    }
-    return G.nombre_en_c(n);
-}
+// Un tipo como lo escribe el original. Los nombres que chocan con C ya
+// llegan cambiados en el arbol, como alli.
+fn tipo_informe(t: view) -> str { return I.nombre_resuelto(t); }
 
-// Lo mismo dentro de un tipo, nombre a nombre.
-fn tipo_c_ids(m: &Mundo, t: view) -> str {
-    var r = vacio();
-    var i = 0;
-    while i < largo(t) {
-        if I.es_de_nombre(byte(t, i)) && (i == 0 || !I.es_de_nombre(byte(t, i - 1))) {
-            var j = i;
-            while j < largo(t) && I.es_de_nombre(byte(t, j)) { j = j + 1; }
-            empujar(r, id_c(m, rebanar(t, i, j)));
-            i = j;
-            continue;
-        }
-        empujar(r, rebanar(t, i, i + 1));
-        i = i + 1;
-    }
-    return r;
-}
-
-fn tipo_informe(m: &Mundo, t: view) -> str {
-    let resuelto = I.nombre_resuelto(t);
-    return tipo_c_ids(m, vista(resuelto));
-}
-
-fn firma_legible(m: &Mundo, f: &Funcion) -> str {
+fn firma_legible(f: &Funcion) -> str {
     var partes = vacio();
     var i = 0;
     while i < largo(f.params) {
         if i > 0 { empujar(partes, ", "); }
-        let t = tipo_informe(m, vista(f.params[i].tipo));
-        let pn_c = id_c(m, vista(f.params[i].nombre));
-        let pn = vista(pn_c);
+        let t = tipo_informe(vista(f.params[i].tipo));
+        let pn = vista(f.params[i].nombre);
         if f.params[i].mutable { let x = $"{pn}: mut {t}"; empujar(partes, vista(x)); }
         else if f.params[i].compartido { let x = $"{pn}: &{t}"; empujar(partes, vista(x)); }
         else { let x = $"{pn}: {t}"; empujar(partes, vista(x)); }
         i = i + 1;
     }
-    let nombre_c = id_c(m, vista(f.nombre));
-    var firma = $"fn {nombre_c}({partes})";
+    var firma = $"fn {f.nombre}({partes})";
     if largo(f.retorno) > 0 && !igual(vista(f.retorno), "()") {
-        let r = tipo_informe(m, vista(f.retorno));
+        let r = tipo_informe(vista(f.retorno));
         empujar(firma, " -> ");
         empujar(firma, vista(r));
     }
@@ -4527,7 +4768,7 @@ fn destino_de(m: &Mundo, s: &Simbolo) -> str {
     if igual(vista(s.tipo), "view") {
         var origen = vacio();
         if largo(s.origen) > 0 {
-            let o = id_c(m, vista(s.origen));
+            let o = copiar(s.origen);
             origen = $" de `{o}`";
         }
         if igual(vista(s.procedencia), "estatico") {
@@ -4547,7 +4788,7 @@ fn destino_de(m: &Mundo, s: &Simbolo) -> str {
     if s.movida {
         var a = vacio();
         if largo(s.movida_a) > 0 {
-            let destino_c = id_c(m, vista(s.movida_a));
+            let destino_c = copiar(s.movida_a);
             a = $" a `{destino_c}`";
         }
         return $"se mueve{a} en la linea {s.movida_en}; lleva bandera por si el programa sale antes";
@@ -4563,7 +4804,7 @@ fn destino_de(m: &Mundo, s: &Simbolo) -> str {
 }
 
 fn informe_de(m: &Mundo, f: &Funcion, historia: &lista<Simbolo>) -> str {
-    let firma = firma_legible(m, f);
+    let firma = firma_legible(f);
     var t = $"  {firma}\n";
     if f.falible && igual(vista(f.nombre), "main") {
         empujar(t, "      puede fallar: si falla, el programa imprime `error: <motivo>` y sale con codigo 1\n");
@@ -4578,9 +4819,9 @@ fn informe_de(m: &Mundo, f: &Funcion, historia: &lista<Simbolo>) -> str {
     var at = 0;
     var ap = 0;
     for s en historia {
-        let nt = tipo_informe(m, vista(s.tipo));
+        let nt = tipo_informe(vista(s.tipo));
         let pa = papel_de(m, s);
-        let nc = id_c(m, vista(s.nombre));
+        let nc = copiar(s.nombre);
         if ancho_de(vista(nc)) > an { an = ancho_de(vista(nc)); }
         if ancho_de(vista(nt)) > at { at = ancho_de(vista(nt)); }
         if ancho_de(vista(pa)) > ap { ap = ancho_de(vista(pa)); }
@@ -4593,10 +4834,10 @@ fn informe_de(m: &Mundo, f: &Funcion, historia: &lista<Simbolo>) -> str {
         var marca = nuevo("let");
         if s.mutable { marca = nuevo("var"); }
         if s.es_param { marca = nuevo("arg"); }
-        let nt = tipo_informe(m, vista(s.tipo));
+        let nt = tipo_informe(vista(s.tipo));
         let pa = papel_de(m, s);
         let de = destino_de(m, s);
-        let nc = id_c(m, vista(s.nombre));
+        let nc = copiar(s.nombre);
         let c1 = a_la_izquierda(vista(nc), an);
         let c2 = a_la_izquierda(vista(nt), at);
         let c3 = a_la_izquierda(vista(pa), ap);
@@ -4647,7 +4888,7 @@ fn explicacion(m: &Mundo, informe: &lista<str>, archivo: view) -> str {
     }
     var k = 0;
     while k < largo(m.orden_structs) {
-        let nombre_c = tipo_c_ids(m, vista(m.orden_structs[k]));
+        let nombre_c = copiar(m.orden_structs[k]);
         let nombre = vista(nombre_c);
         let aqui = vista(m.tipo_de_struct[k]);
         let posee = posee_memoria(m, aqui);
@@ -4659,10 +4900,10 @@ fn explicacion(m: &Mundo, informe: &lista<str>, archivo: view) -> str {
         let ts = campos_tipos(m, aqui);
         var i = 0;
         while i < largo(ns) && i < largo(ts) {
-            let tc = tipo_informe(m, vista(ts[i]));
+            let tc = tipo_informe(vista(ts[i]));
             var marca = vacio();
             if posee_memoria(m, vista(ts[i])) { marca = nuevo("  <- duenio"); }
-            let campo_c = id_c(m, vista(ns[i]));
+            let campo_c = copiar(ns[i]);
             let linea = $"      {campo_c}: {tc}{marca}\n";
             empujar(t, vista(linea));
             i = i + 1;
@@ -4686,7 +4927,8 @@ fn avisar_sin_usar(c: mut Comprobacion, m: &Mundo, f: &Funcion) {
     let nombre_f = vista(f.nombre);
     for s en historia {
         let n = vista(s.nombre);
-        if empieza_con(n, "_") { continue; }
+        let escrito_n = G.escrito(n);
+        if empieza_con(vista(escrito_n), "_") { continue; }
         if s.es_param {
             if !s.leida && !s.mutada {
                 aviso(c, m, f.linea, $"el parametro `{n}` de `{nombre_f}` no se usa; si es a proposito llamalo `_{n}`");

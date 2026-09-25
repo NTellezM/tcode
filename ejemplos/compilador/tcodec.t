@@ -27,6 +27,7 @@ usar "std/lista";
 // lado: ejecutar el compilador de C, un temporal, y sustituir un archivo de
 // una vez.
 externo "lib/sistema_tcodec.c" {
+    fn tcodec_pila_honda() -> i32;
     fn tcodec_ejecutar(orden: str) -> i32;
     fn tcodec_directorio_temporal() -> cadena_c;
     fn tcodec_ruta_real(ruta: str) -> cadena_c;
@@ -414,7 +415,8 @@ fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
                     let pa = F.prefijo_unico(vista(previo), suyos);
                     let pb = F.prefijo_unico(vista(modulos[jm]), suyos);
                     if varios && !igual(vista(pa), vista(pb)) {
-                        error = $"{modulos[k]}:{texto_linea}: `{clave}` llega de dos sitios, {previo} y {modulos[jm]}. Dale un nombre a uno de los dos: `usar \"...\" como algo;` y luego `algo.{clave}`";
+                        let dicho = G.legible_c(vista(clave));
+                        error = $"{modulos[k]}:{texto_linea}: `{dicho}` llega de dos sitios, {previo} y {modulos[jm]}. Dale un nombre a uno de los dos: `usar \"...\" como algo;` y luego `algo.{dicho}`";
                         return false;
                     }
                 }
@@ -433,7 +435,8 @@ fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
                     let nombre = campo_pedido(vista(hallado), 0);
                     let linea = campo_pedido(vista(hallado), 1);
                     let donde = obtener(duenios, vista(nombre)) sino "";
-                    error = $"{modulos[k]}:{linea}: `{nombre}` esta en {donde}, que este archivo no usa. Se veia porque lo usa otro modulo, pero cada archivo tiene que pedir lo suyo: añade `usar \"...\";`";
+                    let dicho = G.escrito(vista(nombre));
+                    error = $"{modulos[k]}:{linea}: `{dicho}` esta en {donde}, que este archivo no usa. Se veia porque lo usa otro modulo, pero cada archivo tiene que pedir lo suyo: añade `usar \"...\";`";
                     return false;
                 }
             }
@@ -2384,6 +2387,8 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
 }
 
 fn main() -> usize ! {
+    // Antes que nada, pila de sobra: el analisis es recursivo.
+    let _pila = tcodec_pila_honda();
     // Las mismas opciones que `tcode`, y una mas para ver el C sin escribir
     // ningun archivo, que es lo que usan la suite y el punto fijo.
     var fuente = vacio();

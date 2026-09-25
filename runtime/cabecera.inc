@@ -36,6 +36,17 @@
 #  define SS_LANG_SIEMPRE
 #endif
 
+/* `imprimir` de un texto: sus bytes tal cual, por su largo. Un `str` guarda
+   bytes y puede llevar ceros, que `%s` y `%.*s` tomarian por el final; y
+   lo que `printf` lee por dentro AddressSanitizer no lo mira, mientras que
+   lo que lee `fwrite` si. */
+SS_LANG_QUIZA_SIN_USAR
+static void ss_lang_escribir_(FILE* f, SafeView v)
+{
+    if (v.len > 0)
+        fwrite(v.ptr, 1, v.len, f);
+}
+
 /* Aritmetica comprobada: en Tcode el desbordamiento no es silencioso.
    Aborta diciendo donde, en vez de seguir con un valor equivocado. Antes se
    vacia `stdout`: `abort()` no lo hace, y con la salida en un archivo o una
@@ -424,6 +435,24 @@ static size_t ss_lang_indice_(size_t i, size_t n, const char* arch, int ln)
         abort();
     }
     return i;
+}
+
+/* `rebanar(v, desde, hasta)`: fuera de rango detiene el programa, como un
+   indice. Una vista vacia seria un resultado equivocado que nadie ve. */
+SS_LANG_QUIZA_SIN_USAR
+static SafeView ss_lang_rebanar_(SafeView v, size_t desde, size_t hasta,
+                                 const char* arch, int ln)
+{
+    if (SS_LANG_RARO(desde > hasta || hasta > v.len))
+    {
+        fflush(stdout);
+        fprintf(stderr, "%s:%d: rebanar(%zu, %zu) fuera de rango (el texto "
+                        "tiene %zu byte%s)\n", arch, ln, desde, hasta, v.len,
+                v.len == 1 ? "" : "s");
+        abort();
+    }
+    SafeView r = { v.ptr == NULL ? NULL : v.ptr + desde, hasta - desde };
+    return r;
 }
 
 SS_LANG_QUIZA_SIN_USAR SS_LANG_NO_VUELVE
