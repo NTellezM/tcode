@@ -139,7 +139,7 @@ cualquier sitio donde haya un compilador de C17.
 | `tcode/generador.py` | árbol → C, con `ss_free` y comprobaciones insertadas |
 | `tcode/explicar.py` | el modelo del comprobador, hecho legible |
 | `tcode/nombres_c.py` | los nombres que en C ya son otra cosa (`log`, `EOF`) |
-| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->12<!--/c--> módulos, <!--c:std_lineas-->941<!--/c--> líneas |
+| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->12<!--/c--> módulos, <!--c:std_lineas-->947<!--/c--> líneas |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
 ## El lexer y el parser de Tcode, escritos en Tcode
@@ -149,7 +149,7 @@ comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
 Sobre los <!--c:lexer_archivos-->49<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
-**<!--c:tokens-->174.427<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+**<!--c:tokens-->175.084<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -158,14 +158,14 @@ instante.
 <!--c:bloque:lexer-->
 ```
 $ ./ejemplos/lexer/lexer ejemplos/lexer/lib/lexico.t --contar
-ejemplos/lexer/lib/lexico.t: 3516 tokens
+ejemplos/lexer/lib/lexico.t: 3478 tokens
   cadena  77
-  entero  291
+  entero  260
   fin  1
-  ident  919
-  interpolada  11
-  palabra  388
-  simbolo  1829
+  ident  928
+  interpolada  10
+  palabra  399
+  simbolo  1803
 ```
 
 Es el primer programa grande del lenguaje y su primera prueba de fuego: usa
@@ -175,10 +175,10 @@ interpoladas para los mensajes, y lectura de archivos con argumentos. Corre
 limpio bajo ASan y UBSan, y ante una entrada rota —una cadena sin cerrar, un
 archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 
-`ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.641<!--/c--> líneas más: descenso recursivo con la
+`ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.681<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->49<!--/c--> archivos que
-el parser del compilador, y sobre ellos produce <!--c:nodos-->87.545<!--/c--> nodos:
+el parser del compilador, y sobre ellos produce <!--c:nodos-->87.851<!--/c--> nodos:
 
 <!--c:bloque:parser-->
 ```
@@ -189,22 +189,22 @@ ejemplos/lexer/parser.t: 79 nodos, hondura 10
 Y dos capas más del comprobador, en `ejemplos/compilador/`:
 
 - `lib/tipos.t` responde las dos preguntas de las que cuelga todo —¿este tipo
-  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **<!--c:tipos_archivos-->49<!--/c--> archivos, <!--c:tipos-->386<!--/c-->
+  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **<!--c:tipos_archivos-->49<!--/c--> archivos, <!--c:tipos-->392<!--/c-->
   tipos**, las mismas respuestas que el comprobador de Python.
 - `lib/tipar.t` dice **de qué tipo es cada variable de cada función**, con
   llamadas, campos, índices, préstamos y genéricas instanciadas: **<!--c:tipar_archivos-->44<!--/c-->
-  archivos, <!--c:tipar_variables-->5.157<!--/c--> variables**, los mismos tipos.
+  archivos, <!--c:tipar_variables-->5.173<!--/c--> variables**, los mismos tipos.
 - `lib/propiedad.t` dice **qué le pasa a cada valor con dueño** —se presta,
   se entrega en la línea N, se mueve en la línea N, o se libera al cerrar su
   bloque—, que es lo único que de verdad separa a Tcode de C: **<!--c:propiedad_archivos-->44<!--/c--> archivos,
-  <!--c:propiedad_variables-->5.157<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
+  <!--c:propiedad_variables-->5.173<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
 - `lib/generar.t` es **el generador**: cómo se llama cada tipo en C, cómo
-  queda la firma de cada función —**<!--c:firmas_archivos-->44<!--/c--> archivos, <!--c:firmas-->684<!--/c--> firmas**— y el C de cada
-  expresión que se devuelve: **<!--c:expresiones_iguales-->1.582<!--/c--> de <!--c:expresiones-->1.785<!--/c--> expresiones, carácter por
+  queda la firma de cada función —**<!--c:firmas_archivos-->44<!--/c--> archivos, <!--c:firmas-->685<!--/c--> firmas**— y el C de cada
+  expresión que se devuelve: **<!--c:expresiones_iguales-->1.594<!--/c--> de <!--c:expresiones-->1.797<!--/c--> expresiones, carácter por
   carácter**, las mismas que emite el generador de Python. Lo que aún no
   cubre sale marcado y no se compara; la suite exige un mínimo en vez de
   hacer como que están todas. Y **la función entera** —firma, cuerpo, y los
-  `ss_free` puestos solos donde tocan—: **<!--c:cuerpos-->770<!--/c--> funciones idénticas**, línea por
+  `ss_free` puestos solos donde tocan—: **<!--c:cuerpos-->776<!--/c--> funciones idénticas**, línea por
   línea, normalizando sólo los números de temporal.
 
 Las dos se comparan contra el comprobador de Python en cada ejecución de la
@@ -216,7 +216,7 @@ suite, sobre el código real del repositorio.
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->19.433<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->19.527<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa) y el resultado se compara byte a
 byte con el del generador de Python: **los <!--c:programas_enteros-->25<!--/c--> programas del repositorio, idénticos**,
 entre ellos el lexer, el parser y el propio `tcodec`, y también **los
@@ -248,7 +248,7 @@ igual
 ```
 
 El `tcodec` construido por sí mismo vuelve a escribir exactamente los mismos
-bytes (<!--c:punto_fijo_bytes-->5,05<!--/c--> MB), y el construido desde su propio C también, bajo
+bytes (<!--c:punto_fijo_bytes-->5,07<!--/c--> MB), y el construido desde su propio C también, bajo
 AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
 A partir de ahí el compilador ya no necesita a Python para existir, que es el
 paso que dieron Go en la 1.5 y Rust con su primer `rustc` escrito en Rust. Lo
@@ -592,7 +592,7 @@ structs (`&T` y `mut T`), `lista<T>` dinámica, `mapa<str, V>` con tabla hash,
 argumentos de la línea de órdenes, `ordenar` y `menor`, salida de error y
 escritura de archivos, `for`/`break`/`continue`, `mapa<str, V>` con `obtener` prestado y `&T` y `&mut T` como tipos, cadenas interpoladas, módulos y fallos como valores.
 
-Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/bytes`, `std/caracter`, `std/conjunto`, `std/cuenta`, `std/formato`, `std/lista`, `std/mapa`, `std/numero`, `std/par`, `std/prueba`, `std/texto` y `std/vector`<!--/c-->—, <!--c:std_lineas-->941<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
+Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/bytes`, `std/caracter`, `std/conjunto`, `std/cuenta`, `std/formato`, `std/lista`, `std/mapa`, `std/numero`, `std/par`, `std/prueba`, `std/texto` y `std/vector`<!--/c-->—, <!--c:std_lineas-->947<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
 queda una sola función duplicada entre `ejemplos/` y `std/`.
 
 Y **`copiar(x)`**: copia profunda de cualquier valor —número, `str`, struct,
@@ -772,7 +772,7 @@ aritmética y los índices detienen el programa en vez de seguir con basura, y
 arman programas de varios archivos para probar módulos, ciclos y nombres
 repetidos.
 
-`make check` entera tarda media hora larga, casi toda en construir y
+`make check` entera tarda unos veinte minutos, casi todos en construir y
 comparar el compilador escrito en Tcode. Para trabajar hay dos atajos:
 
 ```

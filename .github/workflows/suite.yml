@@ -4,7 +4,7 @@
 # construyen el compilador escrito en Tcode, y una pasada corta de las
 # propiedades. Unos minutos.
 #
-# `completa` es `make check` entera, media hora larga: en cada pull request,
+# `completa` es `make check` entera, unos veinte minutos: en cada pull request,
 # en `main` y cuando se pide a mano. Tambien comprueba que las cifras del
 # README sean las que mide la suite.
 name: suite
