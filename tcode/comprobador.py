@@ -323,7 +323,7 @@ def aplicacion_generica(t):
 def _renombrar_capturas(nodo, nombres, linea):
     """Dentro del cuerpo de una clausura, un nombre capturado es un campo del
     entorno. Se cambia aqui y el resto del comprobador no se entera."""
-    from dataclasses import fields, is_dataclass
+    from tcode.nodos import campos_de
     if isinstance(nodo, (list, tuple)):
         for i, x in enumerate(nodo):
             if isinstance(x, Variable) and x.nombre in nombres:
@@ -332,12 +332,13 @@ def _renombrar_capturas(nodo, nombres, linea):
             else:
                 _renombrar_capturas(x, nombres, linea)
         return
-    if not is_dataclass(nodo):
+    campos = campos_de(nodo)
+    if campos is None:
         return
-    for campo in fields(nodo):
-        valor = getattr(nodo, campo.name)
+    for nombre in campos:
+        valor = getattr(nodo, nombre)
         if isinstance(valor, Variable) and valor.nombre in nombres:
-            setattr(nodo, campo.name,
+            setattr(nodo, nombre,
                     Campo(Variable("_ss_entorno", linea=linea), valor.nombre,
                           linea=valor.linea))
         else:
@@ -347,17 +348,18 @@ def _renombrar_capturas(nodo, nombres, linea):
 def _sustituir_en_arbol(nodo, ligaduras):
     """Pone los tipos ligados en las anotaciones que quedan dentro del cuerpo:
     `var salida: lista<T> = []` tiene que decir `lista<str>` en la copia."""
-    from dataclasses import fields, is_dataclass
+    from tcode.nodos import campos_de
     if isinstance(nodo, (list, tuple)):
         for x in nodo:
             _sustituir_en_arbol(x, ligaduras)
         return
-    if not is_dataclass(nodo):
+    campos = campos_de(nodo)
+    if campos is None:
         return
-    for campo in fields(nodo):
-        valor = getattr(nodo, campo.name)
-        if campo.name in ("tipo", "retorno") and isinstance(valor, str):
-            setattr(nodo, campo.name, sustituir_tipo(valor, ligaduras))
+    for nombre in campos:
+        valor = getattr(nodo, nombre)
+        if nombre in ("tipo", "retorno") and isinstance(valor, str):
+            setattr(nodo, nombre, sustituir_tipo(valor, ligaduras))
         else:
             _sustituir_en_arbol(valor, ligaduras)
 
@@ -488,30 +490,22 @@ def _nombres_de_patron(args):
 
 def _nodos_de(nodo):
     """Todo lo que cuelga de `nodo`, el incluido."""
-    from dataclasses import fields, is_dataclass
+    from tcode.nodos import campos_de
     pila = [nodo]
     while pila:
         x = pila.pop()
         if isinstance(x, (list, tuple)):
             pila.extend(x)
-        elif is_dataclass(x):
+            continue
+        campos = campos_de(x)
+        if campos is not None:
             yield x
-            pila.extend(getattr(x, f.name) for f in fields(x))
+            pila.extend(getattr(x, n) for n in campos)
 
 
 def _mencionados(nodo):
     """Los nombres de variable que aparecen en `nodo`, a cualquier hondura."""
-    return {x.nombre for x in _nodos_de(nodo) if isinstance(x, Variable)}
-
-
-def _despues_de_cada(sentencias):
-    """Por cada sentencia, los nombres que mencionan las que la siguen."""
-    salida = [None] * len(sentencias)
-    vistos = frozenset()
-    for i in range(len(sentencias) - 1, -1, -1):
-        salida[i] = vistos
-        vistos = vistos | _mencionados(sentencias[i])
-    return salida
+    return frozenset(x.nombre for x in _nodos_de(nodo) if isinstance(x, Variable))
 
 
 class ErrorDeTipos(Exception):
@@ -604,6 +598,11 @@ class Comprobador:
         # que se comprobaron, y las que ya se hicieron.
         self.escritas = []
         self.contadas = set()
+        # Lo que menciona cada sentencia, por nodo: se pregunta una y otra
+        # vez por las mismas mientras se comprueba una funcion. Se guarda el
+        # nodo con su respuesta para no confundirlo con otro que acabe con el
+        # mismo `id`.
+        self.menciones = {}
         # Dentro de la guarda de un brazo: ahi no se mueve nada, porque se
         # evalua aunque el brazo no llegue a casar.
         self.en_guarda = 0
@@ -1209,19 +1208,20 @@ class Comprobador:
         `sitio` es el ultimo nodo con linea que se vio: un `Parametro` no
         tiene, y un error suyo tiene que apuntar a la funcion.
         """
-        from dataclasses import fields, is_dataclass
+        from tcode.nodos import campos_de
         if isinstance(nodo, (list, tuple)):
             for x in nodo:
                 self._resolver_en_arbol(x, sitio)
             return
-        if not is_dataclass(nodo):
+        campos = campos_de(nodo)
+        if campos is None:
             return
         if getattr(nodo, "linea", None) is not None:
             sitio = nodo
-        for campo in fields(nodo):
-            valor = getattr(nodo, campo.name)
-            if campo.name in ("tipo", "retorno") and isinstance(valor, str):
-                setattr(nodo, campo.name, self.resolver_tipo(valor, sitio or nodo))
+        for nombre in campos:
+            valor = getattr(nodo, nombre)
+            if nombre in ("tipo", "retorno") and isinstance(valor, str):
+                setattr(nodo, nombre, self.resolver_tipo(valor, sitio or nodo))
             else:
                 self._resolver_en_arbol(valor, sitio)
 
@@ -1729,7 +1729,7 @@ class Comprobador:
                     self.error(e, f"la guarda de un brazo tiene que ser "
                                   f"`bool`, es `{tg}`")
             t = None
-            despues = _despues_de_cada(b.cuerpo)
+            despues = self.despues_de_cada(b.cuerpo)
             for i, st in enumerate(b.cuerpo):
                 if b.es_expresion and isinstance(st, Retorno) and st.valor is not None:
                     t = self.expresion(st.valor, destino=destino,
@@ -1836,10 +1836,28 @@ class Comprobador:
         self.en_bucle_directo = anterior
         return salida
 
+    def mencionados(self, nodo):
+        """`_mencionados`, recordado por nodo."""
+        guardado = self.menciones.get(id(nodo))
+        if guardado is not None and guardado[0] is nodo:
+            return guardado[1]
+        nombres = _mencionados(nodo)
+        self.menciones[id(nodo)] = (nodo, nombres)
+        return nombres
+
+    def despues_de_cada(self, sentencias):
+        """Por cada sentencia, los nombres que mencionan las que la siguen."""
+        salida = [None] * len(sentencias)
+        vistos = frozenset()
+        for i in range(len(sentencias) - 1, -1, -1):
+            salida[i] = vistos
+            vistos = vistos | self.mencionados(sentencias[i])
+        return salida
+
     def sentencias(self, sentencias):
         """Una lista de sentencias, cada una sabiendo que nombres mencionan
         las que la siguen."""
-        despues = _despues_de_cada(sentencias)
+        despues = self.despues_de_cada(sentencias)
         for i, s in enumerate(sentencias):
             self.sentencia(s, despues[i], id(sentencias))
 
@@ -1873,7 +1891,7 @@ class Comprobador:
             clase, s, despues, bloque = self.cadena[j]
             # De un `if` que envuelve a la sentencia en curso solo corre la
             # rama en la que se esta; de lo demas, todo cuenta.
-            if (j == ultima or clase != "si") and nombre in _mencionados(s):
+            if (j == ultima or clase != "si") and nombre in self.mencionados(s):
                 return True
             if nombre in despues:
                 return True

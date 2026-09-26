@@ -40,9 +40,17 @@ externo "lib/sistema_tcodec.c" {
 
 // Donde empieza `que` en `t` a partir de `desde`, o `largo(t)` si no esta.
 fn buscar_desde(t: view, que: view, desde: usize) -> usize {
+    if largo(que) == 0 {
+        if desde <= largo(t) { return desde; }
+        return largo(t);
+    }
+    // El primer byte descarta casi todas las posiciones sin cortar nada: se
+    // busca en cada linea del C escrito, y cortar y comparar en cada byte era
+    // lo que mas tardaba despues del lexer.
+    let primero = byte(que, 0);
     var i = desde;
     while i + largo(que) <= largo(t) {
-        if igual(rebanar(t, i, i + largo(que)), que) { return i; }
+        if byte(t, i) == primero && igual(rebanar(t, i, i + largo(que)), que) { return i; }
         i = i + 1;
     }
     return largo(t);
@@ -2615,11 +2623,12 @@ fn main() -> usize ! {
     var plantillas: mapa<str, usize> = [];
     var previos_st: mapa<str, usize> = [];
     var previos_en: mapa<str, usize> = [];
+    var leidos = P.leidos();
     for m en modulos {
         var tipos = I.contexto();
         var error_m = vacio();
-        let arbol = F.preparar_con_error(vista(m), tipos, error_m, previos_st, previos_en)
-        sino P.rama("vacio", 0);
+        let arbol = F.preparar_con_error(vista(m), tipos, error_m, previos_st, previos_en,
+            leidos) sino P.rama("vacio", 0);
         if largo(error_m) > 0 {
             // Como el cargador de Python: el primer error y nada mas.
             imprimir_error($"error: {error_m}\n");

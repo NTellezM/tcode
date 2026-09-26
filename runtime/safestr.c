@@ -324,18 +324,7 @@ bool ss_reserve(SafeString* s, size_t min_capacidad)
 /* Lectura                                                             */
 /* ------------------------------------------------------------------ */
 
-const char* ss_cstr(const SafeString* s)
-{
-    if (s == NULL || s->data == NULL)
-        return SS_CADENA_VACIA;
-
-    return s->data;
-}
-
-size_t ss_len(const SafeString* s)
-{
-    return (s == NULL) ? 0 : s->length;
-}
+/* `ss_cstr` y `ss_len` estan en safestr.h, en linea. */
 
 bool ss_is_empty(const SafeString* s)
 {
@@ -970,17 +959,7 @@ SafeView sv(const char* cstr)
     return v;
 }
 
-SafeView sv_len(const char* datos, size_t len)
-{
-    SafeView v = { datos, (datos != NULL) ? len : 0 };
-    return v;
-}
-
-SafeView ss_view(const SafeString* s)
-{
-    SafeView v = { ss_cstr(s), ss_len(s) };
-    return v;
-}
+/* `sv_len` y `ss_view` estan en safestr.h, en linea. */
 
 SafeView ss_view_slice(const SafeString* s, size_t inicio, size_t fin)
 {
@@ -991,16 +970,7 @@ SafeView ss_view_slice(const SafeString* s, size_t inicio, size_t fin)
     return v;
 }
 
-size_t sv_len_of(SafeView v)   { return v.len; }
-bool   sv_is_empty(SafeView v) { return v.len == 0; }
-
-bool sv_equals(SafeView a, SafeView b)
-{
-    if (a.len != b.len)
-        return false;
-
-    return (a.len == 0) || memcmp(a.ptr, b.ptr, a.len) == 0;
-}
+/* `sv_len_of`, `sv_is_empty` y `sv_equals` estan en safestr.h, en linea. */
 
 bool sv_equals_cstr(SafeView v, const char* cstr)
 {
