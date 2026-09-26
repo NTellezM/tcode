@@ -2401,25 +2401,23 @@ fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>)
     }
     c = c_antes;
     c.archivo = archivo_antes;
-    // Lo guardado vuelve a su sitio sin copiarlo otra vez: `m_antes` no se
-    // usa despues.
-    m.funciones = m_antes.funciones;
-    m.indice = m_antes.indice;
-    m.st_tipos = m_antes.st_tipos;
-    m.st_nombres = m_antes.st_nombres;
-    m.st_params = m_antes.st_params;
-    m.en_variantes = m_antes.en_variantes;
-    m.en_formas = m_antes.en_formas;
-    m.bonitos = m_antes.bonitos;
-    m.cierres = m_antes.cierres;
-    m.cierres_mod = m_antes.cierres_mod;
+    m.funciones = copiar(m_antes.funciones);
+    m.indice = copiar(m_antes.indice);
+    m.st_tipos = copiar(m_antes.st_tipos);
+    m.st_nombres = copiar(m_antes.st_nombres);
+    m.st_params = copiar(m_antes.st_params);
+    m.en_variantes = copiar(m_antes.en_variantes);
+    m.en_formas = copiar(m_antes.en_formas);
+    m.bonitos = copiar(m_antes.bonitos);
+    m.cierres = copiar(m_antes.cierres);
+    m.cierres_mod = copiar(m_antes.cierres_mod);
     m.n_cierres = m_antes.n_cierres;
-    m.cierres_mut = m_antes.cierres_mut;
-    m.numeracion = m_antes.numeracion;
-    m.copias = m_antes.copias;
-    m.orden_copias = m_antes.orden_copias;
-    m.orden_structs = m_antes.orden_structs;
-    m.tipo_de_struct = m_antes.tipo_de_struct;
+    m.cierres_mut = copiar(m_antes.cierres_mut);
+    m.numeracion = copiar(m_antes.numeracion);
+    m.copias = copiar(m_antes.copias);
+    m.orden_copias = copiar(m_antes.orden_copias);
+    m.orden_structs = copiar(m_antes.orden_structs);
+    m.tipo_de_struct = copiar(m_antes.tipo_de_struct);
     for x en nuevos {
         if !esta_entre(c.errores, vista(x)) { anadir(c.errores, copiar(x)); }
     }
