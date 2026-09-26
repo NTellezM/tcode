@@ -3755,6 +3755,15 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // La variable se queda con el temporal: deja de soltarse al acabar
         // la sentencia, porque ahora tiene duenio con nombre.
         reclamar(b, vista(valor));
+        // En C la variable ya esta en ambito DENTRO de su propio
+        // inicializador: `var leidos = P.leidos();` llamaria a la variable.
+        // En Tcode son cosas distintas: el valor se calcula antes.
+        if se_llama_como(n.hijos[0], vista(nombre), tipos) {
+            let previo = nuevo_temporal(b);
+            let tc = tipo_c(vista(tipo));
+            emitir(b, $"{tc} {previo} = {valor};");
+            valor = copiar(previo);
+        }
 
         var l = nuevo("SS_LANG_QUIZA_SIN_USAR ");
         empujar(l, tipo_c(vista(tipo)));
@@ -4349,6 +4358,26 @@ fn termina_saliendo(n: &P.Nodo) -> bool {
     let ultimo = largo(n.hijos) - 1;
     let c = vista(n.hijos[ultimo].clase);
     return igual(c, "retorno") || igual(c, "romper") || igual(c, "continuar");
+}
+
+// Si en `n` se llama a una funcion que en C se llama `nombre`. Una generica
+// se llama con su copia, que lleva los tipos en el nombre, y una variable con
+// una clausura, con la funcion de su entorno: esas no.
+fn se_llama_como(n: &P.Nodo, nombre: view, tipos: &I.Contexto) -> bool {
+    if igual(vista(n.clase), "llamada") {
+        let quien = vista(n.texto);
+        if !tiene(tipos.tipo_params, quien) && largo(I.buscar(tipos, quien)) == 0 {
+            var en_c = I.sin_modulo(quien);
+            if tiene(tipos.renombradas, quien) {
+                en_c = nuevo(obtener(tipos.renombradas, quien) sino "");
+            }
+            if igual(vista(en_c), nombre) { return true; }
+        }
+    }
+    for h en n.hijos {
+        if se_llama_como(h, nombre, tipos) { return true; }
+    }
+    return false;
 }
 
 fn nombre_declarado(texto: view) -> str {

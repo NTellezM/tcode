@@ -22,6 +22,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifndef __cplusplus
 #  include <stdbool.h>
@@ -87,8 +88,19 @@ char*      ss_release(SafeString* s);
 /* Lectura (nunca devuelven NULL ni revientan)                         */
 /* ------------------------------------------------------------------ */
 
-const char* ss_cstr(const SafeString* s);           /* "" si esta vacio */
-size_t      ss_len(const SafeString* s);
+/* Las dos lecturas mas pequeñas van aqui, en linea: un programa de Tcode
+   las pide millones de veces —cada `vista(s)` las usa— y compiladas aparte,
+   en safestr.c, el compilador de C no podia ahorrarse la llamada. */
+static inline const char* ss_cstr(const SafeString* s)     /* "" si esta vacio */
+{
+    return (s == NULL || s->data == NULL) ? "" : s->data;
+}
+
+static inline size_t ss_len(const SafeString* s)
+{
+    return (s == NULL) ? 0 : s->length;
+}
+
 bool        ss_is_empty(const SafeString* s);
 bool        ss_ok(const SafeString* s);             /* false si hubo fallo de memoria */
 
@@ -236,16 +248,37 @@ typedef struct
 #define SV_FMT     "%.*s"
 #define SV_ARG(v)  (int)(v).len, (v).ptr
 
-/* Constructores */
+/* Constructores. Los que no hacen mas que juntar dos campos van en linea,
+   como las consultas de abajo: `largo(v)` es `sv_len_of(v)`, y el
+   compilador de Tcode, compilandose a si mismo, la llamaba 317 millones de
+   veces. */
 SafeView sv(const char* cstr);                       /* desde un literal      */
-SafeView sv_len(const char* datos, size_t len);      /* desde bytes crudos    */
-SafeView ss_view(const SafeString* s);               /* todo el SafeString    */
+
+static inline SafeView sv_len(const char* datos, size_t len)   /* desde bytes crudos */
+{
+    SafeView v = { datos, (datos != NULL) ? len : 0 };
+    return v;
+}
+
+static inline SafeView ss_view(const SafeString* s)            /* todo el SafeString */
+{
+    SafeView v = { ss_cstr(s), ss_len(s) };
+    return v;
+}
+
 SafeView ss_view_slice(const SafeString* s, size_t inicio, size_t fin);
 
 /* Consultas: ninguna reserva memoria */
-size_t   sv_len_of(SafeView v);
-bool     sv_is_empty(SafeView v);
-bool     sv_equals(SafeView a, SafeView b);
+static inline size_t sv_len_of(SafeView v)  { return v.len; }
+static inline bool   sv_is_empty(SafeView v) { return v.len == 0; }
+
+static inline bool sv_equals(SafeView a, SafeView b)
+{
+    if (a.len != b.len)
+        return false;
+    return (a.len == 0) || memcmp(a.ptr, b.ptr, a.len) == 0;
+}
+
 bool     sv_equals_cstr(SafeView v, const char* cstr);
 int      sv_cmp(SafeView a, SafeView b);
 size_t   sv_index_of(SafeView heno, SafeView aguja);  /* SS_NPOS si no esta */

@@ -1,7 +1,29 @@
 """Arbol sintactico de Tcode. Solo datos: sin logica."""
 
+import dataclasses as _dc
 from dataclasses import dataclass, field
 from typing import Optional
+
+
+# Los recorridos del arbol le preguntan a cada nodo por sus campos, y
+# `dataclasses.fields` los vuelve a calcular en cada llamada. Por clase no
+# cambian: se calculan una vez, y con una sola consulta se sabe si algo es
+# un nodo y que campos tiene.
+_NOMBRES = {}
+_FALTA = object()
+
+
+def campos_de(x):
+    """Los nombres de los campos de `x` si es un nodo; `None` si no lo es
+    (una lista, un texto, un numero, `None`)."""
+    t = type(x)
+    r = _NOMBRES.get(t, _FALTA)
+    if r is _FALTA:
+        r = (tuple(f.name for f in _dc.fields(x)) if _dc.is_dataclass(x)
+             else None)
+        if not isinstance(x, type):
+            _NOMBRES[t] = r
+    return r
 
 
 @dataclass

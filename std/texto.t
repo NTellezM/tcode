@@ -63,8 +63,9 @@ fn partir(v: view, sep: view) -> lista<str> ! {
     var salida: lista<str> = [];
     var desde = 0;
     var i = 0;
+    let primero = byte(sep, 0);
     while i + largo(sep) <= largo(v) {
-        if igual(rebanar(v, i, i + largo(sep)), sep) {
+        if byte(v, i) == primero && igual(rebanar(v, i, i + largo(sep)), sep) {
             anadir(salida, nuevo(rebanar(v, desde, i)));
             i = i + largo(sep);
             desde = i;
@@ -122,9 +123,13 @@ fn termina_con(v: view, sufijo: view) -> bool {
 fn indice_de(pajar: view, aguja: view) -> usize ! {
     if largo(aguja) == 0 { return 0; }
     if largo(aguja) > largo(pajar) { falla "no esta"; }
+    // El primer byte descarta casi todas las posiciones sin cortar nada.
+    let primero = byte(aguja, 0);
     var i = 0;
     while i + largo(aguja) <= largo(pajar) {
-        if igual(rebanar(pajar, i, i + largo(aguja)), aguja) { return i; }
+        if byte(pajar, i) == primero && igual(rebanar(pajar, i, i + largo(aguja)), aguja) {
+            return i;
+        }
         i = i + 1;
     }
     falla "no esta";
@@ -164,9 +169,10 @@ fn reemplazar(v: view, viejo: view, nuevo_texto: view) -> str ! {
     if largo(viejo) == 0 { falla "no se puede reemplazar la cadena vacia"; }
     var s = vacio();
     var i = 0;
+    let primero = byte(viejo, 0);
     while i < largo(v) {
         var casa = false;
-        if i + largo(viejo) <= largo(v) {
+        if i + largo(viejo) <= largo(v) && byte(v, i) == primero {
             casa = igual(rebanar(v, i, i + largo(viejo)), viejo);
         }
         if casa {

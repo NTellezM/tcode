@@ -5064,6 +5064,19 @@ fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
 fn main() { imprimir($"{dos_veces(aplicar, 3)}\n"); }
 """
 
+    # En C una variable ya esta en ambito dentro de su propio inicializador:
+    # `Caja caja = caja();` llamaria a la variable. Los dos lo calculan antes.
+    _SU_INICIALIZADOR_TCODEC = r"""struct Caja { n: usize }
+fn caja() -> Caja { return Caja { n: 4 }; }
+fn doble(n: usize) -> usize { return n * 2; }
+fn main() {
+    let caja = caja();
+    let doble = doble(caja.n) + 1;
+    let largo = largo("abc");
+    imprimir($"{caja.n} {doble} {largo}\n");
+}
+"""
+
 
 
     # Mas casos de modulos que los de MODULOS: ciclos de tres, modulos que no
@@ -5243,7 +5256,8 @@ fn main() {
                                            ("enum_st.t", _ENUM_CON_STRUCT_TCODEC),
                                            ("orden.t", _ORDEN_TCODEC),
                                            ("copias.t", _COPIAS_ANIDADAS_TCODEC),
-                                           ("entregado.t", _STR_ENTREGADO_TCODEC)):
+                                           ("entregado.t", _STR_ENTREGADO_TCODEC),
+                                           ("inicial.t", _SU_INICIALIZADOR_TCODEC)):
                     total += 1
                     ruta_cierre = os.path.join(tmp, nombre_c)
                     with open(ruta_cierre, "w", encoding="utf-8") as f:

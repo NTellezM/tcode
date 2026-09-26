@@ -174,12 +174,13 @@ def renombrar(decls, intocables):
         return salida
 
     def visita(x):
-        from dataclasses import fields, is_dataclass
+        from tcode.nodos import campos_de
         if isinstance(x, (list, tuple)):
             for y in x:
                 visita(y)
             return
-        if not is_dataclass(x):
+        campos = campos_de(x)
+        if campos is None:
             return
         hechos = set()
         if isinstance(x, (Variable, Campo, CampoDef, Declaracion, Parametro,
@@ -225,11 +226,11 @@ def renombrar(decls, intocables):
             hechos.add("args")
         if isinstance(x, Interpolada):
             hechos.add("trozos")
-        for f in fields(x):
-            if f.name in hechos:
+        for nombre in campos:
+            if nombre in hechos:
                 continue
-            valor = getattr(x, f.name)
-            if isinstance(valor, (list, tuple)) or is_dataclass(valor):
+            valor = getattr(x, nombre)
+            if isinstance(valor, (list, tuple)) or campos_de(valor) is not None:
                 visita(valor)
 
     visita(decls)
