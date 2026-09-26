@@ -1,7 +1,7 @@
 # Tcode
 #
 #   make check        la suite entera, y que el README diga lo que mide
-#   make rapido       lo que no pasa por el compilador escrito en Tcode: un minuto
+#   make rapido       lo que no pasa por el compilador escrito en Tcode: segundos
 #   make propiedades  solo los tests por propiedad (TCODE_PROGRAMAS=1000 para mas)
 #   make cifras       pone en el README las cifras de la ultima `make check`
 #   make ejemplos     compila y corre los ejemplos

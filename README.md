@@ -772,13 +772,18 @@ aritmética y los índices detienen el programa en vez de seguir con basura, y
 arman programas de varios archivos para probar módulos, ciclos y nombres
 repetidos.
 
-`make check` entera tarda unos veinte minutos, casi todos en construir y
-comparar el compilador escrito en Tcode. Para trabajar hay dos atajos:
+`make check` entera tarda unos cinco minutos en cuatro núcleos. Las
+secciones corren a la vez, cada una en su proceso, y dentro de cada una lo
+que se puede también. Lo que la suite compila con los sanitizers —`tcodec` y
+las otras capas del compilador escritas en Tcode— se guarda en `.cache/` por
+el hash de su C: la pasada siguiente no lo vuelve a compilar si no cambió.
+Para trabajar hay atajos:
 
 ```
-$ make rapido                                  # lo demás: un minuto
+$ make rapido                                  # lo demás: quince segundos
 $ python3 tests/test_lenguaje.py ACEPTA ABORTA  # solo esas secciones
 $ python3 tests/test_lenguaje.py --lista        # cuáles hay
+$ TCODE_EN_SERIE=1 make check                  # una sección tras otra
 ```
 
 Las cifras de este README —tokens, nodos, funciones, líneas, lo que imprimen
