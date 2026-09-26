@@ -3667,6 +3667,19 @@ def en_paralelo(funcion, trabajos):
         return list(hilos.map(funcion, trabajos))
 
 
+def en_procesos(funcion, trabajos):
+    """Como `en_paralelo`, para lo que cuesta dentro de Python —el
+    compilador de Python sobre muchos archivos—, que en hilos iria de uno en
+    uno. Un proceso por nucleo, hechos con `fork` para que vean todo lo de
+    aqui: `funcion` tiene que estar a nivel de modulo, y lo que devuelve
+    tiene que poder viajar entre procesos."""
+    import multiprocessing
+    with concurrent.futures.ProcessPoolExecutor(
+            os.cpu_count() or 2,
+            mp_context=multiprocessing.get_context("fork")) as procesos:
+        return list(procesos.map(funcion, trabajos))
+
+
 def c_de(fuente, tmp):
     """El C de un programa, o AssertionError si no compila."""
     if "usar " in fuente:
@@ -5234,6 +5247,7 @@ fn main() {
 
     tmp = tempfile.mkdtemp(prefix="tcode-programa-")
     _cwd_antes = os.getcwd()
+    _fondo = None
     try:
         os.chdir(RAIZ)
         total += 1
@@ -5260,6 +5274,50 @@ fn main() {
                 # preguntar por el directorio de trabajo, y los `#line` son
                 # relativos a el.
                 entorno = dict(os.environ, TCODE_RAIZ=".")
+
+                # El punto fijo, al final de la seccion, son pasos largos y en
+                # fila: `tcodec` con los sanitizers escribiendo su propio C, y
+                # construyendose a si mismo. Empiezan ya, en otros dos hilos,
+                # mientras corre todo lo demas.
+                propio = os.path.join("ejemplos", "compilador", "tcodec.t")
+
+                def _punto_fijo():
+                    e1 = subprocess.run([binario, propio, "--mostrar-c"],
+                                        capture_output=True, text=True,
+                                        timeout=600, env=entorno)
+                    r2 = e2 = None
+                    if e1.returncode == 0 and "Sanitizer" not in e1.stderr:
+                        ruta_c2 = os.path.join(tmp, "etapa2.c")
+                        binario2 = os.path.join(tmp, "etapa2")
+                        with open(ruta_c2, "w", encoding="utf-8") as f:
+                            f.write(e1.stdout)
+                        r2 = herramienta(
+                            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra",
+                             "-Werror", "-fsanitize=address,undefined",
+                             "-fno-omit-frame-pointer", f"-I{RUNTIME}", ruta_c2,
+                             os.path.join(RUNTIME, "safestr.c"), _SISTEMA_TCODEC,
+                             "-o", binario2, "-lm"],
+                            capture_output=True, text=True)
+                        if r2.returncode == 0:
+                            e2 = subprocess.run([binario2, propio, "--mostrar-c"],
+                                                capture_output=True, text=True,
+                                                timeout=600, env=entorno)
+                    return e1, r2, e2
+
+                def _se_construye():
+                    binario3 = os.path.join(tmp, "etapa3")
+                    e3 = subprocess.run([binario, propio, "-o", binario3],
+                                        capture_output=True, text=True,
+                                        timeout=900, env=entorno)
+                    e4 = (subprocess.run([binario3, propio, "--mostrar-c"],
+                                         capture_output=True, text=True,
+                                         timeout=600, env=entorno)
+                          if e3.returncode == 0 else None)
+                    return e3, e4
+
+                _fondo = concurrent.futures.ThreadPoolExecutor(2)
+                _punto_fijo_f = _fondo.submit(_punto_fijo)
+                _se_construye_f = _fondo.submit(_se_construye)
 
                 total += 1
                 literal_invalido = os.path.join(tmp, "literal-invalido.t")
@@ -5337,8 +5395,9 @@ fn main() {
                     ruta_cierre = os.path.join(tmp, nombre_c)
                     with open(ruta_cierre, "w", encoding="utf-8") as f:
                         f.write(fuente_c)
-                    esperado_c, errores_c = compilar_archivo(ruta_cierre)
-                    trabajos_c.append((nombre_c, ruta_cierre, esperado_c, errores_c))
+                    trabajos_c.append((nombre_c, ruta_cierre))
+                trabajos_c = [(n, r, *hecho) for (n, r), hecho in zip(
+                    trabajos_c, en_procesos(compilar_archivo, [r for _, r in trabajos_c]))]
 
                 # Lo que cuesta de aqui en adelante es `tcodec`, con los
                 # sanitizers puestos: cada bucle calcula antes lo de Python y
@@ -5379,14 +5438,17 @@ fn main() {
                     return errs or []
 
                 mismos = rechazados = 0
-                trabajos_r = []
+                escritos_r = []
                 for i, (nombre, fuente, _esperado) in enumerate(RECHAZO):
                     ruta_r = os.path.join(tmp, f"rechazo-{i}.t")
                     with open(ruta_r, "w", encoding="utf-8") as f:
                         f.write(fuente)
-                    de_python = _errores_python(ruta_r)
-                    if de_python:
-                        trabajos_r.append((nombre, ruta_r, de_python))
+                    escritos_r.append((nombre, ruta_r))
+                trabajos_r = [(nombre, ruta_r, de_python)
+                              for (nombre, ruta_r), de_python in zip(
+                                  escritos_r, en_procesos(_errores_python,
+                                                          [r for _, r in escritos_r]))
+                              if de_python]
                 for (nombre, _, de_python), (rc, de_tcodec, crudo) in zip(
                         trabajos_r, en_paralelo(lambda t: _errores_tcodec(t[1]),
                                                 trabajos_r)):
@@ -5411,15 +5473,17 @@ fn main() {
                                                   recursive=True)):
                     with open(archivo, encoding="utf-8") as f:
                         aceptables.append((archivo, f.read()))
-                trabajos_a = []
+                escritos_a = []
                 for i, (nombre, fuente) in enumerate(aceptables):
                     ruta_a = (nombre if os.path.exists(nombre)
                               else os.path.join(tmp, f"acepta-{i}.t"))
                     if not os.path.exists(nombre):
                         with open(ruta_a, "w", encoding="utf-8") as f:
                             f.write(fuente)
-                    if not _errores_python(ruta_a):
-                        trabajos_a.append((nombre, ruta_a))
+                    escritos_a.append((nombre, ruta_a))
+                trabajos_a = [t for t, de_python in zip(
+                    escritos_a, en_procesos(_errores_python, [r for _, r in escritos_a]))
+                              if not de_python]
                 for (nombre, _), (rc, de_tcodec, crudo) in zip(
                         trabajos_a, en_paralelo(lambda t: _errores_tcodec(t[1]),
                                                 trabajos_a)):
@@ -5490,9 +5554,12 @@ fn main() {
                             escritos_m.append(ruta_m)
                             with open(ruta_m, "w", encoding="utf-8") as f:
                                 f.write(fuente_m)
-                            de_python = _errores_python(ruta_m)
-                            if de_python:
-                                trabajos_m.append((archivo, que, ruta_m, de_python))
+                            trabajos_m.append((archivo, que, ruta_m))
+                    trabajos_m = [(archivo, que, ruta_m, de_python)
+                                  for (archivo, que, ruta_m), de_python in zip(
+                                      trabajos_m, en_procesos(
+                                          _errores_python, [t[2] for t in trabajos_m]))
+                                  if de_python]
                     for (archivo, que, _, de_python), (rc, de_tcodec, crudo) in zip(
                             trabajos_m, en_paralelo(lambda t: _errores_tcodec(t[2]),
                                                     trabajos_m)):
@@ -5575,11 +5642,10 @@ fn main() {
                                               recursive=True))
                 av_iguales = av_cuantos = 0
                 ex_iguales = 0
-                trabajos_av = []
-                for ruta_a in del_repo + aceptados_rutas:
-                    esperados = _avisos_python(ruta_a)
-                    if esperados is not None:
-                        trabajos_av.append((ruta_a, esperados))
+                trabajos_av = [(ruta_a, esperados) for ruta_a, esperados in zip(
+                    del_repo + aceptados_rutas,
+                    en_procesos(_avisos_python, del_repo + aceptados_rutas))
+                               if esperados is not None]
 
                 # Los tres son otros procesos: el `--explicar` de Python
                 # tambien, porque es lo que ve quien lo usa.
@@ -5655,17 +5721,16 @@ fn main() {
                       f"--formatear igual en {fm_iguales} de {fm_total}")
 
                 iguales = intentados = 0
-                trabajos_e = []
+                con_main = []
                 for archivo in sorted(
                         glob.glob(os.path.join("std", "*.t"))
                         + glob.glob(os.path.join("ejemplos", "**", "*.t"),
                                     recursive=True)):
                     with open(archivo, encoding="utf-8") as f:
-                        if "fn main(" not in f.read():
-                            continue
-                    esperado, errores_f = compilar_archivo(archivo)
-                    if not errores_f:
-                        trabajos_e.append((archivo, esperado))
+                        if "fn main(" in f.read():
+                            con_main.append(archivo)
+                trabajos_e = [(archivo, esperado) for archivo, (esperado, errores_f) in zip(
+                    con_main, en_procesos(compilar_archivo, con_main)) if not errores_f]
                 for (archivo, esperado), e in zip(
                         trabajos_e, en_paralelo(
                             lambda t: _tcodec(t[0], "--mostrar-c", timeout=180),
@@ -5713,9 +5778,12 @@ fn main() {
                         ruta_s = os.path.join(dir_s, "p.t")
                         with open(ruta_s, "w", encoding="utf-8") as f:
                             f.write(caso_s[1])
-                        esperado_s, errores_s = compilar_archivo(ruta_s)
-                        if not errores_s:
-                            trabajos_s.append((caso_s[0], ruta_s, esperado_s))
+                        trabajos_s.append((caso_s[0], ruta_s))
+                trabajos_s = [(nombre_s, ruta_s, esperado_s)
+                              for (nombre_s, ruta_s), (esperado_s, errores_s) in zip(
+                                  trabajos_s, en_procesos(compilar_archivo,
+                                                          [r for _, r in trabajos_s]))
+                              if not errores_s]
 
                 def _tcodec_escribe(trabajo):
                     return subprocess.run([binario, trabajo[1], "--mostrar-c"],
@@ -5824,32 +5892,15 @@ fn main() {
                 # su propio C, como hacen Go desde 1.5 y Rust desde su primer
                 # `rustc` en Rust.
                 total += 1
-                propio = os.path.join("ejemplos", "compilador", "tcodec.t")
-                e1 = subprocess.run([binario, propio, "--mostrar-c"], capture_output=True,
-                                    text=True, timeout=600, env=entorno)
+                e1, r2, e2 = _punto_fijo_f.result()
                 if e1.returncode != 0 or "Sanitizer" in e1.stderr:
                     falla("punto fijo", f"tcodec no se escribe a si mismo:\n"
                                         f"{e1.stderr[:400]}")
                 else:
-                    ruta_c2 = os.path.join(tmp, "etapa2.c")
-                    binario2 = os.path.join(tmp, "etapa2")
-                    with open(ruta_c2, "w", encoding="utf-8") as f:
-                        f.write(e1.stdout)
-                    r2 = herramienta(
-                        ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra",
-                         "-Werror", "-fsanitize=address,undefined",
-                         "-fno-omit-frame-pointer", f"-I{RUNTIME}", ruta_c2,
-                         os.path.join(RUNTIME, "safestr.c"), _SISTEMA_TCODEC,
-                         "-o", binario2,
-                         "-lm"],
-                        capture_output=True, text=True)
                     if r2.returncode != 0:
                         falla("punto fijo", f"su propio C no compila:\n"
                                             f"{r2.stderr[:600]}")
                     else:
-                        e2 = subprocess.run([binario2, propio, "--mostrar-c"],
-                                            capture_output=True, text=True,
-                                            timeout=600, env=entorno)
                         if (e2.returncode != 0 or "Sanitizer" in e2.stderr
                                 or e2.stdout != e1.stdout):
                             falla("punto fijo", "la etapa 2 no reproduce el C "
@@ -5863,14 +5914,7 @@ fn main() {
                             # llamando el al compilador de C, y ese binario
                             # vuelve a escribir el mismo C.
                             total += 1
-                            binario3 = os.path.join(tmp, "etapa3")
-                            e3 = subprocess.run([binario, propio, "-o", binario3],
-                                                capture_output=True, text=True,
-                                                timeout=900, env=entorno)
-                            e4 = (subprocess.run([binario3, propio, "--mostrar-c"],
-                                                 capture_output=True, text=True,
-                                                 timeout=600, env=entorno)
-                                  if e3.returncode == 0 else None)
+                            e3, e4 = _se_construye_f.result()
                             if e4 is None or e4.returncode != 0 or e4.stdout != e1.stdout:
                                 falla("tcodec se construye a si mismo",
                                       f"{e3.stderr[:400]}")
@@ -5878,6 +5922,8 @@ fn main() {
                                 print("    tcodec se construye a si mismo sin "
                                       "Python, y reproduce su C")
     finally:
+        if _fondo is not None:
+            _fondo.shutdown(wait=True)
         os.chdir(_cwd_antes)
         shutil.rmtree(tmp, ignore_errors=True)
 
