@@ -69,3 +69,6 @@ ejemplos/genericos
 
 # Lo que midio la ultima `make check`, para el README
 .cifras.json
+
+# Las herramientas que la suite compila, guardadas por el hash de su C
+.cache/

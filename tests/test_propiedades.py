@@ -89,6 +89,7 @@ from oraculo import generar as generar_oraculo, cuentas_escritas
 from prestamos import generar as generar_prestamos
 
 RUNTIME = os.path.join(RAIZ, "runtime")
+from compilar_c import cc, herramienta
 CUANTOS = int(os.environ.get("TCODE_PROGRAMAS", "60"))
 # Sin construir `tcodec`: P11 mira la salida pero no compara el C de los dos
 # compiladores, y P12 no corre. Es lo que hace `make rapido`.
@@ -113,7 +114,8 @@ def falla(propiedad, semilla, detalle, fuente=None):
 
 
 def probar_programa(semilla, tmp):
-    """P1, P2, P3 y P5 sobre un programa generado."""
+    """P3, P5, P6 y P7 sobre un programa generado. Si llega hasta el C, lo
+    devuelve para P1 y P2, que corren todos a la vez en `correr_programas`."""
     global total
     fuente = generar(semilla)
     nombre = f"p{semilla}"
@@ -185,29 +187,44 @@ def probar_programa(semilla, tmp):
     binario = os.path.join(tmp, nombre)
     with open(ruta_c, "w", encoding="utf-8") as f:
         f.write(codigo)
+    return semilla, fuente, ruta_c, binario
 
-    # P1: el C generado compila sin un solo aviso
-    total += 1
-    r = subprocess.run(
-        ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
-         "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
-         f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
-         "-o", binario, "-lm"],
-        capture_output=True, text=True)
-    if r.returncode != 0:
-        falla("P1 C limpio", semilla, r.stderr, fuente)
-        return
 
-    # P2: corre limpio bajo los sanitizers
-    total += 1
-    try:
-        e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
-    except subprocess.TimeoutExpired:
-        falla("P2 memoria limpia", semilla, "el programa no termino", fuente)
-        return
-    if e.returncode != 0 or "Sanitizer" in e.stderr or "runtime error" in e.stderr:
-        falla("P2 memoria limpia", semilla,
-              f"codigo {e.returncode}\n{e.stderr}", fuente)
+def correr_programas(listos):
+    """P1 y P2 de los programas que llegaron al C, todos a la vez: lo que
+    cuesta es el compilador de C y el programa, que son otros procesos."""
+    global total
+
+    def uno(listo):
+        _, _, ruta_c, binario = listo
+        # P1: el C generado compila sin un solo aviso
+        r = cc(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            return "P1 C limpio", r.stderr
+        # P2: corre limpio bajo los sanitizers
+        try:
+            e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
+        except subprocess.TimeoutExpired:
+            return "P2 memoria limpia", "el programa no termino"
+        if e.returncode != 0 or "Sanitizer" in e.stderr or "runtime error" in e.stderr:
+            return "P2 memoria limpia", f"codigo {e.returncode}\n{e.stderr}"
+        return None
+
+    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 2) as hilos:
+        resultados = list(hilos.map(uno, listos))
+    for (semilla, fuente, _, _), problema in zip(listos, resultados):
+        total += 1
+        if problema and problema[0].startswith("P1"):
+            falla(problema[0], semilla, problema[1], fuente)
+            continue
+        total += 1
+        if problema:
+            falla(problema[0], semilla, problema[1], fuente)
 
 
 def probar_violaciones(tmp):
@@ -242,7 +259,7 @@ def probar_violaciones(tmp):
         binario = os.path.join(tmp, f"v{i}")
         with open(ruta_c, "w", encoding="utf-8") as f:
             f.write(codigo)
-        r = subprocess.run(
+        r = cc(
             ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
              "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
              f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -282,7 +299,7 @@ def construir_tcodec(tmp):
     binario = os.path.join(tmp, "tcodec")
     with open(ruta_c, "w", encoding="utf-8") as f:
         f.write(codigo)
-    r = subprocess.run(
+    r = herramienta(
         ["cc", "-std=c17", "-O1", f"-I{RUNTIME}", ruta_c,
          os.path.join(RUNTIME, "safestr.c"),
          os.path.join(RAIZ, "ejemplos", "compilador", "lib", "sistema_tcodec.c"),
@@ -329,7 +346,7 @@ def probar_oraculo(tmp, tcodec):
         binario = ruta[:-2]
         with open(ruta_c, "w", encoding="utf-8") as f:
             f.write(codigo)
-        r = subprocess.run(
+        r = cc(
             ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
              "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
              f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -451,7 +468,7 @@ def probar_prestamos(tmp, tcodec):
         binario = ruta[:-2]
         with open(ruta_c, "w", encoding="utf-8") as f:
             f.write(codigo)
-        r = subprocess.run(
+        r = cc(
             ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
              "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
              f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -657,7 +674,7 @@ def probar_modulos(semilla):
         binario = os.path.join(raiz, "app")
         with open(ruta_c, "w", encoding="utf-8") as f:
             f.write(codigo)
-        r = subprocess.run(
+        r = cc(
             ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
              "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
              f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -678,8 +695,8 @@ def main():
     print(f"=== PROPIEDADES sobre {CUANTOS} programas generados ===")
     tmp = tempfile.mkdtemp(prefix="tcode-prop-")
     try:
-        for semilla in range(1, CUANTOS + 1):
-            probar_programa(semilla, tmp)
+        listos = [probar_programa(semilla, tmp) for semilla in range(1, CUANTOS + 1)]
+        correr_programas([x for x in listos if x])
         probar_errores(tmp)
 
         print("=== MODULOS GENERADOS: varios archivos, un programa ===")

@@ -66,7 +66,7 @@ limpiar:
 	@grep -rl --include='*.c' 'Generado por el compilador de Tcode' ejemplos bench std 2>/dev/null \
 	    | xargs rm -f
 	@rm -f bench/*_c
-	@rm -rf tcode/__pycache__ tests/__pycache__
+	@rm -rf tcode/__pycache__ tests/__pycache__ .cache
 
 # Sin opciones: hay un estilo y es este.
 formato:

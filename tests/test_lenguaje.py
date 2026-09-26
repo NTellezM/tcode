@@ -37,6 +37,9 @@ from tcode.parser import ErrorSintactico
 
 RUNTIME = os.path.join(RAIZ, "runtime")
 
+sys.path.insert(0, os.path.join(RAIZ, "tests"))
+from compilar_c import cc, herramienta
+
 # Las secciones, en el orden en que corren. Cada una se puede pedir sola.
 SECCIONES = [
     "RECHAZO", "AVISA", "ACEPTA", "SALIDA", "ARCHIVOS", "AUTOANALISIS",
@@ -54,6 +57,78 @@ if _desconocidas:
     sys.exit(2)
 # Si corren todas: solo entonces las cifras de la suite son las de la suite.
 TODAS = not PEDIDAS
+
+# Las que mas tardan, en el orden en que conviene empezarlas: con una seccion
+# por proceso, la pasada entera dura lo que la mas larga.
+_PRIMERO = ["PROGRAMA", "CUERPOS", "EXPRESIONES", "TIPAR", "PROPIEDAD", "FIRMAS",
+            "AUTOANALISIS", "EJEMPLOS", "ACEPTA", "TIPOS"]
+
+
+def _en_procesos(secciones):
+    """Cada seccion en su propio proceso, tantos a la vez como nucleos. Cada
+    una va por su cuenta —su directorio temporal, sus herramientas—, asi que
+    no se estorban. Lo que imprime cada una sale entero cuando acaba, y al
+    final se suman los casos, las fallas y, si corrieron todas, las cifras
+    del README."""
+    import json
+    import time
+    orden = ([s for s in _PRIMERO if s in secciones]
+             + [s for s in SECCIONES if s in secciones and s not in _PRIMERO])
+    tmp = tempfile.mkdtemp(prefix="tcode-secciones-")
+
+    def una(seccion):
+        ruta = os.path.join(tmp, seccion + ".json")
+        antes = time.monotonic()
+        r = subprocess.run([sys.executable, os.path.abspath(__file__), seccion],
+                           capture_output=True, text=True,
+                           env=dict(os.environ, TCODE_RESULTADO=ruta))
+        return seccion, r, ruta, time.monotonic() - antes
+
+    casos = fallas = 0
+    cifras = {}
+    try:
+        with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 2) as hilos:
+            for hecho in concurrent.futures.as_completed(
+                    [hilos.submit(una, s) for s in orden]):
+                seccion, r, ruta, tardo = hecho.result()
+                # Su ultima linea son sus casos y sus fallas: aqui se suman.
+                lineas = r.stdout.rstrip("\n").split("\n")
+                while lineas and (not lineas[-1].strip()
+                                  or lineas[-1].endswith(" fallas")):
+                    lineas.pop()
+                print("\n".join(lineas))
+                if r.stderr.strip():
+                    print(r.stderr.rstrip("\n"))
+                print(f"    ({seccion}: {tardo:.0f} s)", flush=True)
+                try:
+                    with open(ruta, encoding="utf-8") as f:
+                        dicho = json.load(f)
+                except (OSError, ValueError):
+                    dicho = None
+                if dicho is None or (r.returncode != 0 and not dicho["fallos"]):
+                    fallas += 1
+                    print(f"  FALLA: la seccion {seccion} no termino bien "
+                          f"(codigo {r.returncode})")
+                if dicho is not None:
+                    casos += dicho["total"]
+                    fallas += dicho["fallos"]
+                    cifras.update(dicho["cifras"])
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+    print(f"\n{casos} casos, {fallas} fallas")
+    if TODAS:
+        cifras["casos"] = casos
+        sys.path.insert(0, os.path.join(RAIZ, "tests"))
+        from cifras import guardar
+        guardar("lenguaje", cifras)
+    return 1 if fallas else 0
+
+
+# Mas de una: cada una en su proceso, salvo que se pidan en serie con
+# `TCODE_EN_SERIE=1`, en este mismo proceso y una tras otra.
+if (len(PEDIDAS) != 1 and not os.environ.get("TCODE_EN_SERIE")
+        and not os.environ.get("TCODE_RESULTADO")):
+    sys.exit(_en_procesos(PEDIDAS or SECCIONES))
 
 
 # Lo que mide la suite, para el README: `tests/cifras.py` lo copia ahi. Solo
@@ -3622,7 +3697,7 @@ def correr_c(codigo, tmp, con_sanitizers=True):
         orden.insert(3, "-fsanitize=address,undefined")
         orden.insert(4, "-fno-omit-frame-pointer")
 
-    r = subprocess.run(orden, capture_output=True, text=True)
+    r = cc(orden, capture_output=True, text=True)
     assert r.returncode == 0, "el C generado no compila:\n" + r.stderr
 
     e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
@@ -3907,7 +3982,7 @@ if seccion("AUTOANALISIS", "el lexer y el parser en Tcode, contra los de Python"
             binario = os.path.join(tmp, "lex")
             with open(ruta_c, "w", encoding="utf-8") as f:
                 f.write(codigo)
-            r = subprocess.run(
+            r = herramienta(
                 ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
                  "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                  f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -3973,7 +4048,7 @@ if seccion("AUTOANALISIS", "el lexer y el parser en Tcode, contra los de Python"
                     bin_p = os.path.join(tmp, "par")
                     with open(ruta_p, "w", encoding="utf-8") as f:
                         f.write(codigo_p)
-                    r = subprocess.run(
+                    r = herramienta(
                         ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra",
                          "-Werror", "-fsanitize=address,undefined",
                          "-fno-omit-frame-pointer", f"-I{RUNTIME}", ruta_p,
@@ -4072,7 +4147,7 @@ if seccion("TIPOS", "la capa de tipos del comprobador, en Tcode"):
             binario = os.path.join(tmp, "tipos")
             with open(ruta_c, "w", encoding="utf-8") as f:
                 f.write(codigo)
-            r = subprocess.run(
+            r = herramienta(
                 ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
                  "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                  f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -4178,7 +4253,7 @@ if seccion("TIPAR", "de que tipo es cada variable, dicho por Tcode"):
             binario = os.path.join(tmp, "tipar")
             with open(ruta_c, "w", encoding="utf-8") as f:
                 f.write(codigo)
-            r = subprocess.run(
+            r = herramienta(
                 ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
                  "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                  f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -4284,7 +4359,7 @@ if seccion("PROPIEDAD", "que le pasa a cada valor, dicho por Tcode"):
             binario = os.path.join(tmp, "tipar")
             with open(ruta_c, "w", encoding="utf-8") as f:
                 f.write(codigo)
-            r = subprocess.run(
+            r = herramienta(
                 ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
                  "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                  f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -4384,7 +4459,7 @@ if seccion("FIRMAS", "la cara en C de cada funcion, dicha por Tcode"):
             binario = os.path.join(tmp, "firmas")
             with open(ruta_c, "w", encoding="utf-8") as f:
                 f.write(codigo)
-            r = subprocess.run(
+            r = herramienta(
                 ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
                  "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                  f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -4520,7 +4595,7 @@ if seccion("EXPRESIONES", "el C de una expresion, escrito por Tcode"):
             binario = os.path.join(tmp, "expresiones")
             with open(ruta_c, "w", encoding="utf-8") as f:
                 f.write(codigo)
-            r = subprocess.run(
+            r = herramienta(
                 ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
                  "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                  f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -4621,7 +4696,7 @@ if seccion("CUERPOS", "la funcion entera en C, escrita por Tcode"):
             binario = os.path.join(tmp, "cuerpos")
             with open(ruta_c, "w", encoding="utf-8") as f:
                 f.write(codigo)
-            r = subprocess.run(
+            r = herramienta(
                 ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
                  "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                  f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -5171,7 +5246,7 @@ fn main() {
             binario = os.path.join(tmp, "tcodec")
             with open(ruta_c, "w", encoding="utf-8") as f:
                 f.write(codigo)
-            r = subprocess.run(
+            r = herramienta(
                 ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
                  "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                  f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
@@ -5240,6 +5315,7 @@ fn main() {
                 # una variable, pasadas a una generica, y punteros a funcion,
                 # tambien uno que recibe otro. Nada de eso lo pide un programa del
                 # repositorio salvo lo de `pruebas.t`.
+                trabajos_c = []
                 for nombre_c, fuente_c in (("cierres.t", _CIERRES_TCODEC),
                                            ("anidado.t", _FN_ANIDADA_TCODEC),
                                            ("precedencia.t", _PRECEDENCIA_TCODEC),
@@ -5258,13 +5334,23 @@ fn main() {
                                            ("copias.t", _COPIAS_ANIDADAS_TCODEC),
                                            ("entregado.t", _STR_ENTREGADO_TCODEC),
                                            ("inicial.t", _SU_INICIALIZADOR_TCODEC)):
-                    total += 1
                     ruta_cierre = os.path.join(tmp, nombre_c)
                     with open(ruta_cierre, "w", encoding="utf-8") as f:
                         f.write(fuente_c)
                     esperado_c, errores_c = compilar_archivo(ruta_cierre)
-                    e = subprocess.run([binario, ruta_cierre, "--mostrar-c"], capture_output=True,
-                                       text=True, timeout=60, env=entorno)
+                    trabajos_c.append((nombre_c, ruta_cierre, esperado_c, errores_c))
+
+                # Lo que cuesta de aqui en adelante es `tcodec`, con los
+                # sanitizers puestos: cada bucle calcula antes lo de Python y
+                # despues le pide a `tcodec` todo a la vez.
+                def _tcodec(*args, timeout=120):
+                    return subprocess.run([binario, *args], capture_output=True,
+                                          text=True, timeout=timeout, env=entorno)
+
+                for (nombre_c, _, esperado_c, errores_c), e in zip(
+                        trabajos_c, en_paralelo(lambda t: _tcodec(t[1], "--mostrar-c"),
+                                                trabajos_c)):
+                    total += 1
                     if errores_c or e.returncode != 0 or e.stdout != esperado_c:
                         falla(f"tcodec escribe {nombre_c}",
                               f"errores {errores_c}, codigo {e.returncode}, "
@@ -5293,16 +5379,19 @@ fn main() {
                     return errs or []
 
                 mismos = rechazados = 0
+                trabajos_r = []
                 for i, (nombre, fuente, _esperado) in enumerate(RECHAZO):
                     ruta_r = os.path.join(tmp, f"rechazo-{i}.t")
                     with open(ruta_r, "w", encoding="utf-8") as f:
                         f.write(fuente)
                     de_python = _errores_python(ruta_r)
-                    if not de_python:
-                        continue
+                    if de_python:
+                        trabajos_r.append((nombre, ruta_r, de_python))
+                for (nombre, _, de_python), (rc, de_tcodec, crudo) in zip(
+                        trabajos_r, en_paralelo(lambda t: _errores_tcodec(t[1]),
+                                                trabajos_r)):
                     rechazados += 1
                     total += 1
-                    rc, de_tcodec, crudo = _errores_tcodec(ruta_r)
                     if rc == 0:
                         falla("el comprobador en Tcode rechaza lo que Python rechaza",
                               f"{nombre}: tcodec lo acepto; Python dice "
@@ -5322,17 +5411,20 @@ fn main() {
                                                   recursive=True)):
                     with open(archivo, encoding="utf-8") as f:
                         aceptables.append((archivo, f.read()))
+                trabajos_a = []
                 for i, (nombre, fuente) in enumerate(aceptables):
                     ruta_a = (nombre if os.path.exists(nombre)
                               else os.path.join(tmp, f"acepta-{i}.t"))
                     if not os.path.exists(nombre):
                         with open(ruta_a, "w", encoding="utf-8") as f:
                             f.write(fuente)
-                    if _errores_python(ruta_a):
-                        continue
+                    if not _errores_python(ruta_a):
+                        trabajos_a.append((nombre, ruta_a))
+                for (nombre, _), (rc, de_tcodec, crudo) in zip(
+                        trabajos_a, en_paralelo(lambda t: _errores_tcodec(t[1]),
+                                                trabajos_a)):
                     correctos += 1
                     total += 1
-                    rc, de_tcodec, crudo = _errores_tcodec(ruta_a)
                     if de_tcodec:
                         falla("el comprobador en Tcode no rechaza programas correctos",
                               f"{nombre}: {de_tcodec[0][:300]}")
@@ -5381,34 +5473,42 @@ fn main() {
                         otras[t.linea - 1] = nueva
                         yield f"{forma} en la linea {t.linea}", "\n".join(otras)
 
+                # Cada mutante con su nombre, para que esten todos a la vez
+                # mientras `tcodec` los lee.
                 iguales_s = rotos = 0
-                for archivo in sorted(glob.glob(os.path.join("std", "*.t"))
-                                      + glob.glob(os.path.join("ejemplos", "**", "*.t"),
-                                                  recursive=True)):
-                    with open(archivo, encoding="utf-8") as f:
-                        fuente_o = f.read()
-                    for que, fuente_m in _mutantes(fuente_o, archivo):
-                        ruta_m = os.path.join(os.path.dirname(archivo),
-                                              ".mut_" + os.path.basename(archivo))
-                        try:
+                trabajos_m = []
+                escritos_m = []
+                try:
+                    for archivo in sorted(glob.glob(os.path.join("std", "*.t"))
+                                          + glob.glob(os.path.join("ejemplos", "**", "*.t"),
+                                                      recursive=True)):
+                        with open(archivo, encoding="utf-8") as f:
+                            fuente_o = f.read()
+                        for k_m, (que, fuente_m) in enumerate(_mutantes(fuente_o, archivo)):
+                            ruta_m = os.path.join(os.path.dirname(archivo),
+                                                  f".mut_{k_m}_" + os.path.basename(archivo))
+                            escritos_m.append(ruta_m)
                             with open(ruta_m, "w", encoding="utf-8") as f:
                                 f.write(fuente_m)
                             de_python = _errores_python(ruta_m)
-                            if not de_python:
-                                continue
-                            rotos += 1
-                            total += 1
-                            rc, de_tcodec, crudo = _errores_tcodec(ruta_m)
-                            if de_tcodec and de_tcodec[0] == de_python[0]:
-                                iguales_s += 1
-                            else:
-                                falla("los errores de sintaxis en Tcode",
-                                      f"{archivo}, {que}:\n"
-                                      f"  Python: {de_python[0][:300]!r}\n"
-                                      f"  Tcode:  {(de_tcodec[:1] or [crudo[:300]])[0]!r}")
-                        finally:
-                            if os.path.exists(ruta_m):
-                                os.remove(ruta_m)
+                            if de_python:
+                                trabajos_m.append((archivo, que, ruta_m, de_python))
+                    for (archivo, que, _, de_python), (rc, de_tcodec, crudo) in zip(
+                            trabajos_m, en_paralelo(lambda t: _errores_tcodec(t[2]),
+                                                    trabajos_m)):
+                        rotos += 1
+                        total += 1
+                        if de_tcodec and de_tcodec[0] == de_python[0]:
+                            iguales_s += 1
+                        else:
+                            falla("los errores de sintaxis en Tcode",
+                                  f"{archivo}, {que}:\n"
+                                  f"  Python: {de_python[0][:300]!r}\n"
+                                  f"  Tcode:  {(de_tcodec[:1] or [crudo[:300]])[0]!r}")
+                finally:
+                    for ruta_m in escritos_m:
+                        if os.path.exists(ruta_m):
+                            os.remove(ruta_m)
                 cifra("rotos_iguales", iguales_s)
                 cifra("rotos", rotos)
                 print(f"    sintaxis: {iguales_s} de {rotos} programas rotos, mismo "
@@ -5427,6 +5527,7 @@ fn main() {
                     return salida
 
                 mods_iguales = mods_total = 0
+                trabajos_mo = []
                 for nombre_m, archivos_m, principal_m, *_ in (
                         list(MODULOS) + [(n, a, p) for n, a, p in _MODULOS_EXTRA_TCODEC]):
                     dir_m = tempfile.mkdtemp(dir=tmp)
@@ -5436,10 +5537,10 @@ fn main() {
                         with open(d_m, "w", encoding="utf-8") as f:
                             f.write(t_m)
                     ruta_m = os.path.join(dir_m, principal_m)
-                    de_python = _errores_python(ruta_m)
-                    r_m = subprocess.run([binario, ruta_m, "--solo-comprobar"],
-                                         capture_output=True, text=True, timeout=120,
-                                         env=entorno)
+                    trabajos_mo.append((nombre_m, ruta_m, _errores_python(ruta_m)))
+                for (nombre_m, _, de_python), r_m in zip(
+                        trabajos_mo, en_paralelo(lambda t: _tcodec(t[1], "--solo-comprobar"),
+                                                 trabajos_mo)):
                     de_tcodec = _stderr_bloques(r_m.stderr, "error: ")
                     total += 1
                     mods_total += 1
@@ -5474,13 +5575,24 @@ fn main() {
                                               recursive=True))
                 av_iguales = av_cuantos = 0
                 ex_iguales = 0
+                trabajos_av = []
                 for ruta_a in del_repo + aceptados_rutas:
                     esperados = _avisos_python(ruta_a)
-                    if esperados is None:
-                        continue
-                    r_a = subprocess.run([binario, ruta_a, "--solo-comprobar"],
-                                         capture_output=True, text=True, timeout=120,
-                                         env=entorno)
+                    if esperados is not None:
+                        trabajos_av.append((ruta_a, esperados))
+
+                # Los tres son otros procesos: el `--explicar` de Python
+                # tambien, porque es lo que ve quien lo usa.
+                def _avisos_y_explicar(trabajo):
+                    ruta_a = trabajo[0]
+                    return (_tcodec(ruta_a, "--solo-comprobar"),
+                            subprocess.run([sys.executable, "-m", "tcode", ruta_a,
+                                            "--explicar", "--sin-avisos"],
+                                           capture_output=True, text=True, timeout=120),
+                            _tcodec(ruta_a, "--explicar", "--sin-avisos"))
+
+                for (ruta_a, esperados), (r_a, py_e, tc_e) in zip(
+                        trabajos_av, en_paralelo(_avisos_y_explicar, trabajos_av)):
                     total += 1
                     dados_a = _stderr_bloques(r_a.stderr, "aviso: ")
                     av_cuantos += len(esperados)
@@ -5491,12 +5603,6 @@ fn main() {
                               f"{ruta_a}:\n  Python: {esperados[:3]!r}\n"
                               f"  Tcode:  {dados_a[:3]!r}")
                     total += 1
-                    py_e = subprocess.run([sys.executable, "-m", "tcode", ruta_a,
-                                           "--explicar", "--sin-avisos"],
-                                          capture_output=True, text=True, timeout=120)
-                    tc_e = subprocess.run([binario, ruta_a, "--explicar", "--sin-avisos"],
-                                          capture_output=True, text=True, timeout=120,
-                                          env=entorno)
                     if py_e.stdout == tc_e.stdout:
                         ex_iguales += 1
                     else:
@@ -5510,6 +5616,7 @@ fn main() {
 
                 from tcode.formato import formatear as _formatear
                 fm_iguales = fm_total = 0
+                trabajos_f = []
                 for archivo_f in del_repo:
                     with open(archivo_f, encoding="utf-8") as f:
                         original_f = f.read()
@@ -5527,26 +5634,28 @@ fn main() {
                         if rnd_f.random() < 0.05:
                             deformado.extend(["", "", ""])
                     for k_f, fuente_f in enumerate((original_f, "\n".join(deformado))):
-                        ruta_f = os.path.join(tmp, f"formato-{k_f}.t")
+                        ruta_f = os.path.join(tmp, f"formato-{len(trabajos_f)}.t")
                         with open(ruta_f, "w", encoding="utf-8") as f:
                             f.write(fuente_f)
-                        esperado_f = _formatear(fuente_f, ruta_f)
-                        r_f = subprocess.run([binario, ruta_f, "--formatear"],
-                                             capture_output=True, text=True, timeout=120,
-                                             env=entorno)
-                        total += 1
-                        fm_total += 1
-                        if r_f.returncode == 0 and r_f.stdout == esperado_f:
-                            fm_iguales += 1
-                        else:
-                            falla("--formatear en Tcode",
-                                  f"{archivo_f} ({'deformado' if k_f else 'tal cual'})")
+                        trabajos_f.append((archivo_f, k_f, ruta_f,
+                                           _formatear(fuente_f, ruta_f)))
+                for (archivo_f, k_f, _, esperado_f), r_f in zip(
+                        trabajos_f, en_paralelo(lambda t: _tcodec(t[2], "--formatear"),
+                                                trabajos_f)):
+                    total += 1
+                    fm_total += 1
+                    if r_f.returncode == 0 and r_f.stdout == esperado_f:
+                        fm_iguales += 1
+                    else:
+                        falla("--formatear en Tcode",
+                              f"{archivo_f} ({'deformado' if k_f else 'tal cual'})")
                 print(f"    herramientas: {mods_iguales} de {mods_total} casos de "
                       f"modulos, avisos iguales en {av_iguales} programas "
                       f"({av_cuantos} avisos), --explicar igual en {ex_iguales}, "
                       f"--formatear igual en {fm_iguales} de {fm_total}")
 
                 iguales = intentados = 0
+                trabajos_e = []
                 for archivo in sorted(
                         glob.glob(os.path.join("std", "*.t"))
                         + glob.glob(os.path.join("ejemplos", "**", "*.t"),
@@ -5555,10 +5664,12 @@ fn main() {
                         if "fn main(" not in f.read():
                             continue
                     esperado, errores_f = compilar_archivo(archivo)
-                    if errores_f:
-                        continue
-                    e = subprocess.run([binario, archivo, "--mostrar-c"], capture_output=True,
-                                       text=True, timeout=180, env=entorno)
+                    if not errores_f:
+                        trabajos_e.append((archivo, esperado))
+                for (archivo, esperado), e in zip(
+                        trabajos_e, en_paralelo(
+                            lambda t: _tcodec(t[0], "--mostrar-c", timeout=180),
+                            trabajos_e)):
                     if "Sanitizer" in e.stderr:
                         total += 1
                         falla("tcodec en Tcode", f"{archivo}: sanitizer\n"
@@ -5724,7 +5835,7 @@ fn main() {
                     binario2 = os.path.join(tmp, "etapa2")
                     with open(ruta_c2, "w", encoding="utf-8") as f:
                         f.write(e1.stdout)
-                    r2 = subprocess.run(
+                    r2 = herramienta(
                         ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra",
                          "-Werror", "-fsanitize=address,undefined",
                          "-fno-omit-frame-pointer", f"-I{RUNTIME}", ruta_c2,
@@ -5903,7 +6014,7 @@ if seccion("LINEAS", "el C generado apunta al `.t`, no a si mismo"):
             binario = os.path.join(tmp, "hondo")
             with open(ruta_c, "w", encoding="utf-8") as f:
                 f.write(codigo)
-            r = subprocess.run(
+            r = cc(
                 ["cc", "-std=c17", "-O0", "-g", f"-I{RUNTIME}", ruta_c,
                  os.path.join(RUNTIME, "safestr.c"), "-o", binario, "-lm"],
                 capture_output=True, text=True)
@@ -5999,7 +6110,7 @@ if seccion("MODULOS", "varios archivos, un solo programa"):
             binario = os.path.join(tmp, "p")
             with open(ruta_c, "w", encoding="utf-8") as f:
                 f.write(codigo)
-            r = subprocess.run(
+            r = cc(
                 ["cc", "-std=c17", "-g", "-fsanitize=address,undefined",
                  "-Wall", "-Wextra", "-Werror", f"-I{RUNTIME}", ruta_c,
                  os.path.join(RUNTIME, "safestr.c"), "-o", binario, "-lm"],
@@ -6049,7 +6160,7 @@ if seccion("EJEMPLOS", "los de ejemplos/ compilan y corren limpios"):
 
         def _correr_ejemplo(trabajo):
             _, args, base = trabajo
-            r = subprocess.run(
+            r = cc(
                 ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
                  "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
                  f"-I{RUNTIME}", base + ".c", os.path.join(RUNTIME, "safestr.c"),
@@ -6077,4 +6188,9 @@ if TODAS:
     sys.path.insert(0, os.path.join(RAIZ, "tests"))
     from cifras import guardar as _guardar_cifras
     _guardar_cifras("lenguaje", CIFRAS)
+elif os.environ.get("TCODE_RESULTADO"):
+    # Una seccion corrida por `_todas_en_paralelo`: lo suyo, para que lo sume.
+    import json as _json
+    with open(os.environ["TCODE_RESULTADO"], "w", encoding="utf-8") as _f:
+        _json.dump({"total": total, "fallos": fallos, "cifras": CIFRAS}, _f)
 sys.exit(1 if fallos else 0)

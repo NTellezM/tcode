@@ -51,5 +51,12 @@ jobs:
           python-version: "3.11"
       - name: sitio para AddressSanitizer
         run: sudo sysctl -w vm.mmap_rnd_bits=28
+      # Las herramientas que compila la suite, guardadas por el hash de su C:
+      # las que un cambio no toca no se vuelven a compilar.
+      - uses: actions/cache@v4
+        with:
+          path: .cache/herramientas
+          key: herramientas-${{ runner.os }}-${{ github.sha }}
+          restore-keys: herramientas-${{ runner.os }}-
       - name: make check
         run: make check
