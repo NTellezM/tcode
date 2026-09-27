@@ -1199,6 +1199,18 @@ fn main() {
                             f"{e_az.stderr[:400]}")
             else:
                 print("    sin azucar: tcodec.t escribe el mismo C, byte a byte")
+            # Y el de Python entiende todo el compilador sin azucar: si no, un
+            # archivo saldria del corpus del oraculo sin que nadie lo notara.
+            # Pasa con lo que `tests/azucar.py` no sabe deshacer —un rango, un
+            # `==` entre dos textos sin ningun literal—: en el codigo del
+            # compilador se escribe de otra forma.
+            copias = sin_azucar()[1]
+            for copia, de_python in zip(copias, en_procesos(_errores_python, copias)):
+                suite.total += 1
+                if de_python:
+                    suite.falla("el oraculo entiende el compilador sin azucar",
+                                f"{os.path.relpath(copia, sin_azucar()[0])}: "
+                                f"{de_python[0][:300]}")
             if e1.returncode != 0 or "Sanitizer" in e1.stderr:
                 suite.falla("punto fijo", f"tcodec no se escribe a si mismo:\n"
                                     f"{e1.stderr[:400]}")

@@ -13,8 +13,10 @@ azucar: sin el, el C que escribe `tcodec` es el mismo byte a byte.
     quitar(texto)          el texto sin azucar
     copia_sin_azucar(dir)  el compilador entero sin azucar, en `dir`
 
-Lo que no se sabe deshacer —un `==` entre dos textos sin ningun literal, un
-rango— se queda como esta, y ese archivo sale del corpus de Python.
+Lo que no se sabe deshacer sin saber los tipos —un `==` entre dos textos sin
+ningun literal, un rango, una vista implicita al declarar o al devolver— se
+queda como esta, y el de Python no entenderia ese archivo: PROGRAMA lo dice.
+En el codigo del compilador eso se escribe en su forma larga.
 """
 
 import os
