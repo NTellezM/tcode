@@ -125,22 +125,38 @@ La especificación completa está en [`docs/ESPECIFICACION.md`](docs/ESPECIFICAC
 fuente .t → lexer → parser → comprobador → generador → C → cc → binario
 ```
 
-El compilador está en Python, sin dependencias. Genera C legible que se
-enlaza contra `runtime/safestr.c` — la librería que originó todo esto, que
-pasó a ser el runtime del lenguaje. El C generado se puede leer, versionar y compilar en
-cualquier sitio donde haya un compilador de C17.
+El compilador es `tcodec`, escrito en Tcode. Genera C legible que se enlaza
+contra `runtime/safestr.c` — la librería que originó todo esto, que pasó a
+ser el runtime del lenguaje. El C generado se puede leer, versionar y
+compilar en cualquier sitio donde haya un compilador de C17.
 
 | Archivo | Qué hace |
 |---|---|
-| `tcode/lexer.py` | texto → tokens |
-| `tcode/parser.py` | tokens → árbol (descenso recursivo) |
-| `tcode/modulos.py` | resuelve `usar`, carga única, detecta ciclos |
-| `tcode/comprobador.py` | tipos, propiedad, préstamos, mutabilidad |
-| `tcode/generador.py` | árbol → C, con `ss_free` y comprobaciones insertadas |
-| `tcode/explicar.py` | el modelo del comprobador, hecho legible |
-| `tcode/nombres_c.py` | los nombres que en C ya son otra cosa (`log`, `EOF`) |
+| `ejemplos/compilador/tcodec.t` | el compilador: módulos, opciones, y la llamada a `cc` |
+| `ejemplos/compilador/lib/` | tipos, comprobador, propiedad, generador y formateador |
+| `ejemplos/lexer/lib/` | lexer y parser |
+| `tcode/` | el compilador de Python: el arranque de `tcodec` y su oráculo |
 | `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->12<!--/c--> módulos, <!--c:std_lineas-->947<!--/c--> líneas |
 | `runtime/` | safestr, la librería de C original, ya corregida |
+
+### Dos compiladores, una regla
+
+Tcode empezó con un compilador en Python (`tcode/`), sin dependencias, y con
+él se escribió `tcodec`. Hoy los dos escriben el mismo C byte a byte para cada
+programa del repositorio y de la suite, y cada uno es el oráculo del otro.
+Pero dos compiladores obligan a escribir cada idea dos veces, así que la regla
+es esta:
+
+- **Lo nuevo del lenguaje entra solo en `tcodec`.** Es el que se usa y el que
+  prueba la suite: los programas de RECHAZO, ACEPTA, ABORTA, MODULOS y el
+  resto compilan con él, construido con los sanitizers.
+- **El de Python queda congelado.** Construye el primer `tcodec` (`make`) y
+  hace de oráculo: todo programa que sabe compilar tiene que salir igual de
+  los dos. Se le arreglan los fallos; no aprende nada nuevo.
+- **`tcodec` se escribe con lo que el de Python entiende**, porque es el que
+  lo construye. Cuando `tcodec` quiera usar algo nuevo en su propio código,
+  el arranque pasará a ser un C semilla guardado en el repositorio, como hace
+  Zig.
 
 ## El lexer y el parser de Tcode, escritos en Tcode
 
@@ -781,7 +797,7 @@ el hash de su C: la pasada siguiente no lo vuelve a compilar si no cambió.
 Para trabajar hay atajos:
 
 ```
-$ make rapido                                  # lo demás: quince segundos
+$ make rapido                                  # el lenguaje: veinte segundos
 $ python3 tests/test_lenguaje.py ACEPTA ABORTA  # solo esas secciones
 $ python3 tests/test_lenguaje.py --lista        # cuáles hay
 $ TCODE_EN_SERIE=1 make check                  # una sección tras otra

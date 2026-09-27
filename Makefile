@@ -2,7 +2,7 @@
 #
 #   make              construye el compilador, `./tcodec`
 #   make check        la suite entera, y que el README diga lo que mide
-#   make rapido       lo que no pasa por el compilador escrito en Tcode: segundos
+#   make rapido       el lenguaje, probado con tcodec: segundos
 #   make propiedades  solo los tests por propiedad (TCODE_PROGRAMAS=1000 para mas)
 #   make cifras       pone en el README las cifras de la ultima `make check`
 #   make ejemplos     compila y corre los ejemplos
@@ -34,9 +34,9 @@ check:
 	@$(PY) tests/test_propiedades.py
 	@$(PY) tests/cifras.py --comprobar
 
-# Las secciones que no construyen el compilador escrito en Tcode, que es lo
-# que tarda. Una sola se pide por su nombre:
-# `python3 tests/test_lenguaje.py ACEPTA`.
+# Las secciones que prueban el lenguaje con `tcodec`; las que tardan son las
+# que comparan sus capas con las del compilador de Python. Una sola se pide
+# por su nombre: `python3 tests/test_lenguaje.py ACEPTA`.
 RAPIDAS = RECHAZO AVISA ACEPTA SALIDA ARCHIVOS ABORTA MODULOS FORMATO LINEAS EJEMPLOS
 
 rapido:
