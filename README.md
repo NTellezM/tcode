@@ -24,7 +24,7 @@ fn saludo(nombre: view) -> str {
 ```
 
 ```
-$ python3 -m tcode ejemplos/hola.t && ./ejemplos/hola
+$ ./tcodec ejemplos/hola.t && ./ejemplos/hola
 Hola, mundo!
 12 bytes
 ```
@@ -50,7 +50,7 @@ La conclusión no fue "hay que escribir mejor C". Fue que esas cuatro clases
 Hoy los cuatro son errores de compilación:
 
 ```
-$ python3 -m tcode malo.t
+$ ./tcodec malo.t
 error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 
 1 error. No se genero nada.
@@ -229,7 +229,6 @@ salvaguardas que `tcode` —la salida nunca es el fuente, y un fallo del
 compilador de C deja el binario anterior como estaba—:
 
 ```
-$ export TCODE_RAIZ=.
 $ ./tcodec programa.t                 # compila a binario
 $ ./tcodec programa.t -o otro -O3
 $ ./tcodec programa.t --emitir-c      # deja programa.c
@@ -240,9 +239,9 @@ $ ./tcodec programa.t --solo-comprobar
 Y el punto fijo, sin Python más que para la primera etapa:
 
 ```
-$ python3 -m tcode ejemplos/compilador/tcodec.t                        # etapa 1
-$ ./ejemplos/compilador/tcodec ejemplos/compilador/tcodec.t -o etapa2  # sin Python
-$ ./ejemplos/compilador/tcodec ejemplos/compilador/tcodec.t --mostrar-c > etapa1.c
+$ make                                                   # etapa 1: la construye Python
+$ ./tcodec ejemplos/compilador/tcodec.t -o etapa2         # sin Python
+$ ./tcodec ejemplos/compilador/tcodec.t --mostrar-c > etapa1.c
 $ ./etapa2 ejemplos/compilador/tcodec.t --mostrar-c | cmp - etapa1.c && echo igual
 igual
 ```
@@ -266,7 +265,7 @@ comprobadas en cada copia, clausuras— y los **mismos mensajes, en el mismo
 orden**. `tcodec` lo pasa antes de escribir nada:
 
 ```
-$ TCODE_RAIZ=. ./tcodec malo.t
+$ ./tcodec malo.t
 error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 
 1 error. No se genero nada.
@@ -278,7 +277,7 @@ también los de sintaxis, que salen del lexer y el parser en Tcode con su
 archivo, su línea y lo que encontraron:
 
 ```
-$ TCODE_RAIZ=. ./tcodec roto.t
+$ ./tcodec roto.t
 error: roto.t:3: se esperaba ';', se encontro ')'
 ```
 
@@ -460,12 +459,13 @@ El detalle está en [`bench/README.md`](bench/README.md), incluido por qué
 
 ## Probarlo
 
-Hace falta Python 3 y un compilador de C. Nada más: el compilador no tiene
-dependencias.
+Hace falta Python 3 y un compilador de C. Nada más: ninguno de los dos
+compiladores tiene dependencias.
 
 ```
 git clone <este repo> && cd tcode
-python3 -m tcode --version
+make                # construye ./tcodec, el compilador
+./tcodec --version
 make check          # la suite completa
 make ejemplos       # compila y corre los ejemplos
 ```
@@ -479,28 +479,29 @@ fn main() -> usize {
     return 0;
 }
 FIN
-$ python3 -m tcode hola.t && ./hola
+$ ./tcodec hola.t && ./hola
 hola
 ```
 
-Si quieres invocarlo como `tcode` desde cualquier sitio:
+Para usarlo desde cualquier sitio basta un enlace: `tcodec` busca `std/` y
+`runtime/` subiendo desde donde está de verdad, así que funciona desde
+cualquier directorio.
 
 ```
-echo 'python3 -m tcode "$@"' > ~/.local/bin/tcode && chmod +x ~/.local/bin/tcode
+ln -s "$PWD/tcodec" ~/.local/bin/tcodec
 ```
-
-(El compilador se ejecuta desde el directorio del repo, que es donde vive
-`runtime/`.)
 
 ## Uso
 
 ```
-python3 -m tcode programa.t              # compila a binario
-python3 -m tcode programa.t -o mi_binario
-python3 -m tcode programa.t -O3          # nivel de optimizacion del backend
-python3 -m tcode programa.t --emitir-c   # deja el C y no invoca a cc
-python3 -m tcode programa.t --explicar   # que infirio el compilador
-python3 -m tcode programa.t --solo-comprobar
+tcodec programa.t              # compila a binario
+tcodec programa.t -o mi_binario
+tcodec programa.t -O3          # nivel de optimizacion del backend
+tcodec programa.t --emitir-c   # deja el C y no invoca a cc
+tcodec programa.t --mostrar-c  # el C por la salida
+tcodec programa.t --explicar   # que infirio el compilador
+tcodec programa.t --solo-comprobar
+tcodec programa.t --formatear [--escribir]
 ```
 
 La salida binaria nunca puede ser el propio fuente, tampoco mediante un
@@ -516,7 +517,7 @@ Un aviso no impide compilar. Señala algo que probablemente no era lo que
 querías, y apunta **al código que escribiste**, no al C generado:
 
 ```
-$ python3 -m tcode area.t
+$ tcodec area.t
 aviso: area.t:2: `total` se declara `var` y nunca se modifica; puede ser `let`
 aviso: area.t:3: `sobra` se declara y no se usa; si es a proposito llamala `_sobra`
 aviso: area.t:1: el parametro `b` de `area` no se usa; si es a proposito llamalo `_b`
@@ -536,8 +537,8 @@ Un `_` delante del nombre lo calla, como en Rust: dice que es a propósito y
 quien lea el código no tiene que preguntárselo.
 
 ```
-python3 -m tcode programa.t --avisos-como-errores   # no compila si hay avisos
-python3 -m tcode programa.t --sin-avisos
+tcodec programa.t --avisos-como-errores   # no compila si hay avisos
+tcodec programa.t --sin-avisos
 ```
 
 ## `--explicar`
@@ -548,7 +549,7 @@ ve cuando **falla**, en forma de error. `--explicar` lo muestra cuando sale
 bien:
 
 ```
-$ python3 -m tcode ejemplos/informe/informe.t --explicar
+$ tcodec ejemplos/informe/informe.t --explicar
 
   struct Articulo   es DUEÑO: contiene memoria que hay que liberar
       nombre: str  <- duenio

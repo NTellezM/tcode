@@ -4483,6 +4483,28 @@ fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 // `f(x) sino otra_cosa`: si falla, el valor de al lado. Es la unica forma
 // de que un fallo no se propague, y por eso se escribe: en Tcode no hay
 // forma callada de ignorar uno.
+// El valor de una rama —un lado de un `if` que da valor, la alternativa de
+// un `sino`— dejado en `destino`. Lo que nace dentro se suelta dentro: el
+// bloque de C de la rama se cierra antes que la sentencia, y un temporal
+// declarado ahi no existe fuera. Como un brazo de `match`.
+fn valor_de_rama(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, t: view, destino: view,
+    tipos: &I.Contexto) -> bool {
+    var antes: lista<str> = [];
+    for x en b.temporales { anadir(antes, copiar(x)); }
+    var de_fuera: lista<str> = [];
+    for x en antes { anadir(de_fuera, copiar(x)); }
+    anadir(b.fuera, de_fuera);
+    olvidar_temporales(b);
+    let valor = expresion_c(b, s, n, t, tipos);
+    if es_desconocido(vista(valor)) { return false; }
+    reclamar(b, vista(valor));
+    emitir(b, $"{destino} = {valor};");
+    soltar_temporales(b, tipos);
+    b.temporales = antes;
+    quitar_ultima_fuera(b);
+    return true;
+}
+
 fn sino_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if largo(n.hijos) != 2 { return no_se(); }
     if !igual(vista(n.hijos[0].clase), "llamada") { return no_se(); }
@@ -4516,13 +4538,7 @@ fn sino_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     emitir(b, vista(cond));
     emitir(b, "{");
     b.sangria = b.sangria + 1;
-    let alt = expresion_c(b, s, n.hijos[1], vista(suyo), tipos);
-    if es_desconocido(vista(alt)) { return no_se(); }
-    var pone = copiar(elegido);
-    empujar(pone, " = ");
-    empujar(pone, vista(alt));
-    empujar(pone, ";");
-    emitir(b, vista(pone));
+    if !valor_de_rama(b, s, n.hijos[1], vista(suyo), vista(elegido), tipos) { return no_se(); }
     // Lo que entrega la alternativa solo se entrega por esta rama.
     var salen: lista<str> = [];
     movidas_de_alternativa(s.punteros, n.hijos[1], tipos, salen);
@@ -4618,13 +4634,7 @@ fn si_expr_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
         if k == 2 { emitir(b, "else"); }
         emitir(b, "{");
         b.sangria = b.sangria + 1;
-        let rama_c = expresion_c(b, s, n.hijos[k], vista(t), tipos);
-        if es_desconocido(vista(rama_c)) { return no_se(); }
-        var pone = copiar(tmp);
-        empujar(pone, " = ");
-        empujar(pone, vista(rama_c));
-        empujar(pone, ";");
-        emitir(b, vista(pone));
+        if !valor_de_rama(b, s, n.hijos[k], vista(t), vista(tmp), tipos) { return no_se(); }
         b.sangria = b.sangria - 1;
         emitir(b, "}");
         k = k + 1;
