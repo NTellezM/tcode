@@ -135,7 +135,8 @@ compilar en cualquier sitio donde haya un compilador de C17.
 | `ejemplos/compilador/tcodec.t` | el compilador: módulos, opciones, y la llamada a `cc` |
 | `ejemplos/compilador/lib/` | tipos, comprobador, propiedad, generador y formateador |
 | `ejemplos/lexer/lib/` | lexer y parser |
-| `tcode/` | el compilador de Python: el arranque de `tcodec` y su oráculo |
+| `bootstrap/tcodec.c` | la semilla: el C que `tcodec` escribe de sí mismo, con el que se construye |
+| `tcode/` | el compilador de Python, congelado: el oráculo de la suite |
 | `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->12<!--/c--> módulos, <!--c:std_lineas-->947<!--/c--> líneas |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
@@ -150,13 +151,16 @@ es esta:
 - **Lo nuevo del lenguaje entra solo en `tcodec`.** Es el que se usa y el que
   prueba la suite: los programas de RECHAZO, ACEPTA, ABORTA, MODULOS y el
   resto compilan con él, construido con los sanitizers.
-- **El de Python queda congelado.** Construye el primer `tcodec` (`make`) y
-  hace de oráculo: todo programa que sabe compilar tiene que salir igual de
-  los dos. Se le arreglan los fallos; no aprende nada nuevo.
-- **`tcodec` se escribe con lo que el de Python entiende**, porque es el que
-  lo construye. Cuando `tcodec` quiera usar algo nuevo en su propio código,
-  el arranque pasará a ser un C semilla guardado en el repositorio, como hace
-  Zig.
+- **El de Python queda congelado.** Hace de oráculo: todo programa que sabe
+  compilar tiene que salir igual de los dos. Se le arreglan los fallos; no
+  aprende nada nuevo.
+- **`tcodec` se construye desde su C semilla**, `bootstrap/tcodec.c`: el C
+  que escribe de sí mismo, guardado en el repositorio como hacen Zig y Go.
+  `make` compila la semilla y la semilla compila el `tcodec.t` de ahora, así
+  que `tcodec` puede usar en su propio código lo que el de Python no
+  entiende. Cuando quiere algo que la semilla todavía no sabe compilar,
+  `make semilla` la pone al día, y antes de guardarla comprueba que es un
+  punto fijo.
 
 ## El lexer y el parser de Tcode, escritos en Tcode
 
@@ -252,11 +256,11 @@ $ ./tcodec programa.t --mostrar-c     # el C por la salida
 $ ./tcodec programa.t --solo-comprobar
 ```
 
-Y el punto fijo, sin Python más que para la primera etapa:
+Y el punto fijo, sin Python en ningún paso:
 
 ```
-$ make                                                   # etapa 1: la construye Python
-$ ./tcodec ejemplos/compilador/tcodec.t -o etapa2         # sin Python
+$ make                                                   # la semilla construye tcodec
+$ ./tcodec ejemplos/compilador/tcodec.t -o etapa2         # y tcodec, a sí mismo
 $ ./tcodec ejemplos/compilador/tcodec.t --mostrar-c > etapa1.c
 $ ./etapa2 ejemplos/compilador/tcodec.t --mostrar-c | cmp - etapa1.c && echo igual
 igual
@@ -265,8 +269,9 @@ igual
 El `tcodec` construido por sí mismo vuelve a escribir exactamente los mismos
 bytes (<!--c:punto_fijo_bytes-->5,15<!--/c--> MB), y el construido desde su propio C también, bajo
 AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
-A partir de ahí el compilador ya no necesita a Python para existir, que es el
-paso que dieron Go en la 1.5 y Rust con su primer `rustc` escrito en Rust. Lo
+El compilador ya no necesita a Python para existir: se construye desde su
+semilla, que es el paso que dieron Go en la 1.5 y Rust con su primer `rustc`
+escrito en Rust. Lo
 que necesita del sistema y Tcode no trae —ejecutar el compilador de C, un
 temporal, sustituir un archivo de una vez, subir la pila— son <!--c:lineas_sistema-->223<!--/c--> líneas de C en
 `lib/sistema_tcodec.c`, que `tcodec` pide con un `externo` como cualquier
@@ -475,12 +480,13 @@ El detalle está en [`bench/README.md`](bench/README.md), incluido por qué
 
 ## Probarlo
 
-Hace falta Python 3 y un compilador de C. Nada más: ninguno de los dos
-compiladores tiene dependencias.
+Para el compilador basta un compilador de C: `make` construye `tcodec` desde
+su semilla. La suite pide además Python 3, sin dependencias, porque el
+compilador de Python es su oráculo.
 
 ```
 git clone <este repo> && cd tcode
-make                # construye ./tcodec, el compilador
+make                # construye ./tcodec, el compilador, desde su semilla
 ./tcodec --version
 make check          # la suite completa
 make ejemplos       # compila y corre los ejemplos

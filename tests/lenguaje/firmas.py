@@ -16,6 +16,7 @@ from .comun import (
     RAIZ,
     RUNTIME,
     Resultado,
+    c_de_tcodec,
 )
 
 TITULO = "la cara en C de cada funcion, dicha por Tcode"
@@ -62,7 +63,7 @@ def correr(suite: Resultado) -> None:
     tmp = tempfile.mkdtemp(prefix="tcode-firmas-")
     try:
         suite.total += 1
-        codigo, errores = compilar_archivo(
+        codigo, errores = c_de_tcodec(
             os.path.join(RAIZ, "ejemplos", "compilador", "firmas.t"))
         if errores:
             suite.falla("firmas en Tcode", "\n".join(errores))

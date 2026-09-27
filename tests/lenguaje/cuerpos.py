@@ -15,6 +15,7 @@ from .comun import (
     RAIZ,
     RUNTIME,
     Resultado,
+    c_de_tcodec,
 )
 
 TITULO = "la funcion entera en C, escrita por Tcode"
@@ -53,7 +54,7 @@ def correr(suite: Resultado) -> None:
     tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
     try:
         suite.total += 1
-        codigo, errores = compilar_archivo(
+        codigo, errores = c_de_tcodec(
             os.path.join(RAIZ, "ejemplos", "compilador", "cuerpos.t"))
         if errores:
             suite.falla("cuerpos en Tcode", "\n".join(errores))

@@ -88,7 +88,8 @@ from oraculo import generar as generar_oraculo, cuentas_escritas
 from prestamos import generar as generar_prestamos
 
 RUNTIME = os.path.join(RAIZ, "runtime")
-from compilar_c import cc, herramienta
+from semilla import construir_tcodec as desde_la_semilla
+from compilar_c import cc
 CUANTOS = int(os.environ.get("TCODE_PROGRAMAS", "60"))
 # Sin construir `tcodec`: P11 mira la salida pero no compara el C de los dos
 # compiladores, y P12 no corre. Es lo que hace `make rapido`.
@@ -281,33 +282,15 @@ def probar_violaciones(tmp):
 
 
 def construir_tcodec(tmp):
-    """`tcodec`, sin sanitizers: solo se le pide el C de cada programa."""
+    """`tcodec`, desde su semilla y sin sanitizers: solo se le pide el C de
+    cada programa."""
     global total
     total += 1
-    antes = os.getcwd()
     try:
-        os.chdir(RAIZ)
-        codigo, errores = compilar_archivo(
-            os.path.join("ejemplos", "compilador", "tcodec.t"))
-    finally:
-        os.chdir(antes)
-    if errores:
-        falla("P11 tcodec se construye", "tcodec", "\n".join(errores))
+        return desde_la_semilla(tmp, ["-std=c17", "-O1"])
+    except RuntimeError as exc:
+        falla("P11 tcodec se construye", "tcodec", str(exc))
         return None
-    ruta_c = os.path.join(tmp, "tcodec.c")
-    binario = os.path.join(tmp, "tcodec")
-    with open(ruta_c, "w", encoding="utf-8") as f:
-        f.write(codigo)
-    r = herramienta(
-        ["cc", "-std=c17", "-O1", f"-I{RUNTIME}", ruta_c,
-         os.path.join(RUNTIME, "safestr.c"),
-         os.path.join(RAIZ, "ejemplos", "compilador", "lib", "sistema_tcodec.c"),
-         "-o", binario, "-lm"],
-        capture_output=True, text=True)
-    if r.returncode != 0:
-        falla("P11 tcodec se construye", "tcodec", r.stderr)
-        return None
-    return binario
 
 
 def probar_oraculo(tmp, tcodec):

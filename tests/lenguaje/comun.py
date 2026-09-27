@@ -9,9 +9,9 @@ import shutil
 import subprocess
 import tempfile
 
-from compilar_c import cc, herramienta
+import semilla
+from compilar_c import cc
 
-from tcode.cli import compilar_archivo
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RUNTIME = os.path.join(RAIZ, "runtime")
@@ -37,8 +37,9 @@ class Resultado:
 # ---------- el compilador que se prueba ----------
 #
 # Es `tcodec`, el compilador escrito en Tcode, con los sanitizers puestos: cada
-# programa de la suite prueba tambien su memoria. El de Python solo lo arranca
-# y, en las secciones que lo dicen, hace de oraculo de lo que ya sabe hacer.
+# programa de la suite prueba tambien su memoria. Se construye desde su C
+# semilla, como en `make`; el de Python, en las secciones que lo dicen, hace
+# de oraculo de lo que ya sabe hacer.
 
 SANITIZERS = ["-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
               "-fsanitize=address,undefined", "-fno-omit-frame-pointer"]
@@ -50,27 +51,9 @@ ENTORNO_TCODEC = dict(os.environ, TCODE_RAIZ=RAIZ)
 
 
 def construir_tcodec(directorio):
-    """`tcodec` en `directorio`, construido por el compilador de Python y
-    compilado con los sanitizers; si su C no cambio, sale de la cache."""
-    antes = os.getcwd()
-    os.chdir(RAIZ)
-    try:
-        codigo, errores = compilar_archivo(
-            os.path.join("ejemplos", "compilador", "tcodec.t"))
-    finally:
-        os.chdir(antes)
-    if errores:
-        raise RuntimeError("tcodec no compila:\n" + "\n".join(errores))
-    ruta_c = os.path.join(directorio, "tcodec.c")
-    binario = os.path.join(directorio, "tcodec")
-    with open(ruta_c, "w", encoding="utf-8") as f:
-        f.write(codigo)
-    r = herramienta(["cc", *SANITIZERS, f"-I{RUNTIME}", ruta_c,
-                     os.path.join(RUNTIME, "safestr.c"), SISTEMA_TCODEC,
-                     "-o", binario, "-lm"], capture_output=True, text=True)
-    if r.returncode != 0:
-        raise RuntimeError("el C de tcodec no compila:\n" + r.stderr[:600])
-    return binario
+    """`tcodec` en `directorio`, construido desde su C semilla y compilado con
+    los sanitizers; si su C no cambio, sale de la cache."""
+    return semilla.construir_tcodec(directorio, SANITIZERS)
 
 
 def tcodec():
@@ -81,6 +64,14 @@ def tcodec():
         atexit.register(shutil.rmtree, directorio, ignore_errors=True)
         _TCODEC["ruta"] = construir_tcodec(directorio)
     return _TCODEC["ruta"]
+
+
+def c_de_tcodec(ruta):
+    """El C de un `.t` del repositorio escrito por `tcodec`, y sus errores,
+    como `compilar_archivo`. Es como se construyen las herramientas escritas
+    en Tcode —las capas del compilador, el lexer—: con lo que el compilador
+    de Python ya no entiende."""
+    return semilla.c_de(tcodec(), ruta)
 
 
 def tcodec_sobre(fuente, *opciones, directorio, nombre="p.t", timeout=120):

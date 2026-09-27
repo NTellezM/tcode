@@ -7,7 +7,6 @@ import tempfile
 
 from compilar_c import herramienta
 
-from tcode.cli import compilar_archivo
 from tcode.lexer import ErrorLexico
 from tcode.parser import ErrorSintactico
 
@@ -15,6 +14,7 @@ from .comun import (
     RAIZ,
     RUNTIME,
     Resultado,
+    c_de_tcodec,
 )
 
 TITULO = "el lexer y el parser en Tcode, contra los de Python"
@@ -27,7 +27,7 @@ def correr(suite: Resultado) -> None:
         suite.total += 1
         fuente_lexer = os.path.join(RAIZ, "ejemplos", "lexer", "lexer.t")
         try:
-            codigo, errores = compilar_archivo(fuente_lexer)
+            codigo, errores = c_de_tcodec(fuente_lexer)
         except Exception as exc:
             suite.falla("el lexer en Tcode compila", str(exc))
             codigo = None
@@ -97,7 +97,7 @@ def correr(suite: Resultado) -> None:
                 from tcode.modulos import ErrorDeModulo
                 from tcode.modulos import cargar as cargar_modulos
                 fuente_parser = os.path.join(RAIZ, "ejemplos", "lexer", "parser.t")
-                codigo_p, errores_p = compilar_archivo(fuente_parser)
+                codigo_p, errores_p = c_de_tcodec(fuente_parser)
                 if errores_p:
                     suite.falla("el parser en Tcode compila", f"errores: {errores_p}")
                 else:
