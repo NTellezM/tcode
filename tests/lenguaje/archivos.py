@@ -31,7 +31,7 @@ def correr(suite: Resultado) -> None:
         else:
             if rc != 0 or out != "8 0\n":
                 suite.falla("leer un archivo completo",
-                      f"codigo {rc}, salida {out!r}, stderr {err!r}")
+                            f"codigo {rc}, salida {out!r}, stderr {err!r}")
             elif "runtime error" in err or "AddressSanitizer" in err:
                 suite.falla("leer un archivo completo", f"sanitizer se quejo:\n{err}")
 
@@ -57,10 +57,10 @@ def correr(suite: Resultado) -> None:
         else:
             if rc != 0 or out != "5 0 true\n":
                 suite.falla("escribir y volver a leer",
-                      f"codigo {rc}, salida {out!r}, stderr {err!r}")
+                            f"codigo {rc}, salida {out!r}, stderr {err!r}")
             elif "esto va al diagnostico" not in err:
                 suite.falla("escribir y volver a leer",
-                      "`imprimir_error` no salio por la salida de error")
+                            "`imprimir_error` no salio por la salida de error")
             elif "AddressSanitizer" in err:
                 suite.falla("escribir y volver a leer", f"sanitizer se quejo:\n{err}")
 
@@ -93,10 +93,10 @@ def correr(suite: Resultado) -> None:
         else:
             if rc != 0 or out != "bien 2\n":
                 suite.falla("escribir_archivo evalua ruta antes que datos",
-                      f"codigo {rc}, salida {out!r}, stderr {err!r}")
+                            f"codigo {rc}, salida {out!r}, stderr {err!r}")
             elif "runtime error" in err or "AddressSanitizer" in err:
                 suite.falla("escribir_archivo evalua ruta antes que datos",
-                      f"sanitizer se quejo:\n{err}")
+                            f"sanitizer se quejo:\n{err}")
 
         # Escribir donde no se puede es un fallo, no un cuelgue.
         suite.total += 1
@@ -111,4 +111,4 @@ def correr(suite: Resultado) -> None:
         else:
             if rc == 0 or "no se pudo abrir el archivo para escribir" not in err:
                 suite.falla("escribir donde no se puede",
-                      f"codigo {rc}, stderr {err!r}")
+                            f"codigo {rc}, stderr {err!r}")

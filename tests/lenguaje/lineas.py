@@ -49,14 +49,14 @@ def correr(suite: Resultado) -> None:
                 n, archivo = int(m.group(1)), os.path.join(RAIZ, m.group(2))
                 if not os.path.isfile(archivo):
                     suite.falla(f"lineas de {relativo}",
-                          f"`#line {n} \"{archivo}\"` señala un archivo que no existe")
+                                f"`#line {n} \"{archivo}\"` señala un archivo que no existe")
                     break
                 with open(archivo, encoding="utf-8") as f:
                     cuantas = sum(1 for _ in f)
                 if not 1 <= n <= cuantas:
                     suite.falla(f"lineas de {relativo}",
-                          f"`#line {n} \"{archivo}\"` se sale: el archivo tiene "
-                          f"{cuantas} lineas")
+                                f"`#line {n} \"{archivo}\"` se sale: el archivo tiene "
+                                f"{cuantas} lineas")
                     break
             else:
                 if vistas == 0:
@@ -102,8 +102,8 @@ def correr(suite: Resultado) -> None:
                     print("    (gdb instalado, pero el entorno bloquea ptrace)")
                 elif "hondo.t:3" not in e.stdout:
                     suite.falla("el depurador ve el `.t`",
-                          "la pila no señala `hondo.t:3`:\n"
-                          + (e.stdout + e.stderr)[-600:])
+                                "la pila no señala `hondo.t:3`:\n"
+                                + (e.stdout + e.stderr)[-600:])
         print(f"    {marcadas} directivas, todas a una linea que existe")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

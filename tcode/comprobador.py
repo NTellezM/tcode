@@ -7,6 +7,7 @@ auditando la libreria en C.
 """
 
 import re
+from typing import Any
 from decimal import Decimal as NumeroDecimal, InvalidOperation
 
 from tcode.parser import RESTRICCIONES
@@ -3392,7 +3393,7 @@ class Comprobador:
         if ap and ap[0] == e.tipo and len(ap[1]) == len(params):
             return self.instanciar_struct(e.tipo, ap[1], e)
 
-        ligaduras = {}
+        ligaduras: dict[str, str] = {}
         for nombre, valor in e.campos:
             definicion = next((c for c in plantilla.campos
                                if c.nombre == nombre), None)
@@ -4165,7 +4166,7 @@ class Comprobador:
 # Firmas de las funciones internas.
 #   @lugar      -> tiene que ser una variable (se muta o se presta)
 #   @cualquiera -> cualquier tipo (imprimir)
-INTERNAS = {
+INTERNAS: dict[str, dict[str, Any]] = {
     "vacio":    {"params": [],                        "retorno": "str"},
     "nuevo":    {"params": ["view"],                  "retorno": "str"},
     "vista":    {"params": ["@presta"],               "retorno": "view"},

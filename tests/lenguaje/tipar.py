@@ -98,8 +98,8 @@ def correr(suite: Resultado) -> None:
                                        text=True, timeout=180)
                     if "Sanitizer" in e.stderr:
                         suite.falla("tipar en Tcode",
-                              f"{os.path.basename(archivo)}: sanitizer\n"
-                              f"{e.stderr[:400]}")
+                                    f"{os.path.basename(archivo)}: sanitizer\n"
+                                    f"{e.stderr[:400]}")
                         continue
                     dado = [linea for linea in e.stdout.splitlines() if linea.strip()]
                     if dado != esperado:
@@ -109,7 +109,7 @@ def correr(suite: Resultado) -> None:
                                    if d is not None
                                    else f"{len(dado)} lineas contra {len(esperado)}")
                         suite.falla("tipar en Tcode",
-                              f"{os.path.basename(archivo)}:\n" + detalle)
+                                    f"{os.path.basename(archivo)}:\n" + detalle)
                         continue
                     comparados += 1
                     simbolos += len(dado)

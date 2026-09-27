@@ -187,4 +187,4 @@ def correr(suite: Resultado) -> None:
                 continue
             if rc == 0 or out != "antes\n":
                 suite.falla(f"lo impreso antes de abortar ({nombre})",
-                      f"codigo {rc}, salida {out!r}")
+                            f"codigo {rc}, salida {out!r}")

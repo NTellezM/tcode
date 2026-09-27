@@ -71,8 +71,8 @@ def correr(suite: Resultado) -> None:
                         obtenidos.append((partes[1], partes[2] if len(partes) > 2 else ""))
                     if len(obtenidos) != len(esperados):
                         suite.falla("autoanalisis",
-                              f"{os.path.basename(archivo)}: {len(obtenidos)} tokens "
-                              f"contra {len(esperados)}")
+                                    f"{os.path.basename(archivo)}: {len(obtenidos)} tokens "
+                                    f"contra {len(esperados)}")
                         continue
                     # Las cadenas se comparan solo por tipo: el lexer en Tcode las
                     # deja crudas, sin resolver escapes, que es todo lo que
@@ -83,8 +83,8 @@ def correr(suite: Resultado) -> None:
                                                  and val != t.valor)]
                     if malos:
                         suite.falla("autoanalisis",
-                              f"{os.path.basename(archivo)}: {len(malos)} tokens "
-                              f"distintos, el primero en la posicion {malos[0]}")
+                                    f"{os.path.basename(archivo)}: {len(malos)} tokens "
+                                    f"distintos, el primero en la posicion {malos[0]}")
                     else:
                         tokens_vistos += len(obtenidos)
                         distintos += 1
@@ -128,14 +128,14 @@ def correr(suite: Resultado) -> None:
                                                timeout=180)
                             if "Sanitizer" in e.stderr:
                                 suite.falla("el parser en Tcode",
-                                      f"{os.path.basename(archivo)}: "
-                                      f"sanitizer\n{e.stderr[:400]}")
+                                            f"{os.path.basename(archivo)}: "
+                                            f"sanitizer\n{e.stderr[:400]}")
                                 continue
                             if (e.returncode == 0) != py_acepta:
                                 suite.falla("el parser en Tcode",
-                                      f"{os.path.basename(archivo)}: acepta="
-                                      f"{e.returncode == 0}, el de Python="
-                                      f"{py_acepta}")
+                                            f"{os.path.basename(archivo)}: acepta="
+                                            f"{e.returncode == 0}, el de Python="
+                                            f"{py_acepta}")
                                 continue
                             if e.returncode == 0:
                                 nodos_vistos += int(e.stdout.split()[1])
@@ -162,6 +162,6 @@ def correr(suite: Resultado) -> None:
                         suite.falla(f"entrada hostil: {nombre}", "no fallo, y deberia")
                     elif esperado not in e.stderr:
                         suite.falla(f"entrada hostil: {nombre}",
-                              f"se esperaba {esperado!r}, hubo {e.stderr[:200]!r}")
+                                    f"se esperaba {esperado!r}, hubo {e.stderr[:200]!r}")
                     elif "Sanitizer" in e.stderr:
                         suite.falla(f"entrada hostil: {nombre}", f"sanitizer:\n{e.stderr}")

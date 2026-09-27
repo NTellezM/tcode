@@ -34,9 +34,9 @@ CACHE = os.environ.get("TCODE_CACHE") or os.path.join(RAIZ, ".cache", "herramien
 GUARDADOS = 40
 
 _cerrojo = threading.Lock()
-_objetos = {}
-_dir_objetos = None
-_version_cc = None
+_objetos: dict[tuple[str, ...], str | None] = {}
+_dir_objetos: str | None = None
+_version_cc: str | None = None
 
 
 def _opciones(orden):

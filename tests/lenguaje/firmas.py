@@ -94,8 +94,8 @@ def correr(suite: Resultado) -> None:
                                        text=True, timeout=180)
                     if "Sanitizer" in e.stderr:
                         suite.falla("firmas en Tcode",
-                              f"{os.path.basename(archivo)}: sanitizer\n"
-                              f"{e.stderr[:400]}")
+                                    f"{os.path.basename(archivo)}: sanitizer\n"
+                                    f"{e.stderr[:400]}")
                         continue
                     dado = [linea for linea in e.stdout.splitlines() if linea.strip()]
                     if dado != esperado:
@@ -105,7 +105,7 @@ def correr(suite: Resultado) -> None:
                                    if d is not None
                                    else f"{len(dado)} firmas contra {len(esperado)}")
                         suite.falla("firmas en Tcode",
-                              f"{os.path.relpath(archivo, RAIZ)}:\n" + detalle)
+                                    f"{os.path.relpath(archivo, RAIZ)}:\n" + detalle)
                         continue
                     comparados += 1
                     firmas += len(dado)

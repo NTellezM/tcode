@@ -41,7 +41,7 @@ def correr(suite: Resultado) -> None:
     _avisos_once = bloques(_r_av.stderr, "aviso: ")
     if _r_av.returncode != 0 or not any("de `clausura` no se usa" in a for a in _avisos_once):
         suite.falla("un aviso sobre una clausura dice `clausura`",
-              f"codigo {_r_av.returncode}: {_avisos_once or _r_av.stderr[-300:]}")
+                    f"codigo {_r_av.returncode}: {_avisos_once or _r_av.stderr[-300:]}")
 
     # Tres propiedades, y la primera es la que importa: el formateador no puede
     # perder ni cambiar nada, porque la salida lexea a los mismos tokens que la
@@ -85,12 +85,12 @@ def correr(suite: Resultado) -> None:
             donde = next((i for i, (a, b) in enumerate(zip(antes, despues))
                           if a != b), min(len(antes), len(despues)))
             suite.falla(f"formato de {os.path.relpath(archivo, RAIZ)}",
-                  f"cambia los tokens en la posicion {donde}: "
-                  f"{antes[donde:donde + 3]} -> {despues[donde:donde + 3]}")
+                        f"cambia los tokens en la posicion {donde}: "
+                        f"{antes[donde:donde + 3]} -> {despues[donde:donde + 3]}")
             continue
         if uno != dos:
             suite.falla(f"formato de {os.path.relpath(archivo, RAIZ)}",
-                  "formatear dos veces no da lo mismo")
+                        "formatear dos veces no da lo mismo")
             continue
         if uno != fuente:
             sin_formato.append(os.path.relpath(archivo, RAIZ))
@@ -98,8 +98,8 @@ def correr(suite: Resultado) -> None:
     if sin_formato:
         suite.total += 1
         suite.falla("el repositorio esta formateado",
-              "sin formatear: " + ", ".join(sin_formato[:6])
-              + "; arreglalo con `make formato`")
+                    "sin formatear: " + ", ".join(sin_formato[:6])
+                    + "; arreglalo con `make formato`")
     suite.cifra("formato_archivos", len(_TODOS))
     print(f"    {len(_TODOS)} archivos: mismos tokens, idempotente, y ya "
           f"en formato canonico")

@@ -3422,7 +3422,7 @@ class Generador:
         secuenciar = len(e.args) > 1
         # Cada argumento queda pendiente mientras se calculan los de despues:
         # si uno de ellos deja sentencias, los de antes corren antes.
-        marco = []
+        marco: list[list[str]] = []
         self.por_correr.append(marco)
         for i, a in enumerate(e.args):
             p = f.params[i] if f and i < len(f.params) else None
