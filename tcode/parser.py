@@ -1,5 +1,7 @@
 """Analisis sintactico de Tcode: tokens -> arbol. Descenso recursivo."""
 
+from typing import NoReturn
+
 from tcode.lexer import tokenizar, Token, fin_de_cadena
 from tcode.nodos import (
     Entero, Decimal, Cadena, Booleano, Variable, Llamada, Binaria, Unaria,
@@ -7,8 +9,8 @@ from tcode.nodos import (
     SiExpr, Cierre,
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
-    Parametro, Funcion, CampoDef, Struct, Usar, Para, Romper, Continuar,
-    Enum, VarianteDef, EnumLit, Match, Brazo, Externo, PatronForma,
+    Nodo, Parametro, Funcion, CampoDef, Struct, Usar, Para, Romper, Continuar,
+    Enum, VarianteDef, EnumLit, Match, Brazo, PatronForma,
     PatronLiteral,
 )
 
@@ -76,7 +78,7 @@ class Parser:
     def actual(self) -> Token:
         return self.toks[self.i]
 
-    def error(self, mensaje, tok=None):
+    def error(self, mensaje, tok=None) -> NoReturn:
         t = tok or self.actual
         if t.tipo == "fin":
             visto = "fin de archivo"
@@ -143,7 +145,7 @@ class Parser:
     # ---------- alto nivel ----------
 
     def programa(self) -> list:
-        decls = []
+        decls: list[Nodo] = []
         while self.es("palabra", "usar"):
             tok = self.actual
             self.i += 1
@@ -675,14 +677,20 @@ class Parser:
         while i < len(texto):
             c = texto[i]
             if c == "{" and i + 1 < len(texto) and texto[i + 1] == "{":
-                actual.append("{"); i += 2; continue
+                actual.append("{")
+                i += 2
+                continue
             if c == "}" and i + 1 < len(texto) and texto[i + 1] == "}":
-                actual.append("}"); i += 2; continue
+                actual.append("}")
+                i += 2
+                continue
             if c == "}":
                 self.error("`}` suelto dentro de una cadena interpolada; "
                            "escribe `}}` si querias la llave", tok)
             if c != "{":
-                actual.append(c); i += 1; continue
+                actual.append(c)
+                i += 1
+                continue
 
             # {expresion}: se busca la llave de cierre respetando anidamiento.
             # El hueco llega crudo: sus cadenas se saltan enteras, que sus

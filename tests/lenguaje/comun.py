@@ -1,0 +1,180 @@
+"""Lo que comparten las secciones de la suite del lenguaje: el compilador
+que se prueba, como se compila y se corre un programa, y la cuenta de casos,
+fallas y cifras de una pasada."""
+
+import atexit
+import concurrent.futures
+import os
+import shutil
+import subprocess
+import tempfile
+
+from compilar_c import cc, herramienta
+
+from tcode.cli import compilar_archivo
+
+RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+RUNTIME = os.path.join(RAIZ, "runtime")
+
+
+class Resultado:
+    """Lo que va contando una pasada: los casos, las fallas, y las cifras que
+    `tests/cifras.py` lleva al README."""
+
+    def __init__(self) -> None:
+        self.total = 0
+        self.fallos = 0
+        self.cifras: dict[str, object] = {}
+
+    def falla(self, nombre: str, detalle: str) -> None:
+        self.fallos += 1
+        print(f"  FALLA: {nombre}\n         {detalle}")
+
+    def cifra(self, clave: str, valor: object) -> None:
+        self.cifras[clave] = valor
+
+
+# ---------- el compilador que se prueba ----------
+#
+# Es `tcodec`, el compilador escrito en Tcode, con los sanitizers puestos: cada
+# programa de la suite prueba tambien su memoria. El de Python solo lo arranca
+# y, en las secciones que lo dicen, hace de oraculo de lo que ya sabe hacer.
+
+SANITIZERS = ["-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+              "-fsanitize=address,undefined", "-fno-omit-frame-pointer"]
+SISTEMA_TCODEC = os.path.join(RAIZ, "ejemplos", "compilador", "lib", "sistema_tcodec.c")
+_TCODEC = {"ruta": os.environ.get("TCODE_TCODEC")}
+# El binario vive fuera del repositorio: se le dice donde estan `std/` y
+# `runtime/`.
+ENTORNO_TCODEC = dict(os.environ, TCODE_RAIZ=RAIZ)
+
+
+def construir_tcodec(directorio):
+    """`tcodec` en `directorio`, construido por el compilador de Python y
+    compilado con los sanitizers; si su C no cambio, sale de la cache."""
+    antes = os.getcwd()
+    os.chdir(RAIZ)
+    try:
+        codigo, errores = compilar_archivo(
+            os.path.join("ejemplos", "compilador", "tcodec.t"))
+    finally:
+        os.chdir(antes)
+    if errores:
+        raise RuntimeError("tcodec no compila:\n" + "\n".join(errores))
+    ruta_c = os.path.join(directorio, "tcodec.c")
+    binario = os.path.join(directorio, "tcodec")
+    with open(ruta_c, "w", encoding="utf-8") as f:
+        f.write(codigo)
+    r = herramienta(["cc", *SANITIZERS, f"-I{RUNTIME}", ruta_c,
+                     os.path.join(RUNTIME, "safestr.c"), SISTEMA_TCODEC,
+                     "-o", binario, "-lm"], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError("el C de tcodec no compila:\n" + r.stderr[:600])
+    return binario
+
+
+def tcodec():
+    """El binario de `tcodec`: el que dio `TCODE_TCODEC`, o uno construido
+    ahora, una vez por proceso."""
+    if not _TCODEC["ruta"]:
+        directorio = tempfile.mkdtemp(prefix="tcode-tcodec-")
+        atexit.register(shutil.rmtree, directorio, ignore_errors=True)
+        _TCODEC["ruta"] = construir_tcodec(directorio)
+    return _TCODEC["ruta"]
+
+
+def tcodec_sobre(fuente, *opciones, directorio, nombre="p.t", timeout=120):
+    """Escribe `fuente` como `nombre` en `directorio` y se lo pasa a `tcodec`
+    desde ahi, con `opciones`: los mensajes dicen `p.t:3: ...`."""
+    with open(os.path.join(directorio, nombre), "w", encoding="utf-8") as f:
+        f.write(fuente)
+    return subprocess.run([tcodec(), nombre, *opciones], cwd=directorio,
+                          capture_output=True, text=True, timeout=timeout,
+                          env=ENTORNO_TCODEC)
+
+
+def bloques(texto, marca):
+    """Los mensajes que empiezan por `marca` (`error: `, `aviso: `), cada uno
+    con las lineas sangradas que lo siguen."""
+    salida = []
+    for linea in texto.splitlines():
+        if linea.startswith(marca):
+            salida.append(linea[len(marca):])
+        elif linea.startswith("  ") and salida:
+            salida[-1] += "\n" + linea
+    return salida
+
+
+def nombre_escrito(nombre, propias):
+    """El nombre tal como esta en el archivo.
+
+    El cargador renombra dos cosas: lo que choca con una palabra de C
+    (`ss_id_union`) y lo que declaran dos modulos a la vez
+    (`propiedad__posee`). Ninguno de los dos esta escrito en la fuente.
+    """
+    if nombre in propias:
+        return nombre
+    if nombre.startswith("ss_id_") and nombre[len("ss_id_"):] in propias:
+        return nombre[len("ss_id_"):]
+    if "__" in nombre:
+        corto = nombre.split("__", 1)[1]
+        if corto in propias:
+            return corto
+    return None
+
+
+def compilar_y_correr(fuente, tmp, con_sanitizers=True):
+    """Devuelve (codigo_de_salida, stdout, stderr) o lanza AssertionError."""
+    return correr_c(c_de(fuente, tmp), tmp, con_sanitizers)
+
+
+def en_paralelo(funcion, trabajos):
+    """`funcion` sobre cada trabajo, en tantos hilos como nucleos: lo que
+    cuesta es el compilador de C y el programa, que son otros procesos. Los
+    resultados salen en el orden de los trabajos."""
+    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 2) as hilos:
+        return list(hilos.map(funcion, trabajos))
+
+
+def en_procesos(funcion, trabajos):
+    """Como `en_paralelo`, para lo que cuesta dentro de Python —el
+    compilador de Python sobre muchos archivos—, que en hilos iria de uno en
+    uno. Un proceso por nucleo, hechos con `fork` para que vean todo lo de
+    aqui: `funcion` tiene que estar a nivel de modulo, y lo que devuelve
+    tiene que poder viajar entre procesos."""
+    import multiprocessing
+    with concurrent.futures.ProcessPoolExecutor(
+            os.cpu_count() or 2,
+            mp_context=multiprocessing.get_context("fork")) as procesos:
+        return list(procesos.map(funcion, trabajos))
+
+
+def c_de(fuente, tmp):
+    """El C que escribe `tcodec` para un programa, o AssertionError si no
+    compila."""
+    r = tcodec_sobre(fuente, "--mostrar-c", "--sin-avisos", directorio=tmp)
+    assert r.returncode == 0, ("errores inesperados: "
+                               + ("; ".join(bloques(r.stderr, "error: ")) or r.stderr))
+    return r.stdout
+
+
+def correr_c(codigo, tmp, con_sanitizers=True):
+    """Compila el C en `tmp` y lo corre: (codigo_de_salida, stdout, stderr),
+    o AssertionError si el C no compila."""
+    ruta_c = os.path.join(tmp, "p.c")
+    binario = os.path.join(tmp, "p")
+    with open(ruta_c, "w", encoding="utf-8") as f:
+        f.write(codigo)
+
+    orden = ["cc", "-std=c17", "-g", "-Wall", "-Wextra", "-Werror",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"]
+    if con_sanitizers:
+        orden.insert(3, "-fsanitize=address,undefined")
+        orden.insert(4, "-fno-omit-frame-pointer")
+
+    r = cc(orden, capture_output=True, text=True)
+    assert r.returncode == 0, "el C generado no compila:\n" + r.stderr
+
+    e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
+    return e.returncode, e.stdout, e.stderr

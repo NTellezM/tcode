@@ -156,7 +156,7 @@ def todas():
             guardadas = json.load(f)
     except (OSError, ValueError):
         raise SystemExit("cifras: no hay `.cifras.json`; corre antes `make check`, "
-                         "que la escribe")
+                         "que la escribe") from None
     valores = {}
     for parte in ("lenguaje", "propiedades"):
         if parte not in guardadas:
@@ -165,10 +165,10 @@ def todas():
         valores.update(guardadas[parte])
     valores.update(medidas())
     p = guardadas["propiedades"]
-    l = guardadas["lenguaje"]
+    leng = guardadas["lenguaje"]
     valores["bloque:check"] = (
         "$ make check\n"
-        f"{l['casos']} casos, 0 fallas\n"
+        f"{leng['casos']} casos, 0 fallas\n"
         f"{p['comprobaciones']} comprobaciones sobre {p['programas']} programas, 0 fallas\n")
     return valores
 

@@ -139,7 +139,7 @@ def _nodos(x):
 def _locales(funcion):
     """Los nombres que una funcion declara dentro: parametros, variables,
     los de un `for`, los que atrapa un `match` y los de sus clausuras."""
-    from tcode.nodos import Declaracion, Para, Brazo, Cierre, Parametro
+    from tcode.nodos import Declaracion, Para, Brazo, Parametro
     salida = set()
     for n in _nodos(funcion):
         if isinstance(n, (Declaracion, Parametro)):
@@ -314,32 +314,34 @@ def cargar(ruta_principal, nombres_bonitos=None):
             else:
                 interno[(real, nombre)] = f"{prefijo[real]}__{nombre}"
 
+    def anotar(m, visible, de_donde, clave, destino_real, nombre, nodo):
+        """`clave` se ve desde el archivo `m` y es `nombre` de `destino_real`.
+        Si ya llegaba otra cosa con esa clave, es un error."""
+        valor = interno[(destino_real, nombre)]
+        previo = visible.get(clave)
+        if previo is not None and previo != valor:
+            otro = modulos[de_donde[clave]]["mostrada"]
+            este = modulos[destino_real]["mostrada"]
+            dicho = nombres_c.legible(clave)
+            raise ErrorDeModulo(
+                f"{m['mostrada']}:{getattr(nodo, 'linea', 0)}: `{dicho}` "
+                f"llega de dos sitios, {otro} y {este}. Dale un nombre a "
+                f"uno de los dos: `usar \"...\" como algo;` y luego "
+                f"`algo.{dicho}`")
+        visible[clave] = valor
+        de_donde[clave] = destino_real
+
     # El mapa de cada archivo: lo suyo, mas lo que trae cada `usar`.
     for real, m in modulos.items():
         visible = {}
         de_donde = {}
-
-        def anotar(clave, destino_real, nombre, nodo):
-            valor = interno[(destino_real, nombre)]
-            previo = visible.get(clave)
-            if previo is not None and previo != valor:
-                otro = modulos[de_donde[clave]]["mostrada"]
-                este = modulos[destino_real]["mostrada"]
-                dicho = nombres_c.legible(clave)
-                raise ErrorDeModulo(
-                    f"{m['mostrada']}:{getattr(nodo, 'linea', 0)}: `{dicho}` "
-                    f"llega de dos sitios, {otro} y {este}. Dale un nombre a "
-                    f"uno de los dos: `usar \"...\" como algo;` y luego "
-                    f"`algo.{dicho}`")
-            visible[clave] = valor
-            de_donde[clave] = destino_real
-
         for nombre in declara[real]:
-            anotar(nombre, real, nombre, m["decls"][0] if m["decls"] else None)
+            anotar(m, visible, de_donde, nombre, real, nombre,
+                   m["decls"][0] if m["decls"] else None)
         for d, destino_real in m["usars"]:
             for nombre in declara[destino_real]:
                 clave = f"{d.alias}.{nombre}" if d.alias else nombre
-                anotar(clave, destino_real, nombre, d)
+                anotar(m, visible, de_donde, clave, destino_real, nombre, d)
 
         _sin_usar_directo(m, visible, duenios, modulos)
 

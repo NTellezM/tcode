@@ -24,7 +24,7 @@ fn saludo(nombre: view) -> str {
 ```
 
 ```
-$ python3 -m tcode ejemplos/hola.t && ./ejemplos/hola
+$ ./tcodec ejemplos/hola.t && ./ejemplos/hola
 Hola, mundo!
 12 bytes
 ```
@@ -50,7 +50,7 @@ La conclusión no fue "hay que escribir mejor C". Fue que esas cuatro clases
 Hoy los cuatro son errores de compilación:
 
 ```
-$ python3 -m tcode malo.t
+$ ./tcodec malo.t
 error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 
 1 error. No se genero nada.
@@ -125,22 +125,38 @@ La especificación completa está en [`docs/ESPECIFICACION.md`](docs/ESPECIFICAC
 fuente .t → lexer → parser → comprobador → generador → C → cc → binario
 ```
 
-El compilador está en Python, sin dependencias. Genera C legible que se
-enlaza contra `runtime/safestr.c` — la librería que originó todo esto, que
-pasó a ser el runtime del lenguaje. El C generado se puede leer, versionar y compilar en
-cualquier sitio donde haya un compilador de C17.
+El compilador es `tcodec`, escrito en Tcode. Genera C legible que se enlaza
+contra `runtime/safestr.c` — la librería que originó todo esto, que pasó a
+ser el runtime del lenguaje. El C generado se puede leer, versionar y
+compilar en cualquier sitio donde haya un compilador de C17.
 
 | Archivo | Qué hace |
 |---|---|
-| `tcode/lexer.py` | texto → tokens |
-| `tcode/parser.py` | tokens → árbol (descenso recursivo) |
-| `tcode/modulos.py` | resuelve `usar`, carga única, detecta ciclos |
-| `tcode/comprobador.py` | tipos, propiedad, préstamos, mutabilidad |
-| `tcode/generador.py` | árbol → C, con `ss_free` y comprobaciones insertadas |
-| `tcode/explicar.py` | el modelo del comprobador, hecho legible |
-| `tcode/nombres_c.py` | los nombres que en C ya son otra cosa (`log`, `EOF`) |
+| `ejemplos/compilador/tcodec.t` | el compilador: módulos, opciones, y la llamada a `cc` |
+| `ejemplos/compilador/lib/` | tipos, comprobador, propiedad, generador y formateador |
+| `ejemplos/lexer/lib/` | lexer y parser |
+| `tcode/` | el compilador de Python: el arranque de `tcodec` y su oráculo |
 | `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->12<!--/c--> módulos, <!--c:std_lineas-->947<!--/c--> líneas |
 | `runtime/` | safestr, la librería de C original, ya corregida |
+
+### Dos compiladores, una regla
+
+Tcode empezó con un compilador en Python (`tcode/`), sin dependencias, y con
+él se escribió `tcodec`. Hoy los dos escriben el mismo C byte a byte para cada
+programa del repositorio y de la suite, y cada uno es el oráculo del otro.
+Pero dos compiladores obligan a escribir cada idea dos veces, así que la regla
+es esta:
+
+- **Lo nuevo del lenguaje entra solo en `tcodec`.** Es el que se usa y el que
+  prueba la suite: los programas de RECHAZO, ACEPTA, ABORTA, MODULOS y el
+  resto compilan con él, construido con los sanitizers.
+- **El de Python queda congelado.** Construye el primer `tcodec` (`make`) y
+  hace de oráculo: todo programa que sabe compilar tiene que salir igual de
+  los dos. Se le arreglan los fallos; no aprende nada nuevo.
+- **`tcodec` se escribe con lo que el de Python entiende**, porque es el que
+  lo construye. Cuando `tcodec` quiera usar algo nuevo en su propio código,
+  el arranque pasará a ser un C semilla guardado en el repositorio, como hace
+  Zig.
 
 ## El lexer y el parser de Tcode, escritos en Tcode
 
@@ -149,7 +165,7 @@ comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
 Sobre los <!--c:lexer_archivos-->49<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
-**<!--c:tokens-->175.084<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+**<!--c:tokens-->175.281<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -175,10 +191,10 @@ interpoladas para los mensajes, y lectura de archivos con argumentos. Corre
 limpio bajo ASan y UBSan, y ante una entrada rota —una cadena sin cerrar, un
 archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 
-`ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.681<!--/c--> líneas más: descenso recursivo con la
+`ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.695<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->49<!--/c--> archivos que
-el parser del compilador, y sobre ellos produce <!--c:nodos-->87.851<!--/c--> nodos:
+el parser del compilador, y sobre ellos produce <!--c:nodos-->87.944<!--/c--> nodos:
 
 <!--c:bloque:parser-->
 ```
@@ -193,18 +209,18 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
   tipos**, las mismas respuestas que el comprobador de Python.
 - `lib/tipar.t` dice **de qué tipo es cada variable de cada función**, con
   llamadas, campos, índices, préstamos y genéricas instanciadas: **<!--c:tipar_archivos-->44<!--/c-->
-  archivos, <!--c:tipar_variables-->5.173<!--/c--> variables**, los mismos tipos.
+  archivos, <!--c:tipar_variables-->5.180<!--/c--> variables**, los mismos tipos.
 - `lib/propiedad.t` dice **qué le pasa a cada valor con dueño** —se presta,
   se entrega en la línea N, se mueve en la línea N, o se libera al cerrar su
   bloque—, que es lo único que de verdad separa a Tcode de C: **<!--c:propiedad_archivos-->44<!--/c--> archivos,
-  <!--c:propiedad_variables-->5.173<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
+  <!--c:propiedad_variables-->5.180<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
 - `lib/generar.t` es **el generador**: cómo se llama cada tipo en C, cómo
-  queda la firma de cada función —**<!--c:firmas_archivos-->44<!--/c--> archivos, <!--c:firmas-->685<!--/c--> firmas**— y el C de cada
-  expresión que se devuelve: **<!--c:expresiones_iguales-->1.594<!--/c--> de <!--c:expresiones-->1.797<!--/c--> expresiones, carácter por
+  queda la firma de cada función —**<!--c:firmas_archivos-->44<!--/c--> archivos, <!--c:firmas-->686<!--/c--> firmas**— y el C de cada
+  expresión que se devuelve: **<!--c:expresiones_iguales-->1.597<!--/c--> de <!--c:expresiones-->1.800<!--/c--> expresiones, carácter por
   carácter**, las mismas que emite el generador de Python. Lo que aún no
   cubre sale marcado y no se compara; la suite exige un mínimo en vez de
   hacer como que están todas. Y **la función entera** —firma, cuerpo, y los
-  `ss_free` puestos solos donde tocan—: **<!--c:cuerpos-->776<!--/c--> funciones idénticas**, línea por
+  `ss_free` puestos solos donde tocan—: **<!--c:cuerpos-->778<!--/c--> funciones idénticas**, línea por
   línea, normalizando sólo los números de temporal.
 
 Las dos se comparan contra el comprobador de Python en cada ejecución de la
@@ -216,11 +232,11 @@ suite, sobre el código real del repositorio.
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->19.527<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->19.557<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa) y el resultado se compara byte a
 byte con el del generador de Python: **los <!--c:programas_enteros-->25<!--/c--> programas del repositorio, idénticos**,
 entre ellos el lexer, el parser y el propio `tcodec`, y también **los
-<!--c:programas_suite-->164<!--/c--> programas de la suite que compilan** y cada programa que generan las
+<!--c:programas_suite-->165<!--/c--> programas de la suite que compilan** y cada programa que generan las
 propiedades.
 
 Y hace el último paso él solo: llama al compilador de C, enlaza lo que
@@ -229,7 +245,6 @@ salvaguardas que `tcode` —la salida nunca es el fuente, y un fallo del
 compilador de C deja el binario anterior como estaba—:
 
 ```
-$ export TCODE_RAIZ=.
 $ ./tcodec programa.t                 # compila a binario
 $ ./tcodec programa.t -o otro -O3
 $ ./tcodec programa.t --emitir-c      # deja programa.c
@@ -240,20 +255,20 @@ $ ./tcodec programa.t --solo-comprobar
 Y el punto fijo, sin Python más que para la primera etapa:
 
 ```
-$ python3 -m tcode ejemplos/compilador/tcodec.t                        # etapa 1
-$ ./ejemplos/compilador/tcodec ejemplos/compilador/tcodec.t -o etapa2  # sin Python
-$ ./ejemplos/compilador/tcodec ejemplos/compilador/tcodec.t --mostrar-c > etapa1.c
+$ make                                                   # etapa 1: la construye Python
+$ ./tcodec ejemplos/compilador/tcodec.t -o etapa2         # sin Python
+$ ./tcodec ejemplos/compilador/tcodec.t --mostrar-c > etapa1.c
 $ ./etapa2 ejemplos/compilador/tcodec.t --mostrar-c | cmp - etapa1.c && echo igual
 igual
 ```
 
 El `tcodec` construido por sí mismo vuelve a escribir exactamente los mismos
-bytes (<!--c:punto_fijo_bytes-->5,07<!--/c--> MB), y el construido desde su propio C también, bajo
+bytes (<!--c:punto_fijo_bytes-->5,08<!--/c--> MB), y el construido desde su propio C también, bajo
 AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
 A partir de ahí el compilador ya no necesita a Python para existir, que es el
 paso que dieron Go en la 1.5 y Rust con su primer `rustc` escrito en Rust. Lo
 que necesita del sistema y Tcode no trae —ejecutar el compilador de C, un
-temporal, sustituir un archivo de una vez, subir la pila— son <!--c:lineas_sistema-->173<!--/c--> líneas de C en
+temporal, sustituir un archivo de una vez, subir la pila— son <!--c:lineas_sistema-->223<!--/c--> líneas de C en
 `lib/sistema_tcodec.c`, que `tcodec` pide con un `externo` como cualquier
 otro programa.
 
@@ -266,7 +281,7 @@ comprobadas en cada copia, clausuras— y los **mismos mensajes, en el mismo
 orden**. `tcodec` lo pasa antes de escribir nada:
 
 ```
-$ TCODE_RAIZ=. ./tcodec malo.t
+$ ./tcodec malo.t
 error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 
 1 error. No se genero nada.
@@ -278,7 +293,7 @@ también los de sintaxis, que salen del lexer y el parser en Tcode con su
 archivo, su línea y lo que encontraron:
 
 ```
-$ TCODE_RAIZ=. ./tcodec roto.t
+$ ./tcodec roto.t
 error: roto.t:3: se esperaba ';', se encontro ')'
 ```
 
@@ -286,7 +301,7 @@ Y como siete casos no bastan para fiarse de un parser, la suite rompe cada
 archivo del repositorio de varias formas —un token de menos o de más, un
 símbolo fuera de sitio, una cadena sin cerrar, un carácter que no existe— y
 exige el mismo primer error en todos: **<!--c:rotos_iguales-->243<!--/c--> de <!--c:rotos-->243<!--/c-->**. Y el otro lado, que
-importa más: **ninguno de los <!--c:correctos-->174<!--/c--> programas correctos** —los del repositorio
+importa más: **ninguno de los <!--c:correctos-->175<!--/c--> programas correctos** —los del repositorio
 y los de la suite— se rechaza. `tcodec --solo-comprobar` hace sólo esta
 parte.
 
@@ -301,7 +316,7 @@ y numeradas como el original—, tipos función, structs genéricos
 (`Par<A, B>`), bloques, `externo`, enums, arreglos `[T; N]`, funciones
 repetidas entre módulos, funciones con nombre de palabra de C (`union`),
 `else if` y `escribir_archivo`. Y escribe todo lo que escribe Python: los
-<!--c:programas_enteros-->25<!--/c--> programas del repositorio, los <!--c:programas_suite-->164<!--/c--> de la suite que compilan —uno por
+<!--c:programas_enteros-->25<!--/c--> programas del repositorio, los <!--c:programas_suite-->165<!--/c--> de la suite que compilan —uno por
 construcción del lenguaje— y los generados al azar de las propiedades (P12)
 salen byte a byte iguales, y la suite falla si uno solo no lo está, también
 si `tcodec` lo rechaza.
@@ -460,14 +475,16 @@ El detalle está en [`bench/README.md`](bench/README.md), incluido por qué
 
 ## Probarlo
 
-Hace falta Python 3 y un compilador de C. Nada más: el compilador no tiene
-dependencias.
+Hace falta Python 3 y un compilador de C. Nada más: ninguno de los dos
+compiladores tiene dependencias.
 
 ```
 git clone <este repo> && cd tcode
-python3 -m tcode --version
+make                # construye ./tcodec, el compilador
+./tcodec --version
 make check          # la suite completa
 make ejemplos       # compila y corre los ejemplos
+make lint           # ruff y mypy sobre el codigo Python (pip install ruff mypy)
 ```
 
 Tu primer programa:
@@ -479,28 +496,29 @@ fn main() -> usize {
     return 0;
 }
 FIN
-$ python3 -m tcode hola.t && ./hola
+$ ./tcodec hola.t && ./hola
 hola
 ```
 
-Si quieres invocarlo como `tcode` desde cualquier sitio:
+Para usarlo desde cualquier sitio basta un enlace: `tcodec` busca `std/` y
+`runtime/` subiendo desde donde está de verdad, así que funciona desde
+cualquier directorio.
 
 ```
-echo 'python3 -m tcode "$@"' > ~/.local/bin/tcode && chmod +x ~/.local/bin/tcode
+ln -s "$PWD/tcodec" ~/.local/bin/tcodec
 ```
-
-(El compilador se ejecuta desde el directorio del repo, que es donde vive
-`runtime/`.)
 
 ## Uso
 
 ```
-python3 -m tcode programa.t              # compila a binario
-python3 -m tcode programa.t -o mi_binario
-python3 -m tcode programa.t -O3          # nivel de optimizacion del backend
-python3 -m tcode programa.t --emitir-c   # deja el C y no invoca a cc
-python3 -m tcode programa.t --explicar   # que infirio el compilador
-python3 -m tcode programa.t --solo-comprobar
+tcodec programa.t              # compila a binario
+tcodec programa.t -o mi_binario
+tcodec programa.t -O3          # nivel de optimizacion del backend
+tcodec programa.t --emitir-c   # deja el C y no invoca a cc
+tcodec programa.t --mostrar-c  # el C por la salida
+tcodec programa.t --explicar   # que infirio el compilador
+tcodec programa.t --solo-comprobar
+tcodec programa.t --formatear [--escribir]
 ```
 
 La salida binaria nunca puede ser el propio fuente, tampoco mediante un
@@ -516,7 +534,7 @@ Un aviso no impide compilar. Señala algo que probablemente no era lo que
 querías, y apunta **al código que escribiste**, no al C generado:
 
 ```
-$ python3 -m tcode area.t
+$ tcodec area.t
 aviso: area.t:2: `total` se declara `var` y nunca se modifica; puede ser `let`
 aviso: area.t:3: `sobra` se declara y no se usa; si es a proposito llamala `_sobra`
 aviso: area.t:1: el parametro `b` de `area` no se usa; si es a proposito llamalo `_b`
@@ -536,8 +554,8 @@ Un `_` delante del nombre lo calla, como en Rust: dice que es a propósito y
 quien lea el código no tiene que preguntárselo.
 
 ```
-python3 -m tcode programa.t --avisos-como-errores   # no compila si hay avisos
-python3 -m tcode programa.t --sin-avisos
+tcodec programa.t --avisos-como-errores   # no compila si hay avisos
+tcodec programa.t --sin-avisos
 ```
 
 ## `--explicar`
@@ -548,7 +566,7 @@ ve cuando **falla**, en forma de error. `--explicar` lo muestra cuando sale
 bien:
 
 ```
-$ python3 -m tcode ejemplos/informe/informe.t --explicar
+$ tcodec ejemplos/informe/informe.t --explicar
 
   struct Articulo   es DUEÑO: contiene memoria que hay que liberar
       nombre: str  <- duenio
@@ -721,7 +739,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-2222 casos, 0 fallas
+2227 casos, 0 fallas
 2069 comprobaciones sobre 60 programas, 0 fallas
 ```
 
@@ -772,15 +790,16 @@ aritmética y los índices detienen el programa en vez de seguir con basura, y
 arman programas de varios archivos para probar módulos, ciclos y nombres
 repetidos.
 
-`make check` entera tarda unos cinco minutos en cuatro núcleos. Las
-secciones corren a la vez, cada una en su proceso, y dentro de cada una lo
-que se puede también. Lo que la suite compila con los sanitizers —`tcodec` y
+`make check` entera tarda unos cinco minutos en cuatro núcleos. Cada sección
+de la suite es un módulo de `tests/lenguaje/` —sus casos y cómo se
+comprueban—, las secciones corren a la vez, cada una en su proceso, y dentro
+de cada una lo que se puede también. Lo que la suite compila con los sanitizers —`tcodec` y
 las otras capas del compilador escritas en Tcode— se guarda en `.cache/` por
 el hash de su C: la pasada siguiente no lo vuelve a compilar si no cambió.
 Para trabajar hay atajos:
 
 ```
-$ make rapido                                  # lo demás: quince segundos
+$ make rapido                                  # el lenguaje: veinte segundos
 $ python3 tests/test_lenguaje.py ACEPTA ABORTA  # solo esas secciones
 $ python3 tests/test_lenguaje.py --lista        # cuáles hay
 $ TCODE_EN_SERIE=1 make check                  # una sección tras otra

@@ -9,7 +9,7 @@ from typing import Optional
 # `dataclasses.fields` los vuelve a calcular en cada llamada. Por clase no
 # cambian: se calculan una vez, y con una sola consulta se sabe si algo es
 # un nodo y que campos tiene.
-_NOMBRES = {}
+_NOMBRES: dict[type, Optional[tuple[str, ...]]] = {}
 _FALTA = object()
 
 
@@ -234,7 +234,7 @@ class Usar(Nodo):
     ruta: str
     # `usar "std/texto" como txt;`: dentro de ESTE archivo, lo que trae el
     # modulo se nombra `txt.algo`. None es la forma llana.
-    alias: str = None
+    alias: Optional[str] = None
 
 @dataclass
 class CampoDef:

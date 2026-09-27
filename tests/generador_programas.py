@@ -651,7 +651,7 @@ class Generador:
         # de los numeros: lo que se prueba es que el C sale limpio.
         lineas.append(f"    let d_a: f64 = {self.r.randint(1, 900)}.5;")
         lineas.append(f"    let d_b: f64 = {self.r.randint(1, 90)}.25;")
-        lineas.append(f"    let d_cual = if d_a > d_b {{ d_a }} else {{ d_b }};")
+        lineas.append("    let d_cual = if d_a > d_b { d_a } else { d_b };")
         lineas.append("    imprimir(d_cual);")
         lineas.append("    imprimir(d_a + d_b);")
         lineas.append("    imprimir(d_a / d_b);")
@@ -679,7 +679,7 @@ class Generador:
         # Y bytes crudos en un buffer.
         lineas.append("    var w_buf = vacio();")
         lineas.append("    empujar_byte(w_buf, w_a);")
-        lineas.append(f'    empujar(w_buf, "\\x00\\xff");')
+        lineas.append('    empujar(w_buf, "\\x00\\xff");')
         lineas.append("    imprimir(largo(w_buf));")
         lineas.append("    let g_copia = copiar(g_ss);")
         lineas.append("    var g_hondo: lista<lista<str>> = [];")
@@ -716,10 +716,10 @@ class Generador:
         lineas.append(f"    imprimir(envuelto({self.r.randint(0, 99)}));")
         lineas.append(f"    imprimir(envuelto_falible({self.r.randint(0, 99)}) "
                       f"sino nuevo(\"nada\"));")
-        lineas.append(f"    imprimir(mitad(0) sino 7);")
-        lineas.append(f'    let respaldo: str = nuevo("respaldo");')
-        lineas.append(f"    let leido: str = leer_o(respaldo);")
-        lineas.append(f"    imprimir(largo(vista(leido)));")
+        lineas.append("    imprimir(mitad(0) sino 7);")
+        lineas.append('    let respaldo: str = nuevo("respaldo");')
+        lineas.append("    let leido: str = leer_o(respaldo);")
+        lineas.append("    imprimir(largo(vista(leido)));")
         lineas.append('    imprimir("\\n");')
         lineas.append("    return 0;")
         partes.append("fn main() -> usize ! {\n" + "\n".join(lineas) + "\n}")
@@ -758,7 +758,7 @@ def generar_modulos(semilla):
     base.append("fn etiqueta(d: &Dato) -> str {")
     base.append(f'    var e: str = nuevo("{g.palabra()}");')
     base.append("    empujar(e, \"=\");")
-    base.append(f"    return e;")
+    base.append("    return e;")
     base.append("}")
     # una funcion falible declarada aqui y usada con `try` alla
     base.append("")

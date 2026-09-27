@@ -1,8 +1,8 @@
 # La suite de Tcode en cada cambio.
 #
-# `rapido` corre en cada push y en cada pull request: las secciones que no
-# construyen el compilador escrito en Tcode, y una pasada corta de las
-# propiedades. Unos minutos.
+# `rapido` corre en cada push y en cada pull request: las secciones que
+# prueban el lenguaje con `tcodec`, y una pasada corta de las propiedades.
+# Unos minutos.
 #
 # `completa` es `make check` entera, unos cinco minutos: en cada pull request,
 # en `main` y cuando se pide a mano. Tambien comprueba que las cifras del
@@ -32,6 +32,13 @@ jobs:
       # encuentra donde poner su memoria sombra en algunos nucleos.
       - name: sitio para AddressSanitizer
         run: sudo sysctl -w vm.mmap_rnd_bits=28
+      - uses: actions/cache@v4
+        with:
+          path: .cache/herramientas
+          key: herramientas-${{ runner.os }}-${{ github.sha }}
+          restore-keys: herramientas-${{ runner.os }}-
+      - name: ruff y mypy
+        run: pip install ruff==0.15.8 mypy==1.19.1 && make lint
       - name: secciones rapidas
         run: make rapido
       - name: propiedades, una pasada corta
