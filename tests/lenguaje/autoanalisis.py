@@ -1,6 +1,5 @@
 """AUTOANALISIS: el lexer y el parser en Tcode, contra los de Python."""
 
-import glob
 import os
 import subprocess
 import tempfile
@@ -15,6 +14,7 @@ from .comun import (
     RUNTIME,
     Resultado,
     c_de_tcodec,
+    corpus_python,
 )
 
 TITULO = "el lexer y el parser en Tcode, contra los de Python"
@@ -47,10 +47,7 @@ def correr(suite: Resultado) -> None:
             if r.returncode != 0:
                 suite.falla("el lexer en Tcode compila", r.stderr)
             else:
-                archivos = sorted(
-                    glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
-                              recursive=True)
-                    + glob.glob(os.path.join(RAIZ, "std", "*.t")))
+                archivos = corpus_python()
                 distintos = 0
                 tokens_vistos = 0
                 for archivo in archivos:

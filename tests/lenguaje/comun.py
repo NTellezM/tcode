@@ -4,11 +4,13 @@ fallas y cifras de una pasada."""
 
 import atexit
 import concurrent.futures
+import glob
 import os
 import shutil
 import subprocess
 import tempfile
 
+import azucar
 import semilla
 from compilar_c import cc
 
@@ -64,6 +66,41 @@ def tcodec():
         atexit.register(shutil.rmtree, directorio, ignore_errors=True)
         _TCODEC["ruta"] = construir_tcodec(directorio)
     return _TCODEC["ruta"]
+
+
+# El compilador y sus herramientas estan escritos con lo que solo sabe
+# `tcodec`. Para el de Python se les quita el azucar (`tests/azucar.py`), sin
+# mover lineas, en una copia aparte: asi sigue siendo el oraculo tambien sobre
+# el corpus mas grande del repositorio.
+_SIN_AZUCAR = {"dir": None, "archivos": None}
+
+
+def sin_azucar():
+    """El directorio de la copia sin azucar y sus `.t`, una vez por proceso."""
+    if _SIN_AZUCAR["dir"] is None:
+        # Dentro del repositorio, en `.cache/`: desde la raiz, sus rutas se
+        # escriben como las de los originales, que es lo que comparan las
+        # secciones.
+        os.makedirs(os.path.join(RAIZ, ".cache"), exist_ok=True)
+        directorio = tempfile.mkdtemp(prefix="sin-azucar-",
+                                      dir=os.path.join(RAIZ, ".cache"))
+        atexit.register(shutil.rmtree, directorio, ignore_errors=True)
+        _SIN_AZUCAR["archivos"] = azucar.copia_sin_azucar(directorio)
+        _SIN_AZUCAR["dir"] = directorio
+    return _SIN_AZUCAR["dir"], list(_SIN_AZUCAR["archivos"])
+
+
+def corpus_python(relativo=False):
+    """Los `.t` del repositorio que se comparan con el compilador de Python:
+    `std/`, `ejemplos/`, y el compilador en su copia sin azucar. Con
+    `relativo`, desde la raiz."""
+    todos = sorted(glob.glob(os.path.join(RAIZ, "std", "*.t"))
+                   + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
+                               recursive=True))
+    propios = [r for r in todos if not os.path.basename(r).startswith(".")
+               and not os.path.relpath(r, RAIZ).startswith(azucar.CARPETAS)]
+    todos = propios + sin_azucar()[1]
+    return [os.path.relpath(r, RAIZ) for r in todos] if relativo else todos
 
 
 def c_de_tcodec(ruta):

@@ -17,13 +17,13 @@ usar "std/lista";
 // `mut T` donde el comprobador dice `&mut T`, asi que se iguala aqui.
 fn tras_dos_puntos(texto: view) -> str {
     var i = 0;
-    while i + 1 < largo(texto) {
+    while i + 1 < texto.largo() {
         if byte(texto, i) == 58 {
             if byte(texto, i + 1) == 32 {
-                let t = recortar(rebanar(texto, i + 2, largo(texto)));
+                let t = recortar(rebanar(texto, i + 2, texto.largo()));
                 if empieza_con(t, "mut ") {
                     var m = nuevo("&mut ");
-                    empujar(m, rebanar(t, 4, largo(t)));
+                    m.empujar(rebanar(t, 4, t.largo()));
                     return m;
                 }
                 return nuevo(t);
@@ -36,22 +36,22 @@ fn tras_dos_puntos(texto: view) -> str {
 
 fn recoger(n: &P.Nodo, campos: mut mapa<str, lista<str>>,
     tipos: mut lista<str>) {
-    if igual(vista(n.clase), "struct") {
+    if n.clase == "struct" {
         var suyos: lista<str> = [];
         for h en n.hijos {
-            if igual(vista(h.clase), "campo_def") {
-                let t = tras_dos_puntos(vista(h.texto));
-                anadir(tipos, copiar(t));
-                anadir(suyos, t);
+            if h.clase == "campo_def" {
+                let t = tras_dos_puntos(h.texto);
+                tipos.anadir(copiar(t));
+                suyos.anadir(t);
             }
         }
         poner(campos, vista(n.texto), suyos);
     }
-    if igual(vista(n.clase), "param") || igual(vista(n.clase), "retorno_tipo") {
-        if igual(vista(n.clase), "retorno_tipo") {
-            anadir(tipos, nuevo(vista(n.texto)));
+    if n.clase == "param" || n.clase == "retorno_tipo" {
+        if n.clase == "retorno_tipo" {
+            tipos.anadir(nuevo(n.texto));
         } else {
-            anadir(tipos, tras_dos_puntos(vista(n.texto)));
+            tipos.anadir(tras_dos_puntos(n.texto));
         }
     }
     for h en n.hijos { recoger(h, campos, tipos); }
@@ -64,7 +64,7 @@ fn main() -> usize ! {
     }
 
     let fuente = try leer_archivo(argumento(1));
-    let tokens = try analizar(vista(fuente));
+    let tokens = try analizar(fuente);
     let nombres = P.structs_visibles(argumento(1), tokens);
     let formas = P.enums_visibles(argumento(1), tokens);
     var estado = P.estado_de(tokens, argumento(1), nombres, formas);
@@ -78,9 +78,9 @@ fn main() -> usize ! {
     var vistos: mapa<str, usize> = [];
     var unicos: lista<str> = [];
     for t en tipos {
-        if !tiene(vistos, vista(t)) {
+        if !tiene(vistos, t) {
             poner(vistos, vista(t), 1);
-            anadir(unicos, copiar(t));
+            unicos.anadir(copiar(t));
         }
     }
     ordenar(unicos);

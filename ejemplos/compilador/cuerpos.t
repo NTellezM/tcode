@@ -24,12 +24,12 @@ fn main() -> usize ! {
     var tipos = I.contexto();
     let arbol = try F.preparar(ruta, tipos);
     for d en arbol.hijos {
-        if igual(vista(d.clase), "fn") && !F.es_generica(d)
-        && !igual(vista(d.texto), "main") {
+        if d.clase == "fn" && !F.es_generica(d)
+        && d.texto != "main" {
             // Cada funcion de cero: el oraculo renumera los contadores.
             var cta = F.cuenta_nueva();
             let lineas = F.generar_funcion(d, tipos, ruta, cta);
-            if largo(lineas) > 0 {
+            if lineas.largo() > 0 {
                 // Un separador a principio de linea, para que quien compare
                 // sepa donde empieza cada funcion.
                 imprimir($"@@ {d.texto}\n");

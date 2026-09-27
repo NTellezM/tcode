@@ -1,6 +1,5 @@
 """TIPAR: de que tipo es cada variable, dicho por Tcode."""
 
-import glob
 import os
 import shutil
 import subprocess
@@ -18,6 +17,7 @@ from .comun import (
     RUNTIME,
     Resultado,
     c_de_tcodec,
+    corpus_python,
     nombre_escrito,
 )
 
@@ -85,10 +85,7 @@ def correr(suite: Resultado) -> None:
             if r.returncode != 0:
                 suite.falla("tipar en Tcode compila", r.stderr[:600])
             else:
-                archivos = sorted(
-                    glob.glob(os.path.join(RAIZ, "std", "*.t"))
-                    + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
-                                recursive=True))
+                archivos = corpus_python()
                 comparados = simbolos = 0
                 for archivo in archivos:
                     esperado = _tipos_esperados(archivo)

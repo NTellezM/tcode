@@ -158,9 +158,15 @@ es esta:
   que escribe de sí mismo, guardado en el repositorio como hacen Zig y Go.
   `make` compila la semilla y la semilla compila el `tcodec.t` de ahora, así
   que `tcodec` puede usar en su propio código lo que el de Python no
-  entiende. Cuando quiere algo que la semilla todavía no sabe compilar,
+  entiende —y lo usa: llamadas con punto, `==` entre textos, vistas
+  implícitas—. Cuando quiere algo que la semilla todavía no sabe compilar,
   `make semilla` la pone al día, y antes de guardarla comprueba que es un
   punto fijo.
+- **El oráculo sigue viendo el compilador.** Su código es el corpus más
+  grande del repositorio, así que la suite se lo pasa al de Python sin
+  azúcar (`tests/azucar.py`: `xs.anadir(v)` vuelve a ser `anadir(xs, v)`,
+  sin mover una línea), y comprueba que es solo azúcar: con y sin él,
+  `tcodec` escribe el mismo C byte a byte.
 
 ## El lexer y el parser de Tcode, escritos en Tcode
 
@@ -169,7 +175,7 @@ comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
 Sobre los <!--c:lexer_archivos-->49<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
-**<!--c:tokens-->178.555<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+**<!--c:tokens-->170.671<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -178,14 +184,14 @@ instante.
 <!--c:bloque:lexer-->
 ```
 $ ./ejemplos/lexer/lexer ejemplos/lexer/lib/lexico.t --contar
-ejemplos/lexer/lib/lexico.t: 3526 tokens
+ejemplos/lexer/lib/lexico.t: 3439 tokens
   cadena  77
   entero  266
   fin  1
-  ident  941
+  ident  901
   interpolada  10
   palabra  403
-  simbolo  1828
+  simbolo  1781
 ```
 
 Es el primer programa grande del lenguaje y su primera prueba de fuego: usa
@@ -198,7 +204,7 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 `ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.716<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->49<!--/c--> archivos que
-el parser del compilador, y sobre ellos produce <!--c:nodos-->89.505<!--/c--> nodos:
+el parser del compilador, y sobre ellos produce <!--c:nodos-->86.877<!--/c--> nodos:
 
 <!--c:bloque:parser-->
 ```
@@ -220,7 +226,7 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
   <!--c:propiedad_variables-->5.289<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
 - `lib/generar.t` es **el generador**: cómo se llama cada tipo en C, cómo
   queda la firma de cada función —**<!--c:firmas_archivos-->44<!--/c--> archivos, <!--c:firmas-->702<!--/c--> firmas**— y el C de cada
-  expresión que se devuelve: **<!--c:expresiones_iguales-->1.625<!--/c--> de <!--c:expresiones-->1.832<!--/c--> expresiones, carácter por
+  expresión que se devuelve: **<!--c:expresiones_iguales-->1.607<!--/c--> de <!--c:expresiones-->1.832<!--/c--> expresiones, carácter por
   carácter**, las mismas que emite el generador de Python. Lo que aún no
   cubre sale marcado y no se compara; la suite exige un mínimo en vez de
   hacer como que están todas. Y **la función entera** —firma, cuerpo, y los
@@ -305,7 +311,7 @@ error: roto.t:3: se esperaba ';', se encontro ')'
 Y como siete casos no bastan para fiarse de un parser, la suite rompe cada
 archivo del repositorio de varias formas —un token de menos o de más, un
 símbolo fuera de sitio, una cadena sin cerrar, un carácter que no existe— y
-exige el mismo primer error en todos: **<!--c:rotos_iguales-->231<!--/c--> de <!--c:rotos-->231<!--/c-->**. Y el otro lado, que
+exige el mismo primer error en todos: **<!--c:rotos_iguales-->236<!--/c--> de <!--c:rotos-->236<!--/c-->**. Y el otro lado, que
 importa más: **ninguno de los <!--c:correctos-->175<!--/c--> programas correctos** —los del repositorio
 y los de la suite— se rechaza. `tcodec --solo-comprobar` hace sólo esta
 parte.
@@ -745,7 +751,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-2240 casos, 0 fallas
+2246 casos, 0 fallas
 2069 comprobaciones sobre 60 programas, 0 fallas
 ```
 
