@@ -67,6 +67,28 @@ ACEPTA = [
         }''',
      "Ana uno dos Ana uno\n"),
 
+    # La vista que se presta sola a una funcion que devuelve otra vista sale
+    # de lo mismo que si se hubiera escrito `vista(...)`: de un campo o un
+    # elemento de lo que llego prestado, es de quien llama.
+    ("una vista implicita presta de donde sale",
+     '''struct Nodo { texto: str, n: usize }
+        fn sin_ceros(v: view) -> view {
+            var i = 0;
+            while i + 1 < largo(v) && byte(v, i) == 48 { i = i + 1; }
+            return rebanar(v, i, largo(v));
+        }
+        fn digitos(n: &Nodo) -> view { return sin_ceros(n.texto); }
+        fn primero(xs: &lista<str>) -> view { return sin_ceros(xs[0]); }
+        fn de_param(s: &str) -> view { return sin_ceros(s); }
+        fn main() {
+            let n = Nodo { texto: nuevo("0042"), n: 1 };
+            let d = sin_ceros(n.texto);
+            var xs: lista<str> = [];
+            xs.anadir(nuevo("007"));
+            imprimir($"{digitos(n)} {d} {primero(xs)} {de_param(n.texto)}\\n");
+        }''',
+     "42 42 7 42\n"),
+
     # `for i en a..b` cuenta de `a` a `b` sin llegar. Cada extremo se calcula
     # una vez: cambiar dentro lo que dio el final no alarga el bucle. Con
     # signo, con `break` y `continue`, anidado y vacio.

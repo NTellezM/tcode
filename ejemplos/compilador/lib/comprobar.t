@@ -1397,8 +1397,10 @@ fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
         while i < largo(n.hijos) && i < largo(m.funciones[k].params) {
             var p = vacio();
             let pt = vista(m.funciones[k].params[i].tipo);
-            if igual(pt, "view")
-            || (!prestado(m.funciones[k].params[i]) && es_prestado_st(m, pt)) {
+            if igual(pt, "view") {
+                let visto = prestado_como_vista(c, m, n.hijos[i]);
+                p = procedencia_de(c, m, visto);
+            } else if !prestado(m.funciones[k].params[i]) && es_prestado_st(m, pt) {
                 p = procedencia_de(c, m, n.hijos[i]);
             } else if prestado(m.funciones[k].params[i]) {
                 let base = variable_base(n.hijos[i]);
@@ -1416,6 +1418,43 @@ fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
         return peor;
     }
     return nuevo("local");
+}
+
+// Lo que se pasa donde se pide una vista, como lo mira el prestamo: un
+// `str` con nombre se presta solo, y es como si llevara `vista(...)` escrito.
+// Sin esto, `f(p.nombre)` con `p` prestado pareceria un temporal, y
+// `f(vista(p.nombre))` no.
+fn prestado_como_vista(c: &Comprobacion, m: &Mundo, arg: &P.Nodo) -> P.Nodo {
+    if P.es_lugar(arg) {
+        let t = tipo_del_sitio(c, m, arg);
+        let limpio = sin_prestamo(vista(t));
+        if igual(vista(limpio), "str") {
+            var v = P.rama("llamada", arg.linea);
+            empujar(v.texto, "vista");
+            anadir(v.hijos, copiar(arg));
+            return v;
+        }
+    }
+    return copiar(arg);
+}
+
+// El tipo de una variable, un campo o un elemento, a cualquier hondura:
+// `xs[0].nombre`. `""` si no se sabe.
+fn tipo_del_sitio(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
+    let clase = vista(n.clase);
+    if igual(clase, "indice") && largo(n.hijos) > 0 {
+        let base = tipo_del_sitio(c, m, n.hijos[0]);
+        if T.es_lista(vista(base)) || T.es_arreglo(vista(base)) {
+            return T.elemento(vista(base));
+        }
+        return vacio();
+    }
+    if igual(clase, "campo") && largo(n.hijos) > 0 {
+        let base = tipo_del_sitio(c, m, n.hijos[0]);
+        if largo(base) == 0 || !es_struct(m, vista(base)) { return vacio(); }
+        return tipo_del_campo(m, vista(base), vista(n.texto));
+    }
+    return tipo_simple(c, m, n);
 }
 
 // Un contexto sin nada: para resolver nombres que no dependen del modulo.
@@ -1611,8 +1650,9 @@ fn origenes_de_args(c: &Comprobacion, m: &Mundo, n: &P.Nodo, desde: usize,
     var salida: lista<str> = [];
     var i = desde;
     while i < largo(m.funciones[k].params) && i - desde < largo(n.hijos) {
-        let arg = copiar(n.hijos[i - desde]);
         let pt = vista(m.funciones[k].params[i].tipo);
+        var arg = copiar(n.hijos[i - desde]);
+        if igual(pt, "view") { arg = prestado_como_vista(c, m, n.hijos[i - desde]); }
         let del_arg = tipo_simple(c, m, arg);
         let suelto = lleva_suelto(pt, m.funciones[k].tipo_params)
         && !igual(vista(del_arg), "str");
