@@ -45,6 +45,28 @@ ACEPTA = [
         }''',
      "6 14 2 abcd 4 3 4\n"),
 
+    # Donde se pide una vista, un `str` con nombre se presta solo: al
+    # declarar una `view`, al asignarle, y al devolverla. Es `vista(...)`
+    # sin escribirlo, con el mismo C.
+    ("vistas implicitas al declarar, asignar y devolver",
+     '''struct Persona { nombre: str, edad: usize }
+        struct Palabra { texto: view, n: usize }
+        fn nombre_de(p: &Persona) -> view { return p.nombre; }
+        fn primera(xs: &lista<str>) -> view { return xs[0]; }
+        fn main() {
+            let p = Persona { nombre: nuevo("Ana"), edad: 3 };
+            var xs: lista<str> = [];
+            xs.anadir(nuevo("uno"));
+            xs.anadir(nuevo("dos"));
+            var v: view = "nada";
+            if xs[0] == "uno" { v = xs[1]; }
+            let w: view = p.nombre;
+            var pal = Palabra { texto: "", n: 0 };
+            pal.texto = xs[0];
+            imprimir($"{nombre_de(p)} {primera(xs)} {v} {w} {pal.texto}\\n");
+        }''',
+     "Ana uno dos Ana uno\n"),
+
     # `for i en a..b` cuenta de `a` a `b` sin llegar. Cada extremo se calcula
     # una vez: cambiar dentro lo que dio el final no alarga el bucle. Con
     # signo, con `break` y `continue`, anidado y vacio.

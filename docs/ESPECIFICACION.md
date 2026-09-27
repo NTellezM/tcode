@@ -2131,6 +2131,22 @@ forma antes de escribir C, así que el C que sale es el mismo que con la forma
 larga. Nada de esto añade reglas de propiedad nuevas: los préstamos, las
 vidas y los errores son los de siempre.
 
+### Vistas implícitas
+
+Un `str` ya se prestaba solo al pasarlo donde una función pide `view`. Ahora
+también donde se pide una vista fuera de una llamada:
+
+```tcode
+let v: view = s;                                    // let v: view = vista(s);
+v = p.nombre;                                       // v = vista(p.nombre);
+fn nombre(p: &Persona) -> view { return p.nombre; } // return vista(p.nombre);
+```
+
+Solo un `str` con nombre —una variable, un campo, un elemento—: uno sin
+nombre, como `nuevo("x")`, moriría al acabar la sentencia, así que
+`let v: view = nuevo("x");` sigue siendo un error. `let v = s;` sin tipo
+escrito sigue moviendo `s`: la vista se pide escribiendo `view`.
+
 ### `==` y `!=` entre textos
 
 ```tcode

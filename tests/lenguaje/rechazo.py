@@ -39,6 +39,23 @@ RECHAZO = [
      'fn main() { let s = nuevo("a"); imprimir(s == 1); }',
      "no se pueden comparar `str`"),
 
+    # La vista implicita es `vista(...)`: presta, y el prestamo se vigila.
+    ("una vista implicita presta",
+     'fn main() { var s = nuevo("x"); let v: view = s; empujar(s, "y"); imprimir(v); }',
+     "no se puede modificar `s`: esta prestada por `v`"),
+
+    ("una vista implicita no sobrevive a su dueno",
+     'fn main() { var v: view = "a"; if true { let s = nuevo("x"); v = s; } imprimir(v); }',
+     "`v` vive mas que `s`"),
+
+    ("no se devuelve la vista implicita de un local",
+     'fn f() -> view { let s = nuevo("x"); return s; }\nfn main() { imprimir(f()); }',
+     "no se puede devolver una vista de `s`"),
+
+    ("un str sin nombre no se presta solo",
+     'fn main() { let v: view = nuevo("x"); imprimir(v); }',
+     "`v` se declaro `view` pero el valor es `str`"),
+
     ("un rango va de un entero a otro",
      'fn main() { for i en 0.."a" { imprimir(i); } }',
      "un rango va de un entero a otro, y este va de un entero escrito a `view`"),

@@ -7,6 +7,7 @@
 
 usar "generar.t" como G;
 usar "tipar.t" como I;
+usar "tipos.t" como T;
 usar "../../lexer/lib/lexico.t";
 usar "../../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
@@ -431,6 +432,7 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
             quitar(tipos.repetidas, vista(d.texto));
         }
     }
+    vistas_implicitas(arbol, tipos);
     return arbol;
 }
 
@@ -614,4 +616,154 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     for x en b.copias { anadir(cta.copias, copiar(x)); }
     for x en b.arreglos { anadir(cta.arreglos, copiar(x)); }
     return salida;
+}
+
+// ------------------------------------------------------------------
+// Vistas implicitas
+// ------------------------------------------------------------------
+
+// Donde se pide una vista y se da un `str` con nombre —una variable, un
+// campo, un elemento—, el `str` se presta solo, como en los argumentos:
+// `let v: view = s;`, `v = s;` con `v` vista, y `return s;` en una funcion
+// que devuelve `view` son `vista(s)`. Se escribe aqui, en el arbol, antes
+// que nada: el comprobador y el generador ven el `vista(s)` de siempre, con
+// sus prestamos y sus vidas. Un `str` sin nombre —`nuevo("x")`— no se
+// presta, que moriria al acabar la sentencia, y su error es el de siempre.
+fn vistas_implicitas(arbol: mut P.Nodo, tipos: mut I.Contexto) {
+    var cambio = false;
+    var i = 0;
+    while i < largo(arbol.hijos) {
+        if igual(vista(arbol.hijos[i].clase), "fn") {
+            vistas_en_funcion(arbol.hijos[i], tipos, cambio);
+        }
+        i = i + 1;
+    }
+    // Los nodos nuevos tambien llevan numero.
+    if cambio {
+        var cuenta: usize = 0;
+        P.numerar(arbol, cuenta);
+    }
+}
+
+fn vistas_en_funcion(f: mut P.Nodo, tipos: mut I.Contexto, cambio: mut bool) {
+    I.abrir(tipos);
+    var retorno = vacio();
+    for h en f.hijos {
+        if igual(vista(h.clase), "param") {
+            let pn = nombre_de(vista(h.texto));
+            let pt = tipo_pelado(vista(h.texto));
+            I.declarar(tipos, vista(pn), vista(pt));
+        }
+        if igual(vista(h.clase), "retorno_tipo") {
+            retorno = I.sin_alias_tipo(vista(h.texto));
+        }
+    }
+    var i = 0;
+    while i < largo(f.hijos) {
+        if igual(vista(f.hijos[i].clase), "bloque") {
+            vistas_en_bloque(f.hijos[i], tipos, vista(retorno), cambio);
+        }
+        i = i + 1;
+    }
+    I.cerrar(tipos);
+}
+
+fn vistas_en_bloque(b: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
+    cambio: mut bool) {
+    I.abrir(tipos);
+    var i = 0;
+    while i < largo(b.hijos) {
+        vistas_en_sentencia(b.hijos[i], tipos, retorno, cambio);
+        i = i + 1;
+    }
+    I.cerrar(tipos);
+}
+
+// Una sentencia: lo que presta ella, lo de sus bloques, y lo que declara,
+// que se ve desde la siguiente.
+fn vistas_en_sentencia(st: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
+    cambio: mut bool) {
+    let clase = copiar(st.clase);
+    let es_declaracion = igual(vista(clase), "declaracion") && largo(st.hijos) == 1;
+    if es_declaracion {
+        let escrito = G.tipo_escrito(vista(st.texto));
+        let t = I.sin_alias_tipo(vista(escrito));
+        if igual(vista(t), "view") { prestar_si_str(st.hijos[0], tipos, cambio); }
+    }
+    if igual(vista(clase), "asignacion") && largo(st.hijos) == 2 {
+        let destino = I.tipo_de(tipos, st.hijos[0]);
+        if igual(vista(destino), "view") { prestar_si_str(st.hijos[1], tipos, cambio); }
+    }
+    if igual(vista(clase), "retorno") && largo(st.hijos) == 1 && igual(retorno, "view") {
+        prestar_si_str(st.hijos[0], tipos, cambio);
+    }
+    // Un `for` declara su variable para el cuerpo.
+    let es_para = igual(vista(clase), "para") && largo(st.hijos) == 2;
+    if es_para {
+        I.abrir(tipos);
+        declarar_de_para(st, tipos);
+    }
+    var k = 0;
+    while k < largo(st.hijos) {
+        vistas_en_hijo(st.hijos[k], tipos, retorno, cambio);
+        k = k + 1;
+    }
+    if es_para { I.cerrar(tipos); }
+    if es_declaracion {
+        let nombre = G.nombre_declarado(vista(st.texto));
+        var tipo = G.tipo_escrito(vista(st.texto));
+        if largo(tipo) == 0 { tipo = I.tipo_de(tipos, st.hijos[0]); }
+        I.declarar(tipos, vista(nombre), vista(tipo));
+    }
+}
+
+// Lo que cuelga de una sentencia: sus bloques se miran como bloques, y en
+// una expresion se buscan los que lleve, como los brazos de un `match`. El
+// `return` que es el valor de un brazo no es de la funcion, y tampoco el de
+// una clausura: esos no se tocan.
+fn vistas_en_hijo(h: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
+    cambio: mut bool) {
+    let clase = copiar(h.clase);
+    if igual(vista(clase), "bloque") {
+        vistas_en_bloque(h, tipos, retorno, cambio);
+        return;
+    }
+    if igual(vista(clase), "cierre") { return; }
+    var k = 0;
+    while k < largo(h.hijos) {
+        vistas_en_hijo(h.hijos[k], tipos, retorno, cambio);
+        k = k + 1;
+    }
+}
+
+fn declarar_de_para(st: &P.Nodo, tipos: mut I.Contexto) {
+    let suyo = I.tipo_de(tipos, st.hijos[0]);
+    let sobre = T.apuntado_si(vista(suyo));
+    let uno = G.primer_nombre(vista(st.texto));
+    let dos = G.segundo_nombre(vista(st.texto));
+    if T.es_rango(vista(sobre)) {
+        I.declarar(tipos, vista(uno), T.entre_angulos(vista(sobre)));
+    } else if T.es_mapa(vista(sobre)) {
+        let partes = T.partir_tipos(T.entre_angulos(vista(sobre)));
+        if largo(partes) == 2 {
+            I.declarar(tipos, vista(uno), vista(partes[0]));
+            if largo(dos) > 0 { I.declarar(tipos, vista(dos), vista(partes[1])); }
+        }
+    } else {
+        let elem = T.elemento(vista(sobre));
+        I.declarar(tipos, vista(uno), vista(elem));
+    }
+}
+
+// Si `n` es un `str` con nombre, pasa a ser `vista(n)`.
+fn prestar_si_str(n: mut P.Nodo, tipos: &I.Contexto, cambio: mut bool) {
+    if !P.es_lugar(n) { return; }
+    let t = I.tipo_de(tipos, n);
+    let sin = T.apuntado_si(vista(t));
+    if !igual(vista(sin), "str") { return; }
+    var envuelto = P.rama("llamada", n.linea);
+    empujar(envuelto.texto, "vista");
+    anadir(envuelto.hijos, copiar(n));
+    n = envuelto;
+    cambio = true;
 }
