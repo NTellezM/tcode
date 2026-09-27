@@ -1,0 +1,2118 @@
+"""ACEPTA: compilan, corren limpio bajo ASan+UBSan."""
+
+import os
+import tempfile
+
+from .comun import (
+    Resultado,
+    c_de,
+    correr_c,
+    en_paralelo,
+)
+
+ACEPTA = [
+    # Lo que nace dentro de una rama —la interpolacion de un lado de un `if`
+    # que da valor, la alternativa de un `sino`— se suelta dentro de ella:
+    # su bloque de C se cierra antes que la sentencia. Antes se soltaba al
+    # final, fuera de su bloque, y el C no compilaba.
+    ("lo que nace en una rama se suelta en la rama",
+     '''fn doble(v: view) -> str { return $"{v}{v}"; }
+        fn junta(a: str, b: view) -> str { var s = a; empujar(s, b); return s; }
+        fn main() {
+            let n: usize = 3;
+            let c = n > 1;
+            let a = if c { $"n={n}" } else { nuevo("x") };
+            let b = if c { doble($"ab{n}") } else { nuevo("y") };
+            let d = variable_entorno("TCODE_NO_EXISTE") sino $"def{n}";
+            let e = variable_entorno("TCODE_NO_EXISTE") sino doble($"cd{n}");
+            let f = if !c { nuevo("z") } else { junta(nuevo("p"), $"q{n}") };
+            imprimir($"{a} {b} {d} {e} {f}\\n");
+        }''',
+     "n=3 ab3ab3 def3 cd3cd3 pq3\n"),
+
+    # Un prestamo dura hasta el ultimo uso de quien presta, no hasta el
+    # final de su bloque: despues de la ultima vez que se lee `v`, `s` se
+    # puede modificar, mover o devolver. Corre limpio bajo ASan.
+    ("un prestamo acaba con el ultimo uso de la vista",
+     '''fn g(x: str) -> usize { return largo(x); }
+        fn devuelve() -> str {
+            var s = nuevo("abc");
+            let v = vista(s);
+            imprimir(v);
+            return s;
+        }
+        fn main() {
+            var s = nuevo("hola");
+            let v = vista(s);
+            imprimir(v);
+            empujar(s, "!");
+            var t = nuevo("x");
+            let w = vista(t);
+            var i: usize = 0;
+            while i < 2 {
+                imprimir(w);
+                i = i + 1;
+            }
+            empujar(t, "y");
+            var u = nuevo("z");
+            let a = vista(u);
+            if largo(a) > 0 { imprimir(a); empujar(u, "w"); }
+            let n = g(u);
+            let d = devuelve();
+            imprimir($" {s} {t} {n} {d}\\n");
+        }''',
+     "holaxxzabc hola! xy 2 abc\n"),
+
+    # Dos campos distintos de un struct son memoria distinta: se pueden
+    # prestar a la vez, tambien para modificarlos, y `vista(p.b)` presta solo
+    # `p.b`.
+    ("dos campos distintos se prestan en la misma llamada",
+     '''struct Q { a: str, n: usize }
+        struct P { a: str, b: str, q: Q }
+        fn g(a: mut str, b: view) { empujar(a, "x"); imprimir(b); }
+        fn h(a: mut str, b: mut str) { empujar(a, "1"); empujar(b, "2"); }
+        fn w(a: mut usize, b: &str) { a = a + largo(b); }
+        fn main() {
+            var p = P { a: nuevo("a"), b: nuevo("b"), q: Q { a: nuevo("qa"), n: 1 } };
+            g(p.a, vista(p.b));
+            h(p.a, p.b);
+            h(p.q.a, p.a);
+            g(p.a, p.b);
+            w(p.q.n, p.q.a);
+            let f: fn(&mut str, &str) = hh;
+            f(p.b, p.a);
+            imprimir($" {p.a} {p.b} {p.q.a} {p.q.n}\\n");
+        }
+        fn hh(a: &mut str, b: &str) { empujar(a, vista(b)); }''',
+     "bb2 ax12x b2ax12x qa1 4\n"),
+
+    # Una cuenta de numeros escritos se hace al compilar: la que cabe,
+    # compila. Envolver con `+?` no para nunca, y la rama de un `if` que no
+    # se sabe cual sera se cuenta sola.
+    ("las cuentas escritas que caben compilan",
+     '''fn main() {
+            let a: u8 = 200 + 55;
+            let b: u8 = 250 +? 10;
+            let c: i8 = (0 - 127 - 1) % (0 - 1);
+            let d: i64 = (0 - 7) >> 1;
+            let e: u64 = 18446744073709551615 * 1;
+            let n: usize = 2;
+            let f: u8 = (if n > 1 { 200 } else { 1 }) +? 100;
+            imprimir($"{a} {b} {c} {d} {e} {f}\\n");
+        }''',
+     "255 4 0 -4 18446744073709551615 44\n"),
+
+    # Un `Entero` suelto ya sale como `usize` al deducir, asi que `-3`
+    # deducia `A = usize` y despues no cabia.
+    ("un negativo deduce un tipo con signo en un struct generico",
+     '''struct Par<A, B> { a: A, b: B, }
+        fn main() {
+            let q = Par { a: -3, b: 1 };
+            let z = -7;
+            imprimir($"{q.a} {q.b} {z}\\n");
+        }''',
+     "-3 1 -7\n"),
+
+    # `\{` y `\}` en una interpolada son una llave escrita, como `{{` y `}}`.
+    # Antes el lexer las descifraba y el parser las tomaba por un hueco.
+    ("una llave escrita con barra en una cadena interpolada",
+     '''fn main() {
+            let n: usize = 3;
+            imprimir($"a \\{ b \\} c {n} {{d}}\\n");
+        }''',
+     "a { b } c 3 {d}\n"),
+
+    # `partir_tipos` cortaba por las comas de dentro de un `fn(...)` y
+    # contaba la `>` de `->` como un angulo que se cierra.
+    ("un tipo funcion que recibe otro",
+     '''fn doble(n: usize) -> usize { return n * 2; }
+        fn aplicar(f: fn(usize) -> usize, n: usize) -> usize { return f(n); }
+        fn dos_veces(g: fn(fn(usize) -> usize, usize) -> usize, n: usize) -> usize {
+            return g(doble, g(doble, n));
+        }
+        fn main() { imprimir($"{dos_veces(aplicar, 3)}\\n"); }''',
+     "12\n"),
+
+    ("los limites exactos de los enteros siguen siendo validos",
+     '''fn main() {
+            let a: u8 = 255;
+            let b: i8 = 127;
+            let c: i8 = -128;
+            let d: u64 = 18446744073709551615;
+            let e: i64 = 9223372036854775807;
+            let f: i64 = -9223372036854775808;
+            imprimir($"{a} {b} {c} {d} {e} {f}\\n");
+        }''',
+     "255 127 -128 18446744073709551615 9223372036854775807 "
+     "-9223372036854775808\n"),
+
+    ("los limites finitos de los decimales siguen siendo validos",
+     '''fn main() {
+            let a: f32 = 3.4028234e38;
+            let b: f64 = 1.7976931348623157e308;
+            imprimir(a > 0.0); imprimir(" "); imprimir(b > 0.0);
+        }''',
+     "true true"),
+
+    # Como se escribe el maximo en Rust o Java: redondea a el, no a infinito.
+    ("el maximo escrito corto redondea al maximo, no a infinito",
+     '''fn main() {
+            let a: f32 = 3.4028235e38;
+            let b: f64 = 1.7976931348623158e308;
+            let c: f64 = 9007199254740992;
+            let d: f32 = 16777216;
+            imprimir($"{a == 3.4028234e38} {b == 1.7976931348623157e308} ");
+            imprimir($"{c} {d}\\n");
+        }''',
+     "true true 9.0072e+15 1.67772e+07\n"),
+
+    # Un `usize` ancho pasa por `SS_LANG_USIZE_LIT`, que en un destino de 32
+    # bits detiene la compilacion de C. Aqui, en 64, vale lo que vale. Y un
+    # cero delante no convierte el numero en octal.
+    ("un usize ancho y un cero delante",
+     '''fn main() {
+            let a: usize = 5000000000;
+            let b = 010;
+            imprimir($"{a} {b}\\n");
+        }''',
+     "5000000000 10\n"),
+
+    # ---- aritmetica envolvente ----
+    #
+    # `+?` se generaba con el operador del propio tipo: con signo, dar la
+    # vuelta es comportamiento indefinido en C, y un `u16 * u16` pasa por
+    # `int`. UBSan lo paraba.
+    ("la envolvente da la vuelta sin comportamiento indefinido",
+     '''fn main() {
+            var x: i64 = 9223372036854775807;
+            x = x +? 1;
+            var m: u16 = 65535;
+            m = m *? 65535;
+            var c: i32 = 2147483647;
+            c = c +? 2;
+            var u: u8 = 0;
+            u = u -? 1;
+            imprimir($"{x} {m} {c} {u}\\n");
+        }''',
+     "-9223372036854775808 1 -2147483647 255\n"),
+
+    # ---- banderas de soltar, una por declaracion ----
+    #
+    # Dos bloques hermanos pueden declarar el mismo nombre. La bandera de
+    # "sigue viva" es de cada declaracion, no del nombre: con una por nombre
+    # el C no compilaba, o se perdia la de un bloque al mover la del otro.
+    ("dos bloques hermanos con el mismo nombre, movido solo en uno",
+     '''fn f(c: bool) -> usize {
+            var xs: lista<str> = [];
+            if c {
+                let t = nuevo("uno");
+                if largo(xs) == 0 { anadir(xs, t); }
+            }
+            if largo(xs) < 10 {
+                let t = nuevo("dos");
+                if c { anadir(xs, t); }
+                if largo(xs) > 0 { return largo(xs); }
+            }
+            return 0;
+        }
+        fn main() { imprimir($"{f(false)} {f(true)}\\n"); }''',
+     "0 2\n"),
+
+    ("una clausura puede usar el nombre de una variable de quien la crea",
+     '''fn main() {
+            let x: usize = 3;
+            let doble = fn(x: usize) -> usize { return x * 2; };
+            imprimir($"{doble(x)}\\n");
+        }''',
+     "6\n"),
+
+    # Lo encontro escribir el compilador en Tcode: el typedef del arreglo
+    # salia antes de escribir los cuerpos, y este solo aparece dentro de uno.
+    ("recorrer un arreglo literal sin nombre",
+     '''fn main() {
+            for x en ["uno", "dos", "tres"] {
+                imprimir($"{x}\\n");
+            }
+            var n = 0;
+            for k en [1, 2, 3] { n = n + k; }
+            imprimir($"{n}\\n");
+        }''',
+     "uno\ndos\ntres\n6\n"),
+
+    # ---- temporales en las salidas tempranas ----
+    #
+    # Los cinco los encontro ejecutar bajo AddressSanitizer el compilador
+    # escrito en Tcode: el generador perdia memoria, o escribia un C que no
+    # compilaba, cuando se salia de una sentencia antes de su limpieza de fin.
+    ("un return dentro de un if suelta el temporal de la condicion",
+     '''fn f() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+            poner(m, "b", 2);
+            if largo(claves(m)) > 0 {
+                return 1;
+            }
+            return 0;
+        }
+        fn main() { imprimir($"{f()}\\n"); }''',
+     "1\n"),
+
+    ("y un return dentro de dos if suelta los de las dos condiciones",
+     '''fn f() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+            if largo(claves(m)) > 0 {
+                if largo(claves(m)) < 10 {
+                    return 1;
+                }
+            }
+            return 0;
+        }
+        fn main() { imprimir($"{f()}\\n"); }''',
+     "1\n"),
+
+    ("un break dentro de un if suelta el temporal de la condicion",
+     '''fn f() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+            var n = 0;
+            while n < 3 {
+                n = n + 1;
+                if largo(claves(m)) > 0 {
+                    break;
+                }
+            }
+            return n;
+        }
+        fn main() { imprimir($"{f()}\\n"); }''',
+     "1\n"),
+
+    ("un continue lo suelta en cada vuelta",
+     '''fn f() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+            var n = 0;
+            while n < 3 {
+                n = n + 1;
+                if largo(claves(m)) > 5 {
+                    n = n + 0;
+                } else {
+                    if largo(claves(m)) > 0 {
+                        continue;
+                    }
+                }
+            }
+            return n;
+        }
+        fn main() { imprimir($"{f()}\\n"); }''',
+     "3\n"),
+
+    ("la condicion de un while con temporal propio se suelta en cada vuelta",
+     '''fn f() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+            var n = 0;
+            while largo(claves(m)) > n {
+                n = n + 1;
+            }
+            return n;
+        }
+        fn main() { imprimir($"{f()}\\n"); }''',
+     "1\n"),
+
+    ("asignar a una variable algo que la presta no la lee despues de soltarla",
+     '''fn main() -> usize {
+            var s = nuevo("lista<P.Nodo>");
+            // El valor nuevo lee el viejo. En C lo que cuenta no es donde se
+            // calculo la expresion sino donde queda escrita, asi que el
+            // valor se guarda antes de soltar lo que habia.
+            s = nuevo(rebanar(vista(s), 0, 6));
+            var t = nuevo("hola");
+            t = nuevo(rebanar(vista(t), 1, 4));
+            imprimir($"{s} {t}\\n");
+        }''',
+     "lista< ola\n"),
+
+    ("la inferencia atraviesa una llamada a una generica",
+     '''usar "std/par";
+        struct Caja<T> { dentro: lista<T> }
+        fn cuantos<T>(c: &Caja<T>) -> usize { return largo(c.dentro); }
+        fn main() -> usize {
+            var c: Caja<str> = Caja { dentro: [] };
+            anadir(c.dentro, nuevo("x"));
+            // `cuantos(c)` es una generica: para saber que devuelve hay que
+            // elegir su copia, y eso pasa antes de deducir `A` y `B`.
+            let p = par(cuantos(c), nuevo("fin"));
+            imprimir($"{p.primero} {p.segundo}\\n");
+        }''',
+     "1 fin\n"),
+
+    ("una lista dinamica escrita entera en Tcode, sobre `bloque<T>`",
+     '''usar "std/vector";
+        fn main() -> usize ! {
+            var v: Vector<str> = Vector { datos: reservar(0), largo: 0 };
+            agregar(v, nuevo("uno"));
+            agregar(v, nuevo("dos"));
+            agregar(v, nuevo("tres"));
+            imprimir($"{cuantos(v)} de {capacidad(v)}: {try copia_de(v, 1)}");
+            let ultimo = try sacar(v, vacio());
+            ajustar(v);
+            imprimir($" | {ultimo} | {cuantos(v)} de {capacidad(v)}");
+
+            var n: Vector<usize> = Vector { datos: reservar(0), largo: 0 };
+            var i = 0;
+            while i < 100 { agregar(n, i * i); i = i + 1; }
+            imprimir($" | {cuantos(n)} {try copia_de(n, 99)}\\n");
+            return 0;
+        }''',
+     "3 de 8: dos | tres | 2 de 2 | 100 9801\n"),
+
+    ("un bloque nace a ceros, y a ceros todo tipo es valido",
+     '''fn main() -> usize {
+            var b: bloque<str> = reservar(3);
+            imprimir($"{largo(b)} [{b[0]}]");
+            b[0] = nuevo("hola");
+            b[2] = nuevo("mundo");
+            redimensionar(b, 5);
+            imprimir($" | {largo(b)} {b[0]} {b[2]} [{b[4]}]");
+            redimensionar(b, 1);
+            imprimir($" | {largo(b)} {b[0]}\\n");
+        }''',
+     "3 [] | 5 hola mundo [] | 1 hola\n"),
+
+    ("`intercambiar` saca de un sitio sin dejar hueco",
+     '''fn invertir_texto(xs: mut lista<str>) {
+            if largo(xs) == 0 { return; }
+            var i = 0;
+            var j = largo(xs) - 1;
+            while i < j {
+                let a = intercambiar(xs[i], vacio());
+                let b = intercambiar(xs[j], a);
+                intercambiar(xs[i], b);
+                i = i + 1;
+                j = j - 1;
+            }
+        }
+        fn main() -> usize {
+            var xs: lista<str> = [];
+            anadir(xs, nuevo("a")); anadir(xs, nuevo("b")); anadir(xs, nuevo("c"));
+            invertir_texto(xs);
+            for x en xs { imprimir($"{x} "); }
+            imprimir("\\n");
+        }''',
+     "c b a \n"),
+
+    ("`intercambiar` evalua el sitio una sola vez",
+     '''fn siguiente(i: mut usize) -> usize {
+            let antes = i;
+            i = i + 1;
+            return antes;
+        }
+        fn main() {
+            var xs = [10, 20];
+            var i = 0;
+            let viejo = intercambiar(xs[siguiente(i)], 99);
+            imprimir($"{viejo} {xs[0]} {xs[1]} {i}\\n");
+        }''',
+     "10 99 20 1\n"),
+
+    ("un indice anidado evalua la base una sola vez",
+     '''fn siguiente(i: mut usize) -> usize {
+            let antes = i;
+            i = i + 1;
+            return antes;
+        }
+        fn main() {
+            var xs: lista<bloque<usize>> = [];
+            var b: bloque<usize> = reservar(1);
+            b[0] = 7;
+            anadir(xs, b);
+            var i = 0;
+            let viejo = intercambiar(xs[siguiente(i)][0], 9);
+            imprimir($"{viejo} {xs[0][0]} {i}\\n");
+        }''',
+     "7 9 1\n"),
+
+    ("un indice anidado conserva el cortocircuito",
+     '''fn siguiente(i: mut usize) -> usize {
+            let antes = i;
+            i = i + 1;
+            return antes;
+        }
+        fn main() {
+            var xs: lista<bloque<usize>> = [];
+            var b: bloque<usize> = reservar(1);
+            anadir(xs, b);
+            var i = 0;
+            if false && xs[siguiente(i)][0] == 1 { imprimir("mal"); }
+            imprimir(i);
+        }''',
+     "0"),
+
+    ("redimensionar evalua el sitio antes que el tamaño",
+     '''fn siguiente(i: mut usize) -> usize {
+            let antes = i;
+            i = i + 1;
+            return antes;
+        }
+        fn main() {
+            var xs: lista<bloque<usize>> = [];
+            var a: bloque<usize> = reservar(2);
+            var b: bloque<usize> = reservar(3);
+            anadir(xs, a);
+            anadir(xs, b);
+            var i = 0;
+            redimensionar(xs[siguiente(i)], siguiente(i));
+            imprimir($"{largo(xs[0])} {largo(xs[1])} {i}\\n");
+        }''',
+     "1 3 2\n"),
+
+    ("listas de bloques y mapas registran sus tipos interiores",
+     '''fn main() -> usize ! {
+            var bloques: lista<bloque<usize>> = [];
+            var b: bloque<usize> = reservar(2);
+            b[1] = 7;
+            anadir(bloques, b);
+
+            var mapas: lista<mapa<str, usize>> = [];
+            var m: mapa<str, usize> = [];
+            poner(m, "x", 9);
+            anadir(mapas, m);
+            imprimir($"{bloques[0][1]} {try obtener(mapas[0], "x")}\\n");
+            return 0;
+        }''',
+     "7 9\n"),
+
+    ("un bloque guardado en un mapa se presta para modificar",
+     '''fn main() -> usize ! {
+            var m: mapa<str, bloque<usize>> = [];
+            var b: bloque<usize> = reservar(1);
+            b[0] = 4;
+            poner(m, "x", b);
+            let p: &mut bloque<usize> = try obtener_mut(m, "x");
+            redimensionar(p, 2);
+            p[1] = 8;
+            imprimir($"{largo(p)} {p[0]} {p[1]}\\n");
+            return 0;
+        }''',
+     "2 4 8\n"),
+
+    ("una clausura captura por valor, incluso lo que tiene duenio",
+     '''usar "std/lista";
+        usar "std/texto";
+
+        fn por_largo(a: &str, b: &str) -> bool { return largo(a) < largo(b); }
+
+        fn main() -> usize {
+            var xs: lista<str> = [];
+            anadir(xs, nuevo("arandano"));
+            anadir(xs, nuevo("pera"));
+            anadir(xs, nuevo("aguacate"));
+
+            // Captura un `str`: el struct de la clausura lo posee y lo
+            // libera solo al acabar el bloque.
+            let inicial = nuevo("a");
+            let empiezan = fn[inicial](x: &str) -> bool {
+                return empieza_con(vista(x), vista(inicial));
+            };
+
+            for c en filtradas(xs, empiezan) { imprimir($"{c} "); }
+            let cuantas = cuantas_cumplen(xs,
+                fn(x: &str) -> bool { return largo(x) > 4; });
+            imprimir($"| {cuantas} | ");
+            // La misma generica, con una funcion con nombre.
+            for c en ordenadas_por(xs, por_largo) { imprimir($"{c} "); }
+            imprimir("\\n");
+        }''',
+     "arandano aguacate | 2 | pera arandano aguacate \n"),
+
+    ("`&&` y `||` no evaluan la derecha si la izquierda ya decide",
+     '''fn nombre(xs: &lista<str>) -> str {
+    imprimir("[se evaluo] ");
+    return copiar(xs[0]);
+}
+
+fn corto(v: view) -> bool { return largo(v) < 3; }
+
+fn main() {
+    var xs: lista<str> = [];
+    // Con la lista vacia, la derecha no se puede evaluar: el `&&` corta.
+    if largo(xs) == 1 && corto(nombre(xs)) { imprimir("no\\n"); }
+    if largo(xs) == 0 || corto(nombre(xs)) { imprimir("corta el ||\\n"); }
+    anadir(xs, nuevo("ab"));
+    if largo(xs) == 1 && corto(nombre(xs)) { imprimir("si\\n"); }
+    let a = largo(xs) > 5 || corto(nombre(xs));
+    imprimir($"{a}\\n");
+}''',
+     "corta el ||\n[se evaluo] si\n[se evaluo] true\n"),
+
+    ("un enum que lleva un struct, y otro enum escrito mas abajo",
+     '''// Un enum que lleva un struct, y otro enum escrito mas abajo.
+enum Figura { Nada, Punto(Punto), Con(Color, Punto), Nombrada(Etiqueta) }
+
+struct Punto { x: i64, y: i64 }
+struct Etiqueta { texto: str, color: Color }
+
+enum Color { Rojo, Otro(str) }
+
+fn describir(f: &Figura) -> str {
+    return match f {
+        Figura.Nada -> nuevo("nada"),
+        Figura.Punto(p) -> $"({p.x}, {p.y})",
+        Figura.Con(Color.Otro(c), p) -> $"{c} en ({p.x}, {p.y})",
+        Figura.Con(_, p) -> $"rojo en ({p.x}, {p.y})",
+        Figura.Nombrada(e) -> copiar(e.texto),
+    };
+}
+
+fn main() {
+    var fs: lista<Figura> = [];
+    anadir(fs, Figura.Nada);
+    anadir(fs, Figura.Punto(Punto { x: 1, y: -2 }));
+    anadir(fs, Figura.Con(Color.Otro(nuevo("azul")), Punto { x: 3, y: 4 }));
+    anadir(fs, Figura.Con(Color.Rojo, Punto { x: 0, y: 0 }));
+    anadir(fs, Figura.Nombrada(Etiqueta { texto: nuevo("hola"), color: Color.Rojo }));
+    for f en fs { imprimir($"{describir(f)}\\n"); }
+    let otra = copiar(fs[4]);
+    imprimir($"{describir(otra)}\\n");
+}''',
+     "nada\n(1, -2)\nazul en (3, 4)\nrojo en (0, 0)\nhola\nhola\n"),
+
+    ("structs con un campo `view`",
+     '''struct Palabra { texto: view, n: usize }
+struct Linea { primera: Palabra, resto: view }
+
+fn primera_de(s: &str) -> Palabra {
+    return Palabra { texto: rebanar(vista(s), 0, 3), n: 3 };
+}
+
+fn texto_de(p: Palabra) -> view { return p.texto; }
+
+fn mas_larga(a: Palabra, b: Palabra) -> Palabra {
+    if a.n >= b.n { return a; }
+    return b;
+}
+
+fn main() {
+    let s = nuevo("hola mundo");
+    let t = nuevo("adios");
+    let p = primera_de(s);
+    var q = Palabra { texto: vista(t), n: 5 };
+    let l = Linea { primera: p, resto: rebanar(vista(s), 5, 10) };
+    q.n = 2;
+    let m = mas_larga(p, q);
+    imprimir($"{p.texto} {texto_de(q)} {l.primera.texto}|{l.resto} {m.texto} {copiar(m).n}\\n");
+}''',
+     "hol adios hol|mundo hol 3\n"),
+
+    ("sacar un campo de su struct, y reponerlo",
+     '''struct Interior { texto: str, n: usize }
+struct P { nombre: str, edad: usize, tags: lista<str>, dentro: Interior }
+
+fn usa(s: str) -> usize { return largo(s); }
+
+fn entrega(p: P) -> str {
+    return p.nombre;
+}
+
+fn main() {
+    var p = P { nombre: nuevo("ana"), edad: 3, tags: [],
+        dentro: Interior { texto: nuevo("hondo"), n: 1 } };
+    anadir(p.tags, nuevo("x"));
+    let n = p.nombre;
+    let t = p.dentro.texto;
+    imprimir($"{n} {t} {p.edad} {largo(p.tags)} {p.dentro.n} ");
+    imprimir($"{usa(copiar(p.tags[0]))}\\n");
+    p.nombre = nuevo("eva");
+    p.dentro.texto = nuevo("otra");
+    let q = p;
+    imprimir($"{q.nombre} {q.dentro.texto} {entrega(q)}\\n");
+}''',
+     "ana hondo 3 1 1 1\neva otra eva\n"),
+
+    ("sacar un campo en un `return`, en cualquier rama",
+     '''struct P { nombre: str, edad: usize, sub: Q }
+struct Q { t: str }
+
+fn nuevo_p(n: view) -> P { return P { nombre: nuevo(n), edad: 1, sub: Q { t: nuevo("b") } }; }
+
+// Sacar en un `return` vale en cualquier rama: la funcion se va, y lo que
+// queda del struct se suelta ahi.
+fn nombre_si(p: P, c: bool) -> str {
+    if c { return p.nombre; }
+    return nuevo("ninguno");
+}
+
+fn main() {
+    var p = nuevo_p("ana");
+    let n = p.nombre;
+    p.nombre = nuevo("eva");
+    imprimir($"{n} {nombre_si(p, true)} {nombre_si(nuevo_p("x"), false)}\\n");
+}''',
+     "ana eva ninguno\n"),
+
+    ("patrones anidados, literales y guardas; y un `break` dentro de un `match`",
+     '''enum Forma2 { A, B(i64) }
+enum Color { Rojo, Verde, Otro(str) }
+enum Forma { Punto, Circulo(i64), Etiqueta(str, Color), Par(Forma2, usize) }
+
+fn describir(f: &Forma) -> str {
+    return match f {
+        Forma.Punto -> nuevo("punto"),
+        Forma.Circulo(0) -> nuevo("circulo vacio"),
+        Forma.Circulo(-1) -> nuevo("circulo raro"),
+        Forma.Circulo(r) if r > 100 -> nuevo("circulo grande"),
+        Forma.Circulo(_) -> nuevo("circulo"),
+        Forma.Etiqueta("hola", _) -> nuevo("saludo"),
+        Forma.Etiqueta(s, Color.Otro(c)) -> $"{s} de color {c}",
+        Forma.Etiqueta(s, _) -> $"etiqueta {s}",
+        Forma.Par(Forma2.B(x), n) if x > 0 -> $"par {x} {n}",
+        Forma.Par(_, n) -> $"par cualquiera {n}",
+    };
+}
+
+fn main() {
+    var i: usize = 0;
+    var fs: lista<Forma> = [];
+    anadir(fs, Forma.Punto);
+    anadir(fs, Forma.Circulo(0));
+    anadir(fs, Forma.Circulo(-1));
+    anadir(fs, Forma.Circulo(500));
+    anadir(fs, Forma.Circulo(5));
+    anadir(fs, Forma.Etiqueta(nuevo("hola"), Color.Rojo));
+    anadir(fs, Forma.Etiqueta(nuevo("cielo"), Color.Otro(nuevo("azul"))));
+    anadir(fs, Forma.Etiqueta(nuevo("x"), Color.Verde));
+    anadir(fs, Forma.Par(Forma2.B(3), 7));
+    anadir(fs, Forma.Par(Forma2.A, 8));
+    for f en fs { imprimir($"{describir(f)}\\n"); }
+    // Un `break` dentro de un `match` sale del bucle, no del `match`.
+    while i < 10 {
+        match fs[i] {
+            Forma.Punto -> { i = i + 1; }
+            Forma.Circulo(r) -> { if r == 500 { break; } i = i + 1; }
+            _ -> { i = i + 1; }
+        }
+    }
+    imprimir($"parado en {i}\\n");
+}''',
+     "punto\ncirculo vacio\ncirculo raro\ncirculo grande\ncirculo\nsaludo\n"
+     "cielo de color azul\netiqueta x\npar 3 7\npar cualquiera 8\nparado en 3\n"),
+
+    ("devolver una vista de un parametro prestado",
+     '''struct Persona { nombre: str, apellido: str }
+
+        fn nombre_de(p: &Persona) -> view { return vista(p.nombre); }
+        fn primera(xs: &lista<str>) -> view { return vista(xs[0]); }
+        fn inicial(s: &str) -> view { return rebanar(vista(s), 0, 1); }
+        fn la_larga(a: &str, b: &str) -> view {
+            if largo(a) >= largo(b) { return vista(a); }
+            return vista(b);
+        }
+        // Un `mut str` tambien: la vista sale despues de modificarlo.
+        fn con_punto(s: mut str) -> view {
+            empujar(s, ".");
+            return vista(s);
+        }
+
+        fn main() {
+            let p = Persona { nombre: nuevo("Ada"), apellido: nuevo("Lovelace") };
+            var xs: lista<str> = [];
+            anadir(xs, nuevo("uno"));
+            let a = nuevo("corto");
+            let b = nuevo("larguisimo");
+            var s = nuevo("fin");
+            imprimir($"{nombre_de(p)} {primera(xs)} {inicial(a)} {la_larga(a, b)} ");
+            // Reasignar en el mismo bloque, o con el duenio fuera, vale.
+            var v: view = "literal";
+            v = la_larga(a, b);
+            imprimir($"{v} {con_punto(s)} ");
+            // Pasar un temporal y usar la vista en la misma sentencia vale.
+            imprimir($"{inicial(nuevo("zeta"))}\\n");
+        }''',
+     "Ada uno c larguisimo larguisimo fin. z\n"),
+
+    ("una clausura que modifica lo capturado guarda su estado entre llamadas",
+     '''fn repetir<F>(n: usize, f: mut F) {
+            var i: usize = 0;
+            while i < n {
+                f();
+                i = i + 1;
+            }
+        }
+
+        fn main() {
+            let n: usize = 0;
+            var contar = fn[mut n]() -> usize {
+                n = n + 1;
+                return n;
+            };
+            imprimir($"{contar()} {contar()} ");
+            // La generica la recibe `mut`: lo que cambia, cambia aqui.
+            repetir(3, contar);
+            // Lo capturado es una copia: la `n` de fuera no se entera.
+            imprimir($"{contar()} {n} | ");
+
+            let s = nuevo("a");
+            var acumula = fn[mut s](x: view) -> usize {
+                empujar(s, x);
+                return largo(s);
+            };
+            imprimir($"{acumula("bc")} ");
+            // Copiarla copia tambien su estado, y desde ahi van por separado.
+            var otra = copiar(acumula);
+            imprimir($"{otra("d")} {acumula("e")}\\n");
+        }''',
+     "1 2 6 0 | 3 4 4\n"),
+
+    ("`if` como valor, con ramas que son una expresion",
+     '''fn clasificar(n: usize) -> str {
+            return if n > 100 { nuevo("grande") } else { nuevo("pequeno") };
+        }
+        fn main() -> usize {
+            let n = 7;
+            let x = if n > 3 { 1 } else { 2 };
+            let anidado = if n > 3 { if n > 5 { 10 } else { 20 } } else { 30 };
+            imprimir($"{x} {clasificar(500)} {anidado}");
+            imprimir($" {if n == 7 { "si" } else { "no" }}\\n");
+        }''',
+     "1 grande 10 si\n"),
+
+    ("decimales, con lo que sale de los numeros parando el programa",
+     '''usar "std/numero";
+        fn main() -> usize ! {
+            let a: f64 = 3.5;
+            let b: f64 = 1.5;
+            let uno: f64 = 1;            // un numero escrito no decide su tipo
+            let z: f64 = 0;
+            imprimir($"{a} {uno} {a * b + uno} {a / b}");
+            imprimir($" {raiz(4.0)} {piso(3.7)} {techo(3.2)} {redondear(3.5)}");
+            imprimir($" {absoluto(0.0 - 2.5)} {cerca(0.1 + 0.2, 0.3, 0.000001)}");
+            // IEEE de siempre, pedido a proposito
+            imprimir($" {a /? z} {try porcentaje_exacto(1.0, 8.0)}\\n");
+            return 0;
+        }''',
+     "3.5 1.0 6.25 2.33333 2.0 3.0 4.0 4.0 2.5 true inf 12.5\n"),
+
+    ("un entero y un decimal se convierten, y la conversion se comprueba",
+     '''fn main() -> usize {
+            let n: usize = 7;
+            let x = n como f64;
+            let exacto: f64 = 3.0;
+            imprimir($"{x} {exacto como usize} {x / 2}\\n");
+        }''',
+     "7.0 3 3.5\n"),
+
+    ("un entero grande exactamente representable se convierte a f64",
+     '''fn main() {
+            let n: u64 = 9007199254740992;
+            imprimir(n como f64); imprimir("\\n");
+        }''',
+     "9.0072e+15\n"),
+
+    ("indexar lo que devuelve una llamada no la evalua dos veces ni filtra",
+     '''fn hacer() -> lista<usize> {
+            var xs: lista<usize> = [];
+            anadir(xs, 7); anadir(xs, 9);
+            return xs;
+        }
+        struct Caja { dentro: str }
+        fn caja() -> Caja { return Caja { dentro: nuevo("hola") }; }
+        fn main() -> usize {
+            imprimir($"{hacer()[1]} {caja().dentro}\\n");
+        }''',
+     "9 hola\n"),
+
+    ("una funcion es un valor: se pasa, se guarda y se llama",
+     '''usar "std/lista";
+
+        struct Cosa { nombre: str, n: usize }
+
+        fn por_n(a: &Cosa, b: &Cosa) -> bool { return a.n < b.n; }
+        fn al_reves(a: &usize, b: &usize) -> bool { return a > b; }
+        fn doble(n: usize) -> usize { return n * 2; }
+
+        fn aplicar(xs: &lista<usize>, f: fn(usize) -> usize) -> lista<usize> {
+            var salida: lista<usize> = [];
+            for x en xs { anadir(salida, f(x)); }
+            return salida;
+        }
+
+        fn main() -> usize {
+            var cs: lista<Cosa> = [];
+            anadir(cs, Cosa { nombre: nuevo("c"), n: 9 });
+            anadir(cs, Cosa { nombre: nuevo("a"), n: 2 });
+            for c en ordenadas_por(cs, por_n) { imprimir($"{c.n}"); }
+
+            var ns: lista<usize> = [];
+            anadir(ns, 3); anadir(ns, 9); anadir(ns, 1);
+            imprimir(" ");
+            for n en ordenadas_por(ns, al_reves) { imprimir($"{n}"); }
+
+            let g = doble;
+            imprimir($" {aplicar(ns, doble)[1]} {g(10)}\\n");
+        }''',
+     "29 931 18 20\n"),
+
+    ("anchos fijos, bits y conversiones",
+     '''fn main() -> usize {
+            let a: u8 = 200;
+            let b: u8 = 55;
+            let c: i32 = 100000;
+            let mascara: u32 = 4278190080;
+            let v: u32 = 3735928559;
+            // Los bits atan mas que las comparaciones: esto es `(v & m) == x`,
+            // no `v & (m == x)` como seria en C.
+            let alto = (v & mascara) >> 24 == 222;
+            imprimir($"{a + b} {c * 2} {v ^ v} {~a} {alto}");
+            imprimir($" {v como? u8} {a como u32}\\n");
+        }''',
+     "255 200000 0 55 true 239 200\n"),
+
+    ("la aritmetica envolvente con signo no depende del compilador C",
+     '''fn main() {
+            let max: i8 = 127;
+            let uno: i8 = 1;
+            let cien: i8 = 100;
+            let dos: i8 = 2;
+            imprimir(max +? uno); imprimir(" ");
+            imprimir(cien *? dos); imprimir(" ");
+            let minimo: i8 = max +? uno;
+            imprimir(~minimo); imprimir(" ");
+            imprimir(minimo >> 1); imprimir(" ");
+            imprimir(minimo & max); imprimir(" ");
+            imprimir(minimo | uno); imprimir(" ");
+            imprimir(minimo ^ uno); imprimir(" ");
+            let cero: i8 = 0;
+            let menos_uno: i8 = cero - uno;
+            imprimir(minimo % menos_uno); imprimir(" ");
+            let cinco: i8 = 5;
+            imprimir(-cinco); imprimir("\\n");
+        }''',
+     "-128 -56 127 -64 0 -127 -127 0 -5\n"),
+
+    ("un `str` guarda bytes, no texto",
+     '''usar "std/bytes";
+        fn main() -> usize {
+            let crudo = "\\xde\\xad\\xbe\\xef";
+            let acentos = "camión";
+            let cero = "a\\x00b";
+            imprimir($"{largo(crudo)} {a_hex(crudo)} {largo(acentos)}");
+            imprimir($" {acentos} {largo(cero)} {a_hex(cero)}\\n");
+        }''',
+     "4 deadbeef 7 camión 3 610062\n"),
+
+    ("enteros que van y vuelven de un buffer",
+     '''usar "std/bytes";
+        fn main() -> usize ! {
+            var buf = vacio();
+            poner_u32(buf, 3735928559);
+            poner_u16(buf, 513);
+            poner_u64(buf, 72057594037927936);
+            imprimir($"{a_hex(vista(buf))}\\n");
+            imprimir($"{try leer_u32(vista(buf), 0)} {try leer_u16(vista(buf), 4)}");
+            imprimir($" {try leer_u64(vista(buf), 6)}");
+            let vuelta = try de_hex("deadbeef");
+            imprimir($" {largo(vuelta)} {leer_u8(vista(buf), 999) sino 0}\\n");
+            return 0;
+        }''',
+     "deadbeef02010100000000000000\n3735928559 513 72057594037927936 4 0\n"),
+
+    ("un contenedor propio, escrito en Tcode y no en el compilador",
+     '''struct Pila<T> { cosas: lista<T> }
+
+        fn vacia<T>(p: &Pila<T>) -> bool { return largo(p.cosas) == 0; }
+        fn apilar<T>(p: mut Pila<T>, x: T) { anadir(p.cosas, x); }
+        fn cima<T>(p: &Pila<T>) -> T ! {
+            if vacia(p) { falla "la pila esta vacia"; }
+            return copiar(p.cosas[largo(p.cosas) - 1]);
+        }
+
+        // Un tipo generico que se contiene a si mismo a traves de una lista.
+        struct Nodo<T> { valor: T, hijos: lista<Nodo<T>> }
+
+        fn hojas<T>(n: &Nodo<T>) -> usize {
+            if largo(n.hijos) == 0 { return 1; }
+            var t = 0;
+            for h en n.hijos { t = t + hojas(h); }
+            return t;
+        }
+
+        fn main() -> usize ! {
+            var ps: Pila<str> = Pila { cosas: [] };
+            apilar(ps, nuevo("a"));
+            apilar(ps, nuevo("b"));
+            var pn: Pila<usize> = Pila { cosas: [] };
+            apilar(pn, 42);
+
+            var raiz: Nodo<usize> = Nodo { valor: 1, hijos: [] };
+            let h1: Nodo<usize> = Nodo { valor: 2, hijos: [] };
+            let h2: Nodo<usize> = Nodo { valor: 3, hijos: [] };
+            anadir(raiz.hijos, h1);
+            anadir(raiz.hijos, h2);
+
+            imprimir($"{try cima(ps)} {try cima(pn)} {vacia(ps)} {hojas(raiz)}\\n");
+            return 0;
+        }''',
+     "b 42 false 2\n"),
+
+    ("`std/par`: devolver dos valores, sin que el compilador sepa nada",
+     '''usar "std/par";
+        fn dividir_con_resto(a: usize, b: usize) -> Par<usize, usize> ! {
+            if b == 0 { falla "division por cero"; }
+            return par(a / b, a % b);
+        }
+        fn main() -> usize ! {
+            let r = try dividir_con_resto(17, 5);
+            let t = par(nuevo("clave"), 9);
+            let v = volteado(t);
+            imprimir($"{r.primero} {r.segundo} {t.primero} {v.segundo}\\n");
+            return 0;
+        }''',
+     "3 2 clave clave\n"),
+
+    ("restricciones: el cuerpo dice lo que necesita del elemento",
+     '''usar "std/lista";
+        fn main() -> usize ! {
+            var ns: lista<usize> = [];
+            anadir(ns, 3); anadir(ns, 9); anadir(ns, 5);
+            var ss: lista<str> = [];
+            anadir(ss, nuevo("pera")); anadir(ss, nuevo("uva"));
+            let buscado = nuevo("uva");
+            invertir(ns);
+            let vacia: lista<usize> = [];
+            imprimir($"{suma(ns)} {try maximo(ns)} {try minimo(ns)} {suma(vacia)}");
+            imprimir($" {try maximo(ss)} {incluye(ss, buscado)}");
+            imprimir($" {try posicion(ss, buscado)} {ns[0]}\\n");
+            return 0;
+        }''',
+     "17 9 3 0 uva true 1 5\n"),
+
+    ("`igual` y `menor` valen para cualquier tipo sin partes",
+     '''fn main() -> usize {
+            let s = nuevo("x");
+            imprimir($"{igual(1, 1)} {igual("a", "a")} {menor(2, 9)}");
+            imprimir($" {menor("a", "b")} {igual(true, false)} {igual(s, "x")}\\n");
+        }''',
+     "true true true true false true\n"),
+
+    ("`copiar` es copia profunda: tocar el original no toca la copia",
+     '''struct Cosa { nombre: str, n: usize }
+        fn main() -> usize {
+            var xs: lista<str> = [];
+            anadir(xs, nuevo("hola"));
+            let copia_xs = copiar(xs);
+            empujar(xs[0], "!!");
+
+            var dentro: lista<lista<str>> = [];
+            anadir(dentro, copiar(xs));
+            let copia_dentro = copiar(dentro);
+            empujar(dentro[0][0], "??");
+
+            let c = Cosa { nombre: nuevo("a"), n: 1 };
+            let c2 = copiar(c);
+
+            var m: mapa<str, str> = [];
+            poner(m, "k", nuevo("v"));
+            let m2 = copiar(m);
+
+            imprimir($"{xs[0]} {copia_xs[0]} {dentro[0][0]} {copia_dentro[0][0]}");
+            imprimir($" {c2.nombre}{c2.n} {largo(m2)} {copiar(7)}\\n");
+        }''',
+     "hola!! hola hola!!?? hola!! a1 1 7\n"),
+
+    ("una generica se copia una vez por cada juego de tipos",
+     '''struct Punto { x: usize, y: usize }
+
+        fn primero<T>(xs: &lista<T>) -> T ! {
+            if largo(xs) == 0 { falla "lista vacia"; }
+            return xs[0];
+        }
+
+        fn cuantos<K, V>(m: &mapa<K, V>) -> usize { return largo(m); }
+
+        // una generica que llama a otra generica
+        fn primero_o<T>(xs: &lista<T>, alterno: T) -> T {
+            return primero(xs) sino alterno;
+        }
+
+        fn main() -> usize ! {
+            var ns: lista<usize> = [];
+            anadir(ns, 7);
+            var ps: lista<Punto> = [];
+            anadir(ps, Punto { x: 1, y: 2 });
+            let p = try primero(ps);
+
+            let vacia: lista<usize> = [];
+            var m: mapa<str, usize> = [];
+            poner(m, "a", 1);
+
+            imprimir($"{try primero(ns)} {p.y} {primero_o(vacia, 99)} {cuantos(m)}\\n");
+            return 0;
+        }''',
+     "7 2 99 1\n"),
+
+    ("la misma generica vale para un tipo que posee y para uno que no",
+     '''usar "std/lista";
+        fn main() -> usize ! {
+            var ns: lista<usize> = [];
+            anadir(ns, 3); anadir(ns, 9);
+            var xs: lista<str> = [];
+            imprimir($"{esta_vacia(ns)} {esta_vacia(xs)} {try ultima_posicion(ns)}\\n");
+            return 0;
+        }''',
+     "false true 1\n"),
+
+    # Los cinco caminos que salen antes de tiempo tienen que soltar los
+    # temporales de la sentencia: la limpieza de fin de sentencia se emite
+    # detras del `return` y no llega a ejecutarse.
+    ("descartar el `str` que devuelve una llamada no filtra ni rompe el C",
+     '''fn envuelto(n: usize) -> str {
+            var s = nuevo("n=");
+            empujar(s, texto(n));
+            return s;
+        }
+        fn main() -> usize {
+            // El valor se tira: hay que liberarlo, y no se puede tomar la
+            // direccion de una llamada.
+            envuelto(7);
+            imprimir("ok\\n");
+        }''',
+     "ok\n"),
+
+    ("un temporal dentro de lo que se devuelve no se filtra",
+     '''usar "std/texto";
+        fn etiqueta(v: view) -> str { return $"[{rellenar(v, 8)}]"; }
+        fn marcar(v: view) -> str ! {
+            if largo(v) == 0 { falla "vacio"; }
+            return $"<{rellenar(v, 4)}>";
+        }
+        fn ambas(v: view) -> str ! {
+            let a = try marcar(v);
+            return $"{etiqueta(v)}{a}";
+        }
+        fn main() -> usize ! { imprimir($"{try ambas("ab")}\\n"); return 0; }''',
+     "[ab      ]<ab  >\n"),
+
+    ("de un prestamo si se copia un escalar",
+     '''struct S { a: str, n: usize }
+        fn f() -> usize ! {
+            var m: mapa<str, S> = [];
+            poner(m, "x", S { a: nuevo("hola"), n: 7 });
+            let r: &S = try obtener(m, "x");
+            let copia: usize = r.n;
+            imprimir(copia); imprimir("\\n");
+            return 0;
+        }
+        fn main() -> usize ! { try f(); return 0; }''',
+     "7\n"),
+
+    ("aritmetica y control",
+     '''fn f(n: usize) -> usize {
+            var acc: usize = 0;
+            var i: usize = 1;
+            while i <= n { acc = acc + i; i = i + 1; }
+            return acc;
+        }
+        fn main() -> usize { imprimir(f(10)); imprimir("\\n"); return 0; }''',
+     "55\n"),
+
+    ("prestamo que termina al cerrar el bloque",
+     '''fn main() -> usize {
+            var s: str = nuevo("hola");
+            if true { let v: view = vista(s); imprimir(largo(v)); }
+            empujar(s, " mundo");
+            imprimir("\\n");
+            imprimir(s);
+            imprimir("\\n");
+            return 0;
+        }''',
+     "4\nhola mundo\n"),
+
+    ("prestamo mutable, sin tomar posesion",
+     '''fn agregar(s: mut str) { empujar(s, "!"); }
+        fn main() -> usize {
+            var s: str = nuevo("hey");
+            agregar(s); agregar(s);
+            imprimir(s); imprimir("\\n");
+            return 0;
+        }''',
+     "hey!!\n"),
+
+    ("mover a una funcion y devolverlo",
+     '''fn adornar(s: str) -> str { return s; }
+        fn main() -> usize {
+            let a: str = nuevo("dato");
+            let b: str = adornar(a);
+            imprimir(b); imprimir("\\n");
+            return 0;
+        }''',
+     "dato\n"),
+
+    ("aritmetica envolvente cuando se pide a proposito",
+     '''fn main() -> usize {
+            let a: i64 = 2;
+            let b: i64 = a *? 3;
+            imprimir(b); imprimir("\\n");
+            return 0;
+        }''',
+     "6\n"),
+
+    ("devolver vistas atadas a un parametro",
+     '''fn primero(v: view) -> view { return rebanar(v, 0, 1); }
+        fn cola(v: view) -> view { return rebanar(v, 1, largo(v)); }
+        fn estatica() -> view { return "constante"; }
+        fn main() -> usize {
+            let s: str = nuevo("tcode!!");
+            imprimir(primero(vista(s)));
+            imprimir(cola(vista(s)));
+            imprimir("\\n");
+            imprimir(estatica());
+            imprimir("\\n");
+            return 0;
+        }''',
+     "tcode!!\nconstante\n"),
+
+    ("un prestamo que muere libera al duenio",
+     '''fn primero(v: view) -> view { return rebanar(v, 0, 1); }
+        fn main() -> usize {
+            var s: str = nuevo("hola");
+            if true { imprimir(primero(vista(s))); }
+            empujar(s, " mundo");
+            imprimir(s); imprimir("\\n");
+            return 0;
+        }''',
+     "hhola mundo\n"),
+
+    ("structs: campos, construccion y mutacion",
+     '''struct Punto { x: usize, y: usize }
+        struct Persona { nombre: str, edad: usize }
+        fn main() -> usize {
+            let a: Punto = Punto { x: 3, y: 4 };
+            imprimir(a.x * a.x + a.y * a.y); imprimir("\\n");
+            var p: Persona = Persona { nombre: nuevo("Nel"), edad: 40 };
+            empujar(p.nombre, "son");
+            p.edad = p.edad + 1;
+            imprimir(p.nombre); imprimir(" "); imprimir(p.edad);
+            imprimir("\\n");
+            return 0;
+        }''',
+     "25\nNelson 41\n"),
+
+    ("arreglos: indexar, escribir y recorrer",
+     '''fn main() -> usize {
+            var v: [usize; 5] = [10, 20, 30, 40, 50];
+            v[2] = 99;
+            var suma: usize = 0;
+            var i: usize = 0;
+            while i < 5 { suma = suma + v[i]; i = i + 1; }
+            imprimir(suma); imprimir("\\n");
+            return 0;
+        }''',
+     "219\n"),
+
+    ("un arreglo de `str` se libera elemento por elemento",
+     '''fn main() -> usize {
+            var eq: [str; 3] = [nuevo("uno"), nuevo("dos"), nuevo("tres")];
+            empujar(eq[1], "!");
+            var i: usize = 0;
+            while i < 3 { imprimir(eq[i]); imprimir(" "); i = i + 1; }
+            imprimir("\\n");
+            return 0;
+        }''',
+     "uno dos! tres \n"),
+
+    ("structs anidados y arreglos de struct",
+     '''struct Punto { x: usize, y: usize }
+        struct Caja { esquina: Punto, ancho: usize }
+        fn main() -> usize {
+            var cajas: [Caja; 2] = [
+                Caja { esquina: Punto { x: 1, y: 2 }, ancho: 10 },
+                Caja { esquina: Punto { x: 3, y: 4 }, ancho: 20 }
+            ];
+            cajas[1].esquina.x = 99;
+            imprimir(cajas[0].esquina.y); imprimir(" ");
+            imprimir(cajas[1].esquina.x); imprimir(" ");
+            imprimir(cajas[1].ancho); imprimir("\\n");
+            return 0;
+        }''',
+     "2 99 20\n"),
+
+    ("un struct devuelto se mueve, no se libera dos veces",
+     '''struct Persona { nombre: str, edad: usize }
+        fn crear(n: view) -> Persona { return Persona { nombre: nuevo(n), edad: 1 }; }
+        fn main() -> usize {
+            let p: Persona = crear("Ana");
+            imprimir(p.nombre); imprimir("\\n");
+            return 0;
+        }''',
+     "Ana\n"),
+
+    ("fallos: propagar con try, sustituir con sino",
+     '''fn dividir(a: usize, b: usize) -> usize ! {
+            if b == 0 { falla "division por cero"; }
+            return a / b;
+        }
+        fn media(a: usize, b: usize, n: usize) -> usize ! {
+            return try dividir(a + b, n);
+        }
+        fn main() -> usize {
+            imprimir(media(10, 20, 2) sino 0); imprimir("\\n");
+            imprimir(media(10, 20, 0) sino 999); imprimir("\\n");
+            return 0;
+        }''',
+     "15\n999\n"),
+
+    ("un fallo libera lo que ya se habia reservado",
+     '''fn cargar(nombre: view) -> str ! {
+            var s: str = nuevo("dato de ");
+            empujar(s, nombre);
+            if largo(nombre) == 0 { falla "nombre vacio"; }
+            return s;
+        }
+        fn envolver(nombre: view) -> str ! {
+            var acc: str = nuevo("[");
+            let dato: str = try cargar(nombre);
+            empujar(acc, vista(dato));
+            empujar(acc, "]");
+            return acc;
+        }
+        fn main() -> usize {
+            let bueno: str = envolver("uno") sino nuevo("(sin dato)");
+            imprimir(bueno); imprimir("\\n");
+            let malo: str = envolver("") sino nuevo("(sin dato)");
+            imprimir(malo); imprimir("\\n");
+            return 0;
+        }''',
+     "[dato de uno]\n(sin dato)\n"),
+
+    ("prestar un struct de un arreglo, para leer y para modificar",
+     '''struct Articulo { nombre: str, unidades: usize }
+        fn describir(a: &Articulo) -> str {
+            var s: str = vacio();
+            empujar(s, vista(a.nombre));
+            empujar(s, ": ");
+            return s;
+        }
+        fn reponer(a: mut Articulo, cuantas: usize) {
+            a.unidades = a.unidades + cuantas;
+            empujar(a.nombre, "*");
+        }
+        fn main() -> usize {
+            var inv: [Articulo; 2] = [
+                Articulo { nombre: nuevo("tornillos"), unidades: 420 },
+                Articulo { nombre: nuevo("tuercas"),   unidades: 310 }
+            ];
+            reponer(inv[1], 90);
+            var i: usize = 0;
+            while i < 2 {
+                let d: str = describir(inv[i]);
+                imprimir(d); imprimir(inv[i].unidades); imprimir("\\n");
+                i = i + 1;
+            }
+            return 0;
+        }''',
+     "tornillos: 420\ntuercas*: 400\n"),
+
+    ("dos prestamos de solo lectura conviven",
+     '''struct P { u: usize }
+        fn suma(a: &P, b: &P) -> usize { return a.u + b.u; }
+        fn main() -> usize {
+            var p: P = P { u: 21 };
+            imprimir(suma(p, p)); imprimir("\\n");
+            return 0;
+        }''',
+     "42\n"),
+
+    ("`mut` sobre cualquier tipo, no solo `str`",
+     '''fn doblar(n: mut usize) { n = n * 2; }
+        fn main() -> usize {
+            var x: usize = 7;
+            doblar(x); doblar(x);
+            imprimir(x); imprimir("\\n");
+            return 0;
+        }''',
+     "28\n"),
+
+    ("devolver un parametro escalar prestado devuelve su valor, no su direccion",
+     '''fn subir(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn mirar(n: &usize) -> usize { return n; }
+        fn main() -> usize {
+            var x: usize = 7;
+            imprimir(subir(x)); imprimir(" ");
+            imprimir(mirar(x)); imprimir("\\n");
+            return 0;
+        }''',
+     "8 8\n"),
+
+    ("los argumentos de una funcion se evaluan de izquierda a derecha",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn juntar(a: usize, b: usize) -> usize { return a * 10 + b; }
+        fn main() -> usize {
+            var n: usize = 0;
+            imprimir(juntar(siguiente(n), siguiente(n)));
+            imprimir("\\n");
+            return 0;
+        }''',
+     "12\n"),
+
+    ("los argumentos de una funcion externa tambien van de izquierda a derecha",
+     '''externo "math.h" {
+            fn pow(base: f64, exponente: f64) -> f64;
+        }
+        fn siguiente(n: mut f64) -> f64 {
+            n = n + 1.0;
+            return n;
+        }
+        fn main() {
+            var n: f64 = 1.0;
+            imprimir(pow(siguiente(n), siguiente(n)));
+            imprimir("\\n");
+        }''',
+     "8.0\n"),
+
+    ("las comparaciones internas evaluan sus operandos de izquierda a derecha",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn main() {
+            var n: usize = 0;
+            imprimir(menor(siguiente(n), siguiente(n)));
+            imprimir("\\n");
+        }''',
+     "true\n"),
+
+    ("los operadores binarios evaluan primero el operando izquierdo",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn main() {
+            var n: usize = 0;
+            imprimir(siguiente(n) * 10 + siguiente(n));
+            imprimir(" ");
+            n = 0;
+            imprimir(siguiente(n) < siguiente(n));
+            imprimir("\\n");
+        }''',
+     "12 true\n"),
+
+    ("los literales compuestos evaluan sus valores de izquierda a derecha",
+     '''struct Par { a: usize, b: usize }
+        enum Dos { Valores(usize, usize) }
+        fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn main() {
+            var n: usize = 0;
+            let p: Par = Par { a: siguiente(n), b: siguiente(n) };
+            imprimir(p.a); imprimir(p.b); imprimir(n); imprimir(" ");
+            n = 0;
+            let a: [usize; 2] = [siguiente(n), siguiente(n)];
+            imprimir(a[0]); imprimir(a[1]); imprimir(n); imprimir(" ");
+            n = 0;
+            let e: Dos = Dos.Valores(siguiente(n), siguiente(n));
+            imprimir(match e { Dos.Valores(x, y) -> x * 10 + y, });
+            imprimir(n); imprimir("\\n");
+        }''',
+     "122 122 122\n"),
+
+    ("rebanar evalua texto, inicio y final de izquierda a derecha",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn main() {
+            var n: usize = 0;
+            imprimir(rebanar("abcd", siguiente(n), siguiente(n)));
+            imprimir("\\n");
+        }''',
+     "b\n"),
+
+    ("los mutadores evaluan el destino antes que el valor",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn siguiente_texto(n: mut usize) -> str {
+            n = n + 1;
+            return texto(n);
+        }
+        fn main() {
+            var n: usize = 0;
+            var listas: lista<lista<usize>> = [];
+            anadir(listas, []); anadir(listas, []); anadir(listas, []);
+            anadir(listas[siguiente(n)], siguiente(n));
+            imprimir(listas[1][0]); imprimir(" ");
+            n = 0;
+            var textos: [str; 3] = [nuevo("0"), nuevo("1"), nuevo("2")];
+            empujar(textos[siguiente(n)], siguiente_texto(n));
+            imprimir(textos[1]); imprimir("\\n");
+        }''',
+     "2 12\n"),
+
+    ("un arreglo puede contener listas con su typedef declarado antes",
+     '''fn main() {
+            var xs: [lista<usize>; 2] = [[], []];
+            anadir(xs[1], 7);
+            imprimir(xs[1][0]); imprimir("\\n");
+        }''',
+     "7\n"),
+
+    ("poner fija mapa, clave y valor en ese orden",
+     '''fn siguiente(n: mut usize) -> usize {
+            n = n + 1;
+            return n;
+        }
+        fn siguiente_clave(n: mut usize) -> str {
+            n = n + 1;
+            return texto(n);
+        }
+        fn main() {
+            var n: usize = 0;
+            var ms: [mapa<str, usize>; 4] = [[], [], [], []];
+            poner(ms[siguiente(n)], siguiente_clave(n), siguiente(n));
+            imprimir(obtener(ms[1], "2") sino 0); imprimir("\\n");
+        }''',
+     "3\n"),
+
+    ("mapa: poner, reemplazar, consultar y contar",
+     '''fn main() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "uno", 1);
+            poner(m, "dos", 2);
+            poner(m, "uno", 11);
+            imprimir(largo(m)); imprimir(" ");
+            imprimir(tiene(m, "dos")); imprimir(" ");
+            imprimir(tiene(m, "tres")); imprimir(" ");
+            imprimir(obtener(m, "uno") sino 0); imprimir(" ");
+            imprimir(obtener(m, "tres") sino 99); imprimir("\\n");
+            return 0;
+        }''',
+     "2 true false 11 99\n"),
+
+    ("mapa: crece y rehace sin perder nada",
+     '''fn clave_de(i: usize) -> str {
+            var k: str = nuevo("c");
+            let n: str = texto(i);
+            empujar(k, vista(n));
+            return k;
+        }
+        fn main() -> usize {
+            var m: mapa<str, usize> = [];
+            var i: usize = 0;
+            while i < 200 {
+                let k: str = clave_de(i);
+                poner(m, vista(k), i * 3);
+                i = i + 1;
+            }
+            var malas: usize = 0;
+            i = 0;
+            while i < 200 {
+                let k: str = clave_de(i);
+                if (obtener(m, vista(k)) sino 999999) != i * 3 {
+                    malas = malas + 1;
+                }
+                i = i + 1;
+            }
+            let ks: lista<str> = claves(m);
+            imprimir(largo(m)); imprimir(" ");
+            imprimir(malas); imprimir(" ");
+            imprimir(largo(ks)); imprimir("\\n");
+            return 0;
+        }''',
+     "200 0 200\n"),
+
+    ("argumentos: siempre hay al menos el nombre del programa",
+     '''fn main() -> usize {
+            imprimir(n_argumentos() >= 1); imprimir(" ");
+            imprimir(largo(argumento(0)) > 0); imprimir("\\n");
+            return 0;
+        }''',
+     "true true\n"),
+
+    ("ordenar numeros y textos",
+     '''fn main() -> usize {
+            var n: lista<usize> = [];
+            anadir(n, 30); anadir(n, 4); anadir(n, 17); anadir(n, 4);
+            ordenar(n);
+            var i: usize = 0;
+            while i < largo(n) { imprimir(n[i]); imprimir(" "); i = i + 1; }
+            var p: lista<str> = [];
+            anadir(p, nuevo("pera")); anadir(p, nuevo("ana"));
+            anadir(p, nuevo("kiwi"));
+            ordenar(p);
+            i = 0;
+            while i < largo(p) { imprimir(p[i]); imprimir(" "); i = i + 1; }
+            imprimir(menor("ana", "pera")); imprimir(" ");
+            imprimir(menor("pera", "ana")); imprimir("\\n");
+            return 0;
+        }''',
+     "4 4 17 30 ana kiwi pera true false\n"),
+
+    ("quitar de un mapa cierra el hueco sin perder vecinos",
+     '''fn clave_de(i: usize) -> str {
+            var k: str = nuevo("c");
+            let n: str = texto(i);
+            empujar(k, vista(n));
+            return k;
+        }
+        fn main() -> usize {
+            var m: mapa<str, usize> = [];
+            var i: usize = 0;
+            while i < 200 { let k: str = clave_de(i); poner(m, vista(k), i); i = i + 1; }
+            i = 0;
+            var quitadas: usize = 0;
+            while i < 200 {
+                let k: str = clave_de(i);
+                if quitar(m, vista(k)) { quitadas = quitadas + 1; }
+                i = i + 2;
+            }
+            var malas: usize = 0;
+            i = 1;
+            while i < 200 {
+                let k: str = clave_de(i);
+                if (obtener(m, vista(k)) sino 999999) != i { malas = malas + 1; }
+                i = i + 2;
+            }
+            imprimir(quitadas); imprimir(" "); imprimir(largo(m)); imprimir(" ");
+            imprimir(malas); imprimir(" "); imprimir(quitar(m, "jamas"));
+            imprimir("\\n");
+            return 0;
+        }''',
+     "100 100 0 false\n"),
+
+    ("for con break y continue sobre escalares y duenios",
+     '''fn main() -> usize {
+            var xs: lista<usize> = [];
+            anadir(xs, 5); anadir(xs, 12); anadir(xs, 7);
+            anadir(xs, 30); anadir(xs, 1);
+            for x en xs {
+                if x == 7 { continue; }
+                if x > 20 { break; }
+                imprimir(x); imprimir(" ");
+            }
+            var ns: lista<str> = [];
+            anadir(ns, nuevo("ana")); anadir(ns, nuevo("beto"));
+            anadir(ns, nuevo("cielo"));
+            for n en ns {
+                let etiqueta: str = texto(largo(vista(n)));
+                imprimir(n); imprimir(":"); imprimir(etiqueta); imprimir(" ");
+                if largo(vista(n)) > 4 { break; }
+            }
+            let fijo: [usize; 4] = [9, 8, 7, 6];
+            for v en fijo { imprimir(v); }
+            imprimir("\\n");
+            return 0;
+        }''',
+     "5 12 ana:3 beto:4 cielo:5 9876\n"),
+
+    ("salir de un `for` libera lo de dentro de la vuelta",
+     '''fn main() -> usize {
+            var ns: lista<str> = [];
+            var i: usize = 0;
+            while i < 50 { anadir(ns, nuevo("dato")); i = i + 1; }
+            var vueltas: usize = 0;
+            for n en ns {
+                let copia: str = nuevo("x");
+                let otra: str = texto(largo(vista(n)));
+                vueltas = vueltas + largo(vista(copia)) + largo(vista(otra));
+                if vueltas > 10 { break; }
+            }
+            imprimir(vueltas); imprimir("\\n");
+            return 0;
+        }''',
+     "12\n"),
+
+    ("recorrer un mapa prestando clave y valor",
+     '''fn main() -> usize {
+            var m: mapa<str, usize> = [];
+            poner(m, "uno", 1); poner(m, "dos", 2); poner(m, "tres", 3);
+            poner(m, "cuatro", 4); poner(m, "cinco", 5);
+            quitar(m, "tres");
+            var suma: usize = 0;
+            var letras: usize = 0;
+            for k, v en m {
+                suma = suma + v;
+                letras = letras + largo(vista(k));
+            }
+            imprimir(suma); imprimir(" "); imprimir(letras); imprimir("\\n");
+            return 0;
+        }''',
+     "12 17\n"),
+
+    ("recorrer un mapa grande sin copiar nada",
+     '''fn clave_de(i: usize) -> str {
+            var k: str = nuevo("c");
+            let n: str = texto(i);
+            empujar(k, vista(n));
+            return k;
+        }
+        fn main() -> usize {
+            var m: mapa<str, usize> = [];
+            var i: usize = 0;
+            while i < 300 { let k: str = clave_de(i); poner(m, vista(k), i); i = i + 1; }
+            var suma: usize = 0;
+            var cuantas: usize = 0;
+            for k, v en m { suma = suma + v; cuantas = cuantas + 1; }
+            imprimir(cuantas); imprimir(" "); imprimir(suma); imprimir("\\n");
+            return 0;
+        }''',
+     "300 44850\n"),
+
+    ("mapa de textos: reemplazo, prestamo y recorrido",
+     '''fn main() -> usize {
+            var cfg: mapa<str, str> = [];
+            poner(cfg, "host", nuevo("localhost"));
+            poner(cfg, "puerto", nuevo("8080"));
+            poner(cfg, "host", nuevo("127.0.0.1"));
+            imprimir(obtener(cfg, "host") sino "?"); imprimir(" ");
+            imprimir(obtener(cfg, "puerto") sino "?"); imprimir(" ");
+            imprimir(obtener(cfg, "falta") sino "(nada)"); imprimir(" ");
+            var letras: usize = 0;
+            for k, v en cfg { letras = letras + largo(vista(k)) + largo(v); }
+            imprimir(letras); imprimir(" ");
+            imprimir(quitar(cfg, "puerto")); imprimir(" ");
+            imprimir(largo(cfg)); imprimir("\\n");
+            return 0;
+        }''',
+     "127.0.0.1 8080 (nada) 23 true 1\n"),
+
+    ("cadenas interpoladas",
+     '''fn main() -> usize {
+            let quien: str = nuevo("mundo");
+            let n: usize = 3;
+            let ok: bool = true;
+            let m: str = $"hola {quien}, van {n + 1} veces, ok={ok} {{y}}";
+            imprimir(m); imprimir("\\n");
+            imprimir($"suelta: {n} {quien}\\n");
+            var i: usize = 0;
+            while i < 3 {
+                imprimir($"[{i}]");
+                i = i + 1;
+            }
+            imprimir("\\n");
+            return 0;
+        }''',
+     "hola mundo, van 4 veces, ok=true {y}\nsuelta: 3 mundo\n[0][1][2]\n"),
+
+    ("tabla de simbolos: mapa de structs con prestamo",
+     '''struct Simbolo { tipo: str, mutable: bool, usos: usize }
+        fn main() -> usize ! {
+            var tabla: mapa<str, Simbolo> = [];
+            poner(tabla, "n", Simbolo { tipo: nuevo("usize"), mutable: false,
+                                        usos: 3 });
+            poner(tabla, "s", Simbolo { tipo: nuevo("str"), mutable: true,
+                                        usos: 1 });
+            if true {
+                // El prestamo vive solo aqui dentro: fuera se vuelve a poder
+                // tocar la tabla.
+                let a: &Simbolo = try obtener(tabla, "n");
+                imprimir($"{a.tipo} {a.mutable} {a.usos} ");
+            }
+            var total: usize = 0;
+            for clave, sim en tabla {
+                total = total + largo(vista(clave)) + sim.usos;
+            }
+            imprimir($"{total} {largo(tabla)} {quitar(tabla, \\"s\\")}\\n");
+            return 0;
+        }''',
+     "usize false 3 6 2 true\n"),
+
+    ("modificar en el sitio lo que guarda un mapa",
+     '''struct Simbolo { tipo: str, usos: usize }
+        fn main() -> usize ! {
+            var tabla: mapa<str, Simbolo> = [];
+            poner(tabla, "n", Simbolo { tipo: nuevo("usize"), usos: 0 });
+            poner(tabla, "s", Simbolo { tipo: nuevo("str"), usos: 0 });
+            var i: usize = 0;
+            while i < 5 {
+                let s: &mut Simbolo = try obtener_mut(tabla, "n");
+                s.usos = s.usos + 1;
+                empujar(s.tipo, ".");
+                i = i + 1;
+            }
+            var claves_ord: lista<str> = claves(tabla);
+            ordenar(claves_ord);
+            for c en claves_ord {
+                let s: &Simbolo = try obtener(tabla, vista(c));
+                imprimir($"{c}:{s.tipo}:{s.usos} ");
+            }
+            imprimir("\\n");
+            return 0;
+        }''',
+     "n:usize.....:5 s:str:0 \n"),
+
+    ("el tipo se deduce del valor",
+     '''struct P { x: usize, y: usize }
+        fn main() {
+            let n = 42;
+            let ok = true;
+            let s = nuevo("hola");
+            let v = vista(s);
+            let p = P { x: 1, y: 2 };
+            var xs = [10, 20, 30];
+            let t = texto(n);
+            let m = $"{n}/{ok}";
+            imprimir($"{n} {ok} {s} {largo(v)} {p.x} {xs[1]} {t} {m}\\n");
+        }''',
+     "42 true hola 4 1 20 42 42/true\n"),
+
+    ("un `str` se presta solo donde se pide una vista",
+     '''fn medir(v: view) -> usize { return largo(v); }
+        fn juntar(a: view, b: view) -> str {
+            var s = nuevo(a);
+            empujar(s, b);
+            return s;
+        }
+        fn main() {
+            let uno = nuevo("hola");
+            let dos = nuevo(" mundo");
+            let todo = juntar(uno, dos);
+            imprimir($"{medir(uno)} {medir(todo)} {todo}\\n");
+        }''',
+     "4 10 hola mundo\n"),
+
+    ("se puede prestar un valor recien hecho",
+     '''fn medir(v: view) -> usize { return largo(v); }
+        fn mayusculas(v: view) -> str {
+            var s = nuevo(v);
+            empujar(s, "!");
+            return s;
+        }
+        fn cuantos(xs: &lista<str>) -> usize { return largo(xs); }
+        fn tres() -> lista<str> {
+            var xs: lista<str> = [];
+            anadir(xs, nuevo("a")); anadir(xs, nuevo("bb"));
+            anadir(xs, nuevo("ccc"));
+            return xs;
+        }
+        fn main() {
+            imprimir(medir(mayusculas("hola")));
+            imprimir(" ");
+            imprimir(cuantos(tres()));
+            imprimir(" ");
+            var total = 0;
+            for x en tres() { total = total + largo(x); }
+            imprimir(total);
+            imprimir("\\n");
+        }''',
+     "5 3 6\n"),
+
+    ("la biblioteca estandar: texto",
+     '''usar "std/texto";
+        fn main() -> usize ! {
+            let linea = nuevo("   hola, mundo cruel   ");
+            imprimir($"[{recortar(linea)}] ");
+            imprimir($"{empieza_con(recortar(linea), "hola")} ");
+            imprimir($"{termina_con(recortar(linea), "cruel")} ");
+            imprimir($"{contiene(linea, "mundo")} ");
+            imprimir($"{indice_de(linea, "mundo") sino 999} ");
+            let trozos = try partir("a,b,,c", ",");
+            imprimir($"{largo(trozos)} [{unir(trozos, "|")}] ");
+            imprimir($"{repetir("-", 5)} ");
+            imprimir($"{try reemplazar("aaa", "a", "b")} ");
+            imprimir($"{try a_entero(recortar(nuevo("  42  ")))}\\n");
+        }''',
+     "[hola, mundo cruel] true true true 9 4 [a|b||c] ----- bbb 42\n"),
+
+    ("la biblioteca estandar: contar y mayores",
+     '''usar "std/cuenta";
+        usar "std/texto";
+        fn main() {
+            let texto = nuevo("uno dos uno tres dos uno");
+            let cuenta = contar(palabras(minusculas(texto)));
+            imprimir($"{largo(cuenta)} ");
+            for p en mayores(cuenta, 2) {
+                imprimir($"{p}:{obtener(cuenta, p) sino 0} ");
+            }
+            imprimir("\\n");
+        }''',
+     "3 uno:3 dos:2 \n"),
+
+    ("rebanadas de vista",
+     '''fn main() -> usize {
+            let s: str = nuevo("abcdefgh");
+            imprimir(rebanar(vista(s), 2, 5));
+            imprimir("\\n");
+            return 0;
+        }''',
+     "cde\n"),
+
+    ("listas dinamicas: crecer, indexar y medir",
+     '''fn suma(xs: &lista<usize>) -> usize {
+            var total: usize = 0;
+            var i: usize = 0;
+            while i < largo(xs) { total = total + xs[i]; i = i + 1; }
+            return total;
+        }
+        fn main() -> usize {
+            var xs: lista<usize> = [];
+            var i: usize = 0;
+            while i < 1000 { anadir(xs, i); i = i + 1; }
+            imprimir(largo(xs)); imprimir(" "); imprimir(suma(xs));
+            imprimir("\\n"); return 0;
+        }''',
+     "1000 499500\n"),
+
+    ("una lista de duenios libera y mueve cada elemento",
+     '''fn main() -> usize {
+            var xs: lista<str> = [nuevo("uno"), nuevo("dos")];
+            let tercero: str = nuevo("tres");
+            anadir(xs, tercero);
+            var i: usize = 0;
+            while i < largo(xs) { imprimir(xs[i]); imprimir(" "); i = i + 1; }
+            imprimir("\\n"); return 0;
+        }''',
+     "uno dos tres \n"),
+
+    ("reasignar propiedad invalida al duenio anterior",
+     '''fn main() -> usize {
+            let a: str = nuevo("movido");
+            let b: str = a;
+            imprimir(b); imprimir("\\n"); return 0;
+        }''',
+     "movido\n"),
+
+    ("devolver un compuesto entrega sus campos sin liberarlos",
+     '''struct Caja { nombre: str }
+        fn crear() -> Caja {
+            let s: str = nuevo("vivo");
+            return Caja { nombre: s };
+        }
+        fn main() -> usize {
+            let c: Caja = crear(); imprimir(c.nombre); imprimir("\\n"); return 0;
+        }''',
+     "vivo\n"),
+
+    ("sino mueve su alternativa solo en el camino de fallo",
+     '''fn elegir(falla_ahora: bool) -> str ! {
+            if falla_ahora { falla "pedido"; }
+            return nuevo("resultado");
+        }
+        fn caso(falla_ahora: bool) -> str {
+            let respaldo: str = nuevo("respaldo");
+            return elegir(falla_ahora) sino respaldo;
+        }
+        fn main() -> usize {
+            let a: str = caso(false); let b: str = caso(true);
+            imprimir(a); imprimir(" "); imprimir(b); imprimir("\\n"); return 0;
+        }''',
+     "resultado respaldo\n"),
+
+    ("listas vacias usan el tipo de retorno y de argumento",
+     '''fn vacia() -> lista<usize> { return []; }
+        fn contar(xs: lista<usize>) -> usize { return largo(xs); }
+        fn main() -> usize {
+            let xs: lista<usize> = vacia();
+            imprimir(largo(xs)); imprimir(" "); imprimir(contar([]));
+            imprimir("\\n"); return 0;
+        }''',
+     "0 0\n"),
+
+    ("listas recursivas tienen tamano finito",
+     '''struct Nodo { valor: usize, hijos: lista<Nodo> }
+        fn hoja(n: usize) -> Nodo { return Nodo { valor: n, hijos: [] }; }
+        fn main() -> usize {
+            var raiz: Nodo = hoja(1);
+            anadir(raiz.hijos, hoja(2));
+            anadir(raiz.hijos, hoja(3));
+            imprimir(raiz.valor + raiz.hijos[0].valor + raiz.hijos[1].valor);
+            imprimir("\\n"); return 0;
+        }''',
+     "6\n"),
+
+    ("texto y bytes permiten procesar cadenas construidas",
+     '''fn main() -> usize {
+            let n: str = texto(42);
+            let b: str = texto(true);
+            imprimir(n); imprimir(" "); imprimir(b); imprimir(" ");
+            imprimir(byte("Az", 1)); imprimir("\\n"); return 0;
+        }''',
+     "42 true 122\n"),
+
+    ("un fallo al abrir archivo se puede sustituir",
+     '''fn main() -> usize {
+            let s: str = leer_archivo("/ruta/que/no/existe/tcode")
+                         sino nuevo("sin datos");
+            imprimir(s); imprimir("\\n"); return 0;
+        }''',
+     "sin datos\n"),
+    # En C17 `??=` es un trigrafo: C lo cambiaba por `#` y el largo de al
+    # lado leia de mas.
+    ("una cadena con `??` sale con los mismos bytes",
+     'fn main() { imprimir("??= ??/ ??! ???=\\n"); imprimir(largo("??="));'
+     ' imprimir("\\n"); }',
+     "??= ??/ ??! ???=\n3\n"),
+
+    # Un `match` suelto con brazos que dan un valor no hacia nada.
+    ("un `match` suelto hace lo de sus brazos",
+     '''enum E { A, B }
+        fn efecto(xs: mut lista<usize>) -> usize { anadir(xs, 1); return 0; }
+        fn texto_de(e: &E) -> str {
+            return match e { E.A -> nuevo("una cadena en el heap"), E.B -> nuevo("b") };
+        }
+        fn main() {
+            var xs: lista<usize> = [];
+            let e = E.A;
+            match e { E.A -> imprimir("A\\n"), E.B -> imprimir("B\\n") }
+            match e { E.A -> efecto(xs), E.B -> 0 }
+            match e { E.A -> texto_de(e), E.B -> nuevo("otra cadena en el heap") }
+            imprimir(largo(xs));
+            imprimir("\\n");
+        }''',
+     "A\n1\n"),
+
+    # `%s` y `%.*s` se paraban en el primer cero.
+    ("`imprimir` saca los bytes cero de un `str`",
+     'fn main() { var s = nuevo("a\\x00b"); empujar(s, "c");'
+     ' imprimir(s); imprimir("|"); imprimir($"{s}|\\n"); }',
+     "a\x00bc|a\x00bc|\n"),
+
+    ("nombres que en C ya son otra cosa",
+     '''enum E { free, otra(str) }
+        struct tm { log: usize, EOF: usize }
+        fn exp(x: usize) -> usize { return x + 1; }
+        fn _Bool(ss_tmp1: usize) -> usize { return ss_tmp1 * 2; }
+        fn main() {
+            let e = E.otra(nuevo("hola"));
+            match e { E.free -> imprimir("f\\n"), E.otra(NAN) -> imprimir($"{NAN}\\n") }
+            let p = tm { log: 1, EOF: 2 };
+            let stdout = 3;
+            var m: mapa<str, usize> = [];
+            poner(m, "k", 4);
+            for k, argc en m { imprimir($"{k}={argc}\\n"); }
+            let size_t: usize = 5;
+            var puts = fn[mut size_t]() -> usize { size_t = size_t + 1; return size_t; };
+            imprimir(exp(p.log) + p.EOF + stdout + _Bool(1) + puts());
+            imprimir("\\n");
+        }''',
+     "hola\nk=4\n15\n"),
+
+    ("cadenas con llaves, comillas y escapes dentro de un hueco",
+     'fn f(a: view) -> view { return a; }'
+     ' fn main() {'
+     ' imprimir($"[{f("}")}] [{f("a\\"b")}] [{f("x\\ny")}] [{f($"{f("{")}")}]\\n");'
+     ' imprimir($"{f(\\"antes\\")}\\n"); }',
+     '[}] [a"b] [x\ny] [{]\nantes\n'),
+
+    ("mil parentesis anidados",
+     'fn main() { let x: usize = ' + '(' * 1000 + '1' + ')' * 1000
+     + '; imprimir(x); imprimir("\\n"); }',
+     "1\n"),
+
+    # Un numero escrito toma el tipo del otro lado. El comprobador lo sabia,
+    # pero el generador hacia la cuenta en el tipo del literal, `usize`:
+    # `1 + x` con `x: f64` daba 3, `0 > x` con `x: i32` negativo daba
+    # `false`, y `5 - 10` en un `i64` paraba por desbordamiento.
+    # Una generica deduce su tipo como el comprobador tipa: un numero escrito
+    # toma el del otro lado, y una conversion, un `if` o `absoluto` dicen el
+    # suyo. Antes `mismo(1 + x)` pedia un `usize` y rechazaba el `i16`.
+    ("una generica deduce su tipo de una cuenta, una conversion o un if",
+     '''fn mismo<T>(x: T) -> T { return x; }
+        fn main() {
+            let x: i16 = 5;
+            let c = x > 1;
+            imprimir($"{mismo(1 + x)} {mismo(x como u32)} ");
+            imprimir($"{mismo(if c { x } else { 2 })} {mismo(absoluto(x))}\\n");
+        }''',
+     "6 5 5 5\n"),
+
+    # Una rama entera y otra decimal son un decimal, como `1 + 2.5`.
+    ("un if con una rama entera y otra decimal",
+     '''fn main() {
+            let c = true;
+            let v: f64 = if c { 1 } else { 2.5 };
+            let w: f32 = if c { 2.5 } else { 1 };
+            imprimir($"{v} {w} {if c { 1 } else { 2.5 }}\\n");
+        }''',
+     "1.0 2.5 1.0\n"),
+
+    # De izquierda a derecha, tambien cuando un operando necesita sentencias
+    # propias: antes el `if` de la derecha corria antes que lo de la
+    # izquierda, y salia `der izq`.
+    ("el operando que necesita sentencias no adelanta a los de antes",
+     '''struct P { a: i64, b: i64 }
+        fn dice(t: view, n: i64) -> i64 { imprimir(t); return n; }
+        fn f(a: i64, b: i64) -> i64 { return a + b; }
+        fn main() {
+            let c = true;
+            let x = dice("izq ", 1) + (if c { dice("der ", 2) } else { 0 });
+            imprimir($"= {x}\\n");
+            let y = f(dice("a1 ", 1), if c { dice("a2 ", 2) } else { 0 });
+            imprimir($"= {y}\\n");
+            let p = P { a: dice("c1 ", 1), b: if c { dice("c2 ", 2) } else { 0 } };
+            imprimir($"= {p.a + p.b}\\n");
+            let arr: [i64; 2] = [dice("e1 ", 1), if c { dice("e2 ", 2) } else { 0 }];
+            imprimir($"= {arr[0] + arr[1]}\\n");
+        }''',
+     "izq der = 3\na1 a2 = 3\nc1 c2 = 3\ne1 e2 = 3\n"),
+
+    # Tambien un valor con duenio: pasa al temporal, y de ahi a la funcion.
+    ("un str que va antes tampoco se deja adelantar",
+     '''fn dice(t: view) -> str { imprimir(t); return nuevo(t); }
+        fn junta(a: str, b: str) -> usize { return largo(a) + largo(b); }
+        fn main() {
+            let c = true;
+            let n = junta(dice("a "), if c { dice("b ") } else { nuevo("") });
+            imprimir($"= {n}\\n");
+        }''',
+     "a b = 4\n"),
+
+    ("un numero escrito se opera en el tipo del otro lado",
+     '''fn main() {
+            let x: f64 = 2.5;
+            let n: i32 = -3;
+            let k: u8 = 3;
+            let a: i64 = 5 - 10;
+            let d: f64 = 1 / 2;
+            let w = 0 -? k;
+            imprimir($"{1 + x} {2 * x} {0 > n} {1 + n} {a} {d} {w}\\n");
+            imprimir($"{-1} {-(2 + 3)} {(1 + n) como i64} {1 << k}\\n");
+        }''',
+     "3.5 5.0 true -2 -5 0.5 253\n-1 -5 -2 8\n"),
+]
+
+
+TITULO = "compilan, corren limpio bajo ASan+UBSan"
+
+
+def correr(suite: Resultado) -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        # El C de cada caso sale en orden; compilarlo con los sanitizers y
+        # correrlo, que es lo que cuesta, va en paralelo.
+        trabajos = []
+        for i, (nombre, fuente, salida) in enumerate(ACEPTA):
+            suite.total += 1
+            suyo = os.path.join(tmp, str(i))
+            os.mkdir(suyo)
+            try:
+                trabajos.append((nombre, salida, c_de(fuente, suyo), suyo))
+            except AssertionError as exc:
+                suite.falla(nombre, str(exc))
+
+        def _correr_caso(trabajo):
+            try:
+                return correr_c(trabajo[2], trabajo[3])
+            except AssertionError as exc:
+                return str(exc)
+
+        for (nombre, salida, _, _), hecho in zip(trabajos,
+                                                 en_paralelo(_correr_caso, trabajos)):
+            if isinstance(hecho, str):
+                suite.falla(nombre, hecho)
+                continue
+            rc, out, err = hecho
+            if rc != 0:
+                suite.falla(nombre, f"salio con codigo {rc}\n{err}")
+            elif out != salida:
+                suite.falla(nombre, f"salida {out!r}, se esperaba {salida!r}")
+            elif "runtime error" in err or "AddressSanitizer" in err:
+                suite.falla(nombre, f"sanitizer se quejo:\n{err}")
