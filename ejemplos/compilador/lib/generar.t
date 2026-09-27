@@ -1341,8 +1341,14 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Con
         return expresion_c(b, s, negada, "bool", tipos);
     }
 
-    let t = I.tipo_cuenta(tipos, n, esperado);
+    var t = I.tipo_cuenta(tipos, n, esperado);
     if t.largo() == 0 { return no_se(); }
+    // Un enum se compara por su etiqueta, y los temporales son del enum.
+    if op == "==" || op == "!=" {
+        let de_izq = I.tipo_de(tipos, n.hijos[0]);
+        let pelado = T.apuntado_si(de_izq);
+        if tiene(tipos.variantes, pelado) { t = copiar(pelado); }
+    }
 
     // Para todo lo demas, C no promete izquierda antes que derecha. Se
     // declaran dos temporales sin inicializarlos y las asignaciones quedan
@@ -1445,6 +1451,10 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Con
         }
     }
 
+    // Un enum sin datos es su etiqueta: C no compara structs.
+    if resultado.largo() == 0 && (op == "==" || op == "!=") && tiene(tipos.variantes, t) {
+        resultado = $"({tmp_izq}.etiqueta {op} {tmp_der}.etiqueta)";
+    }
     if resultado.largo() == 0
     && (op == "==" || op == "!=" || op == "<"
         || op == "<=" || op == ">" || op == ">=") {

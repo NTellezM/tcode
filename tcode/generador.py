@@ -2978,6 +2978,11 @@ class Generador:
             return vale
 
         t = self._tipo_cuenta(e, esperado)
+        # Un enum se compara por su etiqueta, y los temporales son del enum.
+        if e.op in {"==", "!="}:
+            de_izq = sin_prestamo(self._tipo_de(e.izq) or "")
+            if de_izq in self.c.enums:
+                t = de_izq
         pos = f"{self.arch(e)}, {e.linea}"
 
         # Salvo los operadores logicos anteriores, C no promete evaluar el
@@ -3004,6 +3009,10 @@ class Generador:
         def ordenada(valor):
             return (f"(({tmp_izq} = {valor_izq}, {tmp_der} = {valor_der}, "
                     f"{valor}))")
+
+        # Un enum sin datos es su etiqueta: C no compara structs.
+        if e.op in {"==", "!="} and t in self.c.enums:
+            return ordenada(f"({tmp_izq}.etiqueta {e.op} {tmp_der}.etiqueta)")
 
         if t in DECIMALES:
             if e.op in {"+", "-", "*", "/"}:
