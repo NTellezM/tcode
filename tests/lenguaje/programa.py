@@ -10,6 +10,7 @@ import sys
 import tempfile
 
 from compilar_c import herramienta
+from semilla import SEMILLA
 
 from tcode.cli import compilar_archivo
 
@@ -844,15 +845,15 @@ fn main() {
             iguales_s = rotos = 0
             mutantes = []
             escritos_m = []
-            archivos_m = sorted(glob.glob(os.path.join("std", "*.t"))
-                                + glob.glob(os.path.join("ejemplos", "**", "*.t"),
-                                            recursive=True))
+            fuentes_m = sorted(glob.glob(os.path.join("std", "*.t"))
+                               + glob.glob(os.path.join("ejemplos", "**", "*.t"),
+                                           recursive=True))
             enums = set()
-            for archivo in archivos_m:
+            for archivo in fuentes_m:
                 with open(archivo, encoding="utf-8") as f:
                     enums.update(re.findall(r"\benum\s+(\w+)", f.read()))
             try:
-                for archivo in archivos_m:
+                for archivo in fuentes_m:
                     with open(archivo, encoding="utf-8") as f:
                         fuente_o = f.read()
                     for k_m, (que, fuente_m, linea_m) in enumerate(
@@ -1202,6 +1203,13 @@ fn main() {
                         print(f"    punto fijo: tcodec compilado desde su "
                               f"propio C lo reproduce byte a byte "
                               f"({len(e1.stdout.encode())} bytes)")
+                        # La semilla solo tiene que saber construir el
+                        # `tcodec` de ahora; si ademas es su punto fijo, se dice.
+                        with open(SEMILLA, encoding="utf-8") as f:
+                            al_dia = f.read() == e1.stdout
+                        print("    semilla: " + ("al dia, es este mismo C" if al_dia
+                                                 else "de una version anterior; "
+                                                      "`make semilla` la pone al dia"))
                         suite.cifra("punto_fijo_bytes", len(e1.stdout.encode()))
                         # Y sin nadie mas: `tcodec` se construye a si mismo,
                         # llamando el al compilador de C, y ese binario

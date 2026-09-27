@@ -38,6 +38,7 @@ GUARDADAS = os.path.join(RAIZ, ".cifras.json")
 RUNTIME = os.path.join(RAIZ, "runtime")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import semilla
 from compilar_c import cc
 
 MARCA = re.compile(r"<!--c:([a-z_]+)-->(.*?)<!--/c-->", re.S)
@@ -83,17 +84,13 @@ def biblioteca():
 def salida_de(programa, *args):
     """Lo que imprime un ejemplo, compilado sin sanitizers y corrido desde la
     raiz, como en el README."""
-    sys.path.insert(0, RAIZ)
-    from tcode.cli import compilar_archivo
-    antes = os.getcwd()
-    os.chdir(RAIZ)
-    try:
-        codigo, errores = compilar_archivo(programa)
-    finally:
-        os.chdir(antes)
-    if errores:
-        raise SystemExit(f"cifras: {programa} no compila: {errores[0]}")
     with tempfile.TemporaryDirectory() as tmp:
+        # Lo escribe `tcodec`, construido desde su semilla: el lexer esta
+        # escrito con lo que el compilador de Python ya no entiende.
+        codigo, errores = semilla.c_de(
+            semilla.construir_tcodec(tmp, ["-std=c17", "-O1"]), programa)
+        if errores:
+            raise SystemExit(f"cifras: {programa} no compila: {errores[0]}")
         ruta_c = os.path.join(tmp, "p.c")
         binario = os.path.join(tmp, "p")
         with open(ruta_c, "w", encoding="utf-8") as f:

@@ -8,13 +8,13 @@ import tempfile
 
 from compilar_c import herramienta
 
-from tcode.cli import compilar_archivo
 from tcode.comprobador import tipo_de_parametro as _tipo_param
 
 from .comun import (
     RAIZ,
     RUNTIME,
     Resultado,
+    c_de_tcodec,
 )
 
 TITULO = "la capa de tipos del comprobador, en Tcode"
@@ -50,7 +50,7 @@ def correr(suite: Resultado) -> None:
     tmp = tempfile.mkdtemp(prefix="tcode-tipos-")
     try:
         suite.total += 1
-        codigo, errores = compilar_archivo(
+        codigo, errores = c_de_tcodec(
             os.path.join(RAIZ, "ejemplos", "compilador", "tipos.t"))
         if errores:
             suite.falla("la capa de tipos en Tcode", "\n".join(errores))

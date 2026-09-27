@@ -16,6 +16,7 @@ from .comun import (
     RAIZ,
     RUNTIME,
     Resultado,
+    c_de_tcodec,
 )
 
 TITULO = "el C de una expresion, escrito por Tcode"
@@ -104,7 +105,7 @@ def correr(suite: Resultado) -> None:
     tmp = tempfile.mkdtemp(prefix="tcode-expr-")
     try:
         suite.total += 1
-        codigo, errores = compilar_archivo(
+        codigo, errores = c_de_tcodec(
             os.path.join(RAIZ, "ejemplos", "compilador", "expresiones.t"))
         if errores:
             suite.falla("expresiones en Tcode", "\n".join(errores))

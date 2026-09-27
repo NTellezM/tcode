@@ -17,6 +17,7 @@ from .comun import (
     RAIZ,
     RUNTIME,
     Resultado,
+    c_de_tcodec,
     nombre_escrito,
 )
 
@@ -66,7 +67,7 @@ def correr(suite: Resultado) -> None:
     tmp = tempfile.mkdtemp(prefix="tcode-tipar-")
     try:
         suite.total += 1
-        codigo, errores = compilar_archivo(
+        codigo, errores = c_de_tcodec(
             os.path.join(RAIZ, "ejemplos", "compilador", "tipar.t"))
         if errores:
             suite.falla("tipar en Tcode", "\n".join(errores))
