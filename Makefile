@@ -1,7 +1,7 @@
 # Tcode
 #
 #   make check        la suite entera, y que el README diga lo que mide
-#   make rapido       lo que no pasa por el compilador escrito en Tcode: un minuto
+#   make rapido       lo que no pasa por el compilador escrito en Tcode: segundos
 #   make propiedades  solo los tests por propiedad (TCODE_PROGRAMAS=1000 para mas)
 #   make cifras       pone en el README las cifras de la ultima `make check`
 #   make ejemplos     compila y corre los ejemplos
@@ -66,7 +66,7 @@ limpiar:
 	@grep -rl --include='*.c' 'Generado por el compilador de Tcode' ejemplos bench std 2>/dev/null \
 	    | xargs rm -f
 	@rm -f bench/*_c
-	@rm -rf tcode/__pycache__ tests/__pycache__
+	@rm -rf tcode/__pycache__ tests/__pycache__ .cache
 
 # Sin opciones: hay un estilo y es este.
 formato:

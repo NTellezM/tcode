@@ -1002,7 +1002,7 @@ def _comillas_de_antes(h):
 
 def _todos(nodo, vistos=None):
     """Todos los nodos de un arbol, para poder fijarles la linea."""
-    from dataclasses import fields, is_dataclass
+    from tcode.nodos import campos_de
     vistos = vistos if vistos is not None else set()
     if id(nodo) in vistos:
         return
@@ -1011,17 +1011,18 @@ def _todos(nodo, vistos=None):
         for x in nodo:
             yield from _todos(x, vistos)
         return
-    if not is_dataclass(nodo):
+    campos = campos_de(nodo)
+    if campos is None:
         return
     if hasattr(nodo, "linea"):
         yield nodo
-    for f in fields(nodo):
-        yield from _todos(getattr(nodo, f.name), vistos)
+    for nombre in campos:
+        yield from _todos(getattr(nodo, nombre), vistos)
 
 
 def _marcar(nodo, archivo, vistos=None):
     """Deja el archivo de origen en cada nodo, para los mensajes de error."""
-    from dataclasses import fields, is_dataclass
+    from tcode.nodos import campos_de
     vistos = vistos if vistos is not None else set()
     if id(nodo) in vistos:
         return
@@ -1030,21 +1031,25 @@ def _marcar(nodo, archivo, vistos=None):
         for x in nodo:
             _marcar(x, archivo, vistos)
         return
-    if not is_dataclass(nodo):
+    campos = campos_de(nodo)
+    if campos is None:
         return
     if hasattr(nodo, "archivo") and not nodo.archivo:
         nodo.archivo = archivo
-    for f in fields(nodo):
-        _marcar(getattr(nodo, f.name), archivo, vistos)
+    for nombre in campos:
+        _marcar(getattr(nodo, nombre), archivo, vistos)
 
 
 def parsear(fuente: str, archivo="<entrada>", structs_previos=None,
-            enums_previos=None) -> list:
+            enums_previos=None, tokens=None) -> list:
     """`structs_previos` trae los nombres de struct de los modulos ya
     cargados: hacen falta para saber que `Punto { x: 1 }` es un literal y no
     el inicio de un bloque. `enums_previos` es lo mismo para los enum:
-    `Color.Rojo` es una forma, no el campo `Rojo` de una variable `Color`."""
-    decls = Parser(tokenizar(fuente, archivo), archivo,
+    `Color.Rojo` es una forma, no el campo `Rojo` de una variable `Color`.
+    `tokens`, si el archivo ya se tokenizo."""
+    if tokens is None:
+        tokens = tokenizar(fuente, archivo)
+    decls = Parser(tokens, archivo,
                    structs_previos, enums_previos).programa()
     _marcar(decls, archivo)
     return decls

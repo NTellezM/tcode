@@ -144,14 +144,19 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
     // `Color.Rojo` es un `Color`.
     if igual(clase, "enum_lit") { return antes_del_punto(vista(n.texto)); }
 
-    // Un `match` vale lo que valgan sus brazos. Basta con mirar el primero
-    // que de algo: el comprobador ya exige que todos den lo mismo.
+    // Un `match` vale lo que valgan sus brazos, y eso lo dijo el comprobador.
+    // Sin lo que dijo, basta con el primer brazo que de algo que se sepa
+    // tipar: todos dan lo mismo. Uno que de lo atrapado no se sabe desde
+    // aqui, porque lo atrapado solo se declara dentro del brazo.
     if igual(clase, "match") {
+        let dicho = anotado_crudo(c, n);
+        if largo(dicho) > 0 && !empieza_con(vista(dicho), "{") { return dicho; }
         for h en n.hijos {
             if igual(vista(h.clase), "brazo") {
                 for x en h.hijos {
-                    if igual(vista(x.clase), "retorno") {
-                        if largo(x.hijos) > 0 { return tipo_de(c, x.hijos[0]); }
+                    if igual(vista(x.clase), "retorno") && largo(x.hijos) > 0 {
+                        let t = tipo_de(c, x.hijos[0]);
+                        if largo(t) > 0 { return t; }
                     }
                 }
             }
@@ -204,7 +209,16 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
 
     if igual(clase, "literal_struct") {
         // `P.Estado { ... }` es un `Estado`: el modulo es de quien escribe.
-        return sin_modulo(vista(n.texto));
+        let escrito = sin_modulo(vista(n.texto));
+        // `Par { a: -3, b: 1 }` es la copia que dedujo el comprobador.
+        if !contiene(vista(escrito), "<") {
+            let dicho = anotado_crudo(c, n);
+            if es_aplicacion(vista(dicho)) {
+                let base = base_de_aplicacion(vista(dicho));
+                if igual(vista(base), vista(escrito)) { return dicho; }
+            }
+        }
+        return escrito;
     }
 
     if igual(clase, "literal_lista") {
@@ -685,16 +699,19 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
         return vacio();
     }
 
-    // Una funcion del programa.
-    if !tiene(c.retornos, nombre) { return vacio(); }
-    let retorno = nuevo(obtener(c.retornos, nombre) sino "");
-    if !tiene(c.tipo_params, nombre) { return retorno; }
+    // Una funcion del programa. `B.hecho` se busca como la escribe quien
+    // llama: si dos modulos declaran `hecho`, el nombre a secas es de los dos.
+    var clave = nuevo(nombre);
+    if tiene(c.retornos, vista(n.texto)) { clave = copiar(n.texto); }
+    if !tiene(c.retornos, vista(clave)) { return vacio(); }
+    let retorno = nuevo(obtener(c.retornos, vista(clave)) sino "");
+    if !tiene(c.tipo_params, vista(clave)) { return retorno; }
 
     // Generica: se eligen los tipos mirando los argumentos, igual que hace
     // el comprobador, y se ponen en el tipo de retorno.
-    let sueltos = lista_de(c.tipo_params, nombre) sino [];
+    let sueltos = lista_de(c.tipo_params, vista(clave)) sino [];
     if largo(sueltos) == 0 { return retorno; }
-    let declarados = lista_de(c.params, nombre) sino [];
+    let declarados = lista_de(c.params, vista(clave)) sino [];
     var ligaduras: mapa<str, str> = [];
     var i = 0;
     while i < largo(declarados) && i < largo(n.hijos) {

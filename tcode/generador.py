@@ -527,7 +527,7 @@ class Generador:
         # Las llamadas falibles internas necesitan que exista su tipo de
         # resultado. Recorrer el AST evita meter soporte de archivos en el C
         # de programas que no lo usan.
-        from dataclasses import fields, is_dataclass
+        from tcode.nodos import campos_de
 
         def recorrer(x):
             if isinstance(x, Llamada) and x.nombre == "leer_archivo":
@@ -543,9 +543,11 @@ class Generador:
             if isinstance(x, (list, tuple)):
                 for y in x:
                     recorrer(y)
-            elif is_dataclass(x):
-                for campo in fields(x):
-                    recorrer(getattr(x, campo.name))
+                return
+            campos = campos_de(x)
+            if campos is not None:
+                for nombre in campos:
+                    recorrer(getattr(x, nombre))
 
         recorrer(decls)
 
@@ -1675,7 +1677,7 @@ class Generador:
     def _se_llama_a_si_misma(valor, nombre):
         """Si la expresion llama a una funcion que se llama como la variable
         que se esta declarando."""
-        from dataclasses import fields, is_dataclass
+        from tcode.nodos import campos_de
         pendientes = [valor]
         while pendientes:
             x = pendientes.pop()
@@ -1683,8 +1685,10 @@ class Generador:
                 return True
             if isinstance(x, (list, tuple)):
                 pendientes.extend(x)
-            elif is_dataclass(x):
-                pendientes.extend(getattr(x, f.name) for f in fields(x))
+                continue
+            campos = campos_de(x)
+            if campos is not None:
+                pendientes.extend(getattr(x, n) for n in campos)
         return False
 
     def match_c(self, e, destino=None):
@@ -1943,7 +1947,7 @@ class Generador:
     @staticmethod
     def movidas_en(nodo):
         """Variables cuya propiedad entrega esta expresion."""
-        from dataclasses import fields, is_dataclass
+        from tcode.nodos import campos_de
         nombres = set()
 
         def recorrer(x):
@@ -1952,9 +1956,11 @@ class Generador:
             if isinstance(x, (list, tuple)):
                 for y in x:
                     recorrer(y)
-            elif is_dataclass(x):
-                for campo in fields(x):
-                    recorrer(getattr(x, campo.name))
+                return
+            campos = campos_de(x)
+            if campos is not None:
+                for n in campos:
+                    recorrer(getattr(x, n))
 
         recorrer(nodo)
         return nombres

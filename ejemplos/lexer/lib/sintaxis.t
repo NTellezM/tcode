@@ -1513,9 +1513,66 @@ struct Usado {
     arbol: Nodo,
 }
 
+// Lo que ya se leyo de cada archivo en una compilacion: sus tokens, los
+// structs y enums que declara, y su arbol cuando alguien lo pidio. Un modulo
+// se leia y se analizaba otra vez por cada archivo que lo usa —57 analisis
+// para los 14 archivos de `tcodec`—; ahora una.
+struct Leidos {
+    indice: mapa<str, usize>,
+    tokens: lista<lista<Token>>,
+    structs: lista<mapa<str, usize>>,
+    enums: lista<mapa<str, usize>>,
+    arboles: lista<Nodo>,
+    con_arbol: lista<bool>,
+}
+
+fn leidos() -> Leidos {
+    return Leidos { indice: [], tokens: [], structs: [], enums: [], arboles: [],
+        con_arbol: [] };
+}
+
+// El sitio de `ruta` en lo leido, leyendola la primera vez. Si no se puede
+// leer, o esta vacia, uno que no esta: `largo(l.tokens)` o mas.
+fn leido(ruta: view, l: mut Leidos) -> usize {
+    if tiene(l.indice, ruta) { return obtener(l.indice, ruta) sino 0; }
+    let texto = leer_archivo(ruta) sino vacio();
+    if largo(texto) == 0 { return largo(l.tokens); }
+    let toks = analizar(vista(texto)) sino [];
+    let k = largo(l.tokens);
+    poner(l.indice, ruta, k);
+    anadir(l.structs, recoger_tras(toks, "struct"));
+    anadir(l.enums, recoger_tras(toks, "enum"));
+    anadir(l.tokens, toks);
+    anadir(l.arboles, rama("programa", 1));
+    anadir(l.con_arbol, false);
+    return k;
+}
+
+// Donde se busca lo que pide un `usar`: junto al archivo que lo pide, y desde
+// donde se ejecuta; con `.t` y sin el.
+fn candidatos_de(dir: view, pedido: view) -> lista<str> {
+    var candidatos: lista<str> = [];
+    var junto = nuevo(dir);
+    if largo(junto) > 0 { empujar(junto, "/"); }
+    empujar(junto, pedido);
+    anadir(candidatos, copiar(junto));
+    empujar(junto, ".t");
+    anadir(candidatos, junto);
+    anadir(candidatos, nuevo(pedido));
+    var suelto = nuevo(pedido);
+    empujar(suelto, ".t");
+    anadir(candidatos, suelto);
+    return candidatos;
+}
+
 // Los modulos que este archivo pide, analizados. Un solo nivel: lo que usen
 // ellos a su vez no se sigue, porque desde aqui no se nombra.
 fn modulos_usados(ruta: view, toks: &lista<Token>) -> lista<Usado> {
+    var l = leidos();
+    return modulos_usados_con(ruta, toks, l);
+}
+
+fn modulos_usados_con(ruta: view, toks: &lista<Token>, l: mut Leidos) -> lista<Usado> {
     var salida: lista<Usado> = [];
     let dir = carpeta(ruta);
     var i = 0;
@@ -1529,29 +1586,20 @@ fn modulos_usados(ruta: view, toks: &lista<Token>) -> lista<Usado> {
                         alias = nuevo(toks[i + 3].valor);
                     }
                 }
-                var candidatos: lista<str> = [];
-                var junto = nuevo(vista(dir));
-                if largo(junto) > 0 { empujar(junto, "/"); }
-                empujar(junto, vista(pedido));
-                anadir(candidatos, copiar(junto));
-                empujar(junto, ".t");
-                anadir(candidatos, junto);
-                anadir(candidatos, copiar(pedido));
-                var suelto = copiar(pedido);
-                empujar(suelto, ".t");
-                anadir(candidatos, suelto);
-
-                for c en candidatos {
-                    let texto = leer_archivo(vista(c)) sino vacio();
-                    if largo(texto) == 0 { continue; }
-                    let otros = analizar(vista(texto)) sino [];
-                    if largo(otros) == 0 { break; }
-                    let nombres = visibles(vista(c), otros, "struct");
-                    let formas = visibles(vista(c), otros, "enum");
-                    var e = estado_de(otros, vista(c), nombres, formas);
-                    let arbol = programa(e) sino rama("programa", 1);
+                for c en candidatos_de(dir, vista(pedido)) {
+                    let k = leido(vista(c), l);
+                    if k >= largo(l.tokens) { continue; }
+                    if largo(l.tokens[k]) == 0 { break; }
+                    if !l.con_arbol[k] {
+                        let otros = copiar(l.tokens[k]);
+                        let nombres = visibles_con(vista(c), otros, "struct", l);
+                        let formas = visibles_con(vista(c), otros, "enum", l);
+                        var e = estado_de(otros, vista(c), nombres, formas);
+                        l.arboles[k] = programa(e) sino rama("programa", 1);
+                        l.con_arbol[k] = true;
+                    }
                     anadir(salida, Usado { alias: copiar(alias),
-                            ruta: copiar(c), arbol: arbol });
+                            ruta: copiar(c), arbol: copiar(l.arboles[k]) });
                     break;
                 }
             }
@@ -1571,6 +1619,12 @@ fn enums_visibles(ruta: view, toks: &lista<Token>) -> mapa<str, usize> {
 
 // Los nombres declarados tras `palabra`, aqui y en lo que este archivo usa.
 fn visibles(ruta: view, toks: &lista<Token>, palabra: view) -> mapa<str, usize> {
+    var l = leidos();
+    return visibles_con(ruta, toks, palabra, l);
+}
+
+fn visibles_con(ruta: view, toks: &lista<Token>, palabra: view,
+    l: mut Leidos) -> mapa<str, usize> {
     var m = recoger_tras(toks, palabra);
     let dir = carpeta(ruta);
 
@@ -1578,29 +1632,15 @@ fn visibles(ruta: view, toks: &lista<Token>, palabra: view) -> mapa<str, usize> 
     while i + 1 < largo(toks) {
         if igual(vista(toks[i].valor), "usar") {
             if igual(vista(toks[i + 1].tipo), "cadena") {
-                let pedido = nuevo(toks[i + 1].valor);
-                var candidatos: lista<str> = [];
-                // Junto al archivo que lo pide, y desde donde se ejecuta.
-                var junto = nuevo(vista(dir));
-                if largo(junto) > 0 { empujar(junto, "/"); }
-                empujar(junto, vista(pedido));
-                anadir(candidatos, copiar(junto));
-                empujar(junto, ".t");
-                anadir(candidatos, junto);
-                anadir(candidatos, copiar(pedido));
-                var suelto = copiar(pedido);
-                empujar(suelto, ".t");
-                anadir(candidatos, suelto);
-
-                for c en candidatos {
-                    let texto = leer_archivo(vista(c)) sino vacio();
-                    if largo(texto) > 0 {
-                        let otros = analizar(vista(texto)) sino [];
-                        for nombre en recoger_tras(otros, palabra) {
-                            poner(m, vista(nombre), 1);
-                        }
-                        break;
+                for c en candidatos_de(dir, vista(toks[i + 1].valor)) {
+                    let k = leido(vista(c), l);
+                    if k >= largo(l.tokens) { continue; }
+                    if igual(palabra, "struct") {
+                        for nombre en claves(l.structs[k]) { poner(m, vista(nombre), 1); }
+                    } else {
+                        for nombre en claves(l.enums[k]) { poner(m, vista(nombre), 1); }
                     }
+                    break;
                 }
             }
         }
