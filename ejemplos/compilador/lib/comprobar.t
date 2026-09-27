@@ -449,6 +449,28 @@ fn es_struct(m: &Mundo, t: view) -> bool {
 
 fn es_enum(m: &Mundo, t: view) -> bool { return tiene(m.en_variantes, t); }
 
+// Si ninguna forma del enum lleva nada: sus valores son solo la etiqueta.
+fn enum_sin_datos(m: &Mundo, t: view) -> bool {
+    let vs = I.lista_de(m.en_variantes, t) sino [];
+    for v en vs {
+        if formas_de(m, t, v).largo() > 0 { return false; }
+    }
+    return true;
+}
+
+// `==` compara lo que no tiene partes: numeros, `bool`, textos y enums que
+// son solo su etiqueta. Con partes habria que decidir que es ser iguales, y
+// eso lo escribe quien compara. `""` si `t` se compara.
+fn por_que_no_se_compara(m: &Mundo, t: view) -> str {
+    if es_enum(m, t) && !enum_sin_datos(m, t) {
+        return $"`==` compara enums sin datos, y alguna forma de `{t}` lleva algo: miralo con `match`";
+    }
+    if es_struct(m, t) || T.es_lista(t) || T.es_mapa(t) || T.es_arreglo(t) || T.es_bloque(t) {
+        return $"`==` no compara `{t}`, que tiene partes: compara las que te importen";
+    }
+    return vacio();
+}
+
 // Los campos de un struct, con los tipos de una aplicacion ya puestos.
 fn campos_tipos(m: &Mundo, t: view) -> lista<str> {
     var salida: lista<str> = [];
@@ -3558,6 +3580,9 @@ fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) ->
         if es_texto(a) && es_texto(b) { return nuevo("bool"); }
         if !igual(a, b) {
             error(c, m, n.linea, $"no se pueden comparar `{ti}` y `{td}`");
+        } else {
+            let porque = por_que_no_se_compara(m, a);
+            if porque.largo() > 0 { error(c, m, n.linea, porque); }
         }
         if es_decimal(a) {
             aviso(c, m, n.linea, $"`{op}` entre decimales compara bit a bit: `0.1 + 0.2` no es `0.3`. Si querias 'aproximadamente', usa `cerca(a, b, tolerancia)` de `std/numero`");

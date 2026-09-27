@@ -918,6 +918,20 @@ class Comprobador:
             return False
         return any(self.posee(c.tipo, visitados | {tipo}) for c in st.campos)
 
+    def _por_que_no_se_compara(self, t):
+        """`==` compara lo que no tiene partes: numeros, `bool` y enums que
+        son solo su etiqueta. Con partes habria que decidir que es ser
+        iguales, y eso lo escribe quien compara. `""` si `t` se compara."""
+        en = self.enums.get(t)
+        if en is not None and any(v.tipos for v in en.variantes):
+            return (f"`==` compara enums sin datos, y alguna forma de `{t}` "
+                    f"lleva algo: miralo con `match`")
+        if (t in self.structs or es_lista(t) or es_mapa(t) or es_arreglo(t)
+                or es_bloque(t)):
+            return (f"`==` no compara `{t}`, que tiene partes: compara las "
+                    f"que te importen")
+        return ""
+
     def es_compuesto(self, t):
         """Tiene partes: se puede leer un campo o modificarlo en el sitio.
         Un escalar no lo es; prestarlo no aporta nada sobre copiarlo."""
@@ -3557,6 +3571,8 @@ class Comprobador:
         if e.op in {"==", "!="}:
             if ti != td:
                 self.error(e, f"no se pueden comparar `{ti}` y `{td}`")
+            elif self._por_que_no_se_compara(ti):
+                self.error(e, self._por_que_no_se_compara(ti))
             if ti == "str":
                 self.error(e, "no se comparan `str` con `==`: usa "
                               "`igual(vista(a), vista(b))`")

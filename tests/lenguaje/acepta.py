@@ -89,6 +89,20 @@ ACEPTA = [
         }''',
      "42 42 7 42\n"),
 
+    # Un enum sin datos se compara con `==` por su etiqueta, tambien el de un
+    # campo que llego prestado.
+    ("== entre enums sin datos",
+     '''enum Color { Rojo, Verde, Azul }
+        struct Punto { color: Color, x: usize }
+        fn es_verde(p: &Punto) -> bool { return p.color == Color.Verde; }
+        fn main() {
+            let a = Punto { color: Color.Verde, x: 1 };
+            let b = Punto { color: Color.Azul, x: 2 };
+            let c = b.color;
+            imprimir($"{es_verde(a)} {es_verde(b)} {c == Color.Azul} {c != b.color}\\n");
+        }''',
+     "true false true false\n"),
+
     # `for i en a..b` cuenta de `a` a `b` sin llegar. Cada extremo se calcula
     # una vez: cambiar dentro lo que dio el final no alarga el bucle. Con
     # signo, con `break` y `continue`, anidado y vacio.
