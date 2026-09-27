@@ -12,7 +12,7 @@ programa).
 """
 
 from tcode.comprobador import (
-    ESTATICO, PARAMETRO, LOCAL, es_arreglo, partes_arreglo, UNIDAD,
+    ESTATICO, PARAMETRO, es_arreglo, partes_arreglo, UNIDAD,
 )
 
 

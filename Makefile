@@ -8,11 +8,12 @@
 #   make ejemplos     compila y corre los ejemplos
 #   make bench        Tcode contra el mismo programa en C a mano
 #   make formato      deja todo el codigo Tcode en el formato canonico
+#   make lint         revisa el codigo Python con ruff
 #   make limpiar      borra lo que genera todo lo anterior
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint
 
 all: tcodec
 
@@ -86,3 +87,8 @@ formato: tcodec
 	    ./tcodec "$$f" --formatear --escribir; \
 	done
 	@echo "listo"
+
+# El codigo Python —el compilador de arranque y las suites— pasa `ruff`, con
+# lo que dice `pyproject.toml`.
+lint:
+	@ruff check
