@@ -27,12 +27,12 @@ fn empieza(t: view, p: view) -> bool {
 // Lo que hay entre el primer `<` y el ultimo `>`.
 fn entre_angulos(t: view) -> view {
     var desde = 0;
-    while desde < largo(t) {
+    while desde < t.largo() {
         if byte(t, desde) == 60 { break; }
         desde = desde + 1;
     }
-    if desde >= largo(t) { return rebanar(t, 0, 0); }
-    return rebanar(t, desde + 1, largo(t) - 1);
+    if desde >= t.largo() { return rebanar(t, 0, 0); }
+    return rebanar(t, desde + 1, t.largo() - 1);
 }
 
 // Parte por las comas de fuera: `str, lista<usize>` da dos trozos.
@@ -41,9 +41,9 @@ fn partir_tipos(dentro: view) -> lista<str> {
     var hondura = 0;
     var desde = 0;
     var i = 0;
-    while i <= largo(dentro) {
+    while i <= dentro.largo() {
         var corta = false;
-        if i == largo(dentro) {
+        if i == dentro.largo() {
             corta = true;
         } else {
             let b = byte(dentro, i);
@@ -56,7 +56,7 @@ fn partir_tipos(dentro: view) -> lista<str> {
         }
         if corta {
             let trozo = recortar(rebanar(dentro, desde, i));
-            if largo(trozo) > 0 { anadir(salida, nuevo(trozo)); }
+            if trozo.largo() > 0 { salida.anadir(nuevo(trozo)); }
             desde = i + 1;
         }
         i = i + 1;
@@ -94,8 +94,8 @@ fn es_referencia(t: view) -> bool {
 }
 
 fn apuntado(t: view) -> view {
-    if empieza(t, "&mut ") { return rebanar(t, 5, largo(t)); }
-    return rebanar(t, 1, largo(t));
+    if empieza(t, "&mut ") { return rebanar(t, 5, t.largo()); }
+    return rebanar(t, 1, t.largo());
 }
 
 // `fn(usize, str) -> bool` da ["usize", "str", "bool"]: los argumentos y,
@@ -104,7 +104,7 @@ fn partes_de_funcion(t: view) -> lista<str> {
     var hondura = 0;
     var cierre = 0;
     var i = 0;
-    while i < largo(t) {
+    while i < t.largo() {
         let b = byte(t, i);
         if b == 40 { hondura = hondura + 1; }
         if b == 41 {
@@ -117,13 +117,13 @@ fn partes_de_funcion(t: view) -> lista<str> {
     if cierre == 0 { return salida; }
     let dentro = rebanar(t, 3, cierre);
     if largo(recortar(dentro)) > 0 {
-        for x en partir_tipos(dentro) { anadir(salida, copiar(x)); }
+        for x en partir_tipos(dentro) { salida.anadir(copiar(x)); }
     }
-    let resto = recortar(rebanar(t, cierre + 1, largo(t)));
+    let resto = recortar(rebanar(t, cierre + 1, t.largo()));
     if empieza_con(resto, "->") {
-        anadir(salida, nuevo(recortar(rebanar(resto, 2, largo(resto)))));
+        salida.anadir(nuevo(recortar(rebanar(resto, 2, resto.largo()))));
     } else {
-        anadir(salida, nuevo("()"));
+        salida.anadir(nuevo("()"));
     }
     return salida;
 }
@@ -140,14 +140,14 @@ fn elemento(t: view) -> str {
         // `[[usize; 2]; 3]` es `[usize; 2]`, no `[usize`.
         var hondura = 0;
         var i = 1;
-        while i + 1 < largo(t) {
+        while i + 1 < t.largo() {
             let b = byte(t, i);
             if b == 91 || b == 60 { hondura = hondura + 1; }
             if (b == 93 || b == 62) && hondura > 0 { hondura = hondura - 1; }
             if b == 59 && hondura == 0 { return nuevo(rebanar(t, 1, i)); }
             i = i + 1;
         }
-        return nuevo(rebanar(t, 1, largo(t) - 1));
+        return nuevo(rebanar(t, 1, t.largo() - 1));
     }
     return nuevo(entre_angulos(t));
 }
@@ -155,7 +155,7 @@ fn elemento(t: view) -> str {
 // El valor de un mapa: el segundo de los dos que van entre angulos.
 fn valor_de_mapa(t: view) -> str ! {
     let partes = partir_tipos(entre_angulos(t));
-    if largo(partes) != 2 { falla "un mapa lleva clave y valor"; }
+    if partes.largo() != 2 { falla "un mapa lleva clave y valor"; }
     return copiar(partes[1]);
 }
 
@@ -164,14 +164,14 @@ fn valor_de_mapa(t: view) -> str ! {
 // ------------------------------------------------------------------
 
 fn escalar(t: view) -> bool {
-    if igual(t, "usize") || igual(t, "bool") || igual(t, "view") { return true; }
-    if igual(t, "u8") || igual(t, "u16") || igual(t, "u32") || igual(t, "u64") {
+    if t == "usize" || t == "bool" || t == "view" { return true; }
+    if t == "u8" || t == "u16" || t == "u32" || t == "u64" {
         return true;
     }
-    if igual(t, "i8") || igual(t, "i16") || igual(t, "i32") || igual(t, "i64") {
+    if t == "i8" || t == "i16" || t == "i32" || t == "i64" {
         return true;
     }
-    return igual(t, "f32") || igual(t, "f64") || igual(t, "()");
+    return t == "f32" || t == "f64" || t == "()";
 }
 
 // `campos` lleva, por cada struct, los tipos de sus campos.
@@ -180,7 +180,7 @@ fn escalar(t: view) -> bool {
 fn posee(campos: &mapa<str, lista<str>>, t: view,
     visitados: mut mapa<str, usize>) -> bool ! {
     if es_referencia(t) || es_funcion(t) { return false; }
-    if igual(t, "str") { return true; }
+    if t == "str" { return true; }
     if es_mapa(t) || es_lista(t) || es_bloque(t) { return true; }
     if es_arreglo(t) {
         let dentro = elemento(t);
@@ -190,12 +190,12 @@ fn posee(campos: &mapa<str, lista<str>>, t: view,
 
     // Un struct posee si alguno de sus campos posee.
     let nombre = nuevo(t);
-    if tiene(visitados, vista(nombre)) { return false; }
-    if !tiene(campos, vista(nombre)) { return false; }
+    if tiene(visitados, nombre) { return false; }
+    if !tiene(campos, nombre) { return false; }
     poner(visitados, vista(nombre), 1);
 
     var alguno = false;
-    let suyos = try obtener(campos, vista(nombre));
+    let suyos = try obtener(campos, nombre);
     for c en suyos {
         if try posee(campos, vista(c), visitados) { alguno = true; }
     }
@@ -206,7 +206,7 @@ fn tipo_existe(campos: &mapa<str, lista<str>>, t: view) -> bool {
     if es_referencia(t) {
         return tipo_existe(campos, apuntado(t));
     }
-    if igual(t, "str") || escalar(t) { return true; }
+    if t == "str" || escalar(t) { return true; }
     if es_funcion(t) { return true; }
     if es_arreglo(t) {
         let dentro = elemento(t);
@@ -214,7 +214,7 @@ fn tipo_existe(campos: &mapa<str, lista<str>>, t: view) -> bool {
     }
     if es_mapa(t) {
         let partes = partir_tipos(entre_angulos(t));
-        if largo(partes) != 2 { return false; }
+        if partes.largo() != 2 { return false; }
         return tipo_existe(campos, vista(partes[0]))
         && tipo_existe(campos, vista(partes[1]));
     }
@@ -222,8 +222,8 @@ fn tipo_existe(campos: &mapa<str, lista<str>>, t: view) -> bool {
         let dentro = elemento(t);
         // Guardar vistas o arreglos fijos en una coleccion exigiria expresar
         // su vida util o su tamaño, y v0 no los lleva en el tipo.
-        if igual(vista(dentro), "view") { return false; }
-        if es_arreglo(vista(dentro)) { return false; }
+        if dentro == "view" { return false; }
+        if es_arreglo(dentro) { return false; }
         return tipo_existe(campos, vista(dentro));
     }
     return tiene(campos, t);

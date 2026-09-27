@@ -1,6 +1,5 @@
 """TIPOS: la capa de tipos del comprobador, en Tcode."""
 
-import glob
 import os
 import shutil
 import subprocess
@@ -15,6 +14,7 @@ from .comun import (
     RUNTIME,
     Resultado,
     c_de_tcodec,
+    corpus_python,
 )
 
 TITULO = "la capa de tipos del comprobador, en Tcode"
@@ -68,10 +68,7 @@ def correr(suite: Resultado) -> None:
             if r.returncode != 0:
                 suite.falla("la capa de tipos en Tcode compila", r.stderr[:600])
             else:
-                archivos = sorted(
-                    glob.glob(os.path.join(RAIZ, "std", "*.t"))
-                    + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
-                                recursive=True))
+                archivos = corpus_python()
                 previos: set[str] = set()
                 for a in archivos:
                     from tcode.parser import parsear as _p

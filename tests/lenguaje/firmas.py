@@ -1,6 +1,5 @@
 """FIRMAS: la cara en C de cada funcion, dicha por Tcode."""
 
-import glob
 import os
 import shutil
 import subprocess
@@ -17,6 +16,7 @@ from .comun import (
     RUNTIME,
     Resultado,
     c_de_tcodec,
+    corpus_python,
 )
 
 TITULO = "la cara en C de cada funcion, dicha por Tcode"
@@ -81,10 +81,7 @@ def correr(suite: Resultado) -> None:
             if r.returncode != 0:
                 suite.falla("firmas en Tcode compila", r.stderr[:600])
             else:
-                archivos = sorted(
-                    glob.glob(os.path.join(RAIZ, "std", "*.t"))
-                    + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
-                                recursive=True))
+                archivos = corpus_python()
                 comparados = firmas = 0
                 for archivo in archivos:
                     esperado = _firmas_esperadas(archivo)
