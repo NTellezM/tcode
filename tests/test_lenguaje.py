@@ -15,6 +15,7 @@ Sin argumentos corre todas las secciones. Con nombres, solo esas:
     python3 tests/test_lenguaje.py --lista
 """
 
+import atexit
 import concurrent.futures
 import glob
 import os
@@ -27,7 +28,7 @@ import traceback
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
 
-from tcode.cli import compilar_a_c, compilar_archivo
+from tcode.cli import compilar_archivo
 from tcode.comprobador import tipo_de_parametro as _tipo_param
 from tcode.generador import Generador as _Gen
 from tcode.lexer import ErrorLexico
@@ -58,10 +59,84 @@ if _desconocidas:
 # Si corren todas: solo entonces las cifras de la suite son las de la suite.
 TODAS = not PEDIDAS
 
+# ---------- el compilador que se prueba ----------
+#
+# Es `tcodec`, el compilador escrito en Tcode, con los sanitizers puestos: cada
+# programa de la suite prueba tambien su memoria. El de Python solo lo arranca
+# y, en las secciones que lo dicen, hace de oraculo de lo que ya sabe hacer.
+
+SANITIZERS = ["-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+              "-fsanitize=address,undefined", "-fno-omit-frame-pointer"]
+SISTEMA_TCODEC = os.path.join(RAIZ, "ejemplos", "compilador", "lib", "sistema_tcodec.c")
+_TCODEC = {"ruta": os.environ.get("TCODE_TCODEC")}
+# El binario vive fuera del repositorio: se le dice donde estan `std/` y
+# `runtime/`.
+ENTORNO_TCODEC = dict(os.environ, TCODE_RAIZ=RAIZ)
+
+
+def construir_tcodec(directorio):
+    """`tcodec` en `directorio`, construido por el compilador de Python y
+    compilado con los sanitizers; si su C no cambio, sale de la cache."""
+    antes = os.getcwd()
+    os.chdir(RAIZ)
+    try:
+        codigo, errores = compilar_archivo(
+            os.path.join("ejemplos", "compilador", "tcodec.t"))
+    finally:
+        os.chdir(antes)
+    if errores:
+        raise RuntimeError("tcodec no compila:\n" + "\n".join(errores))
+    ruta_c = os.path.join(directorio, "tcodec.c")
+    binario = os.path.join(directorio, "tcodec")
+    with open(ruta_c, "w", encoding="utf-8") as f:
+        f.write(codigo)
+    r = herramienta(["cc", *SANITIZERS, f"-I{RUNTIME}", ruta_c,
+                     os.path.join(RUNTIME, "safestr.c"), SISTEMA_TCODEC,
+                     "-o", binario, "-lm"], capture_output=True, text=True)
+    if r.returncode != 0:
+        raise RuntimeError("el C de tcodec no compila:\n" + r.stderr[:600])
+    return binario
+
+
+def tcodec():
+    """El binario de `tcodec`: el que dio `TCODE_TCODEC`, o uno construido
+    ahora, una vez por proceso."""
+    if not _TCODEC["ruta"]:
+        directorio = tempfile.mkdtemp(prefix="tcode-tcodec-")
+        atexit.register(shutil.rmtree, directorio, ignore_errors=True)
+        _TCODEC["ruta"] = construir_tcodec(directorio)
+    return _TCODEC["ruta"]
+
+
+def tcodec_sobre(fuente, *opciones, directorio, nombre="p.t", timeout=120):
+    """Escribe `fuente` como `nombre` en `directorio` y se lo pasa a `tcodec`
+    desde ahi, con `opciones`: los mensajes dicen `p.t:3: ...`."""
+    with open(os.path.join(directorio, nombre), "w", encoding="utf-8") as f:
+        f.write(fuente)
+    return subprocess.run([tcodec(), nombre, *opciones], cwd=directorio,
+                          capture_output=True, text=True, timeout=timeout,
+                          env=ENTORNO_TCODEC)
+
+
+def bloques(texto, marca):
+    """Los mensajes que empiezan por `marca` (`error: `, `aviso: `), cada uno
+    con las lineas sangradas que lo siguen."""
+    salida = []
+    for linea in texto.splitlines():
+        if linea.startswith(marca):
+            salida.append(linea[len(marca):])
+        elif linea.startswith("  ") and salida:
+            salida[-1] += "\n" + linea
+    return salida
+
+
 # Las que mas tardan, en el orden en que conviene empezarlas: con una seccion
 # por proceso, la pasada entera dura lo que la mas larga.
 _PRIMERO = ["PROGRAMA", "CUERPOS", "EXPRESIONES", "TIPAR", "PROPIEDAD", "FIRMAS",
             "AUTOANALISIS", "EJEMPLOS", "ACEPTA", "TIPOS"]
+# Las que no usan `tcodec`: empiezan mientras se construye.
+_SIN_TCODEC = ["AUTOANALISIS", "TIPOS", "TIPAR", "PROPIEDAD", "FIRMAS",
+               "EXPRESIONES", "CUERPOS"]
 
 
 def _en_procesos(secciones):
@@ -76,18 +151,29 @@ def _en_procesos(secciones):
              + [s for s in SECCIONES if s in secciones and s not in _PRIMERO])
     tmp = tempfile.mkdtemp(prefix="tcode-secciones-")
 
+    # `tcodec` se construye una vez, mientras empiezan las que no lo usan, y
+    # cada seccion recibe el mismo.
+    constructor = concurrent.futures.ThreadPoolExecutor(1)
+    construido = constructor.submit(construir_tcodec, tmp)
+
     def una(seccion):
         ruta = os.path.join(tmp, seccion + ".json")
+        entorno = dict(os.environ, TCODE_RESULTADO=ruta)
+        if seccion not in _SIN_TCODEC:
+            try:
+                entorno["TCODE_TCODEC"] = construido.result()
+            except RuntimeError:
+                pass    # cada seccion lo intenta y dice por que no
         antes = time.monotonic()
         r = subprocess.run([sys.executable, os.path.abspath(__file__), seccion],
-                           capture_output=True, text=True,
-                           env=dict(os.environ, TCODE_RESULTADO=ruta))
+                           capture_output=True, text=True, env=entorno)
         return seccion, r, ruta, time.monotonic() - antes
 
     casos = fallas = 0
     cifras = {}
     try:
-        with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 2) as hilos:
+        # Uno mas que nucleos: las que esperan a `tcodec` no gastan nada.
+        with concurrent.futures.ThreadPoolExecutor((os.cpu_count() or 2) + 1) as hilos:
             for hecho in concurrent.futures.as_completed(
                     [hilos.submit(una, s) for s in orden]):
                 seccion, r, ruta, tardo = hecho.result()
@@ -114,6 +200,7 @@ def _en_procesos(secciones):
                     fallas += dicho["fallos"]
                     cifras.update(dicho["cifras"])
     finally:
+        constructor.shutdown()
         shutil.rmtree(tmp, ignore_errors=True)
     print(f"\n{casos} casos, {fallas} fallas")
     if TODAS:
@@ -1252,7 +1339,7 @@ RECHAZO = [
 
     ("un error dentro de un hueco dice la linea de la cadena",
      'fn main() {\n\n\n    imprimir($"[{1 +}]");\n}',
-     "<test>:4: se esperaba una expresion"),
+     "p.t:4: se esperaba una expresion"),
 
     # Los encontro el oraculo de P11, o salieron al escribirlo. Un `-3`
     # suelto ya no cabia en un `u8`; una cuenta negada pasaba y daba 249.
@@ -3700,18 +3787,12 @@ def en_procesos(funcion, trabajos):
 
 
 def c_de(fuente, tmp):
-    """El C de un programa, o AssertionError si no compila."""
-    if "usar " in fuente:
-        # Con `usar` hace falta el cargador de modulos, y para eso el fuente
-        # tiene que estar en un archivo.
-        ruta_t = os.path.join(tmp, "p.t")
-        with open(ruta_t, "w", encoding="utf-8") as f:
-            f.write(fuente)
-        codigo, errores = compilar_archivo(ruta_t)
-    else:
-        codigo, errores = compilar_a_c(fuente, "<test>")
-    assert not errores, "errores inesperados: " + "; ".join(errores)
-    return codigo
+    """El C que escribe `tcodec` para un programa, o AssertionError si no
+    compila."""
+    r = tcodec_sobre(fuente, "--mostrar-c", "--sin-avisos", directorio=tmp)
+    assert r.returncode == 0, ("errores inesperados: "
+                               + ("; ".join(bloques(r.stderr, "error: ")) or r.stderr))
+    return r.stdout
 
 
 def correr_c(codigo, tmp, con_sanitizers=True):
@@ -3737,37 +3818,42 @@ def correr_c(codigo, tmp, con_sanitizers=True):
 
 
 if seccion("RECHAZO", "programas que no deben compilar"):
-    for nombre, fuente, esperado in RECHAZO:
-        total += 1
-        try:
-            codigo, errores = compilar_a_c(fuente, "<test>")
-        except (ErrorLexico, ErrorSintactico) as exc:
-            errores = [str(exc)]
-        if not errores:
-            falla(nombre, "compilo, y no deberia")
-            continue
-        if not any(esperado in e for e in errores):
-            falla(nombre, f"se esperaba {esperado!r}, se obtuvo: {errores}")
+    # Cada programa se escribe como `p.t`, que es lo que dicen sus errores.
+    with tempfile.TemporaryDirectory() as tmp:
+        def _rechazo(i_caso):
+            i, (_, fuente, _) = i_caso
+            os.makedirs(os.path.join(tmp, str(i)))
+            return tcodec_sobre(fuente, "--solo-comprobar",
+                                directorio=os.path.join(tmp, str(i)))
+
+        for (nombre, _, esperado), r in zip(
+                RECHAZO, en_paralelo(_rechazo, list(enumerate(RECHAZO)))):
+            total += 1
+            errores = bloques(r.stderr, "error: ")
+            if r.returncode == 0:
+                falla(nombre, "compilo, y no deberia")
+            elif not any(esperado in e for e in errores):
+                falla(nombre, f"se esperaba {esperado!r}, se obtuvo: "
+                              f"{errores or r.stderr[-300:]}")
 
 if seccion("AVISA", "compilan igual, pero el compilador tiene algo que decir"):
-    for nombre, fuente, esperado in AVISA:
-        total += 1
-        try:
-            codigo, errores, comp = compilar_a_c(fuente, "<test>", devolver_comp=True)
-        except (ErrorLexico, ErrorSintactico) as exc:
-            falla(nombre, f"no parsea: {exc}")
-            continue
-        if errores:
-            falla(nombre, f"no deberia dar errores: {errores}")
-            continue
-        if codigo is None:
-            falla(nombre, "un aviso no puede impedir que se genere codigo")
-            continue
-        if esperado is None:
-            if comp.avisos:
-                falla(nombre, f"no deberia avisar nada, aviso: {comp.avisos}")
-        elif not any(esperado in a for a in comp.avisos):
-            falla(nombre, f"se esperaba {esperado!r}, hubo: {comp.avisos}")
+    with tempfile.TemporaryDirectory() as tmp:
+        for nombre, fuente, esperado in AVISA:
+            total += 1
+            r = tcodec_sobre(fuente, "--mostrar-c", directorio=tmp)
+            avisos = bloques(r.stderr, "aviso: ")
+            if r.returncode != 0:
+                falla(nombre, f"no deberia dar errores: "
+                              f"{bloques(r.stderr, 'error: ') or r.stderr[-300:]}")
+                continue
+            if not r.stdout:
+                falla(nombre, "un aviso no puede impedir que se genere codigo")
+                continue
+            if esperado is None:
+                if avisos:
+                    falla(nombre, f"no deberia avisar nada, aviso: {avisos}")
+            elif not any(esperado in a for a in avisos):
+                falla(nombre, f"se esperaba {esperado!r}, hubo: {avisos}")
 
 if seccion("ACEPTA", "compilan, corren limpio bajo ASan+UBSan"):
     with tempfile.TemporaryDirectory() as tmp:
@@ -3810,9 +3896,8 @@ if seccion("SALIDA", "el compilador nunca reemplaza sus fuentes"):
             f.write(contenido)
 
         total += 1
-        r = subprocess.run(
-            [sys.executable, "-m", "tcode", fuente, "-o", fuente],
-            cwd=RAIZ, capture_output=True, text=True)
+        r = subprocess.run([tcodec(), fuente, "-o", fuente], env=ENTORNO_TCODEC,
+                           capture_output=True, text=True)
         with open(fuente, encoding="utf-8") as f:
             despues = f.read()
         if r.returncode == 0:
@@ -3826,9 +3911,8 @@ if seccion("SALIDA", "el compilador nunca reemplaza sus fuentes"):
         sin_extension = os.path.join(tmp, "programa")
         with open(sin_extension, "w", encoding="utf-8") as f:
             f.write(contenido)
-        r = subprocess.run(
-            [sys.executable, "-m", "tcode", sin_extension],
-            cwd=RAIZ, capture_output=True, text=True)
+        r = subprocess.run([tcodec(), sin_extension], env=ENTORNO_TCODEC,
+                           capture_output=True, text=True)
         with open(sin_extension, encoding="utf-8") as f:
             despues = f.read()
         if r.returncode == 0 or despues != contenido:
@@ -3843,10 +3927,8 @@ if seccion("SALIDA", "el compilador nunca reemplaza sus fuentes"):
         marca_previa = b"binario anterior intacto\n"
         with open(binario_previo, "wb") as f:
             f.write(marca_previa)
-        r = subprocess.run(
-            [sys.executable, "-m", "tcode", fuente, "--cc", "/bin/false",
-             "-o", binario_previo],
-            cwd=RAIZ, capture_output=True, text=True)
+        r = subprocess.run([tcodec(), fuente, "--cc", "/bin/false", "-o", binario_previo],
+                           env=ENTORNO_TCODEC, capture_output=True, text=True)
         with open(binario_previo, "rb") as f:
             despues = f.read()
         if r.returncode == 0:
@@ -3864,9 +3946,8 @@ if seccion("SALIDA", "el compilador nunca reemplaza sus fuentes"):
         with open(real, "w", encoding="utf-8") as f:
             f.write('fn main() {\nimprimir("a");\n}\n')
         os.symlink(real, enlace)
-        r = subprocess.run(
-            [sys.executable, "-m", "tcode", enlace, "--formatear", "--escribir"],
-            cwd=RAIZ, capture_output=True, text=True)
+        r = subprocess.run([tcodec(), enlace, "--formatear", "--escribir"],
+                           env=ENTORNO_TCODEC, capture_output=True, text=True)
         with open(real, encoding="utf-8") as f:
             formateado = f.read()
         if r.returncode != 0 or not os.path.islink(enlace):
@@ -3880,9 +3961,8 @@ if seccion("SALIDA", "el compilador nunca reemplaza sus fuentes"):
         total += 1
         nuevo_bin = os.path.join(tmp, "con-umask")
         r = subprocess.run(
-            ["sh", "-c", 'umask 027 && exec "$@"', "sh", sys.executable, "-m",
-             "tcode", fuente, "-o", nuevo_bin],
-            cwd=RAIZ, capture_output=True, text=True)
+            ["sh", "-c", 'umask 027 && exec "$@"', "sh", tcodec(), fuente, "-o", nuevo_bin],
+            env=ENTORNO_TCODEC, capture_output=True, text=True)
         modo = os.stat(nuevo_bin).st_mode & 0o777 if os.path.exists(nuevo_bin) else None
         if r.returncode != 0 or modo != 0o750:
             falla("un binario nuevo respeta el umask",
@@ -5255,8 +5335,6 @@ fn main() {
 """]
 
     _MINIMO_PROGRAMAS = 25
-    # Lo que `tcodec` necesita del sistema, en C, junto a el.
-    _SISTEMA_TCODEC = os.path.join("ejemplos", "compilador", "lib", "sistema_tcodec.c")
     # Rechazos cuyo primer error dice `tcodec` igual que Python: todos, tambien
     # los de sintaxis, que dan el lexer y el parser escritos en Tcode.
     _MINIMO_RECHAZOS = 157
@@ -5269,677 +5347,665 @@ fn main() {
     _fondo = None
     try:
         os.chdir(RAIZ)
+        # El mismo `tcodec` que prueban las demas secciones.
         total += 1
-        codigo, errores = compilar_archivo(
-            os.path.join("ejemplos", "compilador", "tcodec.t"))
-        if errores:
-            falla("tcodec en Tcode", "\n".join(errores))
+        try:
+            binario, no_se_construye = tcodec(), None
+        except RuntimeError as exc:
+            binario, no_se_construye = None, str(exc)
+        if no_se_construye:
+            falla("tcodec en Tcode", no_se_construye)
         else:
-            ruta_c = os.path.join(tmp, "tcodec.c")
-            binario = os.path.join(tmp, "tcodec")
-            with open(ruta_c, "w", encoding="utf-8") as f:
-                f.write(codigo)
-            r = herramienta(
-                ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
-                 "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
-                 f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
-                 _SISTEMA_TCODEC,
-                 "-o", binario, "-lm"],
-                capture_output=True, text=True)
-            if r.returncode != 0:
-                falla("tcodec en Tcode compila", r.stderr[:600])
-            else:
-                # Desde la raiz y con la raiz relativa: `tcodec` todavia no sabe
-                # preguntar por el directorio de trabajo, y los `#line` son
-                # relativos a el.
-                entorno = dict(os.environ, TCODE_RAIZ=".")
+            # Desde la raiz y con la raiz relativa, como el compilador de
+            # Python: los mensajes y los `#line` son relativos a ella.
+            entorno = dict(os.environ, TCODE_RAIZ=".")
 
-                # El punto fijo, al final de la seccion, son pasos largos y en
-                # fila: `tcodec` con los sanitizers escribiendo su propio C, y
-                # construyendose a si mismo. Empiezan ya, en otros dos hilos,
-                # mientras corre todo lo demas.
-                propio = os.path.join("ejemplos", "compilador", "tcodec.t")
+            # El punto fijo, al final de la seccion, son pasos largos y en
+            # fila: `tcodec` con los sanitizers escribiendo su propio C, y
+            # construyendose a si mismo. Empiezan ya, en otros dos hilos,
+            # mientras corre todo lo demas.
+            propio = os.path.join("ejemplos", "compilador", "tcodec.t")
 
-                def _punto_fijo():
-                    e1 = subprocess.run([binario, propio, "--mostrar-c"],
-                                        capture_output=True, text=True,
-                                        timeout=600, env=entorno)
-                    r2 = e2 = None
-                    if e1.returncode == 0 and "Sanitizer" not in e1.stderr:
-                        ruta_c2 = os.path.join(tmp, "etapa2.c")
-                        binario2 = os.path.join(tmp, "etapa2")
-                        with open(ruta_c2, "w", encoding="utf-8") as f:
-                            f.write(e1.stdout)
-                        r2 = herramienta(
-                            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra",
-                             "-Werror", "-fsanitize=address,undefined",
-                             "-fno-omit-frame-pointer", f"-I{RUNTIME}", ruta_c2,
-                             os.path.join(RUNTIME, "safestr.c"), _SISTEMA_TCODEC,
-                             "-o", binario2, "-lm"],
-                            capture_output=True, text=True)
-                        if r2.returncode == 0:
-                            e2 = subprocess.run([binario2, propio, "--mostrar-c"],
-                                                capture_output=True, text=True,
-                                                timeout=600, env=entorno)
-                    return e1, r2, e2
+            def _punto_fijo():
+                e1 = subprocess.run([binario, propio, "--mostrar-c"],
+                                    capture_output=True, text=True,
+                                    timeout=600, env=entorno)
+                r2 = e2 = None
+                if e1.returncode == 0 and "Sanitizer" not in e1.stderr:
+                    ruta_c2 = os.path.join(tmp, "etapa2.c")
+                    binario2 = os.path.join(tmp, "etapa2")
+                    with open(ruta_c2, "w", encoding="utf-8") as f:
+                        f.write(e1.stdout)
+                    r2 = herramienta(
+                        ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra",
+                         "-Werror", "-fsanitize=address,undefined",
+                         "-fno-omit-frame-pointer", f"-I{RUNTIME}", ruta_c2,
+                         os.path.join(RUNTIME, "safestr.c"), SISTEMA_TCODEC,
+                         "-o", binario2, "-lm"],
+                        capture_output=True, text=True)
+                    if r2.returncode == 0:
+                        e2 = subprocess.run([binario2, propio, "--mostrar-c"],
+                                            capture_output=True, text=True,
+                                            timeout=600, env=entorno)
+                return e1, r2, e2
 
-                def _se_construye():
-                    binario3 = os.path.join(tmp, "etapa3")
-                    e3 = subprocess.run([binario, propio, "-o", binario3],
-                                        capture_output=True, text=True,
-                                        timeout=900, env=entorno)
-                    e4 = (subprocess.run([binario3, propio, "--mostrar-c"],
-                                         capture_output=True, text=True,
-                                         timeout=600, env=entorno)
-                          if e3.returncode == 0 else None)
-                    return e3, e4
+            def _se_construye():
+                binario3 = os.path.join(tmp, "etapa3")
+                e3 = subprocess.run([binario, propio, "-o", binario3],
+                                    capture_output=True, text=True,
+                                    timeout=900, env=entorno)
+                e4 = (subprocess.run([binario3, propio, "--mostrar-c"],
+                                     capture_output=True, text=True,
+                                     timeout=600, env=entorno)
+                      if e3.returncode == 0 else None)
+                return e3, e4
 
-                _fondo = concurrent.futures.ThreadPoolExecutor(2)
-                _punto_fijo_f = _fondo.submit(_punto_fijo)
-                _se_construye_f = _fondo.submit(_se_construye)
+            _fondo = concurrent.futures.ThreadPoolExecutor(2)
+            _punto_fijo_f = _fondo.submit(_punto_fijo)
+            _se_construye_f = _fondo.submit(_se_construye)
 
+            total += 1
+            literal_invalido = os.path.join(tmp, "literal-invalido.t")
+            with open(literal_invalido, "w", encoding="utf-8") as f:
+                f.write('fn main() { let x: u8 = 256; imprimir(x); }\n')
+            e = subprocess.run([binario, literal_invalido, "--mostrar-c"], capture_output=True,
+                               text=True, timeout=60, env=entorno)
+            if e.returncode == 0 or e.stdout:
+                falla("tcodec rechaza literales enteros fuera de rango",
+                      f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
+
+            total += 1
+            decimal_invalido = os.path.join(tmp, "decimal-invalido.t")
+            with open(decimal_invalido, "w", encoding="utf-8") as f:
+                f.write('fn main() { let x: f64 = 1e309; imprimir(x); }\n')
+            e = subprocess.run([binario, decimal_invalido, "--mostrar-c"], capture_output=True,
+                               text=True, timeout=60, env=entorno)
+            if e.returncode == 0 or e.stdout:
+                falla("tcodec rechaza literales decimales infinitos",
+                      f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
+
+            total += 1
+            inexacto = os.path.join(tmp, "entero-inexacto.t")
+            with open(inexacto, "w", encoding="utf-8") as f:
+                f.write('fn main() { let x: f64 = 9007199254740993; '
+                        'imprimir(x); }\n')
+            e = subprocess.run([binario, inexacto, "--mostrar-c"], capture_output=True,
+                               text=True, timeout=60, env=entorno)
+            if e.returncode == 0 or e.stdout:
+                falla("tcodec rechaza enteros que un decimal redondearia",
+                      f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
+
+            total += 1
+            literal_valido = os.path.join(tmp, "literal-valido.t")
+            with open(literal_valido, "w", encoding="utf-8") as f:
+                f.write('fn main() { let a: i8 = -128; '
+                        'let b: u64 = 18446744073709551615; '
+                        'let c: f32 = 3.4028234e38; '
+                        'let d: f64 = 1.7976931348623157e308; '
+                        'let g: f32 = 3.4028235e38; '
+                        'let h: usize = 5000000000; let k = 010; '
+                        'let m: i8 = -0128; '
+                        'imprimir($"{a} {b} {c} {d} {g} {h} {k} {m}\\n"); }\n')
+            esperado_literal, errores_literal = compilar_archivo(literal_valido)
+            e = subprocess.run([binario, literal_valido, "--mostrar-c"], capture_output=True,
+                               text=True, timeout=60, env=entorno)
+            if errores_literal or e.returncode != 0 or e.stdout != esperado_literal:
+                falla("tcodec conserva los limites enteros validos",
+                      f"errores {errores_literal}, codigo {e.returncode}, "
+                      f"stderr {e.stderr[:300]!r}")
+
+            # Clausuras con y sin capturas, una dentro de otra, guardadas en
+            # una variable, pasadas a una generica, y punteros a funcion,
+            # tambien uno que recibe otro. Nada de eso lo pide un programa del
+            # repositorio salvo lo de `pruebas.t`.
+            trabajos_c = []
+            for nombre_c, fuente_c in (("cierres.t", _CIERRES_TCODEC),
+                                       ("anidado.t", _FN_ANIDADA_TCODEC),
+                                       ("precedencia.t", _PRECEDENCIA_TCODEC),
+                                       ("generica.t", _CIERRE_EN_GENERICA_TCODEC),
+                                       ("captura.t", _CAPTURA_CON_DUENIO_TCODEC),
+                                       ("escribe.t", _ESCRIBIR_ARCHIVO_TCODEC),
+                                       ("llave.t", _LLAVE_ESCRITA_TCODEC),
+                                       ("modifica.t", _CIERRE_QUE_MODIFICA_TCODEC),
+                                       ("patrones.t", _PATRONES_TCODEC),
+                                       ("sacado.t", _CAMPO_SACADO_TCODEC),
+                                       ("sacado2.t", _CAMPO_SACADO_RETORNO_TCODEC),
+                                       ("prestado.t", _STRUCT_PRESTADO_TCODEC),
+                                       ("corto.t", _CORTOCIRCUITO_TCODEC),
+                                       ("enum_st.t", _ENUM_CON_STRUCT_TCODEC),
+                                       ("orden.t", _ORDEN_TCODEC),
+                                       ("copias.t", _COPIAS_ANIDADAS_TCODEC),
+                                       ("entregado.t", _STR_ENTREGADO_TCODEC),
+                                       ("inicial.t", _SU_INICIALIZADOR_TCODEC)):
+                ruta_cierre = os.path.join(tmp, nombre_c)
+                with open(ruta_cierre, "w", encoding="utf-8") as f:
+                    f.write(fuente_c)
+                trabajos_c.append((nombre_c, ruta_cierre))
+            trabajos_c = [(n, r, *hecho) for (n, r), hecho in zip(
+                trabajos_c, en_procesos(compilar_archivo, [r for _, r in trabajos_c]))]
+
+            # Lo que cuesta de aqui en adelante es `tcodec`, con los
+            # sanitizers puestos: cada bucle calcula antes lo de Python y
+            # despues le pide a `tcodec` todo a la vez.
+            def _tcodec(*args, timeout=120):
+                return subprocess.run([binario, *args], capture_output=True,
+                                      text=True, timeout=timeout, env=entorno)
+
+            for (nombre_c, _, esperado_c, errores_c), e in zip(
+                    trabajos_c, en_paralelo(lambda t: _tcodec(t[1], "--mostrar-c"),
+                                            trabajos_c)):
                 total += 1
-                literal_invalido = os.path.join(tmp, "literal-invalido.t")
-                with open(literal_invalido, "w", encoding="utf-8") as f:
-                    f.write('fn main() { let x: u8 = 256; imprimir(x); }\n')
-                e = subprocess.run([binario, literal_invalido, "--mostrar-c"], capture_output=True,
-                                   text=True, timeout=60, env=entorno)
-                if e.returncode == 0 or e.stdout:
-                    falla("tcodec rechaza literales enteros fuera de rango",
-                          f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
-
-                total += 1
-                decimal_invalido = os.path.join(tmp, "decimal-invalido.t")
-                with open(decimal_invalido, "w", encoding="utf-8") as f:
-                    f.write('fn main() { let x: f64 = 1e309; imprimir(x); }\n')
-                e = subprocess.run([binario, decimal_invalido, "--mostrar-c"], capture_output=True,
-                                   text=True, timeout=60, env=entorno)
-                if e.returncode == 0 or e.stdout:
-                    falla("tcodec rechaza literales decimales infinitos",
-                          f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
-
-                total += 1
-                inexacto = os.path.join(tmp, "entero-inexacto.t")
-                with open(inexacto, "w", encoding="utf-8") as f:
-                    f.write('fn main() { let x: f64 = 9007199254740993; '
-                            'imprimir(x); }\n')
-                e = subprocess.run([binario, inexacto, "--mostrar-c"], capture_output=True,
-                                   text=True, timeout=60, env=entorno)
-                if e.returncode == 0 or e.stdout:
-                    falla("tcodec rechaza enteros que un decimal redondearia",
-                          f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
-
-                total += 1
-                literal_valido = os.path.join(tmp, "literal-valido.t")
-                with open(literal_valido, "w", encoding="utf-8") as f:
-                    f.write('fn main() { let a: i8 = -128; '
-                            'let b: u64 = 18446744073709551615; '
-                            'let c: f32 = 3.4028234e38; '
-                            'let d: f64 = 1.7976931348623157e308; '
-                            'let g: f32 = 3.4028235e38; '
-                            'let h: usize = 5000000000; let k = 010; '
-                            'let m: i8 = -0128; '
-                            'imprimir($"{a} {b} {c} {d} {g} {h} {k} {m}\\n"); }\n')
-                esperado_literal, errores_literal = compilar_archivo(literal_valido)
-                e = subprocess.run([binario, literal_valido, "--mostrar-c"], capture_output=True,
-                                   text=True, timeout=60, env=entorno)
-                if errores_literal or e.returncode != 0 or e.stdout != esperado_literal:
-                    falla("tcodec conserva los limites enteros validos",
-                          f"errores {errores_literal}, codigo {e.returncode}, "
+                if errores_c or e.returncode != 0 or e.stdout != esperado_c:
+                    falla(f"tcodec escribe {nombre_c}",
+                          f"errores {errores_c}, codigo {e.returncode}, "
                           f"stderr {e.stderr[:300]!r}")
 
-                # Clausuras con y sin capturas, una dentro de otra, guardadas en
-                # una variable, pasadas a una generica, y punteros a funcion,
-                # tambien uno que recibe otro. Nada de eso lo pide un programa del
-                # repositorio salvo lo de `pruebas.t`.
-                trabajos_c = []
-                for nombre_c, fuente_c in (("cierres.t", _CIERRES_TCODEC),
-                                           ("anidado.t", _FN_ANIDADA_TCODEC),
-                                           ("precedencia.t", _PRECEDENCIA_TCODEC),
-                                           ("generica.t", _CIERRE_EN_GENERICA_TCODEC),
-                                           ("captura.t", _CAPTURA_CON_DUENIO_TCODEC),
-                                           ("escribe.t", _ESCRIBIR_ARCHIVO_TCODEC),
-                                           ("llave.t", _LLAVE_ESCRITA_TCODEC),
-                                           ("modifica.t", _CIERRE_QUE_MODIFICA_TCODEC),
-                                           ("patrones.t", _PATRONES_TCODEC),
-                                           ("sacado.t", _CAMPO_SACADO_TCODEC),
-                                           ("sacado2.t", _CAMPO_SACADO_RETORNO_TCODEC),
-                                           ("prestado.t", _STRUCT_PRESTADO_TCODEC),
-                                           ("corto.t", _CORTOCIRCUITO_TCODEC),
-                                           ("enum_st.t", _ENUM_CON_STRUCT_TCODEC),
-                                           ("orden.t", _ORDEN_TCODEC),
-                                           ("copias.t", _COPIAS_ANIDADAS_TCODEC),
-                                           ("entregado.t", _STR_ENTREGADO_TCODEC),
-                                           ("inicial.t", _SU_INICIALIZADOR_TCODEC)):
-                    ruta_cierre = os.path.join(tmp, nombre_c)
-                    with open(ruta_cierre, "w", encoding="utf-8") as f:
-                        f.write(fuente_c)
-                    trabajos_c.append((nombre_c, ruta_cierre))
-                trabajos_c = [(n, r, *hecho) for (n, r), hecho in zip(
-                    trabajos_c, en_procesos(compilar_archivo, [r for _, r in trabajos_c]))]
+            # El comprobador en Tcode: lo que Python rechaza, tcodec tambien, y
+            # con el mismo primer error; lo que Python acepta, tcodec no lo
+            # rechaza nunca por una regla del lenguaje.
+            def _errores_tcodec(ruta):
+                r = subprocess.run([binario, ruta, "--solo-comprobar"],
+                                   capture_output=True, text=True, timeout=120,
+                                   env=entorno)
+                bloques = []
+                for linea in r.stderr.splitlines():
+                    if linea.startswith("error: "):
+                        bloques.append(linea[len("error: "):])
+                    elif linea.startswith("  ") and bloques:
+                        bloques[-1] += "\n" + linea
+                return r.returncode, bloques, r.stderr
 
-                # Lo que cuesta de aqui en adelante es `tcodec`, con los
-                # sanitizers puestos: cada bucle calcula antes lo de Python y
-                # despues le pide a `tcodec` todo a la vez.
-                def _tcodec(*args, timeout=120):
-                    return subprocess.run([binario, *args], capture_output=True,
-                                          text=True, timeout=timeout, env=entorno)
+            def _errores_python(ruta):
+                try:
+                    _, errs = compilar_archivo(ruta)
+                except Exception as exc:
+                    return [str(exc)]
+                return errs or []
 
-                for (nombre_c, _, esperado_c, errores_c), e in zip(
-                        trabajos_c, en_paralelo(lambda t: _tcodec(t[1], "--mostrar-c"),
-                                                trabajos_c)):
-                    total += 1
-                    if errores_c or e.returncode != 0 or e.stdout != esperado_c:
-                        falla(f"tcodec escribe {nombre_c}",
-                              f"errores {errores_c}, codigo {e.returncode}, "
-                              f"stderr {e.stderr[:300]!r}")
-
-                # El comprobador en Tcode: lo que Python rechaza, tcodec tambien, y
-                # con el mismo primer error; lo que Python acepta, tcodec no lo
-                # rechaza nunca por una regla del lenguaje.
-                def _errores_tcodec(ruta):
-                    r = subprocess.run([binario, ruta, "--solo-comprobar"],
-                                       capture_output=True, text=True, timeout=120,
-                                       env=entorno)
-                    bloques = []
-                    for linea in r.stderr.splitlines():
-                        if linea.startswith("error: "):
-                            bloques.append(linea[len("error: "):])
-                        elif linea.startswith("  ") and bloques:
-                            bloques[-1] += "\n" + linea
-                    return r.returncode, bloques, r.stderr
-
-                def _errores_python(ruta):
-                    try:
-                        _, errs = compilar_archivo(ruta)
-                    except Exception as exc:
-                        return [str(exc)]
-                    return errs or []
-
-                mismos = rechazados = 0
-                escritos_r = []
-                for i, (nombre, fuente, _esperado) in enumerate(RECHAZO):
-                    ruta_r = os.path.join(tmp, f"rechazo-{i}.t")
-                    with open(ruta_r, "w", encoding="utf-8") as f:
-                        f.write(fuente)
-                    escritos_r.append((nombre, ruta_r))
-                trabajos_r = [(nombre, ruta_r, de_python)
-                              for (nombre, ruta_r), de_python in zip(
-                                  escritos_r, en_procesos(_errores_python,
-                                                          [r for _, r in escritos_r]))
-                              if de_python]
-                for (nombre, _, de_python), (rc, de_tcodec, crudo) in zip(
-                        trabajos_r, en_paralelo(lambda t: _errores_tcodec(t[1]),
-                                                trabajos_r)):
-                    rechazados += 1
-                    total += 1
-                    if rc == 0:
-                        falla("el comprobador en Tcode rechaza lo que Python rechaza",
-                              f"{nombre}: tcodec lo acepto; Python dice "
-                              f"{de_python[0][:200]!r}")
-                    elif de_tcodec and de_tcodec[0] == de_python[0]:
-                        mismos += 1
+            mismos = rechazados = 0
+            escritos_r = []
+            for i, (nombre, fuente, _esperado) in enumerate(RECHAZO):
+                ruta_r = os.path.join(tmp, f"rechazo-{i}.t")
+                with open(ruta_r, "w", encoding="utf-8") as f:
+                    f.write(fuente)
+                escritos_r.append((nombre, ruta_r))
+            trabajos_r = [(nombre, ruta_r, de_python)
+                          for (nombre, ruta_r), de_python in zip(
+                              escritos_r, en_procesos(_errores_python,
+                                                      [r for _, r in escritos_r]))
+                          if de_python]
+            for (nombre, _, de_python), (rc, de_tcodec, crudo) in zip(
+                    trabajos_r, en_paralelo(lambda t: _errores_tcodec(t[1]),
+                                            trabajos_r)):
+                rechazados += 1
                 total += 1
-                if mismos < _MINIMO_RECHAZOS:
-                    falla("el comprobador en Tcode da los mismos errores",
-                          f"solo {mismos} de {rechazados} con el mismo primer "
-                          f"error; se esperaban al menos {_MINIMO_RECHAZOS}")
+                if rc == 0:
+                    falla("el comprobador en Tcode rechaza lo que Python rechaza",
+                          f"{nombre}: tcodec lo acepto; Python dice "
+                          f"{de_python[0][:200]!r}")
+                elif de_tcodec and de_tcodec[0] == de_python[0]:
+                    mismos += 1
+            total += 1
+            if mismos < _MINIMO_RECHAZOS:
+                falla("el comprobador en Tcode da los mismos errores",
+                      f"solo {mismos} de {rechazados} con el mismo primer "
+                      f"error; se esperaban al menos {_MINIMO_RECHAZOS}")
 
-                correctos = 0
-                aceptables = [(n, f) for n, f, *_ in ACEPTA]
+            correctos = 0
+            aceptables = [(n, f) for n, f, *_ in ACEPTA]
+            for archivo in sorted(glob.glob(os.path.join("std", "*.t"))
+                                  + glob.glob(os.path.join("ejemplos", "**", "*.t"),
+                                              recursive=True)):
+                with open(archivo, encoding="utf-8") as f:
+                    aceptables.append((archivo, f.read()))
+            escritos_a = []
+            for i, (nombre, fuente) in enumerate(aceptables):
+                ruta_a = (nombre if os.path.exists(nombre)
+                          else os.path.join(tmp, f"acepta-{i}.t"))
+                if not os.path.exists(nombre):
+                    with open(ruta_a, "w", encoding="utf-8") as f:
+                        f.write(fuente)
+                escritos_a.append((nombre, ruta_a))
+            trabajos_a = [t for t, de_python in zip(
+                escritos_a, en_procesos(_errores_python, [r for _, r in escritos_a]))
+                          if not de_python]
+            for (nombre, _), (rc, de_tcodec, crudo) in zip(
+                    trabajos_a, en_paralelo(lambda t: _errores_tcodec(t[1]),
+                                            trabajos_a)):
+                correctos += 1
+                total += 1
+                if de_tcodec:
+                    falla("el comprobador en Tcode no rechaza programas correctos",
+                          f"{nombre}: {de_tcodec[0][:300]}")
+            cifra("rechazos_iguales", mismos)
+            cifra("rechazos", rechazados)
+            cifra("correctos", correctos)
+            print(f"    comprobador: {mismos} de {rechazados} rechazos con el "
+                  f"mismo primer error, y ninguno de {correctos} programas "
+                  f"correctos rechazado")
+
+            # Los errores de sintaxis, sobre el codigo real: cada archivo del
+            # repositorio roto de varias formas —un token de menos, de mas,
+            # un simbolo fuera de sitio, una cadena sin cerrar, un caracter
+            # que no existe— y el primer error tiene que ser el mismo. Los
+            # mutantes van junto al original para que sus `usar` sigan
+            # valiendo, y se borran siempre.
+            import random as _random
+            from tcode.lexer import tokenizar as _tokenizar
+
+            def _mutantes(fuente, semilla):
+                rnd = _random.Random(semilla)
+                lineas = fuente.split("\n")
+                toks = [t for t in _tokenizar(fuente, "x") if t.tipo != "fin"]
+                for _ in range(_MUTACIONES_POR_ARCHIVO):
+                    t = rnd.choice(toks)
+                    li = lineas[t.linea - 1]
+                    c = t.col - 1
+                    literal = t.tipo in ("cadena", "interpolada")
+                    forma = rnd.choice(["borra", "dup", "punto", "paren", "llave",
+                                        "arroba", "comilla", "cero", "fn"])
+                    if literal:
+                        forma = rnd.choice(["punto", "paren", "arroba", "comilla"])
+                    n = len(t.valor)
+                    nueva = {
+                        "borra": lambda: li[:c] + li[c + n:],
+                        "dup": lambda: li[:c] + li[c:c + n] + " " + li[c:],
+                        "punto": lambda: li[:c] + ";" + li[c:],
+                        "paren": lambda: li[:c] + ")" + li[c:],
+                        "llave": lambda: li[:c] + "{" + li[c:],
+                        "arroba": lambda: li[:c] + "@" + li[c:],
+                        "comilla": lambda: li[:c] + '"' + li[c:],
+                        "cero": lambda: li[:c] + "0x" + li[c:],
+                        "fn": lambda: li[:c] + "fn " + li[c:],
+                    }[forma]()
+                    otras = list(lineas)
+                    otras[t.linea - 1] = nueva
+                    yield f"{forma} en la linea {t.linea}", "\n".join(otras)
+
+            # Cada mutante con su nombre, para que esten todos a la vez
+            # mientras `tcodec` los lee.
+            iguales_s = rotos = 0
+            trabajos_m = []
+            escritos_m = []
+            try:
                 for archivo in sorted(glob.glob(os.path.join("std", "*.t"))
                                       + glob.glob(os.path.join("ejemplos", "**", "*.t"),
                                                   recursive=True)):
                     with open(archivo, encoding="utf-8") as f:
-                        aceptables.append((archivo, f.read()))
-                escritos_a = []
-                for i, (nombre, fuente) in enumerate(aceptables):
-                    ruta_a = (nombre if os.path.exists(nombre)
-                              else os.path.join(tmp, f"acepta-{i}.t"))
-                    if not os.path.exists(nombre):
-                        with open(ruta_a, "w", encoding="utf-8") as f:
-                            f.write(fuente)
-                    escritos_a.append((nombre, ruta_a))
-                trabajos_a = [t for t, de_python in zip(
-                    escritos_a, en_procesos(_errores_python, [r for _, r in escritos_a]))
-                              if not de_python]
-                for (nombre, _), (rc, de_tcodec, crudo) in zip(
-                        trabajos_a, en_paralelo(lambda t: _errores_tcodec(t[1]),
-                                                trabajos_a)):
-                    correctos += 1
+                        fuente_o = f.read()
+                    for k_m, (que, fuente_m) in enumerate(_mutantes(fuente_o, archivo)):
+                        ruta_m = os.path.join(os.path.dirname(archivo),
+                                              f".mut_{k_m}_" + os.path.basename(archivo))
+                        escritos_m.append(ruta_m)
+                        with open(ruta_m, "w", encoding="utf-8") as f:
+                            f.write(fuente_m)
+                        trabajos_m.append((archivo, que, ruta_m))
+                trabajos_m = [(archivo, que, ruta_m, de_python)
+                              for (archivo, que, ruta_m), de_python in zip(
+                                  trabajos_m, en_procesos(
+                                      _errores_python, [t[2] for t in trabajos_m]))
+                              if de_python]
+                for (archivo, que, _, de_python), (rc, de_tcodec, crudo) in zip(
+                        trabajos_m, en_paralelo(lambda t: _errores_tcodec(t[2]),
+                                                trabajos_m)):
+                    rotos += 1
                     total += 1
-                    if de_tcodec:
-                        falla("el comprobador en Tcode no rechaza programas correctos",
-                              f"{nombre}: {de_tcodec[0][:300]}")
-                cifra("rechazos_iguales", mismos)
-                cifra("rechazos", rechazados)
-                cifra("correctos", correctos)
-                print(f"    comprobador: {mismos} de {rechazados} rechazos con el "
-                      f"mismo primer error, y ninguno de {correctos} programas "
-                      f"correctos rechazado")
-
-                # Los errores de sintaxis, sobre el codigo real: cada archivo del
-                # repositorio roto de varias formas —un token de menos, de mas,
-                # un simbolo fuera de sitio, una cadena sin cerrar, un caracter
-                # que no existe— y el primer error tiene que ser el mismo. Los
-                # mutantes van junto al original para que sus `usar` sigan
-                # valiendo, y se borran siempre.
-                import random as _random
-                from tcode.lexer import tokenizar as _tokenizar
-
-                def _mutantes(fuente, semilla):
-                    rnd = _random.Random(semilla)
-                    lineas = fuente.split("\n")
-                    toks = [t for t in _tokenizar(fuente, "x") if t.tipo != "fin"]
-                    for _ in range(_MUTACIONES_POR_ARCHIVO):
-                        t = rnd.choice(toks)
-                        li = lineas[t.linea - 1]
-                        c = t.col - 1
-                        literal = t.tipo in ("cadena", "interpolada")
-                        forma = rnd.choice(["borra", "dup", "punto", "paren", "llave",
-                                            "arroba", "comilla", "cero", "fn"])
-                        if literal:
-                            forma = rnd.choice(["punto", "paren", "arroba", "comilla"])
-                        n = len(t.valor)
-                        nueva = {
-                            "borra": lambda: li[:c] + li[c + n:],
-                            "dup": lambda: li[:c] + li[c:c + n] + " " + li[c:],
-                            "punto": lambda: li[:c] + ";" + li[c:],
-                            "paren": lambda: li[:c] + ")" + li[c:],
-                            "llave": lambda: li[:c] + "{" + li[c:],
-                            "arroba": lambda: li[:c] + "@" + li[c:],
-                            "comilla": lambda: li[:c] + '"' + li[c:],
-                            "cero": lambda: li[:c] + "0x" + li[c:],
-                            "fn": lambda: li[:c] + "fn " + li[c:],
-                        }[forma]()
-                        otras = list(lineas)
-                        otras[t.linea - 1] = nueva
-                        yield f"{forma} en la linea {t.linea}", "\n".join(otras)
-
-                # Cada mutante con su nombre, para que esten todos a la vez
-                # mientras `tcodec` los lee.
-                iguales_s = rotos = 0
-                trabajos_m = []
-                escritos_m = []
-                try:
-                    for archivo in sorted(glob.glob(os.path.join("std", "*.t"))
-                                          + glob.glob(os.path.join("ejemplos", "**", "*.t"),
-                                                      recursive=True)):
-                        with open(archivo, encoding="utf-8") as f:
-                            fuente_o = f.read()
-                        for k_m, (que, fuente_m) in enumerate(_mutantes(fuente_o, archivo)):
-                            ruta_m = os.path.join(os.path.dirname(archivo),
-                                                  f".mut_{k_m}_" + os.path.basename(archivo))
-                            escritos_m.append(ruta_m)
-                            with open(ruta_m, "w", encoding="utf-8") as f:
-                                f.write(fuente_m)
-                            trabajos_m.append((archivo, que, ruta_m))
-                    trabajos_m = [(archivo, que, ruta_m, de_python)
-                                  for (archivo, que, ruta_m), de_python in zip(
-                                      trabajos_m, en_procesos(
-                                          _errores_python, [t[2] for t in trabajos_m]))
-                                  if de_python]
-                    for (archivo, que, _, de_python), (rc, de_tcodec, crudo) in zip(
-                            trabajos_m, en_paralelo(lambda t: _errores_tcodec(t[2]),
-                                                    trabajos_m)):
-                        rotos += 1
-                        total += 1
-                        if de_tcodec and de_tcodec[0] == de_python[0]:
-                            iguales_s += 1
-                        else:
-                            falla("los errores de sintaxis en Tcode",
-                                  f"{archivo}, {que}:\n"
-                                  f"  Python: {de_python[0][:300]!r}\n"
-                                  f"  Tcode:  {(de_tcodec[:1] or [crudo[:300]])[0]!r}")
-                finally:
-                    for ruta_m in escritos_m:
-                        if os.path.exists(ruta_m):
-                            os.remove(ruta_m)
-                cifra("rotos_iguales", iguales_s)
-                cifra("rotos", rotos)
-                print(f"    sintaxis: {iguales_s} de {rotos} programas rotos, mismo "
-                      f"primer error que el lexer y el parser de Python")
-
-
-                # Las herramientas de alrededor, contra las de Python: los errores
-                # de modulos, los avisos, el formato y `--explicar`.
-                def _stderr_bloques(texto, marca):
-                    salida = []
-                    for linea in texto.splitlines():
-                        if linea.startswith(marca):
-                            salida.append(linea[len(marca):])
-                        elif linea.startswith("  ") and salida:
-                            salida[-1] += "\n" + linea
-                    return salida
-
-                mods_iguales = mods_total = 0
-                trabajos_mo = []
-                for nombre_m, archivos_m, principal_m, *_ in (
-                        list(MODULOS) + [(n, a, p) for n, a, p in _MODULOS_EXTRA_TCODEC]):
-                    dir_m = tempfile.mkdtemp(dir=tmp)
-                    for r_m, t_m in archivos_m.items():
-                        d_m = os.path.join(dir_m, r_m)
-                        os.makedirs(os.path.dirname(d_m), exist_ok=True)
-                        with open(d_m, "w", encoding="utf-8") as f:
-                            f.write(t_m)
-                    ruta_m = os.path.join(dir_m, principal_m)
-                    trabajos_mo.append((nombre_m, ruta_m, _errores_python(ruta_m)))
-                for (nombre_m, _, de_python), r_m in zip(
-                        trabajos_mo, en_paralelo(lambda t: _tcodec(t[1], "--solo-comprobar"),
-                                                 trabajos_mo)):
-                    de_tcodec = _stderr_bloques(r_m.stderr, "error: ")
-                    total += 1
-                    mods_total += 1
-                    if (de_python[:1] == de_tcodec[:1]
-                            and (r_m.returncode == 0) == (not de_python)):
-                        mods_iguales += 1
-                    else:
-                        falla("los errores de modulos en Tcode",
-                              f"{nombre_m}:\n  Python: {de_python[:1]!r}\n"
-                              f"  Tcode:  {de_tcodec[:1] or r_m.stderr[:200]!r}")
-
-                def _avisos_python(ruta):
-                    try:
-                        _, errs, comp_a = compilar_archivo(ruta, devolver_comp=True)
-                    except Exception:
-                        return None
-                    return None if errs else comp_a.avisos
-
-                aceptados_rutas = []
-                for i_a, (n_a, f_a, *_ ) in enumerate(ACEPTA):
-                    r_a = os.path.join(tmp, f"acepta-h-{i_a}.t")
-                    with open(r_a, "w", encoding="utf-8") as f:
-                        f.write(f_a)
-                    aceptados_rutas.append(r_a)
-                for i_a, f_a in enumerate(_AVISOS_TCODEC):
-                    r_a = os.path.join(tmp, f"avisos-{i_a}.t")
-                    with open(r_a, "w", encoding="utf-8") as f:
-                        f.write(f_a)
-                    aceptados_rutas.append(r_a)
-                del_repo = sorted(glob.glob(os.path.join("std", "*.t"))
-                                  + glob.glob(os.path.join("ejemplos", "**", "*.t"),
-                                              recursive=True))
-                av_iguales = av_cuantos = 0
-                ex_iguales = 0
-                trabajos_av = [(ruta_a, esperados) for ruta_a, esperados in zip(
-                    del_repo + aceptados_rutas,
-                    en_procesos(_avisos_python, del_repo + aceptados_rutas))
-                               if esperados is not None]
-
-                # Los tres son otros procesos: el `--explicar` de Python
-                # tambien, porque es lo que ve quien lo usa.
-                def _avisos_y_explicar(trabajo):
-                    ruta_a = trabajo[0]
-                    return (_tcodec(ruta_a, "--solo-comprobar"),
-                            subprocess.run([sys.executable, "-m", "tcode", ruta_a,
-                                            "--explicar", "--sin-avisos"],
-                                           capture_output=True, text=True, timeout=120),
-                            _tcodec(ruta_a, "--explicar", "--sin-avisos"))
-
-                for (ruta_a, esperados), (r_a, py_e, tc_e) in zip(
-                        trabajos_av, en_paralelo(_avisos_y_explicar, trabajos_av)):
-                    total += 1
-                    dados_a = _stderr_bloques(r_a.stderr, "aviso: ")
-                    av_cuantos += len(esperados)
-                    if dados_a == esperados:
-                        av_iguales += 1
-                    else:
-                        falla("los avisos en Tcode",
-                              f"{ruta_a}:\n  Python: {esperados[:3]!r}\n"
-                              f"  Tcode:  {dados_a[:3]!r}")
-                    total += 1
-                    if py_e.stdout == tc_e.stdout:
-                        ex_iguales += 1
-                    else:
-                        a_e, b_e = py_e.stdout.splitlines(), tc_e.stdout.splitlines()
-                        d_e = next((i for i, (x, y) in enumerate(zip(a_e, b_e)) if x != y),
-                                   min(len(a_e), len(b_e)))
-                        falla("--explicar en Tcode",
-                              f"{ruta_a}, linea {d_e + 1}:\n"
-                              f"  Python: {a_e[d_e] if d_e < len(a_e) else '(fin)'!r}\n"
-                              f"  Tcode:  {b_e[d_e] if d_e < len(b_e) else '(fin)'!r}")
-
-                from tcode.formato import formatear as _formatear
-                fm_iguales = fm_total = 0
-                trabajos_f = []
-                for archivo_f in del_repo:
-                    with open(archivo_f, encoding="utf-8") as f:
-                        original_f = f.read()
-                    rnd_f = _random.Random(archivo_f)
-                    deformado = []
-                    for li in original_f.split("\n"):
-                        x = rnd_f.random()
-                        if x < 0.3:
-                            li = li.lstrip()
-                        elif x < 0.4:
-                            li = "  " + li
-                        if rnd_f.random() < 0.2:
-                            li += "   "
-                        deformado.append(li)
-                        if rnd_f.random() < 0.05:
-                            deformado.extend(["", "", ""])
-                    for k_f, fuente_f in enumerate((original_f, "\n".join(deformado))):
-                        ruta_f = os.path.join(tmp, f"formato-{len(trabajos_f)}.t")
-                        with open(ruta_f, "w", encoding="utf-8") as f:
-                            f.write(fuente_f)
-                        trabajos_f.append((archivo_f, k_f, ruta_f,
-                                           _formatear(fuente_f, ruta_f)))
-                for (archivo_f, k_f, _, esperado_f), r_f in zip(
-                        trabajos_f, en_paralelo(lambda t: _tcodec(t[2], "--formatear"),
-                                                trabajos_f)):
-                    total += 1
-                    fm_total += 1
-                    if r_f.returncode == 0 and r_f.stdout == esperado_f:
-                        fm_iguales += 1
-                    else:
-                        falla("--formatear en Tcode",
-                              f"{archivo_f} ({'deformado' if k_f else 'tal cual'})")
-                print(f"    herramientas: {mods_iguales} de {mods_total} casos de "
-                      f"modulos, avisos iguales en {av_iguales} programas "
-                      f"({av_cuantos} avisos), --explicar igual en {ex_iguales}, "
-                      f"--formatear igual en {fm_iguales} de {fm_total}")
-
-                iguales = intentados = 0
-                con_main = []
-                for archivo in sorted(
-                        glob.glob(os.path.join("std", "*.t"))
-                        + glob.glob(os.path.join("ejemplos", "**", "*.t"),
-                                    recursive=True)):
-                    with open(archivo, encoding="utf-8") as f:
-                        if "fn main(" in f.read():
-                            con_main.append(archivo)
-                trabajos_e = [(archivo, esperado) for archivo, (esperado, errores_f) in zip(
-                    con_main, en_procesos(compilar_archivo, con_main)) if not errores_f]
-                for (archivo, esperado), e in zip(
-                        trabajos_e, en_paralelo(
-                            lambda t: _tcodec(t[0], "--mostrar-c", timeout=180),
-                            trabajos_e)):
-                    if "Sanitizer" in e.stderr:
-                        total += 1
-                        falla("tcodec en Tcode", f"{archivo}: sanitizer\n"
-                                                f"{e.stderr[:400]}")
-                        continue
-                    intentados += 1
-                    total += 1
-                    if e.returncode != 0:
-                        # Lo que Python compila, `tcodec` lo escribe entero.
-                        falla("tcodec en Tcode",
-                              f"{archivo}: lo rechazo\n{e.stderr[:400]}")
-                    elif e.stdout != esperado:
-                        dado, bueno = e.stdout.splitlines(), esperado.splitlines()
-                        n = next((i for i, (x, y) in enumerate(zip(dado, bueno))
-                                  if x != y), min(len(dado), len(bueno)))
-                        falla("tcodec en Tcode",
-                              f"{archivo}, linea {n + 1}:\n"
-                              f"  Tcode:  {dado[n] if n < len(dado) else '(fin)'!r}\n"
-                              f"  Python: {bueno[n] if n < len(bueno) else '(fin)'!r}")
-                    else:
-                        iguales += 1
-                if iguales < _MINIMO_PROGRAMAS:
-                    total += 1
-                    falla("tcodec en Tcode",
-                          f"solo {iguales} programas enteros, se esperaban al "
-                          f"menos {_MINIMO_PROGRAMAS}")
-                cifra("programas_enteros", iguales)
-                print(f"    {iguales} programas enteros, mismo C que el generador "
-                      f"de Python ({intentados} intentados)")
-
-                # Y cada programa de la suite que Python compila: los que
-                # corren, los que abortan y los que avisan. Son los que cubren
-                # el lenguaje construccion a construccion, asi que aqui se ve
-                # si a `tcodec` le falta alguna.
-                trabajos_s = []
-                for lista_s, casos_s in (("ACEPTA", ACEPTA), ("ABORTA", ABORTA),
-                                         ("AVISA", AVISA)):
-                    for i_s, caso_s in enumerate(casos_s):
-                        dir_s = os.path.join(tmp, f"suite_{lista_s}_{i_s}")
-                        os.makedirs(dir_s)
-                        ruta_s = os.path.join(dir_s, "p.t")
-                        with open(ruta_s, "w", encoding="utf-8") as f:
-                            f.write(caso_s[1])
-                        trabajos_s.append((caso_s[0], ruta_s))
-                trabajos_s = [(nombre_s, ruta_s, esperado_s)
-                              for (nombre_s, ruta_s), (esperado_s, errores_s) in zip(
-                                  trabajos_s, en_procesos(compilar_archivo,
-                                                          [r for _, r in trabajos_s]))
-                              if not errores_s]
-
-                def _tcodec_escribe(trabajo):
-                    return subprocess.run([binario, trabajo[1], "--mostrar-c"],
-                                          capture_output=True, text=True,
-                                          timeout=180, env=entorno)
-
-                iguales_s = 0
-                for (nombre_s, ruta_s, esperado_s), e in zip(
-                        trabajos_s, en_paralelo(_tcodec_escribe, trabajos_s)):
-                    total += 1
-                    if e.returncode != 0:
-                        falla("tcodec escribe los programas de la suite",
-                              f"{nombre_s}: lo rechazo\n{e.stderr[-400:]}")
-                    elif e.stdout != esperado_s:
-                        dado, bueno = e.stdout.splitlines(), esperado_s.splitlines()
-                        n = next((i for i, (x, y) in enumerate(zip(dado, bueno))
-                                  if x != y), min(len(dado), len(bueno)))
-                        falla("tcodec escribe los programas de la suite",
-                              f"{nombre_s}, linea {n + 1}:\n"
-                              f"  Tcode:  {dado[n] if n < len(dado) else '(fin)'!r}\n"
-                              f"  Python: {bueno[n] if n < len(bueno) else '(fin)'!r}")
-                    else:
+                    if de_tcodec and de_tcodec[0] == de_python[0]:
                         iguales_s += 1
-                cifra("programas_suite", iguales_s)
-                print(f"    {iguales_s} de {len(trabajos_s)} programas de la suite, "
-                      f"mismo C que el generador de Python")
-
-                # Un nombre que declaran dos modulos, y uno usa al otro: `B.hecho`
-                # es el de `b.t` aunque el ultimo `hecho` visto sea el de `a.t`.
-                # `tcodec` los tipaba por el nombre a secas.
-                total += 1
-                dir_r = os.path.join(tmp, "repetida")
-                os.makedirs(os.path.join(dir_r, "lib"))
-                for nombre_r, fuente_r in (
-                        ("lib/b.t", 'fn hecho(t: view) -> str { return nuevo(t); }\n'),
-                        ("lib/a.t", 'usar "b.t" como B;\n'
-                                    'struct Cosa { n: usize }\n'
-                                    'fn hecho(n: usize) -> Cosa { return Cosa { n: n }; }\n'
-                                    'fn usa_a() -> usize { let c = hecho(3); '
-                                    'let _s = B.hecho("x"); return c.n; }\n'),
-                        ("main.t", 'usar "lib/b.t" como B;\nusar "lib/a.t" como A;\n'
-                                   'fn main() {\n    let d = B.hecho("hola");\n'
-                                   '    imprimir($"{d} {A.usa_a()}\\n");\n}\n')):
-                    with open(os.path.join(dir_r, nombre_r), "w", encoding="utf-8") as f:
-                        f.write(fuente_r)
-                principal_r = os.path.join(dir_r, "main.t")
-                esperado_r, errores_r = compilar_archivo(principal_r)
-                e = subprocess.run([binario, principal_r, "--mostrar-c"],
-                                   capture_output=True, text=True, timeout=180,
-                                   env=entorno)
-                if errores_r or e.returncode != 0 or e.stdout != esperado_r:
-                    falla("tcodec escribe una funcion repetida entre modulos",
-                          f"{errores_r[:1]} {e.stderr[-300:]!r}")
-
-                # `tcodec` tambien hace el ultimo paso: llama al compilador de C,
-                # enlaza lo que piden los `externo`, y deja el binario.
-                total += 1
-                bin_hola = os.path.join(tmp, "hola")
-                e = subprocess.run([binario, os.path.join("ejemplos", "hola.t"),
-                                    "-o", bin_hola], capture_output=True, text=True,
-                                   timeout=180, env=entorno)
-                r_h = (subprocess.run([bin_hola], capture_output=True, text=True,
-                                      timeout=60) if e.returncode == 0 else None)
-                if e.returncode != 0 or r_h is None or r_h.stdout != "Hola, mundo!\n12 bytes\n":
-                    falla("tcodec compila y enlaza un programa",
-                          f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
-
-                total += 1
-                bin_reloj = os.path.join(tmp, "reloj")
-                e = subprocess.run([binario, os.path.join("ejemplos", "externo", "reloj.t"),
-                                    "-o", bin_reloj], capture_output=True, text=True,
-                                   timeout=180, env=entorno)
-                r_r = (subprocess.run([bin_reloj], capture_output=True, text=True,
-                                      timeout=60) if e.returncode == 0 else None)
-                if e.returncode != 0 or r_r is None or r_r.returncode != 0:
-                    falla("tcodec enlaza el `.c` de un `externo`",
-                          f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
-
-                # La salida nunca es el fuente ni un `.t`, y un fallo del
-                # compilador de C deja el binario anterior como estaba.
-                total += 1
-                fuente_s = os.path.join(tmp, "prog.t")
-                shutil.copy(os.path.join("ejemplos", "hola.t"), fuente_s)
-                antes_s = open(fuente_s, encoding="utf-8").read()
-                e1s = subprocess.run([binario, fuente_s, "-o", fuente_s],
-                                     capture_output=True, text=True, timeout=60, env=entorno)
-                e2s = subprocess.run([binario, fuente_s, "-o", os.path.join(tmp, "x.t")],
-                                     capture_output=True, text=True, timeout=60, env=entorno)
-                viejo = os.path.join(tmp, "viejo")
-                with open(viejo, "w", encoding="utf-8") as f:
-                    f.write("binario anterior")
-                e3s = subprocess.run([binario, fuente_s, "--cc", "false", "-o", viejo],
-                                     capture_output=True, text=True, timeout=60, env=entorno)
-                if (e1s.returncode == 0 or "propio archivo fuente" not in e1s.stderr
-                        or e2s.returncode == 0 or "parece un fuente" not in e2s.stderr
-                        or e3s.returncode == 0
-                        or open(viejo, encoding="utf-8").read() != "binario anterior"
-                        or open(fuente_s, encoding="utf-8").read() != antes_s):
-                    falla("tcodec protege el fuente y el binario anterior",
-                          f"{e1s.stderr[:200]!r} {e2s.stderr[:200]!r} {e3s.stderr[:200]!r}")
-
-                # El punto fijo. El `tcodec` que compilo Python escribe su propio
-                # C; ese C, compilado, tiene que volver a escribir exactamente el
-                # mismo. Es la prueba de que el compilador ya no depende de
-                # Python para existir: a partir de aqui se puede construir desde
-                # su propio C, como hacen Go desde 1.5 y Rust desde su primer
-                # `rustc` en Rust.
-                total += 1
-                e1, r2, e2 = _punto_fijo_f.result()
-                if e1.returncode != 0 or "Sanitizer" in e1.stderr:
-                    falla("punto fijo", f"tcodec no se escribe a si mismo:\n"
-                                        f"{e1.stderr[:400]}")
-                else:
-                    if r2.returncode != 0:
-                        falla("punto fijo", f"su propio C no compila:\n"
-                                            f"{r2.stderr[:600]}")
                     else:
-                        if (e2.returncode != 0 or "Sanitizer" in e2.stderr
-                                or e2.stdout != e1.stdout):
-                            falla("punto fijo", "la etapa 2 no reproduce el C "
-                                                f"de la etapa 1\n{e2.stderr[:400]}")
+                        falla("los errores de sintaxis en Tcode",
+                              f"{archivo}, {que}:\n"
+                              f"  Python: {de_python[0][:300]!r}\n"
+                              f"  Tcode:  {(de_tcodec[:1] or [crudo[:300]])[0]!r}")
+            finally:
+                for ruta_m in escritos_m:
+                    if os.path.exists(ruta_m):
+                        os.remove(ruta_m)
+            cifra("rotos_iguales", iguales_s)
+            cifra("rotos", rotos)
+            print(f"    sintaxis: {iguales_s} de {rotos} programas rotos, mismo "
+                  f"primer error que el lexer y el parser de Python")
+
+
+            # Las herramientas de alrededor, contra las de Python: los errores
+            # de modulos, los avisos, el formato y `--explicar`.
+            def _stderr_bloques(texto, marca):
+                salida = []
+                for linea in texto.splitlines():
+                    if linea.startswith(marca):
+                        salida.append(linea[len(marca):])
+                    elif linea.startswith("  ") and salida:
+                        salida[-1] += "\n" + linea
+                return salida
+
+            mods_iguales = mods_total = 0
+            trabajos_mo = []
+            for nombre_m, archivos_m, principal_m, *_ in (
+                    list(MODULOS) + [(n, a, p) for n, a, p in _MODULOS_EXTRA_TCODEC]):
+                dir_m = tempfile.mkdtemp(dir=tmp)
+                for r_m, t_m in archivos_m.items():
+                    d_m = os.path.join(dir_m, r_m)
+                    os.makedirs(os.path.dirname(d_m), exist_ok=True)
+                    with open(d_m, "w", encoding="utf-8") as f:
+                        f.write(t_m)
+                ruta_m = os.path.join(dir_m, principal_m)
+                trabajos_mo.append((nombre_m, ruta_m, _errores_python(ruta_m)))
+            for (nombre_m, _, de_python), r_m in zip(
+                    trabajos_mo, en_paralelo(lambda t: _tcodec(t[1], "--solo-comprobar"),
+                                             trabajos_mo)):
+                de_tcodec = _stderr_bloques(r_m.stderr, "error: ")
+                total += 1
+                mods_total += 1
+                if (de_python[:1] == de_tcodec[:1]
+                        and (r_m.returncode == 0) == (not de_python)):
+                    mods_iguales += 1
+                else:
+                    falla("los errores de modulos en Tcode",
+                          f"{nombre_m}:\n  Python: {de_python[:1]!r}\n"
+                          f"  Tcode:  {de_tcodec[:1] or r_m.stderr[:200]!r}")
+
+            def _avisos_python(ruta):
+                try:
+                    _, errs, comp_a = compilar_archivo(ruta, devolver_comp=True)
+                except Exception:
+                    return None
+                return None if errs else comp_a.avisos
+
+            aceptados_rutas = []
+            for i_a, (n_a, f_a, *_ ) in enumerate(ACEPTA):
+                r_a = os.path.join(tmp, f"acepta-h-{i_a}.t")
+                with open(r_a, "w", encoding="utf-8") as f:
+                    f.write(f_a)
+                aceptados_rutas.append(r_a)
+            for i_a, f_a in enumerate(_AVISOS_TCODEC):
+                r_a = os.path.join(tmp, f"avisos-{i_a}.t")
+                with open(r_a, "w", encoding="utf-8") as f:
+                    f.write(f_a)
+                aceptados_rutas.append(r_a)
+            del_repo = sorted(glob.glob(os.path.join("std", "*.t"))
+                              + glob.glob(os.path.join("ejemplos", "**", "*.t"),
+                                          recursive=True))
+            av_iguales = av_cuantos = 0
+            ex_iguales = 0
+            trabajos_av = [(ruta_a, esperados) for ruta_a, esperados in zip(
+                del_repo + aceptados_rutas,
+                en_procesos(_avisos_python, del_repo + aceptados_rutas))
+                           if esperados is not None]
+
+            # Los tres son otros procesos: el `--explicar` de Python
+            # tambien, porque es lo que ve quien lo usa.
+            def _avisos_y_explicar(trabajo):
+                ruta_a = trabajo[0]
+                return (_tcodec(ruta_a, "--solo-comprobar"),
+                        subprocess.run([sys.executable, "-m", "tcode", ruta_a,
+                                        "--explicar", "--sin-avisos"],
+                                       capture_output=True, text=True, timeout=120),
+                        _tcodec(ruta_a, "--explicar", "--sin-avisos"))
+
+            for (ruta_a, esperados), (r_a, py_e, tc_e) in zip(
+                    trabajos_av, en_paralelo(_avisos_y_explicar, trabajos_av)):
+                total += 1
+                dados_a = _stderr_bloques(r_a.stderr, "aviso: ")
+                av_cuantos += len(esperados)
+                if dados_a == esperados:
+                    av_iguales += 1
+                else:
+                    falla("los avisos en Tcode",
+                          f"{ruta_a}:\n  Python: {esperados[:3]!r}\n"
+                          f"  Tcode:  {dados_a[:3]!r}")
+                total += 1
+                if py_e.stdout == tc_e.stdout:
+                    ex_iguales += 1
+                else:
+                    a_e, b_e = py_e.stdout.splitlines(), tc_e.stdout.splitlines()
+                    d_e = next((i for i, (x, y) in enumerate(zip(a_e, b_e)) if x != y),
+                               min(len(a_e), len(b_e)))
+                    falla("--explicar en Tcode",
+                          f"{ruta_a}, linea {d_e + 1}:\n"
+                          f"  Python: {a_e[d_e] if d_e < len(a_e) else '(fin)'!r}\n"
+                          f"  Tcode:  {b_e[d_e] if d_e < len(b_e) else '(fin)'!r}")
+
+            from tcode.formato import formatear as _formatear
+            fm_iguales = fm_total = 0
+            trabajos_f = []
+            for archivo_f in del_repo:
+                with open(archivo_f, encoding="utf-8") as f:
+                    original_f = f.read()
+                rnd_f = _random.Random(archivo_f)
+                deformado = []
+                for li in original_f.split("\n"):
+                    x = rnd_f.random()
+                    if x < 0.3:
+                        li = li.lstrip()
+                    elif x < 0.4:
+                        li = "  " + li
+                    if rnd_f.random() < 0.2:
+                        li += "   "
+                    deformado.append(li)
+                    if rnd_f.random() < 0.05:
+                        deformado.extend(["", "", ""])
+                for k_f, fuente_f in enumerate((original_f, "\n".join(deformado))):
+                    ruta_f = os.path.join(tmp, f"formato-{len(trabajos_f)}.t")
+                    with open(ruta_f, "w", encoding="utf-8") as f:
+                        f.write(fuente_f)
+                    trabajos_f.append((archivo_f, k_f, ruta_f,
+                                       _formatear(fuente_f, ruta_f)))
+            for (archivo_f, k_f, _, esperado_f), r_f in zip(
+                    trabajos_f, en_paralelo(lambda t: _tcodec(t[2], "--formatear"),
+                                            trabajos_f)):
+                total += 1
+                fm_total += 1
+                if r_f.returncode == 0 and r_f.stdout == esperado_f:
+                    fm_iguales += 1
+                else:
+                    falla("--formatear en Tcode",
+                          f"{archivo_f} ({'deformado' if k_f else 'tal cual'})")
+            print(f"    herramientas: {mods_iguales} de {mods_total} casos de "
+                  f"modulos, avisos iguales en {av_iguales} programas "
+                  f"({av_cuantos} avisos), --explicar igual en {ex_iguales}, "
+                  f"--formatear igual en {fm_iguales} de {fm_total}")
+
+            iguales = intentados = 0
+            con_main = []
+            for archivo in sorted(
+                    glob.glob(os.path.join("std", "*.t"))
+                    + glob.glob(os.path.join("ejemplos", "**", "*.t"),
+                                recursive=True)):
+                with open(archivo, encoding="utf-8") as f:
+                    if "fn main(" in f.read():
+                        con_main.append(archivo)
+            trabajos_e = [(archivo, esperado) for archivo, (esperado, errores_f) in zip(
+                con_main, en_procesos(compilar_archivo, con_main)) if not errores_f]
+            for (archivo, esperado), e in zip(
+                    trabajos_e, en_paralelo(
+                        lambda t: _tcodec(t[0], "--mostrar-c", timeout=180),
+                        trabajos_e)):
+                if "Sanitizer" in e.stderr:
+                    total += 1
+                    falla("tcodec en Tcode", f"{archivo}: sanitizer\n"
+                                            f"{e.stderr[:400]}")
+                    continue
+                intentados += 1
+                total += 1
+                if e.returncode != 0:
+                    # Lo que Python compila, `tcodec` lo escribe entero.
+                    falla("tcodec en Tcode",
+                          f"{archivo}: lo rechazo\n{e.stderr[:400]}")
+                elif e.stdout != esperado:
+                    dado, bueno = e.stdout.splitlines(), esperado.splitlines()
+                    n = next((i for i, (x, y) in enumerate(zip(dado, bueno))
+                              if x != y), min(len(dado), len(bueno)))
+                    falla("tcodec en Tcode",
+                          f"{archivo}, linea {n + 1}:\n"
+                          f"  Tcode:  {dado[n] if n < len(dado) else '(fin)'!r}\n"
+                          f"  Python: {bueno[n] if n < len(bueno) else '(fin)'!r}")
+                else:
+                    iguales += 1
+            if iguales < _MINIMO_PROGRAMAS:
+                total += 1
+                falla("tcodec en Tcode",
+                      f"solo {iguales} programas enteros, se esperaban al "
+                      f"menos {_MINIMO_PROGRAMAS}")
+            cifra("programas_enteros", iguales)
+            print(f"    {iguales} programas enteros, mismo C que el generador "
+                  f"de Python ({intentados} intentados)")
+
+            # Y cada programa de la suite que Python compila: los que
+            # corren, los que abortan y los que avisan. Son los que cubren
+            # el lenguaje construccion a construccion, asi que aqui se ve
+            # si a `tcodec` le falta alguna.
+            trabajos_s = []
+            for lista_s, casos_s in (("ACEPTA", ACEPTA), ("ABORTA", ABORTA),
+                                     ("AVISA", AVISA)):
+                for i_s, caso_s in enumerate(casos_s):
+                    dir_s = os.path.join(tmp, f"suite_{lista_s}_{i_s}")
+                    os.makedirs(dir_s)
+                    ruta_s = os.path.join(dir_s, "p.t")
+                    with open(ruta_s, "w", encoding="utf-8") as f:
+                        f.write(caso_s[1])
+                    trabajos_s.append((caso_s[0], ruta_s))
+            trabajos_s = [(nombre_s, ruta_s, esperado_s)
+                          for (nombre_s, ruta_s), (esperado_s, errores_s) in zip(
+                              trabajos_s, en_procesos(compilar_archivo,
+                                                      [r for _, r in trabajos_s]))
+                          if not errores_s]
+
+            def _tcodec_escribe(trabajo):
+                return subprocess.run([binario, trabajo[1], "--mostrar-c"],
+                                      capture_output=True, text=True,
+                                      timeout=180, env=entorno)
+
+            iguales_s = 0
+            for (nombre_s, ruta_s, esperado_s), e in zip(
+                    trabajos_s, en_paralelo(_tcodec_escribe, trabajos_s)):
+                total += 1
+                if e.returncode != 0:
+                    falla("tcodec escribe los programas de la suite",
+                          f"{nombre_s}: lo rechazo\n{e.stderr[-400:]}")
+                elif e.stdout != esperado_s:
+                    dado, bueno = e.stdout.splitlines(), esperado_s.splitlines()
+                    n = next((i for i, (x, y) in enumerate(zip(dado, bueno))
+                              if x != y), min(len(dado), len(bueno)))
+                    falla("tcodec escribe los programas de la suite",
+                          f"{nombre_s}, linea {n + 1}:\n"
+                          f"  Tcode:  {dado[n] if n < len(dado) else '(fin)'!r}\n"
+                          f"  Python: {bueno[n] if n < len(bueno) else '(fin)'!r}")
+                else:
+                    iguales_s += 1
+            cifra("programas_suite", iguales_s)
+            print(f"    {iguales_s} de {len(trabajos_s)} programas de la suite, "
+                  f"mismo C que el generador de Python")
+
+            # Un nombre que declaran dos modulos, y uno usa al otro: `B.hecho`
+            # es el de `b.t` aunque el ultimo `hecho` visto sea el de `a.t`.
+            # `tcodec` los tipaba por el nombre a secas.
+            total += 1
+            dir_r = os.path.join(tmp, "repetida")
+            os.makedirs(os.path.join(dir_r, "lib"))
+            for nombre_r, fuente_r in (
+                    ("lib/b.t", 'fn hecho(t: view) -> str { return nuevo(t); }\n'),
+                    ("lib/a.t", 'usar "b.t" como B;\n'
+                                'struct Cosa { n: usize }\n'
+                                'fn hecho(n: usize) -> Cosa { return Cosa { n: n }; }\n'
+                                'fn usa_a() -> usize { let c = hecho(3); '
+                                'let _s = B.hecho("x"); return c.n; }\n'),
+                    ("main.t", 'usar "lib/b.t" como B;\nusar "lib/a.t" como A;\n'
+                               'fn main() {\n    let d = B.hecho("hola");\n'
+                               '    imprimir($"{d} {A.usa_a()}\\n");\n}\n')):
+                with open(os.path.join(dir_r, nombre_r), "w", encoding="utf-8") as f:
+                    f.write(fuente_r)
+            principal_r = os.path.join(dir_r, "main.t")
+            esperado_r, errores_r = compilar_archivo(principal_r)
+            e = subprocess.run([binario, principal_r, "--mostrar-c"],
+                               capture_output=True, text=True, timeout=180,
+                               env=entorno)
+            if errores_r or e.returncode != 0 or e.stdout != esperado_r:
+                falla("tcodec escribe una funcion repetida entre modulos",
+                      f"{errores_r[:1]} {e.stderr[-300:]!r}")
+
+            # `tcodec` tambien hace el ultimo paso: llama al compilador de C,
+            # enlaza lo que piden los `externo`, y deja el binario.
+            total += 1
+            bin_hola = os.path.join(tmp, "hola")
+            e = subprocess.run([binario, os.path.join("ejemplos", "hola.t"),
+                                "-o", bin_hola], capture_output=True, text=True,
+                               timeout=180, env=entorno)
+            r_h = (subprocess.run([bin_hola], capture_output=True, text=True,
+                                  timeout=60) if e.returncode == 0 else None)
+            if e.returncode != 0 or r_h is None or r_h.stdout != "Hola, mundo!\n12 bytes\n":
+                falla("tcodec compila y enlaza un programa",
+                      f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
+
+            total += 1
+            bin_reloj = os.path.join(tmp, "reloj")
+            e = subprocess.run([binario, os.path.join("ejemplos", "externo", "reloj.t"),
+                                "-o", bin_reloj], capture_output=True, text=True,
+                               timeout=180, env=entorno)
+            r_r = (subprocess.run([bin_reloj], capture_output=True, text=True,
+                                  timeout=60) if e.returncode == 0 else None)
+            if e.returncode != 0 or r_r is None or r_r.returncode != 0:
+                falla("tcodec enlaza el `.c` de un `externo`",
+                      f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
+
+            # La salida nunca es el fuente ni un `.t`, y un fallo del
+            # compilador de C deja el binario anterior como estaba.
+            total += 1
+            fuente_s = os.path.join(tmp, "prog.t")
+            shutil.copy(os.path.join("ejemplos", "hola.t"), fuente_s)
+            antes_s = open(fuente_s, encoding="utf-8").read()
+            e1s = subprocess.run([binario, fuente_s, "-o", fuente_s],
+                                 capture_output=True, text=True, timeout=60, env=entorno)
+            e2s = subprocess.run([binario, fuente_s, "-o", os.path.join(tmp, "x.t")],
+                                 capture_output=True, text=True, timeout=60, env=entorno)
+            viejo = os.path.join(tmp, "viejo")
+            with open(viejo, "w", encoding="utf-8") as f:
+                f.write("binario anterior")
+            e3s = subprocess.run([binario, fuente_s, "--cc", "false", "-o", viejo],
+                                 capture_output=True, text=True, timeout=60, env=entorno)
+            if (e1s.returncode == 0 or "propio archivo fuente" not in e1s.stderr
+                    or e2s.returncode == 0 or "parece un fuente" not in e2s.stderr
+                    or e3s.returncode == 0
+                    or open(viejo, encoding="utf-8").read() != "binario anterior"
+                    or open(fuente_s, encoding="utf-8").read() != antes_s):
+                falla("tcodec protege el fuente y el binario anterior",
+                      f"{e1s.stderr[:200]!r} {e2s.stderr[:200]!r} {e3s.stderr[:200]!r}")
+
+            # El punto fijo. El `tcodec` que compilo Python escribe su propio
+            # C; ese C, compilado, tiene que volver a escribir exactamente el
+            # mismo. Es la prueba de que el compilador ya no depende de
+            # Python para existir: a partir de aqui se puede construir desde
+            # su propio C, como hacen Go desde 1.5 y Rust desde su primer
+            # `rustc` en Rust.
+            total += 1
+            e1, r2, e2 = _punto_fijo_f.result()
+            if e1.returncode != 0 or "Sanitizer" in e1.stderr:
+                falla("punto fijo", f"tcodec no se escribe a si mismo:\n"
+                                    f"{e1.stderr[:400]}")
+            else:
+                if r2.returncode != 0:
+                    falla("punto fijo", f"su propio C no compila:\n"
+                                        f"{r2.stderr[:600]}")
+                else:
+                    if (e2.returncode != 0 or "Sanitizer" in e2.stderr
+                            or e2.stdout != e1.stdout):
+                        falla("punto fijo", "la etapa 2 no reproduce el C "
+                                            f"de la etapa 1\n{e2.stderr[:400]}")
+                    else:
+                        print(f"    punto fijo: tcodec compilado desde su "
+                              f"propio C lo reproduce byte a byte "
+                              f"({len(e1.stdout.encode())} bytes)")
+                        cifra("punto_fijo_bytes", len(e1.stdout.encode()))
+                        # Y sin nadie mas: `tcodec` se construye a si mismo,
+                        # llamando el al compilador de C, y ese binario
+                        # vuelve a escribir el mismo C.
+                        total += 1
+                        e3, e4 = _se_construye_f.result()
+                        if e4 is None or e4.returncode != 0 or e4.stdout != e1.stdout:
+                            falla("tcodec se construye a si mismo",
+                                  f"{e3.stderr[:400]}")
                         else:
-                            print(f"    punto fijo: tcodec compilado desde su "
-                                  f"propio C lo reproduce byte a byte "
-                                  f"({len(e1.stdout.encode())} bytes)")
-                            cifra("punto_fijo_bytes", len(e1.stdout.encode()))
-                            # Y sin nadie mas: `tcodec` se construye a si mismo,
-                            # llamando el al compilador de C, y ese binario
-                            # vuelve a escribir el mismo C.
-                            total += 1
-                            e3, e4 = _se_construye_f.result()
-                            if e4 is None or e4.returncode != 0 or e4.stdout != e1.stdout:
-                                falla("tcodec se construye a si mismo",
-                                      f"{e3.stderr[:400]}")
-                            else:
-                                print("    tcodec se construye a si mismo sin "
-                                      "Python, y reproduce su C")
+                            print("    tcodec se construye a si mismo sin "
+                                  "Python, y reproduce su C")
     finally:
         if _fondo is not None:
             _fondo.shutdown(wait=True)
@@ -5947,12 +6013,13 @@ fn main() {
         shutil.rmtree(tmp, ignore_errors=True)
 
 if seccion("FORMATO", "un estilo, y el repositorio ya lo tiene"):
+    _tmp_fmt = tempfile.mkdtemp(prefix="tcode-formato-")
 
     # Un unario va pegado a su parentesis: `!(a)`, no `! (a)`.
     total += 1
-    _con_unario = _formatear_1 = None
-    from tcode.formato import formatear as _formatear_1
-    _con_unario = _formatear_1("fn main() {\nlet a = true;\nif !(a) { imprimir(-(1)); }\n}\n")
+    _con_unario = tcodec_sobre(
+        "fn main() {\nlet a = true;\nif !(a) { imprimir(-(1)); }\n}\n",
+        "--formatear", directorio=_tmp_fmt).stdout
     if "!(a)" not in _con_unario or "-(1)" not in _con_unario:
         falla("un unario va pegado a su parentesis", repr(_con_unario))
 
@@ -5963,37 +6030,48 @@ if seccion("FORMATO", "un estilo, y el repositorio ya lo tiene"):
         f"    let f{i} = fn(x: usize) -> usize {{ return x; }};\n    imprimir(f{i}(1));\n"
         for i in range(10)) + "    let g = fn(x: usize, sobra: usize) -> usize { return x; };\n" \
         "    imprimir(g(1, 2));\n}\n"
-    with tempfile.TemporaryDirectory() as _tmp_av:
-        _ruta_av = os.path.join(_tmp_av, "once.t")
-        with open(_ruta_av, "w", encoding="utf-8") as f:
-            f.write(_once)
-        _, _errs_av, _comp_av = compilar_archivo(_ruta_av, devolver_comp=True)
-        if _errs_av or not any("de `clausura` no se usa" in a for a in _comp_av.avisos):
-            falla("un aviso sobre una clausura dice `clausura`",
-                  f"{_errs_av} {_comp_av.avisos if _comp_av else None}")
+    _r_av = tcodec_sobre(_once, "--solo-comprobar", directorio=_tmp_fmt, nombre="once.t")
+    _avisos_once = bloques(_r_av.stderr, "aviso: ")
+    if _r_av.returncode != 0 or not any("de `clausura` no se usa" in a for a in _avisos_once):
+        falla("un aviso sobre una clausura dice `clausura`",
+              f"codigo {_r_av.returncode}: {_avisos_once or _r_av.stderr[-300:]}")
+
     # Tres propiedades, y la primera es la que importa: el formateador no puede
     # perder ni cambiar nada, porque la salida lexea a los mismos tokens que la
     # entrada. Las otras dos son que es idempotente y que el repositorio esta
-    # escrito en el formato canonico.
-    from tcode.formato import formatear as _formatear
+    # escrito en el formato canonico. Los tokens los cuenta el lexer de Python.
     from tcode.lexer import tokenizar as _tokenizar_fmt
 
     _TODOS = sorted(
         glob.glob(os.path.join(RAIZ, "std", "*.t"))
         + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"), recursive=True)
         + glob.glob(os.path.join(RAIZ, "bench", "*.t")))
+
+    def _formatear_dos_veces(i_archivo):
+        """Lo que da `tcodec --formatear` sobre el archivo, y otra vez sobre
+        eso: (codigo, uno, dos, error)."""
+        i, archivo = i_archivo
+        uno = subprocess.run([tcodec(), archivo, "--formatear"], env=ENTORNO_TCODEC,
+                             capture_output=True, text=True, timeout=120)
+        if uno.returncode != 0:
+            return None, None, uno.stderr[-400:]
+        dir_i = os.path.join(_tmp_fmt, f"f{i}")
+        os.makedirs(dir_i)
+        dos = tcodec_sobre(uno.stdout, "--formatear", directorio=dir_i,
+                           nombre=os.path.basename(archivo))
+        if dos.returncode != 0:
+            return uno.stdout, None, dos.stderr[-400:]
+        return uno.stdout, dos.stdout, None
+
     sin_formato = []
-    for archivo in _TODOS:
+    for archivo, (uno, dos, error) in zip(
+            _TODOS, en_paralelo(_formatear_dos_veces, list(enumerate(_TODOS)))):
         total += 1
+        if error is not None:
+            falla(f"formato de {os.path.relpath(archivo, RAIZ)}", error)
+            continue
         with open(archivo, encoding="utf-8") as f:
             fuente = f.read()
-        try:
-            uno = _formatear(fuente, archivo)
-            dos = _formatear(uno, archivo)
-        except Exception:
-            falla(f"formato de {os.path.relpath(archivo, RAIZ)}",
-                  traceback.format_exc())
-            continue
         antes = [(t.tipo, t.valor) for t in _tokenizar_fmt(fuente, archivo)]
         despues = [(t.tipo, t.valor) for t in _tokenizar_fmt(uno, archivo)]
         if antes != despues:
@@ -6009,6 +6087,7 @@ if seccion("FORMATO", "un estilo, y el repositorio ya lo tiene"):
             continue
         if uno != fuente:
             sin_formato.append(os.path.relpath(archivo, RAIZ))
+    shutil.rmtree(_tmp_fmt, ignore_errors=True)
     if sin_formato:
         total += 1
         falla("el repositorio esta formateado",
@@ -6032,18 +6111,20 @@ if seccion("LINEAS", "el C generado apunta al `.t`, no a si mismo"):
                    "ejemplos/modulos/escalas.t"]
         for relativo in MUESTRA:
             total += 1
-            ruta = os.path.join(RAIZ, relativo)
-            codigo, errores = compilar_archivo(ruta)
-            if errores:
-                falla(f"lineas de {relativo}", "\n".join(errores))
+            r = subprocess.run([tcodec(), relativo, "--mostrar-c", "--sin-avisos"],
+                               cwd=RAIZ, env=ENTORNO_TCODEC, capture_output=True,
+                               text=True, timeout=120)
+            if r.returncode != 0:
+                falla(f"lineas de {relativo}", r.stderr[-400:])
                 continue
+            codigo = r.stdout
             vistas = 0
             for l in codigo.splitlines():
                 m = _DIRECTIVA.match(l)
                 if not m:
                     continue
                 vistas += 1
-                n, archivo = int(m.group(1)), m.group(2)
+                n, archivo = int(m.group(1)), os.path.join(RAIZ, m.group(2))
                 if not os.path.isfile(archivo):
                     falla(f"lineas de {relativo}",
                           f"`#line {n} \"{archivo}\"` señala un archivo que no existe")
@@ -6068,12 +6149,11 @@ if seccion("LINEAS", "el C generado apunta al `.t`, no a si mismo"):
                   "    return b;\n"
                   "}\n"
                   "fn main() -> usize { imprimir(hondo(3)); }\n")
-        ruta_t = os.path.join(tmp, "hondo.t")
-        with open(ruta_t, "w", encoding="utf-8") as f:
-            f.write(fuente)
-        codigo, errores = compilar_archivo(ruta_t)
-        if errores:
-            falla("el depurador ve el `.t`", "\n".join(errores))
+        r = tcodec_sobre(fuente, "--mostrar-c", "--sin-avisos", directorio=tmp,
+                         nombre="hondo.t")
+        codigo = r.stdout
+        if r.returncode != 0:
+            falla("el depurador ve el `.t`", r.stderr[-400:])
         else:
             ruta_c = os.path.join(tmp, "hondo.c")
             binario = os.path.join(tmp, "hondo")
@@ -6139,11 +6219,6 @@ if seccion("ABORTA", "la aritmetica comprobada detiene el programa"):
 
     # ---------------------------------------------------------------- modulos
 if seccion("MODULOS", "varios archivos, un solo programa"):
-    import shutil
-    from tcode.modulos import cargar, ErrorDeModulo
-    from tcode.cli import _compilar
-
-
     for nombre, archivos, principal, error_esperado, salida in MODULOS:
         total += 1
         tmp = tempfile.mkdtemp()
@@ -6154,11 +6229,12 @@ if seccion("MODULOS", "varios archivos, un solo programa"):
                 with open(destino, "w", encoding="utf-8") as f:
                     f.write(texto)
 
-            try:
-                decls = cargar(os.path.join(tmp, principal))
-                codigo, errores = _compilar(decls, principal)
-            except ErrorDeModulo as exc:
-                codigo, errores = None, [str(exc)]
+            r = subprocess.run([tcodec(), principal, "--mostrar-c", "--sin-avisos"],
+                               cwd=tmp, env=ENTORNO_TCODEC, capture_output=True,
+                               text=True, timeout=120)
+            codigo = r.stdout
+            errores = bloques(r.stderr, "error: ") or (
+                [r.stderr.strip()] if r.returncode != 0 else [])
 
             if error_esperado is not None:
                 if not errores:
@@ -6213,11 +6289,13 @@ if seccion("EJEMPLOS", "los de ejemplos/ compilan y corren limpios"):
         trabajos = []
         for relativo, args in EJEMPLOS:
             total += 1
-            ruta = os.path.join(RAIZ, relativo)
-            codigo, errores = compilar_archivo(ruta)
-            if errores:
-                falla(f"ejemplo {relativo}", "\n".join(errores))
+            r = subprocess.run([tcodec(), relativo, "--mostrar-c", "--sin-avisos"],
+                               cwd=RAIZ, env=ENTORNO_TCODEC, capture_output=True,
+                               text=True, timeout=180)
+            if r.returncode != 0:
+                falla(f"ejemplo {relativo}", r.stderr[-600:])
                 continue
+            codigo = r.stdout
             base = os.path.join(tmp, relativo.replace("/", "_")[:-2])
             with open(base + ".c", "w", encoding="utf-8") as f:
                 f.write(codigo)
@@ -6254,7 +6332,7 @@ if TODAS:
     from cifras import guardar as _guardar_cifras
     _guardar_cifras("lenguaje", CIFRAS)
 elif os.environ.get("TCODE_RESULTADO"):
-    # Una seccion corrida por `_todas_en_paralelo`: lo suyo, para que lo sume.
+    # Una seccion corrida por `_en_procesos`: lo suyo, para que lo sume.
     import json as _json
     with open(os.environ["TCODE_RESULTADO"], "w", encoding="utf-8") as _f:
         _json.dump({"total": total, "fallos": fallos, "cifras": CIFRAS}, _f)
