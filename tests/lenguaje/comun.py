@@ -103,6 +103,18 @@ def corpus_python(relativo=False):
     return [os.path.relpath(r, RAIZ) for r in todos] if relativo else todos
 
 
+def nombre_estable(ruta):
+    """La ruta de un `.t` del corpus desde su raiz: la del repositorio, o la
+    de la copia sin azucar, que cambia de nombre en cada pasada. Es la
+    semilla de lo que se hace al azar con cada archivo, y asi sale siempre
+    lo mismo."""
+    completa = os.path.abspath(ruta)
+    copia = _SIN_AZUCAR["dir"]
+    if copia is not None and completa.startswith(copia + os.sep):
+        return os.path.relpath(completa, copia)
+    return os.path.relpath(completa, RAIZ)
+
+
 def c_de_tcodec(ruta):
     """El C de un `.t` del repositorio escrito por `tcodec`, y sus errores,
     como `compilar_archivo`. Es como se construyen las herramientas escritas
