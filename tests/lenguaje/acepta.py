@@ -11,6 +11,115 @@ from .comun import (
 )
 
 ACEPTA = [
+    # `a == b` entre textos compara lo que dicen, sea cual sea su forma: con
+    # duenio, prestado o escrito. Se genera como `igual(a, b)`.
+    ("== y != entre textos",
+     '''struct P { nombre: str }
+        fn main() {
+            let s = nuevo("abc");
+            let v: view = "abc";
+            let p = P { nombre: nuevo("ana") };
+            imprimir($"{s == "abc"} {s != "x"} {v == s} {v == "abd"} {p.nombre == "ana"}\\n");
+            let a: view = "x";
+            let b: view = "x";
+            imprimir($"{a == b} {a != b} {s == p.nombre}\\n");
+        }''',
+     "true true true false true\ntrue false false\n"),
+
+    # `x.f(a)` es `f(x, a)`: lo de delante del punto va primero. Vale con las
+    # internas y con las funciones de cualquiera, y encadenado.
+    ("la llamada con punto",
+     '''struct Caja { n: usize, xs: lista<usize> }
+        fn doble(n: usize) -> usize { return n * 2; }
+        fn suma(a: usize, b: usize) -> usize { return a + b; }
+        fn main() {
+            let x: usize = 3;
+            var xs: lista<usize> = [];
+            xs.anadir(x.doble());
+            xs.anadir(x.suma(4).doble());
+            var s = nuevo("ab");
+            s.empujar("cd");
+            let k = Caja { n: 2, xs: [1, 2, 3] };
+            imprimir($"{xs[0]} {xs[1]} {xs.largo()} {s} {s.largo()} ");
+            imprimir($"{k.xs.largo()} {k.n.doble()}\\n");
+        }''',
+     "6 14 2 abcd 4 3 4\n"),
+
+    # Donde se pide una vista, un `str` con nombre se presta solo: al
+    # declarar una `view`, al asignarle, y al devolverla. Es `vista(...)`
+    # sin escribirlo, con el mismo C.
+    ("vistas implicitas al declarar, asignar y devolver",
+     '''struct Persona { nombre: str, edad: usize }
+        struct Palabra { texto: view, n: usize }
+        fn nombre_de(p: &Persona) -> view { return p.nombre; }
+        fn primera(xs: &lista<str>) -> view { return xs[0]; }
+        fn main() {
+            let p = Persona { nombre: nuevo("Ana"), edad: 3 };
+            var xs: lista<str> = [];
+            xs.anadir(nuevo("uno"));
+            xs.anadir(nuevo("dos"));
+            var v: view = "nada";
+            if xs[0] == "uno" { v = xs[1]; }
+            let w: view = p.nombre;
+            var pal = Palabra { texto: "", n: 0 };
+            pal.texto = xs[0];
+            imprimir($"{nombre_de(p)} {primera(xs)} {v} {w} {pal.texto}\\n");
+        }''',
+     "Ana uno dos Ana uno\n"),
+
+    # La vista que se presta sola a una funcion que devuelve otra vista sale
+    # de lo mismo que si se hubiera escrito `vista(...)`: de un campo o un
+    # elemento de lo que llego prestado, es de quien llama.
+    ("una vista implicita presta de donde sale",
+     '''struct Nodo { texto: str, n: usize }
+        fn sin_ceros(v: view) -> view {
+            var i = 0;
+            while i + 1 < largo(v) && byte(v, i) == 48 { i = i + 1; }
+            return rebanar(v, i, largo(v));
+        }
+        fn digitos(n: &Nodo) -> view { return sin_ceros(n.texto); }
+        fn primero(xs: &lista<str>) -> view { return sin_ceros(xs[0]); }
+        fn de_param(s: &str) -> view { return sin_ceros(s); }
+        fn main() {
+            let n = Nodo { texto: nuevo("0042"), n: 1 };
+            let d = sin_ceros(n.texto);
+            var xs: lista<str> = [];
+            xs.anadir(nuevo("007"));
+            imprimir($"{digitos(n)} {d} {primero(xs)} {de_param(n.texto)}\\n");
+        }''',
+     "42 42 7 42\n"),
+
+    # `for i en a..b` cuenta de `a` a `b` sin llegar. Cada extremo se calcula
+    # una vez: cambiar dentro lo que dio el final no alarga el bucle. Con
+    # signo, con `break` y `continue`, anidado y vacio.
+    ("for sobre un rango",
+     '''fn tres() -> usize { imprimir("tres "); return 3; }
+        fn main() {
+            var suma = 0;
+            for i en 0..5 { suma = suma + i; }
+            imprimir($"{suma} ");
+            let n: i64 = 4;
+            for j en -2..n {
+                if j == 0 { continue; }
+                if j == 3 { break; }
+                imprimir($"{j} ");
+            }
+            for i en 0..tres() { imprimir($"{i} "); }
+            var m = 2;
+            for i en 0..m { m = m + 1; imprimir($"{i}/{m} "); }
+            for k en 5..2 { imprimir("nunca"); }
+            var xs: lista<str> = [];
+            for i en 0..3 {
+                let p = $"p{i}";
+                if i == 1 { continue; }
+                xs.anadir(p);
+            }
+            for i en 1..xs.largo() { imprimir(xs[i]); }
+            for a en 0..2 { for b en a..2 { imprimir($" {a}{b}"); } }
+            imprimir("\\n");
+        }''',
+     "10 -2 -1 1 2 tres 0 1 2 0/3 1/4 p2 00 01 11\n"),
+
     # Lo que nace dentro de una rama —la interpolacion de un lado de un `if`
     # que da valor, la alternativa de un `sino`— se suelta dentro de ella:
     # su bloque de C se cierra antes que la sentencia. Antes se soltaba al

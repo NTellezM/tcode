@@ -16,39 +16,39 @@ usar "std/lista";
 
 fn esta_entre(xs: &lista<str>, x: view) -> bool {
     for y en xs {
-        if igual(vista(y), x) { return true; }
+        if igual(y, x) { return true; }
     }
     return false;
 }
 
 fn antes_de_unario(v: view) -> bool {
-    return igual(v, "(") || igual(v, "[") || igual(v, "{") || igual(v, ",")
-    || igual(v, ";") || igual(v, ":") || igual(v, "=") || igual(v, "->")
-    || igual(v, "&&") || igual(v, "||") || igual(v, "!") || igual(v, "~")
-    || igual(v, "+") || igual(v, "-") || igual(v, "*") || igual(v, "/")
-    || igual(v, "%") || igual(v, "<") || igual(v, ">") || igual(v, "<=")
-    || igual(v, ">=") || igual(v, "==") || igual(v, "!=") || igual(v, "+?")
-    || igual(v, "-?") || igual(v, "*?") || igual(v, "/?") || igual(v, "<<")
-    || igual(v, ">>") || igual(v, "|") || igual(v, "^") || igual(v, "&");
+    return v == "(" || v == "[" || v == "{" || v == ","
+    || v == ";" || v == ":" || v == "=" || v == "->"
+    || v == "&&" || v == "||" || v == "!" || v == "~"
+    || v == "+" || v == "-" || v == "*" || v == "/"
+    || v == "%" || v == "<" || v == ">" || v == "<="
+    || v == ">=" || v == "==" || v == "!=" || v == "+?"
+    || v == "-?" || v == "*?" || v == "/?" || v == "<<"
+    || v == ">>" || v == "|" || v == "^" || v == "&";
 }
 
 // Palabras detras de las cuales empieza una expresion. `usize !` no cuenta:
 // ahi el `!` marca que la funcion puede fallar.
 fn abre_expresion(v: view) -> bool {
-    return igual(v, "return") || igual(v, "if") || igual(v, "while")
-    || igual(v, "en") || igual(v, "try") || igual(v, "sino") || igual(v, "else");
+    return v == "return" || v == "if" || v == "while"
+    || v == "en" || v == "try" || v == "sino" || v == "else";
 }
 
 fn es_simbolo_del_lexer(v: view) -> bool {
-    if largo(v) == 2 { return simbolo_doble(byte(v, 0), byte(v, 1)); }
-    if largo(v) == 1 { return es_simbolo(byte(v, 0)); }
+    if v.largo() == 2 { return simbolo_doble(byte(v, 0), byte(v, 1)); }
+    if v.largo() == 1 { return es_simbolo(byte(v, 0)); }
     return false;
 }
 
 // El valor de un token como lo tiene Python: las cadenas, descifradas.
 fn valor_py(t: &Token) -> str {
-    if igual(vista(t.tipo), "cadena") || igual(vista(t.tipo), "interpolada") {
-        return descifrado_simple(vista(t.valor));
+    if t.tipo == "cadena" || t.tipo == "interpolada" {
+        return descifrado_simple(t.valor);
     }
     return copiar(t.valor);
 }
@@ -58,22 +58,22 @@ fn valor_py(t: &Token) -> str {
 fn descifrado_simple(t: view) -> str {
     var r = vacio();
     var i = 0;
-    while i < largo(t) {
+    while i < t.largo() {
         let b = byte(t, i);
-        if b == 92 && i + 1 < largo(t) {
+        if b == 92 && i + 1 < t.largo() {
             let d = byte(t, i + 1);
             if d == 110 { empujar_byte(r, 10); }
             else if d == 116 { empujar_byte(r, 9); }
             else if d == 48 { empujar_byte(r, 0); }
-            else if d == 120 && i + 3 < largo(t) {
+            else if d == 120 && i + 3 < t.largo() {
                 empujar_byte(r, 1);
                 i = i + 4;
                 continue;
-            } else { empujar(r, rebanar(t, i + 1, i + 2)); }
+            } else { r.empujar(rebanar(t, i + 1, i + 2)); }
             i = i + 2;
             continue;
         }
-        empujar(r, rebanar(t, i, i + 1));
+        r.empujar(rebanar(t, i, i + 1));
         i = i + 1;
     }
     return r;
@@ -84,15 +84,15 @@ fn es_generico(toks: &lista<Token>, i: usize) -> bool {
     if i == 0 { return false; }
     let ant = valor_py(toks[i - 1]);
     let av = vista(ant);
-    if igual(av, "lista") || igual(av, "mapa") || igual(av, "bloque") || igual(av, "fn") {
+    if av == "lista" || av == "mapa" || av == "bloque" || av == "fn" {
         return true;
     }
-    if !igual(vista(toks[i - 1].tipo), "ident") { return false; }
+    if toks[i - 1].tipo != "ident" { return false; }
     if i >= 2 {
         let ant2 = valor_py(toks[i - 2]);
         let a2 = vista(ant2);
-        if igual(a2, "fn") || igual(a2, "struct") { return true; }
-        if igual(a2, ":") || igual(a2, "->") || igual(a2, "<") || igual(a2, ",") {
+        if a2 == "fn" || a2 == "struct" { return true; }
+        if a2 == ":" || a2 == "->" || a2 == "<" || a2 == "," {
             return true;
         }
     }
@@ -114,57 +114,57 @@ fn hex_minuscula(b: usize) -> str {
 // escribir, como hace Python, que las guarda descifradas.
 fn texto_de(t: &Token) -> str {
     let clase = vista(t.tipo);
-    if !igual(clase, "cadena") && !igual(clase, "interpolada") { return copiar(t.valor); }
+    if clase != "cadena" && clase != "interpolada" { return copiar(t.valor); }
     let v = vista(t.valor);
     var r = nuevo("\"");
-    if igual(clase, "interpolada") { r = nuevo("$\""); }
+    if clase == "interpolada" { r = nuevo("$\""); }
     var i = 0;
-    while i < largo(v) {
+    while i < v.largo() {
         let b = byte(v, i);
         // Un hueco sale como se escribio, con los `\xNN` en minusculas como
         // los de fuera: es lo que hace Python, que lo guarda crudo.
-        if igual(clase, "interpolada") && b == 123 {
-            if i + 1 < largo(v) && byte(v, i + 1) == 123 {
-                empujar(r, "{{");
+        if clase == "interpolada" && b == 123 {
+            if i + 1 < v.largo() && byte(v, i + 1) == 123 {
+                r.empujar("{{");
                 i = i + 2;
                 continue;
             }
             let cierre = cierre_de_hueco(v, i + 1);
-            empujar(r, "{");
+            r.empujar("{");
             let dentro = hueco_escrito(rebanar(v, i + 1, cierre));
-            empujar(r, vista(dentro));
-            if cierre < largo(v) { empujar(r, "}"); }
+            r.empujar(dentro);
+            if cierre < v.largo() { r.empujar("}"); }
             i = cierre + 1;
             continue;
         }
-        if b == 92 && i + 1 < largo(v) {
+        if b == 92 && i + 1 < v.largo() {
             let d = byte(v, i + 1);
-            if d == 120 && i + 3 < largo(v) {
-                empujar(r, "\\x");
-                empujar(r, hex_minuscula(byte(v, i + 2)));
-                empujar(r, hex_minuscula(byte(v, i + 3)));
+            if d == 120 && i + 3 < v.largo() {
+                r.empujar("\\x");
+                r.empujar(hex_minuscula(byte(v, i + 2)));
+                r.empujar(hex_minuscula(byte(v, i + 3)));
                 i = i + 4;
                 continue;
             }
-            if d == 110 { empujar(r, "\\n"); }
-            else if d == 116 { empujar(r, "\\t"); }
-            else if d == 48 { empujar(r, "\\0"); }
-            else if d == 92 { empujar(r, "\\\\"); }
-            else if d == 34 { empujar(r, "\\\""); }
+            if d == 110 { r.empujar("\\n"); }
+            else if d == 116 { r.empujar("\\t"); }
+            else if d == 48 { r.empujar("\\0"); }
+            else if d == 92 { r.empujar("\\\\"); }
+            else if d == 34 { r.empujar("\\\""); }
             // `\{` y `\}` son una llave escrita: se escriben `{{` y `}}`.
-            else if d == 123 { empujar(r, "{{"); }
-            else if d == 125 { empujar(r, "}}"); }
-            else { empujar(r, rebanar(v, i + 1, i + 2)); }
+            else if d == 123 { r.empujar("{{"); }
+            else if d == 125 { r.empujar("}}"); }
+            else { r.empujar(rebanar(v, i + 1, i + 2)); }
             i = i + 2;
             continue;
         }
-        if b == 10 { empujar(r, "\\n"); }
-        else if b == 9 { empujar(r, "\\t"); }
-        else if b == 0 { empujar(r, "\\0"); }
-        else { empujar(r, rebanar(v, i, i + 1)); }
+        if b == 10 { r.empujar("\\n"); }
+        else if b == 9 { r.empujar("\\t"); }
+        else if b == 0 { r.empujar("\\0"); }
+        else { r.empujar(rebanar(v, i, i + 1)); }
         i = i + 1;
     }
-    empujar(r, "\"");
+    r.empujar("\"");
     return r;
 }
 
@@ -172,20 +172,20 @@ fn texto_de(t: &Token) -> str {
 fn hueco_escrito(h: view) -> str {
     var r = vacio();
     var i = 0;
-    while i < largo(h) {
-        if byte(h, i) == 92 && i + 1 < largo(h) {
-            if byte(h, i + 1) == 120 && i + 3 < largo(h) {
-                empujar(r, "\\x");
-                empujar(r, hex_minuscula(byte(h, i + 2)));
-                empujar(r, hex_minuscula(byte(h, i + 3)));
+    while i < h.largo() {
+        if byte(h, i) == 92 && i + 1 < h.largo() {
+            if byte(h, i + 1) == 120 && i + 3 < h.largo() {
+                r.empujar("\\x");
+                r.empujar(hex_minuscula(byte(h, i + 2)));
+                r.empujar(hex_minuscula(byte(h, i + 3)));
                 i = i + 4;
                 continue;
             }
-            empujar(r, rebanar(h, i, i + 2));
+            r.empujar(rebanar(h, i, i + 2));
             i = i + 2;
             continue;
         }
-        empujar(r, rebanar(h, i, i + 1));
+        r.empujar(rebanar(h, i, i + 1));
         i = i + 1;
     }
     return r;
@@ -195,7 +195,7 @@ fn hueco_escrito(h: view) -> str {
 fn ancho(t: view) -> usize {
     var n = 0;
     var i = 0;
-    while i < largo(t) {
+    while i < t.largo() {
         let b = byte(t, i);
         if b < 128 || b >= 192 { n = n + 1; }
         i = i + 1;
@@ -204,7 +204,7 @@ fn ancho(t: view) -> usize {
 }
 
 fn sin_espacio_final(t: view) -> str {
-    var fin = largo(t);
+    var fin = t.largo();
     while fin > 0 {
         let b = byte(t, fin - 1);
         if b == 32 || b == 9 || b == 10 || b == 13 || b == 11 || b == 12 {
@@ -225,29 +225,31 @@ struct Marcas {
 fn pega(toks: &lista<Token>, i_ant: usize, i: usize, mc: &Marcas) -> bool {
     let tt = vista(toks[i].tipo);
     let ta = vista(toks[i_ant].tipo);
-    if igual(tt, "comentario") || igual(ta, "comentario") { return false; }
+    if tt == "comentario" || ta == "comentario" { return false; }
     let v = vista(toks[i].valor);
     let va = vista(toks[i_ant].valor);
-    let ts = igual(tt, "simbolo");
-    let as_ = igual(ta, "simbolo");
-    if ts && (igual(v, ",") || igual(v, ";") || igual(v, ")") || igual(v, "]")
-        || igual(v, ".") || igual(v, ":")) {
+    let ts = tt == "simbolo";
+    let as_ = ta == "simbolo";
+    if ts && (v == "," || v == ";" || v == ")" || v == "]"
+        || v == "." || v == ":") {
         return true;
     }
-    if as_ && (igual(va, "(") || igual(va, "[") || igual(va, ".") || igual(va, "$")) {
+    if as_ && (va == "(" || va == "[" || va == "." || igual(va, "$")) {
         return true;
     }
+    // Un rango va pegado: `0..n`.
+    if (ts && v == "..") || (as_ && va == "..") { return true; }
     // Dentro de un tipo, `<` y `>` van pegados.
-    if as_ && mc.generico[i_ant] && igual(va, "<") { return true; }
+    if as_ && mc.generico[i_ant] && va == "<" { return true; }
     if ts && mc.generico[i] { return true; }
     // Una llamada o un indice: `f(`, `xs[`, y tambien `f<T>(`.
-    if ts && (igual(v, "(") || igual(v, "[")) {
+    if ts && (v == "(" || v == "[") {
         if as_ && mc.generico[i_ant] { return true; }
         // Un unario va pegado tambien a su parentesis: `!(a)`.
         if mc.unario[i_ant] { return true; }
         // Un tipo funcion o una clausura: `fn(usize) -> bool`, `fn[n](x)`.
-        if igual(ta, "palabra") && igual(va, "fn") { return true; }
-        return igual(ta, "ident") || (as_ && (igual(va, ")") || igual(va, "]")));
+        if ta == "palabra" && va == "fn" { return true; }
+        return ta == "ident" || (as_ && (va == ")" || va == "]"));
     }
     // Un unario va pegado a lo suyo.
     if mc.unario[i_ant] { return true; }
@@ -262,26 +264,26 @@ fn juntar(indices: &lista<usize>, desde: usize, hasta: usize, toks: &lista<Token
         let k = indices[j];
         let texto_t = texto_de(toks[k]);
         if j == desde {
-            empujar(fuera, vista(texto_t));
+            fuera.empujar(texto_t);
             j = j + 1;
             continue;
         }
         let ka = indices[j - 1];
         if pega(toks, ka, k, mc) {
-            let ambos = igual(vista(toks[ka].tipo), "simbolo")
-            && igual(vista(toks[k].tipo), "simbolo");
+            let ambos = toks[ka].tipo == "simbolo"
+            && toks[k].tipo == "simbolo";
             if ambos {
                 let junto = $"{toks[ka].valor}{toks[k].valor}";
                 // `>` y `>` pegados serian `>>`: otro token.
-                if es_simbolo_del_lexer(vista(junto)) { empujar(fuera, " "); }
+                if es_simbolo_del_lexer(junto) { fuera.empujar(" "); }
             }
         } else {
-            empujar(fuera, " ");
+            fuera.empujar(" ");
         }
-        empujar(fuera, vista(texto_t));
+        fuera.empujar(texto_t);
         j = j + 1;
     }
-    return sin_espacio_final(vista(fuera));
+    return sin_espacio_final(fuera);
 }
 
 // Formatea un archivo. Si no se puede leer como Tcode, `error` dice por que.
@@ -289,47 +291,47 @@ fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
     let todos = try tokens_de_todo(fuente, archivo, true, 1, error);
     var toks: lista<Token> = [];
     for t en todos {
-        if !igual(vista(t.tipo), "fin") { anadir(toks, copiar(t)); }
+        if t.tipo != "fin" { toks.anadir(copiar(t)); }
     }
 
     // Que `<` y `>` son de un tipo y cuales son comparaciones.
     var generico: lista<bool> = [];
     var unario: lista<bool> = [];
     for _t en toks {
-        anadir(generico, false);
-        anadir(unario, false);
+        generico.anadir(false);
+        unario.anadir(false);
     }
     var pila: lista<usize> = [];
     var i = 0;
-    while i < largo(toks) {
-        let es_s = igual(vista(toks[i].tipo), "simbolo");
+    while i < toks.largo() {
+        let es_s = toks[i].tipo == "simbolo";
         let v = vista(toks[i].valor);
-        if es_s && igual(v, "<") && es_generico(toks, i) {
+        if es_s && v == "<" && es_generico(toks, i) {
             generico[i] = true;
-            anadir(pila, i);
-        } else if es_s && (igual(v, ">") || igual(v, ">>")) && largo(pila) > 0 {
+            pila.anadir(i);
+        } else if es_s && (v == ">" || v == ">>") && pila.largo() > 0 {
             generico[i] = true;
             quitar_ultimo(pila);
-            if igual(v, ">>") && largo(pila) > 0 { quitar_ultimo(pila); }
+            if v == ">>" && pila.largo() > 0 { quitar_ultimo(pila); }
         }
         i = i + 1;
     }
 
     // Que operadores son unarios, mirando lo que va justo antes.
     i = 0;
-    while i < largo(toks) {
+    while i < toks.largo() {
         let v = vista(toks[i].valor);
-        let es_op = igual(vista(toks[i].tipo), "simbolo")
-        && (igual(v, "-") || igual(v, "&") || igual(v, "~") || igual(v, "!") || igual(v, "*"));
+        let es_op = toks[i].tipo == "simbolo"
+        && (v == "-" || v == "&" || v == "~" || v == "!" || v == "*");
         if es_op {
             if i == 0 {
                 unario[i] = true;
             } else {
                 let ta = vista(toks[i - 1].tipo);
                 let va = valor_py(toks[i - 1]);
-                unario[i] = (igual(ta, "simbolo") && antes_de_unario(vista(va))
+                unario[i] = (ta == "simbolo" && antes_de_unario(va)
                     && !generico[i - 1])
-                || (igual(ta, "palabra") && abre_expresion(vista(va)));
+                || (ta == "palabra" && abre_expresion(va));
             }
         }
         i = i + 1;
@@ -340,25 +342,25 @@ fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
     var lineas: lista<lista<usize>> = [];
     var actual: lista<usize> = [];
     var ultima: usize = 1;
-    if largo(toks) > 0 { ultima = toks[0].linea; }
+    if toks.largo() > 0 { ultima = toks[0].linea; }
     var k = 0;
-    while k < largo(toks) {
+    while k < toks.largo() {
         let l = toks[k].linea;
         if l > ultima {
-            anadir(lineas, actual);
+            lineas.anadir(actual);
             actual = [];
             var b = ultima + 1;
             while b < l {
                 let vacia: lista<usize> = [];
-                anadir(lineas, vacia);
+                lineas.anadir(vacia);
                 b = b + 1;
             }
             ultima = l;
         }
-        anadir(actual, k);
+        actual.anadir(k);
         k = k + 1;
     }
-    anadir(lineas, actual);
+    lineas.anadir(actual);
 
     // Escribir: el codigo de cada linea y, aparte, su comentario.
     var codigos: lista<str> = [];
@@ -368,30 +370,30 @@ fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
     var blancos = 0;
     var primera = true;
     for linea en lineas {
-        if largo(linea) == 0 {
+        if linea.largo() == 0 {
             blancos = blancos + 1;
             continue;
         }
         if blancos > 0 && !primera {
-            anadir(codigos, vacio());
-            anadir(comentarios, vacio());
-            anadir(con_comentario, false);
+            codigos.anadir(vacio());
+            comentarios.anadir(vacio());
+            con_comentario.anadir(false);
         }
         blancos = 0;
         primera = false;
         var sangrado = hondura;
         let p0 = linea[0];
-        if igual(vista(toks[p0].tipo), "simbolo") {
+        if toks[p0].tipo == "simbolo" {
             let v0 = vista(toks[p0].valor);
-            if igual(v0, "}") || igual(v0, ")") || igual(v0, "]") {
+            if v0 == "}" || v0 == ")" || v0 == "]" {
                 sangrado = hondura - 1;
                 if sangrado < 0 { sangrado = 0; }
             }
         }
-        var corte = largo(linea);
+        var corte = linea.largo();
         var j = 1;
-        while j < largo(linea) {
-            if igual(vista(toks[linea[j]].tipo), "comentario") {
+        while j < linea.largo() {
+            if toks[linea[j]].tipo == "comentario" {
                 corte = j;
                 break;
             }
@@ -400,24 +402,24 @@ fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
         var sangria = vacio();
         var q: i64 = 0;
         while q < sangrado {
-            empujar(sangria, "    ");
+            sangria.empujar("    ");
             q = q + 1;
         }
         let codigo = juntar(linea, 0, corte, toks, mc);
-        empujar(sangria, vista(codigo));
-        anadir(codigos, sangria);
-        if corte < largo(linea) {
-            anadir(comentarios, juntar(linea, corte, largo(linea), toks, mc));
-            anadir(con_comentario, true);
+        sangria.empujar(codigo);
+        codigos.anadir(sangria);
+        if corte < linea.largo() {
+            comentarios.anadir(juntar(linea, corte, linea.largo(), toks, mc));
+            con_comentario.anadir(true);
         } else {
-            anadir(comentarios, vacio());
-            anadir(con_comentario, false);
+            comentarios.anadir(vacio());
+            con_comentario.anadir(false);
         }
         for x en linea {
-            if igual(vista(toks[x].tipo), "simbolo") {
+            if toks[x].tipo == "simbolo" {
                 let v = vista(toks[x].valor);
-                if igual(v, "{") || igual(v, "(") || igual(v, "[") { hondura = hondura + 1; }
-                if igual(v, "}") || igual(v, ")") || igual(v, "]") { hondura = hondura - 1; }
+                if v == "{" || v == "(" || v == "[" { hondura = hondura + 1; }
+                if v == "}" || v == ")" || v == "]" { hondura = hondura - 1; }
             }
         }
         if hondura < 0 { hondura = 0; }
@@ -426,50 +428,50 @@ fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
     // Los comentarios al final de lineas seguidas se alinean entre ellos.
     var salida = vacio();
     var n = 0;
-    while n < largo(codigos) {
+    while n < codigos.largo() {
         if !con_comentario[n] {
-            empujar(salida, vista(codigos[n]));
-            empujar(salida, "\n");
+            salida.empujar(codigos[n]);
+            salida.empujar("\n");
             n = n + 1;
             continue;
         }
         var m = n;
         var mayor = 0;
-        while m < largo(codigos) && con_comentario[m] {
-            let a = ancho(vista(codigos[m]));
+        while m < codigos.largo() && con_comentario[m] {
+            let a = ancho(codigos[m]);
             if a > mayor { mayor = a; }
             m = m + 1;
         }
         var r = n;
         while r < m {
-            if largo(codigos[r]) > 0 {
-                empujar(salida, vista(codigos[r]));
-                var relleno = ancho(vista(codigos[r]));
+            if codigos[r].largo() > 0 {
+                salida.empujar(codigos[r]);
+                var relleno = ancho(codigos[r]);
                 while relleno < mayor {
-                    empujar(salida, " ");
+                    salida.empujar(" ");
                     relleno = relleno + 1;
                 }
-                empujar(salida, " ");
+                salida.empujar(" ");
             }
-            empujar(salida, vista(comentarios[r]));
-            empujar(salida, "\n");
+            salida.empujar(comentarios[r]);
+            salida.empujar("\n");
             r = r + 1;
         }
         n = m;
     }
     // Sin saltos al final salvo uno.
-    var fin = largo(salida);
-    while fin > 0 && byte(vista(salida), fin - 1) == 10 { fin = fin - 1; }
-    var limpio = nuevo(rebanar(vista(salida), 0, fin));
-    empujar(limpio, "\n");
+    var fin = salida.largo();
+    while fin > 0 && byte(salida, fin - 1) == 10 { fin = fin - 1; }
+    var limpio = nuevo(rebanar(salida, 0, fin));
+    limpio.empujar("\n");
     return limpio;
 }
 
 fn quitar_ultimo(xs: mut lista<usize>) {
     var quedan: lista<usize> = [];
     var i = 0;
-    while i + 1 < largo(xs) {
-        anadir(quedan, xs[i]);
+    while i + 1 < xs.largo() {
+        quedan.anadir(xs[i]);
         i = i + 1;
     }
     xs = quedan;

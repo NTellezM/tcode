@@ -42,29 +42,29 @@ externo "lib/sistema_tcodec.c" {
 
 // Donde empieza `que` en `t` a partir de `desde`, o `largo(t)` si no esta.
 fn buscar_desde(t: view, que: view, desde: usize) -> usize {
-    if largo(que) == 0 {
-        if desde <= largo(t) { return desde; }
-        return largo(t);
+    if que.largo() == 0 {
+        if desde <= t.largo() { return desde; }
+        return t.largo();
     }
     // El primer byte descarta casi todas las posiciones sin cortar nada: se
     // busca en cada linea del C escrito, y cortar y comparar en cada byte era
     // lo que mas tardaba despues del lexer.
     let primero = byte(que, 0);
     var i = desde;
-    while i + largo(que) <= largo(t) {
-        if byte(t, i) == primero && igual(rebanar(t, i, i + largo(que)), que) { return i; }
+    while i + que.largo() <= t.largo() {
+        if byte(t, i) == primero && igual(rebanar(t, i, i + que.largo()), que) { return i; }
         i = i + 1;
     }
-    return largo(t);
+    return t.largo();
 }
 
 // Lo que va entre `prefijo` y el `(` siguiente, en cada aparicion.
 fn apuntar_tras(t: view, prefijo: view, salida: mut mapa<str, usize>) {
     var i = buscar_desde(t, prefijo, 0);
-    while i < largo(t) {
-        let desde = i + largo(prefijo);
+    while i < t.largo() {
+        let desde = i + prefijo.largo();
         let hasta = buscar_desde(t, "(", desde);
-        if hasta < largo(t) {
+        if hasta < t.largo() {
             poner(salida, rebanar(t, desde, hasta), 1);
         }
         i = buscar_desde(t, prefijo, desde);
@@ -73,39 +73,39 @@ fn apuntar_tras(t: view, prefijo: view, salida: mut mapa<str, usize>) {
 
 // La linea que instancia la aritmetica comprobada de un ancho.
 fn fila_aritmetica(t: view) -> str {
-    if igual(t, "usize") { return nuevo("SS_LANG_ARIT_U(usize, size_t, SIZE_MAX)"); }
-    if igual(t, "u8") { return nuevo("SS_LANG_ARIT_U(u8, uint8_t, UINT8_MAX)"); }
-    if igual(t, "u16") { return nuevo("SS_LANG_ARIT_U(u16, uint16_t, UINT16_MAX)"); }
-    if igual(t, "u32") { return nuevo("SS_LANG_ARIT_U(u32, uint32_t, UINT32_MAX)"); }
-    if igual(t, "u64") { return nuevo("SS_LANG_ARIT_U(u64, uint64_t, UINT64_MAX)"); }
-    if igual(t, "i8") {
+    if t == "usize" { return nuevo("SS_LANG_ARIT_U(usize, size_t, SIZE_MAX)"); }
+    if t == "u8" { return nuevo("SS_LANG_ARIT_U(u8, uint8_t, UINT8_MAX)"); }
+    if t == "u16" { return nuevo("SS_LANG_ARIT_U(u16, uint16_t, UINT16_MAX)"); }
+    if t == "u32" { return nuevo("SS_LANG_ARIT_U(u32, uint32_t, UINT32_MAX)"); }
+    if t == "u64" { return nuevo("SS_LANG_ARIT_U(u64, uint64_t, UINT64_MAX)"); }
+    if t == "i8" {
         return nuevo("SS_LANG_ARIT_I(i8, int8_t, uint8_t, INT8_MAX, INT8_MIN)");
     }
-    if igual(t, "i16") {
+    if t == "i16" {
         return nuevo("SS_LANG_ARIT_I(i16, int16_t, uint16_t, INT16_MAX, INT16_MIN)");
     }
-    if igual(t, "i32") {
+    if t == "i32" {
         return nuevo("SS_LANG_ARIT_I(i32, int32_t, uint32_t, INT32_MAX, INT32_MIN)");
     }
     return nuevo("SS_LANG_ARIT_I(i64, int64_t, uint64_t, INT64_MAX, INT64_MIN)");
 }
 
 fn maximo_entero(t: view) -> str {
-    if igual(t, "usize") { return nuevo("SIZE_MAX"); }
-    if igual(t, "u8") { return nuevo("UINT8_MAX"); }
-    if igual(t, "u16") { return nuevo("UINT16_MAX"); }
-    if igual(t, "u32") { return nuevo("UINT32_MAX"); }
-    if igual(t, "u64") { return nuevo("UINT64_MAX"); }
-    if igual(t, "i8") { return nuevo("INT8_MAX"); }
-    if igual(t, "i16") { return nuevo("INT16_MAX"); }
-    if igual(t, "i32") { return nuevo("INT32_MAX"); }
+    if t == "usize" { return nuevo("SIZE_MAX"); }
+    if t == "u8" { return nuevo("UINT8_MAX"); }
+    if t == "u16" { return nuevo("UINT16_MAX"); }
+    if t == "u32" { return nuevo("UINT32_MAX"); }
+    if t == "u64" { return nuevo("UINT64_MAX"); }
+    if t == "i8" { return nuevo("INT8_MAX"); }
+    if t == "i16" { return nuevo("INT16_MAX"); }
+    if t == "i32" { return nuevo("INT32_MAX"); }
     return nuevo("INT64_MAX");
 }
 
 fn minimo_entero(t: view) -> str {
-    if igual(t, "i8") { return nuevo("INT8_MIN"); }
-    if igual(t, "i16") { return nuevo("INT16_MIN"); }
-    if igual(t, "i32") { return nuevo("INT32_MIN"); }
+    if t == "i8" { return nuevo("INT8_MIN"); }
+    if t == "i16" { return nuevo("INT16_MIN"); }
+    if t == "i32" { return nuevo("INT32_MIN"); }
     return nuevo("INT64_MIN");
 }
 
@@ -118,7 +118,7 @@ fn sin_cadenas(l: view) -> str {
     var dentro = false;
     var desde = 0;
     var i = 0;
-    while i < largo(l) {
+    while i < l.largo() {
         let c = byte(l, i);
         if dentro {
             if c == 92 {
@@ -131,13 +131,13 @@ fn sin_cadenas(l: view) -> str {
             }
         } else {
             if c == 34 {
-                empujar(r, rebanar(l, desde, i + 1));
+                r.empujar(rebanar(l, desde, i + 1));
                 dentro = true;
             }
         }
         i = i + 1;
     }
-    if !dentro { empujar(r, rebanar(l, desde, largo(l))); }
+    if !dentro { r.empujar(rebanar(l, desde, l.largo())); }
     return r;
 }
 
@@ -153,8 +153,8 @@ fn necesita_lo_que_falta(l: view) -> bool {
 fn quitar_ultima(xs: mut lista<str>) {
     var quedan: lista<str> = [];
     var i = 0;
-    while i + 1 < largo(xs) {
-        anadir(quedan, copiar(xs[i]));
+    while i + 1 < xs.largo() {
+        quedan.anadir(copiar(xs[i]));
         i = i + 1;
     }
     xs = quedan;
@@ -162,7 +162,7 @@ fn quitar_ultima(xs: mut lista<str>) {
 
 fn esta_en(xs: &lista<str>, x: view) -> bool {
     for y en xs {
-        if igual(vista(y), x) { return true; }
+        if igual(y, x) { return true; }
     }
     return false;
 }
@@ -172,28 +172,28 @@ fn esta_en(xs: &lista<str>, x: view) -> bool {
 fn resolver(pedido: view, dir: view, raiz: view) -> str ! {
     var base = vacio();
     if empieza_con(pedido, "std/") {
-        empujar(base, raiz);
-        empujar(base, "/std/");
-        empujar(base, rebanar(pedido, 4, largo(pedido)));
+        base.empujar(raiz);
+        base.empujar("/std/");
+        base.empujar(rebanar(pedido, 4, pedido.largo()));
     } else {
-        if largo(dir) > 0 {
-            empujar(base, dir);
-            empujar(base, "/");
+        if dir.largo() > 0 {
+            base.empujar(dir);
+            base.empujar("/");
         }
-        empujar(base, pedido);
+        base.empujar(pedido);
     }
     var candidatos: lista<str> = [];
-    anadir(candidatos, copiar(base));
-    if !termina_con(vista(base), ".t") {
+    candidatos.anadir(copiar(base));
+    if !termina_con(base, ".t") {
         var con_t = copiar(base);
-        empujar(con_t, ".t");
-        anadir(candidatos, con_t);
+        con_t.empujar(".t");
+        candidatos.anadir(con_t);
     }
     for c en candidatos {
-        if tcodec_es_archivo(copiar(c)) == 1 { return F.normalizar(vista(c)); }
+        if tcodec_es_archivo(copiar(c)) == 1 { return F.normalizar(c); }
     }
     // La primera, para que el error diga algo reconocible.
-    return F.normalizar(vista(candidatos[0]));
+    return F.normalizar(candidatos[0]);
 }
 
 // Los `usar` del principio de un archivo, en orden.
@@ -203,14 +203,14 @@ fn usar_de(fuente: view) -> lista<str> ! {
     let toks = analizar(fuente) sino [];
     var salida: lista<str> = [];
     var i = 0;
-    while i + 1 < largo(toks) {
-        if !igual(vista(toks[i].valor), "usar") { break; }
-        if !igual(vista(toks[i + 1].tipo), "cadena") { break; }
+    while i + 1 < toks.largo() {
+        if toks[i].valor != "usar" { break; }
+        if toks[i + 1].tipo != "cadena" { break; }
         // `ruta\tlinea`: la linea es la del `usar`, para decir donde se pidio
         // un modulo que no esta.
-        anadir(salida, $"{toks[i + 1].valor}\t{toks[i].linea}");
+        salida.anadir($"{toks[i + 1].valor}\t{toks[i].linea}");
         i = i + 2;
-        if i + 1 < largo(toks) && igual(vista(toks[i].valor), "como") {
+        if i + 1 < toks.largo() && toks[i].valor == "como" {
             i = i + 2;
         }
         i = i + 1; // el `;`
@@ -224,20 +224,20 @@ fn usar_con_alias(fuente: view) -> lista<str> ! {
     let toks = try analizar(fuente);
     var salida: lista<str> = [];
     var i = 0;
-    while i + 1 < largo(toks) {
-        if !igual(vista(toks[i].valor), "usar") { break; }
-        if !igual(vista(toks[i + 1].tipo), "cadena") { break; }
+    while i + 1 < toks.largo() {
+        if toks[i].valor != "usar" { break; }
+        if toks[i + 1].tipo != "cadena" { break; }
         var junto = copiar(toks[i + 1].valor);
-        empujar(junto, "\t");
+        junto.empujar("\t");
         let linea = toks[i].linea;
         i = i + 2;
-        if i + 1 < largo(toks) && igual(vista(toks[i].valor), "como") {
-            empujar(junto, vista(toks[i + 1].valor));
+        if i + 1 < toks.largo() && toks[i].valor == "como" {
+            junto.empujar(toks[i + 1].valor);
             i = i + 2;
         }
         let pieza = $"\t{linea}";
-        empujar(junto, vista(pieza));
-        anadir(salida, junto);
+        junto.empujar(pieza);
+        salida.anadir(junto);
         i = i + 1; // el `;`
     }
     return salida;
@@ -253,42 +253,42 @@ fn visitar(ruta: view, raiz: view, hechos: mut lista<str>,
         var ciclo = vacio();
         var dentro = false;
         for p en pila {
-            if igual(vista(p), ruta) { dentro = true; }
+            if igual(p, ruta) { dentro = true; }
             if dentro {
-                empujar(ciclo, nombre_suelto(vista(p)));
-                empujar(ciclo, " -> ");
+                ciclo.empujar(nombre_suelto(p));
+                ciclo.empujar(" -> ");
             }
         }
-        empujar(ciclo, nombre_suelto(ruta));
+        ciclo.empujar(nombre_suelto(ruta));
         error = $"dependencia circular entre modulos: {ciclo}";
         return false;
     }
     if esta_en(hechos, ruta) { return true; }
     if tcodec_es_archivo(nuevo(ruta)) == 0 {
         var de = vacio();
-        if largo(quien) > 0 { de = $"{quien}:{linea}: "; }
+        if quien.largo() > 0 { de = $"{quien}:{linea}: "; }
         var pista = vacio();
         if empieza_con(ruta, "std/") || contiene(ruta, "/std/") {
             pista = nuevo("; los modulos de `std/` viven junto al compilador");
         }
         let suelto = nombre_suelto(ruta);
-        let dicho = repr_texto(vista(suelto));
+        let dicho = repr_texto(suelto);
         error = $"{de}no encuentro el modulo {dicho}{pista}";
         return false;
     }
     let fuente = leer_archivo(ruta) sino vacio();
-    anadir(pila, nuevo(ruta));
-    let pedidos = usar_de(vista(fuente)) sino [];
+    pila.anadir(nuevo(ruta));
+    let pedidos = usar_de(fuente) sino [];
     let dir = P.carpeta(ruta);
     for pedido en pedidos {
-        let pedida = campo_pedido(vista(pedido), 0);
-        let texto_linea = campo_pedido(vista(pedido), 1);
-        let n = a_entero(vista(texto_linea)) sino 0;
-        let destino = resolver(vista(pedida), vista(dir), raiz) sino vacio();
-        if !visitar(vista(destino), raiz, hechos, pila, error, ruta, n) { return false; }
+        let pedida = campo_pedido(pedido, 0);
+        let texto_linea = campo_pedido(pedido, 1);
+        let n = a_entero(texto_linea) sino 0;
+        let destino = resolver(pedida, dir, raiz) sino vacio();
+        if !visitar(destino, raiz, hechos, pila, error, ruta, n) { return false; }
     }
     quitar_ultima(pila);
-    anadir(hechos, nuevo(ruta));
+    hechos.anadir(nuevo(ruta));
     return true;
 }
 
@@ -305,8 +305,8 @@ fn visitar(ruta: view, raiz: view, hechos: mut lista<str>,
 fn declarantes(arboles: &lista<P.Nodo>, modulos: &lista<str>, nombre: view) -> lista<str> {
     var salida: lista<str> = [];
     var k = 0;
-    while k < largo(arboles) {
-        if esta_en(nombres_declarados(arboles[k]), nombre) { anadir(salida, copiar(modulos[k])); }
+    while k < arboles.largo() {
+        if esta_en(nombres_declarados(arboles[k]), nombre) { salida.anadir(copiar(modulos[k])); }
         k = k + 1;
     }
     return salida;
@@ -316,8 +316,8 @@ fn nombres_declarados(arbol: &P.Nodo) -> lista<str> {
     var salida: lista<str> = [];
     for d en arbol.hijos {
         let clase = vista(d.clase);
-        if igual(clase, "fn") || igual(clase, "struct") || igual(clase, "enum") {
-            if !esta_en(salida, vista(d.texto)) { anadir(salida, copiar(d.texto)); }
+        if clase == "fn" || clase == "struct" || clase == "enum" {
+            if !esta_en(salida, d.texto) { salida.anadir(copiar(d.texto)); }
         }
     }
     return salida;
@@ -327,27 +327,27 @@ fn nombres_declarados(arbol: &P.Nodo) -> lista<str> {
 // un `for` y los que atrapa un `match`.
 fn locales_de(n: &P.Nodo, salida: mut lista<str>) {
     let clase = vista(n.clase);
-    if igual(clase, "param") {
+    if clase == "param" {
         var i = 0;
-        while i < largo(n.texto) && byte(vista(n.texto), i) != 58 { i = i + 1; }
-        anadir(salida, nuevo(recortar(rebanar(vista(n.texto), 0, i))));
+        while i < n.texto.largo() && byte(n.texto, i) != 58 { i = i + 1; }
+        salida.anadir(nuevo(recortar(rebanar(n.texto, 0, i))));
     }
-    if igual(clase, "declaracion") {
+    if clase == "declaracion" {
         let t = vista(n.texto);
         var i = 0;
-        while i < largo(t) && byte(t, i) != 32 { i = i + 1; }
+        while i < t.largo() && byte(t, i) != 32 { i = i + 1; }
         var j = i + 1;
-        while j < largo(t) && byte(t, j) != 58 { j = j + 1; }
-        if i + 1 <= largo(t) { anadir(salida, nuevo(recortar(rebanar(t, i + 1, j)))); }
+        while j < t.largo() && byte(t, j) != 58 { j = j + 1; }
+        if i + 1 <= t.largo() { salida.anadir(nuevo(recortar(rebanar(t, i + 1, j)))); }
     }
-    if igual(clase, "para") {
+    if clase == "para" {
         let t = vista(n.texto);
         var i = 0;
-        while i < largo(t) && byte(t, i) != 44 { i = i + 1; }
-        anadir(salida, nuevo(recortar(rebanar(t, 0, i))));
-        if i < largo(t) { anadir(salida, nuevo(recortar(rebanar(t, i + 1, largo(t))))); }
+        while i < t.largo() && byte(t, i) != 44 { i = i + 1; }
+        salida.anadir(nuevo(recortar(rebanar(t, 0, i))));
+        if i < t.largo() { salida.anadir(nuevo(recortar(rebanar(t, i + 1, t.largo())))); }
     }
-    if igual(clase, "atrapa") { anadir(salida, copiar(n.texto)); }
+    if clase == "atrapa" { salida.anadir(copiar(n.texto)); }
     for h en n.hijos { locales_de(h, salida); }
 }
 
@@ -356,10 +356,10 @@ fn sin_pedir(n: &P.Nodo, visible: &mapa<str, str>, duenios: &mapa<str, str>,
     locales: &lista<str>) -> str {
     let clase = vista(n.clase);
     var nombre = vacio();
-    if igual(clase, "llamada") { nombre = copiar(n.texto); }
-    if igual(clase, "literal_struct") { nombre = copiar(n.texto); }
-    if igual(clase, "enum_lit") { nombre = I.antes_del_punto(vista(n.texto)); }
-    if largo(nombre) > 0 {
+    if clase == "llamada" { nombre = copiar(n.texto); }
+    if clase == "literal_struct" { nombre = copiar(n.texto); }
+    if clase == "enum_lit" { nombre = I.antes_del_punto(n.texto); }
+    if nombre.largo() > 0 {
         let nv = vista(nombre);
         if !tiene(visible, nv) && tiene(duenios, nv) && !C.nombra_interna(nv)
         && !esta_en(locales, nv) {
@@ -368,7 +368,7 @@ fn sin_pedir(n: &P.Nodo, visible: &mapa<str, str>, duenios: &mapa<str, str>,
     }
     for h en n.hijos {
         let dentro = sin_pedir(h, visible, duenios, locales);
-        if largo(dentro) > 0 { return dentro; }
+        if dentro.largo() > 0 { return dentro; }
     }
     return vacio();
 }
@@ -379,53 +379,53 @@ fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
     var duenios: mapa<str, str> = [];
     var cuantos: mapa<str, usize> = [];
     var k = 0;
-    while k < largo(arboles) {
+    while k < arboles.largo() {
         for n en nombres_declarados(arboles[k]) {
-            var junto = nuevo(obtener(duenios, vista(n)) sino "");
-            if largo(junto) > 0 { empujar(junto, ", "); }
-            empujar(junto, vista(modulos[k]));
+            var junto = nuevo(obtener(duenios, n) sino "");
+            if junto.largo() > 0 { junto.empujar(", "); }
+            junto.empujar(modulos[k]);
             poner(duenios, vista(n), junto);
-            let c = obtener(cuantos, vista(n)) sino 0;
+            let c = obtener(cuantos, n) sino 0;
             poner(cuantos, vista(n), c + 1);
         }
         k = k + 1;
     }
     k = 0;
-    while k < largo(arboles) {
+    while k < arboles.largo() {
         // clave -> `modulo` que la trae; el valor interno es modulo+nombre,
         // salvo que el nombre lo declare uno solo.
         var visible: mapa<str, str> = [];
         for n en nombres_declarados(arboles[k]) {
             poner(visible, vista(n), copiar(modulos[k]));
         }
-        let fuente = leer_archivo(vista(modulos[k])) sino vacio();
-        let pedidos = usar_con_alias(vista(fuente)) sino [];
-        let dir = P.carpeta(vista(modulos[k]));
+        let fuente = leer_archivo(modulos[k]) sino vacio();
+        let pedidos = usar_con_alias(fuente) sino [];
+        let dir = P.carpeta(modulos[k]);
         for pedido en pedidos {
-            let ruta_p = campo_pedido(vista(pedido), 0);
-            let alias = campo_pedido(vista(pedido), 1);
-            let texto_linea = campo_pedido(vista(pedido), 2);
-            let destino = resolver(vista(ruta_p), vista(dir), raiz) sino vacio();
+            let ruta_p = campo_pedido(pedido, 0);
+            let alias = campo_pedido(pedido, 1);
+            let texto_linea = campo_pedido(pedido, 2);
+            let destino = resolver(ruta_p, dir, raiz) sino vacio();
             var jm = 0;
-            while jm < largo(modulos) && !igual(vista(modulos[jm]), vista(destino)) {
+            while jm < modulos.largo() && !igual(modulos[jm], destino) {
                 jm = jm + 1;
             }
-            if jm == largo(modulos) { continue; }
+            if jm == modulos.largo() { continue; }
             for n en nombres_declarados(arboles[jm]) {
                 var clave = copiar(n);
-                if largo(alias) > 0 { clave = $"{alias}.{n}"; }
-                if tiene(visible, vista(clave)) {
-                    let previo = nuevo(obtener(visible, vista(clave)) sino "");
-                    let varios = (obtener(cuantos, vista(n)) sino 0) > 1;
+                if alias.largo() > 0 { clave = $"{alias}.{n}"; }
+                if tiene(visible, clave) {
+                    let previo = nuevo(obtener(visible, clave) sino "");
+                    let varios = (obtener(cuantos, n) sino 0) > 1;
                     // Chocan si por dentro se llamarian distinto, y por dentro
                     // se llaman con el nombre del archivo delante: dos
                     // `x.t` en carpetas distintas no chocan aqui, como en el
                     // original.
-                    let suyos = declarantes(arboles, modulos, vista(n));
-                    let pa = F.prefijo_unico(vista(previo), suyos);
-                    let pb = F.prefijo_unico(vista(modulos[jm]), suyos);
-                    if varios && !igual(vista(pa), vista(pb)) {
-                        let dicho = G.legible_c(vista(clave));
+                    let suyos = declarantes(arboles, modulos, n);
+                    let pa = F.prefijo_unico(previo, suyos);
+                    let pb = F.prefijo_unico(modulos[jm], suyos);
+                    if varios && !igual(pa, pb) {
+                        let dicho = G.legible_c(clave);
                         error = $"{modulos[k]}:{texto_linea}: `{dicho}` llega de dos sitios, {previo} y {modulos[jm]}. Dale un nombre a uno de los dos: `usar \"...\" como algo;` y luego `algo.{dicho}`";
                         return false;
                     }
@@ -435,17 +435,17 @@ fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
         }
         // Y lo que se usa sin pedirlo.
         for d en arboles[k].hijos {
-            if !igual(vista(d.clase), "fn") { continue; }
+            if d.clase != "fn" { continue; }
             var locales: lista<str> = [];
             locales_de(d, locales);
             for h en d.hijos {
-                if !igual(vista(h.clase), "bloque") { continue; }
+                if h.clase != "bloque" { continue; }
                 let hallado = sin_pedir(h, visible, duenios, locales);
-                if largo(hallado) > 0 {
-                    let nombre = campo_pedido(vista(hallado), 0);
-                    let linea = campo_pedido(vista(hallado), 1);
-                    let donde = obtener(duenios, vista(nombre)) sino "";
-                    let dicho = G.escrito(vista(nombre));
+                if hallado.largo() > 0 {
+                    let nombre = campo_pedido(hallado, 0);
+                    let linea = campo_pedido(hallado, 1);
+                    let donde = obtener(duenios, nombre) sino "";
+                    let dicho = G.escrito(nombre);
                     error = $"{modulos[k]}:{linea}: `{dicho}` esta en {donde}, que este archivo no usa. Se veia porque lo usa otro modulo, pero cada archivo tiene que pedir lo suyo: añade `usar \"...\";`";
                     return false;
                 }
@@ -471,14 +471,14 @@ fn visitar_struct(nombre: view, indice: &mapa<str, usize>,
     for t en tipos_de[k] {
         // Un arreglo de structs necesita el tamaño del de dentro.
         var base = copiar(t);
-        while empieza_con(vista(base), "[") {
-            let pa = partes_arreglo(vista(base));
-            if largo(pa) != 2 { break; }
+        while empieza_con(base, "[") {
+            let pa = partes_arreglo(base);
+            if pa.largo() != 2 { break; }
             base = copiar(pa[0]);
         }
-        visitar_struct(vista(base), indice, tipos_de, listos, salida);
+        visitar_struct(base, indice, tipos_de, listos, salida);
     }
-    anadir(salida, nuevo(nombre));
+    salida.anadir(nuevo(nombre));
 }
 
 // Define en C el enum o struct `nombre`, y antes lo que lleve por valor.
@@ -488,24 +488,24 @@ fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<li
     definidos: mut mapa<str, usize>, partes: mut lista<str>) {
     if tiene(definidos, nombre) { return; }
     var ie = 0;
-    while ie < largo(en_nombres) && !igual(vista(en_nombres[ie]), nombre) { ie = ie + 1; }
-    let es_enum = ie < largo(en_nombres);
+    while ie < en_nombres.largo() && !igual(en_nombres[ie], nombre) { ie = ie + 1; }
+    let es_enum = ie < en_nombres.largo();
     if !es_enum && !tiene(st_indice, nombre) { return; }
     poner(definidos, nombre, 1);
     var lleva: lista<str> = [];
     if es_enum {
         for x en en_lleva[ie] {
-            for t en partir_tab(vista(x)) { anadir(lleva, copiar(t)); }
+            for t en partir_tab(x) { lleva.anadir(copiar(t)); }
         }
     } else {
         let k = obtener(st_indice, nombre) sino 0;
-        for t en st_tipos[k] { anadir(lleva, copiar(t)); }
+        for t en st_tipos[k] { lleva.anadir(copiar(t)); }
     }
     for t en lleva {
         var base = copiar(t);
-        while empieza_con(vista(base), "[") {
-            let pa = partes_arreglo(vista(base));
-            if largo(pa) != 2 { break; }
+        while empieza_con(base, "[") {
+            let pa = partes_arreglo(base);
+            if pa.largo() != 2 { break; }
             base = copiar(pa[0]);
         }
         definir_tipo_c(vista(base), en_nombres, en_variantes, en_lleva, st_indice, st_campos,
@@ -515,16 +515,16 @@ fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<li
         cuerpo_enum_c(ie, en_nombres, en_variantes, en_lleva, partes);
     } else {
         let k = obtener(st_indice, nombre) sino 0;
-        anadir(partes, $"struct {nombre}");
-        anadir(partes, nuevo("{"));
+        partes.anadir($"struct {nombre}");
+        partes.anadir(nuevo("{"));
         var j = 0;
-        while j < largo(st_campos[k]) {
-            let tc = G.tipo_c(vista(st_tipos[k][j]));
-            anadir(partes, $"    {tc} {st_campos[k][j]};");
+        while j < st_campos[k].largo() {
+            let tc = G.tipo_c(st_tipos[k][j]);
+            partes.anadir($"    {tc} {st_campos[k][j]};");
             j = j + 1;
         }
-        anadir(partes, nuevo("};"));
-        anadir(partes, vacio());
+        partes.anadir(nuevo("};"));
+        partes.anadir(vacio());
     }
 }
 
@@ -532,42 +532,42 @@ fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<li
 fn cuerpo_enum_c(ie_s: usize, en_nombres: &lista<str>, en_variantes: &lista<lista<str>>,
     en_lleva: &lista<lista<str>>, partes: mut lista<str>) {
     let en_n = copiar(en_nombres[ie_s]);
-    anadir(partes, $"struct {en_n}");
-    anadir(partes, nuevo("{"));
-    anadir(partes, nuevo("    uint32_t etiqueta;"));
+    partes.anadir($"struct {en_n}");
+    partes.anadir(nuevo("{"));
+    partes.anadir(nuevo("    uint32_t etiqueta;"));
     var hay_datos = false;
     for ll en en_lleva[ie_s] {
-        if largo(ll) > 0 { hay_datos = true; }
+        if ll.largo() > 0 { hay_datos = true; }
     }
     if hay_datos {
-        anadir(partes, nuevo("    union"));
-        anadir(partes, nuevo("    {"));
+        partes.anadir(nuevo("    union"));
+        partes.anadir(nuevo("    {"));
         var iv = 0;
-        while iv < largo(en_variantes[ie_s]) {
-            let tipos_v = partir_tab(vista(en_lleva[ie_s][iv]));
-            if largo(tipos_v) > 0 {
+        while iv < en_variantes[ie_s].largo() {
+            let tipos_v = partir_tab(en_lleva[ie_s][iv]);
+            if tipos_v.largo() > 0 {
                 var campos_c = vacio();
                 var q = 0;
-                while q < largo(tipos_v) {
-                    let tc = G.tipo_c(vista(tipos_v[q]));
-                    if q > 0 { empujar(campos_c, " "); }
+                while q < tipos_v.largo() {
+                    let tc = G.tipo_c(tipos_v[q]);
+                    if q > 0 { campos_c.empujar(" "); }
                     let pieza = $"{tc} _{q};";
-                    empujar(campos_c, vista(pieza));
+                    campos_c.empujar(pieza);
                     q = q + 1;
                 }
-                anadir(partes, $"        struct {{ {campos_c} }} v_{en_variantes[ie_s][iv]};");
+                partes.anadir($"        struct {{ {campos_c} }} v_{en_variantes[ie_s][iv]};");
             }
             iv = iv + 1;
         }
-        anadir(partes, nuevo("    } dato;"));
+        partes.anadir(nuevo("    } dato;"));
     }
-    anadir(partes, nuevo("};"));
-    anadir(partes, vacio());
+    partes.anadir(nuevo("};"));
+    partes.anadir(vacio());
 }
 
 // Si en algun sitio de `n` se llama a la interna `nombre`.
 fn llama_a(n: &P.Nodo, nombre: view) -> bool {
-    if igual(vista(n.clase), "llamada") && igual(vista(n.texto), nombre) {
+    if n.clase == "llamada" && igual(n.texto, nombre) {
         return true;
     }
     for h en n.hijos {
@@ -581,32 +581,32 @@ fn llama_a(n: &P.Nodo, nombre: view) -> bool {
 // abrir, al escribir o al cerrar es un fallo, no un archivo a medias callado.
 fn ayudante_escribir_archivo(salida: mut lista<str>) {
     let res = G.tipo_resultado("()");
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static {res} ss_lang_escribir_archivo_(SafeView ruta, SafeView datos)");
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    if (ruta.len != 0 && memchr(ruta.ptr, 0, ruta.len) != NULL)"));
-    anadir(salida, $"        return ({res}){{ .motivo = \"la ruta contiene un byte cero\" }};");
-    anadir(salida, vacio());
-    anadir(salida, nuevo("    SafeString copia = ss_from_view(ruta);"));
-    anadir(salida, nuevo("    if (!ss_ok(&copia))"));
-    anadir(salida, nuevo("    {"));
-    anadir(salida, nuevo("        ss_free(&copia);"));
-    anadir(salida, $"        return ({res}){{ .motivo = \"sin memoria para la ruta\" }};");
-    anadir(salida, nuevo("    }"));
-    anadir(salida, nuevo("    FILE* f = fopen(ss_cstr(&copia), \"wb\");"));
-    anadir(salida, nuevo("    ss_free(&copia);"));
-    anadir(salida, nuevo("    if (f == NULL)"));
-    anadir(salida, $"        return ({res}){{ .motivo = \"no se pudo abrir el archivo para escribir\" }};");
-    anadir(salida, vacio());
-    anadir(salida, nuevo("    bool fallo = false;"));
-    anadir(salida, nuevo("    if (datos.len != 0)"));
-    anadir(salida, nuevo("        fallo = fwrite(datos.ptr, 1, datos.len, f) != datos.len;"));
-    anadir(salida, nuevo("    if (fclose(f) != 0) fallo = true;"));
-    anadir(salida, nuevo("    if (fallo)"));
-    anadir(salida, $"        return ({res}){{ .motivo = \"fallo al escribir el archivo\" }};");
-    anadir(salida, $"    return ({res}){{ .motivo = NULL }};");
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static {res} ss_lang_escribir_archivo_(SafeView ruta, SafeView datos)");
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    if (ruta.len != 0 && memchr(ruta.ptr, 0, ruta.len) != NULL)"));
+    salida.anadir($"        return ({res}){{ .motivo = \"la ruta contiene un byte cero\" }};");
+    salida.anadir(vacio());
+    salida.anadir(nuevo("    SafeString copia = ss_from_view(ruta);"));
+    salida.anadir(nuevo("    if (!ss_ok(&copia))"));
+    salida.anadir(nuevo("    {"));
+    salida.anadir(nuevo("        ss_free(&copia);"));
+    salida.anadir($"        return ({res}){{ .motivo = \"sin memoria para la ruta\" }};");
+    salida.anadir(nuevo("    }"));
+    salida.anadir(nuevo("    FILE* f = fopen(ss_cstr(&copia), \"wb\");"));
+    salida.anadir(nuevo("    ss_free(&copia);"));
+    salida.anadir(nuevo("    if (f == NULL)"));
+    salida.anadir($"        return ({res}){{ .motivo = \"no se pudo abrir el archivo para escribir\" }};");
+    salida.anadir(vacio());
+    salida.anadir(nuevo("    bool fallo = false;"));
+    salida.anadir(nuevo("    if (datos.len != 0)"));
+    salida.anadir(nuevo("        fallo = fwrite(datos.ptr, 1, datos.len, f) != datos.len;"));
+    salida.anadir(nuevo("    if (fclose(f) != 0) fallo = true;"));
+    salida.anadir(nuevo("    if (fallo)"));
+    salida.anadir($"        return ({res}){{ .motivo = \"fallo al escribir el archivo\" }};");
+    salida.anadir($"    return ({res}){{ .motivo = NULL }};");
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 }
 
 // Las internas que pueden fallar necesitan su tipo resultado, y el original
@@ -614,18 +614,18 @@ fn ayudante_escribir_archivo(salida: mut lista<str>) {
 // clausura donde esta escrita.
 fn resultados_de_internas(n: &P.Nodo, cierres: &Cierres, reg: mut Registro) {
     let clase = vista(n.clase);
-    if igual(clase, "llamada") {
+    if clase == "llamada" {
         let nombre = vista(n.texto);
-        if igual(nombre, "leer_archivo") || igual(nombre, "leer_linea")
-        || igual(nombre, "entrada_completa") || igual(nombre, "variable_entorno") {
+        if nombre == "leer_archivo" || nombre == "leer_linea"
+        || nombre == "entrada_completa" || nombre == "variable_entorno" {
             registrar_resultado(reg, "str");
         }
-        if igual(nombre, "escribir_archivo") { registrar_resultado(reg, "()"); }
+        if nombre == "escribir_archivo" { registrar_resultado(reg, "()"); }
     }
-    if igual(clase, "cierre") {
-        let de_cierre = I.funcion_de_cierre(vista(n.texto));
-        if tiene(cierres.indice, vista(de_cierre)) {
-            let k = obtener(cierres.indice, vista(de_cierre)) sino 0;
+    if clase == "cierre" {
+        let de_cierre = I.funcion_de_cierre(n.texto);
+        if tiene(cierres.indice, de_cierre) {
+            let k = obtener(cierres.indice, de_cierre) sino 0;
             resultados_de_internas(cierres.fns[k], cierres, reg);
         }
     }
@@ -634,48 +634,48 @@ fn resultados_de_internas(n: &P.Nodo, cierres: &Cierres, reg: mut Registro) {
 
 fn ayudante_leer_archivo(salida: mut lista<str>) {
     let res = G.tipo_resultado("str");
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static {res} ss_lang_leer_archivo_(SafeView ruta)");
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    if (ruta.len != 0 && memchr(ruta.ptr, 0, ruta.len) != NULL)"));
-    anadir(salida, $"        return ({res}){{ .motivo = \"la ruta contiene un byte cero\" }};");
-    anadir(salida, nuevo("    SafeString nombre = ss_from_view(ruta);"));
-    anadir(salida, nuevo("    if (!ss_ok(&nombre))"));
-    anadir(salida, nuevo("    {"));
-    anadir(salida, nuevo("        ss_free(&nombre);"));
-    anadir(salida, $"        return ({res}){{ .motivo = \"sin memoria para la ruta\" }};");
-    anadir(salida, nuevo("    }"));
-    anadir(salida, nuevo("    FILE* f = fopen(ss_cstr(&nombre), \"rb\");"));
-    anadir(salida, nuevo("    ss_free(&nombre);"));
-    anadir(salida, nuevo("    if (f == NULL)"));
-    anadir(salida, $"        return ({res}){{ .motivo = \"no se pudo abrir el archivo\" }};");
-    anadir(salida, nuevo("    SafeString contenido = ss_new();"));
-    anadir(salida, nuevo("    unsigned char bloque[8192];"));
-    anadir(salida, nuevo("    size_t n;"));
-    anadir(salida, nuevo("    while ((n = fread(bloque, 1, sizeof(bloque), f)) != 0)"));
-    anadir(salida, nuevo("    {"));
-    anadir(salida, nuevo("        if (!ss_append_len(&contenido, (const char*) bloque, n))"));
-    anadir(salida, nuevo("        {"));
-    anadir(salida, nuevo("            fclose(f);"));
-    anadir(salida, nuevo("            ss_free(&contenido);"));
-    anadir(salida, $"            return ({res}){{ .motivo = \"sin memoria al leer el archivo\" }};");
-    anadir(salida, nuevo("        }"));
-    anadir(salida, nuevo("    }"));
-    anadir(salida, nuevo("    bool fallo_lectura = ferror(f) != 0;"));
-    anadir(salida, nuevo("    if (fclose(f) != 0) fallo_lectura = true;"));
-    anadir(salida, nuevo("    if (fallo_lectura)"));
-    anadir(salida, nuevo("    {"));
-    anadir(salida, nuevo("        ss_free(&contenido);"));
-    anadir(salida, $"        return ({res}){{ .motivo = \"fallo al leer el archivo\" }};");
-    anadir(salida, nuevo("    }"));
-    anadir(salida, $"    return ({res}){{ .motivo = NULL, .valor = contenido }};");
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static {res} ss_lang_leer_archivo_(SafeView ruta)");
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    if (ruta.len != 0 && memchr(ruta.ptr, 0, ruta.len) != NULL)"));
+    salida.anadir($"        return ({res}){{ .motivo = \"la ruta contiene un byte cero\" }};");
+    salida.anadir(nuevo("    SafeString nombre = ss_from_view(ruta);"));
+    salida.anadir(nuevo("    if (!ss_ok(&nombre))"));
+    salida.anadir(nuevo("    {"));
+    salida.anadir(nuevo("        ss_free(&nombre);"));
+    salida.anadir($"        return ({res}){{ .motivo = \"sin memoria para la ruta\" }};");
+    salida.anadir(nuevo("    }"));
+    salida.anadir(nuevo("    FILE* f = fopen(ss_cstr(&nombre), \"rb\");"));
+    salida.anadir(nuevo("    ss_free(&nombre);"));
+    salida.anadir(nuevo("    if (f == NULL)"));
+    salida.anadir($"        return ({res}){{ .motivo = \"no se pudo abrir el archivo\" }};");
+    salida.anadir(nuevo("    SafeString contenido = ss_new();"));
+    salida.anadir(nuevo("    unsigned char bloque[8192];"));
+    salida.anadir(nuevo("    size_t n;"));
+    salida.anadir(nuevo("    while ((n = fread(bloque, 1, sizeof(bloque), f)) != 0)"));
+    salida.anadir(nuevo("    {"));
+    salida.anadir(nuevo("        if (!ss_append_len(&contenido, (const char*) bloque, n))"));
+    salida.anadir(nuevo("        {"));
+    salida.anadir(nuevo("            fclose(f);"));
+    salida.anadir(nuevo("            ss_free(&contenido);"));
+    salida.anadir($"            return ({res}){{ .motivo = \"sin memoria al leer el archivo\" }};");
+    salida.anadir(nuevo("        }"));
+    salida.anadir(nuevo("    }"));
+    salida.anadir(nuevo("    bool fallo_lectura = ferror(f) != 0;"));
+    salida.anadir(nuevo("    if (fclose(f) != 0) fallo_lectura = true;"));
+    salida.anadir(nuevo("    if (fallo_lectura)"));
+    salida.anadir(nuevo("    {"));
+    salida.anadir(nuevo("        ss_free(&contenido);"));
+    salida.anadir($"        return ({res}){{ .motivo = \"fallo al leer el archivo\" }};");
+    salida.anadir(nuevo("    }"));
+    salida.anadir($"    return ({res}){{ .motivo = NULL, .valor = contenido }};");
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 }
 
 fn typedef_resultado(t: view) -> str {
     let nombre = G.tipo_resultado(t);
-    if largo(t) == 0 || igual(t, "()") {
+    if t.largo() == 0 || t == "()" {
         return $"typedef struct {{ const char* motivo; }} {nombre};";
     }
     let tc = G.tipo_c(t);
@@ -684,15 +684,15 @@ fn typedef_resultado(t: view) -> str {
 
 fn es_falible(d: &P.Nodo) -> bool {
     for h en d.hijos {
-        if igual(vista(h.clase), "falible") { return true; }
+        if h.clase == "falible" { return true; }
     }
     return false;
 }
 
 fn retorno_de(d: &P.Nodo) -> str {
     for h en d.hijos {
-        if igual(vista(h.clase), "retorno_tipo") {
-            return I.sin_alias_tipo(vista(h.texto));
+        if h.clase == "retorno_tipo" {
+            return I.sin_alias_tipo(h.texto);
         }
     }
     return vacio();
@@ -700,7 +700,7 @@ fn retorno_de(d: &P.Nodo) -> str {
 
 fn tiene_tipo_param(d: &P.Nodo) -> bool {
     for h en d.hijos {
-        if igual(vista(h.clase), "tipo_param") { return true; }
+        if h.clase == "tipo_param" { return true; }
     }
     return false;
 }
@@ -723,7 +723,7 @@ fn rechazo(que: view) -> usize {
 fn es_lista_t(t: view) -> bool { return empieza_con(t, "lista<"); }
 
 fn interior_lista(t: view) -> str {
-    return nuevo(rebanar(t, 6, largo(t) - 1));
+    return nuevo(rebanar(t, 6, t.largo() - 1));
 }
 
 // Bloques y arreglos: este hito todavia no los escribe.
@@ -736,18 +736,18 @@ fn es_mapa_t(t: view) -> bool { return empieza_con(t, "mapa<"); }
 // La clave y el valor de un `mapa<K, V>`, cortando por la coma de fuera.
 fn partes_mapa(t: view) -> lista<str> {
     var salida: lista<str> = [];
-    let dentro = rebanar(t, 5, largo(t) - 1);
+    let dentro = rebanar(t, 5, t.largo() - 1);
     var hondura = 0;
     var i = 0;
-    while i < largo(dentro) {
+    while i < dentro.largo() {
         let b = byte(dentro, i);
         if b == 60 || b == 91 || b == 40 { hondura = hondura + 1; }
         if (b == 62 || b == 93 || b == 41) && hondura > 0 { hondura = hondura - 1; }
         if b == 44 && hondura == 0 {
-            anadir(salida, nuevo(rebanar(dentro, 0, i)));
+            salida.anadir(nuevo(rebanar(dentro, 0, i)));
             var j = i + 1;
-            while j < largo(dentro) && byte(dentro, j) == 32 { j = j + 1; }
-            anadir(salida, nuevo(rebanar(dentro, j, largo(dentro))));
+            while j < dentro.largo() && byte(dentro, j) == 32 { j = j + 1; }
+            salida.anadir(nuevo(rebanar(dentro, j, dentro.largo())));
             return salida;
         }
         i = i + 1;
@@ -758,30 +758,30 @@ fn partes_mapa(t: view) -> lista<str> {
 // `[T; N]` -> [T, N], cortando por el `;` de fuera.
 fn partes_arreglo(t: view) -> lista<str> {
     var salida: lista<str> = [];
-    if largo(t) < 2 || !empieza_con(t, "[") { return salida; }
-    let dentro = rebanar(t, 1, largo(t) - 1);
+    if t.largo() < 2 || !empieza_con(t, "[") { return salida; }
+    let dentro = rebanar(t, 1, t.largo() - 1);
     var hondura = 0;
-    var corte = largo(dentro);
+    var corte = dentro.largo();
     var i = 0;
-    while i < largo(dentro) {
+    while i < dentro.largo() {
         let b = byte(dentro, i);
         if b == 91 || b == 60 { hondura = hondura + 1; }
         if (b == 93 || b == 62) && hondura > 0 { hondura = hondura - 1; }
         if b == 59 && hondura == 0 { corte = i; }
         i = i + 1;
     }
-    if corte == largo(dentro) { return salida; }
-    anadir(salida, nuevo(rebanar(dentro, 0, corte)));
+    if corte == dentro.largo() { return salida; }
+    salida.anadir(nuevo(rebanar(dentro, 0, corte)));
     var j = corte + 1;
-    while j < largo(dentro) && byte(dentro, j) == 32 { j = j + 1; }
-    anadir(salida, nuevo(rebanar(dentro, j, largo(dentro))));
+    while j < dentro.largo() && byte(dentro, j) == 32 { j = j + 1; }
+    salida.anadir(nuevo(rebanar(dentro, j, dentro.largo())));
     return salida;
 }
 
 fn cuantos_corchetes(t: view) -> usize {
     var n = 0;
     var i = 0;
-    while i < largo(t) {
+    while i < t.largo() {
         if byte(t, i) == 91 { n = n + 1; }
         i = i + 1;
     }
@@ -813,15 +813,15 @@ fn registro() -> Registro {
 
 fn registrar_resultado(reg: mut Registro, t: view) {
     var clave = I.nombre_resuelto(t);
-    if igual(t, "()") { clave = vacio(); }
-    if tiene(reg.res_vistos, vista(clave)) { return; }
+    if t == "()" { clave = vacio(); }
+    if tiene(reg.res_vistos, clave) { return; }
     poner(reg.res_vistos, vista(clave), 1);
-    anadir(reg.resultados, clave);
+    reg.resultados.anadir(clave);
 }
 
 // Tiene partes: se puede leer un campo o modificarlo en el sitio.
 fn es_compuesto_t(t: view, structs: &mapa<str, usize>) -> bool {
-    if igual(t, "str") || empieza_con(t, "bloque<") { return true; }
+    if t == "str" || empieza_con(t, "bloque<") { return true; }
     if es_lista_t(t) || es_mapa_t(t) { return true; }
     if empieza_con(t, "[") { return true; }
     return tiene(structs, t);
@@ -830,7 +830,7 @@ fn es_compuesto_t(t: view, structs: &mapa<str, usize>) -> bool {
 // Lo que devuelve `obtener` para un mapa cuyo valor es `v`.
 fn tipo_obtener(v: view, global: &I.Contexto) -> str {
     if !I.posee_con_formas(global, v) { return nuevo(v); }
-    if igual(v, "str") { return nuevo("view"); }
+    if v == "str" { return nuevo("view"); }
     return $"&{v}";
 }
 
@@ -840,27 +840,27 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     structs: &mapa<str, usize>) -> bool {
     if contiene(t, "<") {
         let resuelto = I.nombre_resuelto(t);
-        if !igual(vista(resuelto), t) {
-            return mirar_tipo(vista(resuelto), reg, global, structs);
+        if !igual(resuelto, t) {
+            return mirar_tipo(resuelto, reg, global, structs);
         }
     }
     if empieza_con(t, "[") {
         let pa = partes_arreglo(t);
-        if largo(pa) != 2 { return false; }
+        if pa.largo() != 2 { return false; }
         if tiene(reg.arr_vistos, t) { return true; }
         // El typedef del elemento va antes que el envoltorio del arreglo:
         // tambien cuando el elemento es una lista, mapa o bloque.
-        if !mirar_tipo(vista(pa[0]), reg, global, structs) { return false; }
+        if !mirar_tipo(pa[0], reg, global, structs) { return false; }
         poner(reg.arr_vistos, t, 1);
-        anadir(reg.arreglos, nuevo(t));
+        reg.arreglos.anadir(nuevo(t));
         return true;
     }
     if empieza_con(t, "bloque<") {
         if tiene(reg.vistos, t) { return true; }
         poner(reg.vistos, t, 1);
-        anadir(reg.bloques, nuevo(t));
-        let dentro_b = nuevo(rebanar(t, 7, largo(t) - 1));
-        return mirar_tipo(vista(dentro_b), reg, global, structs);
+        reg.bloques.anadir(nuevo(t));
+        let dentro_b = nuevo(rebanar(t, 7, t.largo() - 1));
+        return mirar_tipo(dentro_b, reg, global, structs);
     }
     // Una lista o un mapa de bloques o arreglos registran lo de dentro al
     // registrarse, como cualquier otra lista o mapa.
@@ -875,31 +875,31 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
         let dentro = interior_lista(t);
         // Igual que el generador de referencia: lo que lleva dentro tiene que
         // registrarse antes, aunque sea un mapa o un bloque y no otra lista.
-        if !mirar_tipo(vista(dentro), reg, global, structs) { return false; }
+        if !mirar_tipo(dentro, reg, global, structs) { return false; }
         poner(reg.vistos, t, 1);
-        anadir(reg.listas, nuevo(t));
+        reg.listas.anadir(nuevo(t));
         return true;
     }
     if !es_mapa_t(t) { return true; }
     let partes = partes_mapa(t);
-    if largo(partes) != 2 { return false; }
+    if partes.largo() != 2 { return false; }
     // El nombre en C de la clave y del valor, la lista que devuelve
     // `claves`, y los resultados de `obtener` y de `obtener_mut`.
     for x en partes {
-        if es_lista_t(vista(x)) || es_mapa_t(vista(x)) || es_bloque_o_arreglo(vista(x)) {
-            if !mirar_tipo(vista(x), reg, global, structs) { return false; }
+        if es_lista_t(x) || es_mapa_t(x) || es_bloque_o_arreglo(x) {
+            if !mirar_tipo(x, reg, global, structs) { return false; }
         }
     }
     let de_claves = $"lista<{partes[0]}>";
-    if !mirar_tipo(vista(de_claves), reg, global, structs) { return false; }
-    let obt = tipo_obtener(vista(partes[1]), global);
-    registrar_resultado(reg, vista(obt));
-    if es_compuesto_t(vista(partes[1]), structs) {
+    if !mirar_tipo(de_claves, reg, global, structs) { return false; }
+    let obt = tipo_obtener(partes[1], global);
+    registrar_resultado(reg, obt);
+    if es_compuesto_t(partes[1], structs) {
         let con_mut = $"&mut {partes[1]}";
-        registrar_resultado(reg, vista(con_mut));
+        registrar_resultado(reg, con_mut);
     }
     poner(reg.vistos, t, 1);
-    anadir(reg.mapas, nuevo(t));
+    reg.mapas.anadir(nuevo(t));
     return true;
 }
 
@@ -909,24 +909,24 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
     var bien = true;
     for st en n.hijos {
         let clase = vista(st.clase);
-        if igual(clase, "declaracion") && largo(st.hijos) == 1 {
-            let nombre = G.nombre_declarado(vista(st.texto));
-            var escrito = G.tipo_escrito(vista(st.texto));
-            if largo(escrito) == 0 { escrito = I.tipo_de(tipos, st.hijos[0]); }
-            let t = I.sin_alias_tipo(vista(escrito));
-            if bien { bien = mirar_tipo(vista(t), reg, global, structs); }
-            I.declarar(tipos, vista(nombre), vista(t));
+        if clase == "declaracion" && st.hijos.largo() == 1 {
+            let nombre = G.nombre_declarado(st.texto);
+            var escrito = G.tipo_escrito(st.texto);
+            if escrito.largo() == 0 { escrito = I.tipo_de(tipos, st.hijos[0]); }
+            let t = I.sin_alias_tipo(escrito);
+            if bien { bien = mirar_tipo(t, reg, global, structs); }
+            I.declarar(tipos, nombre, t);
         }
-        if igual(clase, "si") {
+        if clase == "si" {
             var k = 1;
-            while k < largo(st.hijos) {
+            while k < st.hijos.largo() {
                 if bien {
                     bien = mirar_bloque(st.hijos[k], tipos, reg, global, structs);
                 }
                 k = k + 1;
             }
         }
-        if igual(clase, "mientras") && largo(st.hijos) == 2 {
+        if clase == "mientras" && st.hijos.largo() == 2 {
             if bien {
                 bien = mirar_bloque(st.hijos[1], tipos, reg, global, structs);
             }
@@ -939,21 +939,21 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
 fn mirar_funcion(d: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
     global: &I.Contexto, structs: &mapa<str, usize>) -> bool {
     let r = retorno_de(d);
-    if !mirar_tipo(vista(r), reg, global, structs) { return false; }
-    if es_falible(d) { registrar_resultado(reg, vista(r)); }
+    if !mirar_tipo(r, reg, global, structs) { return false; }
+    if es_falible(d) { registrar_resultado(reg, r); }
     I.abrir(tipos);
     var bien = true;
     for h en d.hijos {
-        if igual(vista(h.clase), "param") {
-            let pelado = F.tipo_pelado(vista(h.texto));
-            let t = I.sin_alias_tipo(vista(pelado));
-            if bien { bien = mirar_tipo(vista(t), reg, global, structs); }
-            let pn = F.nombre_de(vista(h.texto));
-            I.declarar(tipos, vista(pn), vista(t));
+        if h.clase == "param" {
+            let pelado = F.tipo_pelado(h.texto);
+            let t = I.sin_alias_tipo(pelado);
+            if bien { bien = mirar_tipo(t, reg, global, structs); }
+            let pn = F.nombre_de(h.texto);
+            I.declarar(tipos, pn, t);
         }
     }
     for h en d.hijos {
-        if igual(vista(h.clase), "bloque") && bien {
+        if h.clase == "bloque" && bien {
             bien = mirar_bloque(h, tipos, reg, global, structs);
         }
     }
@@ -969,90 +969,90 @@ fn poner_typedef(t: view, reg: &Registro, puestos: mut mapa<str, usize>,
     poner(puestos, t, 1);
     let tc = G.tipo_c(t);
     if empieza_con(t, "bloque<") {
-        let dentro_b = nuevo(rebanar(t, 7, largo(t) - 1));
-        poner_typedef(vista(dentro_b), reg, puestos, salida);
-        let te_b = G.tipo_c(vista(dentro_b));
-        anadir(salida, $"typedef struct {{ {te_b}* e; size_t n; }} {tc};");
+        let dentro_b = nuevo(rebanar(t, 7, t.largo() - 1));
+        poner_typedef(dentro_b, reg, puestos, salida);
+        let te_b = G.tipo_c(dentro_b);
+        salida.anadir($"typedef struct {{ {te_b}* e; size_t n; }} {tc};");
         return;
     }
     if es_lista_t(t) {
         let dentro = interior_lista(t);
-        poner_typedef(vista(dentro), reg, puestos, salida);
-        let te = G.tipo_c(vista(dentro));
-        anadir(salida, $"typedef struct {{ {te}* e; size_t length; size_t capacity; }} {tc};");
+        poner_typedef(dentro, reg, puestos, salida);
+        let te = G.tipo_c(dentro);
+        salida.anadir($"typedef struct {{ {te}* e; size_t length; size_t capacity; }} {tc};");
         return;
     }
     let partes = partes_mapa(t);
-    for x en partes { poner_typedef(vista(x), reg, puestos, salida); }
-    let tk = G.tipo_c(vista(partes[0]));
-    let tv = G.tipo_c(vista(partes[1]));
-    anadir(salida, $"typedef struct {{ {tk}* claves; {tv}* valores; size_t largo; size_t capacidad; }} {tc};");
+    for x en partes { poner_typedef(x, reg, puestos, salida); }
+    let tk = G.tipo_c(partes[0]);
+    let tv = G.tipo_c(partes[1]);
+    salida.anadir($"typedef struct {{ {tk}* claves; {tv}* valores; size_t largo; size_t capacidad; }} {tc};");
 }
 
 fn ordenable(t: view) -> bool {
-    if igual(t, "str") || igual(t, "bool") { return true; }
-    if igual(t, "usize") || igual(t, "u8") || igual(t, "u16") { return true; }
-    if igual(t, "u32") || igual(t, "u64") || igual(t, "i8") { return true; }
-    if igual(t, "i16") || igual(t, "i32") || igual(t, "i64") { return true; }
-    return igual(t, "f32") || igual(t, "f64");
+    if t == "str" || t == "bool" { return true; }
+    if t == "usize" || t == "u8" || t == "u16" { return true; }
+    if t == "u32" || t == "u64" || t == "i8" { return true; }
+    if t == "i16" || t == "i32" || t == "i64" { return true; }
+    return t == "f32" || t == "f64";
 }
 
 fn funcion_push(t: view, salida: mut lista<str>) {
     let dentro = interior_lista(t);
-    let te = G.tipo_c(vista(dentro));
+    let te = G.tipo_c(dentro);
     let tc = G.tipo_c(t);
     let m = G.mangle(t);
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static void ss_push_{m}({tc}* p, {te} valor,");
-    anadir(salida, nuevo("        const char* archivo, int linea)"));
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    if (p->length == p->capacity)"));
-    anadir(salida, nuevo("    {"));
-    anadir(salida, nuevo("        if (p->length == SIZE_MAX)"));
-    anadir(salida, nuevo("            ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, nuevo("        size_t nueva = p->capacity == 0 ? 8 : p->capacity;"));
-    anadir(salida, nuevo("        if (nueva < p->length + 1)"));
-    anadir(salida, nuevo("        {"));
-    anadir(salida, nuevo("            nueva = nueva > SIZE_MAX / 2 ? SIZE_MAX : nueva * 2;"));
-    anadir(salida, nuevo("            if (nueva < p->length + 1) nueva = p->length + 1;"));
-    anadir(salida, nuevo("        }"));
-    anadir(salida, nuevo("        if (nueva > SIZE_MAX / sizeof(*p->e))"));
-    anadir(salida, nuevo("            ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, nuevo("        void* memoria = realloc(p->e, nueva * sizeof(*p->e));"));
-    anadir(salida, nuevo("        if (memoria == NULL) ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, $"        p->e = ({te}*) memoria;");
-    anadir(salida, nuevo("        p->capacity = nueva;"));
-    anadir(salida, nuevo("    }"));
-    anadir(salida, nuevo("    p->e[p->length++] = valor;"));
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static void ss_push_{m}({tc}* p, {te} valor,");
+    salida.anadir(nuevo("        const char* archivo, int linea)"));
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    if (p->length == p->capacity)"));
+    salida.anadir(nuevo("    {"));
+    salida.anadir(nuevo("        if (p->length == SIZE_MAX)"));
+    salida.anadir(nuevo("            ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir(nuevo("        size_t nueva = p->capacity == 0 ? 8 : p->capacity;"));
+    salida.anadir(nuevo("        if (nueva < p->length + 1)"));
+    salida.anadir(nuevo("        {"));
+    salida.anadir(nuevo("            nueva = nueva > SIZE_MAX / 2 ? SIZE_MAX : nueva * 2;"));
+    salida.anadir(nuevo("            if (nueva < p->length + 1) nueva = p->length + 1;"));
+    salida.anadir(nuevo("        }"));
+    salida.anadir(nuevo("        if (nueva > SIZE_MAX / sizeof(*p->e))"));
+    salida.anadir(nuevo("            ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir(nuevo("        void* memoria = realloc(p->e, nueva * sizeof(*p->e));"));
+    salida.anadir(nuevo("        if (memoria == NULL) ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir($"        p->e = ({te}*) memoria;");
+    salida.anadir(nuevo("        p->capacity = nueva;"));
+    salida.anadir(nuevo("    }"));
+    salida.anadir(nuevo("    p->e[p->length++] = valor;"));
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 }
 
 fn funcion_ordenar(t: view, salida: mut lista<str>) {
     let dentro = interior_lista(t);
-    if !ordenable(vista(dentro)) { return; }
-    let te = G.tipo_c(vista(dentro));
+    if !ordenable(dentro) { return; }
+    let te = G.tipo_c(dentro);
     let tc = G.tipo_c(t);
     let m = G.mangle(t);
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static int ss_cmp_{m}(const void* a, const void* b)");
-    anadir(salida, nuevo("{"));
-    if igual(vista(dentro), "str") {
-        anadir(salida, nuevo("    return ss_cmp((const SafeString*) a, (const SafeString*) b);"));
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static int ss_cmp_{m}(const void* a, const void* b)");
+    salida.anadir(nuevo("{"));
+    if dentro == "str" {
+        salida.anadir(nuevo("    return ss_cmp((const SafeString*) a, (const SafeString*) b);"));
     } else {
-        anadir(salida, $"    {te} x = *(const {te}*) a;");
-        anadir(salida, $"    {te} y = *(const {te}*) b;");
-        anadir(salida, nuevo("    return (x > y) - (x < y);"));
+        salida.anadir($"    {te} x = *(const {te}*) a;");
+        salida.anadir($"    {te} y = *(const {te}*) b;");
+        salida.anadir(nuevo("    return (x > y) - (x < y);"));
     }
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static void ss_ordenar_{m}({tc}* p)");
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    if (p->length > 1)"));
-    anadir(salida, $"        qsort(p->e, p->length, sizeof(*p->e), ss_cmp_{m});");
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static void ss_ordenar_{m}({tc}* p)");
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    if (p->length > 1)"));
+    salida.anadir($"        qsort(p->e, p->length, sizeof(*p->e), ss_cmp_{m});");
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 }
 
 // Las lineas que sueltan `donde`, con la misma cuenta que el resto: una
@@ -1065,7 +1065,7 @@ fn lineas_liberacion(global: &I.Contexto, donde: view, tipo: view,
     b.etiquetas = cta.etiquetas;
     b.sangria = sangria;
     G.liberacion(b, global, donde, tipo);
-    for l en b.lineas { anadir(salida, copiar(l)); }
+    for l en b.lineas { salida.anadir(copiar(l)); }
     cta.temporal = b.temporal;
     cta.bucle = b.bucle;
     cta.etiquetas = b.etiquetas;
@@ -1080,266 +1080,266 @@ fn funcion_mapa(t: view, global: &I.Contexto, structs: &mapa<str, usize>,
     let v = copiar(partes[1]);
     let m = G.mangle(t);
     let nombre = G.tipo_c(t);
-    let tc_k = G.tipo_c(vista(k));
-    let tc_v = G.tipo_c(vista(v));
+    let tc_k = G.tipo_c(k);
+    let tc_v = G.tipo_c(v);
     let de_claves = $"lista<{k}>";
-    let lista_k = G.tipo_c(vista(de_claves));
-    let m_claves = G.mangle(vista(de_claves));
-    let obt = tipo_obtener(vista(v), global);
-    let res_v = G.tipo_resultado(vista(obt));
-    let posee = I.posee_con_formas(global, vista(v));
+    let lista_k = G.tipo_c(de_claves);
+    let m_claves = G.mangle(de_claves);
+    let obt = tipo_obtener(v, global);
+    let res_v = G.tipo_resultado(obt);
+    let posee = I.posee_con_formas(global, v);
 
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static size_t ss_mapa_sitio_{m}(const {nombre}* p, SafeView clave)");
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    /* La capacidad es potencia de dos, asi que el resto es"));
-    anadir(salida, nuevo("       una mascara. Sondeo lineal: bueno con la cache y sin"));
-    anadir(salida, nuevo("       lapidas, porque en v0 no se borra. */"));
-    anadir(salida, nuevo("    size_t mascara = p->capacidad - 1;"));
-    anadir(salida, nuevo("    size_t i = (size_t) sv_hash(clave) & mascara;"));
-    anadir(salida, nuevo("    while (p->claves[i].data != NULL)"));
-    anadir(salida, nuevo("    {"));
-    anadir(salida, nuevo("        if (sv_equals(ss_view(&p->claves[i]), clave)) return i;"));
-    anadir(salida, nuevo("        i = (i + 1) & mascara;"));
-    anadir(salida, nuevo("    }"));
-    anadir(salida, nuevo("    return i;   /* celda libre: aqui iria */"));
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static size_t ss_mapa_sitio_{m}(const {nombre}* p, SafeView clave)");
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    /* La capacidad es potencia de dos, asi que el resto es"));
+    salida.anadir(nuevo("       una mascara. Sondeo lineal: bueno con la cache y sin"));
+    salida.anadir(nuevo("       lapidas, porque en v0 no se borra. */"));
+    salida.anadir(nuevo("    size_t mascara = p->capacidad - 1;"));
+    salida.anadir(nuevo("    size_t i = (size_t) sv_hash(clave) & mascara;"));
+    salida.anadir(nuevo("    while (p->claves[i].data != NULL)"));
+    salida.anadir(nuevo("    {"));
+    salida.anadir(nuevo("        if (sv_equals(ss_view(&p->claves[i]), clave)) return i;"));
+    salida.anadir(nuevo("        i = (i + 1) & mascara;"));
+    salida.anadir(nuevo("    }"));
+    salida.anadir(nuevo("    return i;   /* celda libre: aqui iria */"));
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static void ss_mapa_crecer_{m}({nombre}* p, const char* archivo, int linea)");
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    size_t nueva = p->capacidad == 0 ? 16 : p->capacidad * 2;"));
-    anadir(salida, nuevo("    if (nueva < p->capacidad) ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, $"    if (nueva > SIZE_MAX / sizeof({tc_k})");
-    anadir(salida, $"        || nueva > SIZE_MAX / sizeof({tc_v}))");
-    anadir(salida, nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, vacio());
-    anadir(salida, $"    {nombre} nuevo;");
-    anadir(salida, $"    nuevo.claves = ({tc_k}*) calloc(nueva, sizeof({tc_k}));");
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static void ss_mapa_crecer_{m}({nombre}* p, const char* archivo, int linea)");
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    size_t nueva = p->capacidad == 0 ? 16 : p->capacidad * 2;"));
+    salida.anadir(nuevo("    if (nueva < p->capacidad) ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir($"    if (nueva > SIZE_MAX / sizeof({tc_k})");
+    salida.anadir($"        || nueva > SIZE_MAX / sizeof({tc_v}))");
+    salida.anadir(nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir(vacio());
+    salida.anadir($"    {nombre} nuevo;");
+    salida.anadir($"    nuevo.claves = ({tc_k}*) calloc(nueva, sizeof({tc_k}));");
     if posee {
-        anadir(salida, $"    nuevo.valores = ({tc_v}*) calloc(nueva, sizeof({tc_v}));");
+        salida.anadir($"    nuevo.valores = ({tc_v}*) calloc(nueva, sizeof({tc_v}));");
     } else {
-        anadir(salida, $"    nuevo.valores = ({tc_v}*) malloc(nueva * sizeof({tc_v}));");
+        salida.anadir($"    nuevo.valores = ({tc_v}*) malloc(nueva * sizeof({tc_v}));");
     }
-    anadir(salida, nuevo("    if (nuevo.claves == NULL || nuevo.valores == NULL)"));
-    anadir(salida, nuevo("    {"));
-    anadir(salida, nuevo("        free(nuevo.claves); free(nuevo.valores);"));
-    anadir(salida, nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, nuevo("    }"));
-    anadir(salida, nuevo("    nuevo.largo = p->largo;"));
-    anadir(salida, nuevo("    nuevo.capacidad = nueva;"));
-    anadir(salida, vacio());
-    anadir(salida, nuevo("    /* Se reubican las claves tal cual: nadie copia texto. */"));
-    anadir(salida, nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
-    anadir(salida, nuevo("    {"));
-    anadir(salida, nuevo("        if (p->claves[i].data == NULL) continue;"));
-    anadir(salida, $"        size_t j = ss_mapa_sitio_{m}(&nuevo, ss_view(&p->claves[i]));");
-    anadir(salida, nuevo("        nuevo.claves[j] = p->claves[i];"));
-    anadir(salida, nuevo("        nuevo.valores[j] = p->valores[i];"));
-    anadir(salida, nuevo("    }"));
-    anadir(salida, nuevo("    free(p->claves); free(p->valores);"));
-    anadir(salida, nuevo("    *p = nuevo;"));
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("    if (nuevo.claves == NULL || nuevo.valores == NULL)"));
+    salida.anadir(nuevo("    {"));
+    salida.anadir(nuevo("        free(nuevo.claves); free(nuevo.valores);"));
+    salida.anadir(nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir(nuevo("    }"));
+    salida.anadir(nuevo("    nuevo.largo = p->largo;"));
+    salida.anadir(nuevo("    nuevo.capacidad = nueva;"));
+    salida.anadir(vacio());
+    salida.anadir(nuevo("    /* Se reubican las claves tal cual: nadie copia texto. */"));
+    salida.anadir(nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
+    salida.anadir(nuevo("    {"));
+    salida.anadir(nuevo("        if (p->claves[i].data == NULL) continue;"));
+    salida.anadir($"        size_t j = ss_mapa_sitio_{m}(&nuevo, ss_view(&p->claves[i]));");
+    salida.anadir(nuevo("        nuevo.claves[j] = p->claves[i];"));
+    salida.anadir(nuevo("        nuevo.valores[j] = p->valores[i];"));
+    salida.anadir(nuevo("    }"));
+    salida.anadir(nuevo("    free(p->claves); free(p->valores);"));
+    salida.anadir(nuevo("    *p = nuevo;"));
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static void ss_mapa_poner_{m}({nombre}* p, SafeView clave, {tc_v} valor,");
-    anadir(salida, nuevo("        const char* archivo, int linea)"));
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    /* Se crece al 70% de ocupacion: por encima, el sondeo"));
-    anadir(salida, nuevo("       lineal empieza a formar cadenas largas. */"));
-    anadir(salida, nuevo("    if (p->capacidad == 0 || (p->largo + 1) * 10 >= p->capacidad * 7)"));
-    anadir(salida, $"        ss_mapa_crecer_{m}(p, archivo, linea);");
-    anadir(salida, vacio());
-    anadir(salida, $"    size_t i = ss_mapa_sitio_{m}(p, clave);");
-    anadir(salida, nuevo("    if (p->claves[i].data != NULL)"));
-    anadir(salida, nuevo("    {"));
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static void ss_mapa_poner_{m}({nombre}* p, SafeView clave, {tc_v} valor,");
+    salida.anadir(nuevo("        const char* archivo, int linea)"));
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    /* Se crece al 70% de ocupacion: por encima, el sondeo"));
+    salida.anadir(nuevo("       lineal empieza a formar cadenas largas. */"));
+    salida.anadir(nuevo("    if (p->capacidad == 0 || (p->largo + 1) * 10 >= p->capacidad * 7)"));
+    salida.anadir($"        ss_mapa_crecer_{m}(p, archivo, linea);");
+    salida.anadir(vacio());
+    salida.anadir($"    size_t i = ss_mapa_sitio_{m}(p, clave);");
+    salida.anadir(nuevo("    if (p->claves[i].data != NULL)"));
+    salida.anadir(nuevo("    {"));
     if posee {
-        anadir(salida, nuevo("        /* el valor viejo era nuestro */"));
-        lineas_liberacion(global, "p->valores[i]", vista(v), 2, cta, salida);
+        salida.anadir(nuevo("        /* el valor viejo era nuestro */"));
+        lineas_liberacion(global, "p->valores[i]", v, 2, cta, salida);
     }
-    anadir(salida, nuevo("        p->valores[i] = valor;   /* ya estaba: se reemplaza */"));
-    anadir(salida, nuevo("        return;"));
-    anadir(salida, nuevo("    }"));
-    anadir(salida, nuevo("    p->claves[i] = ss_from_view(clave);"));
-    anadir(salida, nuevo("    if (!ss_ok(&p->claves[i])) ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, nuevo("    p->valores[i] = valor;"));
-    anadir(salida, nuevo("    p->largo++;"));
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("        p->valores[i] = valor;   /* ya estaba: se reemplaza */"));
+    salida.anadir(nuevo("        return;"));
+    salida.anadir(nuevo("    }"));
+    salida.anadir(nuevo("    p->claves[i] = ss_from_view(clave);"));
+    salida.anadir(nuevo("    if (!ss_ok(&p->claves[i])) ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir(nuevo("    p->valores[i] = valor;"));
+    salida.anadir(nuevo("    p->largo++;"));
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static bool ss_mapa_tiene_{m}(const {nombre}* p, SafeView clave)");
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    if (p->capacidad == 0) return false;"));
-    anadir(salida, $"    return p->claves[ss_mapa_sitio_{m}(p, clave)].data != NULL;");
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static bool ss_mapa_tiene_{m}(const {nombre}* p, SafeView clave)");
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    if (p->capacidad == 0) return false;"));
+    salida.anadir($"    return p->claves[ss_mapa_sitio_{m}(p, clave)].data != NULL;");
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static {res_v} ss_mapa_obtener_{m}(const {nombre}* p, SafeView clave)");
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    if (p->capacidad == 0)"));
-    anadir(salida, $"        return ({res_v}){{ .motivo = \"la clave no esta en el mapa\" }};");
-    anadir(salida, $"    size_t i = ss_mapa_sitio_{m}(p, clave);");
-    anadir(salida, nuevo("    if (p->claves[i].data == NULL)"));
-    anadir(salida, $"        return ({res_v}){{ .motivo = \"la clave no esta en el mapa\" }};");
-    if igual(vista(v), "str") {
-        anadir(salida, $"    return ({res_v}){{ .motivo = NULL, .valor = ss_view(&p->valores[i]) }};");
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static {res_v} ss_mapa_obtener_{m}(const {nombre}* p, SafeView clave)");
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    if (p->capacidad == 0)"));
+    salida.anadir($"        return ({res_v}){{ .motivo = \"la clave no esta en el mapa\" }};");
+    salida.anadir($"    size_t i = ss_mapa_sitio_{m}(p, clave);");
+    salida.anadir(nuevo("    if (p->claves[i].data == NULL)"));
+    salida.anadir($"        return ({res_v}){{ .motivo = \"la clave no esta en el mapa\" }};");
+    if v == "str" {
+        salida.anadir($"    return ({res_v}){{ .motivo = NULL, .valor = ss_view(&p->valores[i]) }};");
     } else {
         if posee {
-            anadir(salida, $"    return ({res_v}){{ .motivo = NULL, .valor = &p->valores[i] }};");
+            salida.anadir($"    return ({res_v}){{ .motivo = NULL, .valor = &p->valores[i] }};");
         } else {
-            anadir(salida, $"    return ({res_v}){{ .motivo = NULL, .valor = p->valores[i] }};");
+            salida.anadir($"    return ({res_v}){{ .motivo = NULL, .valor = p->valores[i] }};");
         }
     }
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static {lista_k} ss_mapa_claves_{m}(const {nombre}* p,");
-    anadir(salida, nuevo("        const char* archivo, int linea)"));
-    anadir(salida, nuevo("{"));
-    anadir(salida, $"    {lista_k} salida = {{ NULL, 0, 0 }};");
-    anadir(salida, nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
-    anadir(salida, nuevo("    {"));
-    anadir(salida, nuevo("        if (p->claves[i].data == NULL) continue;"));
-    anadir(salida, $"        {tc_k} copia = ss_clone(&p->claves[i]);");
-    anadir(salida, nuevo("        if (!ss_ok(&copia)) ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, $"        ss_push_{m_claves}(&salida, copia, archivo, linea);");
-    anadir(salida, nuevo("    }"));
-    anadir(salida, nuevo("    return salida;"));
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static {lista_k} ss_mapa_claves_{m}(const {nombre}* p,");
+    salida.anadir(nuevo("        const char* archivo, int linea)"));
+    salida.anadir(nuevo("{"));
+    salida.anadir($"    {lista_k} salida = {{ NULL, 0, 0 }};");
+    salida.anadir(nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
+    salida.anadir(nuevo("    {"));
+    salida.anadir(nuevo("        if (p->claves[i].data == NULL) continue;"));
+    salida.anadir($"        {tc_k} copia = ss_clone(&p->claves[i]);");
+    salida.anadir(nuevo("        if (!ss_ok(&copia)) ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir($"        ss_push_{m_claves}(&salida, copia, archivo, linea);");
+    salida.anadir(nuevo("    }"));
+    salida.anadir(nuevo("    return salida;"));
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 
-    if es_compuesto_t(vista(v), structs) {
+    if es_compuesto_t(v, structs) {
         let con_mut = $"&mut {v}";
-        let rm = G.tipo_resultado(vista(con_mut));
-        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-        anadir(salida, $"static {rm} ss_mapa_obtener_mut_{m}({nombre}* p, SafeView clave)");
-        anadir(salida, nuevo("{"));
-        anadir(salida, nuevo("    if (p->capacidad == 0)"));
-        anadir(salida, $"        return ({rm}){{ .motivo = \"la clave no esta en el mapa\" }};");
-        anadir(salida, $"    size_t i = ss_mapa_sitio_{m}(p, clave);");
-        anadir(salida, nuevo("    if (p->claves[i].data == NULL)"));
-        anadir(salida, $"        return ({rm}){{ .motivo = \"la clave no esta en el mapa\" }};");
-        anadir(salida, $"    return ({rm}){{ .motivo = NULL, .valor = &p->valores[i] }};");
-        anadir(salida, nuevo("}"));
-        anadir(salida, vacio());
+        let rm = G.tipo_resultado(con_mut);
+        salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        salida.anadir($"static {rm} ss_mapa_obtener_mut_{m}({nombre}* p, SafeView clave)");
+        salida.anadir(nuevo("{"));
+        salida.anadir(nuevo("    if (p->capacidad == 0)"));
+        salida.anadir($"        return ({rm}){{ .motivo = \"la clave no esta en el mapa\" }};");
+        salida.anadir($"    size_t i = ss_mapa_sitio_{m}(p, clave);");
+        salida.anadir(nuevo("    if (p->claves[i].data == NULL)"));
+        salida.anadir($"        return ({rm}){{ .motivo = \"la clave no esta en el mapa\" }};");
+        salida.anadir($"    return ({rm}){{ .motivo = NULL, .valor = &p->valores[i] }};");
+        salida.anadir(nuevo("}"));
+        salida.anadir(vacio());
     }
 
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static bool ss_mapa_quitar_{m}({nombre}* p, SafeView clave)");
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    if (p->capacidad == 0) return false;"));
-    anadir(salida, nuevo("    size_t mascara = p->capacidad - 1;"));
-    anadir(salida, $"    size_t i = ss_mapa_sitio_{m}(p, clave);");
-    anadir(salida, nuevo("    if (p->claves[i].data == NULL) return false;"));
-    anadir(salida, vacio());
-    anadir(salida, nuevo("    ss_free(&p->claves[i]);"));
-    anadir(salida, nuevo("    p->claves[i] = ss_new();"));
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static bool ss_mapa_quitar_{m}({nombre}* p, SafeView clave)");
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    if (p->capacidad == 0) return false;"));
+    salida.anadir(nuevo("    size_t mascara = p->capacidad - 1;"));
+    salida.anadir($"    size_t i = ss_mapa_sitio_{m}(p, clave);");
+    salida.anadir(nuevo("    if (p->claves[i].data == NULL) return false;"));
+    salida.anadir(vacio());
+    salida.anadir(nuevo("    ss_free(&p->claves[i]);"));
+    salida.anadir(nuevo("    p->claves[i] = ss_new();"));
     if posee {
-        lineas_liberacion(global, "p->valores[i]", vista(v), 1, cta, salida);
-        anadir(salida, $"    memset(&p->valores[i], 0, sizeof({tc_v}));");
+        lineas_liberacion(global, "p->valores[i]", v, 1, cta, salida);
+        salida.anadir($"    memset(&p->valores[i], 0, sizeof({tc_v}));");
     }
-    anadir(salida, nuevo("    p->largo--;"));
-    anadir(salida, vacio());
-    anadir(salida, nuevo("    /* Sin lapidas: se cierra el hueco arrastrando hacia atras"));
-    anadir(salida, nuevo("       las entradas del mismo grupo que quedarian inalcanzables."));
-    anadir(salida, nuevo("       Es lo que permite que la busqueda pueda parar en la"));
-    anadir(salida, nuevo("       primera celda libre. */"));
-    anadir(salida, nuevo("    size_t j = i;"));
-    anadir(salida, nuevo("    for (;;)"));
-    anadir(salida, nuevo("    {"));
-    anadir(salida, nuevo("        j = (j + 1) & mascara;"));
-    anadir(salida, nuevo("        if (p->claves[j].data == NULL) break;"));
-    anadir(salida, nuevo("        size_t k = (size_t) sv_hash(ss_view(&p->claves[j])) & mascara;"));
-    anadir(salida, nuevo("        bool mover = (i <= j) ? (k <= i || k > j)"));
-    anadir(salida, nuevo("                              : (k <= i && k > j);"));
-    anadir(salida, nuevo("        if (mover)"));
-    anadir(salida, nuevo("        {"));
-    anadir(salida, nuevo("            p->claves[i] = p->claves[j];"));
-    anadir(salida, nuevo("            p->valores[i] = p->valores[j];"));
-    anadir(salida, nuevo("            p->claves[j] = ss_new();"));
-    anadir(salida, nuevo("            i = j;"));
-    anadir(salida, nuevo("        }"));
-    anadir(salida, nuevo("    }"));
-    anadir(salida, nuevo("    return true;"));
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("    p->largo--;"));
+    salida.anadir(vacio());
+    salida.anadir(nuevo("    /* Sin lapidas: se cierra el hueco arrastrando hacia atras"));
+    salida.anadir(nuevo("       las entradas del mismo grupo que quedarian inalcanzables."));
+    salida.anadir(nuevo("       Es lo que permite que la busqueda pueda parar en la"));
+    salida.anadir(nuevo("       primera celda libre. */"));
+    salida.anadir(nuevo("    size_t j = i;"));
+    salida.anadir(nuevo("    for (;;)"));
+    salida.anadir(nuevo("    {"));
+    salida.anadir(nuevo("        j = (j + 1) & mascara;"));
+    salida.anadir(nuevo("        if (p->claves[j].data == NULL) break;"));
+    salida.anadir(nuevo("        size_t k = (size_t) sv_hash(ss_view(&p->claves[j])) & mascara;"));
+    salida.anadir(nuevo("        bool mover = (i <= j) ? (k <= i || k > j)"));
+    salida.anadir(nuevo("                              : (k <= i && k > j);"));
+    salida.anadir(nuevo("        if (mover)"));
+    salida.anadir(nuevo("        {"));
+    salida.anadir(nuevo("            p->claves[i] = p->claves[j];"));
+    salida.anadir(nuevo("            p->valores[i] = p->valores[j];"));
+    salida.anadir(nuevo("            p->claves[j] = ss_new();"));
+    salida.anadir(nuevo("            i = j;"));
+    salida.anadir(nuevo("        }"));
+    salida.anadir(nuevo("    }"));
+    salida.anadir(nuevo("    return true;"));
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static void ss_mapa_libre_{m}({nombre}* p)");
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
-    anadir(salida, nuevo("        if (p->claves[i].data != NULL)"));
-    anadir(salida, nuevo("        {"));
-    anadir(salida, nuevo("            ss_free(&p->claves[i]);"));
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static void ss_mapa_libre_{m}({nombre}* p)");
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
+    salida.anadir(nuevo("        if (p->claves[i].data != NULL)"));
+    salida.anadir(nuevo("        {"));
+    salida.anadir(nuevo("            ss_free(&p->claves[i]);"));
     if posee {
-        lineas_liberacion(global, "p->valores[i]", vista(v), 3, cta, salida);
+        lineas_liberacion(global, "p->valores[i]", v, 3, cta, salida);
     }
-    anadir(salida, nuevo("        }"));
-    anadir(salida, nuevo("    free(p->claves); free(p->valores);"));
-    anadir(salida, nuevo("    p->claves = NULL; p->valores = NULL;"));
-    anadir(salida, nuevo("    p->largo = 0; p->capacidad = 0;"));
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("        }"));
+    salida.anadir(nuevo("    free(p->claves); free(p->valores);"));
+    salida.anadir(nuevo("    p->claves = NULL; p->valores = NULL;"));
+    salida.anadir(nuevo("    p->largo = 0; p->capacidad = 0;"));
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 }
 
 fn funcion_bloque(t: view, global: &I.Contexto, cta: mut F.Cuenta,
     salida: mut lista<str>) {
-    let elem = nuevo(rebanar(t, 7, largo(t) - 1));
-    let te = G.tipo_c(vista(elem));
+    let elem = nuevo(rebanar(t, 7, t.largo() - 1));
+    let te = G.tipo_c(elem);
     let nombre = G.tipo_c(t);
     let m = G.mangle(t);
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static {nombre} ss_lang_bloque_nuevo_{m}(size_t n,");
-    anadir(salida, nuevo("        const char* archivo, int linea)"));
-    anadir(salida, nuevo("{"));
-    anadir(salida, $"    {nombre} b = {{ NULL, 0 }};");
-    anadir(salida, nuevo("    if (n == 0) return b;"));
-    anadir(salida, $"    if (n > SIZE_MAX / sizeof({te}))");
-    anadir(salida, nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, $"    b.e = ({te}*) calloc(n, sizeof({te}));");
-    anadir(salida, nuevo("    if (b.e == NULL) ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, nuevo("    b.n = n;"));
-    anadir(salida, nuevo("    return b;"));
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static void ss_lang_bloque_cambiar_{m}({nombre}* p, size_t n,");
-    anadir(salida, nuevo("        const char* archivo, int linea)"));
-    anadir(salida, nuevo("{"));
-    anadir(salida, nuevo("    if (n == p->n) return;"));
-    if I.posee_con_formas(global, vista(elem)) {
-        anadir(salida, nuevo("    if (n < p->n)"));
-        anadir(salida, nuevo("        for (size_t i = n; i < p->n; i++)"));
-        anadir(salida, nuevo("        {"));
-        lineas_liberacion(global, "p->e[i]", vista(elem), 3, cta, salida);
-        anadir(salida, nuevo("        }"));
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static {nombre} ss_lang_bloque_nuevo_{m}(size_t n,");
+    salida.anadir(nuevo("        const char* archivo, int linea)"));
+    salida.anadir(nuevo("{"));
+    salida.anadir($"    {nombre} b = {{ NULL, 0 }};");
+    salida.anadir(nuevo("    if (n == 0) return b;"));
+    salida.anadir($"    if (n > SIZE_MAX / sizeof({te}))");
+    salida.anadir(nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir($"    b.e = ({te}*) calloc(n, sizeof({te}));");
+    salida.anadir(nuevo("    if (b.e == NULL) ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir(nuevo("    b.n = n;"));
+    salida.anadir(nuevo("    return b;"));
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static void ss_lang_bloque_cambiar_{m}({nombre}* p, size_t n,");
+    salida.anadir(nuevo("        const char* archivo, int linea)"));
+    salida.anadir(nuevo("{"));
+    salida.anadir(nuevo("    if (n == p->n) return;"));
+    if I.posee_con_formas(global, elem) {
+        salida.anadir(nuevo("    if (n < p->n)"));
+        salida.anadir(nuevo("        for (size_t i = n; i < p->n; i++)"));
+        salida.anadir(nuevo("        {"));
+        lineas_liberacion(global, "p->e[i]", elem, 3, cta, salida);
+        salida.anadir(nuevo("        }"));
     }
-    anadir(salida, nuevo("    if (n == 0)"));
-    anadir(salida, nuevo("    {"));
-    anadir(salida, nuevo("        free(p->e); p->e = NULL; p->n = 0; return;"));
-    anadir(salida, nuevo("    }"));
-    anadir(salida, $"    if (n > SIZE_MAX / sizeof({te}))");
-    anadir(salida, nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, $"    void* memoria = realloc(p->e, n * sizeof({te}));");
-    anadir(salida, nuevo("    if (memoria == NULL) ss_lang_sin_memoria_(archivo, linea);"));
-    anadir(salida, $"    p->e = ({te}*) memoria;");
-    anadir(salida, nuevo("    /* Lo nuevo nace a ceros, que en Tcode es un valor valido. */"));
-    anadir(salida, nuevo("    if (n > p->n)"));
-    anadir(salida, $"        memset(p->e + p->n, 0, (n - p->n) * sizeof({te}));");
-    anadir(salida, nuevo("    p->n = n;"));
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("    if (n == 0)"));
+    salida.anadir(nuevo("    {"));
+    salida.anadir(nuevo("        free(p->e); p->e = NULL; p->n = 0; return;"));
+    salida.anadir(nuevo("    }"));
+    salida.anadir($"    if (n > SIZE_MAX / sizeof({te}))");
+    salida.anadir(nuevo("        ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir($"    void* memoria = realloc(p->e, n * sizeof({te}));");
+    salida.anadir(nuevo("    if (memoria == NULL) ss_lang_sin_memoria_(archivo, linea);"));
+    salida.anadir($"    p->e = ({te}*) memoria;");
+    salida.anadir(nuevo("    /* Lo nuevo nace a ceros, que en Tcode es un valor valido. */"));
+    salida.anadir(nuevo("    if (n > p->n)"));
+    salida.anadir($"        memset(p->e + p->n, 0, (n - p->n) * sizeof({te}));");
+    salida.anadir(nuevo("    p->n = n;"));
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
 }
 
 // El tipo de mapa al que se refiere un nombre de C: `ss_mapa_poner_mapa_x`
 // y `ss_mapa_x` hablan del mismo.
 fn tipo_de_nombre_mapa(u: view) -> str {
-    let resto = rebanar(u, 8, largo(u));
+    let resto = rebanar(u, 8, u.largo());
     if empieza_con(resto, "obtener_mut_") { return $"ss_{rebanar(resto, 12, largo(resto))}"; }
     if empieza_con(resto, "obtener_") { return $"ss_{rebanar(resto, 8, largo(resto))}"; }
     if empieza_con(resto, "sitio_") || empieza_con(resto, "poner_")
@@ -1356,9 +1356,9 @@ fn tipo_de_nombre_mapa(u: view) -> str {
 // Los nombres de C que empiezan por `prefijo`: `ss_lista_str` en una linea.
 fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
     var i = buscar_desde(t, prefijo, 0);
-    while i < largo(t) {
-        var j = i + largo(prefijo);
-        while j < largo(t) && I.es_de_nombre(byte(t, j)) { j = j + 1; }
+    while i < t.largo() {
+        var j = i + prefijo.largo();
+        while j < t.largo() && I.es_de_nombre(byte(t, j)) { j = j + 1; }
         // Solo al principio de un nombre: `posicion__` esta dentro de
         // `ultima_posicion__usize`, y esa es otra copia.
         if i == 0 || !I.es_de_nombre(byte(t, i - 1)) {
@@ -1383,12 +1383,12 @@ fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
 // `a\tb` -> [a, b]; la cadena vacia no lleva nada.
 fn partir_tab(t: view) -> lista<str> {
     var salida: lista<str> = [];
-    if largo(t) == 0 { return salida; }
+    if t.largo() == 0 { return salida; }
     var desde = 0;
     var i = 0;
-    while i <= largo(t) {
-        if i == largo(t) || byte(t, i) == 9 {
-            anadir(salida, nuevo(rebanar(t, desde, i)));
+    while i <= t.largo() {
+        if i == t.largo() || byte(t, i) == 9 {
+            salida.anadir(nuevo(rebanar(t, desde, i)));
             desde = i + 1;
         }
         i = i + 1;
@@ -1399,7 +1399,7 @@ fn partir_tab(t: view) -> lista<str> {
 fn hondura_tipo(t: view) -> usize {
     var n = 0;
     var i = 0;
-    while i < largo(t) {
+    while i < t.largo() {
         let b = byte(t, i);
         if b == 60 || b == 91 { n = n + 1; }
         i = i + 1;
@@ -1411,24 +1411,24 @@ fn hondura_tipo(t: view) -> usize {
 fn necesita_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
     st_tipos: &lista<lista<str>>, vistos: mut mapa<str, usize>,
     salida: mut lista<str>) {
-    if igual(t, "str") || !I.posee_con_formas(global, t) || tiene(vistos, t) {
+    if t == "str" || !I.posee_con_formas(global, t) || tiene(vistos, t) {
         return;
     }
     poner(vistos, t, 1);
-    anadir(salida, nuevo(t));
+    salida.anadir(nuevo(t));
     if empieza_con(t, "bloque<") {
-        let dentro_b = nuevo(rebanar(t, 7, largo(t) - 1));
-        necesita_copiador(vista(dentro_b), global, st_indice, st_tipos, vistos, salida);
+        let dentro_b = nuevo(rebanar(t, 7, t.largo() - 1));
+        necesita_copiador(dentro_b, global, st_indice, st_tipos, vistos, salida);
         return;
     }
     if es_lista_t(t) {
         let dentro = interior_lista(t);
-        necesita_copiador(vista(dentro), global, st_indice, st_tipos, vistos, salida);
+        necesita_copiador(dentro, global, st_indice, st_tipos, vistos, salida);
         return;
     }
     if es_mapa_t(t) {
         let partes = partes_mapa(t);
-        if largo(partes) == 2 {
+        if partes.largo() == 2 {
             necesita_copiador(vista(partes[1]), global, st_indice, st_tipos,
                 vistos, salida);
         }
@@ -1436,22 +1436,22 @@ fn necesita_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
     }
     if empieza_con(t, "[") {
         let pa = partes_arreglo(t);
-        if largo(pa) == 2 {
-            necesita_copiador(vista(pa[0]), global, st_indice, st_tipos, vistos, salida);
+        if pa.largo() == 2 {
+            necesita_copiador(pa[0], global, st_indice, st_tipos, vistos, salida);
         }
         return;
     }
     if tiene(st_indice, t) {
         let k = obtener(st_indice, t) sino 0;
         for c en st_tipos[k] {
-            necesita_copiador(vista(c), global, st_indice, st_tipos, vistos, salida);
+            necesita_copiador(c, global, st_indice, st_tipos, vistos, salida);
         }
     }
     if tiene(global.variantes, t) {
         // Lo que llevan sus formas, en orden.
         for v en I.lista_de(global.variantes, t) sino [] {
             for x en I.lista_de(global.formas, $"{t}.{v}") sino [] {
-                necesita_copiador(vista(x), global, st_indice, st_tipos, vistos, salida);
+                necesita_copiador(x, global, st_indice, st_tipos, vistos, salida);
             }
         }
     }
@@ -1459,7 +1459,7 @@ fn necesita_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
 
 fn copia_de(donde: view, t: view, global: &I.Contexto) -> str {
     if !I.posee_con_formas(global, t) { return nuevo(donde); }
-    if igual(t, "str") { return $"ss_clone(&{donde})"; }
+    if t == "str" { return $"ss_clone(&{donde})"; }
     let m = G.mangle(t);
     return $"ss_copia_{m}(&{donde})";
 }
@@ -1475,146 +1475,146 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
     // forma que tenga.
     if tiene(en_indice, t) {
         let ke = obtener(en_indice, t) sino 0;
-        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-        anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
-        anadir(salida, nuevo("{"));
-        anadir(salida, $"    {tc} r = *p;");
+        salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        salida.anadir($"static {tc} ss_copia_{m}(const {tc}* p)");
+        salida.anadir(nuevo("{"));
+        salida.anadir($"    {tc} r = *p;");
         var hay: lista<usize> = [];
         var iv = 0;
-        while iv < largo(en_variantes[ke]) {
-            let tipos_v = partir_tab(vista(en_lleva[ke][iv]));
+        while iv < en_variantes[ke].largo() {
+            let tipos_v = partir_tab(en_lleva[ke][iv]);
             var alguna = false;
             for tt en tipos_v {
-                if I.posee_con_formas(global, vista(tt)) { alguna = true; }
+                if I.posee_con_formas(global, tt) { alguna = true; }
             }
-            if alguna { anadir(hay, iv); }
+            if alguna { hay.anadir(iv); }
             iv = iv + 1;
         }
-        if largo(hay) > 0 {
-            anadir(salida, nuevo("    switch (p->etiqueta)"));
-            anadir(salida, nuevo("    {"));
+        if hay.largo() > 0 {
+            salida.anadir(nuevo("    switch (p->etiqueta)"));
+            salida.anadir(nuevo("    {"));
             for cual en hay {
                 let vn = copiar(en_variantes[ke][cual]);
-                let etq = G.etiqueta(t, vista(vn));
-                anadir(salida, $"    case {etq}:");
-                let tipos_v = partir_tab(vista(en_lleva[ke][cual]));
+                let etq = G.etiqueta(t, vn);
+                salida.anadir($"    case {etq}:");
+                let tipos_v = partir_tab(en_lleva[ke][cual]);
                 var q = 0;
-                while q < largo(tipos_v) {
-                    if I.posee_con_formas(global, vista(tipos_v[q])) {
+                while q < tipos_v.largo() {
+                    if I.posee_con_formas(global, tipos_v[q]) {
                         let origen = $"p->dato.v_{vn}._{q}";
                         let cp = copia_de(vista(origen), vista(tipos_v[q]), global);
-                        anadir(salida, $"        r.dato.v_{vn}._{q} = {cp};");
+                        salida.anadir($"        r.dato.v_{vn}._{q} = {cp};");
                     }
                     q = q + 1;
                 }
-                anadir(salida, nuevo("        break;"));
+                salida.anadir(nuevo("        break;"));
             }
-            anadir(salida, nuevo("    default: break;"));
-            anadir(salida, nuevo("    }"));
+            salida.anadir(nuevo("    default: break;"));
+            salida.anadir(nuevo("    }"));
         }
-        anadir(salida, nuevo("    return r;"));
-        anadir(salida, nuevo("}"));
-        anadir(salida, vacio());
+        salida.anadir(nuevo("    return r;"));
+        salida.anadir(nuevo("}"));
+        salida.anadir(vacio());
         return true;
     }
     if empieza_con(t, "bloque<") {
-        let elem_b = nuevo(rebanar(t, 7, largo(t) - 1));
-        let te_b = G.tipo_c(vista(elem_b));
+        let elem_b = nuevo(rebanar(t, 7, t.largo() - 1));
+        let te_b = G.tipo_c(elem_b);
         let cp_b = copia_de("p->e[i]", vista(elem_b), global);
-        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-        anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
-        anadir(salida, nuevo("{"));
-        anadir(salida, $"    {tc} r = {{ NULL, 0 }};");
-        anadir(salida, nuevo("    if (p->n == 0) return r;"));
-        anadir(salida, $"    r.e = ({te_b}*) calloc(p->n, sizeof({te_b}));");
-        anadir(salida, nuevo("    if (r.e == NULL) ss_lang_sin_memoria_(__FILE__, __LINE__);"));
-        anadir(salida, nuevo("    r.n = p->n;"));
-        anadir(salida, nuevo("    for (size_t i = 0; i < p->n; i++)"));
-        anadir(salida, $"        r.e[i] = {cp_b};");
-        anadir(salida, nuevo("    return r;"));
-        anadir(salida, nuevo("}"));
-        anadir(salida, vacio());
+        salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        salida.anadir($"static {tc} ss_copia_{m}(const {tc}* p)");
+        salida.anadir(nuevo("{"));
+        salida.anadir($"    {tc} r = {{ NULL, 0 }};");
+        salida.anadir(nuevo("    if (p->n == 0) return r;"));
+        salida.anadir($"    r.e = ({te_b}*) calloc(p->n, sizeof({te_b}));");
+        salida.anadir(nuevo("    if (r.e == NULL) ss_lang_sin_memoria_(__FILE__, __LINE__);"));
+        salida.anadir(nuevo("    r.n = p->n;"));
+        salida.anadir(nuevo("    for (size_t i = 0; i < p->n; i++)"));
+        salida.anadir($"        r.e[i] = {cp_b};");
+        salida.anadir(nuevo("    return r;"));
+        salida.anadir(nuevo("}"));
+        salida.anadir(vacio());
         return true;
     }
     if es_lista_t(t) {
         let elem = interior_lista(t);
-        let te = G.tipo_c(vista(elem));
+        let te = G.tipo_c(elem);
         let cp = copia_de("p->e[i]", vista(elem), global);
-        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-        anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
-        anadir(salida, nuevo("{"));
-        anadir(salida, $"    {tc} r = {{ NULL, 0, 0 }};");
-        anadir(salida, nuevo("    if (p->length == 0) return r;"));
-        anadir(salida, $"    r.e = ({te}*) calloc(p->length, sizeof({te}));");
-        anadir(salida, nuevo("    if (r.e == NULL) ss_lang_sin_memoria_(__FILE__, __LINE__);"));
-        anadir(salida, nuevo("    r.capacity = p->length;"));
-        anadir(salida, nuevo("    for (size_t i = 0; i < p->length; i++)"));
-        anadir(salida, $"        r.e[i] = {cp};");
-        anadir(salida, nuevo("    r.length = p->length;"));
-        anadir(salida, nuevo("    return r;"));
-        anadir(salida, nuevo("}"));
-        anadir(salida, vacio());
+        salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        salida.anadir($"static {tc} ss_copia_{m}(const {tc}* p)");
+        salida.anadir(nuevo("{"));
+        salida.anadir($"    {tc} r = {{ NULL, 0, 0 }};");
+        salida.anadir(nuevo("    if (p->length == 0) return r;"));
+        salida.anadir($"    r.e = ({te}*) calloc(p->length, sizeof({te}));");
+        salida.anadir(nuevo("    if (r.e == NULL) ss_lang_sin_memoria_(__FILE__, __LINE__);"));
+        salida.anadir(nuevo("    r.capacity = p->length;"));
+        salida.anadir(nuevo("    for (size_t i = 0; i < p->length; i++)"));
+        salida.anadir($"        r.e[i] = {cp};");
+        salida.anadir(nuevo("    r.length = p->length;"));
+        salida.anadir(nuevo("    return r;"));
+        salida.anadir(nuevo("}"));
+        salida.anadir(vacio());
         return true;
     }
     if es_mapa_t(t) {
         let partes = partes_mapa(t);
-        if largo(partes) != 2 { return false; }
-        let tck = G.tipo_c(vista(partes[0]));
-        let tcv = G.tipo_c(vista(partes[1]));
+        if partes.largo() != 2 { return false; }
+        let tck = G.tipo_c(partes[0]);
+        let tcv = G.tipo_c(partes[1]);
         let cp = copia_de("p->valores[i]", vista(partes[1]), global);
-        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-        anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
-        anadir(salida, nuevo("{"));
-        anadir(salida, $"    {tc} r = {{ NULL, NULL, 0, 0 }};");
-        anadir(salida, nuevo("    if (p->capacidad == 0) return r;"));
-        anadir(salida, $"    r.claves = ({tck}*) calloc(p->capacidad, sizeof({tck}));");
-        anadir(salida, $"    r.valores = ({tcv}*) calloc(p->capacidad, sizeof({tcv}));");
-        anadir(salida, nuevo("    if (r.claves == NULL || r.valores == NULL)"));
-        anadir(salida, nuevo("        ss_lang_sin_memoria_(__FILE__, __LINE__);"));
-        anadir(salida, nuevo("    r.capacidad = p->capacidad;"));
-        anadir(salida, nuevo("    r.largo = p->largo;"));
-        anadir(salida, nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
-        anadir(salida, nuevo("    {"));
-        anadir(salida, nuevo("        if (p->claves[i].data == NULL) continue;"));
-        anadir(salida, nuevo("        r.claves[i] = ss_clone(&p->claves[i]);"));
-        anadir(salida, $"        r.valores[i] = {cp};");
-        anadir(salida, nuevo("    }"));
-        anadir(salida, nuevo("    return r;"));
-        anadir(salida, nuevo("}"));
-        anadir(salida, vacio());
+        salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        salida.anadir($"static {tc} ss_copia_{m}(const {tc}* p)");
+        salida.anadir(nuevo("{"));
+        salida.anadir($"    {tc} r = {{ NULL, NULL, 0, 0 }};");
+        salida.anadir(nuevo("    if (p->capacidad == 0) return r;"));
+        salida.anadir($"    r.claves = ({tck}*) calloc(p->capacidad, sizeof({tck}));");
+        salida.anadir($"    r.valores = ({tcv}*) calloc(p->capacidad, sizeof({tcv}));");
+        salida.anadir(nuevo("    if (r.claves == NULL || r.valores == NULL)"));
+        salida.anadir(nuevo("        ss_lang_sin_memoria_(__FILE__, __LINE__);"));
+        salida.anadir(nuevo("    r.capacidad = p->capacidad;"));
+        salida.anadir(nuevo("    r.largo = p->largo;"));
+        salida.anadir(nuevo("    for (size_t i = 0; i < p->capacidad; i++)"));
+        salida.anadir(nuevo("    {"));
+        salida.anadir(nuevo("        if (p->claves[i].data == NULL) continue;"));
+        salida.anadir(nuevo("        r.claves[i] = ss_clone(&p->claves[i]);"));
+        salida.anadir($"        r.valores[i] = {cp};");
+        salida.anadir(nuevo("    }"));
+        salida.anadir(nuevo("    return r;"));
+        salida.anadir(nuevo("}"));
+        salida.anadir(vacio());
         return true;
     }
     if empieza_con(t, "[") {
         let pa = partes_arreglo(t);
-        if largo(pa) != 2 { return false; }
+        if pa.largo() != 2 { return false; }
         let cp = copia_de("p->e[i]", vista(pa[0]), global);
-        anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-        anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
-        anadir(salida, nuevo("{"));
-        anadir(salida, $"    {tc} r;");
-        anadir(salida, $"    for (size_t i = 0; i < {pa[1]}; i++)");
-        anadir(salida, $"        r.e[i] = {cp};");
-        anadir(salida, nuevo("    return r;"));
-        anadir(salida, nuevo("}"));
-        anadir(salida, vacio());
+        salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        salida.anadir($"static {tc} ss_copia_{m}(const {tc}* p)");
+        salida.anadir(nuevo("{"));
+        salida.anadir($"    {tc} r;");
+        salida.anadir($"    for (size_t i = 0; i < {pa[1]}; i++)");
+        salida.anadir($"        r.e[i] = {cp};");
+        salida.anadir(nuevo("    return r;"));
+        salida.anadir(nuevo("}"));
+        salida.anadir(vacio());
         return true;
     }
     if !tiene(st_indice, t) { return false; }
     let k = obtener(st_indice, t) sino 0;
-    anadir(salida, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-    anadir(salida, $"static {tc} ss_copia_{m}(const {tc}* p)");
-    anadir(salida, nuevo("{"));
-    anadir(salida, $"    {tc} r;");
+    salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+    salida.anadir($"static {tc} ss_copia_{m}(const {tc}* p)");
+    salida.anadir(nuevo("{"));
+    salida.anadir($"    {tc} r;");
     var j = 0;
-    while j < largo(st_campos[k]) {
+    while j < st_campos[k].largo() {
         let donde = $"p->{st_campos[k][j]}";
         let cp = copia_de(vista(donde), vista(st_tipos[k][j]), global);
-        anadir(salida, $"    r.{st_campos[k][j]} = {cp};");
+        salida.anadir($"    r.{st_campos[k][j]} = {cp};");
         j = j + 1;
     }
-    anadir(salida, nuevo("    return r;"));
-    anadir(salida, nuevo("}"));
-    anadir(salida, vacio());
+    salida.anadir(nuevo("    return r;"));
+    salida.anadir(nuevo("}"));
+    salida.anadir(vacio());
     return true;
 }
 
@@ -1635,24 +1635,24 @@ fn ordenar_como_comprobador(desde: usize, orden: &lista<str>,
     st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>) {
     var puesto: mapa<str, usize> = [];
     var k = 0;
-    while k < largo(orden) {
-        if !tiene(puesto, vista(orden[k])) { poner(puesto, vista(orden[k]), k); }
+    while k < orden.largo() {
+        if !tiene(puesto, orden[k]) { poner(puesto, vista(orden[k]), k); }
         k = k + 1;
     }
     // Una insercion estable: son pocos.
     var cual: lista<usize> = [];
     var i = desde;
-    while i < largo(st_nombres) {
-        anadir(cual, i);
+    while i < st_nombres.largo() {
+        cual.anadir(i);
         i = i + 1;
     }
-    let fuera = largo(orden);
+    let fuera = orden.largo();
     var a = 1;
-    while a < largo(cual) {
+    while a < cual.largo() {
         var b = a;
         while b > 0 {
-            let pb = obtener(puesto, vista(st_nombres[cual[b]])) sino fuera;
-            let pa = obtener(puesto, vista(st_nombres[cual[b - 1]])) sino fuera;
+            let pb = obtener(puesto, st_nombres[cual[b]]) sino fuera;
+            let pa = obtener(puesto, st_nombres[cual[b - 1]]) sino fuera;
             if pa <= pb { break; }
             let t = cual[b];
             cual[b] = cual[b - 1];
@@ -1666,16 +1666,16 @@ fn ordenar_como_comprobador(desde: usize, orden: &lista<str>,
     var tipos: lista<lista<str>> = [];
     var j = 0;
     while j < desde {
-        anadir(nombres, copiar(st_nombres[j]));
-        anadir(campos, copiar(st_campos[j]));
-        anadir(tipos, copiar(st_tipos[j]));
+        nombres.anadir(copiar(st_nombres[j]));
+        campos.anadir(copiar(st_campos[j]));
+        tipos.anadir(copiar(st_tipos[j]));
         j = j + 1;
     }
     for c en cual {
-        poner(st_indice, vista(st_nombres[c]), largo(nombres));
-        anadir(nombres, copiar(st_nombres[c]));
-        anadir(campos, copiar(st_campos[c]));
-        anadir(tipos, copiar(st_tipos[c]));
+        poner(st_indice, vista(st_nombres[c]), nombres.largo());
+        nombres.anadir(copiar(st_nombres[c]));
+        campos.anadir(copiar(st_campos[c]));
+        tipos.anadir(copiar(st_tipos[c]));
     }
     st_nombres = nombres;
     st_campos = campos;
@@ -1686,14 +1686,14 @@ fn ordenar_como_comprobador(desde: usize, orden: &lista<str>,
 fn partir_args(t: view) -> lista<str> {
     var salida: lista<str> = [];
     var ini = 0;
-    while ini < largo(t) && byte(t, ini) != 60 { ini = ini + 1; }
-    if ini + 1 >= largo(t) { return salida; }
-    let dentro = rebanar(t, ini + 1, largo(t) - 1);
+    while ini < t.largo() && byte(t, ini) != 60 { ini = ini + 1; }
+    if ini + 1 >= t.largo() { return salida; }
+    let dentro = rebanar(t, ini + 1, t.largo() - 1);
     var hondura = 0;
     var desde = 0;
     var i = 0;
-    while i <= largo(dentro) {
-        var corta = i == largo(dentro);
+    while i <= dentro.largo() {
+        var corta = i == dentro.largo();
         if !corta {
             let b = byte(dentro, i);
             if b == 60 || b == 91 || b == 40 { hondura = hondura + 1; }
@@ -1703,7 +1703,7 @@ fn partir_args(t: view) -> lista<str> {
         if corta {
             var j = desde;
             while j < i && byte(dentro, j) == 32 { j = j + 1; }
-            anadir(salida, nuevo(rebanar(dentro, j, i)));
+            salida.anadir(nuevo(rebanar(dentro, j, i)));
             desde = i + 1;
         }
         i = i + 1;
@@ -1722,12 +1722,12 @@ fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
     global: mut I.Contexto) -> str {
     if !contiene(t, "<") && !contiene(t, "[") { return nuevo(t); }
     if empieza_con(t, "&mut ") {
-        let d = resolver_reg(rebanar(t, 5, largo(t)), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+        let d = resolver_reg(rebanar(t, 5, t.largo()), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
         return $"&mut {d}";
     }
     if empieza_con(t, "&") {
-        let d = resolver_reg(rebanar(t, 1, largo(t)), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+        let d = resolver_reg(rebanar(t, 1, t.largo()), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
         return $"&{d}";
     }
@@ -1738,14 +1738,14 @@ fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
         return $"lista<{d}>";
     }
     if empieza_con(t, "bloque<") {
-        let e = nuevo(rebanar(t, 7, largo(t) - 1));
+        let e = nuevo(rebanar(t, 7, t.largo() - 1));
         let d = resolver_reg(vista(e), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
         return $"bloque<{d}>";
     }
     if es_mapa_t(t) {
         let partes = partes_mapa(t);
-        if largo(partes) != 2 { return nuevo(t); }
+        if partes.largo() != 2 { return nuevo(t); }
         let k = resolver_reg(vista(partes[0]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
         let v = resolver_reg(vista(partes[1]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
@@ -1754,45 +1754,45 @@ fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
     }
     if empieza_con(t, "[") {
         let pa = partes_arreglo(t);
-        if largo(pa) != 2 { return nuevo(t); }
+        if pa.largo() != 2 { return nuevo(t); }
         let d = resolver_reg(vista(pa[0]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
         return $"[{d}; {pa[1]}]";
     }
     if !I.es_aplicacion(t) { return nuevo(t); }
     let base = I.base_de_aplicacion(t);
-    if !tiene(plantillas_st, vista(base)) { return nuevo(t); }
-    let kp = obtener(plantillas_st, vista(base)) sino 0;
+    if !tiene(plantillas_st, base) { return nuevo(t); }
+    let kp = obtener(plantillas_st, base) sino 0;
     let dados = partir_args(t);
-    if largo(dados) != largo(p_params[kp]) { return nuevo(t); }
+    if dados.largo() != p_params[kp].largo() { return nuevo(t); }
     var ligaduras: mapa<str, str> = [];
     var nombre = copiar(base);
-    empujar(nombre, "__");
+    nombre.empujar("__");
     var i = 0;
-    while i < largo(dados) {
+    while i < dados.largo() {
         let d = resolver_reg(vista(dados[i]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
-        if i > 0 { empujar(nombre, "_"); }
-        let limpio = G.sanear(vista(d));
-        empujar(nombre, vista(limpio));
+        if i > 0 { nombre.empujar("_"); }
+        let limpio = G.sanear(d);
+        nombre.empujar(limpio);
         poner(ligaduras, vista(p_params[kp][i]), d);
         i = i + 1;
     }
-    if tiene(st_indice, vista(nombre)) || tiene(en_curso, vista(nombre)) { return nombre; }
+    if tiene(st_indice, nombre) || tiene(en_curso, nombre) { return nombre; }
     poner(en_curso, vista(nombre), 1);
     var tipos_c: lista<str> = [];
     let crudos = copiar(p_tipos[kp]);
     for x en crudos {
-        let puesto = I.sustituir(vista(x), ligaduras);
+        let puesto = I.sustituir(x, ligaduras);
         anadir(tipos_c, resolver_reg(vista(puesto), plantillas_st, p_params, p_campos, p_tipos, en_curso,
                 st_nombres, st_indice, st_campos, st_tipos, global));
     }
-    poner(st_indice, vista(nombre), largo(st_nombres));
-    anadir(st_nombres, copiar(nombre));
-    anadir(st_campos, copiar(p_campos[kp]));
+    poner(st_indice, vista(nombre), st_nombres.largo());
+    st_nombres.anadir(copiar(nombre));
+    st_campos.anadir(copiar(p_campos[kp]));
     poner(global.campos, vista(nombre), copiar(tipos_c));
     poner(global.nombres, vista(nombre), copiar(p_campos[kp]));
-    anadir(st_tipos, tipos_c);
+    st_tipos.anadir(tipos_c);
     return nombre;
 }
 
@@ -1805,21 +1805,21 @@ fn resolver_en_nodo(n: &P.Nodo, plantillas_st: &mapa<str, usize>,
     st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>,
     global: mut I.Contexto) {
     let clase = vista(n.clase);
-    if igual(clase, "param") {
-        let tp = F.tipo_pelado(vista(n.texto));
-        let t = I.sin_alias_tipo(vista(tp));
+    if clase == "param" {
+        let tp = F.tipo_pelado(n.texto);
+        let t = I.sin_alias_tipo(tp);
         let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
-    if igual(clase, "retorno_tipo") || igual(clase, "literal_struct") {
-        let t = I.sin_alias_tipo(vista(n.texto));
+    if clase == "retorno_tipo" || clase == "literal_struct" {
+        let t = I.sin_alias_tipo(n.texto);
         let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
-    if igual(clase, "declaracion") {
-        let escrito = G.tipo_escrito(vista(n.texto));
-        if largo(escrito) > 0 {
-            let t = I.sin_alias_tipo(vista(escrito));
+    if clase == "declaracion" {
+        let escrito = G.tipo_escrito(n.texto);
+        if escrito.largo() > 0 {
+            let t = I.sin_alias_tipo(escrito);
             let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
                 st_nombres, st_indice, st_campos, st_tipos, global);
         }
@@ -1837,15 +1837,15 @@ fn resolver_instancia(d: &P.Nodo, plantillas_st: &mapa<str, usize>,
     st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>,
     global: mut I.Contexto) {
     for h en d.hijos {
-        if igual(vista(h.clase), "retorno_tipo") { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
+        if h.clase == "retorno_tipo" { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
                 st_nombres, st_indice, st_campos, st_tipos, global); }
     }
     for h en d.hijos {
-        if igual(vista(h.clase), "param") { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
+        if h.clase == "param" { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
                 st_nombres, st_indice, st_campos, st_tipos, global); }
     }
     for h en d.hijos {
-        if igual(vista(h.clase), "bloque") { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
+        if h.clase == "bloque" { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
                 st_nombres, st_indice, st_campos, st_tipos, global); }
     }
 }
@@ -1859,16 +1859,16 @@ fn resolver_instancia(d: &P.Nodo, plantillas_st: &mapa<str, usize>,
 fn prototipo_externo(nombre: view, tipos_p: &lista<str>, nombres_p: &lista<str>,
     retorno: view) -> str {
     var tc = G.tipo_c(retorno);
-    if igual(retorno, "cadena_c") { tc = nuevo("const char*"); }
-    if largo(tipos_p) == 0 { return $"{tc} {nombre}(void)"; }
+    if retorno == "cadena_c" { tc = nuevo("const char*"); }
+    if tipos_p.largo() == 0 { return $"{tc} {nombre}(void)"; }
     var partes = vacio();
     var i = 0;
-    while i < largo(tipos_p) {
-        var t = G.tipo_c(vista(tipos_p[i]));
-        if igual(vista(tipos_p[i]), "str") { t = nuevo("const char*"); }
-        if i > 0 { empujar(partes, ", "); }
+    while i < tipos_p.largo() {
+        var t = G.tipo_c(tipos_p[i]);
+        if tipos_p[i] == "str" { t = nuevo("const char*"); }
+        if i > 0 { partes.empujar(", "); }
         let pieza = $"{t} {nombres_p[i]}";
-        empujar(partes, vista(pieza));
+        partes.empujar(pieza);
         i = i + 1;
     }
     return $"{tc} {nombre}({partes})";
@@ -1876,13 +1876,13 @@ fn prototipo_externo(nombre: view, tipos_p: &lista<str>, nombres_p: &lista<str>,
 
 // Cada linea de un texto, sin el salto final.
 fn anadir_lineas(texto_c: view, salida: mut lista<str>) {
-    var fin = largo(texto_c);
+    var fin = texto_c.largo();
     if fin > 0 && byte(texto_c, fin - 1) == 10 { fin = fin - 1; }
     var desde = 0;
     var i = 0;
     while i <= fin {
         if i == fin || byte(texto_c, i) == 10 {
-            anadir(salida, nuevo(rebanar(texto_c, desde, i)));
+            salida.anadir(nuevo(rebanar(texto_c, desde, i)));
             desde = i + 1;
         }
         i = i + 1;
@@ -1904,16 +1904,16 @@ fn anadir_lineas(texto_c: view, salida: mut lista<str>) {
 fn numerar_cierres(n: mut P.Nodo, dueno: view, numeracion: &mapa<str, usize>,
     cuenta: mut usize) {
     var i = 0;
-    while i < largo(n.hijos) {
-        if igual(vista(n.hijos[i].clase), "cierre") {
+    while i < n.hijos.largo() {
+        if n.hijos[i].clase == "cierre" {
             let clave = $"{dueno}#{cuenta}";
             cuenta = cuenta + 1;
-            if tiene(numeracion, vista(clave)) {
-                let numero = obtener(numeracion, vista(clave)) sino 0;
+            if tiene(numeracion, clave) {
+                let numero = obtener(numeracion, clave) sino 0;
                 var queda = P.rama("cierre", n.hijos[i].linea);
                 queda.texto = $"Cierre_{numero}";
                 for h en n.hijos[i].hijos {
-                    if igual(vista(h.clase), "captura") { anadir(queda.hijos, copiar(h)); }
+                    if h.clase == "captura" { queda.hijos.anadir(copiar(h)); }
                 }
                 n.hijos[i] = queda;
             }
@@ -1925,7 +1925,7 @@ fn numerar_cierres(n: mut P.Nodo, dueno: view, numeracion: &mapa<str, usize>,
 }
 
 fn tiene_cierre(n: &P.Nodo) -> bool {
-    if igual(vista(n.clase), "cierre") { return true; }
+    if n.clase == "cierre" { return true; }
     for h en n.hijos {
         if tiene_cierre(h) { return true; }
     }
@@ -1938,16 +1938,16 @@ fn tiene_cierre(n: &P.Nodo) -> bool {
 fn campos_de_cierre(p: view, nombres: mut lista<str>, tipos: mut lista<str>) {
     var k = 2;
     var pieza = campo_pedido(p, k);
-    while largo(pieza) > 0 {
-        let corte = buscar_desde(vista(pieza), "=", 0);
-        anadir(nombres, nuevo(rebanar(vista(pieza), 0, corte)));
-        anadir(tipos, nuevo(rebanar(vista(pieza), corte + 1, largo(vista(pieza)))));
+    while pieza.largo() > 0 {
+        let corte = buscar_desde(pieza, "=", 0);
+        nombres.anadir(nuevo(rebanar(pieza, 0, corte)));
+        tipos.anadir(nuevo(rebanar(pieza, corte + 1, pieza.largo())));
         k = k + 1;
         pieza = campo_pedido(p, k);
     }
-    if largo(nombres) == 0 {
-        anadir(nombres, nuevo("ss_vacio"));
-        anadir(tipos, nuevo("u8"));
+    if nombres.largo() == 0 {
+        nombres.anadir(nuevo("ss_vacio"));
+        tipos.anadir(nuevo("u8"));
     }
 }
 
@@ -1961,21 +1961,21 @@ fn struct_de_cierre(en_c: view) -> str {
 // lleven dentro.
 fn apuntar_tipo_funcion(t: view, salida: mut lista<str>) {
     if !T.es_funcion(t) || esta_en(salida, t) { return; }
-    anadir(salida, nuevo(t));
+    salida.anadir(nuevo(t));
     for x en T.partes_de_funcion(t) {
-        let dentro = T.apuntado_si(vista(x));
-        apuntar_tipo_funcion(vista(dentro), salida);
+        let dentro = T.apuntado_si(x);
+        apuntar_tipo_funcion(dentro, salida);
     }
 }
 
 fn tipos_funcion_de(d: &P.Nodo, salida: mut lista<str>) {
     for h en d.hijos {
-        if igual(vista(h.clase), "param") {
-            let tp = F.tipo_pelado(vista(h.texto));
-            apuntar_tipo_funcion(vista(tp), salida);
+        if h.clase == "param" {
+            let tp = F.tipo_pelado(h.texto);
+            apuntar_tipo_funcion(tp, salida);
         }
-        if igual(vista(h.clase), "retorno_tipo") {
-            apuntar_tipo_funcion(vista(h.texto), salida);
+        if h.clase == "retorno_tipo" {
+            apuntar_tipo_funcion(h.texto, salida);
         }
     }
 }
@@ -1984,10 +1984,10 @@ fn tipos_funcion_de(d: &P.Nodo, salida: mut lista<str>) {
 // `ss_fn_x_a_y_z`.
 fn contiene_nombre(l: view, nombre: view) -> bool {
     var i = buscar_desde(l, nombre, 0);
-    while i < largo(l) {
-        let fin = i + largo(nombre);
+    while i < l.largo() {
+        let fin = i + nombre.largo();
         let antes_ok = i == 0 || !es_de_nombre_c(byte(l, i - 1));
-        let despues_ok = fin >= largo(l) || !es_de_nombre_c(byte(l, fin));
+        let despues_ok = fin >= l.largo() || !es_de_nombre_c(byte(l, fin));
         if antes_ok && despues_ok { return true; }
         i = buscar_desde(l, nombre, i + 1);
     }
@@ -2015,8 +2015,8 @@ fn campo_pedido(p: view, cual: usize) -> str {
     var k = 0;
     var desde = 0;
     var i = 0;
-    while i <= largo(p) {
-        if i == largo(p) || byte(p, i) == 9 {
+    while i <= p.largo() {
+        if i == p.largo() || byte(p, i) == 9 {
             if k == cual { return nuevo(rebanar(p, desde, i)); }
             k = k + 1;
             desde = i + 1;
@@ -2030,10 +2030,10 @@ fn ligaduras_de(p: view) -> mapa<str, str> {
     var salida: mapa<str, str> = [];
     var k = 2;
     var pieza = campo_pedido(p, k);
-    while largo(pieza) > 0 {
-        let corte = buscar_desde(vista(pieza), "=", 0);
-        let tp = nuevo(rebanar(vista(pieza), 0, corte));
-        let puesto = nuevo(rebanar(vista(pieza), corte + 1, largo(vista(pieza))));
+    while pieza.largo() > 0 {
+        let corte = buscar_desde(pieza, "=", 0);
+        let tp = nuevo(rebanar(pieza, 0, corte));
+        let puesto = nuevo(rebanar(pieza, corte + 1, pieza.largo()));
         poner(salida, vista(tp), puesto);
         k = k + 1;
         pieza = campo_pedido(p, k);
@@ -2043,23 +2043,23 @@ fn ligaduras_de(p: view) -> mapa<str, str> {
 
 // Los nodos cuyo texto lleva tipos escritos.
 fn lleva_tipo(clase: view) -> bool {
-    if igual(clase, "param") || igual(clase, "retorno_tipo") { return true; }
-    if igual(clase, "declaracion") || igual(clase, "conversion") { return true; }
-    return igual(clase, "literal_struct") || igual(clase, "cierre");
+    if clase == "param" || clase == "retorno_tipo" { return true; }
+    if clase == "declaracion" || clase == "conversion" { return true; }
+    return clase == "literal_struct" || clase == "cierre";
 }
 
 fn copiar_sustituido(n: &P.Nodo, lig: &mapa<str, str>) -> P.Nodo {
-    var r = P.rama(vista(n.clase), n.linea);
+    var r = P.rama(n.clase, n.linea);
     // El mismo numero: es por el que el comprobador dejo anotado su tipo.
     r.id = n.id;
-    if lleva_tipo(vista(n.clase)) {
-        r.texto = I.sustituir(vista(n.texto), lig);
+    if lleva_tipo(n.clase) {
+        r.texto = I.sustituir(n.texto, lig);
     } else {
         r.texto = copiar(n.texto);
     }
     for h en n.hijos {
-        if igual(vista(h.clase), "tipo_param") { continue; }
-        anadir(r.hijos, copiar_sustituido(h, lig));
+        if h.clase == "tipo_param" { continue; }
+        r.hijos.anadir(copiar_sustituido(h, lig));
     }
     return r;
 }
@@ -2070,10 +2070,10 @@ fn nodo_instancia(p: view, arboles: &lista<P.Nodo>,
     let plantilla = campo_pedido(p, 0);
     let en_c = campo_pedido(p, 1);
     let lig = ligaduras_de(p);
-    let im = obtener(plantillas, vista(plantilla)) sino 0;
+    let im = obtener(plantillas, plantilla) sino 0;
     var r = P.rama("vacio", 0);
     for d en arboles[im].hijos {
-        if igual(vista(d.clase), "fn") && igual(vista(d.texto), vista(plantilla)) {
+        if d.clase == "fn" && igual(d.texto, plantilla) {
             r = copiar_sustituido(d, lig);
             r.texto = copiar(en_c);
             break;
@@ -2082,7 +2082,7 @@ fn nodo_instancia(p: view, arboles: &lista<P.Nodo>,
     // Las clausuras de esta copia son suyas.
     let dueno = dueno_de_pedido(p);
     var cuenta: usize = 0;
-    numerar_cierres(r, vista(dueno), numeracion, cuenta);
+    numerar_cierres(r, dueno, numeracion, cuenta);
     return r;
 }
 
@@ -2092,10 +2092,10 @@ fn dueno_de_pedido(p: view) -> str {
     var dueno = campo_pedido(p, 0);
     var k = 2;
     var pieza = campo_pedido(p, k);
-    while largo(pieza) > 0 {
-        let corte = buscar_desde(vista(pieza), "=", 0);
-        empujar(dueno, "|");
-        empujar(dueno, rebanar(vista(pieza), corte + 1, largo(pieza)));
+    while pieza.largo() > 0 {
+        let corte = buscar_desde(pieza, "=", 0);
+        dueno.empujar("|");
+        dueno.empujar(rebanar(pieza, corte + 1, pieza.largo()));
         k = k + 1;
         pieza = campo_pedido(p, k);
     }
@@ -2107,8 +2107,8 @@ fn dueno_de_pedido(p: view) -> str {
 fn orden_por_puesto(puestos: &lista<usize>) -> lista<usize> {
     var orden: lista<usize> = [];
     var i = 0;
-    while i < largo(puestos) {
-        anadir(orden, i);
+    while i < puestos.largo() {
+        orden.anadir(i);
         var j = i;
         while j > 0 && puestos[orden[j - 1]] > puestos[orden[j]] {
             let antes = orden[j - 1];
@@ -2123,8 +2123,8 @@ fn orden_por_puesto(puestos: &lista<usize>) -> lista<usize> {
 
 // Como llama el comprobador a una funcion del programa.
 fn dueno_de_funcion(d: &P.Nodo, tipos: &I.Contexto) -> str {
-    if tiene(tipos.renombradas, vista(d.texto)) {
-        return nuevo(obtener(tipos.renombradas, vista(d.texto)) sino "");
+    if tiene(tipos.renombradas, d.texto) {
+        return nuevo(obtener(tipos.renombradas, d.texto) sino "");
     }
     return copiar(d.texto);
 }
@@ -2149,39 +2149,39 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
     orden: mut lista<str>, creados: mut lista<str>, cierres: &Cierres,
     global: mut I.Contexto) -> bool {
     for p en pedidos {
-        let en_c = campo_pedido(vista(p), 1);
-        if tiene(vistos, vista(en_c)) { continue; }
+        let en_c = campo_pedido(p, 1);
+        if tiene(vistos, en_c) { continue; }
         poner(vistos, vista(en_c), 1);
-        anadir(creados, copiar(p));
-        let plantilla = campo_pedido(vista(p), 0);
-        if largo(plantilla) == 0 {
+        creados.anadir(copiar(p));
+        let plantilla = campo_pedido(p, 0);
+        if plantilla.largo() == 0 {
             // Una clausura: su struct existe desde que se crea, y su funcion
             // se apunta antes de comprobar su cuerpo, al reves que una copia.
-            if !tiene(cierres.indice, vista(en_c)) {
+            if !tiene(cierres.indice, en_c) {
                 imprimir_error($"tcodec: `{en_c}` no es una clausura conocida\n");
                 return false;
             }
-            let k = obtener(cierres.indice, vista(en_c)) sino 0;
+            let k = obtener(cierres.indice, en_c) sino 0;
             var cn: lista<str> = [];
             var ct: lista<str> = [];
-            campos_de_cierre(vista(p), cn, ct);
-            let st = struct_de_cierre(vista(en_c));
+            campos_de_cierre(p, cn, ct);
+            let st = struct_de_cierre(en_c);
             poner(global.campos, vista(st), copiar(ct));
             poner(global.nombres, vista(st), copiar(cn));
             var kc = 0;
-            while kc < largo(contextos) {
+            while kc < contextos.largo() {
                 poner(contextos[kc].campos, vista(st), copiar(ct));
                 poner(contextos[kc].nombres, vista(st), copiar(cn));
                 kc = kc + 1;
             }
-            anadir(orden, copiar(p));
+            orden.anadir(copiar(p));
             let de = cierres.modulo[k];
             var borrador_c = F.cuenta_nueva();
             borrador_c.sacados = copiar(cierres.sacados);
             borrador_c.dueno = copiar(cierres.fns[k].texto);
             let lineas_c = F.generar_funcion(cierres.fns[k], contextos[de],
                 vista(modulos[de]), borrador_c);
-            if largo(lineas_c) == 0 {
+            if lineas_c.largo() == 0 {
                 imprimir_error($"tcodec: no se escribir la clausura `{en_c}`\n");
                 return false;
             }
@@ -2191,17 +2191,17 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
             }
             continue;
         }
-        if !tiene(plantillas, vista(plantilla)) {
+        if !tiene(plantillas, plantilla) {
             imprimir_error($"tcodec: `{plantilla}` no es una generica conocida\n");
             return false;
         }
-        let de = obtener(plantillas, vista(plantilla)) sino 0;
-        let copia = nodo_instancia(vista(p), arboles, plantillas, cierres.numeracion);
+        let de = obtener(plantillas, plantilla) sino 0;
+        let copia = nodo_instancia(p, arboles, plantillas, cierres.numeracion);
         var borrador = F.cuenta_nueva();
         borrador.sacados = copiar(cierres.sacados);
-        borrador.dueno = dueno_de_pedido(vista(p));
-        let lineas = F.generar_funcion(copia, contextos[de], vista(modulos[de]), borrador);
-        if largo(lineas) == 0 {
+        borrador.dueno = dueno_de_pedido(p);
+        let lineas = F.generar_funcion(copia, contextos[de], modulos[de], borrador);
+        if lineas.largo() == 0 {
             imprimir_error($"tcodec: no se escribir la copia `{en_c}`\n");
             return false;
         }
@@ -2209,7 +2209,7 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
             vistos, orden, creados, cierres, global) {
             return false;
         }
-        anadir(orden, copiar(p));
+        orden.anadir(copiar(p));
     }
     return true;
 }
@@ -2221,41 +2221,41 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     anchos: mut mapa<str, usize>, decimales: mut mapa<str, usize>,
     conversiones: mut mapa<str, usize>) -> bool {
     let lineas = F.generar_funcion(d, tipos, ruta, cta);
-    if largo(lineas) == 0 {
+    if lineas.largo() == 0 {
         imprimir_error($"tcodec: no se escribir `{d.texto}` entera\n");
         return false;
     }
-    if !igual(vista(d.texto), "main") {
+    if d.texto != "main" {
         for l en lineas {
-            if !empieza_con(vista(l), "#line") {
+            if !empieza_con(l, "#line") {
                 var p = copiar(l);
-                empujar(p, ";");
-                anadir(protos, p);
+                p.empujar(";");
+                protos.anadir(p);
                 break;
             }
         }
     }
     for l en lineas {
-        let limpia = sin_cadenas(vista(l));
-        if necesita_lo_que_falta(vista(limpia)) {
+        let limpia = sin_cadenas(l);
+        if necesita_lo_que_falta(limpia) {
             imprimir_error($"tcodec: `{d.texto}` necesita algo que falta: {l}\n");
             return false;
         }
-        apuntar_tras(vista(limpia), "ss_lang_suma_", anchos);
-        apuntar_tras(vista(limpia), "ss_lang_resta_", anchos);
-        apuntar_tras(vista(limpia), "ss_lang_mul_", anchos);
-        apuntar_tras(vista(limpia), "ss_lang_abs_", anchos);
-        apuntar_tras(vista(limpia), "ss_lang_neg_", anchos);
-        apuntar_tras(vista(limpia), "ss_lang_div_", anchos);
-        apuntar_tras(vista(limpia), "ss_lang_mod_", anchos);
-        apuntar_tras(vista(limpia), "ss_lang_desp_izq_", anchos);
-        apuntar_tras(vista(limpia), "ss_lang_desp_der_", anchos);
-        apuntar_tras(vista(limpia), "ss_lang_env_", anchos);
-        apuntar_tras(vista(limpia), "ss_lang_fin_", decimales);
-        apuntar_tras(vista(limpia), "ss_lang_conv_", conversiones);
-        anadir(cuerpos, copiar(l));
+        apuntar_tras(limpia, "ss_lang_suma_", anchos);
+        apuntar_tras(limpia, "ss_lang_resta_", anchos);
+        apuntar_tras(limpia, "ss_lang_mul_", anchos);
+        apuntar_tras(limpia, "ss_lang_abs_", anchos);
+        apuntar_tras(limpia, "ss_lang_neg_", anchos);
+        apuntar_tras(limpia, "ss_lang_div_", anchos);
+        apuntar_tras(limpia, "ss_lang_mod_", anchos);
+        apuntar_tras(limpia, "ss_lang_desp_izq_", anchos);
+        apuntar_tras(limpia, "ss_lang_desp_der_", anchos);
+        apuntar_tras(limpia, "ss_lang_env_", anchos);
+        apuntar_tras(limpia, "ss_lang_fin_", decimales);
+        apuntar_tras(limpia, "ss_lang_conv_", conversiones);
+        cuerpos.anadir(copiar(l));
     }
-    anadir(cuerpos, vacio());
+    cuerpos.anadir(vacio());
     return true;
 }
 
@@ -2268,19 +2268,19 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
 fn para_la_shell(t: view) -> str {
     var r = nuevo("'");
     var i = 0;
-    while i < largo(t) {
-        if byte(t, i) == 39 { empujar(r, "'\\''"); }
-        else { empujar(r, rebanar(t, i, i + 1)); }
+    while i < t.largo() {
+        if byte(t, i) == 39 { r.empujar("'\\''"); }
+        else { r.empujar(rebanar(t, i, i + 1)); }
         i = i + 1;
     }
-    empujar(r, "'");
+    r.empujar("'");
     return r;
 }
 
 // `a/b/c.t` -> `a/b/c`: sin la extension, si la hay en el ultimo trozo.
 fn sin_extension(ruta: view) -> str {
-    var punto = largo(ruta);
-    var i = largo(ruta);
+    var punto = ruta.largo();
+    var i = ruta.largo();
     while i > 0 {
         i = i - 1;
         let b = byte(ruta, i);
@@ -2291,7 +2291,7 @@ fn sin_extension(ruta: view) -> str {
         }
     }
     // `.oculto` no tiene extension: el punto es parte del nombre.
-    if punto < largo(ruta) && punto > 0 && byte(ruta, punto - 1) == 47 {
+    if punto < ruta.largo() && punto > 0 && byte(ruta, punto - 1) == 47 {
         return nuevo(ruta);
     }
     if punto == 0 { return nuevo(ruta); }
@@ -2300,20 +2300,20 @@ fn sin_extension(ruta: view) -> str {
 
 fn extension(ruta: view) -> str {
     let sin = sin_extension(ruta);
-    return nuevo(rebanar(ruta, largo(sin), largo(ruta)));
+    return nuevo(rebanar(ruta, sin.largo(), ruta.largo()));
 }
 
 fn nombre_suelto(ruta: view) -> str {
-    var i = largo(ruta);
+    var i = ruta.largo();
     while i > 0 {
         if byte(ruta, i - 1) == 47 { break; }
         i = i - 1;
     }
-    return nuevo(rebanar(ruta, i, largo(ruta)));
+    return nuevo(rebanar(ruta, i, ruta.largo()));
 }
 
 fn directorio_de(ruta: view) -> str {
-    var i = largo(ruta);
+    var i = ruta.largo();
     while i > 0 {
         if byte(ruta, i - 1) == 47 { return nuevo(rebanar(ruta, 0, i - 1)); }
         i = i - 1;
@@ -2332,9 +2332,9 @@ fn escribir(ruta: view, contenido: view) -> bool ! {
 // destino, siguiendo enlaces y con sus permisos.
 fn escribir_de_una_vez(ruta: view, contenido: view, ejecutable: bool) -> bool {
     let destino = tcodec_ruta_real(nuevo(ruta));
-    if largo(destino) == 0 { return false; }
+    if destino.largo() == 0 { return false; }
     let temporal = tcodec_temporal_junto(copiar(destino));
-    if largo(temporal) == 0 { return false; }
+    if temporal.largo() == 0 { return false; }
     let bien = escribir(vista(temporal), contenido) sino false;
     if !bien {
         tcodec_borrar(copiar(temporal));
@@ -2352,23 +2352,23 @@ fn escribir_de_una_vez(ruta: view, contenido: view, ejecutable: bool) -> bool {
 fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
     cc: view, raiz: view, ext_cabeceras: &lista<str>, ext_modulos: &lista<str>) -> usize {
     var base = nuevo(salida);
-    if largo(base) == 0 { base = sin_extension(fuente); }
+    if base.largo() == 0 { base = sin_extension(fuente); }
 
     // Con --emitir-c el C es el producto, y va junto al fuente. Un `.c` que
     // no escribio Tcode no se pisa.
-    if igual(modo, "emitir") {
+    if modo == "emitir" {
         let ruta_c = $"{base}.c";
         if tcodec_es_archivo(copiar(ruta_c)) == 1 {
-            let previo = leer_archivo(vista(ruta_c)) sino vacio();
+            let previo = leer_archivo(ruta_c) sino vacio();
             let marca = "/* Generado por el compilador de Tcode. No editar a mano. */";
             var principio = vista(previo);
-            if largo(principio) > 200 { principio = rebanar(principio, 0, 200); }
+            if principio.largo() > 200 { principio = rebanar(principio, 0, 200); }
             if !contiene(principio, marca) {
                 imprimir_error($"tcodec: {ruta_c} ya existe y no lo genero tcode, asi que no lo piso. Usa -o para elegir otro nombre.\n");
                 return 2;
             }
         }
-        if !escribir_de_una_vez(vista(ruta_c), todo, false) {
+        if !escribir_de_una_vez(ruta_c, todo, false) {
             imprimir_error($"tcodec: no se pudo escribir `{ruta_c}`\n");
             return 2;
         }
@@ -2382,8 +2382,8 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
         imprimir_error($"tcodec: la salida `{base}` es el propio archivo fuente; elige otro nombre con `-o`.\n");
         return 2;
     }
-    let ext = extension(vista(base));
-    if igual(vista(ext), ".t") {
+    let ext = extension(base);
+    if ext == ".t" {
         imprimir_error($"tcodec: la salida `{base}` parece un fuente `.t`; elige otro nombre para no sobrescribir codigo.\n");
         return 2;
     }
@@ -2397,20 +2397,20 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
     var acompanan: lista<str> = [];
     var faltan: lista<str> = [];
     var k = 0;
-    while k < largo(ext_cabeceras) {
+    while k < ext_cabeceras.largo() {
         let cab = vista(ext_cabeceras[k]);
         if termina_con(cab, ".c") {
-            let dir = directorio_de(vista(ext_modulos[k]));
+            let dir = directorio_de(ext_modulos[k]);
             var junto = nuevo(cab);
-            if largo(dir) > 0 { junto = $"{dir}/{cab}"; }
-            if !esta_en(acompanan, vista(junto)) && !esta_en(faltan, vista(junto)) {
-                if tcodec_es_archivo(copiar(junto)) == 1 { anadir(acompanan, junto); }
-                else { anadir(faltan, junto); }
+            if dir.largo() > 0 { junto = $"{dir}/{cab}"; }
+            if !esta_en(acompanan, junto) && !esta_en(faltan, junto) {
+                if tcodec_es_archivo(copiar(junto)) == 1 { acompanan.anadir(junto); }
+                else { faltan.anadir(junto); }
             }
         }
         k = k + 1;
     }
-    if largo(faltan) > 0 {
+    if faltan.largo() > 0 {
         for x en faltan {
             imprimir_error($"tcodec: `externo` pide `{x}` y ese archivo no esta.\n");
         }
@@ -2418,11 +2418,11 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
     }
 
     let tmp = tcodec_directorio_temporal();
-    if largo(tmp) == 0 {
+    if tmp.largo() == 0 {
         imprimir_error("tcodec: no se pudo crear un directorio temporal\n");
         return 2;
     }
-    let nombre_c = nombre_suelto(vista(base));
+    let nombre_c = nombre_suelto(base);
     let ruta_c = $"{tmp}/{nombre_c}.c";
     let ruta_err = $"{tmp}/cc.err";
     let bien = escribir(vista(ruta_c), todo) sino false;
@@ -2436,8 +2436,8 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
     // completo sustituye al binario anterior.
     let destino_bin = tcodec_ruta_real(copiar(base));
     var salida_tmp = vacio();
-    if largo(destino_bin) > 0 { salida_tmp = tcodec_temporal_junto(copiar(destino_bin)); }
-    if largo(salida_tmp) == 0 {
+    if destino_bin.largo() > 0 { salida_tmp = tcodec_temporal_junto(copiar(destino_bin)); }
+    if salida_tmp.largo() == 0 {
         imprimir_error($"tcodec: no se pudo preparar la salida `{base}`\n");
         tcodec_borrar(copiar(ruta_c));
         tcodec_borrar(copiar(tmp));
@@ -2446,32 +2446,32 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
 
     var orden = para_la_shell(cc);
     let piezas_fijas = $" -std=c17 -O{nivel} -Wall -Wextra ";
-    empujar(orden, vista(piezas_fijas));
+    orden.empujar(piezas_fijas);
     let incluir = $"-I{raiz}/runtime";
-    empujar(orden, para_la_shell(vista(incluir)));
-    empujar(orden, " ");
-    empujar(orden, para_la_shell(vista(ruta_c)));
-    empujar(orden, " ");
+    orden.empujar(para_la_shell(incluir));
+    orden.empujar(" ");
+    orden.empujar(para_la_shell(ruta_c));
+    orden.empujar(" ");
     let safestr = $"{raiz}/runtime/safestr.c";
-    empujar(orden, para_la_shell(vista(safestr)));
+    orden.empujar(para_la_shell(safestr));
     for x en acompanan {
-        empujar(orden, " ");
-        empujar(orden, para_la_shell(vista(x)));
+        orden.empujar(" ");
+        orden.empujar(para_la_shell(x));
     }
-    empujar(orden, " -o ");
-    empujar(orden, para_la_shell(vista(salida_tmp)));
+    orden.empujar(" -o ");
+    orden.empujar(para_la_shell(salida_tmp));
     // `raiz`, `piso` y compania viven en libm.
-    empujar(orden, " -lm 2> ");
-    empujar(orden, para_la_shell(vista(ruta_err)));
+    orden.empujar(" -lm 2> ");
+    orden.empujar(para_la_shell(ruta_err));
 
     let rc = tcodec_ejecutar(orden);
-    let dijo = leer_archivo(vista(ruta_err)) sino vacio();
+    let dijo = leer_archivo(ruta_err) sino vacio();
     tcodec_borrar(copiar(ruta_c));
     tcodec_borrar(copiar(ruta_err));
     tcodec_borrar(copiar(tmp));
     if rc != 0 {
         tcodec_borrar(copiar(salida_tmp));
-        if largo(ext_cabeceras) > 0 {
+        if ext_cabeceras.largo() > 0 {
             imprimir_error("tcodec: el C generado no compilo. Con bloques `externo` de por medio, lo mas probable es que una firma no coincida con la de C.\n");
         } else {
             imprimir_error("tcodec: el C generado no compilo. Es un fallo del compilador, no de tu programa.\n");
@@ -2479,7 +2479,7 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
         imprimir_error($"{dijo}\n");
         return 1;
     }
-    if largo(recortar(vista(dijo))) > 0 { imprimir_error($"{dijo}\n"); }
+    if largo(recortar(dijo)) > 0 { imprimir_error($"{dijo}\n"); }
     if tcodec_instalar(copiar(salida_tmp), copiar(destino_bin), 1) != 0 {
         tcodec_borrar(copiar(salida_tmp));
         imprimir_error($"tcodec: no se pudo instalar la salida `{base}`\n");
@@ -2506,56 +2506,56 @@ fn main() -> usize ! {
     while ia < n_argumentos() {
         let a = argumento(ia);
         ia = ia + 1;
-        if igual(a, "-o") || igual(a, "--cc") {
+        if a == "-o" || a == "--cc" {
             if ia >= n_argumentos() {
                 imprimir_error($"tcodec: `{a}` necesita un valor detras\n");
                 return 2;
             }
-            if igual(a, "-o") { salida = nuevo(argumento(ia)); }
+            if a == "-o" { salida = nuevo(argumento(ia)); }
             else { cc = nuevo(argumento(ia)); }
             ia = ia + 1;
         } else if empieza_con(a, "-O") {
-            nivel = nuevo(rebanar(a, 2, largo(a)));
-            if largo(nivel) == 0 && ia < n_argumentos() {
+            nivel = nuevo(rebanar(a, 2, a.largo()));
+            if nivel.largo() == 0 && ia < n_argumentos() {
                 nivel = nuevo(argumento(ia));
                 ia = ia + 1;
             }
             let nv = vista(nivel);
-            if !igual(nv, "0") && !igual(nv, "1") && !igual(nv, "2") && !igual(nv, "3")
-            && !igual(nv, "s") {
+            if nv != "0" && nv != "1" && nv != "2" && nv != "3"
+            && nv != "s" {
                 imprimir_error("tcodec: -O acepta 0, 1, 2, 3 o s\n");
                 return 2;
             }
-        } else if igual(a, "--emitir-c") {
+        } else if a == "--emitir-c" {
             modo = nuevo("emitir");
-        } else if igual(a, "--mostrar-c") {
+        } else if a == "--mostrar-c" {
             modo = nuevo("mostrar");
-        } else if igual(a, "--solo-comprobar") {
+        } else if a == "--solo-comprobar" {
             modo = nuevo("comprobar");
-        } else if igual(a, "--explicar") {
+        } else if a == "--explicar" {
             modo = nuevo("explicar");
-        } else if igual(a, "--formatear") {
+        } else if a == "--formatear" {
             modo = nuevo("formatear");
-        } else if igual(a, "--escribir") {
+        } else if a == "--escribir" {
             escribir_en_su_sitio = true;
-        } else if igual(a, "--sin-avisos") {
+        } else if a == "--sin-avisos" {
             sin_avisos = true;
-        } else if igual(a, "--avisos-como-errores") {
+        } else if a == "--avisos-como-errores" {
             avisos_como_errores = true;
-        } else if igual(a, "--version") {
+        } else if a == "--version" {
             imprimir("tcodec 0.1.0\n");
             return 0;
         } else if empieza_con(a, "-") {
             imprimir_error($"tcodec: no conozco la opcion `{a}`\n");
             return 2;
-        } else if largo(fuente) > 0 {
+        } else if fuente.largo() > 0 {
             imprimir_error("tcodec: un archivo cada vez\n");
             return 2;
         } else {
             fuente = nuevo(a);
         }
     }
-    if largo(fuente) == 0 {
+    if fuente.largo() == 0 {
         imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--sin-avisos] [--avisos-como-errores] [--formatear [--escribir]] [--explicar]\n");
         return 2;
     }
@@ -2564,11 +2564,11 @@ fn main() -> usize ! {
         return 2;
     }
     // Un estilo y es este: sin opciones, como `gofmt`.
-    if igual(vista(modo), "formatear") {
-        let original = leer_archivo(vista(fuente)) sino vacio();
+    if modo == "formatear" {
+        let original = leer_archivo(fuente) sino vacio();
         var error_f = vacio();
-        let salida_f = FMT.formatear(vista(original), vista(fuente), error_f) sino vacio();
-        if largo(error_f) > 0 {
+        let salida_f = FMT.formatear(original, fuente, error_f) sino vacio();
+        if error_f.largo() > 0 {
             imprimir_error($"error: {error_f}\n");
             return 1;
         }
@@ -2576,8 +2576,8 @@ fn main() -> usize ! {
             imprimir(salida_f);
             return 0;
         }
-        if !igual(vista(salida_f), vista(original)) {
-            if !escribir_de_una_vez(vista(fuente), vista(salida_f), false) {
+        if !igual(salida_f, original) {
+            if !escribir_de_una_vez(fuente, salida_f, false) {
                 imprimir_error($"tcodec: no se pudo escribir `{fuente}`\n");
                 return 2;
             }
@@ -2587,12 +2587,12 @@ fn main() -> usize ! {
     }
 
     var raiz = variable_entorno("TCODE_RAIZ") sino tcodec_raiz_instalada();
-    if largo(raiz) == 0 { raiz = nuevo("."); }
-    let principal = F.normalizar(vista(fuente));
+    if raiz.largo() == 0 { raiz = nuevo("."); }
+    let principal = F.normalizar(fuente);
     var modulos: lista<str> = [];
     var pila: lista<str> = [];
     var error_carga = vacio();
-    if !visitar(vista(principal), vista(raiz), modulos, pila, error_carga, "", 0) {
+    if !visitar(principal, raiz, modulos, pila, error_carga, "", 0) {
         imprimir_error($"error: {error_carga}\n");
         return 1;
     }
@@ -2629,144 +2629,144 @@ fn main() -> usize ! {
     var plantillas: mapa<str, usize> = [];
     var previos_st: mapa<str, usize> = [];
     var previos_en: mapa<str, usize> = [];
-    var leidos = P.leidos_en(vista(raiz));
+    var leidos = P.leidos_en(raiz);
     for m en modulos {
         var tipos = I.contexto();
         var error_m = vacio();
         let arbol = F.preparar_con_error(vista(m), tipos, error_m, previos_st, previos_en,
             leidos) sino P.rama("vacio", 0);
-        if largo(error_m) > 0 {
+        if error_m.largo() > 0 {
             // Como el cargador de Python: el primer error y nada mas.
             imprimir_error($"error: {error_m}\n");
             return 1;
         }
-        if igual(vista(arbol.clase), "vacio") {
+        if arbol.clase == "vacio" {
             imprimir_error($"tcodec: no se pudo leer `{m}`\n");
             return 1;
         }
         // Lo que este declara lo ven los siguientes al leerse, como en el
         // cargador: un enum tambien es un nombre de tipo.
         for d en arbol.hijos {
-            if igual(vista(d.clase), "struct") || igual(vista(d.clase), "enum") {
+            if d.clase == "struct" || d.clase == "enum" {
                 poner(previos_st, vista(d.texto), 1);
             }
-            if igual(vista(d.clase), "enum") { poner(previos_en, vista(d.texto), 1); }
+            if d.clase == "enum" { poner(previos_en, vista(d.texto), 1); }
         }
         F.recoger_firmas(arbol, global);
         for d en arbol.hijos {
             let clase = vista(d.clase);
-            if igual(clase, "usar") || igual(clase, "alias") { continue; }
-            if igual(clase, "fn") {
+            if clase == "usar" || clase == "alias" { continue; }
+            if clase == "fn" {
                 if F.es_generica(d) {
-                    poner(plantillas, vista(d.texto), largo(arboles));
+                    poner(plantillas, vista(d.texto), arboles.largo());
                     continue;
                 }
-                if igual(vista(d.texto), "main") && !igual(vista(m), vista(principal)) {
+                if d.texto == "main" && !igual(m, principal) {
                     return rechazo("un `main` en un modulo");
                 }
                 continue;
             }
-            if igual(clase, "struct") {
+            if clase == "struct" {
                 if tiene_tipo_param(d) {
-                    if tiene(stp_indice, vista(d.texto)) {
+                    if tiene(stp_indice, d.texto) {
                         return rechazo("un struct generico repetido entre modulos");
                     }
                     var tps: lista<str> = [];
                     var cs: lista<str> = [];
                     var ts: lista<str> = [];
                     for h en d.hijos {
-                        if igual(vista(h.clase), "tipo_param") { anadir(tps, nuevo(vista(h.texto))); }
-                        if igual(vista(h.clase), "campo_def") {
-                            anadir(cs, F.nombre_de(vista(h.texto)));
-                            let tp = F.tipo_pelado(vista(h.texto));
-                            anadir(ts, I.sin_alias_tipo(vista(tp)));
+                        if h.clase == "tipo_param" { tps.anadir(nuevo(h.texto)); }
+                        if h.clase == "campo_def" {
+                            cs.anadir(F.nombre_de(h.texto));
+                            let tp = F.tipo_pelado(h.texto);
+                            ts.anadir(I.sin_alias_tipo(tp));
                         }
                     }
-                    poner(stp_indice, vista(d.texto), largo(stp_nombres));
-                    anadir(stp_nombres, nuevo(vista(d.texto)));
-                    anadir(stp_params, tps);
-                    anadir(stp_campos, cs);
-                    anadir(stp_tipos, ts);
+                    poner(stp_indice, vista(d.texto), stp_nombres.largo());
+                    stp_nombres.anadir(nuevo(d.texto));
+                    stp_params.anadir(tps);
+                    stp_campos.anadir(cs);
+                    stp_tipos.anadir(ts);
                     continue;
                 }
-                if tiene(st_indice, vista(d.texto)) {
+                if tiene(st_indice, d.texto) {
                     return rechazo("un struct repetido entre modulos");
                 }
                 var campos: lista<str> = [];
                 var tipos_campo: lista<str> = [];
                 for h en d.hijos {
-                    if igual(vista(h.clase), "campo_def") {
-                        let tp = F.tipo_pelado(vista(h.texto));
-                        let t = I.sin_alias_tipo(vista(tp));
-                        anadir(campos, F.nombre_de(vista(h.texto)));
-                        anadir(tipos_campo, t);
+                    if h.clase == "campo_def" {
+                        let tp = F.tipo_pelado(h.texto);
+                        let t = I.sin_alias_tipo(tp);
+                        campos.anadir(F.nombre_de(h.texto));
+                        tipos_campo.anadir(t);
                     }
                 }
-                poner(st_indice, vista(d.texto), largo(st_nombres));
-                anadir(st_nombres, nuevo(vista(d.texto)));
-                anadir(st_campos, campos);
-                anadir(st_tipos, tipos_campo);
+                poner(st_indice, vista(d.texto), st_nombres.largo());
+                st_nombres.anadir(nuevo(d.texto));
+                st_campos.anadir(campos);
+                st_tipos.anadir(tipos_campo);
                 continue;
             }
-            if igual(clase, "externo") {
+            if clase == "externo" {
                 for f en d.hijos {
-                    if !igual(vista(f.clase), "fn") { continue; }
+                    if f.clase != "fn" { continue; }
                     var ps: lista<str> = [];
                     var pn: lista<str> = [];
                     var ret = vacio();
                     for h en f.hijos {
-                        if igual(vista(h.clase), "param") {
-                            let tp = F.tipo_pelado(vista(h.texto));
-                            anadir(ps, I.sin_alias_tipo(vista(tp)));
-                            anadir(pn, F.nombre_de(vista(h.texto)));
+                        if h.clase == "param" {
+                            let tp = F.tipo_pelado(h.texto);
+                            ps.anadir(I.sin_alias_tipo(tp));
+                            pn.anadir(F.nombre_de(h.texto));
                         }
-                        if igual(vista(h.clase), "retorno_tipo") {
-                            ret = nuevo(vista(h.texto));
+                        if h.clase == "retorno_tipo" {
+                            ret = nuevo(h.texto);
                         }
                     }
-                    anadir(ext_cabeceras, nuevo(vista(d.texto)));
-                    anadir(ext_modulos, copiar(m));
-                    anadir(ext_protos, prototipo_externo(vista(f.texto), ps, pn, vista(ret)));
+                    ext_cabeceras.anadir(nuevo(d.texto));
+                    ext_modulos.anadir(copiar(m));
+                    ext_protos.anadir(prototipo_externo(f.texto, ps, pn, ret));
                 }
                 continue;
             }
-            if igual(clase, "enum") {
-                if tiene(en_indice, vista(d.texto)) || tiene(st_indice, vista(d.texto)) {
+            if clase == "enum" {
+                if tiene(en_indice, d.texto) || tiene(st_indice, d.texto) {
                     return rechazo("un enum repetido entre modulos");
                 }
                 var vs: lista<str> = [];
                 var ls: lista<str> = [];
                 for h en d.hijos {
-                    if !igual(vista(h.clase), "variante") { continue; }
-                    anadir(vs, nuevo(vista(h.texto)));
+                    if h.clase != "variante" { continue; }
+                    vs.anadir(nuevo(h.texto));
                     var junto = vacio();
                     var primero_t = true;
                     for x en h.hijos {
-                        if !igual(vista(x.clase), "lleva") { continue; }
-                        let t = I.sin_alias_tipo(vista(x.texto));
-                        if es_bloque_o_arreglo(vista(t)) {
+                        if x.clase != "lleva" { continue; }
+                        let t = I.sin_alias_tipo(x.texto);
+                        if es_bloque_o_arreglo(t) {
                             return rechazo("bloques o arreglos en un enum");
                         }
-                        if !primero_t { empujar(junto, "\t"); }
+                        if !primero_t { junto.empujar("\t"); }
                         primero_t = false;
-                        empujar(junto, vista(t));
+                        junto.empujar(t);
                     }
-                    anadir(ls, junto);
+                    ls.anadir(junto);
                 }
-                poner(en_indice, vista(d.texto), largo(en_nombres));
-                anadir(en_nombres, nuevo(vista(d.texto)));
-                anadir(en_variantes, vs);
-                anadir(en_lleva, ls);
+                poner(en_indice, vista(d.texto), en_nombres.largo());
+                en_nombres.anadir(nuevo(d.texto));
+                en_variantes.anadir(vs);
+                en_lleva.anadir(ls);
                 continue;
             }
             return rechazo($"`{clase}`");
         }
-        anadir(arboles, arbol);
-        anadir(contextos, tipos);
+        arboles.anadir(arbol);
+        contextos.anadir(tipos);
     }
     // Lo que ve cada archivo, con los modulos ya leidos todos.
     var error_nombres = vacio();
-    if !revisar_nombres(arboles, modulos, vista(raiz), error_nombres) {
+    if !revisar_nombres(arboles, modulos, raiz, error_nombres) {
         imprimir_error($"error: {error_nombres}\n");
         return 1;
     }
@@ -2775,43 +2775,43 @@ fn main() -> usize ! {
     // archivo delante, en los dos: `celsius__nombre`. Cada archivo lo ve con
     // el nombre o el alias con que lo pide, como en el cargador.
     for g en claves(plantillas) {
-        if tiene(global.repetidas, vista(g)) {
+        if tiene(global.repetidas, g) {
             return rechazo("una generica repetida entre modulos");
         }
     }
     var mr = 0;
-    while mr < largo(arboles) {
+    while mr < arboles.largo() {
         for d en arboles[mr].hijos {
-            if igual(vista(d.clase), "fn") && tiene(global.repetidas, vista(d.texto)) {
-                let suyos = declarantes(arboles, modulos, vista(d.texto));
-                let base = F.prefijo_unico(vista(modulos[mr]), suyos);
+            if d.clase == "fn" && tiene(global.repetidas, d.texto) {
+                let suyos = declarantes(arboles, modulos, d.texto);
+                let base = F.prefijo_unico(modulos[mr], suyos);
                 let otro = $"{base}__{d.texto}";
                 poner(contextos[mr].renombradas, vista(d.texto), otro);
-                quitar(contextos[mr].repetidas, vista(d.texto));
+                quitar(contextos[mr].repetidas, d.texto);
             }
         }
-        let fuente_m = try leer_archivo(vista(modulos[mr]));
-        let pedidos_m = try usar_con_alias(vista(fuente_m));
-        let dir_m = P.carpeta(vista(modulos[mr]));
+        let fuente_m = try leer_archivo(modulos[mr]);
+        let pedidos_m = try usar_con_alias(fuente_m);
+        let dir_m = P.carpeta(modulos[mr]);
         for pedido en pedidos_m {
-            let ruta_p = campo_pedido(vista(pedido), 0);
-            let alias_p = campo_pedido(vista(pedido), 1);
-            let destino = try resolver(vista(ruta_p), vista(dir_m), vista(raiz));
+            let ruta_p = campo_pedido(pedido, 0);
+            let alias_p = campo_pedido(pedido, 1);
+            let destino = try resolver(ruta_p, dir_m, raiz);
             var jm = 0;
-            while jm < largo(modulos) && !igual(vista(modulos[jm]), vista(destino)) {
+            while jm < modulos.largo() && !igual(modulos[jm], destino) {
                 jm = jm + 1;
             }
-            if jm == largo(modulos) { return rechazo("un modulo que no se cargo"); }
+            if jm == modulos.largo() { return rechazo("un modulo que no se cargo"); }
             for d en arboles[jm].hijos {
-                if !igual(vista(d.clase), "fn") { continue; }
-                if !tiene(global.repetidas, vista(d.texto)) { continue; }
+                if d.clase != "fn" { continue; }
+                if !tiene(global.repetidas, d.texto) { continue; }
                 var clave = copiar(d.texto);
-                if largo(alias_p) > 0 { clave = $"{alias_p}.{d.texto}"; }
-                let suyos = declarantes(arboles, modulos, vista(d.texto));
-                let base_d = F.prefijo_unico(vista(destino), suyos);
+                if alias_p.largo() > 0 { clave = $"{alias_p}.{d.texto}"; }
+                let suyos = declarantes(arboles, modulos, d.texto);
+                let base_d = F.prefijo_unico(destino, suyos);
                 let otro = $"{base_d}__{d.texto}";
                 poner(contextos[mr].renombradas, vista(clave), otro);
-                quitar(contextos[mr].repetidas, vista(clave));
+                quitar(contextos[mr].repetidas, clave);
             }
         }
         mr = mr + 1;
@@ -2821,26 +2821,26 @@ fn main() -> usize ! {
     // modulo de `std/par`, y ahi tiene que saberse que un `Caja<str>` de
     // quien la llama posee memoria. El comprobador de Python los ve todos.
     var k_ctx = 0;
-    while k_ctx < largo(contextos) {
+    while k_ctx < contextos.largo() {
         for st en claves(global.campos) {
-            if tiene(contextos[k_ctx].campos, vista(st)) { continue; }
+            if tiene(contextos[k_ctx].campos, st) { continue; }
             let cs_g = I.lista_de(global.campos, vista(st)) sino [];
             poner(contextos[k_ctx].campos, vista(st), cs_g);
             let ns_g = I.lista_de(global.nombres, vista(st)) sino [];
             poner(contextos[k_ctx].nombres, vista(st), ns_g);
         }
         for sp en claves(global.struct_params) {
-            if tiene(contextos[k_ctx].struct_params, vista(sp)) { continue; }
+            if tiene(contextos[k_ctx].struct_params, sp) { continue; }
             let ps_g = I.lista_de(global.struct_params, vista(sp)) sino [];
             poner(contextos[k_ctx].struct_params, vista(sp), ps_g);
         }
         for en_g en claves(global.variantes) {
-            if tiene(contextos[k_ctx].variantes, vista(en_g)) { continue; }
+            if tiene(contextos[k_ctx].variantes, en_g) { continue; }
             let vs_g = I.lista_de(global.variantes, vista(en_g)) sino [];
             poner(contextos[k_ctx].variantes, vista(en_g), vs_g);
         }
         for fk en claves(global.formas) {
-            if tiene(contextos[k_ctx].formas, vista(fk)) { continue; }
+            if tiene(contextos[k_ctx].formas, fk) { continue; }
             let fs_g = I.lista_de(global.formas, vista(fk)) sino [];
             poner(contextos[k_ctx].formas, vista(fk), fs_g);
         }
@@ -2853,19 +2853,19 @@ fn main() -> usize ! {
     // El tipo de cada expresion, tal como lo dejo el comprobador: el
     // generador lo lee en vez de deducirlo.
     var k_anot = 0;
-    while k_anot < largo(contextos) && k_anot < largo(revision.anotados) {
+    while k_anot < contextos.largo() && k_anot < revision.anotados.largo() {
         contextos[k_anot].anotados = copiar(revision.anotados[k_anot]);
         k_anot = k_anot + 1;
     }
-    if largo(revision.errores) > 0 {
+    if revision.errores.largo() > 0 {
         for e en revision.errores { imprimir_error($"error: {e}\n"); }
-        let n = largo(revision.errores);
+        let n = revision.errores.largo();
         if n == 1 { imprimir_error("\n1 error. No se genero nada.\n"); }
         else { imprimir_error($"\n{n} errores. No se genero nada.\n"); }
         return 1;
     }
     // Un aviso no impide compilar, salvo que se pida.
-    let n_avisos = largo(revision.avisos);
+    let n_avisos = revision.avisos.largo();
     if n_avisos > 0 && !sin_avisos {
         for a en revision.avisos { imprimir_error($"aviso: {a}\n"); }
         if avisos_como_errores {
@@ -2879,14 +2879,14 @@ fn main() -> usize ! {
     }
     // Lo que se infirio: quien es duenio de que, quien presta a quien, y donde
     // se libera cada cosa.
-    if igual(vista(modo), "explicar") {
+    if modo == "explicar" {
         let texto_e = vista(revision.explicacion);
         var salto = 0;
-        while salto < largo(texto_e) && byte(texto_e, salto) != 10 { salto = salto + 1; }
+        while salto < texto_e.largo() && byte(texto_e, salto) != 10 { salto = salto + 1; }
         imprimir($"{fuente}{rebanar(texto_e, salto, largo(texto_e))}\n");
         return 0;
     }
-    if igual(vista(modo), "comprobar") {
+    if modo == "comprobar" {
         if n_avisos == 0 { imprimir($"{fuente}: sin errores\n"); }
         else if n_avisos == 1 { imprimir($"{fuente}: sin errores, 1 aviso\n"); }
         else { imprimir($"{fuente}: sin errores, {n_avisos} avisos\n"); }
@@ -2903,14 +2903,14 @@ fn main() -> usize ! {
         modulo: copiar(revision.cierres_mod), indice: [],
         numeracion: copiar(revision.numeracion), sacados: sacados };
     var m_c = 0;
-    while m_c < largo(arboles) {
+    while m_c < arboles.largo() {
         var k_d = 0;
-        while k_d < largo(arboles[m_c].hijos) {
-            if igual(vista(arboles[m_c].hijos[k_d].clase), "fn")
+        while k_d < arboles[m_c].hijos.largo() {
+            if arboles[m_c].hijos[k_d].clase == "fn"
             && !F.es_generica(arboles[m_c].hijos[k_d]) {
                 var dueno = copiar(arboles[m_c].hijos[k_d].texto);
-                if tiene(contextos[m_c].renombradas, vista(dueno)) {
-                    dueno = nuevo(obtener(contextos[m_c].renombradas, vista(dueno)) sino "");
+                if tiene(contextos[m_c].renombradas, dueno) {
+                    dueno = nuevo(obtener(contextos[m_c].renombradas, dueno) sino "");
                 }
                 var cuenta: usize = 0;
                 numerar_cierres(arboles[m_c].hijos[k_d], vista(dueno), cierres.numeracion,
@@ -2922,14 +2922,14 @@ fn main() -> usize ! {
     }
     let numeracion = copiar(cierres.numeracion);
     var k_cf = 0;
-    while k_cf < largo(cierres.fns) {
+    while k_cf < cierres.fns.largo() {
         let dueno_c = copiar(cierres.fns[k_cf].texto);
         var cuenta_c: usize = 0;
-        numerar_cierres(cierres.fns[k_cf], vista(dueno_c), numeracion, cuenta_c);
+        numerar_cierres(cierres.fns[k_cf], dueno_c, numeracion, cuenta_c);
         poner(cierres.indice, vista(dueno_c), k_cf);
         F.recoger_firmas(cierres.fns[k_cf], global);
         var k_cx = 0;
-        while k_cx < largo(contextos) {
+        while k_cx < contextos.largo() {
             F.recoger_firmas(cierres.fns[k_cf], contextos[k_cx]);
             k_cx = k_cx + 1;
         }
@@ -2939,7 +2939,7 @@ fn main() -> usize ! {
     // Las copias de los structs genericos: primero las que piden los campos
     // de los structs, luego las de los tipos escritos en cada funcion.
     var en_curso_st: mapa<str, usize> = [];
-    let n_concretos = largo(st_nombres);
+    let n_concretos = st_nombres.largo();
     var k_st = 0;
     while k_st < n_concretos {
         var nuevos_t: lista<str> = [];
@@ -2954,9 +2954,9 @@ fn main() -> usize ! {
         k_st = k_st + 1;
     }
     var k_fn = 0;
-    while k_fn < largo(arboles) {
+    while k_fn < arboles.largo() {
         for d en arboles[k_fn].hijos {
-            if igual(vista(d.clase), "fn") && !F.es_generica(d) {
+            if d.clase == "fn" && !F.es_generica(d) {
                 resolver_en_nodo(d, stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
                     st_nombres, st_indice, st_campos, st_tipos, global);
             }
@@ -2976,16 +2976,16 @@ fn main() -> usize ! {
     var orden_inst: lista<str> = [];
     var creados_inst: lista<str> = [];
     var k_desc = 0;
-    while k_desc < largo(arboles) {
+    while k_desc < arboles.largo() {
         for d en arboles[k_desc].hijos {
-            if !igual(vista(d.clase), "fn") || F.es_generica(d) { continue; }
+            if d.clase != "fn" || F.es_generica(d) { continue; }
             var borrador = F.cuenta_nueva();
             borrador.sacados = copiar(cierres.sacados);
             borrador.dueno = dueno_de_funcion(d, contextos[k_desc]);
             let escritas = F.generar_funcion(d, contextos[k_desc],
                 vista(modulos[k_desc]), borrador);
             // Si no se sabe escribir, lo dira la pasada de verdad.
-            if largo(escritas) == 0 { continue; }
+            if escritas.largo() == 0 { continue; }
             if !descubrir(borrador.instancias, arboles, contextos, modulos,
                 plantillas, vistas_inst, orden_inst, creados_inst, cierres, global) {
                 return 1;
@@ -2996,19 +2996,19 @@ fn main() -> usize ! {
     // Cada copia resuelve sus tipos al crearse, antes de su cuerpo. El struct
     // de una clausura tambien nace ahi, entre las copias.
     for p en creados_inst {
-        if largo(campo_pedido(vista(p), 0)) == 0 {
-            let en_c_c = campo_pedido(vista(p), 1);
-            let st_c = struct_de_cierre(vista(en_c_c));
+        if largo(campo_pedido(p, 0)) == 0 {
+            let en_c_c = campo_pedido(p, 1);
+            let st_c = struct_de_cierre(en_c_c);
             var cn: lista<str> = [];
             var ct: lista<str> = [];
-            campos_de_cierre(vista(p), cn, ct);
-            poner(st_indice, vista(st_c), largo(st_nombres));
-            anadir(st_nombres, copiar(st_c));
-            anadir(st_campos, cn);
-            anadir(st_tipos, ct);
+            campos_de_cierre(p, cn, ct);
+            poner(st_indice, vista(st_c), st_nombres.largo());
+            st_nombres.anadir(copiar(st_c));
+            st_campos.anadir(cn);
+            st_tipos.anadir(ct);
             continue;
         }
-        let copia_r = nodo_instancia(vista(p), arboles, plantillas, cierres.numeracion);
+        let copia_r = nodo_instancia(p, arboles, plantillas, cierres.numeracion);
         resolver_instancia(copia_r, stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
@@ -3028,38 +3028,38 @@ fn main() -> usize ! {
     var modulo_de: lista<usize> = [];
     var duenos_inst: lista<str> = [];
     for p en orden_inst {
-        if largo(campo_pedido(vista(p), 0)) == 0 {
-            let en_c_i = campo_pedido(vista(p), 1);
-            let k_ci = obtener(cierres.indice, vista(en_c_i)) sino 0;
-            anadir(instancias, copiar(cierres.fns[k_ci]));
-            anadir(modulo_de, cierres.modulo[k_ci]);
-            anadir(duenos_inst, copiar(cierres.fns[k_ci].texto));
+        if largo(campo_pedido(p, 0)) == 0 {
+            let en_c_i = campo_pedido(p, 1);
+            let k_ci = obtener(cierres.indice, en_c_i) sino 0;
+            instancias.anadir(copiar(cierres.fns[k_ci]));
+            modulo_de.anadir(cierres.modulo[k_ci]);
+            duenos_inst.anadir(copiar(cierres.fns[k_ci].texto));
             continue;
         }
-        anadir(instancias, nodo_instancia(vista(p), arboles, plantillas, cierres.numeracion));
-        anadir(duenos_inst, dueno_de_pedido(vista(p)));
-        let plantilla = campo_pedido(vista(p), 0);
-        anadir(modulo_de, obtener(plantillas, vista(plantilla)) sino 0);
+        instancias.anadir(nodo_instancia(p, arboles, plantillas, cierres.numeracion));
+        duenos_inst.anadir(dueno_de_pedido(p));
+        let plantilla = campo_pedido(p, 0);
+        modulo_de.anadir(obtener(plantillas, plantilla) sino 0);
     }
 
     // Las listas, con el mismo recorrido que el original: en orden de
     // declaracion, campos de struct y funciones entremezclados.
     var reg = registro();
     var im = 0;
-    while im < largo(arboles) {
+    while im < arboles.largo() {
         for d en arboles[im].hijos {
-            if igual(vista(d.clase), "struct") && !tiene_tipo_param(d) {
+            if d.clase == "struct" && !tiene_tipo_param(d) {
                 for h en d.hijos {
-                    if igual(vista(h.clase), "campo_def") {
-                        let tp = F.tipo_pelado(vista(h.texto));
-                        let t = I.sin_alias_tipo(vista(tp));
-                        if !mirar_tipo(vista(t), reg, global, con_partes) {
+                    if h.clase == "campo_def" {
+                        let tp = F.tipo_pelado(h.texto);
+                        let t = I.sin_alias_tipo(tp);
+                        if !mirar_tipo(t, reg, global, con_partes) {
                             return rechazo("mapas, bloques ni arreglos");
                         }
                     }
                 }
             }
-            if igual(vista(d.clase), "fn") && !F.es_generica(d) {
+            if d.clase == "fn" && !F.es_generica(d) {
                 if !mirar_funcion(d, contextos[im], reg, global, con_partes) {
                     return rechazo("mapas, bloques ni arreglos");
                 }
@@ -3069,17 +3069,17 @@ fn main() -> usize ! {
     }
     // Las copias de structs genericos van detras de lo declarado.
     var k_ist = n_concretos;
-    while k_ist < largo(st_nombres) {
+    while k_ist < st_nombres.largo() {
         let tipos_ist = copiar(st_tipos[k_ist]);
         for tt en tipos_ist {
-            if !mirar_tipo(vista(tt), reg, global, con_partes) {
+            if !mirar_tipo(tt, reg, global, con_partes) {
                 return rechazo("mapas, bloques ni arreglos");
             }
         }
         k_ist = k_ist + 1;
     }
     var k_mira = 0;
-    while k_mira < largo(instancias) {
+    while k_mira < instancias.largo() {
         if !mirar_funcion(instancias[k_mira], contextos[modulo_de[k_mira]], reg,
             global, con_partes) {
             return rechazo("mapas, bloques ni arreglos");
@@ -3120,35 +3120,35 @@ fn main() -> usize ! {
     var listos: mapa<str, usize> = [];
     var orden: lista<str> = [];
     for n en st_nombres {
-        visitar_struct(vista(n), st_indice, st_tipos, listos, orden);
+        visitar_struct(n, st_indice, st_tipos, listos, orden);
     }
     var cta = F.cuenta_nueva();
     cta.sacados = copiar(cierres.sacados);
 
     var partes: lista<str> = [];
-    for n en st_nombres { anadir(partes, $"typedef struct {n} {n};"); }
-    if largo(st_nombres) > 0 { anadir(partes, vacio()); }
+    for n en st_nombres { partes.anadir($"typedef struct {n} {n};"); }
+    if st_nombres.largo() > 0 { partes.anadir(vacio()); }
     // Cada enum con la etiqueta de cada forma: la 0 es la primera.
     var ie_t = 0;
-    while ie_t < largo(en_nombres) {
-        anadir(partes, $"typedef struct {en_nombres[ie_t]} {en_nombres[ie_t]};");
+    while ie_t < en_nombres.largo() {
+        partes.anadir($"typedef struct {en_nombres[ie_t]} {en_nombres[ie_t]};");
         var iv_t = 0;
-        while iv_t < largo(en_variantes[ie_t]) {
-            let etq = G.etiqueta(vista(en_nombres[ie_t]), vista(en_variantes[ie_t][iv_t]));
-            anadir(partes, $"#define {etq} {iv_t}");
+        while iv_t < en_variantes[ie_t].largo() {
+            let etq = G.etiqueta(en_nombres[ie_t], en_variantes[ie_t][iv_t]);
+            partes.anadir($"#define {etq} {iv_t}");
             iv_t = iv_t + 1;
         }
         ie_t = ie_t + 1;
     }
-    if largo(en_nombres) > 0 { anadir(partes, vacio()); }
+    if en_nombres.largo() > 0 { partes.anadir(vacio()); }
     var ordenadas: lista<str> = [];
-    for x en reg.bloques { anadir(ordenadas, copiar(x)); }
-    for x en reg.listas { anadir(ordenadas, copiar(x)); }
-    for x en reg.mapas { anadir(ordenadas, copiar(x)); }
+    for x en reg.bloques { ordenadas.anadir(copiar(x)); }
+    for x en reg.listas { ordenadas.anadir(copiar(x)); }
+    for x en reg.mapas { ordenadas.anadir(copiar(x)); }
     ordenar(ordenadas);
     var puestos: mapa<str, usize> = [];
-    for x en ordenadas { poner_typedef(vista(x), reg, puestos, partes); }
-    if largo(ordenadas) > 0 { anadir(partes, vacio()); }
+    for x en ordenadas { poner_typedef(x, reg, puestos, partes); }
+    if ordenadas.largo() > 0 { partes.anadir(vacio()); }
     // Los enums, y detras los structs en orden de dependencia. Pero cada
     // uno necesita el tamaño de lo que lleva por valor, asi que antes va lo
     // suyo: un enum que lleva un struct, u otro enum escrito mas abajo, lo
@@ -3164,101 +3164,101 @@ fn main() -> usize ! {
     }
     var alguno_posee = false;
     for n en orden {
-        if I.posee_con_formas(global, vista(n)) {
-            anadir(partes, $"static void ss_drop_{n}({n}* p);");
+        if I.posee_con_formas(global, n) {
+            partes.anadir($"static void ss_drop_{n}({n}* p);");
             alguno_posee = true;
         }
     }
     for n en en_nombres {
-        if I.posee_con_formas(global, vista(n)) {
-            anadir(partes, $"static void ss_drop_{n}({n}* p);");
+        if I.posee_con_formas(global, n) {
+            partes.anadir($"static void ss_drop_{n}({n}* p);");
             alguno_posee = true;
         }
     }
-    if alguno_posee { anadir(partes, vacio()); }
+    if alguno_posee { partes.anadir(vacio()); }
     // Los envoltorios de arreglo, de dentro hacia fuera.
     var arr_orden: lista<str> = [];
     var hondo_a = 0;
-    var quedan_a = largo(reg.arreglos);
+    var quedan_a = reg.arreglos.largo();
     while quedan_a > 0 {
         for t en reg.arreglos {
-            if cuantos_corchetes(vista(t)) == hondo_a {
-                anadir(arr_orden, copiar(t));
+            if cuantos_corchetes(t) == hondo_a {
+                arr_orden.anadir(copiar(t));
                 quedan_a = quedan_a - 1;
             }
         }
         hondo_a = hondo_a + 1;
     }
     for t en arr_orden {
-        let pa = partes_arreglo(vista(t));
-        let te = G.tipo_c(vista(pa[0]));
-        let tc = G.tipo_c(vista(t));
-        anadir(partes, $"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
+        let pa = partes_arreglo(t);
+        let te = G.tipo_c(pa[0]);
+        let tc = G.tipo_c(t);
+        partes.anadir($"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
     }
-    if largo(reg.arreglos) > 0 { anadir(partes, vacio()); }
-    for r en reg.resultados { anadir(partes, typedef_resultado(vista(r))); }
-    if largo(reg.resultados) > 0 { anadir(partes, vacio()); }
+    if reg.arreglos.largo() > 0 { partes.anadir(vacio()); }
+    for r en reg.resultados { partes.anadir(typedef_resultado(r)); }
+    if reg.resultados.largo() > 0 { partes.anadir(vacio()); }
     // Las internas que hablan con el sistema, en un orden fijo: el monotono
     // cae en el de pared, y el azar sin semilla usa el reloj. Su C vive en
     // `runtime/sistema`, el mismo que lee el original.
     let res_texto = G.tipo_resultado("str");
     var internas_orden: lista<str> = [];
-    anadir(internas_orden, nuevo("ahora_ms"));
-    anadir(internas_orden, nuevo("monotono_ms"));
-    anadir(internas_orden, nuevo("semilla"));
-    anadir(internas_orden, nuevo("leer_linea"));
-    anadir(internas_orden, nuevo("entrada_completa"));
-    anadir(internas_orden, nuevo("variable_entorno"));
+    internas_orden.anadir(nuevo("ahora_ms"));
+    internas_orden.anadir(nuevo("monotono_ms"));
+    internas_orden.anadir(nuevo("semilla"));
+    internas_orden.anadir(nuevo("leer_linea"));
+    internas_orden.anadir(nuevo("entrada_completa"));
+    internas_orden.anadir(nuevo("variable_entorno"));
     if usa_escribir_archivo { ayudante_escribir_archivo(partes); }
     for interna en internas_orden {
-        if !tiene(usa_sistema, vista(interna)) { continue; }
+        if !tiene(usa_sistema, interna) { continue; }
         let crudo = try leer_archivo($"{raiz}/runtime/sistema/{interna}.inc");
-        let hecho = try reemplazar(vista(crudo), "@RES_STR@", vista(res_texto));
+        let hecho = try reemplazar(crudo, "@RES_STR@", res_texto);
         var desde = 0;
         var k_l = 0;
         // Sin el salto final: cada linea va a su sitio, y la blanca de detras
         // la pone el separador.
-        let cuerpo_c = rebanar(vista(hecho), 0, largo(vista(hecho)) - 1);
-        while k_l <= largo(cuerpo_c) {
-            if k_l == largo(cuerpo_c) || byte(cuerpo_c, k_l) == 10 {
-                anadir(partes, nuevo(rebanar(cuerpo_c, desde, k_l)));
+        let cuerpo_c = rebanar(hecho, 0, hecho.largo() - 1);
+        while k_l <= cuerpo_c.largo() {
+            if k_l == cuerpo_c.largo() || byte(cuerpo_c, k_l) == 10 {
+                partes.anadir(nuevo(rebanar(cuerpo_c, desde, k_l)));
                 desde = k_l + 1;
             }
             k_l = k_l + 1;
         }
-        anadir(partes, vacio());
+        partes.anadir(vacio());
     }
     if usa_leer_archivo { ayudante_leer_archivo(partes); }
     // Los bloques: reservar y cambiar de tamaño, a ceros, y al encoger se
     // suelta lo que se queda fuera.
-    for x en reg.bloques { funcion_bloque(vista(x), global, cta, partes); }
-    for x en reg.listas { funcion_push(vista(x), partes); }
-    for x en reg.listas { funcion_ordenar(vista(x), partes); }
+    for x en reg.bloques { funcion_bloque(x, global, cta, partes); }
+    for x en reg.listas { funcion_push(x, partes); }
+    for x en reg.listas { funcion_ordenar(x, partes); }
     // Los mapas gastan cuenta si sus valores poseen: van antes que los
     // liberadores de los structs, como en el original.
-    for x en reg.mapas { funcion_mapa(vista(x), global, con_partes, cta, partes); }
+    for x en reg.mapas { funcion_mapa(x, global, con_partes, cta, partes); }
 
     // Los liberadores van antes que las funciones tambien en la cuenta: un
     // campo que sea una lista gasta indice de bucle.
     for n en orden {
-        if !I.posee_con_formas(global, vista(n)) { continue; }
-        let k = obtener(st_indice, vista(n)) sino 0;
+        if !I.posee_con_formas(global, n) { continue; }
+        let k = obtener(st_indice, n) sino 0;
         var b = G.cuerpo();
         b.temporal = cta.temporal;
         b.bucle = cta.bucle;
         b.etiquetas = cta.etiquetas;
         var j = 0;
-        while j < largo(st_campos[k]) {
+        while j < st_campos[k].largo() {
             let donde = $"p->{st_campos[k][j]}";
-            G.liberacion(b, global, vista(donde), vista(st_tipos[k][j]));
+            G.liberacion(b, global, donde, st_tipos[k][j]);
             j = j + 1;
         }
-        anadir(partes, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-        anadir(partes, $"static void ss_drop_{n}({n}* p)");
-        anadir(partes, nuevo("{"));
-        for l en b.lineas { anadir(partes, copiar(l)); }
-        anadir(partes, nuevo("}"));
-        anadir(partes, vacio());
+        partes.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+        partes.anadir($"static void ss_drop_{n}({n}* p)");
+        partes.anadir(nuevo("{"));
+        for l en b.lineas { partes.anadir(copiar(l)); }
+        partes.anadir(nuevo("}"));
+        partes.anadir(vacio());
         cta.temporal = b.temporal;
         cta.bucle = b.bucle;
         cta.etiquetas = b.etiquetas;
@@ -3267,43 +3267,43 @@ fn main() -> usize ! {
     // Los liberadores de los enums: se mira la etiqueta y se suelta lo que
     // lleve esa forma. Las formas que no llevan nada con dueno no salen.
     var ie_d = 0;
-    while ie_d < largo(en_nombres) {
+    while ie_d < en_nombres.largo() {
         let en_n = copiar(en_nombres[ie_d]);
-        if I.posee_con_formas(global, vista(en_n)) {
-            anadir(partes, nuevo("SS_LANG_QUIZA_SIN_USAR"));
-            anadir(partes, $"static void ss_drop_{en_n}({en_n}* p)");
-            anadir(partes, nuevo("{"));
-            anadir(partes, nuevo("    switch (p->etiqueta)"));
-            anadir(partes, nuevo("    {"));
+        if I.posee_con_formas(global, en_n) {
+            partes.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
+            partes.anadir($"static void ss_drop_{en_n}({en_n}* p)");
+            partes.anadir(nuevo("{"));
+            partes.anadir(nuevo("    switch (p->etiqueta)"));
+            partes.anadir(nuevo("    {"));
             var iv = 0;
-            while iv < largo(en_variantes[ie_d]) {
-                let tipos_v = partir_tab(vista(en_lleva[ie_d][iv]));
+            while iv < en_variantes[ie_d].largo() {
+                let tipos_v = partir_tab(en_lleva[ie_d][iv]);
                 var alguna = false;
                 for tt en tipos_v {
-                    if I.posee_con_formas(global, vista(tt)) { alguna = true; }
+                    if I.posee_con_formas(global, tt) { alguna = true; }
                 }
                 if alguna {
-                    let etq = G.etiqueta(vista(en_n), vista(en_variantes[ie_d][iv]));
-                    anadir(partes, $"    case {etq}:");
-                    anadir(partes, nuevo("    {"));
+                    let etq = G.etiqueta(en_n, en_variantes[ie_d][iv]);
+                    partes.anadir($"    case {etq}:");
+                    partes.anadir(nuevo("    {"));
                     var q = 0;
-                    while q < largo(tipos_v) {
-                        if I.posee_con_formas(global, vista(tipos_v[q])) {
+                    while q < tipos_v.largo() {
+                        if I.posee_con_formas(global, tipos_v[q]) {
                             let donde = $"p->dato.v_{en_variantes[ie_d][iv]}._{q}";
                             lineas_liberacion(global, vista(donde), vista(tipos_v[q]), 2,
                                 cta, partes);
                         }
                         q = q + 1;
                     }
-                    anadir(partes, nuevo("        break;"));
-                    anadir(partes, nuevo("    }"));
+                    partes.anadir(nuevo("        break;"));
+                    partes.anadir(nuevo("    }"));
                 }
                 iv = iv + 1;
             }
-            anadir(partes, nuevo("    default: break;"));
-            anadir(partes, nuevo("    }"));
-            anadir(partes, nuevo("}"));
-            anadir(partes, vacio());
+            partes.anadir(nuevo("    default: break;"));
+            partes.anadir(nuevo("    }"));
+            partes.anadir(nuevo("}"));
+            partes.anadir(vacio());
         }
         ie_d = ie_d + 1;
     }
@@ -3315,12 +3315,12 @@ fn main() -> usize ! {
     var decimales: mapa<str, usize> = [];
     var conversiones: mapa<str, usize> = [];
     var i = 0;
-    while i < largo(arboles) {
+    while i < arboles.largo() {
         // El original compara archivo y linea a la vez para no repetir un
         // `#line`: al cambiar de modulo nunca coincide.
         cta.ultima_linea = 0;
         for d en arboles[i].hijos {
-            if !igual(vista(d.clase), "fn") || F.es_generica(d) { continue; }
+            if d.clase != "fn" || F.es_generica(d) { continue; }
             cta.dueno = dueno_de_funcion(d, contextos[i]);
             if !emitir_funcion(d, contextos[i], vista(modulos[i]), cta, protos,
                 cuerpos, anchos, decimales, conversiones) {
@@ -3333,35 +3333,35 @@ fn main() -> usize ! {
     // hizo el comprobador; las que no hizo, detras, como se descubrieron.
     var puesto_de: mapa<str, usize> = [];
     var k_orden = 0;
-    while k_orden < largo(revision.orden_copias) {
-        if !tiene(puesto_de, vista(revision.orden_copias[k_orden])) {
+    while k_orden < revision.orden_copias.largo() {
+        if !tiene(puesto_de, revision.orden_copias[k_orden]) {
             poner(puesto_de, vista(revision.orden_copias[k_orden]), k_orden);
         }
         k_orden = k_orden + 1;
     }
     var puestos_copias: lista<usize> = [];
     for p en orden_inst {
-        let en_c_o = campo_pedido(vista(p), 1);
+        let en_c_o = campo_pedido(p, 1);
         anadir(puestos_copias,
-            obtener(puesto_de, vista(en_c_o)) sino largo(revision.orden_copias));
+            obtener(puesto_de, en_c_o) sino revision.orden_copias.largo());
     }
     let orden_copias = orden_por_puesto(puestos_copias);
     var instancias_o: lista<P.Nodo> = [];
     var modulo_de_o: lista<usize> = [];
     var duenos_o: lista<str> = [];
     for k_o en orden_copias {
-        anadir(instancias_o, copiar(instancias[k_o]));
-        anadir(modulo_de_o, modulo_de[k_o]);
-        anadir(duenos_o, copiar(duenos_inst[k_o]));
+        instancias_o.anadir(copiar(instancias[k_o]));
+        modulo_de_o.anadir(modulo_de[k_o]);
+        duenos_o.anadir(copiar(duenos_inst[k_o]));
     }
     instancias = instancias_o;
     modulo_de = modulo_de_o;
     duenos_inst = duenos_o;
-    var ultima_ruta = copiar(modulos[largo(modulos) - 1]);
+    var ultima_ruta = copiar(modulos[modulos.largo() - 1]);
     var k_emite = 0;
-    while k_emite < largo(instancias) {
+    while k_emite < instancias.largo() {
         let de = modulo_de[k_emite];
-        if !igual(vista(modulos[de]), vista(ultima_ruta)) { cta.ultima_linea = 0; }
+        if !igual(modulos[de], ultima_ruta) { cta.ultima_linea = 0; }
         ultima_ruta = copiar(modulos[de]);
         cta.dueno = copiar(duenos_inst[k_emite]);
         if !emitir_funcion(instancias[k_emite], contextos[de], vista(modulos[de]),
@@ -3376,15 +3376,15 @@ fn main() -> usize ! {
     var usadas: mapa<str, usize> = [];
     // Lo que se busca en los cuerpos, sin sus literales.
     var limpios: lista<str> = [];
-    for l en cuerpos { anadir(limpios, sin_cadenas(vista(l))); }
-    for l en limpios { apuntar_nombres(vista(l), "ss_lista_", usadas); }
+    for l en cuerpos { limpios.anadir(sin_cadenas(l)); }
+    for l en limpios { apuntar_nombres(l, "ss_lista_", usadas); }
     var registradas: mapa<str, usize> = [];
     for x en reg.listas {
-        let nombre_c = G.tipo_c(vista(x));
+        let nombre_c = G.tipo_c(x);
         poner(registradas, vista(nombre_c), 1);
     }
     for u en claves(usadas) {
-        if !tiene(registradas, vista(u)) {
+        if !tiene(registradas, u) {
             imprimir_error($"tcodec: `{u}` se usa y el recorrido no la registro\n");
             return 1;
         }
@@ -3392,13 +3392,13 @@ fn main() -> usize ! {
 
     // Y con los bloques.
     var usados_b: mapa<str, usize> = [];
-    for l en limpios { apuntar_nombres(vista(l), "ss_bloque_", usados_b); }
+    for l en limpios { apuntar_nombres(l, "ss_bloque_", usados_b); }
     for x en reg.bloques {
-        let nombre_c = G.tipo_c(vista(x));
+        let nombre_c = G.tipo_c(x);
         poner(registradas, vista(nombre_c), 1);
     }
     for u en claves(usados_b) {
-        if !tiene(registradas, vista(u)) {
+        if !tiene(registradas, u) {
             imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
             return 1;
         }
@@ -3409,38 +3409,38 @@ fn main() -> usize ! {
     // detras de los demas, de dentro hacia fuera, como en el original.
     var tardios_sin: lista<str> = [];
     for t en cta.arreglos {
-        if !tiene(reg.arr_vistos, vista(t)) && !esta_en(tardios_sin, vista(t)) {
-            anadir(tardios_sin, copiar(t));
+        if !tiene(reg.arr_vistos, t) && !esta_en(tardios_sin, t) {
+            tardios_sin.anadir(copiar(t));
         }
     }
     var envoltorios: lista<str> = [];
     var hondo_t = 0;
-    var quedan_t = largo(tardios_sin);
+    var quedan_t = tardios_sin.largo();
     while quedan_t > 0 {
         for t en tardios_sin {
-            if cuantos_corchetes(vista(t)) == hondo_t {
-                let pa = partes_arreglo(vista(t));
-                let te = G.tipo_c(vista(pa[0]));
-                let tc = G.tipo_c(vista(t));
-                anadir(envoltorios, $"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
+            if cuantos_corchetes(t) == hondo_t {
+                let pa = partes_arreglo(t);
+                let te = G.tipo_c(pa[0]);
+                let tc = G.tipo_c(t);
+                envoltorios.anadir($"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
                 quedan_t = quedan_t - 1;
             }
         }
         hondo_t = hondo_t + 1;
     }
-    if largo(envoltorios) > 0 { anadir(envoltorios, vacio()); }
+    if envoltorios.largo() > 0 { envoltorios.anadir(vacio()); }
     var usados_a: mapa<str, usize> = [];
-    for l en limpios { apuntar_nombres(vista(l), "ss_arr_", usados_a); }
+    for l en limpios { apuntar_nombres(l, "ss_arr_", usados_a); }
     for x en reg.arreglos {
-        let nombre_c = G.tipo_c(vista(x));
+        let nombre_c = G.tipo_c(x);
         poner(registradas, vista(nombre_c), 1);
     }
     for x en tardios_sin {
-        let nombre_c = G.tipo_c(vista(x));
+        let nombre_c = G.tipo_c(x);
         poner(registradas, vista(nombre_c), 1);
     }
     for u en claves(usados_a) {
-        if !tiene(registradas, vista(u)) {
+        if !tiene(registradas, u) {
             imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
             return 1;
         }
@@ -3450,26 +3450,26 @@ fn main() -> usize ! {
     var usados_m: mapa<str, usize> = [];
     var usados_r: mapa<str, usize> = [];
     for l en limpios {
-        apuntar_nombres(vista(l), "ss_mapa_", usados_m);
-        apuntar_nombres(vista(l), "ss_res_", usados_r);
+        apuntar_nombres(l, "ss_mapa_", usados_m);
+        apuntar_nombres(l, "ss_res_", usados_r);
     }
     for x en reg.mapas {
-        let nombre_c = G.tipo_c(vista(x));
+        let nombre_c = G.tipo_c(x);
         poner(registradas, vista(nombre_c), 1);
     }
     for x en reg.resultados {
-        let nombre_c = G.tipo_resultado(vista(x));
+        let nombre_c = G.tipo_resultado(x);
         poner(registradas, vista(nombre_c), 1);
     }
     for u en claves(usados_m) {
-        let tipo = tipo_de_nombre_mapa(vista(u));
-        if !tiene(registradas, vista(tipo)) {
+        let tipo = tipo_de_nombre_mapa(u);
+        if !tiene(registradas, tipo) {
             imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
             return 1;
         }
     }
     for u en claves(usados_r) {
-        if !tiene(registradas, vista(u)) {
+        if !tiene(registradas, u) {
             imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
             return 1;
         }
@@ -3479,9 +3479,9 @@ fn main() -> usize ! {
     for g en claves(plantillas) {
         var usadas_g: mapa<str, usize> = [];
         let prefijo = $"{g}__";
-        for l en limpios { apuntar_nombres(vista(l), vista(prefijo), usadas_g); }
+        for l en limpios { apuntar_nombres(l, prefijo, usadas_g); }
         for u en claves(usadas_g) {
-            if !tiene(vistas_inst, vista(u)) {
+            if !tiene(vistas_inst, u) {
                 imprimir_error($"tcodec: la copia `{u}` se usa y no se escribio\n");
                 return 1;
             }
@@ -3493,16 +3493,16 @@ fn main() -> usize ! {
     var apuntados: lista<str> = [];
     var vistos_c: mapa<str, usize> = [];
     for t en cta.copias {
-        let tr = I.nombre_resuelto(vista(t));
-        necesita_copiador(vista(tr), global, st_indice, st_tipos, vistos_c, apuntados);
+        let tr = I.nombre_resuelto(t);
+        necesita_copiador(tr, global, st_indice, st_tipos, vistos_c, apuntados);
     }
     var copiadores: lista<str> = [];
     var hondo = 0;
-    var quedan = largo(apuntados);
+    var quedan = apuntados.largo();
     while quedan > 0 {
         for t en apuntados {
-            if hondura_tipo(vista(t)) == hondo {
-                anadir(copiadores, copiar(t));
+            if hondura_tipo(t) == hondo {
+                copiadores.anadir(copiar(t));
                 quedan = quedan - 1;
             }
         }
@@ -3511,13 +3511,13 @@ fn main() -> usize ! {
     var bloque_copias: lista<str> = [];
     var nombres_copia: mapa<str, usize> = [];
     for t en copiadores {
-        let tc = G.tipo_c(vista(t));
-        let m = G.mangle(vista(t));
-        anadir(bloque_copias, $"static {tc} ss_copia_{m}(const {tc}* p);");
+        let tc = G.tipo_c(t);
+        let m = G.mangle(t);
+        bloque_copias.anadir($"static {tc} ss_copia_{m}(const {tc}* p);");
         let nc = $"ss_copia_{m}";
         poner(nombres_copia, vista(nc), 1);
     }
-    anadir(bloque_copias, vacio());
+    bloque_copias.anadir(vacio());
     for t en copiadores {
         if !cuerpo_copiador(vista(t), global, st_indice, st_campos, st_tipos,
             en_indice, en_variantes, en_lleva, bloque_copias) {
@@ -3525,9 +3525,9 @@ fn main() -> usize ! {
         }
     }
     var usados_c: mapa<str, usize> = [];
-    for l en limpios { apuntar_nombres(vista(l), "ss_copia_", usados_c); }
+    for l en limpios { apuntar_nombres(l, "ss_copia_", usados_c); }
     for u en claves(usados_c) {
-        if !tiene(nombres_copia, vista(u)) {
+        if !tiene(nombres_copia, u) {
             imprimir_error($"tcodec: `{u}` se usa y no se apunto\n");
             return 1;
         }
@@ -3537,33 +3537,33 @@ fn main() -> usize ! {
     var arit: lista<str> = [];
     var ws = claves(anchos);
     ordenar(ws);
-    for w en ws { anadir(arit, fila_aritmetica(vista(w))); }
+    for w en ws { arit.anadir(fila_aritmetica(w)); }
     var fs = claves(decimales);
     ordenar(fs);
     for f en fs {
-        let tc = G.tipo_c(vista(f));
-        anadir(arit, $"SS_LANG_ARIT_F({f}, {tc})");
+        let tc = G.tipo_c(f);
+        arit.anadir($"SS_LANG_ARIT_F({f}, {tc})");
     }
     var cs: lista<str> = [];
     for cv en claves(conversiones) {
-        let corte = buscar_desde(vista(cv), "_de_", 0);
-        if corte < largo(vista(cv)) {
-            let destino = rebanar(vista(cv), 0, corte);
-            let origen = rebanar(vista(cv), corte + 4, largo(vista(cv)));
-            anadir(cs, $"{destino}\t{origen}");
+        let corte = buscar_desde(cv, "_de_", 0);
+        if corte < cv.largo() {
+            let destino = rebanar(cv, 0, corte);
+            let origen = rebanar(cv, corte + 4, cv.largo());
+            cs.anadir($"{destino}\t{origen}");
         }
     }
     ordenar(cs);
     for par en cs {
-        let corte = buscar_desde(vista(par), "\t", 0);
-        let destino = rebanar(vista(par), 0, corte);
-        let origen = rebanar(vista(par), corte + 1, largo(vista(par)));
+        let corte = buscar_desde(par, "\t", 0);
+        let destino = rebanar(par, 0, corte);
+        let origen = rebanar(par, corte + 1, par.largo());
         let td = G.tipo_c(destino);
         let to = G.tipo_c(origen);
         var macro = nuevo("SS_LANG_CONV");
         var extra = vacio();
         if empieza_con(origen, "f") {
-            if igual(destino, "usize") || empieza_con(destino, "u") {
+            if destino == "usize" || empieza_con(destino, "u") {
                 macro = nuevo("SS_LANG_CONV_F_U");
             } else {
                 if empieza_con(destino, "i") {
@@ -3571,27 +3571,27 @@ fn main() -> usize ! {
                 }
             }
         } else {
-            if igual(destino, "f32") || igual(destino, "f64") {
-                if igual(origen, "usize") || empieza_con(origen, "u") {
+            if destino == "f32" || destino == "f64" {
+                if origen == "usize" || empieza_con(origen, "u") {
                     macro = nuevo("SS_LANG_CONV_U_F");
                 } else {
                     if empieza_con(origen, "i") {
                         macro = nuevo("SS_LANG_CONV_I_F");
                     }
                 }
-                if igual(destino, "f32") {
+                if destino == "f32" {
                     extra = nuevo("FLT_MANT_DIG, ");
                 } else {
                     extra = nuevo("DBL_MANT_DIG, ");
                 }
             } else {
-                let origen_entero = igual(origen, "usize")
+                let origen_entero = origen == "usize"
                 || empieza_con(origen, "u") || empieza_con(origen, "i");
-                let destino_entero = igual(destino, "usize")
+                let destino_entero = destino == "usize"
                 || empieza_con(destino, "u") || empieza_con(destino, "i");
                 if origen_entero && destino_entero {
-                    let ou = igual(origen, "usize") || empieza_con(origen, "u");
-                    let du = igual(destino, "usize") || empieza_con(destino, "u");
+                    let ou = origen == "usize" || empieza_con(origen, "u");
+                    let du = destino == "usize" || empieza_con(destino, "u");
                     var os = nuevo("I");
                     if ou { os = nuevo("U"); }
                     var ds = nuevo("I");
@@ -3605,25 +3605,25 @@ fn main() -> usize ! {
                 }
             }
         }
-        if igual(origen, "f64") && igual(destino, "f32") {
+        if origen == "f64" && destino == "f32" {
             macro = nuevo("SS_LANG_CONV_F_F");
             extra = nuevo("FLT_MAX, ");
         }
-        anadir(arit, $"{macro}({destino}, {td}, {extra}{origen}, {to})");
+        arit.anadir($"{macro}({destino}, {td}, {extra}{origen}, {to})");
     }
-    if largo(arit) > 0 { anadir(arit, vacio()); }
+    if arit.largo() > 0 { arit.anadir(vacio()); }
 
     // Los tipos funcion que nombra el C, cada uno con su typedef, en el orden
     // en que aparecen. Van justo antes de la aritmetica, como en el original.
     var candidatos: lista<str> = [];
     for fk en claves(global.retornos) {
-        let firma = I.firma_de_funcion(global, vista(fk));
-        apuntar_tipo_funcion(vista(firma), candidatos);
+        let firma = I.firma_de_funcion(global, fk);
+        apuntar_tipo_funcion(firma, candidatos);
     }
     var k_tf = 0;
-    while k_tf < largo(arboles) {
+    while k_tf < arboles.largo() {
         for d en arboles[k_tf].hijos {
-            if igual(vista(d.clase), "fn") && !F.es_generica(d) {
+            if d.clase == "fn" && !F.es_generica(d) {
                 tipos_funcion_de(d, candidatos);
             }
         }
@@ -3631,36 +3631,36 @@ fn main() -> usize ! {
     }
     for d en instancias { tipos_funcion_de(d, candidatos); }
     var nombres_fn: lista<str> = [];
-    for t en candidatos { anadir(nombres_fn, G.tipo_c(vista(t))); }
+    for t en candidatos { nombres_fn.anadir(G.tipo_c(t)); }
     var tipos_fn: lista<str> = [];
     var puestos_fn: mapa<str, usize> = [];
     var mirar_fn: lista<str> = [];
-    for l en protos { anadir(mirar_fn, sin_cadenas(vista(l))); }
-    for l en limpios { anadir(mirar_fn, copiar(l)); }
+    for l en protos { mirar_fn.anadir(sin_cadenas(l)); }
+    for l en limpios { mirar_fn.anadir(copiar(l)); }
     for l en mirar_fn {
-        if !contiene(vista(l), "ss_fn_") { continue; }
+        if !contiene(l, "ss_fn_") { continue; }
         var k_c = 0;
-        while k_c < largo(candidatos) {
+        while k_c < candidatos.largo() {
             let nc = vista(nombres_fn[k_c]);
-            if !tiene(puestos_fn, nc) && contiene_nombre(vista(l), nc) {
+            if !tiene(puestos_fn, nc) && contiene_nombre(l, nc) {
                 poner(puestos_fn, nc, 1);
-                let partes_f = T.partes_de_funcion(vista(candidatos[k_c]));
+                let partes_f = T.partes_de_funcion(candidatos[k_c]);
                 var firma_c = vacio();
                 var q = 0;
-                while q + 1 < largo(partes_f) {
-                    if q > 0 { empujar(firma_c, ", "); }
-                    let pc = G.tipo_c(vista(partes_f[q]));
-                    empujar(firma_c, vista(pc));
+                while q + 1 < partes_f.largo() {
+                    if q > 0 { firma_c.empujar(", "); }
+                    let pc = G.tipo_c(partes_f[q]);
+                    firma_c.empujar(pc);
                     q = q + 1;
                 }
-                if largo(firma_c) == 0 { firma_c = nuevo("void"); }
-                let rc = G.tipo_c(vista(partes_f[largo(partes_f) - 1]));
-                anadir(tipos_fn, $"typedef {rc} (*{nc})({firma_c});");
+                if firma_c.largo() == 0 { firma_c = nuevo("void"); }
+                let rc = G.tipo_c(partes_f[partes_f.largo() - 1]);
+                tipos_fn.anadir($"typedef {rc} (*{nc})({firma_c});");
             }
             k_c = k_c + 1;
         }
     }
-    if largo(tipos_fn) > 0 { anadir(tipos_fn, vacio()); }
+    if tipos_fn.largo() > 0 { tipos_fn.anadir(vacio()); }
 
     let cabecera = try leer_archivo($"{raiz}/runtime/cabecera.inc");
 
@@ -3669,55 +3669,55 @@ fn main() -> usize ! {
     // blanco va siempre), los prototipos, y cada funcion con su linea en
     // blanco detras.
     var todas: lista<str> = [];
-    anadir(todas, cabecera);
+    todas.anadir(cabecera);
     // Las cabeceras que piden los `externo`, cada una una vez. Un `.c` no se
     // incluye: se compila aparte y se enlaza.
     var incluidas: lista<str> = [];
     for h en ext_cabeceras {
-        if termina_con(vista(h), ".c") || esta_en(incluidas, vista(h)) { continue; }
-        anadir(incluidas, copiar(h));
+        if termina_con(h, ".c") || esta_en(incluidas, h) { continue; }
+        incluidas.anadir(copiar(h));
     }
-    if largo(incluidas) > 0 {
-        anadir(todas, nuevo("/* de los bloques `externo` */"));
+    if incluidas.largo() > 0 {
+        todas.anadir(nuevo("/* de los bloques `externo` */"));
         for h en incluidas {
-            if contiene(vista(h), "/") || empieza_con(vista(h), ".") {
-                anadir(todas, $"#include \"{h}\"");
+            if contiene(h, "/") || empieza_con(h, ".") {
+                todas.anadir($"#include \"{h}\"");
             } else {
-                anadir(todas, $"#include <{h}>");
+                todas.anadir($"#include <{h}>");
             }
         }
-        anadir(todas, vacio());
+        todas.anadir(vacio());
     }
-    if largo(ext_protos) > 0 {
+    if ext_protos.largo() > 0 {
         let cstr = try leer_archivo($"{raiz}/runtime/cstr.inc");
-        anadir_lineas(vista(cstr), todas);
-        anadir(todas, vacio());
+        anadir_lineas(cstr, todas);
+        todas.anadir(vacio());
     }
-    for x en partes { anadir(todas, copiar(x)); }
-    for x en envoltorios { anadir(todas, copiar(x)); }
-    for x en tipos_fn { anadir(todas, copiar(x)); }
-    for a en arit { anadir(todas, copiar(a)); }
-    for x en bloque_copias { anadir(todas, copiar(x)); }
-    for p en protos { anadir(todas, copiar(p)); }
+    for x en partes { todas.anadir(copiar(x)); }
+    for x en envoltorios { todas.anadir(copiar(x)); }
+    for x en tipos_fn { todas.anadir(copiar(x)); }
+    for a en arit { todas.anadir(copiar(a)); }
+    for x en bloque_copias { todas.anadir(copiar(x)); }
+    for p en protos { todas.anadir(copiar(p)); }
     // Una externa con cabecera ya trae su firma; la de un `.c` la pone Tcode.
     var k_ext = 0;
-    while k_ext < largo(ext_protos) {
-        if termina_con(vista(ext_cabeceras[k_ext]), ".c") {
-            anadir(todas, $"{ext_protos[k_ext]};");
+    while k_ext < ext_protos.largo() {
+        if termina_con(ext_cabeceras[k_ext], ".c") {
+            todas.anadir($"{ext_protos[k_ext]};");
         }
         k_ext = k_ext + 1;
     }
-    anadir(todas, vacio());
-    for l en cuerpos { anadir(todas, copiar(l)); }
+    todas.anadir(vacio());
+    for l en cuerpos { todas.anadir(copiar(l)); }
 
     var todo = vacio();
     var primero = true;
     for x en todas {
-        if !primero { empujar(todo, "\n"); }
+        if !primero { todo.empujar("\n"); }
         primero = false;
-        empujar(todo, vista(x));
+        todo.empujar(x);
     }
-    if igual(vista(modo), "mostrar") {
+    if modo == "mostrar" {
         imprimir(todo);
         return 0;
     }

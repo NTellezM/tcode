@@ -59,7 +59,7 @@ fn vigilar(nombre: view, tipo: view, prestado: bool,
 
 // El destino de una variable, una vez recorrida su funcion.
 fn destino_de(c: &I.Contexto, v: &Vigilada) -> str {
-    if igual(vista(v.tipo), "view") { return nuevo("presta"); }
+    if v.tipo == "view" { return nuevo("presta"); }
     // `prestado` conserva el origen, no se deduce solo del tipo. Por ejemplo,
     // un patron de `match` puede exponer un `&lista<T>` sin que el informe lo
     // cuente como una variable recibida en prestamo.
@@ -67,12 +67,12 @@ fn destino_de(c: &I.Contexto, v: &Vigilada) -> str {
     if !tiene_duenio(c, vista(v.tipo)) { return nuevo("nada"); }
     if v.entregada_en > 0 {
         var s = nuevo("entrega:");
-        empujar(s, texto(v.entregada_en));
+        s.empujar(texto(v.entregada_en));
         return s;
     }
     if v.movida_en > 0 {
         var s = nuevo("mueve:");
-        empujar(s, texto(v.movida_en));
+        s.empujar(texto(v.movida_en));
         return s;
     }
     return nuevo("libera");
@@ -92,9 +92,9 @@ fn tiene_duenio(c: &I.Contexto, t: view) -> bool {
 // El nombre de la variable si la expresion es exactamente una variable.
 // Mover es entregar la variable entera: `f(x)` la mueve, `f(x.campo)` no.
 fn variable_suelta(n: &P.Nodo) -> str {
-    if igual(vista(n.clase), "variable") { return nuevo(vista(n.texto)); }
-    if igual(vista(n.clase), "expresion") {
-        if largo(n.hijos) == 1 { return variable_suelta(n.hijos[0]); }
+    if n.clase == "variable" { return nuevo(n.texto); }
+    if n.clase == "expresion" {
+        if n.hijos.largo() == 1 { return variable_suelta(n.hijos[0]); }
     }
     return vacio();
 }
@@ -102,18 +102,18 @@ fn variable_suelta(n: &P.Nodo) -> str {
 // El tipo de una variable segun lo que se esta vigilando. El ambito del
 // comprobador ya se cerro cuando llega este recorrido.
 fn tipo_vigilado(vs: &lista<Vigilada>, nombre: view, linea: usize) -> str {
-    let i = cual(vs, nombre, linea) sino largo(vs);
-    if i >= largo(vs) { return vacio(); }
+    let i = cual(vs, nombre, linea) sino vs.largo();
+    if i >= vs.largo() { return vacio(); }
     return copiar(vs[i].tipo);
 }
 
 // Con dos variables del mismo nombre en bloques distintos, la que manda es
 // la ultima declarada antes de esta linea: es la que tapa a la otra.
 fn cual(vs: &lista<Vigilada>, nombre: view, linea: usize) -> usize ! {
-    var i = largo(vs);
+    var i = vs.largo();
     while i > 0 {
         i = i - 1;
-        if igual(vista(vs[i].nombre), nombre) {
+        if igual(vs[i].nombre, nombre) {
             if vs[i].declarada_en <= linea { return i; }
         }
     }
@@ -121,18 +121,18 @@ fn cual(vs: &lista<Vigilada>, nombre: view, linea: usize) -> usize ! {
 }
 
 fn marcar_movida(vs: mut lista<Vigilada>, nombre: view, linea: usize) {
-    if largo(nombre) == 0 { return; }
-    let i = cual(vs, nombre, linea) sino largo(vs);
-    if i >= largo(vs) { return; }
+    if nombre.largo() == 0 { return; }
+    let i = cual(vs, nombre, linea) sino vs.largo();
+    if i >= vs.largo() { return; }
     if vs[i].movida_en == 0 && vs[i].entregada_en == 0 {
         vs[i].movida_en = linea;
     }
 }
 
 fn marcar_entregada(vs: mut lista<Vigilada>, nombre: view, linea: usize) {
-    if largo(nombre) == 0 { return; }
-    let i = cual(vs, nombre, linea) sino largo(vs);
-    if i >= largo(vs) { return; }
+    if nombre.largo() == 0 { return; }
+    let i = cual(vs, nombre, linea) sino vs.largo();
+    if i >= vs.largo() { return; }
     vs[i].entregada_en = linea;
 }
 
@@ -141,11 +141,11 @@ fn fotografiar(vs: &lista<Vigilada>, antes_de: usize) -> Foto {
     var movidas: lista<usize> = [];
     var entregadas: lista<usize> = [];
     var i = 0;
-    while i < largo(vs) {
+    while i < vs.largo() {
         if vs[i].declarada_en < antes_de {
-            anadir(indices, i);
-            anadir(movidas, vs[i].movida_en);
-            anadir(entregadas, vs[i].entregada_en);
+            indices.anadir(i);
+            movidas.anadir(vs[i].movida_en);
+            entregadas.anadir(vs[i].entregada_en);
         }
         i = i + 1;
     }
@@ -155,7 +155,7 @@ fn fotografiar(vs: &lista<Vigilada>, antes_de: usize) -> Foto {
 
 fn restaurar(vs: mut lista<Vigilada>, f: &Foto) {
     var i = 0;
-    while i < largo(f.indices) {
+    while i < f.indices.largo() {
         let k = f.indices[i];
         vs[k].movida_en = f.movidas[i];
         vs[k].entregada_en = f.entregadas[i];
@@ -167,18 +167,18 @@ fn restaurar(vs: mut lista<Vigilada>, f: &Foto) {
 // codigo posterior. Es la misma definicion directa que usa el comprobador de
 // Python al juntar las dos ramas de un `if`.
 fn termina(n: &P.Nodo) -> bool {
-    if !igual(vista(n.clase), "bloque") || largo(n.hijos) == 0 {
+    if n.clase != "bloque" || n.hijos.largo() == 0 {
         return false;
     }
-    let clase = vista(n.hijos[largo(n.hijos) - 1].clase);
-    return igual(clase, "retorno") || igual(clase, "falla")
-    || igual(clase, "romper") || igual(clase, "continuar");
+    let clase = vista(n.hijos[n.hijos.largo() - 1].clase);
+    return clase == "retorno" || clase == "falla"
+    || clase == "romper" || clase == "continuar";
 }
 
 fn unir_ramas(vs: mut lista<Vigilada>, a: &Foto, b: &Foto,
     sale_a: bool, sale_b: bool) {
     var i = 0;
-    while i < largo(a.indices) {
+    while i < a.indices.largo() {
         let k = a.indices[i];
         if sale_a && !sale_b {
             vs[k].movida_en = b.movidas[i];
@@ -207,13 +207,13 @@ fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
         // `P.estado_de` es `estado_de` del modulo `P`: el alias es de quien
         // llama, y la firma puede estar apuntada sin el.
         let corto = I.sin_modulo(fn_);
-        if !igual(vista(corto), fn_) && tiene(c.params_marcados, vista(corto)) {
-            return se_lo_queda(c, vista(corto), i);
+        if !igual(corto, fn_) && tiene(c.params_marcados, corto) {
+            return se_lo_queda(c, corto, i);
         }
         return false;
     }
     let marcados = I.lista_de(c.params_marcados, fn_) sino [];
-    if i >= largo(marcados) { return false; }
+    if i >= marcados.largo() { return false; }
     let m = vista(marcados[i]);
     // Un prestamo no se queda con nada.
     if empieza_con(m, "&") || empieza_con(m, "mut ") { return false; }
@@ -224,7 +224,7 @@ fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
         var cualquiera: mapa<str, str> = [];
         for tp en sueltos { poner(cualquiera, vista(tp), nuevo("str")); }
         let puesto = I.sustituir(m, cualquiera);
-        if !igual(vista(puesto), m) { return true; }
+        if !igual(puesto, m) { return true; }
     }
     return tiene_duenio(c, m);
 }
@@ -236,7 +236,7 @@ fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
 fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
     let clase = vista(n.clase);
 
-    if igual(clase, "si") && largo(n.hijos) >= 2 {
+    if clase == "si" && n.hijos.largo() >= 2 {
         // La condicion siempre se evalua. A partir de ahi, cada rama parte de
         // la misma foto y solo aporta estado si puede alcanzar la continuacion.
         mirar(c, n.hijos[0], vs);
@@ -248,7 +248,7 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
 
         restaurar(vs, antes);
         var sino_sale = false;
-        if largo(n.hijos) > 2 {
+        if n.hijos.largo() > 2 {
             mirar(c, n.hijos[2], vs);
             sino_sale = termina(n.hijos[2]);
         }
@@ -257,35 +257,35 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
         return;
     }
 
-    if igual(clase, "retorno") {
+    if clase == "retorno" {
         // `return x;` entrega `x` entero. Cualquier otra cosa que se
         // devuelva no entrega una variable, la calcula.
-        if largo(n.hijos) > 0 {
+        if n.hijos.largo() > 0 {
             let quien = variable_suelta(n.hijos[0]);
-            marcar_entregada(vs, vista(quien), n.linea);
+            marcar_entregada(vs, quien, n.linea);
         }
         for h en n.hijos { mirar(c, h, vs); }
         return;
     }
 
-    if igual(clase, "llamada") {
+    if clase == "llamada" {
         mirar_llamada(c, n, vs);
         return;
     }
 
-    if igual(clase, "literal_struct") {
+    if clase == "literal_struct" {
         // Un campo con duenio se queda con lo que le pongan.
         var i = 0;
         for h en n.hijos {
             // Cada hijo es un `campo` con su valor dentro.
             for x en h.hijos {
                 let quien = variable_suelta(x);
-                if largo(quien) > 0 {
-                    let t = tipo_vigilado(vs, vista(quien), x.linea);
+                if quien.largo() > 0 {
+                    let t = tipo_vigilado(vs, quien, x.linea);
                     if tiene_duenio(c, vista(t)) {
                         // En la linea del valor, no en la del literal: un literal
                         // de struct suele ocupar varias lineas.
-                        marcar_movida(vs, vista(quien), x.linea);
+                        marcar_movida(vs, quien, x.linea);
                     }
                 }
                 mirar(c, x, vs);
@@ -295,16 +295,16 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
         return;
     }
 
-    if igual(clase, "enum_lit") {
+    if clase == "enum_lit" {
         // Una variante se queda con cada valor con dueño que lleva, igual que
         // un struct se queda con sus campos. El sitio es el del argumento:
         // la construcción puede estar repartida en varias líneas.
         for h en n.hijos {
             let quien = variable_suelta(h);
-            if largo(quien) > 0 {
-                let t = tipo_vigilado(vs, vista(quien), h.linea);
+            if quien.largo() > 0 {
+                let t = tipo_vigilado(vs, quien, h.linea);
                 if tiene_duenio(c, vista(t)) {
-                    marcar_movida(vs, vista(quien), h.linea);
+                    marcar_movida(vs, quien, h.linea);
                 }
             }
             mirar(c, h, vs);
@@ -312,14 +312,14 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
         return;
     }
 
-    if igual(clase, "asignacion") {
+    if clase == "asignacion" {
         // `a = b` con `b` con duenio: `b` pasa a ser de `a`.
-        if largo(n.hijos) > 1 {
+        if n.hijos.largo() > 1 {
             let quien = variable_suelta(n.hijos[1]);
-            if largo(quien) > 0 {
-                let t = tipo_vigilado(vs, vista(quien), n.linea);
+            if quien.largo() > 0 {
+                let t = tipo_vigilado(vs, quien, n.linea);
                 if tiene_duenio(c, vista(t)) {
-                    marcar_movida(vs, vista(quien), n.linea);
+                    marcar_movida(vs, quien, n.linea);
                 }
             }
         }
@@ -327,14 +327,14 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
         return;
     }
 
-    if igual(clase, "declaracion") {
+    if clase == "declaracion" {
         // `let a = b` es lo mismo: `b` pasa a ser de `a`.
-        if largo(n.hijos) > 0 {
+        if n.hijos.largo() > 0 {
             let quien = variable_suelta(n.hijos[0]);
-            if largo(quien) > 0 {
-                let t = tipo_vigilado(vs, vista(quien), n.linea);
+            if quien.largo() > 0 {
+                let t = tipo_vigilado(vs, quien, n.linea);
                 if tiene_duenio(c, vista(t)) {
-                    marcar_movida(vs, vista(quien), n.linea);
+                    marcar_movida(vs, quien, n.linea);
                 }
             }
         }
@@ -351,9 +351,9 @@ fn mirar_llamada(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
     // Las internas que se quedan con un valor: el segundo argumento de
     // `anadir`, el tercero de `poner`.
     var se_queda_en = 99;
-    if igual(nombre, "anadir") { se_queda_en = 1; }
-    if igual(nombre, "poner") { se_queda_en = 2; }
-    if igual(nombre, "intercambiar") { se_queda_en = 1; }
+    if nombre == "anadir" { se_queda_en = 1; }
+    if nombre == "poner" { se_queda_en = 2; }
+    if nombre == "intercambiar" { se_queda_en = 1; }
 
     var i = 0;
     for h en n.hijos {
@@ -365,12 +365,12 @@ fn mirar_llamada(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
         }
         if lo_toma {
             let quien = variable_suelta(h);
-            if largo(quien) > 0 {
-                let t = tipo_vigilado(vs, vista(quien), h.linea);
+            if quien.largo() > 0 {
+                let t = tipo_vigilado(vs, quien, h.linea);
                 if tiene_duenio(c, vista(t)) {
                     // En la linea del argumento, no en la de la llamada: una
                     // llamada puede ocupar varias lineas.
-                    marcar_movida(vs, vista(quien), h.linea);
+                    marcar_movida(vs, quien, h.linea);
                 }
             }
         }

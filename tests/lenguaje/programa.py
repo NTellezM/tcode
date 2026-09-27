@@ -1,14 +1,15 @@
 """PROGRAMA: el archivo C entero, escrito por Tcode."""
 
 import concurrent.futures
-import glob
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 
 from compilar_c import herramienta
+from semilla import SEMILLA
 
 from tcode.cli import compilar_archivo
 
@@ -21,8 +22,11 @@ from .comun import (
     SISTEMA_TCODEC,
     Resultado,
     bloques,
+    corpus_python,
     en_paralelo,
     en_procesos,
+    nombre_estable,
+    sin_azucar,
     tcodec,
 )
 from .modulos import MODULOS
@@ -37,6 +41,28 @@ def _errores_python(ruta):
     except Exception as exc:
         return [str(exc)]
     return errs or []
+
+
+def _c_python(ruta):
+    """El C del compilador de Python y sus errores. Un programa con sintaxis
+    que Python no conoce —la de despues de congelarlo— da error y no C."""
+    try:
+        return compilar_archivo(ruta)
+    except Exception as exc:
+        return None, [str(exc)]
+
+
+# Lo que se escribe distinto desde que Python se congelo: `x.f(...)` y
+# `a..b`. Un mutante que cae en ello es sintaxis nueva para `tcodec`, y
+# para Python sigue siendo un error: no se comparan. `Forma.Variante(...)`
+# no es nuevo, y se distingue porque lo de delante es un enum.
+_PUNTO_Y_LLAMADA = re.compile(r"(\w+|[)\]])\s*\.\s*[A-Za-z_]\w*\s*\(")
+
+
+def _sintaxis_nueva(linea, enums):
+    if ".." in linea:
+        return True
+    return any(m.group(1) not in enums for m in _PUNTO_Y_LLAMADA.finditer(linea))
 
 
 def _avisos_python(ruta):
@@ -608,9 +634,17 @@ fn main() {
                       if e3.returncode == 0 else None)
                 return e3, e4
 
-            _fondo = concurrent.futures.ThreadPoolExecutor(2)
+            # Y el mismo `tcodec.t` sin azucar —sin llamadas con punto ni `==`
+            # entre textos—, desde su copia: tiene que dar el mismo C.
+            def _sin_azucar():
+                return subprocess.run([binario, propio, "--mostrar-c"],
+                                      cwd=sin_azucar()[0], capture_output=True,
+                                      text=True, timeout=600, env=entorno)
+
+            _fondo = concurrent.futures.ThreadPoolExecutor(3)
             _punto_fijo_f = _fondo.submit(_punto_fijo)
             _se_construye_f = _fondo.submit(_se_construye)
+            _sin_azucar_f = _fondo.submit(_sin_azucar)
 
             suite.total += 1
             literal_invalido = os.path.join(tmp, "literal-invalido.t")
@@ -690,7 +724,7 @@ fn main() {
                     f.write(fuente_c)
                 escritos_c.append((nombre_c, ruta_cierre))
             trabajos_c = [(n, r, *hecho) for (n, r), hecho in zip(
-                escritos_c, en_procesos(compilar_archivo, [r for _, r in escritos_c]))]
+                escritos_c, en_procesos(_c_python, [r for _, r in escritos_c]))]
 
             # Lo que cuesta de aqui en adelante es `tcodec`, con los
             # sanitizers puestos: cada bucle calcula antes lo de Python y
@@ -748,9 +782,7 @@ fn main() {
 
             correctos = 0
             aceptables = [(n, f) for n, f, *_ in ACEPTA]
-            for archivo in sorted(glob.glob(os.path.join("std", "*.t"))
-                                  + glob.glob(os.path.join("ejemplos", "**", "*.t"),
-                                              recursive=True)):
+            for archivo in corpus_python(relativo=True):
                 with open(archivo, encoding="utf-8") as f:
                     aceptables.append((archivo, f.read()))
             escritos_a = []
@@ -814,20 +846,26 @@ fn main() {
                                           "fn": "fn "}[forma] + li[c:]
                     otras = list(lineas)
                     otras[t.linea - 1] = nueva
-                    yield f"{forma} en la linea {t.linea}", "\n".join(otras)
+                    yield f"{forma} en la linea {t.linea}", "\n".join(otras), nueva
 
             # Cada mutante con su nombre, para que esten todos a la vez
             # mientras `tcodec` los lee.
             iguales_s = rotos = 0
             mutantes = []
             escritos_m = []
+            fuentes_m = corpus_python(relativo=True)
+            enums = set()
+            for archivo in fuentes_m:
+                with open(archivo, encoding="utf-8") as f:
+                    enums.update(re.findall(r"\benum\s+(\w+)", f.read()))
             try:
-                for archivo in sorted(glob.glob(os.path.join("std", "*.t"))
-                                      + glob.glob(os.path.join("ejemplos", "**", "*.t"),
-                                                  recursive=True)):
+                for archivo in fuentes_m:
                     with open(archivo, encoding="utf-8") as f:
                         fuente_o = f.read()
-                    for k_m, (que, fuente_m) in enumerate(_mutantes(fuente_o, archivo)):
+                    for k_m, (que, fuente_m, linea_m) in enumerate(
+                            _mutantes(fuente_o, nombre_estable(archivo))):
+                        if _sintaxis_nueva(linea_m, enums):
+                            continue
                         ruta_m = os.path.join(os.path.dirname(archivo),
                                               f".mut_{k_m}_" + os.path.basename(archivo))
                         escritos_m.append(ruta_m)
@@ -899,9 +937,7 @@ fn main() {
                 with open(r_a, "w", encoding="utf-8") as f:
                     f.write(f_a)
                 aceptados_rutas.append(r_a)
-            del_repo = sorted(glob.glob(os.path.join("std", "*.t"))
-                              + glob.glob(os.path.join("ejemplos", "**", "*.t"),
-                                          recursive=True))
+            del_repo = corpus_python(relativo=True)
             av_iguales = av_cuantos = 0
             ex_iguales = 0
             trabajos_av = [(ruta_a, esperados) for ruta_a, esperados in zip(
@@ -948,7 +984,7 @@ fn main() {
             for archivo_f in del_repo:
                 with open(archivo_f, encoding="utf-8") as f:
                     original_f = f.read()
-                rnd_f = _random.Random(archivo_f)
+                rnd_f = _random.Random(nombre_estable(archivo_f))
                 deformado = []
                 for li in original_f.split("\n"):
                     x = rnd_f.random()
@@ -984,15 +1020,12 @@ fn main() {
 
             iguales = intentados = 0
             con_main = []
-            for archivo in sorted(
-                    glob.glob(os.path.join("std", "*.t"))
-                    + glob.glob(os.path.join("ejemplos", "**", "*.t"),
-                                recursive=True)):
+            for archivo in corpus_python(relativo=True):
                 with open(archivo, encoding="utf-8") as f:
                     if "fn main(" in f.read():
                         con_main.append(archivo)
             trabajos_e = [(archivo, esperado) for archivo, (esperado, errores_f) in zip(
-                con_main, en_procesos(compilar_archivo, con_main)) if not errores_f]
+                con_main, en_procesos(_c_python, con_main)) if not errores_f]
             for (archivo, esperado), e in zip(
                     trabajos_e, en_paralelo(
                         lambda t: _tcodec(t[0], "--mostrar-c", timeout=180),
@@ -1043,7 +1076,7 @@ fn main() {
                     escritos_s.append((caso_s[0], ruta_s))
             trabajos_s = [(nombre_s, ruta_s, esperado_s)
                           for (nombre_s, ruta_s), (esperado_s, errores_s) in zip(
-                              escritos_s, en_procesos(compilar_archivo,
+                              escritos_s, en_procesos(_c_python,
                                                       [r for _, r in escritos_s]))
                           if not errores_s]
 
@@ -1155,6 +1188,30 @@ fn main() {
             # `rustc` en Rust.
             suite.total += 1
             e1, r2, e2 = _punto_fijo_f.result()
+            # El azucar: lo que se escribe distinto se traduce antes del C.
+            suite.total += 1
+            e_az = _sin_azucar_f.result()
+            if e_az.returncode != 0 or "Sanitizer" in e_az.stderr or e_az.stdout != e1.stdout:
+                a_z, b_z = e1.stdout.splitlines(), e_az.stdout.splitlines()
+                d_z = next((i for i, (x, y) in enumerate(zip(a_z, b_z)) if x != y),
+                           min(len(a_z), len(b_z)))
+                suite.falla("el azucar es solo azucar",
+                            f"tcodec.t sin azucar da otro C, linea {d_z + 1}\n"
+                            f"{e_az.stderr[:400]}")
+            else:
+                print("    sin azucar: tcodec.t escribe el mismo C, byte a byte")
+            # Y el de Python entiende todo el compilador sin azucar: si no, un
+            # archivo saldria del corpus del oraculo sin que nadie lo notara.
+            # Pasa con lo que `tests/azucar.py` no sabe deshacer —un rango, un
+            # `==` entre dos textos sin ningun literal—: en el codigo del
+            # compilador se escribe de otra forma.
+            copias = sin_azucar()[1]
+            for copia, de_python in zip(copias, en_procesos(_errores_python, copias)):
+                suite.total += 1
+                if de_python:
+                    suite.falla("el oraculo entiende el compilador sin azucar",
+                                f"{os.path.relpath(copia, sin_azucar()[0])}: "
+                                f"{de_python[0][:300]}")
             if e1.returncode != 0 or "Sanitizer" in e1.stderr:
                 suite.falla("punto fijo", f"tcodec no se escribe a si mismo:\n"
                                     f"{e1.stderr[:400]}")
@@ -1171,6 +1228,13 @@ fn main() {
                         print(f"    punto fijo: tcodec compilado desde su "
                               f"propio C lo reproduce byte a byte "
                               f"({len(e1.stdout.encode())} bytes)")
+                        # La semilla solo tiene que saber construir el
+                        # `tcodec` de ahora; si ademas es su punto fijo, se dice.
+                        with open(SEMILLA, encoding="utf-8") as f:
+                            al_dia = f.read() == e1.stdout
+                        print("    semilla: " + ("al dia, es este mismo C" if al_dia
+                                                 else "de una version anterior; "
+                                                      "`make semilla` la pone al dia"))
                         suite.cifra("punto_fijo_bytes", len(e1.stdout.encode()))
                         # Y sin nadie mas: `tcodec` se construye a si mismo,
                         # llamando el al compilador de C, y ese binario
