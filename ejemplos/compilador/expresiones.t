@@ -73,6 +73,20 @@ fn es_generica(d: &P.Nodo) -> bool {
 }
 
 fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
+    // Los campos de cada struct, con su tipo: un `0` en un campo `u64` es un
+    // `u64`.
+    if igual(vista(n.clase), "struct") {
+        var suyos: lista<str> = [];
+        var como_se_llaman: lista<str> = [];
+        for h en n.hijos {
+            if igual(vista(h.clase), "campo_def") {
+                anadir(como_se_llaman, nombre_de(vista(h.texto)));
+                anadir(suyos, tipo_pelado(vista(h.texto)));
+            }
+        }
+        poner(c.campos, vista(n.texto), suyos);
+        poner(c.nombres, vista(n.texto), como_se_llaman);
+    }
     if igual(vista(n.clase), "fn") {
         var retorno = vacio();
         var es_de_c = false;

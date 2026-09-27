@@ -28,13 +28,14 @@ from tcode.nodos import (Usar, Struct, Funcion, Llamada, LiteralStruct,
 from tcode import nombres_c
 
 
-def _solo_usar(fuente, archivo):
+def _solo_usar(toks, archivo):
     """Los `usar` de un archivo, sin analizarlo entero.
 
     Hace falta porque las dependencias tienen que cargarse ANTES de analizar
-    el archivo que las usa, y para analizarlo hacen falta sus structs.
+    el archivo que las usa, y para analizarlo hacen falta sus structs. Los
+    tokens son los mismos que despues lee el parser: el archivo se tokeniza
+    una vez.
     """
-    toks = tokenizar(fuente, archivo)
     salida = []
     i = 0
     while (i + 2 < len(toks) and toks[i].tipo == "palabra"
@@ -64,12 +65,13 @@ def renombrar_tipo(t, mapa):
 
 def renombrar_en_arbol(nodo, mapa):
     """Aplica el mapa de nombres visibles de un archivo a todo lo suyo."""
-    from dataclasses import fields, is_dataclass
+    from tcode.nodos import campos_de
     if isinstance(nodo, (list, tuple)):
         for x in nodo:
             renombrar_en_arbol(x, mapa)
         return
-    if not is_dataclass(nodo):
+    campos = campos_de(nodo)
+    if campos is None:
         return
     if isinstance(nodo, (Llamada, LiteralStruct, EnumLit, Match)):
         clave = nodo.nombre if isinstance(nodo, Llamada) else nodo.tipo
@@ -78,11 +80,11 @@ def renombrar_en_arbol(nodo, mapa):
                 nodo.nombre = mapa[clave]
             else:
                 nodo.tipo = mapa[clave]
-    for campo in fields(nodo):
-        valor = getattr(nodo, campo.name)
-        if campo.name in ("tipo", "retorno") and isinstance(valor, str):
-            setattr(nodo, campo.name, renombrar_tipo(valor, mapa))
-        elif campo.name != "nombre":
+    for nombre in campos:
+        valor = getattr(nodo, nombre)
+        if nombre in ("tipo", "retorno") and isinstance(valor, str):
+            setattr(nodo, nombre, renombrar_tipo(valor, mapa))
+        elif nombre != "nombre":
             renombrar_en_arbol(valor, mapa)
 
 
@@ -121,16 +123,17 @@ class ErrorDeModulo(Exception):
 
 def _nodos(x):
     """Todo lo que cuelga de `x`, a cualquier hondura."""
-    from dataclasses import fields, is_dataclass
+    from tcode.nodos import campos_de
     if isinstance(x, (list, tuple)):
         for y in x:
             yield from _nodos(y)
         return
-    if not is_dataclass(x):
+    campos = campos_de(x)
+    if campos is None:
         return
     yield x
-    for campo in fields(x):
-        yield from _nodos(getattr(x, campo.name))
+    for nombre in campos:
+        yield from _nodos(getattr(x, nombre))
 
 
 def _locales(funcion):
@@ -249,7 +252,8 @@ def cargar(ruta_principal, nombres_bonitos=None):
         if mostrada.startswith(".."):
             mostrada = real
 
-        usars = _solo_usar(fuente, mostrada)
+        toks = tokenizar(fuente, mostrada)
+        usars = _solo_usar(toks, mostrada)
         # Primero las dependencias: sus structs tienen que estar declarados
         # antes de analizar este archivo.
         pila.append(real)
@@ -260,7 +264,7 @@ def cargar(ruta_principal, nombres_bonitos=None):
             destinos[id(d)] = os.path.realpath(destino)
         pila.pop()
 
-        propias = parsear(fuente, mostrada, structs, enums)
+        propias = parsear(fuente, mostrada, structs, enums, tokens=toks)
         # Los nombres de tipo van juntos —un enum tambien es un tipo— pero
         # los enum ademas por separado: el archivo que los usa tiene que
         # saber que `Color.Rojo` es una forma y no el campo de una variable.

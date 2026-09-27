@@ -40,9 +40,17 @@ externo "lib/sistema_tcodec.c" {
 
 // Donde empieza `que` en `t` a partir de `desde`, o `largo(t)` si no esta.
 fn buscar_desde(t: view, que: view, desde: usize) -> usize {
+    if largo(que) == 0 {
+        if desde <= largo(t) { return desde; }
+        return largo(t);
+    }
+    // El primer byte descarta casi todas las posiciones sin cortar nada: se
+    // busca en cada linea del C escrito, y cortar y comparar en cada byte era
+    // lo que mas tardaba despues del lexer.
+    let primero = byte(que, 0);
     var i = desde;
     while i + largo(que) <= largo(t) {
-        if igual(rebanar(t, i, i + largo(que)), que) { return i; }
+        if byte(t, i) == primero && igual(rebanar(t, i, i + largo(que)), que) { return i; }
         i = i + 1;
     }
     return largo(t);
@@ -852,7 +860,9 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
         let dentro_b = nuevo(rebanar(t, 7, largo(t) - 1));
         return mirar_tipo(vista(dentro_b), reg, global, structs);
     }
-    if es_bloque_o_arreglo(t) {
+    // Una lista o un mapa de bloques o arreglos registran lo de dentro al
+    // registrarse, como cualquier otra lista o mapa.
+    if es_bloque_o_arreglo(t) && !es_lista_t(t) && !es_mapa_t(t) {
         // Un prestamo no registra nada, como en el original.
         if empieza_con(t, "&") { return true; }
         imprimir_error($"tcodec: el tipo `{t}`\n");
@@ -874,7 +884,7 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     // El nombre en C de la clave y del valor, la lista que devuelve
     // `claves`, y los resultados de `obtener` y de `obtener_mut`.
     for x en partes {
-        if es_lista_t(vista(x)) || es_mapa_t(vista(x)) {
+        if es_lista_t(vista(x)) || es_mapa_t(vista(x)) || es_bloque_o_arreglo(vista(x)) {
             if !mirar_tipo(vista(x), reg, global, structs) { return false; }
         }
     }
@@ -1615,6 +1625,60 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
 // aqui se crean las copias en el orden en que las crea el comprobador de
 // Python: primero los campos de los structs, despues los tipos escritos en
 // cada funcion, y los de cada generica al instanciarla.
+
+// Los structs desde `desde`, en el orden de `orden`; los que no estan en el,
+// detras y como estaban.
+fn ordenar_como_comprobador(desde: usize, orden: &lista<str>,
+    st_nombres: mut lista<str>, st_indice: mut mapa<str, usize>,
+    st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>) {
+    var puesto: mapa<str, usize> = [];
+    var k = 0;
+    while k < largo(orden) {
+        if !tiene(puesto, vista(orden[k])) { poner(puesto, vista(orden[k]), k); }
+        k = k + 1;
+    }
+    // Una insercion estable: son pocos.
+    var cual: lista<usize> = [];
+    var i = desde;
+    while i < largo(st_nombres) {
+        anadir(cual, i);
+        i = i + 1;
+    }
+    let fuera = largo(orden);
+    var a = 1;
+    while a < largo(cual) {
+        var b = a;
+        while b > 0 {
+            let pb = obtener(puesto, vista(st_nombres[cual[b]])) sino fuera;
+            let pa = obtener(puesto, vista(st_nombres[cual[b - 1]])) sino fuera;
+            if pa <= pb { break; }
+            let t = cual[b];
+            cual[b] = cual[b - 1];
+            cual[b - 1] = t;
+            b = b - 1;
+        }
+        a = a + 1;
+    }
+    var nombres: lista<str> = [];
+    var campos: lista<lista<str>> = [];
+    var tipos: lista<lista<str>> = [];
+    var j = 0;
+    while j < desde {
+        anadir(nombres, copiar(st_nombres[j]));
+        anadir(campos, copiar(st_campos[j]));
+        anadir(tipos, copiar(st_tipos[j]));
+        j = j + 1;
+    }
+    for c en cual {
+        poner(st_indice, vista(st_nombres[c]), largo(nombres));
+        anadir(nombres, copiar(st_nombres[c]));
+        anadir(campos, copiar(st_campos[c]));
+        anadir(tipos, copiar(st_tipos[c]));
+    }
+    st_nombres = nombres;
+    st_campos = campos;
+    st_tipos = tipos;
+}
 
 // Lo de dentro de `Base<a, b>`, cortado por las comas de fuera.
 fn partir_args(t: view) -> lista<str> {
@@ -2559,11 +2623,12 @@ fn main() -> usize ! {
     var plantillas: mapa<str, usize> = [];
     var previos_st: mapa<str, usize> = [];
     var previos_en: mapa<str, usize> = [];
+    var leidos = P.leidos();
     for m en modulos {
         var tipos = I.contexto();
         var error_m = vacio();
-        let arbol = F.preparar_con_error(vista(m), tipos, error_m, previos_st, previos_en)
-        sino P.rama("vacio", 0);
+        let arbol = F.preparar_con_error(vista(m), tipos, error_m, previos_st, previos_en,
+            leidos) sino P.rama("vacio", 0);
         if largo(error_m) > 0 {
             // Como el cargador de Python: el primer error y nada mas.
             imprimir_error($"error: {error_m}\n");
@@ -2941,6 +3006,16 @@ fn main() -> usize ! {
         resolver_instancia(copia_r, stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
+    // Y las copias que no estan escritas en ningun sitio: `Par { a: -3, b: 1 }`
+    // es un `Par<i64, usize>` que dedujo el comprobador al mirar el cuerpo.
+    for t_ap en revision.structs_aplicados {
+        let _r = resolver_reg(vista(t_ap), stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
+            st_nombres, st_indice, st_campos, st_tipos, global);
+    }
+    // Las copias y las clausuras, en el orden en que nacieron en el
+    // comprobador: una deducida nace entre las demas, al llegar a su cuerpo.
+    ordenar_como_comprobador(n_concretos, revision.orden_structs, st_nombres, st_indice,
+        st_campos, st_tipos);
     for n en st_nombres { poner(con_partes, vista(n), 1); }
 
     var instancias: lista<P.Nodo> = [];
@@ -3323,10 +3398,38 @@ fn main() -> usize ! {
         }
     }
 
-    // Y con los arreglos.
+    // Y con los arreglos. Los que solo nombra un literal en un cuerpo —`for
+    // x en [1, 2]` no declara nada que el recorrido mire— llegan tarde: van
+    // detras de los demas, de dentro hacia fuera, como en el original.
+    var tardios_sin: lista<str> = [];
+    for t en cta.arreglos {
+        if !tiene(reg.arr_vistos, vista(t)) && !esta_en(tardios_sin, vista(t)) {
+            anadir(tardios_sin, copiar(t));
+        }
+    }
+    var envoltorios: lista<str> = [];
+    var hondo_t = 0;
+    var quedan_t = largo(tardios_sin);
+    while quedan_t > 0 {
+        for t en tardios_sin {
+            if cuantos_corchetes(vista(t)) == hondo_t {
+                let pa = partes_arreglo(vista(t));
+                let te = G.tipo_c(vista(pa[0]));
+                let tc = G.tipo_c(vista(t));
+                anadir(envoltorios, $"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
+                quedan_t = quedan_t - 1;
+            }
+        }
+        hondo_t = hondo_t + 1;
+    }
+    if largo(envoltorios) > 0 { anadir(envoltorios, vacio()); }
     var usados_a: mapa<str, usize> = [];
     for l en limpios { apuntar_nombres(vista(l), "ss_arr_", usados_a); }
     for x en reg.arreglos {
+        let nombre_c = G.tipo_c(vista(x));
+        poner(registradas, vista(nombre_c), 1);
+    }
+    for x en tardios_sin {
         let nombre_c = G.tipo_c(vista(x));
         poner(registradas, vista(nombre_c), 1);
     }
@@ -3585,6 +3688,7 @@ fn main() -> usize ! {
         anadir(todas, vacio());
     }
     for x en partes { anadir(todas, copiar(x)); }
+    for x en envoltorios { anadir(todas, copiar(x)); }
     for x en tipos_fn { anadir(todas, copiar(x)); }
     for a en arit { anadir(todas, copiar(a)); }
     for x en bloque_copias { anadir(todas, copiar(x)); }

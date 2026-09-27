@@ -22,25 +22,36 @@ fn es_espacio(b: usize) -> bool {
     return b == 32 || b == 9 || b == 13;
 }
 
-fn palabras_reservadas() -> mapa<str, usize> {
-    var m: mapa<str, usize> = [];
-    poner(m, "fn", 1); poner(m, "let", 1); poner(m, "var", 1);
-    poner(m, "mut", 1); poner(m, "if", 1); poner(m, "else", 1);
-    poner(m, "while", 1); poner(m, "for", 1); poner(m, "en", 1);
-    poner(m, "break", 1); poner(m, "continue", 1); poner(m, "return", 1);
-    poner(m, "struct", 1); poner(m, "usar", 1); poner(m, "try", 1);
-    poner(m, "sino", 1); poner(m, "falla", 1); poner(m, "lista", 1);
-    poner(m, "mapa", 1); poner(m, "str", 1); poner(m, "view", 1);
-    poner(m, "bool", 1);
-    poner(m, "enum", 1); poner(m, "match", 1);
-    poner(m, "externo", 1);
-    poner(m, "true", 1); poner(m, "false", 1);
-    poner(m, "u8", 1); poner(m, "u16", 1); poner(m, "u32", 1);
-    poner(m, "u64", 1); poner(m, "usize", 1);
-    poner(m, "i8", 1); poner(m, "i16", 1); poner(m, "i32", 1);
-    poner(m, "i64", 1);
-    poner(m, "f32", 1); poner(m, "f64", 1);
-    return m;
+// Si `t` es una palabra reservada. Por su largo primero: el lexer lo
+// pregunta por cada nombre, tambien en el hueco de cada cadena interpolada,
+// y hacer una tabla cada vez costaba mas que leer el hueco.
+fn es_reservada(t: view) -> bool {
+    let n = largo(t);
+    if n == 2 {
+        return igual(t, "fn") || igual(t, "if") || igual(t, "en") || igual(t, "u8")
+        || igual(t, "i8");
+    }
+    if n == 3 {
+        return igual(t, "let") || igual(t, "var") || igual(t, "mut")
+        || igual(t, "for") || igual(t, "try") || igual(t, "str")
+        || igual(t, "u16") || igual(t, "u32") || igual(t, "u64")
+        || igual(t, "i16") || igual(t, "i32") || igual(t, "i64")
+        || igual(t, "f32") || igual(t, "f64");
+    }
+    if n == 4 {
+        return igual(t, "else") || igual(t, "usar") || igual(t, "sino")
+        || igual(t, "mapa") || igual(t, "view") || igual(t, "bool")
+        || igual(t, "enum") || igual(t, "true");
+    }
+    if n == 5 {
+        return igual(t, "while") || igual(t, "break") || igual(t, "falla")
+        || igual(t, "lista") || igual(t, "match") || igual(t, "false")
+        || igual(t, "usize");
+    }
+    if n == 6 { return igual(t, "return") || igual(t, "struct"); }
+    if n == 7 { return igual(t, "externo"); }
+    if n == 8 { return igual(t, "continue"); }
+    return false;
 }
 
 // Los simbolos de dos caracteres se prueban antes que los de uno, igual que
@@ -92,24 +103,27 @@ fn agregar(salida: mut lista<Token>, tipo: view, valor: view, linea: usize) {
 // `$"{unir(xs, ", ")}"`. Se lleva la cuenta de llaves para no cortar en la
 // comilla equivocada. Si falla, deja el mensaje en `error`, como el lexer de
 // Python.
-fn fin_de_cadena(fuente: view, desde: usize, interpolada: bool, prefijo: view,
-    error: mut str) -> usize ! {
-    return try fin_de_cadena_en(fuente, desde, interpolada, false, prefijo, error);
+//
+// El `archivo:linea: ` de los mensajes se escribe solo si hay error: hacerlo
+// antes, por si acaso, era la mitad de lo que tardaba el lexer.
+fn fin_de_cadena(fuente: view, desde: usize, interpolada: bool, archivo: view,
+    linea: usize, error: mut str) -> usize ! {
+    return try fin_de_cadena_en(fuente, desde, interpolada, false, archivo, linea, error);
 }
 
 // `en_hueco`: la cadena va dentro del hueco de otra. Si no se cierra, la de
 // fuera tampoco, y lo mas probable es que falte la `}` del hueco, como en
 // `$"hola {n"`.
 fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: bool,
-    prefijo: view, error: mut str) -> usize ! {
+    archivo: view, linea: usize, error: mut str) -> usize ! {
     var i = desde;
     var hondura = 0;
     while true {
         if i >= largo(fuente) || byte(fuente, i) == 10 {
             if interpolada || en_hueco {
-                error = $"{prefijo}cadena interpolada sin cerrar; falta la comilla, o falta `}}` en algun hueco";
+                error = $"{archivo}:{linea}: cadena interpolada sin cerrar; falta la comilla, o falta `}}` en algun hueco";
             } else {
-                error = $"{prefijo}cadena sin cerrar";
+                error = $"{archivo}:{linea}: cadena sin cerrar";
             }
             falla "cadena sin cerrar";
         }
@@ -131,7 +145,8 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
             if b == 34 || anidada {
                 var dentro = i + 1;
                 if anidada { dentro = i + 2; }
-                let cierre = try fin_de_cadena_en(fuente, dentro, anidada, true, prefijo, error);
+                let cierre = try fin_de_cadena_en(fuente, dentro, anidada, true, archivo, linea,
+                    error);
                 i = cierre + 1;
                 continue;
             }
@@ -147,7 +162,7 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
         if b == 34 && hondura == 0 { return i; }
         if b == 92 {
             if i + 1 >= largo(fuente) {
-                error = $"{prefijo}escape sin cerrar";
+                error = $"{archivo}:{linea}: escape sin cerrar";
                 falla "escape sin cerrar";
             }
             let esc = byte(fuente, i + 1);
@@ -156,7 +171,7 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
                 var bien = i + 3 < largo(fuente);
                 if bien { bien = es_hex(byte(fuente, i + 2)) && es_hex(byte(fuente, i + 3)); }
                 if !bien {
-                    error = $"{prefijo}`\\x` lleva dos digitos hexadecimales detras, como `\\x0a`";
+                    error = $"{archivo}:{linea}: `\\x` lleva dos digitos hexadecimales detras, como `\\x0a`";
                     falla "escape mal formado";
                 }
                 i = i + 4;
@@ -165,7 +180,7 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
             let conocido = esc == 110 || esc == 116 || esc == 92 || esc == 34 || esc == 48
             || (interpolada && (esc == 123 || esc == 125));
             if !conocido {
-                error = $"{prefijo}escape desconocido \\{rebanar(fuente, i + 1, i + 2)}";
+                error = $"{archivo}:{linea}: escape desconocido \\{rebanar(fuente, i + 1, i + 2)}";
                 falla "escape desconocido";
             }
             i = i + 2;
@@ -280,14 +295,12 @@ fn tokens_desde(fuente: view, archivo: view, linea: usize, error: mut str) -> li
 // formateador los necesita para dejarlos donde estaban.
 fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: usize,
     error: mut str) -> lista<Token> ! {
-    let reservadas = palabras_reservadas();
     var salida: lista<Token> = [];
     var i = 0;
     var linea = desde_linea;
 
     while i < largo(fuente) {
         let b = byte(fuente, i);
-        let prefijo = $"{archivo}:{linea}: ";
 
         if b == 10 {
             linea = linea + 1;
@@ -325,7 +338,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
                     j = j + 1;
                 }
                 if !cerrado {
-                    error = $"{prefijo}comentario /* sin cerrar";
+                    error = $"{archivo}:{linea}: comentario /* sin cerrar";
                     falla "comentario /* sin cerrar";
                 }
                 if comentarios {
@@ -339,7 +352,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
 
         // cadena interpolada
         if b == 36 && i + 1 < largo(fuente) && byte(fuente, i + 1) == 34 {
-            let fin = try fin_de_cadena(fuente, i + 2, true, vista(prefijo), error);
+            let fin = try fin_de_cadena(fuente, i + 2, true, archivo, linea, error);
             agregar(salida, "interpolada", rebanar(fuente, i + 2, fin), linea);
             i = fin + 1;
             continue;
@@ -347,7 +360,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
 
         // cadena
         if b == 34 {
-            let fin = try fin_de_cadena(fuente, i + 1, false, vista(prefijo), error);
+            let fin = try fin_de_cadena(fuente, i + 1, false, archivo, linea, error);
             agregar(salida, "cadena", rebanar(fuente, i + 1, fin), linea);
             i = fin + 1;
             continue;
@@ -396,7 +409,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
             if j < largo(fuente) && (es_letra(byte(fuente, j)) && byte(fuente, j) != 95
                 || byte(fuente, j) == 46) {
                 let visto = repr_texto(rebanar(fuente, i, j + 1));
-                error = $"{prefijo}numero mal formado cerca de {visto}";
+                error = $"{archivo}:{linea}: numero mal formado cerca de {visto}";
                 falla "numero mal formado";
             }
             // `1_000` es `1000`: el guion bajo solo ayuda a leerlo.
@@ -420,7 +433,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
                 j = j + 1;
             }
             let texto_pieza = rebanar(fuente, i, j);
-            if tiene(reservadas, texto_pieza) {
+            if es_reservada(texto_pieza) {
                 agregar(salida, "palabra", texto_pieza, linea);
             } else {
                 agregar(salida, "ident", texto_pieza, linea);
@@ -442,7 +455,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
         }
 
         let visto = repr_caracter(rebanar(fuente, i, i + 1));
-        error = $"{prefijo}caracter inesperado {visto}";
+        error = $"{archivo}:{linea}: caracter inesperado {visto}";
         falla "caracter inesperado";
     }
 

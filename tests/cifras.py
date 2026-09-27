@@ -37,6 +37,9 @@ README = os.path.join(RAIZ, "README.md")
 GUARDADAS = os.path.join(RAIZ, ".cifras.json")
 RUNTIME = os.path.join(RAIZ, "runtime")
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from compilar_c import cc
+
 MARCA = re.compile(r"<!--c:([a-z_]+)-->(.*?)<!--/c-->", re.S)
 BLOQUE = re.compile(r"<!--c:bloque:([a-z_]+)-->\n```\n(.*?)```", re.S)
 
@@ -68,12 +71,13 @@ def compilador_en_tcode():
              os.path.join("ejemplos", "lexer", "lib", "sintaxis.t"),
              os.path.join("ejemplos", "compilador", "tcodec.t")]
             + sorted(os.path.join(lib, x) for x in os.listdir(os.path.join(RAIZ, lib))
-                     if x.endswith(".t")))
+                     if x.endswith(".t") and not x.startswith(".")))
 
 
 def biblioteca():
+    # Sin los `.mut_*.t` que deja un momento la suite junto a cada archivo.
     return sorted(x[:-2] for x in os.listdir(os.path.join(RAIZ, "std"))
-                  if x.endswith(".t"))
+                  if x.endswith(".t") and not x.startswith("."))
 
 
 def salida_de(programa, *args):
@@ -94,9 +98,9 @@ def salida_de(programa, *args):
         binario = os.path.join(tmp, "p")
         with open(ruta_c, "w", encoding="utf-8") as f:
             f.write(codigo)
-        r = subprocess.run(["cc", "-std=c17", "-O1", f"-I{RUNTIME}", ruta_c,
-                            os.path.join(RUNTIME, "safestr.c"), "-o", binario,
-                            "-lm"], capture_output=True, text=True)
+        r = cc(["cc", "-std=c17", "-O1", f"-I{RUNTIME}", ruta_c,
+                os.path.join(RUNTIME, "safestr.c"), "-o", binario, "-lm"],
+               capture_output=True, text=True)
         if r.returncode != 0:
             raise SystemExit(f"cifras: el C de {programa} no compila:\n{r.stderr}")
         e = subprocess.run([binario, *args], capture_output=True, text=True,
