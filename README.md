@@ -789,9 +789,10 @@ aritmética y los índices detienen el programa en vez de seguir con basura, y
 arman programas de varios archivos para probar módulos, ciclos y nombres
 repetidos.
 
-`make check` entera tarda unos cinco minutos en cuatro núcleos. Las
-secciones corren a la vez, cada una en su proceso, y dentro de cada una lo
-que se puede también. Lo que la suite compila con los sanitizers —`tcodec` y
+`make check` entera tarda unos cinco minutos en cuatro núcleos. Cada sección
+de la suite es un módulo de `tests/lenguaje/` —sus casos y cómo se
+comprueban—, las secciones corren a la vez, cada una en su proceso, y dentro
+de cada una lo que se puede también. Lo que la suite compila con los sanitizers —`tcodec` y
 las otras capas del compilador escritas en Tcode— se guarda en `.cache/` por
 el hash de su C: la pasada siguiente no lo vuelve a compilar si no cambió.
 Para trabajar hay atajos:
