@@ -8,7 +8,7 @@ from tcode.nodos import (
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Parametro, Funcion, CampoDef, Struct, Usar, Para, Romper, Continuar,
-    Enum, VarianteDef, EnumLit, Match, Brazo, Externo, PatronForma,
+    Enum, VarianteDef, EnumLit, Match, Brazo, PatronForma,
     PatronLiteral,
 )
 
@@ -675,14 +675,20 @@ class Parser:
         while i < len(texto):
             c = texto[i]
             if c == "{" and i + 1 < len(texto) and texto[i + 1] == "{":
-                actual.append("{"); i += 2; continue
+                actual.append("{")
+                i += 2
+                continue
             if c == "}" and i + 1 < len(texto) and texto[i + 1] == "}":
-                actual.append("}"); i += 2; continue
+                actual.append("}")
+                i += 2
+                continue
             if c == "}":
                 self.error("`}` suelto dentro de una cadena interpolada; "
                            "escribe `}}` si querias la llave", tok)
             if c != "{":
-                actual.append(c); i += 1; continue
+                actual.append(c)
+                i += 1
+                continue
 
             # {expresion}: se busca la llave de cierre respetando anidamiento.
             # El hueco llega crudo: sus cadenas se saltan enteras, que sus

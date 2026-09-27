@@ -90,7 +90,7 @@ def _enlaces(expr, tipo):
 
 
 def _programa(cuerpo):
-    lineas = "\n".join("    " + l for l in cuerpo)
+    lineas = "\n".join("    " + linea for linea in cuerpo)
     return f"{PRELUDIO}\nfn main() {{\n{lineas}\n    imprimir(\"\\n\");\n}}\n"
 
 

@@ -37,6 +37,8 @@ jobs:
           path: .cache/herramientas
           key: herramientas-${{ runner.os }}-${{ github.sha }}
           restore-keys: herramientas-${{ runner.os }}-
+      - name: ruff
+        run: pip install ruff==0.15.8 && make lint
       - name: secciones rapidas
         run: make rapido
       - name: propiedades, una pasada corta

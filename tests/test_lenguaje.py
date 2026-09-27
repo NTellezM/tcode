@@ -23,7 +23,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import traceback
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
@@ -235,6 +234,18 @@ def seccion(nombre, titulo):
     print(f"=== {nombre}: {titulo} ===")
     return True
 
+
+# Un struct que presta, y una funcion que saca su vista: la base de los casos
+# de structs con un campo `view`.
+_PALABRA = ("struct Palabra { texto: view, n: usize } "
+            "fn texto_de(p: Palabra) -> view { return p.texto; } ")
+# Un struct con campos que tienen duenio, para sacarlos de uno en uno.
+_MEDIO = ("struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } "
+          "fn toma(p: P) -> usize { return p.edad; } "
+          "fn nuevo_p() -> P { return P { nombre: nuevo(\"a\"), edad: 1, "
+          "sub: Q { t: nuevo(\"b\") } }; } ")
+# Dos enums, uno dentro de otro, para los patrones.
+_FORMAS = "enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } "
 
 RECHAZO = [
     # ---- literales: el error es de Tcode, no una truncacion de C ----
@@ -477,28 +488,28 @@ RECHAZO = [
 
     # ---- structs con un campo `view`: prestan, como una vista ----
     ("un struct que presta no vive mas que su duenio",
-     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn main() { var p = Palabra { texto: "", n: 0 };'
+     _PALABRA + 'fn main() { var p = Palabra { texto: "", n: 0 };'
      ' if true { let s = nuevo("x"); p = Palabra { texto: vista(s), n: 1 }; }'
      ' imprimir(p.texto); }',
      "`p` vive mas que `s`"),
 
     ("mientras vive, su duenio no se modifica",
-     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn main() { var s = nuevo("x"); let p = Palabra { texto: vista(s), n: 1 };'
+     _PALABRA + 'fn main() { var s = nuevo("x"); let p = Palabra { texto: vista(s), n: 1 };'
      ' empujar(s, "y"); imprimir(p.texto); }',
      "no se puede modificar `s`: esta prestada por `p`"),
 
     ("no sale de la funcion si presta de algo local",
-     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn f() -> Palabra { let s = nuevo("x");'
+     _PALABRA + 'fn f() -> Palabra { let s = nuevo("x");'
      ' return Palabra { texto: vista(s), n: 1 }; }',
      "no se puede devolver una vista de `s`"),
 
     ("la vista que se saca de el presta de lo mismo",
-     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn main() { var s = nuevo("x"); let p = Palabra { texto: vista(s), n: 1 };'
+     _PALABRA + 'fn main() { var s = nuevo("x"); let p = Palabra { texto: vista(s), n: 1 };'
      ' let v = texto_de(p); empujar(s, "y"); imprimir(v); imprimir(p.n); }',
      "esta prestada por `p` y `v`"),
 
     ("una lista no guarda structs que prestan",
-     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn main() { var xs: lista<Palabra> = []; imprimir(largo(xs)); }',
+     _PALABRA + 'fn main() { var xs: lista<Palabra> = []; imprimir(largo(xs)); }',
      "no es un tipo almacenable"),
 
     ("un mapa tampoco guarda vistas",
@@ -510,69 +521,69 @@ RECHAZO = [
      "un enum no guarda prestamos"),
 
     ("no se guarda una vista en algo prestado",
-     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn g(p: mut Palabra, v: view) { p.texto = v; }',
+     _PALABRA + 'fn g(p: mut Palabra, v: view) { p.texto = v; }',
      "no se puede guardar un prestamo en `p`"),
 
     ("una clausura no captura un struct que presta",
-     'struct Palabra { texto: view, n: usize } fn texto_de(p: Palabra) -> view { return p.texto; } fn main() { let s = nuevo("x"); let p = Palabra { texto: vista(s), n: 1 };'
+     _PALABRA + 'fn main() { let s = nuevo("x"); let p = Palabra { texto: vista(s), n: 1 };'
      ' let f = fn[p]() -> usize { return 1; }; imprimir(f()); }',
      "`p` es `Palabra`, un prestamo"),
 
     # ---- sacar un campo de su struct ----
     ("un struct a medio mover no se usa entero",
-     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn main() { let p = nuevo_p(); let n = p.nombre; imprimir(toma(p));'
+     _MEDIO + 'fn main() { let p = nuevo_p(); let n = p.nombre; imprimir(toma(p));'
      ' imprimir(n); }',
      "`p` esta a medio mover: `p.nombre` se saco"),
 
     ("un campo sacado no se usa otra vez",
-     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn main() { let p = nuevo_p(); let n = p.nombre; let m = p.nombre;'
+     _MEDIO + 'fn main() { let p = nuevo_p(); let n = p.nombre; let m = p.nombre;'
      ' imprimir(n); imprimir(m); }',
      "`p.nombre` ya se saco"),
 
     ("un campo no se saca dentro de un `if`",
-     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn main() { let p = nuevo_p(); if true { let n = p.nombre;'
+     _MEDIO + 'fn main() { let p = nuevo_p(); if true { let n = p.nombre;'
      ' imprimir(n); } }',
      "no se puede sacar `p.nombre` dentro de un `if`"),
 
     ("ni de algo prestado",
-     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn f(p: &P) -> str { return p.nombre; }',
+     _MEDIO + 'fn f(p: &P) -> str { return p.nombre; }',
      "`p` es prestada: no se puede sacar `p.nombre`"),
 
     ("ni mientras una vista lo mira",
-     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn main() { var p = nuevo_p(); let v = vista(p.nombre);'
+     _MEDIO + 'fn main() { var p = nuevo_p(); let v = vista(p.nombre);'
      ' let n = p.nombre; imprimir(v); imprimir(n); }',
      "no se puede sacar `p.nombre`: esta prestada por `v`"),
 
     ("reponerlo dentro de un `if` no lo repone para despues",
-     'struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } fn toma(p: P) -> usize { return p.edad; } fn nuevo_p() -> P { return P { nombre: nuevo("a"), edad: 1, sub: Q { t: nuevo("b") } }; } fn main() { var p = nuevo_p(); let n = p.nombre;'
+     _MEDIO + 'fn main() { var p = nuevo_p(); let n = p.nombre;'
      ' if true { p.nombre = nuevo("x"); } imprimir(toma(p)); imprimir(n); }',
      "`p` esta a medio mover"),
 
     # ---- patrones anidados, literales y guardas ----
     ("un brazo con condiciones no cubre su forma el solo",
-     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn f(e: &E) -> usize { return match e { E.X -> 0, E.Y(1) -> 1,'
+     _FORMAS + 'fn f(e: &E) -> usize { return match e { E.X -> 0, E.Y(1) -> 1,'
      ' E.Z(_, _) -> 2, }; }',
      "le pueden quedar casos de `E.Y` sin mirar"),
 
     ("un brazo detras de otro que ya lo cubre no se ejecuta nunca",
-     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn f(e: &E) -> usize { return match e { E.X -> 0, E.Y(_) -> 1,'
+     _FORMAS + 'fn f(e: &E) -> usize { return match e { E.X -> 0, E.Y(_) -> 1,'
      ' E.Y(3) -> 2, E.Z(_, _) -> 3, }; }',
      "`E.Y` se mira dos veces"),
 
     ("un literal del patron tiene que ser del tipo de su posicion",
-     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn f(e: &E) -> usize { return match e { E.Y("a") -> 1, _ -> 2, }; }',
+     _FORMAS + 'fn f(e: &E) -> usize { return match e { E.Y("a") -> 1, _ -> 2, }; }',
      "el literal del patron no es uno"),
 
     ("una forma anidada tiene que ser del enum de su posicion",
-     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn f(e: &E) -> usize { return match e { E.Y(E2.A) -> 1, _ -> 2, }; }',
+     _FORMAS + 'fn f(e: &E) -> usize { return match e { E.Y(E2.A) -> 1, _ -> 2, }; }',
      "el patron pone `E2.A`"),
 
     ("la guarda es un `bool`",
-     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn f(e: &E) -> usize { return match e { E.Y(n) if n -> 1, _ -> 2, }; }',
+     _FORMAS + 'fn f(e: &E) -> usize { return match e { E.Y(n) if n -> 1, _ -> 2, }; }',
      "la guarda de un brazo tiene que ser `bool`"),
 
     ("una guarda no mueve nada",
-     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } fn g(s: str) -> bool { return largo(s) > 0; }'
+     _FORMAS + 'fn g(s: str) -> bool { return largo(s) > 0; }'
      ' fn f(e: &E, s: str) -> usize { return match e { E.Y(_) if g(s) -> 1,'
      ' _ -> 2, }; }',
      "una guarda no mueve nada"),
@@ -1982,7 +1993,8 @@ fn entrega(p: P) -> str {
 }
 
 fn main() {
-    var p = P { nombre: nuevo("ana"), edad: 3, tags: [], dentro: Interior { texto: nuevo("hondo"), n: 1 } };
+    var p = P { nombre: nuevo("ana"), edad: 3, tags: [],
+        dentro: Interior { texto: nuevo("hondo"), n: 1 } };
     anadir(p.tags, nuevo("x"));
     let n = p.nombre;
     let t = p.dentro.texto;
@@ -4295,7 +4307,7 @@ if seccion("TIPOS", "la capa de tipos del comprobador, en Tcode"):
                               f"{os.path.basename(archivo)}: sanitizer\n"
                               f"{e.stderr[:400]}")
                         continue
-                    salida = [l for l in e.stdout.splitlines() if l.strip()]
+                    salida = [linea for linea in e.stdout.splitlines() if linea.strip()]
                     if salida != esperado:
                         dif = [f"  Tcode: {a!r}\n  Python: {b!r}"
                                for a, b in zip(salida, esperado) if a != b]
@@ -4391,7 +4403,7 @@ if seccion("TIPAR", "de que tipo es cada variable, dicho por Tcode"):
                               f"{os.path.basename(archivo)}: sanitizer\n"
                               f"{e.stderr[:400]}")
                         continue
-                    dado = [l for l in e.stdout.splitlines() if l.strip()]
+                    dado = [linea for linea in e.stdout.splitlines() if linea.strip()]
                     if dado != esperado:
                         d = next((i for i, (a, b) in enumerate(zip(dado, esperado))
                                   if a != b), None)
@@ -4497,7 +4509,7 @@ if seccion("PROPIEDAD", "que le pasa a cada valor, dicho por Tcode"):
                         falla("propiedad en Tcode",
                               f"{rel}: sanitizer\n{e.stderr[:400]}")
                         continue
-                    dado = [l for l in e.stdout.splitlines() if l.strip()]
+                    dado = [linea for linea in e.stdout.splitlines() if linea.strip()]
                     coincide = dado == esperado
                     if coincide and rel in _PROPIEDAD_PENDIENTES:
                         falla("propiedad en Tcode",
@@ -4597,7 +4609,7 @@ if seccion("FIRMAS", "la cara en C de cada funcion, dicha por Tcode"):
                               f"{os.path.basename(archivo)}: sanitizer\n"
                               f"{e.stderr[:400]}")
                         continue
-                    dado = [l for l in e.stdout.splitlines() if l.strip()]
+                    dado = [linea for linea in e.stdout.splitlines() if linea.strip()]
                     if dado != esperado:
                         d = next((i for i, (a, b) in enumerate(zip(dado, esperado))
                                   if a != b), None)
@@ -4733,7 +4745,7 @@ if seccion("EXPRESIONES", "el C de una expresion, escrito por Tcode"):
                               f"{os.path.basename(archivo)}: sanitizer\n"
                               f"{e.stderr[:400]}")
                         continue
-                    dado = [l for l in e.stdout.splitlines() if l.strip()]
+                    dado = [linea for linea in e.stdout.splitlines() if linea.strip()]
                     if len(dado) != len(esperado):
                         falla("expresiones en Tcode",
                               f"{os.path.relpath(archivo, RAIZ)}: {len(dado)} "
@@ -5092,7 +5104,8 @@ fn entrega(p: P) -> str {
 }
 
 fn main() {
-    var p = P { nombre: nuevo("ana"), edad: 3, tags: [], dentro: Interior { texto: nuevo("hondo"), n: 1 } };
+    var p = P { nombre: nuevo("ana"), edad: 3, tags: [],
+        dentro: Interior { texto: nuevo("hondo"), n: 1 } };
     anadir(p.tags, nuevo("x"));
     let n = p.nombre;
     let t = p.dentro.texto;
@@ -5271,18 +5284,61 @@ fn main() {
     # sin pedirlo. `tcodec` tiene que decir lo mismo que el cargador de Python.
     M = 'fn main() { imprimir("x"); }'
     _MODULOS_EXTRA_TCODEC = [
-     ("ciclo de tres", {"a.t": 'usar "b.t";\n'+M, "b.t": 'usar "c.t";\nfn b() {}', "c.t": 'usar "a.t";\nfn c() {}'}, "a.t"),
-     ("falta sin .t", {"a.t": 'usar "fantasma";\n'+M}, "a.t"),
-     ("falta de std", {"a.t": 'usar "std/fantasma";\n'+M}, "a.t"),
-     ("falta dentro de otro", {"a.t": 'usar "lib/b.t";\n'+M, "lib/b.t": '\n\nusar "nada.t";\nfn b() {}'}, "a.t"),
-     ("propio contra traido", {"x.t": 'fn dos() -> usize { return 2; }', "app.t": 'usar "x.t";\nfn dos() -> usize { return 3; }\n'+M}, "app.t"),
-     ("con alias no choca", {"x.t": 'fn dos() -> usize { return 2; }', "y.t": 'fn dos() -> usize { return 22; }', "app.t": 'usar "x.t";\nusar "y.t" como y;\nfn main() { imprimir(dos() + y.dos()); }'}, "app.t"),
-     ("sin pedir una funcion", {"c.t": 'fn tres() -> usize { return 3; }', "b.t": 'usar "c.t";\nfn b() -> usize { return tres(); }', "app.t": 'usar "b.t";\nfn main() {\n    imprimir(b());\n    imprimir(tres());\n}'}, "app.t"),
-     ("sin pedir un struct", {"c.t": 'struct Caja { n: usize }', "b.t": 'usar "c.t";\nfn b() -> usize { let k = Caja { n: 1 }; return k.n; }', "app.t": 'usar "b.t";\nfn main() {\n    let k = Caja { n: 2 };\n    imprimir(k.n);\n}'}, "app.t"),
-     ("sin pedir un enum", {"c.t": 'enum Color { Rojo, Verde }', "b.t": 'usar "c.t";\nfn b() -> usize { let k = Color.Rojo; return 1; }', "app.t": 'usar "b.t";\nfn main() {\n    let k = Color.Verde;\n    imprimir(b());\n}'}, "app.t"),
-     ("local con nombre de fuera", {"c.t": 'fn tres() -> usize { return 3; }', "b.t": 'usar "c.t";\nfn b() -> usize { return tres(); }', "app.t": 'usar "b.t";\nfn main() {\n    let f = fn(x: usize) -> usize { return x; };\n    imprimir(b());\n}'}, "app.t"),
-     ("dos usar del mismo", {"x.t": 'fn uno() -> usize { return 1; }', "app.t": 'usar "x.t";\nusar "x.t" como otra;\nfn main() { imprimir(uno() + otra.uno()); }'}, "app.t"),
-     ("rombo con choque", {"x.t": 'fn f() -> usize { return 1; }', "lib/x.t": 'fn f() -> usize { return 2; }', "app.t": 'usar "x.t";\nusar "lib/x.t";\nfn main() { imprimir(f()); }'}, "app.t"),
+        ("ciclo de tres", {
+            "a.t": 'usar "b.t";\n'+M,
+            "b.t": 'usar "c.t";\nfn b() {}',
+            "c.t": 'usar "a.t";\nfn c() {}',
+        }, "a.t"),
+        ("falta sin .t", {
+            "a.t": 'usar "fantasma";\n'+M,
+        }, "a.t"),
+        ("falta de std", {
+            "a.t": 'usar "std/fantasma";\n'+M,
+        }, "a.t"),
+        ("falta dentro de otro", {
+            "a.t": 'usar "lib/b.t";\n'+M,
+            "lib/b.t": '\n\nusar "nada.t";\nfn b() {}',
+        }, "a.t"),
+        ("propio contra traido", {
+            "x.t": 'fn dos() -> usize { return 2; }',
+            "app.t": 'usar "x.t";\nfn dos() -> usize { return 3; }\n'+M,
+        }, "app.t"),
+        ("con alias no choca", {
+            "x.t": 'fn dos() -> usize { return 2; }',
+            "y.t": 'fn dos() -> usize { return 22; }',
+            "app.t": 'usar "x.t";\nusar "y.t" como y;\nfn main() { imprimir(dos() + y.dos()); }',
+        }, "app.t"),
+        ("sin pedir una funcion", {
+            "c.t": 'fn tres() -> usize { return 3; }',
+            "b.t": 'usar "c.t";\nfn b() -> usize { return tres(); }',
+            "app.t": 'usar "b.t";\nfn main() {\n    imprimir(b());\n    imprimir(tres());\n}',
+        }, "app.t"),
+        ("sin pedir un struct", {
+            "c.t": 'struct Caja { n: usize }',
+            "b.t": 'usar "c.t";\nfn b() -> usize { let k = Caja { n: 1 }; return k.n; }',
+            "app.t": 'usar "b.t";\nfn main() {\n    let k = Caja { n: 2 };\n    imprimir(k.n);\n}',
+        }, "app.t"),
+        ("sin pedir un enum", {
+            "c.t": 'enum Color { Rojo, Verde }',
+            "b.t": 'usar "c.t";\nfn b() -> usize { let k = Color.Rojo; return 1; }',
+            "app.t": 'usar "b.t";\nfn main() {\n    let k = Color.Verde;\n    imprimir(b());\n}',
+        }, "app.t"),
+        ("local con nombre de fuera", {
+            "c.t": 'fn tres() -> usize { return 3; }',
+            "b.t": 'usar "c.t";\nfn b() -> usize { return tres(); }',
+            "app.t": ('usar "b.t";\nfn main() {\n'
+                      '    let f = fn(x: usize) -> usize { return x; };\n    imprimir(b());\n}'),
+        }, "app.t"),
+        ("dos usar del mismo", {
+            "x.t": 'fn uno() -> usize { return 1; }',
+            "app.t": ('usar "x.t";\nusar "x.t" como otra;\n'
+                      'fn main() { imprimir(uno() + otra.uno()); }'),
+        }, "app.t"),
+        ("rombo con choque", {
+            "x.t": 'fn f() -> usize { return 1; }',
+            "lib/x.t": 'fn f() -> usize { return 2; }',
+            "app.t": 'usar "x.t";\nusar "lib/x.t";\nfn main() { imprimir(f()); }',
+        }, "app.t"),
     ]
 
     # Un programa para cada aviso, y los casos raros: `_x`, lo que atrapa un
@@ -5534,7 +5590,7 @@ fn main() {
                               escritos_r, en_procesos(_errores_python,
                                                       [r for _, r in escritos_r]))
                           if de_python]
-            for (nombre, _, de_python), (rc, de_tcodec, crudo) in zip(
+            for (nombre, _, de_python), (rc, de_tcodec, _crudo) in zip(
                     trabajos_r, en_paralelo(lambda t: _errores_tcodec(t[1]),
                                             trabajos_r)):
                 rechazados += 1
@@ -5569,7 +5625,7 @@ fn main() {
             trabajos_a = [t for t, de_python in zip(
                 escritos_a, en_procesos(_errores_python, [r for _, r in escritos_a]))
                           if not de_python]
-            for (nombre, _), (rc, de_tcodec, crudo) in zip(
+            for (nombre, _), (_rc, de_tcodec, _crudo) in zip(
                     trabajos_a, en_paralelo(lambda t: _errores_tcodec(t[1]),
                                             trabajos_a)):
                 correctos += 1
@@ -5607,17 +5663,15 @@ fn main() {
                     if literal:
                         forma = rnd.choice(["punto", "paren", "arroba", "comilla"])
                     n = len(t.valor)
-                    nueva = {
-                        "borra": lambda: li[:c] + li[c + n:],
-                        "dup": lambda: li[:c] + li[c:c + n] + " " + li[c:],
-                        "punto": lambda: li[:c] + ";" + li[c:],
-                        "paren": lambda: li[:c] + ")" + li[c:],
-                        "llave": lambda: li[:c] + "{" + li[c:],
-                        "arroba": lambda: li[:c] + "@" + li[c:],
-                        "comilla": lambda: li[:c] + '"' + li[c:],
-                        "cero": lambda: li[:c] + "0x" + li[c:],
-                        "fn": lambda: li[:c] + "fn " + li[c:],
-                    }[forma]()
+                    if forma == "borra":
+                        nueva = li[:c] + li[c + n:]
+                    elif forma == "dup":
+                        nueva = li[:c] + li[c:c + n] + " " + li[c:]
+                    else:
+                        # Lo que se mete delante del token.
+                        nueva = li[:c] + {"punto": ";", "paren": ")", "llave": "{",
+                                          "arroba": "@", "comilla": '"', "cero": "0x",
+                                          "fn": "fn "}[forma] + li[c:]
                     otras = list(lineas)
                     otras[t.linea - 1] = nueva
                     yield f"{forma} en la linea {t.linea}", "\n".join(otras)
@@ -5645,7 +5699,7 @@ fn main() {
                                   trabajos_m, en_procesos(
                                       _errores_python, [t[2] for t in trabajos_m]))
                               if de_python]
-                for (archivo, que, _, de_python), (rc, de_tcodec, crudo) in zip(
+                for (archivo, que, _, de_python), (_rc, de_tcodec, crudo) in zip(
                         trabajos_m, en_paralelo(lambda t: _errores_tcodec(t[2]),
                                                 trabajos_m)):
                     rotos += 1
@@ -5712,7 +5766,7 @@ fn main() {
                 return None if errs else comp_a.avisos
 
             aceptados_rutas = []
-            for i_a, (n_a, f_a, *_ ) in enumerate(ACEPTA):
+            for i_a, (_, f_a, *_ ) in enumerate(ACEPTA):
                 r_a = os.path.join(tmp, f"acepta-h-{i_a}.t")
                 with open(r_a, "w", encoding="utf-8") as f:
                     f.write(f_a)
@@ -5876,7 +5930,7 @@ fn main() {
                                       timeout=180, env=entorno)
 
             iguales_s = 0
-            for (nombre_s, ruta_s, esperado_s), e in zip(
+            for (nombre_s, _, esperado_s), e in zip(
                     trabajos_s, en_paralelo(_tcodec_escribe, trabajos_s)):
                 total += 1
                 if e.returncode != 0:
@@ -6119,8 +6173,8 @@ if seccion("LINEAS", "el C generado apunta al `.t`, no a si mismo"):
                 continue
             codigo = r.stdout
             vistas = 0
-            for l in codigo.splitlines():
-                m = _DIRECTIVA.match(l)
+            for linea in codigo.splitlines():
+                m = _DIRECTIVA.match(linea)
                 if not m:
                     continue
                 vistas += 1
@@ -6178,7 +6232,7 @@ if seccion("LINEAS", "el C generado apunta al `.t`, no a si mismo"):
                               or "Could not trace the inferior process" in e.stderr)
                 if sin_ptrace:
                     print("    (gdb instalado, pero el entorno bloquea ptrace)")
-                elif f"hondo.t:3" not in e.stdout:
+                elif "hondo.t:3" not in e.stdout:
                     falla("el depurador ve el `.t`",
                           "la pila no señala `hondo.t:3`:\n"
                           + (e.stdout + e.stderr)[-600:])
