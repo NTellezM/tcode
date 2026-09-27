@@ -1885,6 +1885,23 @@ class Generador:
             if not self._termina_en_retorno(b.cuerpo):
                 self.liberar_bloque(self.pila[-1])
 
+    def valor_de_rama(self, e, tipo, destino):
+        """El valor de una rama —un lado de un `if` que da valor, la
+        alternativa de un `sino`— dejado en `destino`. Lo que nace dentro se
+        suelta dentro: el bloque de C de la rama se cierra antes que la
+        sentencia, y un temporal declarado ahi no existe fuera. Como un brazo
+        de `match`."""
+        anteriores = self.temporales
+        self.temporales_fuera.append(anteriores)
+        self.temporales = []
+        valor = self.expr(e, tipo)
+        self.reclamar(valor)
+        self.emitir(f"{destino} = {valor};")
+        for t in self.temporales:
+            self.liberacion(t, self.tipo_var(t) or "str")
+        self.temporales = anteriores
+        self.temporales_fuera.pop()
+
     def match_valor(self, e):
         """El `match` usado como valor: un temporal y el `switch` encima."""
         tipo = e.resultado or "usize"
@@ -2650,8 +2667,7 @@ class Generador:
             # lo anoto al generarla; lo unico propio de `sino` es que el
             # apagado va DENTRO de esta rama, no al final de la sentencia.
             with self.camino():
-                alt = self.expr(e.alternativa, t)
-                self.emitir(f"{elegido} = {alt};")
+                self.valor_de_rama(e.alternativa, t, elegido)
             self.sangria -= 1
             self.emitir("}")
             self.emitir("else")
@@ -2810,14 +2826,14 @@ class Generador:
             self.emitir("{")
             self.sangria += 1
             with self.camino():
-                self.emitir(f"{tmp} = {self.expr(e.entonces, t)};")
+                self.valor_de_rama(e.entonces, t, tmp)
             self.sangria -= 1
             self.emitir("}")
             self.emitir("else")
             self.emitir("{")
             self.sangria += 1
             with self.camino():
-                self.emitir(f"{tmp} = {self.expr(e.sino_, t)};")
+                self.valor_de_rama(e.sino_, t, tmp)
             self.sangria -= 1
             self.emitir("}")
             if self.c.posee(t):

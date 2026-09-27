@@ -1290,6 +1290,25 @@ RECHAZO = [
 
 
 ACEPTA = [
+    # Lo que nace dentro de una rama —la interpolacion de un lado de un `if`
+    # que da valor, la alternativa de un `sino`— se suelta dentro de ella:
+    # su bloque de C se cierra antes que la sentencia. Antes se soltaba al
+    # final, fuera de su bloque, y el C no compilaba.
+    ("lo que nace en una rama se suelta en la rama",
+     '''fn doble(v: view) -> str { return $"{v}{v}"; }
+        fn junta(a: str, b: view) -> str { var s = a; empujar(s, b); return s; }
+        fn main() {
+            let n: usize = 3;
+            let c = n > 1;
+            let a = if c { $"n={n}" } else { nuevo("x") };
+            let b = if c { doble($"ab{n}") } else { nuevo("y") };
+            let d = variable_entorno("TCODE_NO_EXISTE") sino $"def{n}";
+            let e = variable_entorno("TCODE_NO_EXISTE") sino doble($"cd{n}");
+            let f = if !c { nuevo("z") } else { junta(nuevo("p"), $"q{n}") };
+            imprimir($"{a} {b} {d} {e} {f}\\n");
+        }''',
+     "n=3 ab3ab3 def3 cd3cd3 pq3\n"),
+
     # Un prestamo dura hasta el ultimo uso de quien presta, no hasta el
     # final de su bloque: despues de la ultima vez que se lee `v`, `s` se
     # puede modificar, mover o devolver. Corre limpio bajo ASan.

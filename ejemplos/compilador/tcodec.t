@@ -7,10 +7,11 @@
 // mismo C. Lo que todavia no sabe escribir entero lo rechaza por la salida
 // de error, sin escribir medio archivo.
 //
-// Se ejecuta desde la raiz del repositorio: todavia no sabe preguntar por el
-// directorio de trabajo, y las rutas de los `#line` son relativas a el.
+// `std/` y `runtime/` estan donde diga `TCODE_RAIZ`; si no lo dice, los
+// busca subiendo desde su propio ejecutable.
 //
-//     TCODE_RAIZ=. ./tcodec ejemplos/binario.t > binario.c
+//     make tcodec
+//     ./tcodec ejemplos/binario.t --mostrar-c > binario.c
 
 usar "lib/programa.t" como F;
 usar "lib/generar.t" como G;
@@ -36,6 +37,7 @@ externo "lib/sistema_tcodec.c" {
     fn tcodec_temporal_junto(destino: str) -> cadena_c;
     fn tcodec_instalar(temporal: str, destino: str, ejecutable: i32) -> i32;
     fn tcodec_borrar(ruta: str);
+    fn tcodec_raiz_instalada() -> cadena_c;
 }
 
 // Donde empieza `que` en `t` a partir de `desde`, o `largo(t)` si no esta.
@@ -2540,6 +2542,9 @@ fn main() -> usize ! {
             sin_avisos = true;
         } else if igual(a, "--avisos-como-errores") {
             avisos_como_errores = true;
+        } else if igual(a, "--version") {
+            imprimir("tcodec 0.1.0\n");
+            return 0;
         } else if empieza_con(a, "-") {
             imprimir_error($"tcodec: no conozco la opcion `{a}`\n");
             return 2;
@@ -2581,7 +2586,8 @@ fn main() -> usize ! {
         return 0;
     }
 
-    let raiz = variable_entorno("TCODE_RAIZ") sino nuevo(".");
+    var raiz = variable_entorno("TCODE_RAIZ") sino tcodec_raiz_instalada();
+    if largo(raiz) == 0 { raiz = nuevo("."); }
     let principal = F.normalizar(vista(fuente));
     var modulos: lista<str> = [];
     var pila: lista<str> = [];
@@ -2623,7 +2629,7 @@ fn main() -> usize ! {
     var plantillas: mapa<str, usize> = [];
     var previos_st: mapa<str, usize> = [];
     var previos_en: mapa<str, usize> = [];
-    var leidos = P.leidos();
+    var leidos = P.leidos_en(vista(raiz));
     for m en modulos {
         var tipos = I.contexto();
         var error_m = vacio();

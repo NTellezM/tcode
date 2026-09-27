@@ -20,6 +20,11 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#if defined(__APPLE__)
+#  include <mach-o/dyld.h>
+#  include <stdint.h>
+#endif
+
 /* El analisis es recursivo, como la gramatica, y cada nivel de una expresion
    gasta varios KB de pila: con los 8 MB de siempre, mil parentesis anidados
    o una suma de veinte mil terminos la agotaban. La pila del hilo principal
@@ -170,4 +175,49 @@ int tcodec_instalar(const char* temporal, const char* destino, int ejecutable)
 void tcodec_borrar(const char* ruta)
 {
     (void) remove(ruta);
+}
+
+/* Donde esta Tcode —el directorio con `std/` y `runtime/`— para quien no
+   dice `TCODE_RAIZ`: se sube desde el propio ejecutable hasta dar con
+   `runtime/cabecera.inc`. Como las rutas que ensena el compilador de Python,
+   relativa si cae dentro del directorio de trabajo (`.` si es el mismo), y
+   entera si no. "" si no se encuentra. */
+const char* tcodec_raiz_instalada(void)
+{
+    static char salida[PATH_MAX];
+    char dir[PATH_MAX];
+#if defined(__linux__)
+    ssize_t n = readlink("/proc/self/exe", dir, sizeof dir - 1);
+    if (n <= 0) return "";
+    dir[n] = '\0';
+#elif defined(__APPLE__)
+    char crudo[PATH_MAX];
+    uint32_t tam = sizeof crudo;
+    if (_NSGetExecutablePath(crudo, &tam) != 0 || realpath(crudo, dir) == NULL) return "";
+#else
+    return "";
+#endif
+    for (;;) {
+        char* barra = strrchr(dir, '/');
+        if (barra == NULL) return "";
+        *barra = '\0';
+        char prueba[PATH_MAX];
+        if (snprintf(prueba, sizeof prueba, "%s/runtime/cabecera.inc", dir)
+            >= (int) sizeof prueba)
+            return "";
+        if (tcodec_es_archivo(prueba)) break;
+        if (dir[0] == '\0') return "";
+    }
+    char trabajo[PATH_MAX];
+    char trabajo_real[PATH_MAX];
+    if (getcwd(trabajo, sizeof trabajo) != NULL && realpath(trabajo, trabajo_real) != NULL) {
+        size_t k = strlen(trabajo_real);
+        if (strcmp(dir, trabajo_real) == 0) return ".";
+        if (strncmp(dir, trabajo_real, k) == 0 && dir[k] == '/') {
+            snprintf(salida, sizeof salida, "%s", dir + k + 1);
+            return salida;
+        }
+    }
+    snprintf(salida, sizeof salida, "%s", dir);
+    return salida;
 }
