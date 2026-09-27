@@ -72,7 +72,7 @@ def correr(suite: Resultado) -> None:
                     glob.glob(os.path.join(RAIZ, "std", "*.t"))
                     + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
                                 recursive=True))
-                previos = set()
+                previos: set[str] = set()
                 for a in archivos:
                     from tcode.parser import parsear as _p
                     try:
@@ -92,17 +92,17 @@ def correr(suite: Resultado) -> None:
                                        text=True, timeout=180)
                     if "Sanitizer" in e.stderr:
                         suite.falla("la capa de tipos en Tcode",
-                              f"{os.path.basename(archivo)}: sanitizer\n"
-                              f"{e.stderr[:400]}")
+                                    f"{os.path.basename(archivo)}: sanitizer\n"
+                                    f"{e.stderr[:400]}")
                         continue
                     salida = [linea for linea in e.stdout.splitlines() if linea.strip()]
                     if salida != esperado:
                         dif = [f"  Tcode: {a!r}\n  Python: {b!r}"
                                for a, b in zip(salida, esperado) if a != b]
                         suite.falla("la capa de tipos en Tcode",
-                              f"{os.path.basename(archivo)}: "
-                              f"{len(salida)} lineas contra {len(esperado)}\n"
-                              + "\n".join(dif[:4]))
+                                    f"{os.path.basename(archivo)}: "
+                                    f"{len(salida)} lineas contra {len(esperado)}\n"
+                                    + "\n".join(dif[:4]))
                         continue
                     comparados += 1
                     tipos_vistos += len(salida)

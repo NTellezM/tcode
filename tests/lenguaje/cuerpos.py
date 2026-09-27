@@ -90,8 +90,8 @@ def correr(suite: Resultado) -> None:
                                        text=True, timeout=180, cwd=RAIZ)
                     if "Sanitizer" in e.stderr:
                         suite.falla("cuerpos en Tcode",
-                              f"{os.path.basename(archivo)}: sanitizer\n"
-                              f"{e.stderr[:400]}")
+                                    f"{os.path.basename(archivo)}: sanitizer\n"
+                                    f"{e.stderr[:400]}")
                         continue
                     # El separador va a principio de linea: el C que se compara
                     # puede llevar `@@ ` dentro de un literal —el propio
@@ -127,14 +127,14 @@ def correr(suite: Resultado) -> None:
                             iguales += 1
                         else:
                             suite.falla("cuerpos en Tcode",
-                                  f"{os.path.relpath(archivo, RAIZ)} :: {nombre}\n"
-                                  f"--- Tcode ---\n{dado}\n--- Python ---\n"
-                                  f"{esperado}")
+                                        f"{os.path.relpath(archivo, RAIZ)} :: {nombre}\n"
+                                        f"--- Tcode ---\n{dado}\n--- Python ---\n"
+                                        f"{esperado}")
                 if iguales < _MINIMO_CUERPOS:
                     suite.total += 1
                     suite.falla("cuerpos en Tcode",
-                          f"solo {iguales} funciones enteras, se esperaban al "
-                          f"menos {_MINIMO_CUERPOS}")
+                                f"solo {iguales} funciones enteras, se esperaban al "
+                                f"menos {_MINIMO_CUERPOS}")
                 suite.cifra("cuerpos", iguales)
                 print(f"    {iguales} funciones enteras, mismo C que el generador "
                       f"de Python")

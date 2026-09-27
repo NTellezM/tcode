@@ -484,6 +484,7 @@ make                # construye ./tcodec, el compilador
 ./tcodec --version
 make check          # la suite completa
 make ejemplos       # compila y corre los ejemplos
+make lint           # ruff y mypy sobre el codigo Python (pip install ruff mypy)
 ```
 
 Tu primer programa:

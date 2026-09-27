@@ -42,10 +42,10 @@ def correr(suite: Resultado) -> None:
             despues = f.read()
         if r.returncode == 0 or despues != contenido:
             suite.falla("la salida implicita no pisa un fuente sin extension",
-                  f"codigo {r.returncode}, contenido {despues!r}")
+                        f"codigo {r.returncode}, contenido {despues!r}")
         elif "propio archivo fuente" not in r.stderr:
             suite.falla("la salida implicita no pisa un fuente sin extension",
-                  f"diagnostico inesperado: {r.stderr!r}")
+                        f"diagnostico inesperado: {r.stderr!r}")
 
         suite.total += 1
         binario_previo = os.path.join(tmp, "programa-anterior")
@@ -55,13 +55,13 @@ def correr(suite: Resultado) -> None:
         r = subprocess.run([tcodec(), fuente, "--cc", "/bin/false", "-o", binario_previo],
                            env=ENTORNO_TCODEC, capture_output=True, text=True)
         with open(binario_previo, "rb") as f:
-            despues = f.read()
+            despues_bin = f.read()
         if r.returncode == 0:
             suite.falla("un fallo de C conserva el binario anterior",
-                  "el compilador C falso se considero exitoso")
-        elif despues != marca_previa:
+                        "el compilador C falso se considero exitoso")
+        elif despues_bin != marca_previa:
             suite.falla("un fallo de C conserva el binario anterior",
-                  f"el destino cambio a {despues!r}")
+                        f"el destino cambio a {despues_bin!r}")
 
         # Formatear un enlace escribe en lo que apunta: reemplazarlo lo convertia
         # en un archivo suelto y dejaba el original sin tocar.
@@ -77,10 +77,10 @@ def correr(suite: Resultado) -> None:
             formateado = f.read()
         if r.returncode != 0 or not os.path.islink(enlace):
             suite.falla("formatear un enlace conserva el enlace",
-                  f"codigo {r.returncode}, enlace {os.path.islink(enlace)}")
+                        f"codigo {r.returncode}, enlace {os.path.islink(enlace)}")
         elif '    imprimir("a");' not in formateado:
             suite.falla("formatear un enlace conserva el enlace",
-                  f"el original no se formateo: {formateado!r}")
+                        f"el original no se formateo: {formateado!r}")
 
         # Un binario nuevo respeta el `umask`, como lo haria `cc -o`.
         suite.total += 1
@@ -91,5 +91,5 @@ def correr(suite: Resultado) -> None:
         modo = os.stat(nuevo_bin).st_mode & 0o777 if os.path.exists(nuevo_bin) else None
         if r.returncode != 0 or modo != 0o750:
             suite.falla("un binario nuevo respeta el umask",
-                  f"codigo {r.returncode}, modo {oct(modo) if modo else None}, "
-                  f"stderr {r.stderr[:300]!r}")
+                        f"codigo {r.returncode}, modo {oct(modo) if modo else None}, "
+                        f"stderr {r.stderr[:300]!r}")

@@ -136,14 +136,14 @@ def correr(suite: Resultado) -> None:
                                        text=True, timeout=180)
                     if "Sanitizer" in e.stderr:
                         suite.falla("expresiones en Tcode",
-                              f"{os.path.basename(archivo)}: sanitizer\n"
-                              f"{e.stderr[:400]}")
+                                    f"{os.path.basename(archivo)}: sanitizer\n"
+                                    f"{e.stderr[:400]}")
                         continue
                     dado = [linea for linea in e.stdout.splitlines() if linea.strip()]
                     if len(dado) != len(esperado):
                         suite.falla("expresiones en Tcode",
-                              f"{os.path.relpath(archivo, RAIZ)}: {len(dado)} "
-                              f"expresiones contra {len(esperado)}")
+                                    f"{os.path.relpath(archivo, RAIZ)}: {len(dado)} "
+                                    f"expresiones contra {len(esperado)}")
                         continue
                     for a, b in zip(dado, esperado):
                         vistas += 1
@@ -156,15 +156,15 @@ def correr(suite: Resultado) -> None:
                         # dice en que orden se genero, no que C sale.
                         if _renumera_tmp(a) != _renumera_tmp(b):
                             suite.falla("expresiones en Tcode",
-                                  f"{os.path.relpath(archivo, RAIZ)}:\n"
-                                  f"  Tcode:  {a!r}\n  Python: {b!r}")
+                                        f"{os.path.relpath(archivo, RAIZ)}:\n"
+                                        f"  Tcode:  {a!r}\n  Python: {b!r}")
                         else:
                             cubiertas += 1
                 if cubiertas < _MINIMO_CUBIERTAS:
                     suite.total += 1
                     suite.falla("expresiones en Tcode",
-                          f"solo {cubiertas} expresiones cubiertas, se esperaban "
-                          f"al menos {_MINIMO_CUBIERTAS}")
+                                f"solo {cubiertas} expresiones cubiertas, se esperaban "
+                                f"al menos {_MINIMO_CUBIERTAS}")
                 suite.cifra("expresiones_iguales", cubiertas)
                 suite.cifra("expresiones", vistas)
                 print(f"    {cubiertas} de {vistas} expresiones, mismo C que el "

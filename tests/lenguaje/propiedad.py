@@ -33,7 +33,7 @@ def correr(suite: Resultado) -> None:
     # No hay excepciones: todos los archivos que ambas implementaciones pueden
     # analizar deben coincidir. El conjunto queda explicito para que una futura
     # divergencia no se pueda incorporar silenciosamente como caso permitido.
-    _PROPIEDAD_PENDIENTES = set()
+    _PROPIEDAD_PENDIENTES: set[str] = set()
 
     def _propiedad_esperada(ruta):
         from tcode.parser import parsear as _p
@@ -108,14 +108,14 @@ def correr(suite: Resultado) -> None:
                                        capture_output=True, text=True, timeout=180)
                     if "Sanitizer" in e.stderr:
                         suite.falla("propiedad en Tcode",
-                              f"{rel}: sanitizer\n{e.stderr[:400]}")
+                                    f"{rel}: sanitizer\n{e.stderr[:400]}")
                         continue
                     dado = [linea for linea in e.stdout.splitlines() if linea.strip()]
                     coincide = dado == esperado
                     if coincide and rel in _PROPIEDAD_PENDIENTES:
                         suite.falla("propiedad en Tcode",
-                              f"{rel} ya coincide: quitalo de "
-                              f"_PROPIEDAD_PENDIENTES")
+                                    f"{rel} ya coincide: quitalo de "
+                                    f"_PROPIEDAD_PENDIENTES")
                     elif not coincide and rel not in _PROPIEDAD_PENDIENTES:
                         d = next((i for i, (a, b) in enumerate(zip(dado, esperado))
                                   if a != b), None)

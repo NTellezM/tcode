@@ -620,7 +620,7 @@ fn main() {
                                text=True, timeout=60, env=entorno)
             if e.returncode == 0 or e.stdout:
                 suite.falla("tcodec rechaza literales enteros fuera de rango",
-                      f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
+                            f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
 
             suite.total += 1
             decimal_invalido = os.path.join(tmp, "decimal-invalido.t")
@@ -630,7 +630,7 @@ fn main() {
                                text=True, timeout=60, env=entorno)
             if e.returncode == 0 or e.stdout:
                 suite.falla("tcodec rechaza literales decimales infinitos",
-                      f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
+                            f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
 
             suite.total += 1
             inexacto = os.path.join(tmp, "entero-inexacto.t")
@@ -641,7 +641,7 @@ fn main() {
                                text=True, timeout=60, env=entorno)
             if e.returncode == 0 or e.stdout:
                 suite.falla("tcodec rechaza enteros que un decimal redondearia",
-                      f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
+                            f"codigo {e.returncode}, genero {len(e.stdout)} bytes")
 
             suite.total += 1
             literal_valido = os.path.join(tmp, "literal-valido.t")
@@ -659,14 +659,14 @@ fn main() {
                                text=True, timeout=60, env=entorno)
             if errores_literal or e.returncode != 0 or e.stdout != esperado_literal:
                 suite.falla("tcodec conserva los limites enteros validos",
-                      f"errores {errores_literal}, codigo {e.returncode}, "
-                      f"stderr {e.stderr[:300]!r}")
+                            f"errores {errores_literal}, codigo {e.returncode}, "
+                            f"stderr {e.stderr[:300]!r}")
 
             # Clausuras con y sin capturas, una dentro de otra, guardadas en
             # una variable, pasadas a una generica, y punteros a funcion,
             # tambien uno que recibe otro. Nada de eso lo pide un programa del
             # repositorio salvo lo de `pruebas.t`.
-            trabajos_c = []
+            escritos_c = []
             for nombre_c, fuente_c in (("cierres.t", _CIERRES_TCODEC),
                                        ("anidado.t", _FN_ANIDADA_TCODEC),
                                        ("precedencia.t", _PRECEDENCIA_TCODEC),
@@ -688,9 +688,9 @@ fn main() {
                 ruta_cierre = os.path.join(tmp, nombre_c)
                 with open(ruta_cierre, "w", encoding="utf-8") as f:
                     f.write(fuente_c)
-                trabajos_c.append((nombre_c, ruta_cierre))
+                escritos_c.append((nombre_c, ruta_cierre))
             trabajos_c = [(n, r, *hecho) for (n, r), hecho in zip(
-                trabajos_c, en_procesos(compilar_archivo, [r for _, r in trabajos_c]))]
+                escritos_c, en_procesos(compilar_archivo, [r for _, r in escritos_c]))]
 
             # Lo que cuesta de aqui en adelante es `tcodec`, con los
             # sanitizers puestos: cada bucle calcula antes lo de Python y
@@ -705,8 +705,8 @@ fn main() {
                 suite.total += 1
                 if errores_c or e.returncode != 0 or e.stdout != esperado_c:
                     suite.falla(f"tcodec escribe {nombre_c}",
-                          f"errores {errores_c}, codigo {e.returncode}, "
-                          f"stderr {e.stderr[:300]!r}")
+                                f"errores {errores_c}, codigo {e.returncode}, "
+                                f"stderr {e.stderr[:300]!r}")
 
             # El comprobador en Tcode: lo que Python rechaza, tcodec tambien, y
             # con el mismo primer error; lo que Python acepta, tcodec no lo
@@ -736,15 +736,15 @@ fn main() {
                 suite.total += 1
                 if rc == 0:
                     suite.falla("el comprobador en Tcode rechaza lo que Python rechaza",
-                          f"{nombre}: tcodec lo acepto; Python dice "
-                          f"{de_python[0][:200]!r}")
+                                f"{nombre}: tcodec lo acepto; Python dice "
+                                f"{de_python[0][:200]!r}")
                 elif de_tcodec and de_tcodec[0] == de_python[0]:
                     mismos += 1
             suite.total += 1
             if mismos < _MINIMO_RECHAZOS:
                 suite.falla("el comprobador en Tcode da los mismos errores",
-                      f"solo {mismos} de {rechazados} con el mismo primer "
-                      f"error; se esperaban al menos {_MINIMO_RECHAZOS}")
+                            f"solo {mismos} de {rechazados} con el mismo primer "
+                            f"error; se esperaban al menos {_MINIMO_RECHAZOS}")
 
             correctos = 0
             aceptables = [(n, f) for n, f, *_ in ACEPTA]
@@ -771,7 +771,7 @@ fn main() {
                 suite.total += 1
                 if de_tcodec:
                     suite.falla("el comprobador en Tcode no rechaza programas correctos",
-                          f"{nombre}: {de_tcodec[0][:300]}")
+                                f"{nombre}: {de_tcodec[0][:300]}")
             suite.cifra("rechazos_iguales", mismos)
             suite.cifra("rechazos", rechazados)
             suite.cifra("correctos", correctos)
@@ -819,7 +819,7 @@ fn main() {
             # Cada mutante con su nombre, para que esten todos a la vez
             # mientras `tcodec` los lee.
             iguales_s = rotos = 0
-            trabajos_m = []
+            mutantes = []
             escritos_m = []
             try:
                 for archivo in sorted(glob.glob(os.path.join("std", "*.t"))
@@ -833,11 +833,11 @@ fn main() {
                         escritos_m.append(ruta_m)
                         with open(ruta_m, "w", encoding="utf-8") as f:
                             f.write(fuente_m)
-                        trabajos_m.append((archivo, que, ruta_m))
+                        mutantes.append((archivo, que, ruta_m))
                 trabajos_m = [(archivo, que, ruta_m, de_python)
                               for (archivo, que, ruta_m), de_python in zip(
-                                  trabajos_m, en_procesos(
-                                      _errores_python, [t[2] for t in trabajos_m]))
+                                  mutantes, en_procesos(
+                                      _errores_python, [t[2] for t in mutantes]))
                               if de_python]
                 for (archivo, que, _, de_python), (_rc, de_tcodec, crudo) in zip(
                         trabajos_m, en_paralelo(lambda t: _errores_tcodec(t[2]),
@@ -848,9 +848,9 @@ fn main() {
                         iguales_s += 1
                     else:
                         suite.falla("los errores de sintaxis en Tcode",
-                              f"{archivo}, {que}:\n"
-                              f"  Python: {de_python[0][:300]!r}\n"
-                              f"  Tcode:  {(de_tcodec[:1] or [crudo[:300]])[0]!r}")
+                                    f"{archivo}, {que}:\n"
+                                    f"  Python: {de_python[0][:300]!r}\n"
+                                    f"  Tcode:  {(de_tcodec[:1] or [crudo[:300]])[0]!r}")
             finally:
                 for ruta_m in escritos_m:
                     if os.path.exists(ruta_m):
@@ -885,8 +885,8 @@ fn main() {
                     mods_iguales += 1
                 else:
                     suite.falla("los errores de modulos en Tcode",
-                          f"{nombre_m}:\n  Python: {de_python[:1]!r}\n"
-                          f"  Tcode:  {de_tcodec[:1] or r_m.stderr[:200]!r}")
+                                f"{nombre_m}:\n  Python: {de_python[:1]!r}\n"
+                                f"  Tcode:  {de_tcodec[:1] or r_m.stderr[:200]!r}")
 
             aceptados_rutas = []
             for i_a, (_, f_a, *_ ) in enumerate(ACEPTA):
@@ -928,8 +928,8 @@ fn main() {
                     av_iguales += 1
                 else:
                     suite.falla("los avisos en Tcode",
-                          f"{ruta_a}:\n  Python: {esperados[:3]!r}\n"
-                          f"  Tcode:  {dados_a[:3]!r}")
+                                f"{ruta_a}:\n  Python: {esperados[:3]!r}\n"
+                                f"  Tcode:  {dados_a[:3]!r}")
                 suite.total += 1
                 if py_e.stdout == tc_e.stdout:
                     ex_iguales += 1
@@ -938,13 +938,13 @@ fn main() {
                     d_e = next((i for i, (x, y) in enumerate(zip(a_e, b_e)) if x != y),
                                min(len(a_e), len(b_e)))
                     suite.falla("--explicar en Tcode",
-                          f"{ruta_a}, linea {d_e + 1}:\n"
-                          f"  Python: {a_e[d_e] if d_e < len(a_e) else '(fin)'!r}\n"
-                          f"  Tcode:  {b_e[d_e] if d_e < len(b_e) else '(fin)'!r}")
+                                f"{ruta_a}, linea {d_e + 1}:\n"
+                                f"  Python: {a_e[d_e] if d_e < len(a_e) else '(fin)'!r}\n"
+                                f"  Tcode:  {b_e[d_e] if d_e < len(b_e) else '(fin)'!r}")
 
             from tcode.formato import formatear as _formatear
             fm_iguales = fm_total = 0
-            trabajos_f = []
+            trabajos_f: list[tuple[str, int, str, str]] = []
             for archivo_f in del_repo:
                 with open(archivo_f, encoding="utf-8") as f:
                     original_f = f.read()
@@ -976,7 +976,7 @@ fn main() {
                     fm_iguales += 1
                 else:
                     suite.falla("--formatear en Tcode",
-                          f"{archivo_f} ({'deformado' if k_f else 'tal cual'})")
+                                f"{archivo_f} ({'deformado' if k_f else 'tal cual'})")
             print(f"    herramientas: {mods_iguales} de {mods_total} casos de "
                   f"modulos, avisos iguales en {av_iguales} programas "
                   f"({av_cuantos} avisos), --explicar igual en {ex_iguales}, "
@@ -1007,22 +1007,22 @@ fn main() {
                 if e.returncode != 0:
                     # Lo que Python compila, `tcodec` lo escribe entero.
                     suite.falla("tcodec en Tcode",
-                          f"{archivo}: lo rechazo\n{e.stderr[:400]}")
+                                f"{archivo}: lo rechazo\n{e.stderr[:400]}")
                 elif e.stdout != esperado:
                     dado, bueno = e.stdout.splitlines(), esperado.splitlines()
                     n = next((i for i, (x, y) in enumerate(zip(dado, bueno))
                               if x != y), min(len(dado), len(bueno)))
                     suite.falla("tcodec en Tcode",
-                          f"{archivo}, linea {n + 1}:\n"
-                          f"  Tcode:  {dado[n] if n < len(dado) else '(fin)'!r}\n"
-                          f"  Python: {bueno[n] if n < len(bueno) else '(fin)'!r}")
+                                f"{archivo}, linea {n + 1}:\n"
+                                f"  Tcode:  {dado[n] if n < len(dado) else '(fin)'!r}\n"
+                                f"  Python: {bueno[n] if n < len(bueno) else '(fin)'!r}")
                 else:
                     iguales += 1
             if iguales < _MINIMO_PROGRAMAS:
                 suite.total += 1
                 suite.falla("tcodec en Tcode",
-                      f"solo {iguales} programas enteros, se esperaban al "
-                      f"menos {_MINIMO_PROGRAMAS}")
+                            f"solo {iguales} programas enteros, se esperaban al "
+                            f"menos {_MINIMO_PROGRAMAS}")
             suite.cifra("programas_enteros", iguales)
             print(f"    {iguales} programas enteros, mismo C que el generador "
                   f"de Python ({intentados} intentados)")
@@ -1031,7 +1031,7 @@ fn main() {
             # corren, los que abortan y los que avisan. Son los que cubren
             # el lenguaje construccion a construccion, asi que aqui se ve
             # si a `tcodec` le falta alguna.
-            trabajos_s = []
+            escritos_s = []
             for lista_s, casos_s in (("ACEPTA", ACEPTA), ("ABORTA", ABORTA),
                                      ("AVISA", AVISA)):
                 for i_s, caso_s in enumerate(casos_s):
@@ -1040,11 +1040,11 @@ fn main() {
                     ruta_s = os.path.join(dir_s, "p.t")
                     with open(ruta_s, "w", encoding="utf-8") as f:
                         f.write(caso_s[1])
-                    trabajos_s.append((caso_s[0], ruta_s))
+                    escritos_s.append((caso_s[0], ruta_s))
             trabajos_s = [(nombre_s, ruta_s, esperado_s)
                           for (nombre_s, ruta_s), (esperado_s, errores_s) in zip(
-                              trabajos_s, en_procesos(compilar_archivo,
-                                                      [r for _, r in trabajos_s]))
+                              escritos_s, en_procesos(compilar_archivo,
+                                                      [r for _, r in escritos_s]))
                           if not errores_s]
 
             def _tcodec_escribe(trabajo):
@@ -1058,15 +1058,15 @@ fn main() {
                 suite.total += 1
                 if e.returncode != 0:
                     suite.falla("tcodec escribe los programas de la suite",
-                          f"{nombre_s}: lo rechazo\n{e.stderr[-400:]}")
+                                f"{nombre_s}: lo rechazo\n{e.stderr[-400:]}")
                 elif e.stdout != esperado_s:
                     dado, bueno = e.stdout.splitlines(), esperado_s.splitlines()
                     n = next((i for i, (x, y) in enumerate(zip(dado, bueno))
                               if x != y), min(len(dado), len(bueno)))
                     suite.falla("tcodec escribe los programas de la suite",
-                          f"{nombre_s}, linea {n + 1}:\n"
-                          f"  Tcode:  {dado[n] if n < len(dado) else '(fin)'!r}\n"
-                          f"  Python: {bueno[n] if n < len(bueno) else '(fin)'!r}")
+                                f"{nombre_s}, linea {n + 1}:\n"
+                                f"  Tcode:  {dado[n] if n < len(dado) else '(fin)'!r}\n"
+                                f"  Python: {bueno[n] if n < len(bueno) else '(fin)'!r}")
                 else:
                     iguales_s += 1
             suite.cifra("programas_suite", iguales_s)
@@ -1098,7 +1098,7 @@ fn main() {
                                env=entorno)
             if errores_r or e.returncode != 0 or e.stdout != esperado_r:
                 suite.falla("tcodec escribe una funcion repetida entre modulos",
-                      f"{errores_r[:1]} {e.stderr[-300:]!r}")
+                            f"{errores_r[:1]} {e.stderr[-300:]!r}")
 
             # `tcodec` tambien hace el ultimo paso: llama al compilador de C,
             # enlaza lo que piden los `externo`, y deja el binario.
@@ -1111,7 +1111,7 @@ fn main() {
                                   timeout=60) if e.returncode == 0 else None)
             if e.returncode != 0 or r_h is None or r_h.stdout != "Hola, mundo!\n12 bytes\n":
                 suite.falla("tcodec compila y enlaza un programa",
-                      f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
+                            f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
 
             suite.total += 1
             bin_reloj = os.path.join(tmp, "reloj")
@@ -1122,7 +1122,7 @@ fn main() {
                                   timeout=60) if e.returncode == 0 else None)
             if e.returncode != 0 or r_r is None or r_r.returncode != 0:
                 suite.falla("tcodec enlaza el `.c` de un `externo`",
-                      f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
+                            f"codigo {e.returncode}, stderr {e.stderr[:300]!r}")
 
             # La salida nunca es el fuente ni un `.t`, y un fallo del
             # compilador de C deja el binario anterior como estaba.
@@ -1145,7 +1145,7 @@ fn main() {
                     or open(viejo, encoding="utf-8").read() != "binario anterior"
                     or open(fuente_s, encoding="utf-8").read() != antes_s):
                 suite.falla("tcodec protege el fuente y el binario anterior",
-                      f"{e1s.stderr[:200]!r} {e2s.stderr[:200]!r} {e3s.stderr[:200]!r}")
+                            f"{e1s.stderr[:200]!r} {e2s.stderr[:200]!r} {e3s.stderr[:200]!r}")
 
             # El punto fijo. El `tcodec` que compilo Python escribe su propio
             # C; ese C, compilado, tiene que volver a escribir exactamente el
@@ -1179,7 +1179,7 @@ fn main() {
                         e3, e4 = _se_construye_f.result()
                         if e4 is None or e4.returncode != 0 or e4.stdout != e1.stdout:
                             suite.falla("tcodec se construye a si mismo",
-                                  f"{e3.stderr[:400]}")
+                                        f"{e3.stderr[:400]}")
                         else:
                             print("    tcodec se construye a si mismo sin "
                                   "Python, y reproduce su C")
