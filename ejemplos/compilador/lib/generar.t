@@ -13,6 +13,7 @@ usar "../../lexer/lib/sintaxis.t" como P;
 usar "../../lexer/lib/lexico.t" como L;
 usar "std/texto";
 usar "std/lista";
+usar "../../lexer/lib/clase.t";
 
 // El nombre C de un tipo compuesto: `[usize; 3]` es `arr_usize_3`.
 // Tiene que dar exactamente lo mismo que el generador de Python, porque de
@@ -328,7 +329,7 @@ fn texto_para_c(t: view, de_c: &mapa<str, usize>, intocables: &lista<str>,
 // Los nombres de las funciones de un `externo`: son los de C, y no se tocan.
 fn externas_de(arbol: &P.Nodo, salida: mut lista<str>) {
     for d en arbol.hijos {
-        if d.clase != "externo" { continue; }
+        if d.clase != Clase.Externo { continue; }
         for f en d.hijos { salida.anadir(copiar(f.texto)); }
     }
 }
@@ -336,14 +337,13 @@ fn externas_de(arbol: &P.Nodo, salida: mut lista<str>) {
 // Todo el arbol con los nombres que chocan con C cambiados. Los literales,
 // las rutas, los operadores y las formas de un enum no son nombres de C.
 fn renombrar_para_c(n: mut P.Nodo, de_c: &mapa<str, usize>, intocables: &lista<str>) {
-    let clase = copiar(n.clase);
-    let cl = vista(clase);
-    let fijo = cl == "cadena" || cl == "interpolada" || cl == "entero"
-    || cl == "decimal" || cl == "booleano" || cl == "falla"
-    || cl == "usar" || cl == "alias" || cl == "externo" || cl == "externa"
-    || cl == "variante" || cl == "binaria" || cl == "unaria";
+    let cl = n.clase;
+    let fijo = cl == Clase.Cadena || cl == Clase.Interpolada || cl == Clase.Entero
+    || cl == Clase.Decimal || cl == Clase.Booleano || cl == Clase.Falla
+    || cl == Clase.Usar || cl == Clase.Alias || cl == Clase.Externo || cl == Clase.Externa
+    || cl == Clase.Variante || cl == Clase.Binaria || cl == Clase.Unaria;
     if !fijo {
-        let forma = cl == "enum_lit" || cl == "brazo" || cl == "patron";
+        let forma = cl == Clase.EnumLit || cl == Clase.Brazo || cl == Clase.Patron;
         n.texto = texto_para_c(n.texto, de_c, intocables, forma);
     }
     var i = 0;
@@ -660,23 +660,23 @@ fn familia(op: view) -> str {
 }
 
 fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str {
-    let clase = vista(n.clase);
+    let clase = n.clase;
 
-    if clase == "entero" { return literal_entero(n.texto, esperado); }
-    if clase == "booleano" { return nuevo(n.texto); }
+    if clase == Clase.Entero { return literal_entero(n.texto, esperado); }
+    if clase == Clase.Booleano { return nuevo(n.texto); }
 
     // Una cadena escrita es una vista de si misma: no reserva nada, y vive
     // lo que vive el programa.
-    if clase == "cadena" { return como_vista(b, s, n, tipos); }
+    if clase == Clase.Cadena { return como_vista(b, s, n, tipos); }
 
-    if clase == "expresion" {
+    if clase == Clase.Expresion {
         if n.hijos.largo() == 1 {
             return expresion_c(b, s, n.hijos[0], esperado, tipos);
         }
         return no_se();
     }
 
-    if clase == "variable" {
+    if clase == Clase.Variable {
         let nombre = vista(n.texto);
         if es_puntero(s, tipos, nombre) {
             var v = nuevo("(*");
@@ -698,23 +698,23 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         return nuevo(nombre);
     }
 
-    if clase == "cierre" { return cierre_c(b, s, n, tipos); }
+    if clase == Clase.Cierre { return cierre_c(b, s, n, tipos); }
 
-    if clase == "llamada" {
+    if clase == Clase.Llamada {
         // `reservar(n)` no dice de que: lo dice donde va.
         if n.texto == "reservar" { return reservar_c(b, s, n, esperado, tipos); }
         return llamada_c(b, s, n, tipos);
     }
 
-    if clase == "conversion" { return conversion_c(b, s, n, tipos); }
+    if clase == Clase.Conversion { return conversion_c(b, s, n, tipos); }
 
-    if clase == "literal_struct" {
+    if clase == Clase.LiteralStruct {
         return literal_struct_c(b, s, n, esperado, tipos);
     }
 
     // `Json.Numero(42)`: la etiqueta de la forma y, en su hueco de la union,
     // lo que lleve. La variante se queda con lo que recibe.
-    if clase == "enum_lit" {
+    if clase == Clase.EnumLit {
         let en_t = I.antes_del_punto(n.texto);
         let cual = I.tras_el_punto(n.texto);
         // Con el alias de un modulo delante no se sabe como quedo el nombre.
@@ -758,19 +758,19 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         return envolver_llamada_ordenada(r, previos);
     }
 
-    if clase == "interpolada" { return interpolada_c(b, s, n, tipos); }
+    if clase == Clase.Interpolada { return interpolada_c(b, s, n, tipos); }
 
-    if clase == "si_expr" { return si_expr_c(b, s, n, esperado, tipos); }
+    if clase == Clase.SiExpr { return si_expr_c(b, s, n, esperado, tipos); }
 
-    if clase == "try" { return try_c(b, s, n, tipos); }
-    if clase == "sino" { return sino_c(b, s, n, tipos); }
+    if clase == Clase.Try { return try_c(b, s, n, tipos); }
+    if clase == Clase.Sino { return sino_c(b, s, n, tipos); }
 
     // Un `match` dentro de una expresion: su `switch` va delante, en lineas
     // propias, y la expresion lee el temporal donde deja el valor. Lo que
     // atrapan los brazos se declara en copias del sitio y de los tipos: al
     // cerrar el `match` ya no se ve. Un brazo que pida salir de la funcion
     // no se sabe hacer desde aqui, y la funcion entera se descarta.
-    if clase == "match" {
+    if clase == Clase.Match {
         var s_m = copiar(s);
         var t_m = copiar(tipos);
         return match_valor(b, s_m, n, t_m, s.retorno, false);
@@ -778,7 +778,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
 
     // Un decimal va tal cual se escribio, con sufijo si el destino es de
     // 32 bits: `2.5` en un `f32` sin la `f` seria un `double` recortado.
-    if clase == "decimal" {
+    if clase == Clase.Decimal {
         if (esperado == "f32" || esperado == "f64")
         && !cabe_literal_decimal(n.texto, esperado) {
             return no_se();
@@ -793,7 +793,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
     }
 
     // `[a, b]` donde se espera una lista: nace vacia y se van metiendo.
-    if clase == "literal_lista" && T.es_lista(esperado) {
+    if clase == Clase.LiteralLista && T.es_lista(esperado) {
         let elem = T.elemento(esperado);
         let tmp = nuevo_temporal(b);
         var l = nuevo(tipo_c(esperado));
@@ -822,7 +822,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
     }
 
     // `[a, b, c]` de tamaño fijo: un literal compuesto de C, de una vez.
-    if clase == "literal_lista" && !T.es_mapa(esperado) && n.hijos.largo() > 0 {
+    if clase == Clase.LiteralLista && !T.es_mapa(esperado) && n.hijos.largo() > 0 {
         var t = nuevo(esperado);
         if !T.es_arreglo(esperado) { t = I.tipo_de(tipos, n); }
         if !T.es_arreglo(t) { return no_se(); }
@@ -854,7 +854,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
 
     // `[]` donde se espera un mapa: la tabla no nace hasta el primer
     // `poner`, que es donde el coste se ve.
-    if clase == "literal_lista" {
+    if clase == Clase.LiteralLista {
         if n.hijos.largo() != 0 { return no_se(); }
         if !T.es_mapa(esperado) { return no_se(); }
         var r = nuevo("(");
@@ -864,7 +864,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         return r;
     }
 
-    if clase == "campo" {
+    if clase == Clase.Campo {
         // `sitio_c` ya devuelve el valor, no el puntero: un prestamo sale
         // como `(*x)`, asi que aqui siempre es un punto.
         let base = sitio_c(b, s, n.hijos[0], tipos);
@@ -885,15 +885,15 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         return r;
     }
 
-    if clase == "indice" {
+    if clase == Clase.Indice {
         return indice_c(b, s, n, tipos);
     }
 
-    if clase == "binaria" {
+    if clase == Clase.Binaria {
         return binaria_c(b, s, n, esperado, tipos);
     }
 
-    if clase == "unaria" {
+    if clase == Clase.Unaria {
         let op = vista(n.texto);
         if n.hijos.largo() != 1 { return no_se(); }
         // `~` lleva molde para que el resultado no se ensanche por el camino.
@@ -918,7 +918,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
                 if I.literal_de(n.hijos[0]) == "entero" { t = nuevo("i64"); }
             }
             if empieza_con(t, "i")
-            && n.hijos[0].clase == "entero" {
+            && n.hijos[0].clase == Clase.Entero {
                 let valor = sin_ceros_izquierda(vista(n.hijos[0].texto));
                 if !cabe_literal_entero(valor, t, true) { return no_se(); }
                 if (t == "i8" && valor == "128")
@@ -930,7 +930,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
                 return $"(({tipo_c(vista(t))})-{valor})";
             }
             if es_entero(t) && !empieza_con(t, "i")
-            && n.hijos[0].clase == "entero" {
+            && n.hijos[0].clase == Clase.Entero {
                 return no_se();
             }
             let dentro = expresion_c(b, s, n.hijos[0], t, tipos);
@@ -1131,7 +1131,7 @@ fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
     var previos: lista<str> = [];
     abrir_marco(b);
     for h en n.hijos {
-        if h.clase != "campo" || h.hijos.largo() != 1 {
+        if h.clase != Clase.Campo || h.hijos.largo() != 1 {
             let _m = cerrar_marco(b);
             return no_se();
         }
@@ -1221,9 +1221,9 @@ fn es_aritmetico(t: view) -> bool {
 // llamada se evaluaria una vez por cada vez que aparece en el C —dos: el
 // elemento y el largo— y lo que devuelve no lo liberaria nadie.
 fn sitio_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
-    let clase = vista(n.clase);
-    if clase == "variable" || clase == "campo"
-    || clase == "indice" {
+    let clase = n.clase;
+    if clase == Clase.Variable || clase == Clase.Campo
+    || clase == Clase.Indice {
         return expresion_c(b, s, n, "", tipos);
     }
     // Una llamada no es un sitio: `claves(m).length` la evaluaria una vez
@@ -1244,8 +1244,8 @@ fn sitio_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 }
 
 fn sitio_solo_lectura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
-    let clase = vista(n.clase);
-    if clase == "variable" {
+    let clase = n.clase;
+    if clase == Clase.Variable {
         if tiene(s.punteros, n.texto) {
             let marca = obtener(s.punteros, n.texto) sino 0;
             if marca == 2 { return true; }
@@ -1253,7 +1253,7 @@ fn sitio_solo_lectura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
         let t = I.tipo_de(tipos, n);
         return T.es_referencia(t) && !empieza_con(t, "&mut ");
     }
-    if (clase == "campo" || clase == "indice") && n.hijos.largo() > 0 {
+    if (clase == Clase.Campo || clase == Clase.Indice) && n.hijos.largo() > 0 {
         return sitio_solo_lectura(s, n.hijos[0], tipos);
     }
     return false;
@@ -1330,12 +1330,12 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Con
     // se escriben igual que si estuvieran escritos asi.
     if (op == "==" || op == "!=") && da_texto(tipos, n.hijos[0])
     && da_texto(tipos, n.hijos[1]) {
-        var llamada = P.rama("llamada", n.linea);
+        var llamada = P.rama(Clase.Llamada, n.linea);
         llamada.texto.empujar("igual");
         llamada.hijos.anadir(copiar(n.hijos[0]));
         llamada.hijos.anadir(copiar(n.hijos[1]));
         if op == "==" { return expresion_c(b, s, llamada, "bool", tipos); }
-        var negada = P.rama("unaria", n.linea);
+        var negada = P.rama(Clase.Unaria, n.linea);
         negada.texto.empujar("!");
         negada.hijos.anadir(llamada);
         return expresion_c(b, s, negada, "bool", tipos);
@@ -1850,13 +1850,13 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
         var r = nuevo("printf(");
         if nombre == "imprimir_error" { r = nuevo("fprintf(stderr, "); }
         let t = I.tipo_de(tipos, n.hijos[0]);
-        let clase = vista(n.hijos[0].clase);
+        let clase = n.hijos[0].clase;
         // El texto va con `fwrite`, por su largo: un `str` guarda bytes y
         // puede llevar ceros, que `%s` y `%.*s` tomarian por el final.
         var salida = nuevo("stdout");
         if nombre == "imprimir_error" { salida = nuevo("stderr"); }
-        if t == "str" && (clase == "variable"
-            || clase == "campo" || clase == "indice") {
+        if t == "str" && (clase == Clase.Variable
+            || clase == Clase.Campo || clase == Clase.Indice) {
             let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
             if es_desconocido(donde) { return no_se(); }
             return $"ss_lang_escribir_({salida}, ss_view({donde}))";
@@ -2059,8 +2059,8 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
 // algo recien hecho pediria un temporal del que tomar la direccion, y ese
 // temporal habria que soltarlo al acabar la sentencia: otra capa.
 fn direccion_del_sitio(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
-    let clase = vista(n.clase);
-    if clase == "variable" {
+    let clase = n.clase;
+    if clase == Clase.Variable {
         // Un `&T` ya ES la direccion: pedirsela otra vez sobra.
         if es_puntero(s, tipos, n.texto) {
             return nuevo(n.texto);
@@ -2069,7 +2069,7 @@ fn direccion_del_sitio(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto)
         r.empujar(n.texto);
         return r;
     }
-    if clase == "campo" || clase == "indice" {
+    if clase == Clase.Campo || clase == Clase.Indice {
         let donde = expresion_c(b, s, n, "", tipos);
         if es_desconocido(donde) { return no_se(); }
         var r = nuevo("&");
@@ -2091,7 +2091,7 @@ fn direccion_de(s: &Sitio, nombre: view, envoltura: view) -> str {
 // Un argumento donde se pide una vista: un `view` va tal cual, un `str` se
 // presta, y un literal es su propia vista.
 fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
-    if n.clase == "cadena" {
+    if n.clase == Clase.Cadena {
         var r = nuevo("sv_len(");
         r.empujar(literal_c(n.texto));
         r.empujar(", ");
@@ -2101,9 +2101,9 @@ fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     }
     let t = I.tipo_de(tipos, n);
     if t == "str" {
-        let clase = vista(n.clase);
-        if clase == "variable" || clase == "campo"
-        || clase == "indice" {
+        let clase = n.clase;
+        if clase == Clase.Variable || clase == Clase.Campo
+        || clase == Clase.Indice {
             let donde = direccion_del_sitio(b, s, n, tipos);
             if es_desconocido(donde) { return no_se(); }
             var r = nuevo("ss_view(");
@@ -2367,7 +2367,7 @@ fn cierre_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     pedido.empujar(de_cierre);
     var piezas = vacio();
     for h en n.hijos {
-        if h.clase != "captura" { continue; }
+        if h.clase != Clase.Captura { continue; }
         let nombre = vista(h.texto);
         let t = I.buscar(tipos, nombre);
         if t.largo() == 0 { return no_se(); }
@@ -2379,7 +2379,7 @@ fn cierre_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         && !lleva_bandera(b, s, nombre) {
             return no_se();
         }
-        let valor = expresion_c(b, s, P.hoja("variable", nombre, n.linea),
+        let valor = expresion_c(b, s, P.hoja(Clase.Variable, nombre, n.linea),
             vista(t), tipos);
         if es_desconocido(valor) { return no_se(); }
         if piezas.largo() > 0 { piezas.empujar(", "); }
@@ -2399,9 +2399,9 @@ fn llamada_a_valor(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
     let t = T.apuntado_si(local);
     let de_cierre = I.funcion_de_cierre(t);
     if de_cierre.largo() > 0 {
-        var otra = P.rama("llamada", n.linea);
+        var otra = P.rama(Clase.Llamada, n.linea);
         otra.texto = copiar(de_cierre);
-        otra.hijos.anadir(P.hoja("variable", n.texto, n.linea));
+        otra.hijos.anadir(P.hoja(Clase.Variable, n.texto, n.linea));
         for h en n.hijos { otra.hijos.anadir(copiar(h)); }
         return llamada_c(b, s, otra, tipos);
     }
@@ -2453,9 +2453,9 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
             presta_mut = empieza_con(m, "mut ");
         }
         if presta_el {
-            let clase_h = vista(h.clase);
-            if clase_h == "variable" || clase_h == "campo"
-            || clase_h == "indice" {
+            let clase_h = h.clase;
+            if clase_h == Clase.Variable || clase_h == Clase.Campo
+            || clase_h == Clase.Indice {
                 let dir = direccion_del_sitio(b, s, h, tipos);
                 if es_desconocido(dir) {
                     let _m = cerrar_marco(b);
@@ -2650,7 +2650,7 @@ fn entrega_variable(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
 // que el `Sitio` exista, porque el `Sitio` las lleva dentro.
 fn entrega_suelta(punteros: &mapa<str, usize>, n: &P.Nodo,
     tipos: &I.Contexto) -> bool {
-    if n.clase != "variable" { return false; }
+    if n.clase != Clase.Variable { return false; }
     if tiene(punteros, n.texto) { return false; }
     let t = I.tipo_de(tipos, n);
     // Un struct que posee se mueve igual que un `str`: si solo se miraran
@@ -2712,29 +2712,29 @@ fn apuntar_movida(salida: mut lista<str>, nombre: view) {
 // cada sentencia apaga las suyas, donde toca.
 fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
     salida: mut lista<str>) {
-    let clase = vista(n.clase);
-    if clase == "bloque" { return; }
+    let clase = n.clase;
+    if clase == Clase.Bloque { return; }
 
     // La alternativa de un `sino` solo corre si la llamada falla: lo que
     // entrega lo apaga esa rama, no la sentencia entera.
-    if clase == "sino" && n.hijos.largo() == 2 {
+    if clase == Clase.Sino && n.hijos.largo() == 2 {
         movidas_en(punteros, n.hijos[0], tipos, salida);
         return;
     }
 
     // `let y = x;` y `y = x;` mueven tanto como pasarla a una funcion.
-    if clase == "declaracion" && n.hijos.largo() == 1 {
+    if clase == Clase.Declaracion && n.hijos.largo() == 1 {
         if entrega_suelta(punteros, n.hijos[0], tipos) {
             apuntar_movida(salida, n.hijos[0].texto);
         }
     }
-    if clase == "asignacion" && n.hijos.largo() == 2 {
+    if clase == Clase.Asignacion && n.hijos.largo() == 2 {
         if entrega_suelta(punteros, n.hijos[1], tipos) {
             apuntar_movida(salida, n.hijos[1].texto);
         }
     }
 
-    if clase == "enum_lit" {
+    if clase == Clase.EnumLit {
         for h en n.hijos {
             if entrega_suelta(punteros, h, tipos) {
                 apuntar_movida(salida, h.texto);
@@ -2742,7 +2742,7 @@ fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
         }
     }
 
-    if clase == "literal_struct" {
+    if clase == Clase.LiteralStruct {
         for h en n.hijos {
             for x en h.hijos {
                 if entrega_suelta(punteros, x, tipos) {
@@ -2754,17 +2754,17 @@ fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
 
     // Capturar por valor lo que tiene duenio es entregarlo al struct de la
     // clausura, igual que meterlo en un literal.
-    if clase == "cierre" {
+    if clase == Clase.Cierre {
         for h en n.hijos {
-            if h.clase != "captura" { continue; }
-            let v = P.hoja("variable", h.texto, n.linea);
+            if h.clase != Clase.Captura { continue; }
+            let v = P.hoja(Clase.Variable, h.texto, n.linea);
             if entrega_suelta(punteros, v, tipos) {
                 apuntar_movida(salida, h.texto);
             }
         }
     }
 
-    if clase == "llamada" {
+    if clase == Clase.Llamada {
         var i = 0;
         for h en n.hijos {
             if !presta_argumento(tipos, n.texto, i) {
@@ -2793,8 +2793,8 @@ fn movidas_de_alternativa(punteros: &mapa<str, usize>, n: &P.Nodo,
 // sentencia.
 fn movidas_por_caminos(punteros: &mapa<str, usize>, n: &P.Nodo,
     tipos: &I.Contexto, salida: mut lista<str>) {
-    if n.clase == "bloque" { return; }
-    if n.clase == "sino" && n.hijos.largo() == 2 {
+    if n.clase == Clase.Bloque { return; }
+    if n.clase == Clase.Sino && n.hijos.largo() == 2 {
         movidas_de_alternativa(punteros, n.hijos[1], tipos, salida);
     }
     for h en n.hijos { movidas_por_caminos(punteros, h, tipos, salida); }
@@ -2829,7 +2829,7 @@ fn movidas_hondo_en(punteros: &mapa<str, usize>, bloque: &P.Nodo,
             let k = visible_en(mias, nm);
             apuntar_movida(salida, k);
         }
-        if st.clase == "declaracion" && st.hijos.largo() == 1 {
+        if st.clase == Clase.Declaracion && st.hijos.largo() == 1 {
             let nombre = nombre_declarado(st.texto);
             var tipo = tipo_escrito(st.texto);
             if tipo.largo() == 0 { tipo = I.tipo_de(tipos, st.hijos[0]); }
@@ -2839,7 +2839,7 @@ fn movidas_hondo_en(punteros: &mapa<str, usize>, bloque: &P.Nodo,
         // Un `for` declara su variable para el cuerpo. Sin ella, lo que se
         // calcula a partir de ella —`var p = copiar(l)`— no tiene tipo, y no
         // se sabria que `p` posee ni que se entrega.
-        let es_para = st.clase == "para" && st.hijos.largo() == 2;
+        let es_para = st.clase == Clase.Para && st.hijos.largo() == 2;
         if es_para {
             I.abrir(tipos);
             let suyo = I.tipo_de(tipos, st.hijos[0]);
@@ -2860,7 +2860,7 @@ fn movidas_hondo_en(punteros: &mapa<str, usize>, bloque: &P.Nodo,
             }
         }
         for h en st.hijos {
-            if h.clase == "bloque" {
+            if h.clase == Clase.Bloque {
                 movidas_hondo_en(punteros, h, tipos, salida, mias);
             }
         }
@@ -3047,7 +3047,7 @@ struct Marco {
 fn apuntar_fallo(b: mut Cuerpo, n: &P.Nodo) {
     if b.fallo_linea != 0 { return; }
     b.fallo_linea = n.linea;
-    b.fallo_clase = nuevo(n.clase);
+    b.fallo_clase = nuevo(nombre_de_clase(n.clase));
 }
 
 fn nombre_de_indice(n: usize) -> str {
@@ -3192,13 +3192,13 @@ fn hace_algo(linea: view) -> bool {
 // Un numero, un texto o un booleano escritos: calcularlos antes o despues da
 // igual.
 fn es_constante(n: &P.Nodo) -> bool {
-    let clase = vista(n.clase);
-    if clase == "unaria" && n.texto == "-" && n.hijos.largo() == 1 {
-        let hc = vista(n.hijos[0].clase);
-        return hc == "entero" || hc == "decimal";
+    let clase = n.clase;
+    if clase == Clase.Unaria && n.texto == "-" && n.hijos.largo() == 1 {
+        let hc = n.hijos[0].clase;
+        return hc == Clase.Entero || hc == Clase.Decimal;
     }
-    return clase == "entero" || clase == "decimal" || clase == "booleano"
-    || clase == "cadena";
+    return clase == Clase.Entero || clase == Clase.Decimal || clase == Clase.Booleano
+    || clase == Clase.Cadena;
 }
 
 // La entrada de un marco para un operando ya calculado. No hace falta
@@ -3758,10 +3758,10 @@ fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
 
 fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
-    let clase = vista(n.clase);
+    let clase = n.clase;
     marcar(b, s, n.linea);
 
-    if clase == "declaracion" {
+    if clase == Clase.Declaracion {
         if n.hijos.largo() != 1 { return false; }
         let nombre = nombre_declarado(n.texto);
         var tipo = tipo_escrito(n.texto);
@@ -3769,14 +3769,14 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         if tipo.largo() == 0 { return false; }
 
         var valor = vacio();
-        let cual = vista(n.hijos[0].clase);
+        let cual = n.hijos[0].clase;
 
-        if cual == "try" {
+        if cual == Clase.Try {
             // `try f(...)`: se guarda el resultado, y si trae motivo se sale
             // por el mismo camino sin tocar lo que ya esta vivo.
             if !falible { return false; }
             valor = try_c(b, s, n.hijos[0], tipos);
-        } else if cual == "match" {
+        } else if cual == Clase.Match {
             // Sus brazos pueden llevar sentencias: se genera desde aqui,
             // donde el sitio se puede modificar, como en `return`.
             valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible);
@@ -3818,7 +3818,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         return true;
     }
 
-    if clase == "expresion" {
+    if clase == Clase.Expresion {
         if n.hijos.largo() != 1 { return false; }
         if anadir_c(b, s, n.hijos[0], tipos) {
             apagar_las_de(b, s, n, tipos);
@@ -3830,7 +3830,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         }
         // `poner(m, k, v)` devuelve algo que casi nadie mira: como sentencia
         // se escribe la llamada y se tira el valor, como en C.
-        if n.hijos[0].clase == "llamada"
+        if n.hijos[0].clase == Clase.Llamada
         && n.hijos[0].texto == "poner" {
             let hecha = interna_pura(b, s, n.hijos[0], tipos);
             if es_desconocido(hecha) { return false; }
@@ -3842,7 +3842,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         }
         // Un `match` suelto mira y hace: el `switch` va tal cual, sin
         // temporal donde dejar nada.
-        if n.hijos[0].clase == "match" {
+        if n.hijos[0].clase == Clase.Match {
             if !match_c(b, s, n.hijos[0], tipos, retorno, falible, "") {
                 return false;
             }
@@ -3860,7 +3860,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         return true;
     }
 
-    if clase == "falla" {
+    if clase == Clase.Falla {
         // Salir por el camino malo: se suelta todo y se devuelve el motivo.
         if !falible { return false; }
         liberar_todo(b, s, tipos, "");
@@ -3874,7 +3874,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         return true;
     }
 
-    if clase == "retorno" {
+    if clase == Clase.Retorno {
         if n.hijos.largo() == 0 {
             liberar_todo(b, s, tipos, "");
             if falible {
@@ -3891,7 +3891,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         }
         // Devolver una variable entera no necesita temporal: no hay nada
         // que calcular, y liberar lo demas no la toca.
-        if n.hijos[0].clase == "variable" {
+        if n.hijos[0].clase == Clase.Variable {
             let quien = vista(n.hijos[0].texto);
             // Si lleva bandera porque se entrega por otro camino, al
             // devolverla tambien se entrega: se apaga antes de salir, o la
@@ -3923,7 +3923,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // Un `match` que da valor puede llevar brazos con sentencias, y eso
         // solo se genera desde aqui, donde el sitio se puede modificar.
         var valor = vacio();
-        if n.hijos[0].clase == "match" {
+        if n.hijos[0].clase == Clase.Match {
             valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible);
         } else {
             valor = expresion_c(b, s, n.hijos[0], retorno, tipos);
@@ -3947,7 +3947,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         apagar_las_de(b, s, n, tipos);
         // Lo que se entrega no se libera.
         var entregada = vacio();
-        if n.hijos[0].clase == "variable" {
+        if n.hijos[0].clase == Clase.Variable {
             entregada = nuevo(n.hijos[0].texto);
         }
         liberar_todo(b, s, tipos, entregada);
@@ -3969,7 +3969,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         return true;
     }
 
-    if clase == "si" {
+    if clase == Clase.Si {
         if n.hijos.largo() < 2 { return false; }
         if mueve_algo(s, n.hijos[0], tipos) { return false; }
         let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
@@ -3990,7 +3990,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         return true;
     }
 
-    if clase == "mientras" {
+    if clase == Clase.Mientras {
         if n.hijos.largo() != 2 { return false; }
         if mueve_algo(s, n.hijos[0], tipos) { return false; }
 
@@ -4091,17 +4091,17 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         return bien;
     }
 
-    if clase == "asignacion" {
+    if clase == Clase.Asignacion {
         if n.hijos.largo() != 2 { return false; }
-        let a_que = vista(n.hijos[0].clase);
-        if a_que != "variable" && a_que != "campo"
-        && a_que != "indice" {
+        let a_que = n.hijos[0].clase;
+        if a_que != Clase.Variable && a_que != Clase.Campo
+        && a_que != Clase.Indice {
             return false;
         }
         // Solo una variable entera lleva bandera: un campo se apunta por su
         // struct, y eso es otra capa.
         var nombre = vacio();
-        if a_que == "variable" { nombre = nuevo(n.hijos[0].texto); }
+        if a_que == Clase.Variable { nombre = nuevo(n.hijos[0].texto); }
         let tipo = I.tipo_de(tipos, n.hijos[0]);
         if tipo.largo() == 0 { return false; }
         // Se fija primero el sitio. Ademas de coincidir con el generador de
@@ -4110,7 +4110,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         let destino = expresion_c(b, s, n.hijos[0], tipo, tipos);
         if es_desconocido(destino) { return false; }
         var valor = vacio();
-        if n.hijos[1].clase == "match" {
+        if n.hijos[1].clase == Clase.Match {
             valor = match_valor(b, s, n.hijos[1], tipos, retorno, falible);
         } else {
             valor = expresion_c(b, s, n.hijos[1], tipo, tipos);
@@ -4177,12 +4177,12 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         return true;
     }
 
-    if clase == "para" && n.hijos.largo() == 2
-    && n.hijos[0].clase == "rango" {
+    if clase == Clase.Para && n.hijos.largo() == 2
+    && n.hijos[0].clase == Clase.Rango {
         return para_rango_c(b, s, n, tipos, retorno, falible);
     }
 
-    if clase == "para" {
+    if clase == Clase.Para {
         if n.hijos.largo() != 2 { return false; }
         // `for x en ...` o, sobre un mapa, `for clave, valor en m`.
         let uno = primer_nombre(n.texto);
@@ -4190,7 +4190,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // Un sitio con nombre: variable, campo o elemento. `for x en f(...)`
         // no, que se calcula una sola vez y eso pide un temporal que soltar
         // al final.
-        let que = vista(n.hijos[0].clase);
+        let que = n.hijos[0].clase;
         let suyo = I.tipo_de(tipos, n.hijos[0]);
         let sobre = T.apuntado_si(suyo);
         let es_mapa_ = T.es_mapa(sobre);
@@ -4198,7 +4198,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         if !T.es_lista(sobre) && !es_mapa_ && !es_arreglo_ { return false; }
         if dos.largo() > 0 && !es_mapa_ { return false; }
         var lugar = vacio();
-        if que == "variable" || que == "campo" || que == "indice" {
+        if que == Clase.Variable || que == Clase.Campo || que == Clase.Indice {
             lugar = sitio_c(b, s, n.hijos[0], tipos);
         } else {
             // `for x en f(...)`: la coleccion se calcula UNA vez. Dejar la
@@ -4331,7 +4331,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         return bien;
     }
 
-    if clase == "romper" || clase == "continuar" {
+    if clase == Clase.Romper || clase == Clase.Continuar {
         // Los temporales de las sentencias de dentro del bucle —la condicion
         // de un `if` que contiene el `break`— no llegan a su limpieza de fin.
         // Los del propio bucle si: siguen haciendo falta.
@@ -4348,7 +4348,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             i = i - 1;
             liberar_uno(b, s, tipos, i, "");
         }
-        if clase == "romper" && b.switch_en_bucle.largo() > 0
+        if clase == Clase.Romper && b.switch_en_bucle.largo() > 0
         && b.en_switch > b.switch_en_bucle[b.switch_en_bucle.largo() - 1] {
             // Un `break` de C aqui saldria del `switch` del `match`.
             let k = b.etiquetas_bucle.largo() - 1;
@@ -4360,7 +4360,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             emitir(b, $"goto {destino};");
             return true;
         }
-        if clase == "romper" { emitir(b, "break;"); }
+        if clase == Clase.Romper { emitir(b, "break;"); }
         else { emitir(b, "continue;"); }
         return true;
     }
@@ -4421,7 +4421,7 @@ fn para_rango_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
 // temporal.
 fn extremo_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, t: view, tipos: &I.Contexto) -> str {
     let valor = expresion_c(b, s, n, t, tipos);
-    if es_desconocido(valor) || n.clase == "entero" { return valor; }
+    if es_desconocido(valor) || n.clase == Clase.Entero { return valor; }
     let tmp = nuevo_temporal(b);
     let tc = tipo_c(t);
     emitir(b, $"{tc} {tmp} = {valor};");
@@ -4453,15 +4453,15 @@ fn bloque_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
 fn termina_saliendo(n: &P.Nodo) -> bool {
     if n.hijos.largo() == 0 { return false; }
     let ultimo = n.hijos.largo() - 1;
-    let c = vista(n.hijos[ultimo].clase);
-    return c == "retorno" || c == "romper" || c == "continuar";
+    let c = n.hijos[ultimo].clase;
+    return c == Clase.Retorno || c == Clase.Romper || c == Clase.Continuar;
 }
 
 // Si en `n` se llama a una funcion que en C se llama `nombre`. Una generica
 // se llama con su copia, que lleva los tipos en el nombre, y una variable con
 // una clausura, con la funcion de su entorno: esas no.
 fn se_llama_como(n: &P.Nodo, nombre: view, tipos: &I.Contexto) -> bool {
-    if n.clase == "llamada" {
+    if n.clase == Clase.Llamada {
         let quien = vista(n.texto);
         if !tiene(tipos.tipo_params, quien) && largo(I.buscar(tipos, quien)) == 0 {
             var en_c = I.sin_modulo(quien);
@@ -4531,7 +4531,7 @@ fn tipo_si_va_bien(n: &P.Nodo, tipos: &I.Contexto) -> str {
 fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let retorno = vista(s.retorno);
     if n.hijos.largo() != 1 { return no_se(); }
-    if n.hijos[0].clase != "llamada" { return no_se(); }
+    if n.hijos[0].clase != Clase.Llamada { return no_se(); }
     let suyo = tipo_si_va_bien(n.hijos[0], tipos);
     // Vacio puede ser "no la conozco" o "no devuelve nada": solo lo segundo
     // vale, y lo dice que este en las firmas.
@@ -4604,7 +4604,7 @@ fn valor_de_rama(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, t: view, destino: view,
 
 fn sino_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if n.hijos.largo() != 2 { return no_se(); }
-    if n.hijos[0].clase != "llamada" { return no_se(); }
+    if n.hijos[0].clase != Clase.Llamada { return no_se(); }
     let suyo = tipo_si_va_bien(n.hijos[0], tipos);
     if suyo.largo() == 0 { return no_se(); }
 
@@ -4661,7 +4661,7 @@ fn sino_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 
 // `anadir(xs, v)`: la lista se queda con el valor.
 fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
-    if n.clase != "llamada" { return false; }
+    if n.clase != Clase.Llamada { return false; }
     if n.texto != "anadir" { return false; }
     if n.hijos.largo() != 2 { return false; }
     let suya = I.tipo_de(tipos, n.hijos[0]);
@@ -4769,12 +4769,12 @@ fn mayusculas(t: view) -> str {
 fn ruta_de_campo_c(n: &P.Nodo) -> str {
     var nombres: lista<str> = [];
     var x = copiar(n);
-    while x.clase == "campo" && x.hijos.largo() > 0 {
+    while x.clase == Clase.Campo && x.hijos.largo() > 0 {
         nombres.anadir(copiar(x.texto));
         let dentro = copiar(x.hijos[0]);
         x = dentro;
     }
-    if x.clase != "variable" || nombres.largo() == 0 { return vacio(); }
+    if x.clase != Clase.Variable || nombres.largo() == 0 { return vacio(); }
     var r = copiar(x.texto);
     var k = nombres.largo();
     while k > 0 {
@@ -4805,7 +4805,7 @@ fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     if es_desconocido(sitio) { return false; }
     var k = 1;
     while k < n.hijos.largo() {
-        if n.hijos[k].clase != "brazo" { return false; }
+        if n.hijos[k].clase != Clase.Brazo { return false; }
         k = k + 1;
     }
     if match_condicionado(n) {
@@ -4858,8 +4858,8 @@ fn match_condicionado(n: &P.Nodo) -> bool {
     var k = 1;
     while k < n.hijos.largo() {
         for h en n.hijos[k].hijos {
-            let hc = vista(h.clase);
-            if hc == "guarda" || hc == "patron" || hc == "literal" {
+            let hc = h.clase;
+            if hc == Clase.Guarda || hc == Clase.Patron || hc == Clase.Literal {
                 return true;
             }
         }
@@ -4910,7 +4910,7 @@ fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Conte
         var guarda: i64 = -1;
         var h_i = 0;
         for h en brazo.hijos {
-            if h.clase == "guarda" { guarda = h_i como i64; }
+            if h.clase == Clase.Guarda { guarda = h_i como i64; }
             h_i = h_i + 1;
         }
         if guarda < 0 {
@@ -4961,7 +4961,7 @@ fn condiciones_patron_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto, base
         let p = copiar(posiciones[i]);
         let dentro = $"{sitio}.dato.v_{variante}._{i}";
         i = i + 1;
-        if p.clase == "patron" {
+        if p.clase == Clase.Patron {
             let otro = I.sin_modulo(t);
             let cual = I.tras_el_punto(p.texto);
             let et = etiqueta(otro, cual);
@@ -4970,7 +4970,7 @@ fn condiciones_patron_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto, base
                 vista(dentro), conds) {
                 return false;
             }
-        } else if p.clase == "literal" {
+        } else if p.clase == Clase.Literal {
             if t == "str" {
                 let lit = expresion_c(b, s, p.hijos[0], "view", tipos);
                 if es_desconocido(lit) { return false; }
@@ -4997,7 +4997,7 @@ fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
         let h = copiar(posiciones[i]);
         let dentro = $"{sitio}.dato.v_{variante}._{i}";
         i = i + 1;
-        if h.clase == "patron" {
+        if h.clase == Clase.Patron {
             let otro = I.sin_modulo(t);
             let cual = I.tras_el_punto(h.texto);
             if !atrapar_c(b, tipos, otro, cual, posiciones_patron_c(h), dentro) {
@@ -5005,7 +5005,7 @@ fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
             }
             continue;
         }
-        if h.clase != "atrapa" || h.texto == "_" { continue; }
+        if h.clase != Clase.Atrapa || h.texto == "_" { continue; }
         if t == "str" {
             emitir(b, $"SS_LANG_QUIZA_SIN_USAR SafeView {h.texto} = ss_view(&{dentro});");
             I.declarar(tipos, h.texto, "view");
@@ -5029,7 +5029,7 @@ fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
 // espera(...)` como sentencia tira el `str` que devuelve, y nadie mas lo iba
 // a soltar.
 fn descartar_c(b: mut Cuerpo, tipos: &I.Contexto, hecha: view, n: &P.Nodo) {
-    let x = vista(n.clase);
+    let x = n.clase;
     let t = tipo_suelto(n, tipos);
     if hecha.largo() > 0 && t.largo() > 0 && t != "()"
     && I.posee_con_formas(tipos, t) {
@@ -5056,8 +5056,8 @@ fn descartar_c(b: mut Cuerpo, tipos: &I.Contexto, hecha: view, n: &P.Nodo) {
     // devuelven es el valor, y como sentencia no haria nada. Lo que no es una
     // llamada, como el `0` de un brazo, se tira con `(void)`, que es como C
     // dice que es a proposito.
-    if hecha.largo() > 0 && x != "try" && x != "sino" {
-        if x == "llamada" {
+    if hecha.largo() > 0 && x != Clase.Try && x != Clase.Sino {
+        if x == Clase.Llamada {
             var l = nuevo(hecha);
             l.empujar(";");
             emitir(b, l);
@@ -5070,8 +5070,8 @@ fn descartar_c(b: mut Cuerpo, tipos: &I.Contexto, hecha: view, n: &P.Nodo) {
 fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Contexto,
     retorno: view, falible: bool, destino: view) -> bool {
     for h en brazo.hijos {
-        let que = vista(h.clase);
-        if que == "bloque" {
+        let que = h.clase;
+        if que == Clase.Bloque {
             var bien = true;
             for st en h.hijos {
                 if bien {
@@ -5086,7 +5086,7 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
         // Un brazo que da un valor: se deja en el destino. Sus temporales
         // son suyos y se sueltan aqui, antes de salir del brazo, igual que
         // los de una sentencia.
-        if que == "retorno" {
+        if que == Clase.Retorno {
             if h.hijos.largo() != 1 { return false; }
             marcar(b, s, h.linea);
             var antes: lista<str> = [];
@@ -5114,8 +5114,8 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
 fn posiciones_patron_c(b: &P.Nodo) -> lista<P.Nodo> {
     var salida: lista<P.Nodo> = [];
     for h en b.hijos {
-        let hc = vista(h.clase);
-        if hc == "atrapa" || hc == "patron" || hc == "literal" {
+        let hc = h.clase;
+        if hc == Clase.Atrapa || hc == Clase.Patron || hc == Clase.Literal {
             salida.anadir(copiar(h));
         }
     }
@@ -5167,11 +5167,11 @@ fn sanear(t: view) -> str {
 // De que tipo es lo que da una expresion suelta. Una llamada del programa
 // lo dice su firma; un `try` o un `sino`, lo que da cuando va bien.
 fn tipo_suelto(n: &P.Nodo, tipos: &I.Contexto) -> str {
-    let clase = vista(n.clase);
-    if (clase == "try" || clase == "sino") && n.hijos.largo() > 0 {
+    let clase = n.clase;
+    if (clase == Clase.Try || clase == Clase.Sino) && n.hijos.largo() > 0 {
         return tipo_si_va_bien(n.hijos[0], tipos);
     }
-    if clase == "llamada" && tiene(tipos.retornos, n.texto) {
+    if clase == Clase.Llamada && tiene(tipos.retornos, n.texto) {
         return nuevo(obtener(tipos.retornos, n.texto) sino "");
     }
     return I.tipo_de(tipos, n);
@@ -5193,7 +5193,7 @@ fn es_identificador(v: view) -> bool {
 // `empujar(s, v)`: pegar texto al final de un `str`. No mueve nada, porque
 // lo que se pega se copia: la vista de origen sigue siendo de quien era.
 fn empujar_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
-    if n.clase != "llamada" { return false; }
+    if n.clase != Clase.Llamada { return false; }
     if n.texto != "empujar" { return false; }
     if n.hijos.largo() != 2 { return false; }
     let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);

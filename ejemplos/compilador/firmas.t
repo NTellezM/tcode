@@ -11,6 +11,7 @@ usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
 usar "std/lista";
+usar "../lexer/lib/clase.t";
 
 fn tras_dos_puntos(texto: view) -> str {
     var i = 0;
@@ -84,23 +85,23 @@ fn main() -> usize ! {
     G.renombrar_para_c(arbol, G.nombres_de_c(), intocables);
 
     for d en arbol.hijos {
-        if d.clase == "fn" && !es_generica(d) {
+        if d.clase == Clase.Fn && !es_generica(d) {
             var tipos: lista<str> = [];
             var marcas: lista<str> = [];
             var retorno = vacio();
             var falible = false;
             for h en d.hijos {
-                if h.clase == "param" {
+                if h.clase == Clase.Param {
                     tipos.anadir(tipo_pelado(h.texto));
                     var m = nuevo(nombre_solo(h.texto));
                     m.empujar(": ");
                     m.empujar(solo_marca(h.texto));
                     marcas.anadir(m);
                 }
-                if h.clase == "retorno_tipo" {
+                if h.clase == Clase.RetornoTipo {
                     retorno = nuevo(h.texto);
                 }
-                if h.clase == "falible" { falible = true; }
+                if h.clase == Clase.Falible { falible = true; }
             }
             let firma = G.prototipo(vista(d.texto), tipos, marcas,
                 vista(retorno), falible);
@@ -121,7 +122,7 @@ fn nombre_solo(marcado: view) -> str {
 
 fn es_generica(d: &P.Nodo) -> bool {
     for h en d.hijos {
-        if h.clase == "tipo_param" { return true; }
+        if h.clase == Clase.TipoParam { return true; }
     }
     return false;
 }

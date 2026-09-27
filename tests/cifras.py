@@ -70,6 +70,7 @@ def compilador_en_tcode():
     lib = os.path.join("ejemplos", "compilador", "lib")
     return ([os.path.join("ejemplos", "lexer", "lib", "lexico.t"),
              os.path.join("ejemplos", "lexer", "lib", "sintaxis.t"),
+             os.path.join("ejemplos", "lexer", "lib", "clase.t"),
              os.path.join("ejemplos", "compilador", "tcodec.t")]
             + sorted(os.path.join(lib, x) for x in os.listdir(os.path.join(RAIZ, lib))
                      if x.endswith(".t") and not x.startswith(".")))

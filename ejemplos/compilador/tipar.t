@@ -12,6 +12,7 @@ usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
 usar "std/lista";
+usar "../lexer/lib/clase.t";
 
 // De `nombre: &lista<str>` saca `nombre` y `lista<str>`: el prestamo se
 // guarda aparte, igual que en el comprobador de Python.
@@ -118,11 +119,11 @@ fn tras_espacio(texto: view) -> str {
 }
 
 fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
-    if n.clase == "struct" {
+    if n.clase == Clase.Struct {
         var tipos: lista<str> = [];
         var nombres: lista<str> = [];
         for h en n.hijos {
-            if h.clase == "campo_def" {
+            if h.clase == Clase.CampoDef {
                 nombres.anadir(nombre_de(h.texto));
                 let tipo_campo = tipo_desnudo(h.texto);
                 tipos.anadir(I.sin_alias_tipo(tipo_campo));
@@ -133,18 +134,18 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
         // Un struct generico: sus parametros, para leer `Par<str, usize>`.
         var sueltos: lista<str> = [];
         for h en n.hijos {
-            if h.clase == "tipo_param" { sueltos.anadir(nuevo(h.texto)); }
+            if h.clase == Clase.TipoParam { sueltos.anadir(nuevo(h.texto)); }
         }
         if sueltos.largo() > 0 { poner(c.struct_params, vista(n.texto), sueltos); }
     }
-    if n.clase == "enum" {
+    if n.clase == Clase.Enum {
         var cuales: lista<str> = [];
         for h en n.hijos {
-            if h.clase == "variante" {
+            if h.clase == Clase.Variante {
                 cuales.anadir(nuevo(h.texto));
                 var lleva: lista<str> = [];
                 for x en h.hijos {
-                    if x.clase == "lleva" {
+                    if x.clase == Clase.Lleva {
                         lleva.anadir(nuevo(x.texto));
                     }
                 }
@@ -156,23 +157,23 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
         }
         poner(c.variantes, vista(n.texto), cuales);
     }
-    if n.clase == "fn" {
+    if n.clase == Clase.Fn {
         var retorno = vacio();
         var es_de_c = false;
         var sueltos: lista<str> = [];
         var tipos_param: lista<str> = [];
         var marcados: lista<str> = [];
         for h en n.hijos {
-            if h.clase == "retorno_tipo" {
+            if h.clase == Clase.RetornoTipo {
                 retorno = I.sin_alias_tipo(h.texto);
             }
             // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
             // existe en el borde: lo que ve Tcode es un `str` suyo.
-            if h.clase == "externa" { es_de_c = true; }
-            if h.clase == "tipo_param" {
+            if h.clase == Clase.Externa { es_de_c = true; }
+            if h.clase == Clase.TipoParam {
                 sueltos.anadir(nuevo(h.texto));
             }
-            if h.clase == "param" {
+            if h.clase == Clase.Param {
                 let tipo_param = tipo_desnudo(h.texto);
                 tipos_param.anadir(I.sin_alias_tipo(tipo_param));
                 let con_marca = tipo_con_marca(h.texto);
@@ -201,9 +202,9 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
 // variable con su tipo en el orden en que se declara.
 fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
     lineas: mut lista<usize>) {
-    let clase = vista(n.clase);
+    let clase = n.clase;
 
-    if clase == "declaracion" {
+    if clase == Clase.Declaracion {
         // Primero el valor, que se lee en el ambito de antes.
         var tipo = vacio();
         let escrito = tipo_desnudo(n.texto);
@@ -224,7 +225,7 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
         return;
     }
 
-    if clase == "para" {
+    if clase == Clase.Para {
         // `for x en xs`: la variable toma el tipo del elemento.
         if n.hijos.largo() > 0 {
             let sobre = I.tipo_de(c, n.hijos[0]);
@@ -253,16 +254,16 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
         return;
     }
 
-    if clase == "match" {
+    if clase == Clase.Match {
         // Lo que atrapa cada patron vive solo dentro de su brazo, y se
         // presta: `Json.Texto(s)` da una `view`, no un `str` que soltar.
         for h en n.hijos {
-            if h.clase != "brazo" { continue; }
+            if h.clase != Clase.Brazo { continue; }
             I.abrir(c);
             atrapar(h, c, quien, salida, lineas);
             for x en h.hijos {
-                let xc = vista(x.clase);
-                if xc != "atrapa" && xc != "patron" && xc != "literal" {
+                let xc = x.clase;
+                if xc != Clase.Atrapa && xc != Clase.Patron && xc != Clase.Literal {
                     recorrer(x, c, quien, salida, lineas);
                 }
             }
@@ -271,7 +272,7 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
         return;
     }
 
-    if clase == "bloque" {
+    if clase == Clase.Bloque {
         I.abrir(c);
         for h en n.hijos { recorrer(h, c, quien, salida, lineas); }
         I.cerrar(c);
@@ -286,7 +287,7 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
 // sobre una copia por cada juego de tipos, asi que no hay nada que comparar.
 fn es_generica(d: &P.Nodo) -> bool {
     for h en d.hijos {
-        if h.clase == "tipo_param" { return true; }
+        if h.clase == Clase.TipoParam { return true; }
     }
     return false;
 }
@@ -319,7 +320,7 @@ fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
     recoger_atrapadas(d, atrapadas);
     var prestados: mapa<str, usize> = [];
     for h en d.hijos {
-        if h.clase == "param" {
+        if h.clase == Clase.Param {
             let marca = tipo_con_marca(h.texto);
             if empieza_con(marca, "&") || empieza_con(marca, "mut ") {
                 let pn = nombre_de(h.texto);
@@ -364,7 +365,7 @@ fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
     }
 
     for h en d.hijos {
-        if h.clase == "bloque" { Q.mirar(c, h, vs); }
+        if h.clase == Clase.Bloque { Q.mirar(c, h, vs); }
     }
 
     var k = 0;
@@ -385,11 +386,11 @@ fn atrapar(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
     let lleva = I.lista_de(c.formas, vista(n.texto)) sino [];
     var k = 0;
     for x en n.hijos {
-        let xc = vista(x.clase);
-        if xc != "atrapa" && xc != "patron" && xc != "literal" { continue; }
-        if xc == "patron" {
+        let xc = x.clase;
+        if xc != Clase.Atrapa && xc != Clase.Patron && xc != Clase.Literal { continue; }
+        if xc == Clase.Patron {
             atrapar(x, c, quien, salida, lineas);
-        } else if xc == "atrapa" && x.texto != "_" {
+        } else if xc == Clase.Atrapa && x.texto != "_" {
             var t = vacio();
             if k < lleva.largo() { t = I.tipo_atrapado(c, lleva[k]); }
             I.declarar(c, x.texto, t);
@@ -403,7 +404,7 @@ fn atrapar(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
 // Variables que nacen al desarmar visualmente una variante. El `match` no
 // mueve esos valores fuera del enum: solo les da nombre dentro del brazo.
 fn recoger_atrapadas(n: &P.Nodo, salida: mut mapa<str, usize>) {
-    if n.clase == "atrapa" && n.texto != "_" {
+    if n.clase == Clase.Atrapa && n.texto != "_" {
         poner(salida, $"{n.texto}\t{n.linea}", 1);
     }
     for h en n.hijos { recoger_atrapadas(h, salida); }
@@ -416,7 +417,7 @@ fn recoger_atrapadas(n: &P.Nodo, salida: mut mapa<str, usize>) {
 // prestado si tiene duenio.
 fn recoger_bucles(n: &P.Nodo, primeros: mut mapa<str, usize>,
     segundos: mut mapa<str, usize>) {
-    if n.clase == "para" {
+    if n.clase == Clase.Para {
         let partes = try_partir(n.texto);
         var i = 0;
         for parte en partes {
@@ -602,7 +603,7 @@ fn mirar_modulo(ruta: view, texto: view, c: mut I.Contexto) {
 }
 
 fn programa_o_vacio(e: mut P.Estado) -> P.Nodo {
-    return P.programa(e) sino P.hoja("programa", "", 0);
+    return P.programa(e) sino P.hoja(Clase.Programa, "", 0);
 }
 
 fn carpeta(ruta: view) -> str {
@@ -641,11 +642,11 @@ fn main() -> usize ! {
     var salida: lista<str> = [];
     var lineas: lista<usize> = [];
     for d en arbol.hijos {
-        if d.clase == "fn" && !es_generica(d) {
+        if d.clase == Clase.Fn && !es_generica(d) {
             I.abrir(c);
             let quien = nuevo(d.texto);
             for h en d.hijos {
-                if h.clase == "param" {
+                if h.clase == Clase.Param {
                     let pn = nombre_de(h.texto);
                     let pt = tipo_desnudo(h.texto);
                     I.declarar(c, pn, pt);
@@ -654,7 +655,7 @@ fn main() -> usize ! {
                 }
             }
             for h en d.hijos {
-                if h.clase == "bloque" {
+                if h.clase == Clase.Bloque {
                     recorrer(h, c, quien, salida, lineas);
                 }
             }

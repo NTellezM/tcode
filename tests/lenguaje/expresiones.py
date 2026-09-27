@@ -70,16 +70,19 @@ def correr(suite: Resultado) -> None:
     def _expresiones_esperadas(ruta):
         from tcode import nombres_c as _nc
         from tcode.parser import parsear as _p
+        codigo, errores, comp = compilar_archivo(ruta, devolver_comp=True)
+        if errores:
+            return None
+        # Con los enums de todo el programa: `Clase.Retorno` es una forma de
+        # un enum que trae otro modulo, no el campo de una variable.
         try:
-            arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set())
+            arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set(),
+                       set(comp.enums))
         except Exception:
             return None
         # Con los nombres que chocan con C cambiados, como los deja el cargador
         # y como los lee la capa en Tcode.
         _nc.renombrar(arbol, _nc.externas(arbol) | {"main"})
-        codigo, errores, comp = compilar_archivo(ruta, devolver_comp=True)
-        if errores:
-            return None
         fuera = []
         for d in arbol:
             if not isinstance(d, _Fn_t) or d.tipo_params:
