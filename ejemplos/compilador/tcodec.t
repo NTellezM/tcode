@@ -23,6 +23,7 @@ usar "lib/comprobar.t" como C;
 usar "lib/formato.t" como FMT;
 usar "std/texto";
 usar "std/lista";
+usar "../lexer/lib/clase.t";
 
 // Lo que hace falta del sistema para construir el binario, escrito en C al
 // lado: ejecutar el compilador de C, un temporal, y sustituir un archivo de
@@ -315,8 +316,8 @@ fn declarantes(arboles: &lista<P.Nodo>, modulos: &lista<str>, nombre: view) -> l
 fn nombres_declarados(arbol: &P.Nodo) -> lista<str> {
     var salida: lista<str> = [];
     for d en arbol.hijos {
-        let clase = vista(d.clase);
-        if clase == "fn" || clase == "struct" || clase == "enum" {
+        let clase = d.clase;
+        if clase == Clase.Fn || clase == Clase.Struct || clase == Clase.Enum {
             if !esta_en(salida, d.texto) { salida.anadir(copiar(d.texto)); }
         }
     }
@@ -326,13 +327,13 @@ fn nombres_declarados(arbol: &P.Nodo) -> lista<str> {
 // Los nombres que una funcion declara dentro: parametros, variables, los de
 // un `for` y los que atrapa un `match`.
 fn locales_de(n: &P.Nodo, salida: mut lista<str>) {
-    let clase = vista(n.clase);
-    if clase == "param" {
+    let clase = n.clase;
+    if clase == Clase.Param {
         var i = 0;
         while i < n.texto.largo() && byte(n.texto, i) != 58 { i = i + 1; }
         salida.anadir(nuevo(recortar(rebanar(n.texto, 0, i))));
     }
-    if clase == "declaracion" {
+    if clase == Clase.Declaracion {
         let t = vista(n.texto);
         var i = 0;
         while i < t.largo() && byte(t, i) != 32 { i = i + 1; }
@@ -340,25 +341,25 @@ fn locales_de(n: &P.Nodo, salida: mut lista<str>) {
         while j < t.largo() && byte(t, j) != 58 { j = j + 1; }
         if i + 1 <= t.largo() { salida.anadir(nuevo(recortar(rebanar(t, i + 1, j)))); }
     }
-    if clase == "para" {
+    if clase == Clase.Para {
         let t = vista(n.texto);
         var i = 0;
         while i < t.largo() && byte(t, i) != 44 { i = i + 1; }
         salida.anadir(nuevo(recortar(rebanar(t, 0, i))));
         if i < t.largo() { salida.anadir(nuevo(recortar(rebanar(t, i + 1, t.largo())))); }
     }
-    if clase == "atrapa" { salida.anadir(copiar(n.texto)); }
+    if clase == Clase.Atrapa { salida.anadir(copiar(n.texto)); }
     for h en n.hijos { locales_de(h, salida); }
 }
 
 // El primer nombre que se usa sin haberlo pedido, en preorden: `nombre\tlinea`.
 fn sin_pedir(n: &P.Nodo, visible: &mapa<str, str>, duenios: &mapa<str, str>,
     locales: &lista<str>) -> str {
-    let clase = vista(n.clase);
+    let clase = n.clase;
     var nombre = vacio();
-    if clase == "llamada" { nombre = copiar(n.texto); }
-    if clase == "literal_struct" { nombre = copiar(n.texto); }
-    if clase == "enum_lit" { nombre = I.antes_del_punto(n.texto); }
+    if clase == Clase.Llamada { nombre = copiar(n.texto); }
+    if clase == Clase.LiteralStruct { nombre = copiar(n.texto); }
+    if clase == Clase.EnumLit { nombre = I.antes_del_punto(n.texto); }
     if nombre.largo() > 0 {
         let nv = vista(nombre);
         if !tiene(visible, nv) && tiene(duenios, nv) && !C.nombra_interna(nv)
@@ -435,11 +436,11 @@ fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
         }
         // Y lo que se usa sin pedirlo.
         for d en arboles[k].hijos {
-            if d.clase != "fn" { continue; }
+            if d.clase != Clase.Fn { continue; }
             var locales: lista<str> = [];
             locales_de(d, locales);
             for h en d.hijos {
-                if h.clase != "bloque" { continue; }
+                if h.clase != Clase.Bloque { continue; }
                 let hallado = sin_pedir(h, visible, duenios, locales);
                 if hallado.largo() > 0 {
                     let nombre = campo_pedido(hallado, 0);
@@ -567,7 +568,7 @@ fn cuerpo_enum_c(ie_s: usize, en_nombres: &lista<str>, en_variantes: &lista<list
 
 // Si en algun sitio de `n` se llama a la interna `nombre`.
 fn llama_a(n: &P.Nodo, nombre: view) -> bool {
-    if n.clase == "llamada" && igual(n.texto, nombre) {
+    if n.clase == Clase.Llamada && igual(n.texto, nombre) {
         return true;
     }
     for h en n.hijos {
@@ -613,8 +614,8 @@ fn ayudante_escribir_archivo(salida: mut lista<str>) {
 // los apunta en el orden en que aparecen sus llamadas, entrando en cada
 // clausura donde esta escrita.
 fn resultados_de_internas(n: &P.Nodo, cierres: &Cierres, reg: mut Registro) {
-    let clase = vista(n.clase);
-    if clase == "llamada" {
+    let clase = n.clase;
+    if clase == Clase.Llamada {
         let nombre = vista(n.texto);
         if nombre == "leer_archivo" || nombre == "leer_linea"
         || nombre == "entrada_completa" || nombre == "variable_entorno" {
@@ -622,7 +623,7 @@ fn resultados_de_internas(n: &P.Nodo, cierres: &Cierres, reg: mut Registro) {
         }
         if nombre == "escribir_archivo" { registrar_resultado(reg, "()"); }
     }
-    if clase == "cierre" {
+    if clase == Clase.Cierre {
         let de_cierre = I.funcion_de_cierre(n.texto);
         if tiene(cierres.indice, de_cierre) {
             let k = obtener(cierres.indice, de_cierre) sino 0;
@@ -684,14 +685,14 @@ fn typedef_resultado(t: view) -> str {
 
 fn es_falible(d: &P.Nodo) -> bool {
     for h en d.hijos {
-        if h.clase == "falible" { return true; }
+        if h.clase == Clase.Falible { return true; }
     }
     return false;
 }
 
 fn retorno_de(d: &P.Nodo) -> str {
     for h en d.hijos {
-        if h.clase == "retorno_tipo" {
+        if h.clase == Clase.RetornoTipo {
             return I.sin_alias_tipo(h.texto);
         }
     }
@@ -700,7 +701,7 @@ fn retorno_de(d: &P.Nodo) -> str {
 
 fn tiene_tipo_param(d: &P.Nodo) -> bool {
     for h en d.hijos {
-        if h.clase == "tipo_param" { return true; }
+        if h.clase == Clase.TipoParam { return true; }
     }
     return false;
 }
@@ -908,8 +909,8 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
     I.abrir(tipos);
     var bien = true;
     for st en n.hijos {
-        let clase = vista(st.clase);
-        if clase == "declaracion" && st.hijos.largo() == 1 {
+        let clase = st.clase;
+        if clase == Clase.Declaracion && st.hijos.largo() == 1 {
             let nombre = G.nombre_declarado(st.texto);
             var escrito = G.tipo_escrito(st.texto);
             if escrito.largo() == 0 { escrito = I.tipo_de(tipos, st.hijos[0]); }
@@ -917,7 +918,7 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
             if bien { bien = mirar_tipo(t, reg, global, structs); }
             I.declarar(tipos, nombre, t);
         }
-        if clase == "si" {
+        if clase == Clase.Si {
             var k = 1;
             while k < st.hijos.largo() {
                 if bien {
@@ -926,7 +927,7 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
                 k = k + 1;
             }
         }
-        if clase == "mientras" && st.hijos.largo() == 2 {
+        if clase == Clase.Mientras && st.hijos.largo() == 2 {
             if bien {
                 bien = mirar_bloque(st.hijos[1], tipos, reg, global, structs);
             }
@@ -944,7 +945,7 @@ fn mirar_funcion(d: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
     I.abrir(tipos);
     var bien = true;
     for h en d.hijos {
-        if h.clase == "param" {
+        if h.clase == Clase.Param {
             let pelado = F.tipo_pelado(h.texto);
             let t = I.sin_alias_tipo(pelado);
             if bien { bien = mirar_tipo(t, reg, global, structs); }
@@ -953,7 +954,7 @@ fn mirar_funcion(d: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
         }
     }
     for h en d.hijos {
-        if h.clase == "bloque" && bien {
+        if h.clase == Clase.Bloque && bien {
             bien = mirar_bloque(h, tipos, reg, global, structs);
         }
     }
@@ -1804,19 +1805,19 @@ fn resolver_en_nodo(n: &P.Nodo, plantillas_st: &mapa<str, usize>,
     st_nombres: mut lista<str>, st_indice: mut mapa<str, usize>,
     st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>,
     global: mut I.Contexto) {
-    let clase = vista(n.clase);
-    if clase == "param" {
+    let clase = n.clase;
+    if clase == Clase.Param {
         let tp = F.tipo_pelado(n.texto);
         let t = I.sin_alias_tipo(tp);
         let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
-    if clase == "retorno_tipo" || clase == "literal_struct" {
+    if clase == Clase.RetornoTipo || clase == Clase.LiteralStruct {
         let t = I.sin_alias_tipo(n.texto);
         let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
-    if clase == "declaracion" {
+    if clase == Clase.Declaracion {
         let escrito = G.tipo_escrito(n.texto);
         if escrito.largo() > 0 {
             let t = I.sin_alias_tipo(escrito);
@@ -1837,15 +1838,15 @@ fn resolver_instancia(d: &P.Nodo, plantillas_st: &mapa<str, usize>,
     st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>,
     global: mut I.Contexto) {
     for h en d.hijos {
-        if h.clase == "retorno_tipo" { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
+        if h.clase == Clase.RetornoTipo { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
                 st_nombres, st_indice, st_campos, st_tipos, global); }
     }
     for h en d.hijos {
-        if h.clase == "param" { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
+        if h.clase == Clase.Param { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
                 st_nombres, st_indice, st_campos, st_tipos, global); }
     }
     for h en d.hijos {
-        if h.clase == "bloque" { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
+        if h.clase == Clase.Bloque { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
                 st_nombres, st_indice, st_campos, st_tipos, global); }
     }
 }
@@ -1905,15 +1906,15 @@ fn numerar_cierres(n: mut P.Nodo, dueno: view, numeracion: &mapa<str, usize>,
     cuenta: mut usize) {
     var i = 0;
     while i < n.hijos.largo() {
-        if n.hijos[i].clase == "cierre" {
+        if n.hijos[i].clase == Clase.Cierre {
             let clave = $"{dueno}#{cuenta}";
             cuenta = cuenta + 1;
             if tiene(numeracion, clave) {
                 let numero = obtener(numeracion, clave) sino 0;
-                var queda = P.rama("cierre", n.hijos[i].linea);
+                var queda = P.rama(Clase.Cierre, n.hijos[i].linea);
                 queda.texto = $"Cierre_{numero}";
                 for h en n.hijos[i].hijos {
-                    if h.clase == "captura" { queda.hijos.anadir(copiar(h)); }
+                    if h.clase == Clase.Captura { queda.hijos.anadir(copiar(h)); }
                 }
                 n.hijos[i] = queda;
             }
@@ -1925,7 +1926,7 @@ fn numerar_cierres(n: mut P.Nodo, dueno: view, numeracion: &mapa<str, usize>,
 }
 
 fn tiene_cierre(n: &P.Nodo) -> bool {
-    if n.clase == "cierre" { return true; }
+    if n.clase == Clase.Cierre { return true; }
     for h en n.hijos {
         if tiene_cierre(h) { return true; }
     }
@@ -1970,11 +1971,11 @@ fn apuntar_tipo_funcion(t: view, salida: mut lista<str>) {
 
 fn tipos_funcion_de(d: &P.Nodo, salida: mut lista<str>) {
     for h en d.hijos {
-        if h.clase == "param" {
+        if h.clase == Clase.Param {
             let tp = F.tipo_pelado(h.texto);
             apuntar_tipo_funcion(tp, salida);
         }
-        if h.clase == "retorno_tipo" {
+        if h.clase == Clase.RetornoTipo {
             apuntar_tipo_funcion(h.texto, salida);
         }
     }
@@ -2042,10 +2043,10 @@ fn ligaduras_de(p: view) -> mapa<str, str> {
 }
 
 // Los nodos cuyo texto lleva tipos escritos.
-fn lleva_tipo(clase: view) -> bool {
-    if clase == "param" || clase == "retorno_tipo" { return true; }
-    if clase == "declaracion" || clase == "conversion" { return true; }
-    return clase == "literal_struct" || clase == "cierre";
+fn lleva_tipo(clase: Clase) -> bool {
+    if clase == Clase.Param || clase == Clase.RetornoTipo { return true; }
+    if clase == Clase.Declaracion || clase == Clase.Conversion { return true; }
+    return clase == Clase.LiteralStruct || clase == Clase.Cierre;
 }
 
 fn copiar_sustituido(n: &P.Nodo, lig: &mapa<str, str>) -> P.Nodo {
@@ -2058,7 +2059,7 @@ fn copiar_sustituido(n: &P.Nodo, lig: &mapa<str, str>) -> P.Nodo {
         r.texto = copiar(n.texto);
     }
     for h en n.hijos {
-        if h.clase == "tipo_param" { continue; }
+        if h.clase == Clase.TipoParam { continue; }
         r.hijos.anadir(copiar_sustituido(h, lig));
     }
     return r;
@@ -2071,9 +2072,9 @@ fn nodo_instancia(p: view, arboles: &lista<P.Nodo>,
     let en_c = campo_pedido(p, 1);
     let lig = ligaduras_de(p);
     let im = obtener(plantillas, plantilla) sino 0;
-    var r = P.rama("vacio", 0);
+    var r = P.rama(Clase.Vacio, 0);
     for d en arboles[im].hijos {
-        if d.clase == "fn" && igual(d.texto, plantilla) {
+        if d.clase == Clase.Fn && igual(d.texto, plantilla) {
             r = copiar_sustituido(d, lig);
             r.texto = copiar(en_c);
             break;
@@ -2634,29 +2635,29 @@ fn main() -> usize ! {
         var tipos = I.contexto();
         var error_m = vacio();
         let arbol = F.preparar_con_error(vista(m), tipos, error_m, previos_st, previos_en,
-            leidos) sino P.rama("vacio", 0);
+            leidos) sino P.rama(Clase.Vacio, 0);
         if error_m.largo() > 0 {
             // Como el cargador de Python: el primer error y nada mas.
             imprimir_error($"error: {error_m}\n");
             return 1;
         }
-        if arbol.clase == "vacio" {
+        if arbol.clase == Clase.Vacio {
             imprimir_error($"tcodec: no se pudo leer `{m}`\n");
             return 1;
         }
         // Lo que este declara lo ven los siguientes al leerse, como en el
         // cargador: un enum tambien es un nombre de tipo.
         for d en arbol.hijos {
-            if d.clase == "struct" || d.clase == "enum" {
+            if d.clase == Clase.Struct || d.clase == Clase.Enum {
                 poner(previos_st, vista(d.texto), 1);
             }
-            if d.clase == "enum" { poner(previos_en, vista(d.texto), 1); }
+            if d.clase == Clase.Enum { poner(previos_en, vista(d.texto), 1); }
         }
         F.recoger_firmas(arbol, global);
         for d en arbol.hijos {
-            let clase = vista(d.clase);
-            if clase == "usar" || clase == "alias" { continue; }
-            if clase == "fn" {
+            let clase = d.clase;
+            if clase == Clase.Usar || clase == Clase.Alias { continue; }
+            if clase == Clase.Fn {
                 if F.es_generica(d) {
                     poner(plantillas, vista(d.texto), arboles.largo());
                     continue;
@@ -2666,7 +2667,7 @@ fn main() -> usize ! {
                 }
                 continue;
             }
-            if clase == "struct" {
+            if clase == Clase.Struct {
                 if tiene_tipo_param(d) {
                     if tiene(stp_indice, d.texto) {
                         return rechazo("un struct generico repetido entre modulos");
@@ -2675,8 +2676,8 @@ fn main() -> usize ! {
                     var cs: lista<str> = [];
                     var ts: lista<str> = [];
                     for h en d.hijos {
-                        if h.clase == "tipo_param" { tps.anadir(nuevo(h.texto)); }
-                        if h.clase == "campo_def" {
+                        if h.clase == Clase.TipoParam { tps.anadir(nuevo(h.texto)); }
+                        if h.clase == Clase.CampoDef {
                             cs.anadir(F.nombre_de(h.texto));
                             let tp = F.tipo_pelado(h.texto);
                             ts.anadir(I.sin_alias_tipo(tp));
@@ -2695,7 +2696,7 @@ fn main() -> usize ! {
                 var campos: lista<str> = [];
                 var tipos_campo: lista<str> = [];
                 for h en d.hijos {
-                    if h.clase == "campo_def" {
+                    if h.clase == Clase.CampoDef {
                         let tp = F.tipo_pelado(h.texto);
                         let t = I.sin_alias_tipo(tp);
                         campos.anadir(F.nombre_de(h.texto));
@@ -2708,19 +2709,19 @@ fn main() -> usize ! {
                 st_tipos.anadir(tipos_campo);
                 continue;
             }
-            if clase == "externo" {
+            if clase == Clase.Externo {
                 for f en d.hijos {
-                    if f.clase != "fn" { continue; }
+                    if f.clase != Clase.Fn { continue; }
                     var ps: lista<str> = [];
                     var pn: lista<str> = [];
                     var ret = vacio();
                     for h en f.hijos {
-                        if h.clase == "param" {
+                        if h.clase == Clase.Param {
                             let tp = F.tipo_pelado(h.texto);
                             ps.anadir(I.sin_alias_tipo(tp));
                             pn.anadir(F.nombre_de(h.texto));
                         }
-                        if h.clase == "retorno_tipo" {
+                        if h.clase == Clase.RetornoTipo {
                             ret = nuevo(h.texto);
                         }
                     }
@@ -2730,19 +2731,19 @@ fn main() -> usize ! {
                 }
                 continue;
             }
-            if clase == "enum" {
+            if clase == Clase.Enum {
                 if tiene(en_indice, d.texto) || tiene(st_indice, d.texto) {
                     return rechazo("un enum repetido entre modulos");
                 }
                 var vs: lista<str> = [];
                 var ls: lista<str> = [];
                 for h en d.hijos {
-                    if h.clase != "variante" { continue; }
+                    if h.clase != Clase.Variante { continue; }
                     vs.anadir(nuevo(h.texto));
                     var junto = vacio();
                     var primero_t = true;
                     for x en h.hijos {
-                        if x.clase != "lleva" { continue; }
+                        if x.clase != Clase.Lleva { continue; }
                         let t = I.sin_alias_tipo(x.texto);
                         if es_bloque_o_arreglo(t) {
                             return rechazo("bloques o arreglos en un enum");
@@ -2759,7 +2760,7 @@ fn main() -> usize ! {
                 en_lleva.anadir(ls);
                 continue;
             }
-            return rechazo($"`{clase}`");
+            return rechazo($"`{nombre_de_clase(clase)}`");
         }
         arboles.anadir(arbol);
         contextos.anadir(tipos);
@@ -2782,7 +2783,7 @@ fn main() -> usize ! {
     var mr = 0;
     while mr < arboles.largo() {
         for d en arboles[mr].hijos {
-            if d.clase == "fn" && tiene(global.repetidas, d.texto) {
+            if d.clase == Clase.Fn && tiene(global.repetidas, d.texto) {
                 let suyos = declarantes(arboles, modulos, d.texto);
                 let base = F.prefijo_unico(modulos[mr], suyos);
                 let otro = $"{base}__{d.texto}";
@@ -2803,7 +2804,7 @@ fn main() -> usize ! {
             }
             if jm == modulos.largo() { return rechazo("un modulo que no se cargo"); }
             for d en arboles[jm].hijos {
-                if d.clase != "fn" { continue; }
+                if d.clase != Clase.Fn { continue; }
                 if !tiene(global.repetidas, d.texto) { continue; }
                 var clave = copiar(d.texto);
                 if alias_p.largo() > 0 { clave = $"{alias_p}.{d.texto}"; }
@@ -2906,7 +2907,7 @@ fn main() -> usize ! {
     while m_c < arboles.largo() {
         var k_d = 0;
         while k_d < arboles[m_c].hijos.largo() {
-            if arboles[m_c].hijos[k_d].clase == "fn"
+            if arboles[m_c].hijos[k_d].clase == Clase.Fn
             && !F.es_generica(arboles[m_c].hijos[k_d]) {
                 var dueno = copiar(arboles[m_c].hijos[k_d].texto);
                 if tiene(contextos[m_c].renombradas, dueno) {
@@ -2956,7 +2957,7 @@ fn main() -> usize ! {
     var k_fn = 0;
     while k_fn < arboles.largo() {
         for d en arboles[k_fn].hijos {
-            if d.clase == "fn" && !F.es_generica(d) {
+            if d.clase == Clase.Fn && !F.es_generica(d) {
                 resolver_en_nodo(d, stp_indice, stp_params, stp_campos, stp_tipos, en_curso_st,
                     st_nombres, st_indice, st_campos, st_tipos, global);
             }
@@ -2978,7 +2979,7 @@ fn main() -> usize ! {
     var k_desc = 0;
     while k_desc < arboles.largo() {
         for d en arboles[k_desc].hijos {
-            if d.clase != "fn" || F.es_generica(d) { continue; }
+            if d.clase != Clase.Fn || F.es_generica(d) { continue; }
             var borrador = F.cuenta_nueva();
             borrador.sacados = copiar(cierres.sacados);
             borrador.dueno = dueno_de_funcion(d, contextos[k_desc]);
@@ -3048,9 +3049,9 @@ fn main() -> usize ! {
     var im = 0;
     while im < arboles.largo() {
         for d en arboles[im].hijos {
-            if d.clase == "struct" && !tiene_tipo_param(d) {
+            if d.clase == Clase.Struct && !tiene_tipo_param(d) {
                 for h en d.hijos {
-                    if h.clase == "campo_def" {
+                    if h.clase == Clase.CampoDef {
                         let tp = F.tipo_pelado(h.texto);
                         let t = I.sin_alias_tipo(tp);
                         if !mirar_tipo(t, reg, global, con_partes) {
@@ -3059,7 +3060,7 @@ fn main() -> usize ! {
                     }
                 }
             }
-            if d.clase == "fn" && !F.es_generica(d) {
+            if d.clase == Clase.Fn && !F.es_generica(d) {
                 if !mirar_funcion(d, contextos[im], reg, global, con_partes) {
                     return rechazo("mapas, bloques ni arreglos");
                 }
@@ -3320,7 +3321,7 @@ fn main() -> usize ! {
         // `#line`: al cambiar de modulo nunca coincide.
         cta.ultima_linea = 0;
         for d en arboles[i].hijos {
-            if d.clase != "fn" || F.es_generica(d) { continue; }
+            if d.clase != Clase.Fn || F.es_generica(d) { continue; }
             cta.dueno = dueno_de_funcion(d, contextos[i]);
             if !emitir_funcion(d, contextos[i], vista(modulos[i]), cta, protos,
                 cuerpos, anchos, decimales, conversiones) {
@@ -3623,7 +3624,7 @@ fn main() -> usize ! {
     var k_tf = 0;
     while k_tf < arboles.largo() {
         for d en arboles[k_tf].hijos {
-            if d.clase == "fn" && !F.es_generica(d) {
+            if d.clase == Clase.Fn && !F.es_generica(d) {
                 tipos_funcion_de(d, candidatos);
             }
         }

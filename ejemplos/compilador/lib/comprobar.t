@@ -16,6 +16,7 @@ usar "generar.t" como G;
 usar "../../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
 usar "std/lista";
+usar "../../lexer/lib/clase.t";
 
 // ------------------------------------------------------------------
 // Los tipos basicos, como en el original
@@ -401,12 +402,12 @@ fn funcion_de(d: &P.Nodo, nombre: view, archivo: view, modulo: usize,
     var tps: lista<str> = [];
     var rs: lista<str> = [];
     for h en d.hijos {
-        let clase = vista(h.clase);
-        if clase == "param" { ps.anadir(param_de(h.texto)); }
-        if clase == "retorno_tipo" { ret = I.sin_alias_tipo(h.texto); }
-        if clase == "falible" { fal = true; }
-        if clase == "tipo_param" { tps.anadir(copiar(h.texto)); }
-        if clase == "restriccion" && tps.largo() > 0 {
+        let clase = h.clase;
+        if clase == Clase.Param { ps.anadir(param_de(h.texto)); }
+        if clase == Clase.RetornoTipo { ret = I.sin_alias_tipo(h.texto); }
+        if clase == Clase.Falible { fal = true; }
+        if clase == Clase.TipoParam { tps.anadir(copiar(h.texto)); }
+        if clase == Clase.Restriccion && tps.largo() > 0 {
             let tp = vista(tps[tps.largo() - 1]);
             rs.anadir($"{tp}={h.texto}");
         }
@@ -1103,9 +1104,9 @@ fn escribe_en_captura(c: mut Comprobacion, m: &Mundo, lugar: &P.Nodo) -> bool {
     if !c.en_cierre { return false; }
     var campo = vacio();
     var x = copiar(lugar);
-    while (x.clase == "campo" || x.clase == "indice")
+    while (x.clase == Clase.Campo || x.clase == Clase.Indice)
     && x.hijos.largo() > 0 {
-        if x.clase == "campo" && x.hijos[0].clase == "variable"
+        if x.clase == Clase.Campo && x.hijos[0].clase == Clase.Variable
         && x.hijos[0].texto == "_ss_entorno" {
             campo = copiar(x.texto);
         }
@@ -1133,7 +1134,7 @@ fn mutar(c: mut Comprobacion, m: &Mundo, lugar: &P.Nodo, linea: usize, i: usize,
         return;
     }
     // Modificar un campo no es usar el struct entero.
-    let por_campo = lugar.clase == "campo";
+    let por_campo = lugar.clase == Clase.Campo;
     if por_campo { c.por_campo = c.por_campo + 1; }
     let a_medias = a_medio_mover(c, m, linea, i);
     if por_campo { c.por_campo = c.por_campo - 1; }
@@ -1216,23 +1217,21 @@ fn juntar_ramas(c: mut Comprobacion, a: &lista<usize>, b: &lista<usize>) {
     }
 }
 
-fn clase_de(n: &P.Nodo) -> str { return copiar(n.clase); }
-
 // El bloque no continua: sale por `return`, `falla`, `break` o `continue`.
 fn bloque_termina(n: &P.Nodo) -> bool {
     if n.hijos.largo() == 0 { return false; }
-    let ultima = vista(n.hijos[n.hijos.largo() - 1].clase);
-    return ultima == "retorno" || ultima == "falla"
-    || ultima == "romper" || ultima == "continuar";
+    let ultima = n.hijos[n.hijos.largo() - 1].clase;
+    return ultima == Clase.Retorno || ultima == Clase.Falla
+    || ultima == Clase.Romper || ultima == Clase.Continuar;
 }
 
 // Todos los caminos de este bloque salen de la funcion.
 fn siempre_sale(n: &P.Nodo) -> bool {
     if n.hijos.largo() == 0 { return false; }
     let k = n.hijos.largo() - 1;
-    let clase = vista(n.hijos[k].clase);
-    if clase == "retorno" || clase == "falla" { return true; }
-    if clase == "si" && n.hijos[k].hijos.largo() == 3 {
+    let clase = n.hijos[k].clase;
+    if clase == Clase.Retorno || clase == Clase.Falla { return true; }
+    if clase == Clase.Si && n.hijos[k].hijos.largo() == 3 {
         return siempre_sale(n.hijos[k].hijos[1]) && siempre_sale_rama(n.hijos[k].hijos[2]);
     }
     return false;
@@ -1240,24 +1239,24 @@ fn siempre_sale(n: &P.Nodo) -> bool {
 
 // La rama `else` puede ser un bloque o, en `else if`, otra sentencia.
 fn siempre_sale_rama(n: &P.Nodo) -> bool {
-    if n.clase == "bloque" { return siempre_sale(n); }
-    var b = P.rama("bloque", n.linea);
+    if n.clase == Clase.Bloque { return siempre_sale(n); }
+    var b = P.rama(Clase.Bloque, n.linea);
     b.hijos.anadir(copiar(n));
     return siempre_sale(b);
 }
 
 fn termina_rama(n: &P.Nodo) -> bool {
-    if n.clase == "bloque" { return bloque_termina(n); }
-    let clase = vista(n.clase);
-    return clase == "retorno" || clase == "falla"
-    || clase == "romper" || clase == "continuar";
+    if n.clase == Clase.Bloque { return bloque_termina(n); }
+    let clase = n.clase;
+    return clase == Clase.Retorno || clase == Clase.Falla
+    || clase == Clase.Romper || clase == Clase.Continuar;
 }
 
 // La variable en la raiz de `x`, `p.a.b` o `v[i][j]`.
 fn variable_base(n: &P.Nodo) -> str {
-    let clase = vista(n.clase);
-    if clase == "variable" { return copiar(n.texto); }
-    if (clase == "campo" || clase == "indice") && n.hijos.largo() > 0 {
+    let clase = n.clase;
+    if clase == Clase.Variable { return copiar(n.texto); }
+    if (clase == Clase.Campo || clase == Clase.Indice) && n.hijos.largo() > 0 {
         return variable_base(n.hijos[0]);
     }
     return vacio();
@@ -1272,13 +1271,13 @@ fn camino_de(n: &P.Nodo) -> str {
 }
 
 fn camino_y_corte(n: &P.Nodo, cortado: mut bool) -> str {
-    let clase = vista(n.clase);
-    if clase == "variable" { return copiar(n.texto); }
+    let clase = n.clase;
+    if clase == Clase.Variable { return copiar(n.texto); }
     if n.hijos.largo() == 0 { return vacio(); }
-    if clase != "campo" && clase != "indice" { return vacio(); }
+    if clase != Clase.Campo && clase != Clase.Indice { return vacio(); }
     let dentro = camino_y_corte(n.hijos[0], cortado);
     if dentro.largo() == 0 { return dentro; }
-    if clase == "indice" {
+    if clase == Clase.Indice {
         cortado = true;
         return dentro;
     }
@@ -1340,9 +1339,9 @@ fn apuntar_prestamo(p: mut Prestamos, camino: view, quien: view, mutable: bool) 
 // ------------------------------------------------------------------
 
 fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
-    let clase = vista(n.clase);
-    if clase == "try" && n.hijos.largo() > 0 { return procedencia_de(c, m, n.hijos[0]); }
-    if clase == "sino" && n.hijos.largo() == 2 {
+    let clase = n.clase;
+    if clase == Clase.Try && n.hijos.largo() > 0 { return procedencia_de(c, m, n.hijos[0]); }
+    if clase == Clase.Sino && n.hijos.largo() == 2 {
         let a = procedencia_de(c, m, n.hijos[0]);
         let b = procedencia_de(c, m, n.hijos[1]);
         if a == "local" || b == "local" { return nuevo("local"); }
@@ -1351,8 +1350,8 @@ fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
         }
         return nuevo("estatico");
     }
-    if clase == "cadena" { return nuevo("estatico"); }
-    if clase == "variable" {
+    if clase == Clase.Cadena { return nuevo("estatico"); }
+    if clase == Clase.Variable {
         let i = buscar_simbolo(c, n.texto);
         if !existe(c, i) { return nuevo("local"); }
         if c.simbolos[i].tipo == "view" || es_prestado_st(m, c.simbolos[i].tipo) {
@@ -1361,7 +1360,7 @@ fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
         }
         return nuevo("local");
     }
-    if clase == "literal_struct" {
+    if clase == Clase.LiteralStruct {
         // Lo peor de lo que prestan sus campos.
         let st = I.sin_modulo(n.texto);
         var peor = nuevo("estatico");
@@ -1374,7 +1373,7 @@ fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
         }
         return peor;
     }
-    if clase == "campo" {
+    if clase == Clase.Campo {
         let raiz = variable_base(n);
         let i = buscar_simbolo(c, raiz);
         let tc = tipo_simple(c, m, n);
@@ -1388,7 +1387,7 @@ fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
         }
         return nuevo("local");
     }
-    if clase == "llamada" {
+    if clase == Clase.Llamada {
         let nombre = resolver_nombre(c_tipos_vacio(), n.texto);
         let nn = vista(nombre);
         if nn == "argumento" { return nuevo("estatico"); }
@@ -1451,7 +1450,7 @@ fn prestado_como_vista(c: &Comprobacion, m: &Mundo, arg: &P.Nodo) -> P.Nodo {
         let t = tipo_del_sitio(c, m, arg);
         let limpio = sin_prestamo(t);
         if limpio == "str" {
-            var v = P.rama("llamada", arg.linea);
+            var v = P.rama(Clase.Llamada, arg.linea);
             v.texto.empujar("vista");
             v.hijos.anadir(copiar(arg));
             return v;
@@ -1463,15 +1462,15 @@ fn prestado_como_vista(c: &Comprobacion, m: &Mundo, arg: &P.Nodo) -> P.Nodo {
 // El tipo de una variable, un campo o un elemento, a cualquier hondura:
 // `xs[0].nombre`. `""` si no se sabe.
 fn tipo_del_sitio(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
-    let clase = vista(n.clase);
-    if clase == "indice" && n.hijos.largo() > 0 {
+    let clase = n.clase;
+    if clase == Clase.Indice && n.hijos.largo() > 0 {
         let base = tipo_del_sitio(c, m, n.hijos[0]);
         if T.es_lista(base) || T.es_arreglo(base) {
             return T.elemento(base);
         }
         return vacio();
     }
-    if clase == "campo" && n.hijos.largo() > 0 {
+    if clase == Clase.Campo && n.hijos.largo() > 0 {
         let base = tipo_del_sitio(c, m, n.hijos[0]);
         if base.largo() == 0 || !es_struct(m, base) { return vacio(); }
         return tipo_del_campo(m, base, n.texto);
@@ -1502,14 +1501,14 @@ fn juntar_origenes(salida: mut lista<str>, de: &lista<str>) {
 // hecho, que se libera al acabar la sentencia: una vista suya no se guarda.
 fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
     var salida: lista<str> = [];
-    let clase = vista(n.clase);
-    if clase == "try" && n.hijos.largo() > 0 { return origenes_de(c, m, n.hijos[0]); }
-    if clase == "sino" && n.hijos.largo() == 2 {
+    let clase = n.clase;
+    if clase == Clase.Try && n.hijos.largo() > 0 { return origenes_de(c, m, n.hijos[0]); }
+    if clase == Clase.Sino && n.hijos.largo() == 2 {
         juntar_origenes(salida, origenes_de(c, m, n.hijos[0]));
         juntar_origenes(salida, origenes_de(c, m, n.hijos[1]));
         return salida;
     }
-    if clase == "llamada" {
+    if clase == Clase.Llamada {
         let nombre = I.sin_modulo(n.texto);
         let nn = vista(nombre);
         if nn == "vista" && n.hijos.largo() > 0 {
@@ -1562,13 +1561,13 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
         }
         return salida;
     }
-    if clase == "si_expr" && n.hijos.largo() == 3 {
+    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
         // Puede ser cualquiera de las dos ramas.
         juntar_origenes(salida, origenes_de(c, m, n.hijos[1]));
         juntar_origenes(salida, origenes_de(c, m, n.hijos[2]));
         return salida;
     }
-    if clase == "match" && n.hijos.largo() > 0 {
+    if clase == Clase.Match && n.hijos.largo() > 0 {
         // Lo que da cada brazo; y si da algo que atrapo el patron, el valor
         // mirado: lo atrapado es un prestamo suyo.
         var mirado: lista<str> = [];
@@ -1576,7 +1575,7 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
         var k = 1;
         while k < n.hijos.largo() {
             for h en n.hijos[k].hijos {
-                if h.clase != "retorno" || h.hijos.largo() != 1 { continue; }
+                if h.clase != Clase.Retorno || h.hijos.largo() != 1 { continue; }
                 juntar_origenes(salida, origenes_de(c, m, h.hijos[0]));
                 var atrapados: lista<str> = [];
                 atrapados_de(n.hijos[k], atrapados);
@@ -1593,7 +1592,7 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
         }
         return salida;
     }
-    if clase == "variable" {
+    if clase == Clase.Variable {
         let i = buscar_simbolo(c, n.texto);
         if existe(c, i) && (c.simbolos[i].tipo == "view"
             || es_prestado_st(m, c.simbolos[i].tipo)) {
@@ -1603,14 +1602,14 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
             salida.anadir(copiar(n.texto));
         }
     }
-    if clase == "literal_struct" {
+    if clase == Clase.LiteralStruct {
         // Un struct que presta, de lo que prestan sus campos.
         let st = I.sin_modulo(n.texto);
         for h en n.hijos {
             if h.hijos.largo() == 0 { continue; }
             if !presta_tipo(m, tipo_del_campo(m, st, h.texto)) { continue; }
             var de = origenes_de(c, m, h.hijos[0]);
-            if de.largo() == 0 && h.hijos[0].clase != "variable"
+            if de.largo() == 0 && h.hijos[0].clase != Clase.Variable
             && es_local(procedencia_de(c, m, h.hijos[0])) {
                 de.anadir(nuevo("<temporal>"));
             }
@@ -1618,7 +1617,7 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
         }
         return salida;
     }
-    if clase == "campo" || clase == "indice" {
+    if clase == Clase.Campo || clase == Clase.Indice {
         // Un sitio dentro de una variable: presta de ella. Si es la vista de
         // un struct que presta, de lo mismo que el. Si la variable llego
         // prestada, la memoria es de quien llama.
@@ -1681,7 +1680,7 @@ fn origenes_de_args(c: &Comprobacion, m: &Mundo, n: &P.Nodo, desde: usize,
         if pt == "view"
         || (!prestado(m.funciones[k].params[i]) && (es_prestado_st(m, pt) || suelto)) {
             var de_arg = origenes_de(c, m, arg);
-            if !suelto && de_arg.largo() == 0 && arg.clase != "variable"
+            if !suelto && de_arg.largo() == 0 && arg.clase != Clase.Variable
             && es_local(procedencia_de(c, m, arg)) {
                 // Un `str` recien hecho donde se pide una vista.
                 de_arg.anadir(nuevo("<temporal>"));
@@ -1724,7 +1723,7 @@ fn origenes_de_puntero(c: &Comprobacion, m: &Mundo, n: &P.Nodo, tipo: view) -> l
             }
         } else if presta_tipo(m, pt) {
             var de_arg = origenes_de(c, m, n.hijos[i]);
-            if de_arg.largo() == 0 && n.hijos[i].clase != "variable"
+            if de_arg.largo() == 0 && n.hijos[i].clase != Clase.Variable
             && es_local(procedencia_de(c, m, n.hijos[i])) {
                 de_arg.anadir(nuevo("<temporal>"));
             }
@@ -1752,9 +1751,9 @@ fn origenes_mirado(c: &Comprobacion, m: &Mundo, valor: &P.Nodo) -> lista<str> {
 // Los nombres que atrapa el patron de un brazo, a cualquier hondura.
 fn atrapados_de(b: &P.Nodo, salida: mut lista<str>) {
     for h en b.hijos {
-        if h.clase == "atrapa" && h.texto != "_" {
+        if h.clase == Clase.Atrapa && h.texto != "_" {
             salida.anadir(copiar(h.texto));
-        } else if h.clase == "patron" {
+        } else if h.clase == Clase.Patron {
             atrapados_de(h, salida);
         }
     }
@@ -1762,7 +1761,7 @@ fn atrapados_de(b: &P.Nodo, salida: mut lista<str>) {
 
 // Si en `n` se lee alguna de estas variables.
 fn menciona(n: &P.Nodo, nombres: &lista<str>) -> bool {
-    if n.clase == "variable" && esta_entre(nombres, n.texto) { return true; }
+    if n.clase == Clase.Variable && esta_entre(nombres, n.texto) { return true; }
     for h en n.hijos {
         if menciona(h, nombres) { return true; }
     }
@@ -1775,8 +1774,8 @@ fn menciona(n: &P.Nodo, nombres: &lista<str>) -> bool {
 // tiene sus prestamos apuntados en sus duenios.
 fn prestados_por(c: &Comprobacion, m: &Mundo, arg: &P.Nodo, t: view) -> lista<str> {
     var salida: lista<str> = [];
-    let clase = vista(arg.clase);
-    if clase == "variable" {
+    let clase = arg.clase;
+    if clase == Clase.Variable {
         let i = buscar_simbolo(c, arg.texto);
         if existe(c, i) {
             let limpio = sin_prestamo(c.simbolos[i].tipo);
@@ -1785,15 +1784,15 @@ fn prestados_por(c: &Comprobacion, m: &Mundo, arg: &P.Nodo, t: view) -> lista<st
         return salida;
     }
     let limpio = sin_prestamo(t);
-    if limpio == "str" && (clase == "campo" || clase == "indice") {
+    if limpio == "str" && (clase == Clase.Campo || clase == Clase.Indice) {
         let camino = camino_de(arg);
         if camino.largo() > 0 { salida.anadir(camino); }
         return salida;
     }
     // `vista(p.a)` presta solo `p.a`. `vista` solo mira un `str`: lo demas
     // ya es un error.
-    if clase == "llamada" && arg.texto == "vista" && arg.hijos.largo() == 1
-    && (arg.hijos[0].clase == "campo" || arg.hijos[0].clase == "indice") {
+    if clase == Clase.Llamada && arg.texto == "vista" && arg.hijos.largo() == 1
+    && (arg.hijos[0].clase == Clase.Campo || arg.hijos[0].clase == Clase.Indice) {
         let camino = camino_de(arg.hijos[0]);
         if camino.largo() > 0 { salida.anadir(camino); }
         return salida;
@@ -1818,12 +1817,12 @@ fn tipo_del_campo(m: &Mundo, st: view, campo_n: view) -> str {
 
 // El tipo de una variable o de un campo, sin comprobar nada.
 fn tipo_simple(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
-    if n.clase == "variable" {
+    if n.clase == Clase.Variable {
         let i = buscar_simbolo(c, n.texto);
         if existe(c, i) { return sin_prestamo(c.simbolos[i].tipo); }
         return vacio();
     }
-    if n.clase == "campo" && n.hijos.largo() > 0 {
+    if n.clase == Clase.Campo && n.hijos.largo() > 0 {
         let base = tipo_simple(c, m, n.hijos[0]);
         if base.largo() == 0 || !es_struct(m, base) { return vacio(); }
         return tipo_del_campo(m, base, n.texto);
@@ -1876,8 +1875,8 @@ fn apuntar(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, valor: &P.Nod
 // ------------------------------------------------------------------
 
 fn comprobar_literal(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, destino: view) {
-    let clase = vista(n.clase);
-    if clase == "binaria" && n.hijos.largo() == 2 {
+    let clase = n.clase;
+    if clase == Clase.Binaria && n.hijos.largo() == 2 {
         let op_b = vista(n.texto);
         // Los numeros escritos son decimales aqui, y con decimales no hay
         // resto ni bits.
@@ -1901,23 +1900,23 @@ fn comprobar_literal(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, destino: view) 
         return;
     }
     // Cada rama que sea un numero escrito tiene que caber.
-    if clase == "si_expr" && n.hijos.largo() == 3 {
+    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
         comprobar_literal(c, m, n.hijos[1], destino);
         comprobar_literal(c, m, n.hijos[2], destino);
         return;
     }
     var negativo = false;
     var lit = copiar(n);
-    if clase == "unaria" && n.texto == "-" && n.hijos.largo() == 1 {
-        let hc = vista(n.hijos[0].clase);
-        if hc == "entero" || hc == "decimal" {
+    if clase == Clase.Unaria && n.texto == "-" && n.hijos.largo() == 1 {
+        let hc = n.hijos[0].clase;
+        if hc == Clase.Entero || hc == Clase.Decimal {
             negativo = true;
             lit = copiar(n.hijos[0]);
         }
     }
     var signo = vacio();
     if negativo { signo = nuevo("-"); }
-    if lit.clase == "entero" {
+    if lit.clase == Clase.Entero {
         let valor = G.sin_ceros_izquierda(lit.texto);
         var cabe = true;
         if es_tipo_entero(destino) {
@@ -1934,7 +1933,7 @@ fn comprobar_literal(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, destino: view) 
         }
         return;
     }
-    if lit.clase == "decimal" && es_decimal(destino) {
+    if lit.clase == Clase.Decimal && es_decimal(destino) {
         if !G.cabe_literal_decimal(lit.texto, destino) {
             error(c, m, n.linea, $"el literal `{signo}{lit.texto}` no cabe en `{destino}` como numero finito");
         }
@@ -2041,11 +2040,11 @@ fn funcion_llamada(m: &Mundo, tipos: &I.Contexto, nombre: view) -> usize {
 }
 
 fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
-    let clase = vista(n.clase);
-    if (clase == "try" || clase == "sino") && n.hijos.largo() > 0 {
+    let clase = n.clase;
+    if (clase == Clase.Try || clase == Clase.Sino) && n.hijos.largo() > 0 {
         return tipo_probable(c, m, tipos, n.hijos[0]);
     }
-    if clase == "variable" {
+    if clase == Clase.Variable {
         let i = buscar_simbolo(c, n.texto);
         if existe(c, i) { return copiar(c.simbolos[i].tipo); }
         let k = funcion_llamada(m, tipos, n.texto);
@@ -2054,17 +2053,17 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
         }
         return vacio();
     }
-    if clase == "cierre" { return cierre(c, m, tipos, n); }
-    if clase == "cadena" { return nuevo("view"); }
-    if clase == "entero" { return nuevo("usize"); }
-    if clase == "decimal" { return nuevo("f64"); }
-    if clase == "booleano" { return nuevo("bool"); }
-    if clase == "interpolada" { return nuevo("str"); }
-    if clase == "campo" || clase == "indice" {
+    if clase == Clase.Cierre { return cierre(c, m, tipos, n); }
+    if clase == Clase.Cadena { return nuevo("view"); }
+    if clase == Clase.Entero { return nuevo("usize"); }
+    if clase == Clase.Decimal { return nuevo("f64"); }
+    if clase == Clase.Booleano { return nuevo("bool"); }
+    if clase == Clase.Interpolada { return nuevo("str"); }
+    if clase == Clase.Campo || clase == Clase.Indice {
         return tipo_de_lugar(c, m, tipos, n);
     }
-    if clase == "literal_struct" { return I.sin_modulo(n.texto); }
-    if clase == "unaria" && n.hijos.largo() > 0 {
+    if clase == Clase.LiteralStruct { return I.sin_modulo(n.texto); }
+    if clase == Clase.Unaria && n.hijos.largo() > 0 {
         if n.texto == "!" { return nuevo("bool"); }
         if n.texto == "-" && I.literal_de(n.hijos[0]) == "entero" {
             return nuevo("i64");
@@ -2073,13 +2072,13 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
         if igual(t, literal()) { return nuevo("i64"); }
         return t;
     }
-    if clase == "conversion" {
+    if clase == Clase.Conversion {
         let destino = vista(n.texto);
         if empieza_con(destino, "?") { return nuevo(rebanar(destino, 1, destino.largo())); }
         return nuevo(destino);
     }
     // Una rama que es un numero escrito toma el tipo de la otra.
-    if clase == "si_expr" && n.hijos.largo() == 3 {
+    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
         let lit_a = I.literal_de(n.hijos[1]);
         let lit_b = I.literal_de(n.hijos[2]);
         if lit_a.largo() > 0 && lit_b.largo() == 0 {
@@ -2091,7 +2090,7 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
         }
         return tipo_probable(c, m, tipos, n.hijos[1]);
     }
-    if clase == "binaria" && n.hijos.largo() == 2 {
+    if clase == Clase.Binaria && n.hijos.largo() == 2 {
         let op = vista(n.texto);
         if op == "&&" || op == "||" || op == "==" || op == "!="
         || op == "<" || op == "<=" || op == ">" || op == ">=" {
@@ -2114,7 +2113,7 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
         }
         return a;
     }
-    if clase == "llamada" {
+    if clase == Clase.Llamada {
         let nombre = I.sin_modulo(n.texto);
         // Las que devuelven el tipo de lo que reciben, como al comprobar.
         if (nombre == "absoluto" || nombre == "raiz" || nombre == "piso"
@@ -2488,8 +2487,8 @@ fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>)
 // Los tipos puestos en el arbol de una copia: en los parametros, el
 // retorno, las declaraciones y las conversiones.
 fn sustituir_en_arbol(n: mut P.Nodo, lig: &mapa<str, str>) {
-    let clase = copiar(n.clase);
-    if clase == "param" || clase == "declaracion" {
+    let clase = n.clase;
+    if clase == Clase.Param || clase == Clase.Declaracion {
         let t = copiar(n.texto);
         var j = 0;
         while j < t.largo() && byte(t, j) != 58 { j = j + 1; }
@@ -2497,7 +2496,7 @@ fn sustituir_en_arbol(n: mut P.Nodo, lig: &mapa<str, str>) {
             let tipo = I.sustituir(rebanar(t, j + 1, t.largo()), lig);
             n.texto = $"{rebanar(vista(t), 0, j + 1)}{tipo}";
         }
-    } else if clase == "retorno_tipo" || clase == "conversion" {
+    } else if clase == Clase.RetornoTipo || clase == Clase.Conversion {
         let t = copiar(n.texto);
         n.texto = I.sustituir(t, lig);
     }
@@ -2529,7 +2528,7 @@ fn comprobar_copia(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, k: usize,
     registrar_tipo(m, f.retorno);
     for p en copiar(f.params) { registrar_tipo(m, p.tipo); }
     for h en nodo.hijos {
-        if h.clase == "bloque" { registrar_en_nodo(m, h); }
+        if h.clase == Clase.Bloque { registrar_en_nodo(m, h); }
     }
     let kc = m.funciones.largo();
     m.funciones.anadir(f);
@@ -2585,7 +2584,7 @@ fn texto_o_none(t: view) -> str {
 
 // Escribir en `x` no es leer `x`: la variable suelta se resuelve sin usarla.
 fn tipo_de_lugar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
-    if n.clase == "variable" {
+    if n.clase == Clase.Variable {
         let i = buscar_simbolo(c, n.texto);
         if existe(c, i) { return copiar(c.simbolos[i].tipo); }
         return vacio();
@@ -2607,7 +2606,7 @@ fn comprobar_expresion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n:
     if (igual(t, literal()) || igual(t, literal_decimal()))
     && es_numerico(destino_p) {
         fijar_literal(c, m, n, destino_p);
-    } else if igual(t, literal()) && n.clase != "entero" && n.id > 0 {
+    } else if igual(t, literal()) && n.clase != Clase.Entero && n.id > 0 {
         // Una cuenta que todavia no sabe su tipo: se lo dira quien la use, o
         // al acabar la sentencia sera `usize`.
         c.escritas.anadir(copiar(n));
@@ -2653,17 +2652,17 @@ fn fijar_literal_sin_contar(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: vi
     }
     if largo(I.literal_de(n)) == 0 { return; }
     anotar(c, m, n, tipo);
-    let clase = vista(n.clase);
-    if clase == "binaria" && n.hijos.largo() == 2 {
+    let clase = n.clase;
+    if clase == Clase.Binaria && n.hijos.largo() == 2 {
         fijar_literal_sin_contar(c, m, n.hijos[0], tipo);
         if n.texto == "<<" || n.texto == ">>" {
             fijar_literal_sin_contar(c, m, n.hijos[1], "usize");
         } else {
             fijar_literal_sin_contar(c, m, n.hijos[1], tipo);
         }
-    } else if clase == "unaria" && n.hijos.largo() == 1 {
+    } else if clase == Clase.Unaria && n.hijos.largo() == 1 {
         fijar_literal_sin_contar(c, m, n.hijos[0], tipo);
-    } else if clase == "si_expr" && n.hijos.largo() == 3 {
+    } else if clase == Clase.SiExpr && n.hijos.largo() == 3 {
         fijar_literal_sin_contar(c, m, n.hijos[1], tipo);
         fijar_literal_sin_contar(c, m, n.hijos[2], tipo);
     }
@@ -2805,8 +2804,8 @@ fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> E
     let clave = clave_anotada(c, n);
     if tiene(c.contadas, clave) { return escrito_sin_saber(); }
     poner(c.contadas, vista(clave), 1);
-    let clase = vista(n.clase);
-    if clase == "entero" {
+    let clase = n.clase;
+    if clase == Clase.Entero {
         // Uno que no cabe ya tiene su error.
         let digitos = G.sin_ceros_izquierda(vista(n.texto));
         if !G.cabe_literal_entero(digitos, tipo, false) { return escrito_sin_saber(); }
@@ -2818,14 +2817,14 @@ fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> E
         }
         return valor_sabido(false, v);
     }
-    if clase == "si_expr" && n.hijos.largo() == 3 {
+    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
         let a = valor_escrito(c, m, n.hijos[1], tipo);
         if a.parada { return a; }
         let b = valor_escrito(c, m, n.hijos[2], tipo);
         if b.parada { return b; }
         return escrito_sin_saber();
     }
-    if clase != "binaria" || n.hijos.largo() != 2 { return escrito_sin_saber(); }
+    if clase != Clase.Binaria || n.hijos.largo() != 2 { return escrito_sin_saber(); }
     let op = vista(n.texto);
     let desplaza = op == "<<" || op == ">>";
     let a = valor_escrito(c, m, n.hijos[0], tipo);
@@ -2905,15 +2904,15 @@ fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> E
 fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
     n: &P.Nodo, destino: view, mover_variables: bool) -> str {
     if es_numerico(destino) { comprobar_literal(c, m, n, destino); }
-    let clase = vista(n.clase);
-    if clase == "entero" { return nuevo(literal()); }
-    if clase == "decimal" { return nuevo(literal_decimal()); }
-    if clase == "cadena" { return nuevo("view"); }
-    if clase == "booleano" { return nuevo("bool"); }
-    if clase == "expresion" && n.hijos.largo() == 1 {
+    let clase = n.clase;
+    if clase == Clase.Entero { return nuevo(literal()); }
+    if clase == Clase.Decimal { return nuevo(literal_decimal()); }
+    if clase == Clase.Cadena { return nuevo("view"); }
+    if clase == Clase.Booleano { return nuevo("bool"); }
+    if clase == Clase.Expresion && n.hijos.largo() == 1 {
         return comprobar_expresion(c, m, tipos, n.hijos[0], destino, mover_variables);
     }
-    if clase == "interpolada" {
+    if clase == Clase.Interpolada {
         for x en n.hijos {
             let t = comprobar_expresion(c, m, tipos, x, "", false);
             if t.largo() == 0 { continue; }
@@ -2924,16 +2923,16 @@ fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         }
         return nuevo("str");
     }
-    if clase == "variable" {
+    if clase == Clase.Variable {
         return variable(c, m, tipos, n, mover_variables, false);
     }
-    if clase == "unaria" { return unaria(c, m, tipos, n, destino); }
-    if clase == "cierre" { return cierre(c, m, tipos, n); }
-    if clase == "si_expr" { return si_expr(c, m, tipos, n, destino, mover_variables); }
-    if clase == "enum_lit" { return enum_lit(c, m, tipos, n); }
-    if clase == "match" { return comprobar_match(c, m, tipos, n, destino, mover_variables); }
-    if clase == "conversion" { return comprobar_conversion(c, m, tipos, n); }
-    if clase == "try" {
+    if clase == Clase.Unaria { return unaria(c, m, tipos, n, destino); }
+    if clase == Clase.Cierre { return cierre(c, m, tipos, n); }
+    if clase == Clase.SiExpr { return si_expr(c, m, tipos, n, destino, mover_variables); }
+    if clase == Clase.EnumLit { return enum_lit(c, m, tipos, n); }
+    if clase == Clase.Match { return comprobar_match(c, m, tipos, n, destino, mover_variables); }
+    if clase == Clase.Conversion { return comprobar_conversion(c, m, tipos, n); }
+    if clase == Clase.Try {
         if !c.falible {
             error(c, m, n.linea, "`try` deja subir la falla al que llamo, pero esta funcion no esta declarada con `!`");
         }
@@ -2942,7 +2941,7 @@ fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         }
         return desenvolver(c, m, tipos, n, n.hijos[0], "try");
     }
-    if clase == "sino" {
+    if clase == Clase.Sino {
         if c.en_condicion_bucle > 0 {
             error(c, m, n.linea, "`sino` no puede ir en la condicion de un `while`: se evaluaria una sola vez");
         }
@@ -2955,13 +2954,13 @@ fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         }
         return t;
     }
-    if clase == "campo" { return campo(c, m, tipos, n, mover_variables); }
-    if clase == "indice" { return indice(c, m, tipos, n, mover_variables); }
-    if clase == "literal_struct" { return literal_struct(c, m, tipos, n, destino); }
-    if clase == "literal_lista" { return literal_arreglo(c, m, tipos, n, destino); }
-    if clase == "binaria" { return binaria(c, m, tipos, n); }
-    if clase == "llamada" { return llamada(c, m, tipos, n, false, destino); }
-    if clase == "rango" { return rango(c, m, tipos, n); }
+    if clase == Clase.Campo { return campo(c, m, tipos, n, mover_variables); }
+    if clase == Clase.Indice { return indice(c, m, tipos, n, mover_variables); }
+    if clase == Clase.LiteralStruct { return literal_struct(c, m, tipos, n, destino); }
+    if clase == Clase.LiteralLista { return literal_arreglo(c, m, tipos, n, destino); }
+    if clase == Clase.Binaria { return binaria(c, m, tipos, n); }
+    if clase == Clase.Llamada { return llamada(c, m, tipos, n, false, destino); }
+    if clase == Clase.Rango { return rango(c, m, tipos, n); }
     return vacio();
 }
 
@@ -3057,7 +3056,7 @@ fn unaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     if igual(t, literal()) {
         // Un `-3` suelto ya lo dice `comprobar_literal`: no cabe. Una cuenta,
         // `-(3 + 4)`, no la mira nadie mas.
-        if es_sin_signo(destino) && n.hijos[0].clase != "entero" {
+        if es_sin_signo(destino) && n.hijos[0].clase != Clase.Entero {
             error(c, m, n.linea, $"`{destino}` no tiene signo: no se puede negar");
         }
         if es_numerico(destino) {
@@ -3199,7 +3198,7 @@ fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n
 fn desenvolver(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, nodo: &P.Nodo,
     dentro: &P.Nodo, palabra: view) -> str {
     var falible = false;
-    if dentro.clase == "llamada" {
+    if dentro.clase == Clase.Llamada {
         let k = funcion_llamada(m, tipos, dentro.texto);
         if k < m.funciones.largo() && m.funciones[k].falible { falible = true; }
         let nombre = I.sin_modulo(dentro.texto);
@@ -3219,12 +3218,12 @@ fn desenvolver(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, nodo: &P.N
 fn ruta_de_campo(n: &P.Nodo) -> str {
     var nombres: lista<str> = [];
     var x = copiar(n);
-    while x.clase == "campo" && x.hijos.largo() > 0 {
+    while x.clase == Clase.Campo && x.hijos.largo() > 0 {
         nombres.anadir(copiar(x.texto));
         let dentro = copiar(x.hijos[0]);
         x = dentro;
     }
-    if x.clase != "variable" || nombres.largo() == 0 { return vacio(); }
+    if x.clase != Clase.Variable || nombres.largo() == 0 { return vacio(); }
     var r = copiar(x.texto);
     r.empujar("\t");
     var k = nombres.largo();
@@ -3295,8 +3294,8 @@ fn campo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             }
         }
     }
-    let oc = vista(n.hijos[0].clase);
-    let encadenado = oc == "variable" || oc == "campo";
+    let oc = n.hijos[0].clase;
+    let encadenado = oc == Clase.Variable || oc == Clase.Campo;
     if encadenado { c.por_campo = c.por_campo + 1; }
     let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
     if encadenado { c.por_campo = c.por_campo - 1; }
@@ -3672,14 +3671,14 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         var guarda: i64 = -1;
         var h_i = 0;
         for h en b.hijos {
-            if h.clase == "guarda" { guarda = h_i como i64; }
+            if h.clase == Clase.Guarda { guarda = h_i como i64; }
             h_i = h_i + 1;
         }
         // Un brazo con guarda, o con algo que no sea un nombre en alguna
         // posicion, puede no casar: no cubre su forma el solo.
         var condicionado = guarda >= 0;
         for p en posiciones {
-            if p.clase != "atrapa" { condicionado = true; }
+            if p.clase != Clase.Atrapa { condicionado = true; }
         }
         var forma = vacio();
         if b.texto.largo() == 0 {
@@ -3717,16 +3716,16 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         var t = vacio();
         var es_expresion = false;
         for h en b.hijos {
-            if h.clase == "retorno" { es_expresion = true; }
+            if h.clase == Clase.Retorno { es_expresion = true; }
         }
         for h en b.hijos {
-            let hc = vista(h.clase);
-            if hc == "retorno" && h.hijos.largo() > 0 {
+            let hc = h.clase;
+            if hc == Clase.Retorno && h.hijos.largo() > 0 {
                 t = comprobar_expresion(c, m, tipos, h.hijos[0], destino, mover_variables);
                 if igual(t, literal()) || igual(t, literal_decimal()) {
                     escritos.anadir(copiar(h.hijos[0]));
                 }
-            } else if hc == "bloque" {
+            } else if hc == Clase.Bloque {
                 comprobar_sentencias(c, m, tipos, h);
             }
         }
@@ -3786,8 +3785,8 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
 fn posiciones_de(b: &P.Nodo) -> lista<P.Nodo> {
     var salida: lista<P.Nodo> = [];
     for h en b.hijos {
-        let hc = vista(h.clase);
-        if hc == "atrapa" || hc == "patron" || hc == "literal" {
+        let hc = h.clase;
+        if hc == Clase.Atrapa || hc == Clase.Patron || hc == Clase.Literal {
             salida.anadir(copiar(h));
         }
     }
@@ -3810,9 +3809,9 @@ fn patron_valido(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma
         let t = copiar(lleva[i]);
         let p = copiar(posiciones[i]);
         i = i + 1;
-        let pc = vista(p.clase);
-        if pc == "atrapa" { continue; }
-        if pc == "patron" {
+        let pc = p.clase;
+        if pc == Clase.Atrapa { continue; }
+        if pc == Clase.Patron {
             let quien = I.antes_del_punto(p.texto);
             let cual = I.tras_el_punto(p.texto);
             if !es_enum(m, t) || !igual(quien, t) {
@@ -3828,15 +3827,15 @@ fn patron_valido(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma
             continue;
         }
         let lit = copiar(p.hijos[0]);
-        let lc = vista(lit.clase);
-        var numero = lc == "entero";
-        if lc == "unaria" && lit.texto == "-" && lit.hijos.largo() > 0 {
-            numero = lit.hijos[0].clase == "entero";
+        let lc = lit.clase;
+        var numero = lc == Clase.Entero;
+        if lc == Clase.Unaria && lit.texto == "-" && lit.hijos.largo() > 0 {
+            numero = lit.hijos[0].clase == Clase.Entero;
         }
         if numero && es_tipo_entero(t) {
             comprobar_literal(c, m, lit, t);
-        } else if !((lc == "cadena" && t == "str")
-            || (lc == "booleano" && t == "bool")) {
+        } else if !((lc == Clase.Cadena && t == "str")
+            || (lc == Clase.Booleano && t == "bool")) {
             error(c, m, linea, $"`{base}.{forma}` lleva un `{t}` en la posicion {i}, y el literal del patron no es uno");
             return false;
         }
@@ -3854,10 +3853,10 @@ fn declarar_patron(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, for
         let t = copiar(lleva[i]);
         let p = copiar(posiciones[i]);
         i = i + 1;
-        if p.clase == "patron" {
+        if p.clase == Clase.Patron {
             let cual = I.tras_el_punto(p.texto);
             declarar_patron(c, m, linea, t, cual, posiciones_de(p), mirado);
-        } else if p.clase == "atrapa" && p.texto != "_" {
+        } else if p.clase == Clase.Atrapa && p.texto != "_" {
             var tp = copiar(t);
             if posee_memoria(m, t) {
                 if t == "str" { tp = nuevo("view"); } else { tp = $"&{t}"; }
@@ -3886,11 +3885,11 @@ fn declarar_patron(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, for
 fn renombrar_capturas(n: mut P.Nodo, nombres: &lista<str>, linea: usize) {
     var i = 0;
     while i < n.hijos.largo() {
-        if n.hijos[i].clase == "variable"
+        if n.hijos[i].clase == Clase.Variable
         && esta_entre(nombres, n.hijos[i].texto) {
-            var campo_e = P.rama("campo", n.hijos[i].linea);
+            var campo_e = P.rama(Clase.Campo, n.hijos[i].linea);
             campo_e.texto = copiar(n.hijos[i].texto);
-            campo_e.hijos.anadir(P.hoja("variable", "_ss_entorno", linea));
+            campo_e.hijos.anadir(P.hoja(Clase.Variable, "_ss_entorno", linea));
             n.hijos[i] = campo_e;
         } else {
             renombrar_capturas(n.hijos[i], nombres, linea);
@@ -3905,16 +3904,16 @@ fn renombrar_capturas(n: mut P.Nodo, nombres: &lista<str>, linea: usize) {
 // siguiente.
 fn nodo_de_cierre(n: &P.Nodo, numero: usize, capturadas: &lista<str>,
     modifica: bool) -> P.Nodo {
-    var f = P.rama("fn", n.linea);
+    var f = P.rama(Clase.Fn, n.linea);
     f.texto = $"ss_cierre_{numero}";
-    var entorno = P.rama("param", n.linea);
+    var entorno = P.rama(Clase.Param, n.linea);
     entorno.texto = $"_ss_entorno: &Cierre_{numero}";
     if modifica { entorno.texto = $"_ss_entorno: mut Cierre_{numero}"; }
     f.hijos.anadir(entorno);
     for h en n.hijos {
-        if h.clase == "captura" { continue; }
+        if h.clase == Clase.Captura { continue; }
         var x = copiar(h);
-        if x.clase == "bloque" { renombrar_capturas(x, capturadas, n.linea); }
+        if x.clase == Clase.Bloque { renombrar_capturas(x, capturadas, n.linea); }
         f.hijos.anadir(x);
     }
     return f;
@@ -3925,7 +3924,7 @@ fn nodo_de_cierre(n: &P.Nodo, numero: usize, capturadas: &lista<str>,
 fn etiquetar_cierres(n: mut P.Nodo, cuenta: mut usize) {
     var i = 0;
     while i < n.hijos.largo() {
-        if n.hijos[i].clase == "cierre" {
+        if n.hijos[i].clase == Clase.Cierre {
             n.hijos[i].texto = $"#{cuenta}";
             cuenta = cuenta + 1;
         } else {
@@ -3953,12 +3952,12 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
     var vistos: lista<str> = [];
     var mutables: lista<str> = [];
     for h en n.hijos {
-        if h.clase == "captura" && h.hijos.largo() > 0 {
+        if h.clase == Clase.Captura && h.hijos.largo() > 0 {
             mutables.anadir(copiar(h.texto));
         }
     }
     for h en n.hijos {
-        if h.clase != "captura" { continue; }
+        if h.clase != Clase.Captura { continue; }
         let nombre = vista(h.texto);
         if esta_entre(vistos, nombre) {
             error(c, m, n.linea, $"`{nombre}` se captura dos veces");
@@ -4061,9 +4060,9 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let tv = sin_prestamo(c.simbolos[iv].tipo);
         let de_cierre = I.funcion_de_cierre(tv);
         if de_cierre.largo() > 0 {
-            var otra = P.rama("llamada", n.linea);
+            var otra = P.rama(Clase.Llamada, n.linea);
             otra.texto = copiar(de_cierre);
-            otra.hijos.anadir(P.hoja("variable", escrito, n.linea));
+            otra.hijos.anadir(P.hoja(Clase.Variable, escrito, n.linea));
             for h en n.hijos { otra.hijos.anadir(copiar(h)); }
             return llamada(c, m, tipos, otra, desenvuelta, destino);
         }
@@ -4145,7 +4144,7 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         }
         // Una funcion de C mira la cadena, no se la queda.
         let mueve = posee_memoria(m, p.tipo) && !f.externa;
-        if mueve && arg.clase == "variable" {
+        if mueve && arg.clase == Clase.Variable {
             let ia = buscar_simbolo(c, arg.texto);
             if existe(c, ia) { c.simbolos[ia].movida_a = copiar(destinataria); }
         }
@@ -4563,7 +4562,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             for o en origenes_de(c, m, arg) {
                 if o != "<temporal>" { origenes.anadir(copiar(o)); }
             }
-            if origenes.largo() == 0 && arg.clase == "variable" && t == "str" {
+            if origenes.largo() == 0 && arg.clase == Clase.Variable && t == "str" {
                 origenes.anadir(copiar(arg.texto));
             }
             for o en origenes { prestados.anadir(copiar(o)); }
@@ -4595,7 +4594,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             error(c, m, n.linea, $"`{base}` se presta y se modifica en la misma llamada a `{nombre}`: al crecer, el buffer puede moverse y dejar la vista colgando");
             continue;
         }
-        let por_ref = arg.clase != "variable"
+        let por_ref = arg.clase != Clase.Variable
         || T.es_referencia(c.simbolos[is].tipo);
         mutar(c, m, arg, arg.linea, is, por_ref);
     }
@@ -4776,18 +4775,18 @@ fn registrar_tipo(m: mut Mundo, t: view) {
 
 // Lo mismo en el cuerpo de una copia: sus declaraciones y clausuras.
 fn registrar_en_nodo(m: mut Mundo, n: &P.Nodo) {
-    let clase = vista(n.clase);
-    if clase == "declaracion" {
+    let clase = n.clase;
+    if clase == Clase.Declaracion {
         var nombre = vacio();
         var escrito = vacio();
         let _mutable = partes_declaracion(n.texto, nombre, escrito);
         if escrito.largo() > 0 { registrar_tipo(m, escrito); }
     }
-    if clase == "param" {
+    if clase == Clase.Param {
         let p = param_de(n.texto);
         registrar_tipo(m, p.tipo);
     }
-    if clase == "retorno_tipo" {
+    if clase == Clase.RetornoTipo {
         let t = I.sin_alias_tipo(n.texto);
         registrar_tipo(m, t);
     }
@@ -4798,46 +4797,46 @@ fn registrar_en_nodo(m: mut Mundo, n: &P.Nodo) {
 // y las declaraciones y clausuras de su cuerpo.
 fn validar_en_funcion(c: mut Comprobacion, m: mut Mundo, d: &P.Nodo) {
     for h en d.hijos {
-        if h.clase == "param" {
+        if h.clase == Clase.Param {
             let p = param_de(h.texto);
             validar_tipo(c, m, d.linea, p.tipo);
         }
     }
     for h en d.hijos {
-        if h.clase == "retorno_tipo" {
+        if h.clase == Clase.RetornoTipo {
             let t = I.sin_alias_tipo(h.texto);
             validar_tipo(c, m, d.linea, t);
         }
     }
     for h en d.hijos {
-        if h.clase == "bloque" { validar_en_nodo(c, m, h); }
+        if h.clase == Clase.Bloque { validar_en_nodo(c, m, h); }
     }
 }
 
 fn validar_en_nodo(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo) {
-    if n.clase == "declaracion" {
+    if n.clase == Clase.Declaracion {
         var nombre = vacio();
         var escrito = vacio();
         let _mutable = partes_declaracion(n.texto, nombre, escrito);
         if escrito.largo() > 0 { validar_tipo(c, m, n.linea, escrito); }
     }
-    if n.clase == "cierre" {
+    if n.clase == Clase.Cierre {
         // La clausura tiene sus tipos escritos donde esta: parametros,
         // retorno, y su cuerpo.
         for h en n.hijos {
-            if h.clase == "param" {
+            if h.clase == Clase.Param {
                 let p = param_de(h.texto);
                 validar_tipo(c, m, n.linea, p.tipo);
             }
         }
         for h en n.hijos {
-            if h.clase == "retorno_tipo" {
+            if h.clase == Clase.RetornoTipo {
                 let t = I.sin_alias_tipo(h.texto);
                 validar_tipo(c, m, n.linea, t);
             }
         }
         for h en n.hijos {
-            if h.clase == "bloque" { validar_en_nodo(c, m, h); }
+            if h.clase == Clase.Bloque { validar_en_nodo(c, m, h); }
         }
         return;
     }
@@ -4853,7 +4852,7 @@ fn comprobar_bloque(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P
     let anterior = c.en_bucle_directo;
     c.en_bucle_directo = -1;
     abrir_ambito(c);
-    if n.clase == "bloque" {
+    if n.clase == Clase.Bloque {
         comprobar_sentencias(c, m, tipos, n);
     } else {
         // `else if`: la rama es una sentencia suelta.
@@ -4944,8 +4943,8 @@ fn comprobar_sentencia_en(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
     despues: &mapa<str, usize>, bloque: usize) {
     let desde = c.escritas.largo();
     var clase = nuevo("otra");
-    if s.clase == "si" { clase = nuevo("si"); }
-    if s.clase == "mientras" || s.clase == "para" {
+    if s.clase == Clase.Si { clase = nuevo("si"); }
+    if s.clase == Clase.Mientras || s.clase == Clase.Para {
         clase = nuevo("bucle");
     }
     var propias: mapa<str, usize> = [];
@@ -4970,7 +4969,7 @@ fn comprobar_sentencia_en(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
 
 // Los nombres de variable que aparecen en `n`, a cualquier hondura.
 fn mencionados_en(n: &P.Nodo, salida: mut mapa<str, usize>) {
-    if n.clase == "variable" { poner(salida, vista(n.texto), 1); }
+    if n.clase == Clase.Variable { poner(salida, vista(n.texto), 1); }
     for h en n.hijos { mencionados_en(h, salida); }
 }
 
@@ -5045,9 +5044,9 @@ fn prestamos_vivos(c: &Comprobacion, i: usize) -> lista<str> {
 
 fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
     s: &P.Nodo) {
-    let clase = vista(s.clase);
+    let clase = s.clase;
 
-    if clase == "declaracion" {
+    if clase == Clase.Declaracion {
         var nombre = vacio();
         var escrito = vacio();
         let mutable = partes_declaracion(s.texto, nombre, escrito);
@@ -5089,7 +5088,7 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         return;
     }
 
-    if clase == "asignacion" {
+    if clase == Clase.Asignacion {
         let lugar = copiar(s.hijos[0]);
         let base = variable_base(lugar);
         let i = buscar_simbolo(c, base);
@@ -5127,7 +5126,7 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         // Una vista guardada en un campo: el struct de la raiz presta tambien
         // de ella. Si la raiz llego prestada, quien la presto no sabria de
         // donde presta ahora, salvo que sea un literal.
-        if lugar.clase == "campo" && presta_tipo(m, tipo) {
+        if lugar.clase == Clase.Campo && presta_tipo(m, tipo) {
             let de_raiz = copiar(c.simbolos[i].tipo);
             if c.simbolos[i].prestado || T.es_referencia(de_raiz) {
                 if procedencia_de(c, m, s.hijos[1]) != "estatico" {
@@ -5150,7 +5149,7 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         // lo repuso.
         if c.en_condicional == c.simbolos[i].condicional_al_declarar
         && c.en_bucle == c.simbolos[i].bucle_al_declarar {
-            if lugar.clase == "variable" {
+            if lugar.clase == Clase.Variable {
                 c.simbolos[i].sacados = [];
             } else {
                 let camino = ruta_de_campo(lugar);
@@ -5167,7 +5166,7 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
                 }
             }
         }
-        if lugar.clase == "variable" {
+        if lugar.clase == Clase.Variable {
             c.simbolos[i].movida = false;
             if c.en_bucle_directo == c.en_bucle como i64 {
                 c.simbolos[i].reasignada_directo = true;
@@ -5189,7 +5188,7 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         return;
     }
 
-    if clase == "si" {
+    if clase == Clase.Si {
         let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
         if t.largo() > 0 && t != "bool" {
             error(c, m, s.linea, $"la condicion de `if` debe ser `bool`, es `{t}`");
@@ -5246,7 +5245,7 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         return;
     }
 
-    if clase == "para" {
+    if clase == Clase.Para {
         let crudo = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
         let tipo = sin_prestamo(crudo);
         var elem = vacio();
@@ -5310,16 +5309,16 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         return;
     }
 
-    if clase == "romper" || clase == "continuar" {
+    if clase == Clase.Romper || clase == Clase.Continuar {
         if c.en_bucle == 0 {
             var palabra = nuevo("break");
-            if clase == "continuar" { palabra = nuevo("continue"); }
+            if clase == Clase.Continuar { palabra = nuevo("continue"); }
             error(c, m, s.linea, $"`{palabra}` solo tiene sentido dentro de un `for` o un `while`");
         }
         return;
     }
 
-    if clase == "mientras" {
+    if clase == Clase.Mientras {
         c.en_condicion_bucle = c.en_condicion_bucle + 1;
         let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
         c.en_condicion_bucle = c.en_condicion_bucle - 1;
@@ -5336,7 +5335,7 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         return;
     }
 
-    if clase == "retorno" {
+    if clase == Clase.Retorno {
         let r = copiar(c.retorno);
         if s.hijos.largo() == 0 {
             if r.largo() > 0 {
@@ -5349,7 +5348,7 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         }
         c.en_retorno = c.en_retorno + 1;
         var tipo = vacio();
-        if s.hijos[0].clase == "variable" {
+        if s.hijos[0].clase == Clase.Variable {
             tipo = variable(c, m, tipos, s.hijos[0], true, true);
         } else {
             tipo = comprobar_expresion(c, m, tipos, s.hijos[0], r, true);
@@ -5363,14 +5362,14 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         return;
     }
 
-    if clase == "falla" {
+    if clase == Clase.Falla {
         if !c.falible {
             error(c, m, s.linea, "esta funcion no esta declarada con `!`, asi que no puede fallar; ponle `!` despues del tipo de retorno");
         }
         return;
     }
 
-    if clase == "expresion" && s.hijos.largo() > 0 {
+    if clase == Clase.Expresion && s.hijos.largo() > 0 {
         let _t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
         return;
     }
@@ -5441,7 +5440,7 @@ fn comprobar_funcion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, k: u
     let base_antes = c.base;
     c.base = c.hondura;
     for h en d.hijos {
-        if h.clase == "bloque" {
+        if h.clase == Clase.Bloque {
             comprobar_bloque(c, m, tipos, h);
             sale = siempre_sale(h);
         }
@@ -5800,9 +5799,9 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         let ruta = vista(modulos[k]);
         var j = 0;
         while j < arboles[k].hijos.largo() {
-            let clase = vista(arboles[k].hijos[j].clase);
+            let clase = arboles[k].hijos[j].clase;
             let texto_d = vista(arboles[k].hijos[j].texto);
-            if clase == "fn" {
+            if clase == Clase.Fn {
                 let nombre = resolver_nombre(contextos[k], texto_d);
                 if !igual(nombre, texto_d) {
                     poner(m.bonitos, vista(nombre), nuevo(texto_d));
@@ -5813,9 +5812,9 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
                 }
                 m.funciones.anadir(f);
             }
-            if clase == "externo" {
+            if clase == Clase.Externo {
                 for h en arboles[k].hijos[j].hijos {
-                    if h.clase != "fn" { continue; }
+                    if h.clase != Clase.Fn { continue; }
                     let f = funcion_de(h, h.texto, ruta, k, j, true);
                     if !tiene(m.indice, h.texto) {
                         poner(m.indice, vista(h.texto), m.funciones.largo());
@@ -5832,7 +5831,7 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
         for d en arboles[k].hijos {
-            if d.clase != "enum" { continue; }
+            if d.clase != Clase.Enum { continue; }
             let nombre = vista(d.texto);
             if tiene(en_donde, nombre) {
                 let donde = obtener(en_donde, nombre) sino "";
@@ -5841,11 +5840,11 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
             poner(en_donde, nombre, $"{modulos[k]}:{d.linea}");
             var formas: lista<str> = [];
             for v en d.hijos {
-                if v.clase != "variante" { continue; }
+                if v.clase != Clase.Variante { continue; }
                 formas.anadir(copiar(v.texto));
                 var lleva: lista<str> = [];
                 for x en v.hijos {
-                    if x.clase == "lleva" { lleva.anadir(I.sin_alias_tipo(x.texto)); }
+                    if x.clase == Clase.Lleva { lleva.anadir(I.sin_alias_tipo(x.texto)); }
                 }
                 poner(m.en_formas, $"{nombre}.{v.texto}", lleva);
             }
@@ -5859,7 +5858,7 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
         for d en arboles[k].hijos {
-            if d.clase != "struct" { continue; }
+            if d.clase != Clase.Struct { continue; }
             let nombre = vista(d.texto);
             if tiene(st_donde, nombre) {
                 let donde = obtener(st_donde, nombre) sino "";
@@ -5870,8 +5869,8 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
             var ts: lista<str> = [];
             var ps: lista<str> = [];
             for h en d.hijos {
-                if h.clase == "tipo_param" { ps.anadir(copiar(h.texto)); }
-                if h.clase == "campo_def" {
+                if h.clase == Clase.TipoParam { ps.anadir(copiar(h.texto)); }
+                if h.clase == Clase.CampoDef {
                     var cn = vacio();
                     var ct = vacio();
                     campo_de(h.texto, cn, ct);
@@ -5893,14 +5892,14 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
         for d en arboles[k].hijos {
-            if d.clase != "struct" { continue; }
+            if d.clase != Clase.Struct { continue; }
             var generico_r = false;
             for h en d.hijos {
-                if h.clase == "tipo_param" { generico_r = true; }
+                if h.clase == Clase.TipoParam { generico_r = true; }
             }
             if generico_r { continue; }
             for h en d.hijos {
-                if h.clase != "campo_def" { continue; }
+                if h.clase != Clase.CampoDef { continue; }
                 var cn = vacio();
                 var ct = vacio();
                 campo_de(h.texto, cn, ct);
@@ -5913,17 +5912,17 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
         for d en arboles[k].hijos {
-            if d.clase != "struct" { continue; }
+            if d.clase != Clase.Struct { continue; }
             var generico = false;
             for h en d.hijos {
-                if h.clase == "tipo_param" { generico = true; }
+                if h.clase == Clase.TipoParam { generico = true; }
             }
             if generico { continue; }
             let nombre = vista(d.texto);
             var vistos_c: lista<str> = [];
             var tipos_c: lista<str> = [];
             for h en d.hijos {
-                if h.clase != "campo_def" { continue; }
+                if h.clase != Clase.CampoDef { continue; }
                 var cn = vacio();
                 var ct = vacio();
                 campo_de(h.texto, cn, ct);
@@ -5956,12 +5955,12 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
         for d en arboles[k].hijos {
-            if d.clase != "enum" { continue; }
+            if d.clase != Clase.Enum { continue; }
             let nombre = vista(d.texto);
             for v en d.hijos {
-                if v.clase != "variante" { continue; }
+                if v.clase != Clase.Variante { continue; }
                 for x en v.hijos {
-                    if x.clase != "lleva" { continue; }
+                    if x.clase != Clase.Lleva { continue; }
                     let t = I.sin_alias_tipo(x.texto);
                     validar_tipo(c, m, d.linea, t);
                     if !almacenable(m, t) {

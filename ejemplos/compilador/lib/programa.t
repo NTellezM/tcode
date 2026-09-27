@@ -12,6 +12,7 @@ usar "../../lexer/lib/lexico.t";
 usar "../../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
 usar "std/lista";
+usar "../../lexer/lib/clase.t";
 
 fn nombre_de(texto: view) -> str {
     var i = 0;
@@ -59,7 +60,7 @@ fn marca_de(marcado: view) -> str {
 
 fn es_generica(d: &P.Nodo) -> bool {
     for h en d.hijos {
-        if h.clase == "tipo_param" { return true; }
+        if h.clase == Clase.TipoParam { return true; }
     }
     return false;
 }
@@ -69,11 +70,11 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
     // memoria, y de eso depende si el elemento de un `for` se presta o se
     // copia. Un struct de otro modulo se llama igual en C, asi que no lleva
     // alias.
-    if n.clase == "struct" {
+    if n.clase == Clase.Struct {
         var suyos: lista<str> = [];
         var como_se_llaman: lista<str> = [];
         for h en n.hijos {
-            if h.clase == "campo_def" {
+            if h.clase == Clase.CampoDef {
                 como_se_llaman.anadir(nombre_de(h.texto));
                 suyos.anadir(tipo_pelado(h.texto));
             }
@@ -82,18 +83,18 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
         poner(c.nombres, vista(n.texto), como_se_llaman);
         var sueltos_st: lista<str> = [];
         for h en n.hijos {
-            if h.clase == "tipo_param" { sueltos_st.anadir(nuevo(h.texto)); }
+            if h.clase == Clase.TipoParam { sueltos_st.anadir(nuevo(h.texto)); }
         }
         if sueltos_st.largo() > 0 { poner(c.struct_params, vista(n.texto), sueltos_st); }
     }
-    if n.clase == "enum" {
+    if n.clase == Clase.Enum {
         var cuales: lista<str> = [];
         for h en n.hijos {
-            if h.clase == "variante" {
+            if h.clase == Clase.Variante {
                 cuales.anadir(nuevo(h.texto));
                 var lleva: lista<str> = [];
                 for x en h.hijos {
-                    if x.clase == "lleva" {
+                    if x.clase == Clase.Lleva {
                         lleva.anadir(nuevo(x.texto));
                     }
                 }
@@ -105,23 +106,23 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
         }
         poner(c.variantes, vista(n.texto), cuales);
     }
-    if n.clase == "fn" {
+    if n.clase == Clase.Fn {
         var retorno = vacio();
         var es_de_c = false;
         var sueltos: lista<str> = [];
         var tipos_param: lista<str> = [];
         var marcados: lista<str> = [];
         for h en n.hijos {
-            if h.clase == "retorno_tipo" {
+            if h.clase == Clase.RetornoTipo {
                 retorno = nuevo(h.texto);
             }
             // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
             // existe en el borde: lo que ve Tcode es un `str` suyo.
-            if h.clase == "externa" { es_de_c = true; }
-            if h.clase == "tipo_param" {
+            if h.clase == Clase.Externa { es_de_c = true; }
+            if h.clase == Clase.TipoParam {
                 sueltos.anadir(nuevo(h.texto));
             }
-            if h.clase == "param" {
+            if h.clase == Clase.Param {
                 tipos_param.anadir(tipo_pelado(h.texto));
                 marcados.anadir(marca_de(h.texto));
             }
@@ -391,8 +392,8 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
     var usados = P.modulos_usados_con(ruta, tokens, leidos);
 
     var estado = P.estado_de(tokens, ruta, nombres, formas);
-    var arbol = P.programa(estado) sino P.rama("vacio", 0);
-    if estado.error.largo() > 0 || arbol.clase == "vacio" {
+    var arbol = P.programa(estado) sino P.rama(Clase.Vacio, 0);
+    if estado.error.largo() > 0 || arbol.clase == Clase.Vacio {
         error = copiar(estado.error);
         falla "sintaxis";
     }
@@ -420,7 +421,7 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
     // aqui es el propio. El cargador lo renombra con el nombre de este
     // archivo delante, y asi se llama en C.
     for d en arbol.hijos {
-        if d.clase == "fn" && tiene(tipos.repetidas, d.texto) {
+        if d.clase == Clase.Fn && tiene(tipos.repetidas, d.texto) {
             var suyos: lista<str> = [normalizar(ruta)];
             for u en usados {
                 if declara_fn(u.arbol, d.texto) { suyos.anadir(normalizar(u.ruta)); }
@@ -438,7 +439,7 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
 
 fn declara_fn(arbol: &P.Nodo, nombre: view) -> bool {
     for d en arbol.hijos {
-        if d.clase == "fn" && igual(d.texto, nombre) { return true; }
+        if d.clase == Clase.Fn && igual(d.texto, nombre) { return true; }
     }
     return false;
 }
@@ -460,7 +461,7 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     tipos.dueno = copiar(cta.dueno);
     I.abrir(tipos);
     for h en d.hijos {
-        if h.clase == "param" {
+        if h.clase == Clase.Param {
             let pn = nombre_de(h.texto);
             let pt = tipo_pelado(h.texto);
             let m = marca_de(h.texto);
@@ -476,10 +477,10 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
                 else { poner(puntos, vista(pn), 1); }
             }
         }
-        if h.clase == "retorno_tipo" {
+        if h.clase == Clase.RetornoTipo {
             retorno = nuevo(h.texto);
         }
-        if h.clase == "falible" { falible = true; }
+        if h.clase == Clase.Falible { falible = true; }
     }
     let es_main = d.texto == "main";
 
@@ -487,7 +488,7 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     // emitir nada, porque la bandera nace pegada a la declaracion.
     var movidas: lista<str> = [];
     for h en d.hijos {
-        if h.clase == "bloque" {
+        if h.clase == Clase.Bloque {
             G.movidas_hondo(puntos, h, tipos, movidas);
         }
     }
@@ -544,7 +545,7 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
 
     var bien = true;
     for h en d.hijos {
-        if h.clase == "bloque" {
+        if h.clase == Clase.Bloque {
             for st en h.hijos {
                 if bien {
                     bien = G.sentencia_c(b, sitio, st, tipos, vista(retorno),
@@ -633,7 +634,7 @@ fn vistas_implicitas(arbol: mut P.Nodo, tipos: mut I.Contexto) {
     var cambio = false;
     var i = 0;
     while i < arbol.hijos.largo() {
-        if arbol.hijos[i].clase == "fn" {
+        if arbol.hijos[i].clase == Clase.Fn {
             vistas_en_funcion(arbol.hijos[i], tipos, cambio);
         }
         i = i + 1;
@@ -649,18 +650,18 @@ fn vistas_en_funcion(f: mut P.Nodo, tipos: mut I.Contexto, cambio: mut bool) {
     I.abrir(tipos);
     var retorno = vacio();
     for h en f.hijos {
-        if h.clase == "param" {
+        if h.clase == Clase.Param {
             let pn = nombre_de(h.texto);
             let pt = tipo_pelado(h.texto);
             I.declarar(tipos, pn, pt);
         }
-        if h.clase == "retorno_tipo" {
+        if h.clase == Clase.RetornoTipo {
             retorno = I.sin_alias_tipo(h.texto);
         }
     }
     var i = 0;
     while i < f.hijos.largo() {
-        if f.hijos[i].clase == "bloque" {
+        if f.hijos[i].clase == Clase.Bloque {
             vistas_en_bloque(f.hijos[i], tipos, retorno, cambio);
         }
         i = i + 1;
@@ -683,22 +684,22 @@ fn vistas_en_bloque(b: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
 // que se ve desde la siguiente.
 fn vistas_en_sentencia(st: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
     cambio: mut bool) {
-    let clase = copiar(st.clase);
-    let es_declaracion = clase == "declaracion" && st.hijos.largo() == 1;
+    let clase = st.clase;
+    let es_declaracion = clase == Clase.Declaracion && st.hijos.largo() == 1;
     if es_declaracion {
         let escrito = G.tipo_escrito(st.texto);
         let t = I.sin_alias_tipo(escrito);
         if t == "view" { prestar_si_str(st.hijos[0], tipos, cambio); }
     }
-    if clase == "asignacion" && st.hijos.largo() == 2 {
+    if clase == Clase.Asignacion && st.hijos.largo() == 2 {
         let destino = I.tipo_de(tipos, st.hijos[0]);
         if destino == "view" { prestar_si_str(st.hijos[1], tipos, cambio); }
     }
-    if clase == "retorno" && st.hijos.largo() == 1 && retorno == "view" {
+    if clase == Clase.Retorno && st.hijos.largo() == 1 && retorno == "view" {
         prestar_si_str(st.hijos[0], tipos, cambio);
     }
     // Un `for` declara su variable para el cuerpo.
-    let es_para = clase == "para" && st.hijos.largo() == 2;
+    let es_para = clase == Clase.Para && st.hijos.largo() == 2;
     if es_para {
         I.abrir(tipos);
         declarar_de_para(st, tipos);
@@ -723,12 +724,12 @@ fn vistas_en_sentencia(st: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
 // una clausura: esos no se tocan.
 fn vistas_en_hijo(h: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
     cambio: mut bool) {
-    let clase = copiar(h.clase);
-    if clase == "bloque" {
+    let clase = h.clase;
+    if clase == Clase.Bloque {
         vistas_en_bloque(h, tipos, retorno, cambio);
         return;
     }
-    if clase == "cierre" { return; }
+    if clase == Clase.Cierre { return; }
     var k = 0;
     while k < h.hijos.largo() {
         vistas_en_hijo(h.hijos[k], tipos, retorno, cambio);
@@ -761,7 +762,7 @@ fn prestar_si_str(n: mut P.Nodo, tipos: &I.Contexto, cambio: mut bool) {
     let t = I.tipo_de(tipos, n);
     let sin = T.apuntado_si(t);
     if sin != "str" { return; }
-    var envuelto = P.rama("llamada", n.linea);
+    var envuelto = P.rama(Clase.Llamada, n.linea);
     envuelto.texto.empujar("vista");
     envuelto.hijos.anadir(copiar(n));
     n = envuelto;

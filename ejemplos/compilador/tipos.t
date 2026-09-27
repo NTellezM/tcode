@@ -12,6 +12,7 @@ usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
 usar "std/lista";
+usar "../lexer/lib/clase.t";
 
 // De `nombre: &lista<str>` se queda con `&lista<str>`. El parser escribe
 // `mut T` donde el comprobador dice `&mut T`, asi que se iguala aqui.
@@ -36,10 +37,10 @@ fn tras_dos_puntos(texto: view) -> str {
 
 fn recoger(n: &P.Nodo, campos: mut mapa<str, lista<str>>,
     tipos: mut lista<str>) {
-    if n.clase == "struct" {
+    if n.clase == Clase.Struct {
         var suyos: lista<str> = [];
         for h en n.hijos {
-            if h.clase == "campo_def" {
+            if h.clase == Clase.CampoDef {
                 let t = tras_dos_puntos(h.texto);
                 tipos.anadir(copiar(t));
                 suyos.anadir(t);
@@ -47,8 +48,8 @@ fn recoger(n: &P.Nodo, campos: mut mapa<str, lista<str>>,
         }
         poner(campos, vista(n.texto), suyos);
     }
-    if n.clase == "param" || n.clase == "retorno_tipo" {
-        if n.clase == "retorno_tipo" {
+    if n.clase == Clase.Param || n.clase == Clase.RetornoTipo {
+        if n.clase == Clase.RetornoTipo {
             tipos.anadir(nuevo(n.texto));
         } else {
             tipos.anadir(tras_dos_puntos(n.texto));

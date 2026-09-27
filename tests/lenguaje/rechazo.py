@@ -62,7 +62,8 @@ RECHAZO = [
      "`==` compara enums sin datos, y alguna forma de `E` lleva algo: miralo con `match`"),
 
     ("== no compara un struct",
-     'struct P { a: usize }\nfn main() { let x = P { a: 1 }; let y = P { a: 1 }; imprimir(x == y); }',
+     'struct P { a: usize }\n'
+     'fn main() { let x = P { a: 1 }; let y = P { a: 1 }; imprimir(x == y); }',
      "`==` no compara `P`, que tiene partes: compara las que te importen"),
 
     ("== no compara listas",
