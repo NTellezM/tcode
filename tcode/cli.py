@@ -1,4 +1,10 @@
-"""Compilador de Tcode: fuente .t -> C -> binario nativo."""
+"""Compilador de Tcode en Python: fuente .t -> C -> binario nativo.
+
+Es el arranque de `tcodec`, el compilador escrito en Tcode, y su oraculo: lo
+construye la primera vez y, para todo programa que sabe compilar, tiene que
+escribir el mismo C. Esta congelado: lo nuevo del lenguaje entra solo en
+`tcodec`, y aqui solo se arreglan fallos.
+"""
 
 import argparse
 import os

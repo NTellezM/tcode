@@ -67,7 +67,6 @@ Las propiedades:
 
 import concurrent.futures
 import os
-import random
 import shutil
 import subprocess
 import sys
@@ -540,7 +539,6 @@ def probar_tcodec(tmp, tcodec):
 def probar_errores(tmp):
     """P4: todo error nombra un archivo y una linea que existen."""
     global total
-    r = random.Random(99)
     malos = [
         'fn f() { var s: str = nuevo("a"); let v: view = vista(s);\n'
         ' empujar(s, "b"); imprimir(v); }',

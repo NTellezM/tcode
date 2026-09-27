@@ -7,6 +7,7 @@ auditando la libreria en C.
 """
 
 import re
+from typing import Any
 from decimal import Decimal as NumeroDecimal, InvalidOperation
 
 from tcode.parser import RESTRICCIONES
@@ -18,7 +19,7 @@ from tcode.nodos import (
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
-    Enum, VarianteDef, EnumLit, Match, Brazo, PatronForma,
+    Enum, EnumLit, Match, PatronForma,
 )
 
 # Enteros de ancho fijo, mas `usize`, que es el que mide cosas de la maquina
@@ -1437,7 +1438,6 @@ class Comprobador:
     def instanciar(self, e, plantilla):
         """Deduce los tipos de una llamada a una generica y devuelve el nombre
         de la copia con esos tipos, creandola la primera vez."""
-        import copy as _copy
 
         params = plantilla.tipo_params
         ligaduras = {}
@@ -2015,7 +2015,7 @@ class Comprobador:
                 if isinstance(s.lugar, Variable):
                     sim.sacados = {}
                 elif ruta is not None:
-                    sim.sacados = {r: l for r, l in sim.sacados.items()
+                    sim.sacados = {r: n for r, n in sim.sacados.items()
                                    if r != ruta and not r.startswith(ruta + ".")}
             if isinstance(s.lugar, Variable):
                 sim.movida = False          # vuelve a tener un valor valido
@@ -3393,7 +3393,7 @@ class Comprobador:
         if ap and ap[0] == e.tipo and len(ap[1]) == len(params):
             return self.instanciar_struct(e.tipo, ap[1], e)
 
-        ligaduras = {}
+        ligaduras: dict[str, str] = {}
         for nombre, valor in e.campos:
             definicion = next((c for c in plantilla.campos
                                if c.nombre == nombre), None)
@@ -3409,7 +3409,7 @@ class Comprobador:
 
         faltan = [t for t in params if t not in ligaduras]
         if faltan:
-            self.error(e, f"no se puede deducir "
+            self.error(e, "no se puede deducir "
                           + ", ".join("`" + t + "`" for t in faltan)
                           + f" en `{e.tipo} {{ ... }}`: ni los campos ni el "
                           f"sitio donde va lo dicen. Escribe el tipo en la "
@@ -3727,7 +3727,6 @@ class Comprobador:
 
         for arg, param in zip(e.args, f.params):
             if param.prestado:
-                marca = "mut" if param.mutable else "&"
                 base = self.variable_base(arg)
                 sim = self.buscar(base) if base else None
                 if sim is None:
@@ -4167,7 +4166,7 @@ class Comprobador:
 # Firmas de las funciones internas.
 #   @lugar      -> tiene que ser una variable (se muta o se presta)
 #   @cualquiera -> cualquier tipo (imprimir)
-INTERNAS = {
+INTERNAS: dict[str, dict[str, Any]] = {
     "vacio":    {"params": [],                        "retorno": "str"},
     "nuevo":    {"params": ["view"],                  "retorno": "str"},
     "vista":    {"params": ["@presta"],               "retorno": "view"},

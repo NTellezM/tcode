@@ -72,3 +72,6 @@ ejemplos/genericos
 
 # Las herramientas que la suite compila, guardadas por el hash de su C
 .cache/
+
+# El compilador que construye `make`
+/tcodec

@@ -21,7 +21,7 @@ from tcode.nodos import (
     Interpolada,
     Declaracion, Asignacion, Si, Mientras, Retorno, ExprSentencia,
     Funcion, Struct, Para, Romper, Continuar,
-    Enum, EnumLit, Match, Externo, PatronForma, PatronLiteral,
+    Enum, EnumLit, Match, PatronForma, PatronLiteral,
 )
 from tcode.comprobador import (
     INTERNAS, UNIDAD, es_arreglo, partes_arreglo, elem_de, largo_arreglo,
@@ -144,13 +144,13 @@ def hace_algo(linea):
     notar: abre un `if`, un bucle o un `switch` —lo que va dentro correria
     solo a veces—, o llama a algo que escribe, para o cambia algo. Copiar un
     valor o tomar una vista no."""
-    l = linea.lstrip()
-    if not l or l.startswith("#"):
+    sin_sangria = linea.lstrip()
+    if not sin_sangria or sin_sangria.startswith("#"):
         return False
-    if re.match(r"(if|while|for|switch|do|else|goto|return)\b", l):
+    if re.match(r"(if|while|for|switch|do|else|goto|return)\b", sin_sangria):
         return True
     return any(nombre not in PUROS_C
-               for nombre in re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\s*\(", l))
+               for nombre in re.findall(r"([A-Za-z_][A-Za-z0-9_]*)\s*\(", sin_sangria))
 
 
 def es_constante(e):
@@ -757,13 +757,20 @@ class Generador:
         salida = ['"']
         previo = None
         for b in bytes_de(texto):
-            if b == 0x3F and previo == 0x3F: salida.append("\\?")
-            elif b == 0x5C: salida.append("\\\\")
-            elif b == 0x22: salida.append('\\"')
-            elif b == 0x0A: salida.append("\\n")
-            elif b == 0x09: salida.append("\\t")
-            elif 0x20 <= b < 0x7F: salida.append(chr(b))
-            else: salida.append(f"\\{b:03o}")
+            if b == 0x3F and previo == 0x3F:
+                salida.append("\\?")
+            elif b == 0x5C:
+                salida.append("\\\\")
+            elif b == 0x22:
+                salida.append('\\"')
+            elif b == 0x0A:
+                salida.append("\\n")
+            elif b == 0x09:
+                salida.append("\\t")
+            elif 0x20 <= b < 0x7F:
+                salida.append(chr(b))
+            else:
+                salida.append(f"\\{b:03o}")
             previo = b
         salida.append('"')
         return "".join(salida)
@@ -1000,7 +1007,8 @@ class Generador:
                 '    FILE* f = fopen(ss_cstr(&copia), "wb");',
                 "    ss_free(&copia);",
                 "    if (f == NULL)",
-                f'        return ({res}){{ .motivo = "no se pudo abrir el archivo para escribir" }};',
+                f"        return ({res}){{ .motivo = "
+                '"no se pudo abrir el archivo para escribir" };',
                 "",
                 "    bool fallo = false;",
                 "    if (datos.len != 0)",
@@ -1885,6 +1893,23 @@ class Generador:
             if not self._termina_en_retorno(b.cuerpo):
                 self.liberar_bloque(self.pila[-1])
 
+    def valor_de_rama(self, e, tipo, destino):
+        """El valor de una rama —un lado de un `if` que da valor, la
+        alternativa de un `sino`— dejado en `destino`. Lo que nace dentro se
+        suelta dentro: el bloque de C de la rama se cierra antes que la
+        sentencia, y un temporal declarado ahi no existe fuera. Como un brazo
+        de `match`."""
+        anteriores = self.temporales
+        self.temporales_fuera.append(anteriores)
+        self.temporales = []
+        valor = self.expr(e, tipo)
+        self.reclamar(valor)
+        self.emitir(f"{destino} = {valor};")
+        for t in self.temporales:
+            self.liberacion(t, self.tipo_var(t) or "str")
+        self.temporales = anteriores
+        self.temporales_fuera.pop()
+
     def match_valor(self, e):
         """El `match` usado como valor: un temporal y el `switch` encima."""
         tipo = e.resultado or "usize"
@@ -2650,8 +2675,7 @@ class Generador:
             # lo anoto al generarla; lo unico propio de `sino` es que el
             # apagado va DENTRO de esta rama, no al final de la sentencia.
             with self.camino():
-                alt = self.expr(e.alternativa, t)
-                self.emitir(f"{elegido} = {alt};")
+                self.valor_de_rama(e.alternativa, t, elegido)
             self.sangria -= 1
             self.emitir("}")
             self.emitir("else")
@@ -2668,7 +2692,7 @@ class Generador:
             previos = []
             marco = []
             self.por_correr.append(marco)
-            for i, (arg, t) in enumerate(zip(e.args, v.tipos)):
+            for arg, t in zip(e.args, v.tipos):
                 valor = self.expr(arg, t)
                 self.reclamar(valor)      # la variante se lo queda
                 entrada = self.operando(arg, valor, self.tipo_c(t))
@@ -2810,14 +2834,14 @@ class Generador:
             self.emitir("{")
             self.sangria += 1
             with self.camino():
-                self.emitir(f"{tmp} = {self.expr(e.entonces, t)};")
+                self.valor_de_rama(e.entonces, t, tmp)
             self.sangria -= 1
             self.emitir("}")
             self.emitir("else")
             self.emitir("{")
             self.sangria += 1
             with self.camino():
-                self.emitir(f"{tmp} = {self.expr(e.sino_, t)};")
+                self.valor_de_rama(e.sino_, t, tmp)
             self.sangria -= 1
             self.emitir("}")
             if self.c.posee(t):
@@ -3223,8 +3247,9 @@ class Generador:
             t = esperado if esperado and es_bloque(esperado) else None
             if t is None:
                 t = self._tipo_de(e) or "bloque<usize>"
-            nombre = self.registrar_bloque(t)
-            te = self.tipo_c(elem_bloque(t))
+            # Los dos registran lo que el C necesita: el bloque y su elemento.
+            self.registrar_bloque(t)
+            self.tipo_c(elem_bloque(t))
             return (f"ss_lang_bloque_nuevo_{mangle(t)}("
                     f"{self.expr(e.args[0], 'usize')}, {self.arch(e)}, {e.linea})")
 
@@ -3397,7 +3422,7 @@ class Generador:
         secuenciar = len(e.args) > 1
         # Cada argumento queda pendiente mientras se calculan los de despues:
         # si uno de ellos deja sentencias, los de antes corren antes.
-        marco = []
+        marco: list[list[str]] = []
         self.por_correr.append(marco)
         for i, a in enumerate(e.args):
             p = f.params[i] if f and i < len(f.params) else None

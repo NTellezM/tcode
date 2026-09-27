@@ -1518,6 +1518,8 @@ struct Usado {
 // se leia y se analizaba otra vez por cada archivo que lo usa —57 analisis
 // para los 14 archivos de `tcodec`—; ahora una.
 struct Leidos {
+    // Donde esta `std/`: la raiz de Tcode.
+    raiz: str,
     indice: mapa<str, usize>,
     tokens: lista<lista<Token>>,
     structs: lista<mapa<str, usize>>,
@@ -1527,8 +1529,12 @@ struct Leidos {
 }
 
 fn leidos() -> Leidos {
-    return Leidos { indice: [], tokens: [], structs: [], enums: [], arboles: [],
-        con_arbol: [] };
+    return leidos_en(".");
+}
+
+fn leidos_en(raiz: view) -> Leidos {
+    return Leidos { raiz: nuevo(raiz), indice: [], tokens: [], structs: [], enums: [],
+        arboles: [], con_arbol: [] };
 }
 
 // El sitio de `ruta` en lo leido, leyendola la primera vez. Si no se puede
@@ -1548,20 +1554,28 @@ fn leido(ruta: view, l: mut Leidos) -> usize {
     return k;
 }
 
-// Donde se busca lo que pide un `usar`: junto al archivo que lo pide, y desde
-// donde se ejecuta; con `.t` y sin el.
-fn candidatos_de(dir: view, pedido: view) -> lista<str> {
+// Donde se busca lo que pide un `usar`, como el cargador de Python: `std/`
+// en la raiz de Tcode, y lo demas junto al archivo que lo pide; con `.t` y
+// sin el. Nunca desde donde se ejecuta: el mismo programa se lee igual desde
+// cualquier sitio.
+fn candidatos_de(dir: view, pedido: view, raiz: view) -> lista<str> {
     var candidatos: lista<str> = [];
-    var junto = nuevo(dir);
-    if largo(junto) > 0 { empujar(junto, "/"); }
+    var junto = vacio();
+    if empieza_con(pedido, "std/") {
+        if largo(raiz) > 0 && !igual(raiz, ".") {
+            empujar(junto, raiz);
+            empujar(junto, "/");
+        }
+    } else if largo(dir) > 0 {
+        empujar(junto, dir);
+        empujar(junto, "/");
+    }
     empujar(junto, pedido);
     anadir(candidatos, copiar(junto));
-    empujar(junto, ".t");
-    anadir(candidatos, junto);
-    anadir(candidatos, nuevo(pedido));
-    var suelto = nuevo(pedido);
-    empujar(suelto, ".t");
-    anadir(candidatos, suelto);
+    if !termina_con(pedido, ".t") {
+        empujar(junto, ".t");
+        anadir(candidatos, junto);
+    }
     return candidatos;
 }
 
@@ -1586,7 +1600,7 @@ fn modulos_usados_con(ruta: view, toks: &lista<Token>, l: mut Leidos) -> lista<U
                         alias = nuevo(toks[i + 3].valor);
                     }
                 }
-                for c en candidatos_de(dir, vista(pedido)) {
+                for c en candidatos_de(dir, vista(pedido), vista(l.raiz)) {
                     let k = leido(vista(c), l);
                     if k >= largo(l.tokens) { continue; }
                     if largo(l.tokens[k]) == 0 { break; }
@@ -1632,7 +1646,7 @@ fn visibles_con(ruta: view, toks: &lista<Token>, palabra: view,
     while i + 1 < largo(toks) {
         if igual(vista(toks[i].valor), "usar") {
             if igual(vista(toks[i + 1].tipo), "cadena") {
-                for c en candidatos_de(dir, vista(toks[i + 1].valor)) {
+                for c en candidatos_de(dir, vista(toks[i + 1].valor), vista(l.raiz)) {
                     let k = leido(vista(c), l);
                     if k >= largo(l.tokens) { continue; }
                     if igual(palabra, "struct") {

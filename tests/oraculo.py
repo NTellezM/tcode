@@ -367,8 +367,8 @@ class Oraculo:
                 n = self.r.randint(0, 20)
                 return Nodo(str(n), t, lambda v=float(n): v, literal=True)
             texto = self.r.choice(DECIMALES_SUELTOS)
-            return Nodo(texto, t, lambda v=redondear(float(texto), t): v,
-                        literal=True)
+            valor = redondear(float(texto), t)
+            return Nodo(texto, t, lambda v=valor: v, literal=True)
         _, hi = rango(t)
         v = self.r.choice([0, 1, 2, 3, 5, 10, 16, 100, 127,
                            self.r.randint(0, 50), min(hi, 255), hi, hi // 2])
