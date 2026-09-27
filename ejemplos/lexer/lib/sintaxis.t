@@ -940,6 +940,18 @@ fn postfijo(e: mut Estado) -> Nodo ! {
         if acepta(e, "simbolo", ".") {
             try entrar(e);
             let campo = try espera(e, "ident", "");
+            // `xs.anadir(v)` es `anadir(xs, v)`: lo de delante del punto va
+            // primero. Un alias de modulo o una variante ya se leyeron antes,
+            // en `primario`.
+            if acepta(e, "simbolo", "(") {
+                let args = try cuerpo_llamada(e, vista(campo), l);
+                var llamada = rama("llamada", l);
+                empujar(llamada.texto, campo);
+                anadir(llamada.hijos, n);
+                for a en args.hijos { anadir(llamada.hijos, copiar(a)); }
+                n = llamada;
+                continue;
+            }
             var p = rama("campo", l);
             empujar(p.texto, campo);
             anadir(p.hijos, n);
@@ -1179,7 +1191,16 @@ fn sentencia(e: mut Estado) -> Nodo ! {
         }
         try espera(e, "palabra", "en");
         let coleccion = try expresion(e);
-        anadir(n.hijos, coleccion);
+        // `for i en a..b`: de `a` a `b`, sin llegar a `b`.
+        if acepta(e, "simbolo", "..") {
+            var r = rama("rango", l);
+            anadir(r.hijos, coleccion);
+            let hasta = try expresion(e);
+            anadir(r.hijos, hasta);
+            anadir(n.hijos, r);
+        } else {
+            anadir(n.hijos, coleccion);
+        }
         let cuerpo = try bloque(e);
         anadir(n.hijos, cuerpo);
         return n;

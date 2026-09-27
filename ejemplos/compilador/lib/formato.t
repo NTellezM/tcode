@@ -237,6 +237,8 @@ fn pega(toks: &lista<Token>, i_ant: usize, i: usize, mc: &Marcas) -> bool {
     if as_ && (igual(va, "(") || igual(va, "[") || igual(va, ".") || igual(va, "$")) {
         return true;
     }
+    // Un rango va pegado: `0..n`.
+    if (ts && igual(v, "..")) || (as_ && igual(va, "..")) { return true; }
     // Dentro de un tipo, `<` y `>` van pegados.
     if as_ && mc.generico[i_ant] && igual(va, "<") { return true; }
     if ts && mc.generico[i] { return true; }
