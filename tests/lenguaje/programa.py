@@ -25,6 +25,7 @@ from .comun import (
     corpus_python,
     en_paralelo,
     en_procesos,
+    nombre_estable,
     sin_azucar,
     tcodec,
 )
@@ -862,7 +863,7 @@ fn main() {
                     with open(archivo, encoding="utf-8") as f:
                         fuente_o = f.read()
                     for k_m, (que, fuente_m, linea_m) in enumerate(
-                            _mutantes(fuente_o, archivo)):
+                            _mutantes(fuente_o, nombre_estable(archivo))):
                         if _sintaxis_nueva(linea_m, enums):
                             continue
                         ruta_m = os.path.join(os.path.dirname(archivo),
@@ -983,7 +984,7 @@ fn main() {
             for archivo_f in del_repo:
                 with open(archivo_f, encoding="utf-8") as f:
                     original_f = f.read()
-                rnd_f = _random.Random(archivo_f)
+                rnd_f = _random.Random(nombre_estable(archivo_f))
                 deformado = []
                 for li in original_f.split("\n"):
                     x = rnd_f.random()
