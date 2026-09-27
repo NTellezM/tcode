@@ -16,7 +16,7 @@ usar "std/lista";
 
 fn nombre_de(texto: view) -> str {
     var i = 0;
-    while i < largo(texto) {
+    while i < texto.largo() {
         if byte(texto, i) == 58 { return nuevo(rebanar(texto, 0, i)); }
         i = i + 1;
     }
@@ -25,10 +25,10 @@ fn nombre_de(texto: view) -> str {
 
 fn tras_dos_puntos(texto: view) -> str {
     var i = 0;
-    while i + 1 < largo(texto) {
+    while i + 1 < texto.largo() {
         if byte(texto, i) == 58 {
             if byte(texto, i + 1) == 32 {
-                return nuevo(recortar(rebanar(texto, i + 2, largo(texto))));
+                return nuevo(recortar(rebanar(texto, i + 2, texto.largo())));
             }
         }
         i = i + 1;
@@ -38,14 +38,14 @@ fn tras_dos_puntos(texto: view) -> str {
 
 fn tipo_pelado(marcado: view) -> str {
     let t = tras_dos_puntos(marcado);
-    if empieza_con(vista(t), "mut ") {
-        return nuevo(rebanar(vista(t), 4, largo(vista(t))));
+    if empieza_con(t, "mut ") {
+        return nuevo(rebanar(t, 4, t.largo()));
     }
-    if empieza_con(vista(t), "&mut ") {
-        return nuevo(rebanar(vista(t), 5, largo(vista(t))));
+    if empieza_con(t, "&mut ") {
+        return nuevo(rebanar(t, 5, t.largo()));
     }
-    if empieza_con(vista(t), "&") {
-        return nuevo(rebanar(vista(t), 1, largo(vista(t))));
+    if empieza_con(t, "&") {
+        return nuevo(rebanar(t, 1, t.largo()));
     }
     return t;
 }
@@ -53,21 +53,21 @@ fn tipo_pelado(marcado: view) -> str {
 // Solo la marca: `&`, `mut ` o nada.
 fn marca_de(marcado: view) -> str {
     let t = tras_dos_puntos(marcado);
-    if empieza_con(vista(t), "mut ") { return nuevo("mut "); }
-    if empieza_con(vista(t), "&mut ") { return nuevo("&mut "); }
-    if empieza_con(vista(t), "&") { return nuevo("&"); }
+    if empieza_con(t, "mut ") { return nuevo("mut "); }
+    if empieza_con(t, "&mut ") { return nuevo("&mut "); }
+    if empieza_con(t, "&") { return nuevo("&"); }
     return vacio();
 }
 
 fn presta(marcado: view) -> bool {
     let t = tras_dos_puntos(marcado);
-    if empieza_con(vista(t), "mut ") { return true; }
-    return empieza_con(vista(t), "&");
+    if empieza_con(t, "mut ") { return true; }
+    return empieza_con(t, "&");
 }
 
 fn es_generica(d: &P.Nodo) -> bool {
     for h en d.hijos {
-        if igual(vista(h.clase), "tipo_param") { return true; }
+        if h.clase == "tipo_param" { return true; }
     }
     return false;
 }
@@ -75,61 +75,61 @@ fn es_generica(d: &P.Nodo) -> bool {
 fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
     // Los campos de cada struct, con su tipo: un `0` en un campo `u64` es un
     // `u64`.
-    if igual(vista(n.clase), "struct") {
+    if n.clase == "struct" {
         var suyos: lista<str> = [];
         var como_se_llaman: lista<str> = [];
         for h en n.hijos {
-            if igual(vista(h.clase), "campo_def") {
-                anadir(como_se_llaman, nombre_de(vista(h.texto)));
-                anadir(suyos, tipo_pelado(vista(h.texto)));
+            if h.clase == "campo_def" {
+                como_se_llaman.anadir(nombre_de(h.texto));
+                suyos.anadir(tipo_pelado(h.texto));
             }
         }
         poner(c.campos, vista(n.texto), suyos);
         poner(c.nombres, vista(n.texto), como_se_llaman);
     }
-    if igual(vista(n.clase), "fn") {
+    if n.clase == "fn" {
         var retorno = vacio();
         var es_de_c = false;
         var sueltos: lista<str> = [];
         var tipos_param: lista<str> = [];
         var marcados: lista<str> = [];
         for h en n.hijos {
-            if igual(vista(h.clase), "retorno_tipo") {
-                retorno = nuevo(vista(h.texto));
+            if h.clase == "retorno_tipo" {
+                retorno = nuevo(h.texto);
             }
             // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
             // existe en el borde: lo que ve Tcode es un `str` suyo.
-            if igual(vista(h.clase), "externa") { es_de_c = true; }
-            if igual(vista(h.clase), "tipo_param") {
-                anadir(sueltos, nuevo(vista(h.texto)));
+            if h.clase == "externa" { es_de_c = true; }
+            if h.clase == "tipo_param" {
+                sueltos.anadir(nuevo(h.texto));
             }
-            if igual(vista(h.clase), "param") {
-                anadir(tipos_param, tipo_pelado(vista(h.texto)));
-                anadir(marcados, marca_de(vista(h.texto)));
+            if h.clase == "param" {
+                tipos_param.anadir(tipo_pelado(h.texto));
+                marcados.anadir(marca_de(h.texto));
             }
         }
         if es_de_c {
             poner(c.externas, vista(n.texto), 1);
-            if igual(vista(retorno), "cadena_c") { retorno = nuevo("str"); }
+            if retorno == "cadena_c" { retorno = nuevo("str"); }
             // Una funcion de C presta lo que recibe: no se queda con nada.
             var prestados: lista<str> = [];
-            for _m en marcados { anadir(prestados, nuevo("&")); }
+            for _m en marcados { prestados.anadir(nuevo("&")); }
             marcados = prestados;
         }
         poner(c.retornos, vista(n.texto), retorno);
         poner(c.params, vista(n.texto), tipos_param);
         poner(c.params_marcados, vista(n.texto), marcados);
-        if largo(sueltos) > 0 { poner(c.tipo_params, vista(n.texto), sueltos); }
+        if sueltos.largo() > 0 { poner(c.tipo_params, vista(n.texto), sueltos); }
     }
     for h en n.hijos { recoger_firmas(h, c); }
 }
 
 // Los `return` de una funcion, en orden.
 fn retornos_de(n: &P.Nodo, fuera: mut lista<usize>, nodos: mut lista<P.Nodo>) {
-    if igual(vista(n.clase), "retorno") {
-        if largo(n.hijos) > 0 {
-            anadir(fuera, n.linea);
-            anadir(nodos, copiar(n.hijos[0]));
+    if n.clase == "retorno" {
+        if n.hijos.largo() > 0 {
+            fuera.anadir(n.linea);
+            nodos.anadir(copiar(n.hijos[0]));
         }
     }
     for h en n.hijos { retornos_de(h, fuera, nodos); }
@@ -143,7 +143,7 @@ fn main() -> usize ! {
 
     let ruta = argumento(1);
     let fuente = try leer_archivo(ruta);
-    let tokens = try analizar(vista(fuente));
+    let tokens = try analizar(fuente);
     let nombres = P.structs_visibles(ruta, tokens);
     let formas = P.enums_visibles(ruta, tokens);
     var estado = P.estado_de(tokens, ruta, nombres, formas);
@@ -157,19 +157,19 @@ fn main() -> usize ! {
     recoger_firmas(arbol, tipos);
 
     for d en arbol.hijos {
-        if igual(vista(d.clase), "fn") && !es_generica(d) {
+        if d.clase == "fn" && !es_generica(d) {
             var puntos: mapa<str, usize> = [];
             var de_tipo: mapa<str, str> = [];
             I.abrir(tipos);
             for h en d.hijos {
-                if igual(vista(h.clase), "param") {
-                    let pn = nombre_de(vista(h.texto));
-                    let pt = tipo_pelado(vista(h.texto));
+                if h.clase == "param" {
+                    let pn = nombre_de(h.texto);
+                    let pt = tipo_pelado(h.texto);
                     poner(de_tipo, vista(pn), copiar(pt));
-                    I.declarar(tipos, vista(pn), vista(pt));
-                    if presta(vista(h.texto)) {
-                        let m = marca_de(vista(h.texto));
-                        if igual(vista(m), "&") { poner(puntos, vista(pn), 2); }
+                    I.declarar(tipos, pn, pt);
+                    if presta(h.texto) {
+                        let m = marca_de(h.texto);
+                        if m == "&" { poner(puntos, vista(pn), 2); }
                         else { poner(puntos, vista(pn), 1); }
                     }
                 }
@@ -179,8 +179,8 @@ fn main() -> usize ! {
             let sin_banderas: mapa<str, usize> = [];
             var lo_que_devuelve = vacio();
             for h en d.hijos {
-                if igual(vista(h.clase), "retorno_tipo") {
-                    lo_que_devuelve = nuevo(vista(h.texto));
+                if h.clase == "retorno_tipo" {
+                    lo_que_devuelve = nuevo(h.texto);
                 }
             }
             let sitio = G.Sitio { archivo: nuevo(ruta), tipos: de_tipo,
@@ -190,18 +190,18 @@ fn main() -> usize ! {
             var lineas: lista<usize> = [];
             var nodos: lista<P.Nodo> = [];
             for h en d.hijos {
-                if igual(vista(h.clase), "bloque") {
+                if h.clase == "bloque" {
                     retornos_de(h, lineas, nodos);
                 }
             }
             var esperado = vacio();
             for h en d.hijos {
-                if igual(vista(h.clase), "retorno_tipo") {
-                    esperado = nuevo(vista(h.texto));
+                if h.clase == "retorno_tipo" {
+                    esperado = nuevo(h.texto);
                 }
             }
             var k = 0;
-            while k < largo(nodos) {
+            while k < nodos.largo() {
                 // Una expresion puede necesitar lineas propias —`byte`
                 // guarda la vista en un temporal antes de indexarla—, y esta
                 // capa compara solo la expresion. Las lineas se generan

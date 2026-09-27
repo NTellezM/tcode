@@ -25,6 +25,53 @@ _MEDIO = ("struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } "
 _FORMAS = "enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } "
 
 RECHAZO = [
+    # ---- la llamada con punto es una llamada: las mismas reglas ----
+    ("con punto, lo de delante sigue siendo el primer argumento",
+     'fn doble(n: usize) -> usize { return n * 2; }\n'
+     'fn main() { let s = nuevo("a"); imprimir(s.doble()); }',
+     "`n` de `doble` es `usize` y recibio `str`"),
+
+    ("con punto, modificar pide `var`",
+     'fn main() { let xs: lista<usize> = []; xs.anadir(1); }',
+     "`xs` se declaro con `let` y no se puede modificar"),
+
+    ("un texto no se compara con un numero",
+     'fn main() { let s = nuevo("a"); imprimir(s == 1); }',
+     "no se pueden comparar `str`"),
+
+    # La vista implicita es `vista(...)`: presta, y el prestamo se vigila.
+    ("una vista implicita presta",
+     'fn main() { var s = nuevo("x"); let v: view = s; empujar(s, "y"); imprimir(v); }',
+     "no se puede modificar `s`: esta prestada por `v`"),
+
+    ("una vista implicita no sobrevive a su dueno",
+     'fn main() { var v: view = "a"; if true { let s = nuevo("x"); v = s; } imprimir(v); }',
+     "`v` vive mas que `s`"),
+
+    ("no se devuelve la vista implicita de un local",
+     'fn f() -> view { let s = nuevo("x"); return s; }\nfn main() { imprimir(f()); }',
+     "no se puede devolver una vista de `s`"),
+
+    ("un str sin nombre no se presta solo",
+     'fn main() { let v: view = nuevo("x"); imprimir(v); }',
+     "`v` se declaro `view` pero el valor es `str`"),
+
+    ("un rango va de un entero a otro",
+     'fn main() { for i en 0.."a" { imprimir(i); } }',
+     "un rango va de un entero a otro, y este va de un entero escrito a `view`"),
+
+    ("los extremos de un rango son del mismo tipo",
+     'fn main() { let a: u8 = 1; let b: i64 = 3; for i en a..b { imprimir(i); } }',
+     "los dos extremos de un rango son del mismo tipo, y aqui son `u8` y `i64`"),
+
+    ("un rango da un solo numero por vuelta",
+     'fn main() { for i, j en 0..3 { imprimir(i); } }',
+     "un rango da un numero en cada vuelta"),
+
+    ("el numero de un rango no se cambia",
+     'fn main() { for i en 0..3 { i = 2; } }',
+     "`i` se declaro con `let` y no se puede modificar"),
+
     # ---- literales: el error es de Tcode, no una truncacion de C ----
     ("un entero no se recorta para caber en u8",
      'fn main() { let x: u8 = 256; imprimir(x); }',
@@ -883,11 +930,6 @@ RECHAZO = [
     ("tipo declarado que no calza",
      'fn f() { let n: usize = "no soy un numero"; }',
      "el valor es `view`"),
-
-    ("comparar str con ==",
-     'fn f() { let a: str = nuevo("x"); let b: str = nuevo("y");'
-     ' let c: bool = a == b; }',
-     "usa `igual("),
 
     ("condicion que no es bool",
      'fn f() { let n: usize = 1; if n { } }',

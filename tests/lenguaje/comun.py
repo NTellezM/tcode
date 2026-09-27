@@ -4,14 +4,16 @@ fallas y cifras de una pasada."""
 
 import atexit
 import concurrent.futures
+import glob
 import os
 import shutil
 import subprocess
 import tempfile
 
-from compilar_c import cc, herramienta
+import azucar
+import semilla
+from compilar_c import cc
 
-from tcode.cli import compilar_archivo
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 RUNTIME = os.path.join(RAIZ, "runtime")
@@ -37,8 +39,9 @@ class Resultado:
 # ---------- el compilador que se prueba ----------
 #
 # Es `tcodec`, el compilador escrito en Tcode, con los sanitizers puestos: cada
-# programa de la suite prueba tambien su memoria. El de Python solo lo arranca
-# y, en las secciones que lo dicen, hace de oraculo de lo que ya sabe hacer.
+# programa de la suite prueba tambien su memoria. Se construye desde su C
+# semilla, como en `make`; el de Python, en las secciones que lo dicen, hace
+# de oraculo de lo que ya sabe hacer.
 
 SANITIZERS = ["-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
               "-fsanitize=address,undefined", "-fno-omit-frame-pointer"]
@@ -50,27 +53,9 @@ ENTORNO_TCODEC = dict(os.environ, TCODE_RAIZ=RAIZ)
 
 
 def construir_tcodec(directorio):
-    """`tcodec` en `directorio`, construido por el compilador de Python y
-    compilado con los sanitizers; si su C no cambio, sale de la cache."""
-    antes = os.getcwd()
-    os.chdir(RAIZ)
-    try:
-        codigo, errores = compilar_archivo(
-            os.path.join("ejemplos", "compilador", "tcodec.t"))
-    finally:
-        os.chdir(antes)
-    if errores:
-        raise RuntimeError("tcodec no compila:\n" + "\n".join(errores))
-    ruta_c = os.path.join(directorio, "tcodec.c")
-    binario = os.path.join(directorio, "tcodec")
-    with open(ruta_c, "w", encoding="utf-8") as f:
-        f.write(codigo)
-    r = herramienta(["cc", *SANITIZERS, f"-I{RUNTIME}", ruta_c,
-                     os.path.join(RUNTIME, "safestr.c"), SISTEMA_TCODEC,
-                     "-o", binario, "-lm"], capture_output=True, text=True)
-    if r.returncode != 0:
-        raise RuntimeError("el C de tcodec no compila:\n" + r.stderr[:600])
-    return binario
+    """`tcodec` en `directorio`, construido desde su C semilla y compilado con
+    los sanitizers; si su C no cambio, sale de la cache."""
+    return semilla.construir_tcodec(directorio, SANITIZERS)
 
 
 def tcodec():
@@ -81,6 +66,61 @@ def tcodec():
         atexit.register(shutil.rmtree, directorio, ignore_errors=True)
         _TCODEC["ruta"] = construir_tcodec(directorio)
     return _TCODEC["ruta"]
+
+
+# El compilador y sus herramientas estan escritos con lo que solo sabe
+# `tcodec`. Para el de Python se les quita el azucar (`tests/azucar.py`), sin
+# mover lineas, en una copia aparte: asi sigue siendo el oraculo tambien sobre
+# el corpus mas grande del repositorio.
+_SIN_AZUCAR = {"dir": None, "archivos": None}
+
+
+def sin_azucar():
+    """El directorio de la copia sin azucar y sus `.t`, una vez por proceso."""
+    if _SIN_AZUCAR["dir"] is None:
+        # Dentro del repositorio, en `.cache/`: desde la raiz, sus rutas se
+        # escriben como las de los originales, que es lo que comparan las
+        # secciones.
+        os.makedirs(os.path.join(RAIZ, ".cache"), exist_ok=True)
+        directorio = tempfile.mkdtemp(prefix="sin-azucar-",
+                                      dir=os.path.join(RAIZ, ".cache"))
+        atexit.register(shutil.rmtree, directorio, ignore_errors=True)
+        _SIN_AZUCAR["archivos"] = azucar.copia_sin_azucar(directorio)
+        _SIN_AZUCAR["dir"] = directorio
+    return _SIN_AZUCAR["dir"], list(_SIN_AZUCAR["archivos"])
+
+
+def corpus_python(relativo=False):
+    """Los `.t` del repositorio que se comparan con el compilador de Python:
+    `std/`, `ejemplos/`, y el compilador en su copia sin azucar. Con
+    `relativo`, desde la raiz."""
+    todos = sorted(glob.glob(os.path.join(RAIZ, "std", "*.t"))
+                   + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
+                               recursive=True))
+    propios = [r for r in todos if not os.path.basename(r).startswith(".")
+               and not os.path.relpath(r, RAIZ).startswith(azucar.CARPETAS)]
+    todos = propios + sin_azucar()[1]
+    return [os.path.relpath(r, RAIZ) for r in todos] if relativo else todos
+
+
+def nombre_estable(ruta):
+    """La ruta de un `.t` del corpus desde su raiz: la del repositorio, o la
+    de la copia sin azucar, que cambia de nombre en cada pasada. Es la
+    semilla de lo que se hace al azar con cada archivo, y asi sale siempre
+    lo mismo."""
+    completa = os.path.abspath(ruta)
+    copia = _SIN_AZUCAR["dir"]
+    if copia is not None and completa.startswith(copia + os.sep):
+        return os.path.relpath(completa, copia)
+    return os.path.relpath(completa, RAIZ)
+
+
+def c_de_tcodec(ruta):
+    """El C de un `.t` del repositorio escrito por `tcodec`, y sus errores,
+    como `compilar_archivo`. Es como se construyen las herramientas escritas
+    en Tcode —las capas del compilador, el lexer—: con lo que el compilador
+    de Python ya no entiende."""
+    return semilla.c_de(tcodec(), ruta)
 
 
 def tcodec_sobre(fuente, *opciones, directorio, nombre="p.t", timeout=120):

@@ -26,31 +26,31 @@ fn es_espacio(b: usize) -> bool {
 // pregunta por cada nombre, tambien en el hueco de cada cadena interpolada,
 // y hacer una tabla cada vez costaba mas que leer el hueco.
 fn es_reservada(t: view) -> bool {
-    let n = largo(t);
+    let n = t.largo();
     if n == 2 {
-        return igual(t, "fn") || igual(t, "if") || igual(t, "en") || igual(t, "u8")
-        || igual(t, "i8");
+        return t == "fn" || t == "if" || t == "en" || t == "u8"
+        || t == "i8";
     }
     if n == 3 {
-        return igual(t, "let") || igual(t, "var") || igual(t, "mut")
-        || igual(t, "for") || igual(t, "try") || igual(t, "str")
-        || igual(t, "u16") || igual(t, "u32") || igual(t, "u64")
-        || igual(t, "i16") || igual(t, "i32") || igual(t, "i64")
-        || igual(t, "f32") || igual(t, "f64");
+        return t == "let" || t == "var" || t == "mut"
+        || t == "for" || t == "try" || t == "str"
+        || t == "u16" || t == "u32" || t == "u64"
+        || t == "i16" || t == "i32" || t == "i64"
+        || t == "f32" || t == "f64";
     }
     if n == 4 {
-        return igual(t, "else") || igual(t, "usar") || igual(t, "sino")
-        || igual(t, "mapa") || igual(t, "view") || igual(t, "bool")
-        || igual(t, "enum") || igual(t, "true");
+        return t == "else" || t == "usar" || t == "sino"
+        || t == "mapa" || t == "view" || t == "bool"
+        || t == "enum" || t == "true";
     }
     if n == 5 {
-        return igual(t, "while") || igual(t, "break") || igual(t, "falla")
-        || igual(t, "lista") || igual(t, "match") || igual(t, "false")
-        || igual(t, "usize");
+        return t == "while" || t == "break" || t == "falla"
+        || t == "lista" || t == "match" || t == "false"
+        || t == "usize";
     }
-    if n == 6 { return igual(t, "return") || igual(t, "struct"); }
-    if n == 7 { return igual(t, "externo"); }
-    if n == 8 { return igual(t, "continue"); }
+    if n == 6 { return t == "return" || t == "struct"; }
+    if n == 7 { return t == "externo"; }
+    if n == 8 { return t == "continue"; }
     return false;
 }
 
@@ -70,6 +70,7 @@ fn simbolo_doble(a: usize, b: usize) -> bool {
     if a == 124 && b == 124 { return true; } // ||
     if a == 60 && b == 60 { return true; }   // <<
     if a == 62 && b == 62 { return true; }   // >>
+    if a == 46 && b == 46 { return true; }   // ..
     return false;
 }
 
@@ -119,7 +120,7 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
     var i = desde;
     var hondura = 0;
     while true {
-        if i >= largo(fuente) || byte(fuente, i) == 10 {
+        if i >= fuente.largo() || byte(fuente, i) == 10 {
             if interpolada || en_hueco {
                 error = $"{archivo}:{linea}: cadena interpolada sin cerrar; falta la comilla, o falta `}}` en algun hueco";
             } else {
@@ -130,7 +131,7 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
         let b = byte(fuente, i);
         // `{{` y `}}` son una llave escrita, pero solo fuera de un hueco:
         // dentro, `}}` puede cerrar un bloque y el hueco.
-        if interpolada && hondura == 0 && i + 1 < largo(fuente) {
+        if interpolada && hondura == 0 && i + 1 < fuente.largo() {
             let sig = byte(fuente, i + 1);
             if (b == 123 && sig == 123) || (b == 125 && sig == 125) {
                 i = i + 2;
@@ -141,7 +142,7 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
         // escapes. Una cadena de dentro se salta entera, que sus llaves y sus
         // comillas no son del hueco.
         if hondura > 0 {
-            let anidada = b == 36 && i + 1 < largo(fuente) && byte(fuente, i + 1) == 34;
+            let anidada = b == 36 && i + 1 < fuente.largo() && byte(fuente, i + 1) == 34;
             if b == 34 || anidada {
                 var dentro = i + 1;
                 if anidada { dentro = i + 2; }
@@ -161,14 +162,14 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
         }
         if b == 34 && hondura == 0 { return i; }
         if b == 92 {
-            if i + 1 >= largo(fuente) {
+            if i + 1 >= fuente.largo() {
                 error = $"{archivo}:{linea}: escape sin cerrar";
                 falla "escape sin cerrar";
             }
             let esc = byte(fuente, i + 1);
             if esc == 120 {
                 // `\xNN`: dos digitos hexadecimales, ni uno mas ni uno menos.
-                var bien = i + 3 < largo(fuente);
+                var bien = i + 3 < fuente.largo();
                 if bien { bien = es_hex(byte(fuente, i + 2)) && es_hex(byte(fuente, i + 3)); }
                 if !bien {
                     error = $"{archivo}:{linea}: `\\x` lleva dos digitos hexadecimales detras, como `\\x0a`";
@@ -199,16 +200,16 @@ fn fin_de_texto(t: view, i: usize) -> usize {
     var j = i + 1;
     if interpolada { j = i + 2; }
     var hondura = 0;
-    while j < largo(t) {
+    while j < t.largo() {
         let b = byte(t, j);
-        if interpolada && hondura == 0 && j + 1 < largo(t) {
+        if interpolada && hondura == 0 && j + 1 < t.largo() {
             let sig = byte(t, j + 1);
             if (b == 123 && sig == 123) || (b == 125 && sig == 125) {
                 j = j + 2;
                 continue;
             }
         }
-        if hondura > 0 && (b == 34 || (b == 36 && j + 1 < largo(t) && byte(t, j + 1) == 34)) {
+        if hondura > 0 && (b == 34 || (b == 36 && j + 1 < t.largo() && byte(t, j + 1) == 34)) {
             j = fin_de_texto(t, j);
             continue;
         }
@@ -221,7 +222,7 @@ fn fin_de_texto(t: view, i: usize) -> usize {
         if b == 34 && hondura == 0 { return j + 1; }
         j = j + 1;
     }
-    return largo(t);
+    return t.largo();
 }
 
 // La `}` que cierra el hueco que se abre justo antes de `i`, o el largo del
@@ -230,9 +231,9 @@ fn fin_de_texto(t: view, i: usize) -> usize {
 fn cierre_de_hueco(t: view, i: usize) -> usize {
     var hondura = 1;
     var j = i;
-    while j < largo(t) {
+    while j < t.largo() {
         let b = byte(t, j);
-        if b == 34 || (b == 36 && j + 1 < largo(t) && byte(t, j + 1) == 34) {
+        if b == 34 || (b == 36 && j + 1 < t.largo() && byte(t, j + 1) == 34) {
             j = fin_de_texto(t, j);
             continue;
         }
@@ -247,7 +248,7 @@ fn cierre_de_hueco(t: view, i: usize) -> usize {
         }
         j = j + 1;
     }
-    return largo(t);
+    return t.largo();
 }
 
 fn es_hex(b: usize) -> bool {
@@ -257,9 +258,9 @@ fn es_hex(b: usize) -> bool {
 // `'a'`, como lo escribe Python: comilla simple, y la barra y los de control
 // escapados.
 fn repr_caracter(c: view) -> str {
-    if igual(c, "'") { return nuevo("\"'\""); }
-    if igual(c, "\\") { return nuevo("'\\\\'"); }
-    if largo(c) == 1 {
+    if c == "'" { return nuevo("\"'\""); }
+    if c == "\\" { return nuevo("'\\\\'"); }
+    if c.largo() == 1 {
         let b = byte(c, 0);
         if b == 10 { return nuevo("'\\n'"); }
         if b == 9 { return nuevo("'\\t'"); }
@@ -299,7 +300,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
     var i = 0;
     var linea = desde_linea;
 
-    while i < largo(fuente) {
+    while i < fuente.largo() {
         let b = byte(fuente, i);
 
         if b == 10 {
@@ -313,11 +314,11 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
         }
 
         // comentarios
-        if b == 47 && i + 1 < largo(fuente) {
+        if b == 47 && i + 1 < fuente.largo() {
             let sig = byte(fuente, i + 1);
             if sig == 47 {
                 let desde = i;
-                while i < largo(fuente) && byte(fuente, i) != 10 {
+                while i < fuente.largo() && byte(fuente, i) != 10 {
                     i = i + 1;
                 }
                 if comentarios {
@@ -329,7 +330,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
                 var cerrado = false;
                 var j = i + 2;
                 var saltos = 0;
-                while j + 1 < largo(fuente) {
+                while j + 1 < fuente.largo() {
                     if byte(fuente, j) == 42 && byte(fuente, j + 1) == 47 {
                         cerrado = true;
                         break;
@@ -351,7 +352,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
         }
 
         // cadena interpolada
-        if b == 36 && i + 1 < largo(fuente) && byte(fuente, i + 1) == 34 {
+        if b == 36 && i + 1 < fuente.largo() && byte(fuente, i + 1) == 34 {
             let fin = try fin_de_cadena(fuente, i + 2, true, archivo, linea, error);
             agregar(salida, "interpolada", rebanar(fuente, i + 2, fin), linea);
             i = fin + 1;
@@ -369,45 +370,48 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
         // numero
         if es_digito(b) {
             var j = i;
-            while j < largo(fuente) && (es_digito(byte(fuente, j))
+            while j < fuente.largo() && (es_digito(byte(fuente, j))
                 || byte(fuente, j) == 95) {
                 j = j + 1;
             }
             // Decimal: el punto lleva un digito a cada lado, y luego puede
             // venir un exponente.
             var decimal = false;
-            if j + 1 < largo(fuente) && byte(fuente, j) == 46 {
+            if j + 1 < fuente.largo() && byte(fuente, j) == 46 {
                 if es_digito(byte(fuente, j + 1)) {
                     decimal = true;
                     j = j + 1;
-                    while j < largo(fuente) && (es_digito(byte(fuente, j))
+                    while j < fuente.largo() && (es_digito(byte(fuente, j))
                         || byte(fuente, j) == 95) {
                         j = j + 1;
                     }
                 }
             }
-            if j < largo(fuente) {
+            if j < fuente.largo() {
                 if byte(fuente, j) == 101 || byte(fuente, j) == 69 {
                     var k = j + 1;
-                    if k < largo(fuente) {
+                    if k < fuente.largo() {
                         if byte(fuente, k) == 43 || byte(fuente, k) == 45 {
                             k = k + 1;
                         }
                     }
-                    if k < largo(fuente) {
+                    if k < fuente.largo() {
                         if es_digito(byte(fuente, k)) {
                             decimal = true;
                             j = k;
-                            while j < largo(fuente) && es_digito(byte(fuente, j)) {
+                            while j < fuente.largo() && es_digito(byte(fuente, j)) {
                                 j = j + 1;
                             }
                         }
                     }
                 }
             }
-            // `12abc` o `1.`: ni numero ni otra cosa.
-            if j < largo(fuente) && (es_letra(byte(fuente, j)) && byte(fuente, j) != 95
-                || byte(fuente, j) == 46) {
+            // `12abc` o `1.`: ni numero ni otra cosa. `0..3` si: el numero
+            // acaba antes de los dos puntos del rango.
+            let rango = j + 1 < fuente.largo() && byte(fuente, j) == 46
+            && byte(fuente, j + 1) == 46;
+            if j < fuente.largo() && (es_letra(byte(fuente, j)) && byte(fuente, j) != 95
+                || byte(fuente, j) == 46 && !rango) {
                 let visto = repr_texto(rebanar(fuente, i, j + 1));
                 error = $"{archivo}:{linea}: numero mal formado cerca de {visto}";
                 falla "numero mal formado";
@@ -416,7 +420,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
             var limpio = vacio();
             var q = i;
             while q < j {
-                if byte(fuente, q) != 95 { empujar(limpio, rebanar(fuente, q, q + 1)); }
+                if byte(fuente, q) != 95 { limpio.empujar(rebanar(fuente, q, q + 1)); }
                 q = q + 1;
             }
             var clase = nuevo("entero");
@@ -429,7 +433,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
         // identificador o palabra reservada
         if es_letra(b) {
             var j = i;
-            while j < largo(fuente) && es_alfanumerico(byte(fuente, j)) {
+            while j < fuente.largo() && es_alfanumerico(byte(fuente, j)) {
                 j = j + 1;
             }
             let texto_pieza = rebanar(fuente, i, j);
@@ -443,7 +447,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
         }
 
         // simbolo, de dos en dos primero
-        if i + 1 < largo(fuente) && simbolo_doble(b, byte(fuente, i + 1)) {
+        if i + 1 < fuente.largo() && simbolo_doble(b, byte(fuente, i + 1)) {
             agregar(salida, "simbolo", rebanar(fuente, i, i + 2), linea);
             i = i + 2;
             continue;
@@ -470,7 +474,7 @@ fn repr_texto(t: view) -> str {
     var hay_simple = false;
     var hay_doble = false;
     var i = 0;
-    while i < largo(t) {
+    while i < t.largo() {
         if byte(t, i) == 39 { hay_simple = true; }
         if byte(t, i) == 34 { hay_doble = true; }
         i = i + 1;
@@ -480,17 +484,17 @@ fn repr_texto(t: view) -> str {
     var r = vacio();
     empujar_byte(r, comilla como u8);
     i = 0;
-    while i < largo(t) {
+    while i < t.largo() {
         let b = byte(t, i);
-        if b == 92 { empujar(r, "\\\\"); }
-        else if b == comilla { empujar(r, "\\"); empujar_byte(r, b como u8); }
-        else if b == 10 { empujar(r, "\\n"); }
-        else if b == 9 { empujar(r, "\\t"); }
-        else if b == 13 { empujar(r, "\\r"); }
-        else if b == 1 && i + 2 < largo(t) {
+        if b == 92 { r.empujar("\\\\"); }
+        else if b == comilla { r.empujar("\\"); empujar_byte(r, b como u8); }
+        else if b == 10 { r.empujar("\\n"); }
+        else if b == 9 { r.empujar("\\t"); }
+        else if b == 13 { r.empujar("\\r"); }
+        else if b == 1 && i + 2 < t.largo() {
             // La marca de un `\xNN` descifrado: Python lo guarda como un
             // caracter suelto y lo muestra `\udcNN`.
-            empujar(r, "\\udc");
+            r.empujar("\\udc");
             let alto = byte(t, i + 1);
             let bajo = byte(t, i + 2);
             empujar_byte(r, minuscula_hex(alto) como u8);
@@ -498,9 +502,9 @@ fn repr_texto(t: view) -> str {
             i = i + 2;
         }
         else if b < 32 || b == 127 {
-            empujar(r, "\\x");
-            empujar(r, rebanar("0123456789abcdef", b / 16, b / 16 + 1));
-            empujar(r, rebanar("0123456789abcdef", b % 16, b % 16 + 1));
+            r.empujar("\\x");
+            r.empujar(rebanar("0123456789abcdef", b / 16, b / 16 + 1));
+            r.empujar(rebanar("0123456789abcdef", b % 16, b % 16 + 1));
         }
         else { empujar_byte(r, b como u8); }
         i = i + 1;

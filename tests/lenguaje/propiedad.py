@@ -1,6 +1,5 @@
 """PROPIEDAD: que le pasa a cada valor, dicho por Tcode."""
 
-import glob
 import os
 import shutil
 import subprocess
@@ -17,6 +16,8 @@ from .comun import (
     RAIZ,
     RUNTIME,
     Resultado,
+    c_de_tcodec,
+    corpus_python,
     nombre_escrito,
 )
 
@@ -75,7 +76,7 @@ def correr(suite: Resultado) -> None:
     tmp = tempfile.mkdtemp(prefix="tcode-prop-")
     try:
         suite.total += 1
-        codigo, errores = compilar_archivo(
+        codigo, errores = c_de_tcodec(
             os.path.join(RAIZ, "ejemplos", "compilador", "tipar.t"))
         if errores:
             suite.falla("propiedad en Tcode", "\n".join(errores))
@@ -93,10 +94,7 @@ def correr(suite: Resultado) -> None:
             if r.returncode != 0:
                 suite.falla("propiedad en Tcode compila", r.stderr[:600])
             else:
-                archivos = sorted(
-                    glob.glob(os.path.join(RAIZ, "std", "*.t"))
-                    + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"),
-                                recursive=True))
+                archivos = corpus_python()
                 comparados = variables = 0
                 for archivo in archivos:
                     rel = os.path.relpath(archivo, RAIZ)

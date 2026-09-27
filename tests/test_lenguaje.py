@@ -45,9 +45,6 @@ SECCIONES = [
 # por proceso, la pasada entera dura lo que la mas larga.
 PRIMERO = ["PROGRAMA", "CUERPOS", "EXPRESIONES", "TIPAR", "PROPIEDAD", "FIRMAS",
            "AUTOANALISIS", "EJEMPLOS", "ACEPTA", "TIPOS"]
-# Las que no usan `tcodec`: empiezan mientras se construye.
-SIN_TCODEC = ["AUTOANALISIS", "TIPOS", "TIPAR", "PROPIEDAD", "FIRMAS",
-              "EXPRESIONES", "CUERPOS"]
 
 
 def en_serie(secciones, todas):
@@ -80,19 +77,19 @@ def en_procesos(secciones, todas):
              + [s for s in SECCIONES if s in secciones and s not in PRIMERO])
     tmp = tempfile.mkdtemp(prefix="tcode-secciones-")
 
-    # `tcodec` se construye una vez, mientras empiezan las que no lo usan, y
-    # cada seccion recibe el mismo.
+    # `tcodec` se construye una vez, desde su semilla, y cada seccion recibe
+    # el mismo: todas lo usan, tambien las que comparan sus capas con las de
+    # Python, que construyen con el sus herramientas.
     constructor = concurrent.futures.ThreadPoolExecutor(1)
     construido = constructor.submit(construir_tcodec, tmp)
 
     def una(seccion):
         ruta = os.path.join(tmp, seccion + ".json")
         entorno = dict(os.environ, TCODE_RESULTADO=ruta)
-        if seccion not in SIN_TCODEC:
-            try:
-                entorno["TCODE_TCODEC"] = construido.result()
-            except RuntimeError:
-                pass    # cada seccion lo intenta y dice por que no
+        try:
+            entorno["TCODE_TCODEC"] = construido.result()
+        except RuntimeError:
+            pass    # cada seccion lo intenta y dice por que no
         antes = time.monotonic()
         r = subprocess.run([sys.executable, os.path.abspath(__file__), seccion],
                            capture_output=True, text=True, env=entorno)
@@ -101,7 +98,7 @@ def en_procesos(secciones, todas):
     casos = fallas = 0
     cifras = {}
     try:
-        # Uno mas que nucleos: las que esperan a `tcodec` no gastan nada.
+        # Uno mas que nucleos: mientras esperan a `tcodec` no gastan nada.
         with concurrent.futures.ThreadPoolExecutor((os.cpu_count() or 2) + 1) as hilos:
             for hecho in concurrent.futures.as_completed(
                     [hilos.submit(una, s) for s in orden]):

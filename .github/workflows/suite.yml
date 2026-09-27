@@ -39,6 +39,9 @@ jobs:
           restore-keys: herramientas-${{ runner.os }}-
       - name: ruff y mypy
         run: pip install ruff==0.15.8 mypy==1.19.1 && make lint
+      # Solo un compilador de C: la semilla construye el `tcodec` de ahora.
+      - name: tcodec desde su semilla
+        run: make tcodec && make ejemplos
       - name: secciones rapidas
         run: make rapido
       - name: propiedades, una pasada corta

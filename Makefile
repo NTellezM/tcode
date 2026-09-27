@@ -1,6 +1,7 @@
 # Tcode
 #
-#   make              construye el compilador, `./tcodec`
+#   make              construye el compilador, `./tcodec`, desde su C semilla
+#   make semilla      pone al dia la semilla, `bootstrap/tcodec.c`
 #   make check        la suite entera, y que el README diga lo que mide
 #   make rapido       el lenguaje, probado con tcodec: segundos
 #   make propiedades  solo los tests por propiedad (TCODE_PROGRAMAS=1000 para mas)
@@ -13,19 +14,42 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla
 
 all: tcodec
 
-# El compilador es `tcodec`, escrito en Tcode. El de Python solo lo arranca:
-# lo construye la primera vez, y despues cada vez que cambia algo de lo que
-# esta hecho. Lo nuevo del lenguaje entra solo en `tcodec`.
+# El compilador es `tcodec`, escrito en Tcode. Se construye desde su C
+# semilla, `bootstrap/tcodec.c`: el C que `tcodec` escribe de si mismo,
+# guardado en el repositorio como hacen Zig y Go. Compilada, la semilla es la
+# etapa 0, y la etapa 0 compila `tcodec.t` tal como esta ahora. No hace falta
+# Python: solo un compilador de C.
+SEMILLA = bootstrap/tcodec.c
+ETAPA0 = .cache/tcodec0
+SISTEMA = ejemplos/compilador/lib/sistema_tcodec.c
+RUNTIME_C = runtime/safestr.c
 TCODEC_FUENTES = $(wildcard ejemplos/compilador/*.t ejemplos/compilador/lib/*.t \
 	ejemplos/compilador/lib/*.c ejemplos/lexer/lib/*.t std/*.t runtime/* \
-	runtime/sistema/* tcode/*.py)
+	runtime/sistema/*)
 
-tcodec: $(TCODEC_FUENTES)
-	@$(PY) -m tcode ejemplos/compilador/tcodec.t -o tcodec
+$(ETAPA0): $(SEMILLA) $(SISTEMA) $(wildcard runtime/*)
+	@mkdir -p .cache
+	@$(CC) -std=c17 -O1 -Iruntime $(SEMILLA) $(RUNTIME_C) $(SISTEMA) -o $@ -lm
+
+tcodec: $(ETAPA0) $(TCODEC_FUENTES)
+	@TCODE_RAIZ=. ./$(ETAPA0) ejemplos/compilador/tcodec.t -o tcodec
+
+# La semilla al dia: el C que escribe de si mismo el `tcodec` de ahora. Antes
+# de guardarla se comprueba que es un punto fijo: compilada, vuelve a
+# escribir exactamente ese C. Hace falta cuando `tcodec.t` quiere usar algo
+# que la semilla vieja todavia no sabe compilar.
+semilla: tcodec
+	@TCODE_RAIZ=. ./tcodec ejemplos/compilador/tcodec.t --mostrar-c > .cache/semilla.c
+	@$(CC) -std=c17 -O1 -Iruntime .cache/semilla.c $(RUNTIME_C) $(SISTEMA) -o .cache/semilla -lm
+	@TCODE_RAIZ=. ./.cache/semilla ejemplos/compilador/tcodec.t --mostrar-c \
+	    | cmp -s - .cache/semilla.c \
+	    || { echo "la semilla nueva no se reproduce a si misma"; exit 1; }
+	@mv .cache/semilla.c $(SEMILLA)
+	@echo "semilla al dia: $(SEMILLA)"
 
 bench:
 	@$(PY) bench/medir.py
