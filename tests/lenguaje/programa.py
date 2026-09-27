@@ -3,6 +3,7 @@
 import concurrent.futures
 import glob
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -37,6 +38,28 @@ def _errores_python(ruta):
     except Exception as exc:
         return [str(exc)]
     return errs or []
+
+
+def _c_python(ruta):
+    """El C del compilador de Python y sus errores. Un programa con sintaxis
+    que Python no conoce —la de despues de congelarlo— da error y no C."""
+    try:
+        return compilar_archivo(ruta)
+    except Exception as exc:
+        return None, [str(exc)]
+
+
+# Lo que se escribe distinto desde que Python se congelo: `x.f(...)` y
+# `a..b`. Un mutante que cae en ello es sintaxis nueva para `tcodec`, y
+# para Python sigue siendo un error: no se comparan. `Forma.Variante(...)`
+# no es nuevo, y se distingue porque lo de delante es un enum.
+_PUNTO_Y_LLAMADA = re.compile(r"(\w+|[)\]])\s*\.\s*[A-Za-z_]\w*\s*\(")
+
+
+def _sintaxis_nueva(linea, enums):
+    if ".." in linea:
+        return True
+    return any(m.group(1) not in enums for m in _PUNTO_Y_LLAMADA.finditer(linea))
 
 
 def _avisos_python(ruta):
@@ -690,7 +713,7 @@ fn main() {
                     f.write(fuente_c)
                 escritos_c.append((nombre_c, ruta_cierre))
             trabajos_c = [(n, r, *hecho) for (n, r), hecho in zip(
-                escritos_c, en_procesos(compilar_archivo, [r for _, r in escritos_c]))]
+                escritos_c, en_procesos(_c_python, [r for _, r in escritos_c]))]
 
             # Lo que cuesta de aqui en adelante es `tcodec`, con los
             # sanitizers puestos: cada bucle calcula antes lo de Python y
@@ -814,20 +837,28 @@ fn main() {
                                           "fn": "fn "}[forma] + li[c:]
                     otras = list(lineas)
                     otras[t.linea - 1] = nueva
-                    yield f"{forma} en la linea {t.linea}", "\n".join(otras)
+                    yield f"{forma} en la linea {t.linea}", "\n".join(otras), nueva
 
             # Cada mutante con su nombre, para que esten todos a la vez
             # mientras `tcodec` los lee.
             iguales_s = rotos = 0
             mutantes = []
             escritos_m = []
+            archivos_m = sorted(glob.glob(os.path.join("std", "*.t"))
+                                + glob.glob(os.path.join("ejemplos", "**", "*.t"),
+                                            recursive=True))
+            enums = set()
+            for archivo in archivos_m:
+                with open(archivo, encoding="utf-8") as f:
+                    enums.update(re.findall(r"\benum\s+(\w+)", f.read()))
             try:
-                for archivo in sorted(glob.glob(os.path.join("std", "*.t"))
-                                      + glob.glob(os.path.join("ejemplos", "**", "*.t"),
-                                                  recursive=True)):
+                for archivo in archivos_m:
                     with open(archivo, encoding="utf-8") as f:
                         fuente_o = f.read()
-                    for k_m, (que, fuente_m) in enumerate(_mutantes(fuente_o, archivo)):
+                    for k_m, (que, fuente_m, linea_m) in enumerate(
+                            _mutantes(fuente_o, archivo)):
+                        if _sintaxis_nueva(linea_m, enums):
+                            continue
                         ruta_m = os.path.join(os.path.dirname(archivo),
                                               f".mut_{k_m}_" + os.path.basename(archivo))
                         escritos_m.append(ruta_m)
@@ -992,7 +1023,7 @@ fn main() {
                     if "fn main(" in f.read():
                         con_main.append(archivo)
             trabajos_e = [(archivo, esperado) for archivo, (esperado, errores_f) in zip(
-                con_main, en_procesos(compilar_archivo, con_main)) if not errores_f]
+                con_main, en_procesos(_c_python, con_main)) if not errores_f]
             for (archivo, esperado), e in zip(
                     trabajos_e, en_paralelo(
                         lambda t: _tcodec(t[0], "--mostrar-c", timeout=180),
@@ -1043,7 +1074,7 @@ fn main() {
                     escritos_s.append((caso_s[0], ruta_s))
             trabajos_s = [(nombre_s, ruta_s, esperado_s)
                           for (nombre_s, ruta_s), (esperado_s, errores_s) in zip(
-                              escritos_s, en_procesos(compilar_archivo,
+                              escritos_s, en_procesos(_c_python,
                                                       [r for _, r in escritos_s]))
                           if not errores_s]
 

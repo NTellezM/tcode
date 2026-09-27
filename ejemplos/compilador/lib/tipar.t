@@ -134,6 +134,12 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
     // Una clausura ya numerada lleva el nombre de su struct.
     if igual(clase, "cierre") { return copiar(n.texto); }
 
+    // `a..b` en un `for`: los dos extremos son del mismo entero.
+    if igual(clase, "rango") && largo(n.hijos) == 2 {
+        let t = tipo_de(c, n.hijos[0]);
+        return $"rango<{t}>";
+    }
+
     // `if c { a } else { b }` vale lo que valga su primera rama: el
     // comprobador ya exige que las dos den lo mismo.
     if igual(clase, "si_expr") {

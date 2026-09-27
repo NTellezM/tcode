@@ -1309,6 +1309,13 @@ fn indice_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     return r;
 }
 
+// Si `n` es un texto, con duenio o prestado.
+fn da_texto(tipos: &I.Contexto, n: &P.Nodo) -> bool {
+    let escrito = I.tipo_de(tipos, n);
+    let t = T.apuntado_si(vista(escrito));
+    return igual(vista(t), "str") || igual(vista(t), "view");
+}
+
 fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Contexto) -> str {
     if largo(n.hijos) != 2 { return no_se(); }
     let op = vista(n.texto);
@@ -1317,6 +1324,21 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Con
     // evalua si el izquierdo no decide ya el resultado.
     if igual(op, "&&") || igual(op, "||") {
         return junta(b, s, n, "bool", op, tipos);
+    }
+
+    // `a == b` entre textos es `igual(a, b)`, y `a != b` es `!igual(a, b)`:
+    // se escriben igual que si estuvieran escritos asi.
+    if (igual(op, "==") || igual(op, "!=")) && da_texto(tipos, n.hijos[0])
+    && da_texto(tipos, n.hijos[1]) {
+        var llamada = P.rama("llamada", n.linea);
+        empujar(llamada.texto, "igual");
+        anadir(llamada.hijos, copiar(n.hijos[0]));
+        anadir(llamada.hijos, copiar(n.hijos[1]));
+        if igual(op, "==") { return expresion_c(b, s, llamada, "bool", tipos); }
+        var negada = P.rama("unaria", n.linea);
+        empujar(negada.texto, "!");
+        anadir(negada.hijos, llamada);
+        return expresion_c(b, s, negada, "bool", tipos);
     }
 
     let t = I.tipo_cuenta(tipos, n, esperado);
@@ -4145,6 +4167,11 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         return true;
     }
 
+    if igual(clase, "para") && largo(n.hijos) == 2
+    && igual(vista(n.hijos[0].clase), "rango") {
+        return para_rango_c(b, s, n, tipos, retorno, falible);
+    }
+
     if igual(clase, "para") {
         if largo(n.hijos) != 2 { return false; }
         // `for x en ...` o, sobre un mapa, `for clave, valor en m`.
@@ -4329,6 +4356,66 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     }
 
     return false;
+}
+
+// `for i en a..b` es el `for` de C de siempre. Cada extremo se calcula una
+// vez y en su orden; el que no es un numero escrito va antes a un temporal,
+// que el cuerpo puede cambiar lo que se leyo para calcularlo. El contador es
+// del bucle y `i` una copia suya en cada vuelta: asi `for i en 0..i` mira
+// el `i` de fuera.
+fn para_rango_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
+    retorno: view, falible: bool) -> bool {
+    if largo(n.hijos[0].hijos) != 2 { return false; }
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    if !T.es_rango(vista(suyo)) { return false; }
+    let t = T.entre_angulos(vista(suyo));
+    let tc = tipo_c(t);
+    let desde = extremo_c(b, s, n.hijos[0].hijos[0], t, tipos);
+    if es_desconocido(vista(desde)) { return false; }
+    let hasta = extremo_c(b, s, n.hijos[0].hijos[1], t, tipos);
+    if es_desconocido(vista(hasta)) { return false; }
+    let quien = primer_nombre(vista(n.texto));
+
+    b.bucle = b.bucle + 1;
+    let k = nombre_de_indice(b.bucle);
+    emitir(b, $"for ({tc} {k} = {desde}; {k} < {hasta}; {k}++)");
+    emitir(b, "{");
+    b.sangria = b.sangria + 1;
+    abrir_bloque(b);
+    anadir(b.bucles, largo(b.bloques) - 1);
+    anadir(b.bucles_t, largo(b.fuera));
+    abrir_bucle_saltos(b);
+    I.abrir(tipos);
+    emitir(b, $"SS_LANG_QUIZA_SIN_USAR {tc} {quien} = {k};");
+    I.declarar(tipos, vista(quien), t);
+
+    var bien = true;
+    for st en n.hijos[1].hijos {
+        if bien {
+            bien = sentencia_c(b, s, st, tipos, retorno, falible);
+            if !bien { apuntar_fallo(b, st); }
+        }
+    }
+    if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s, tipos); }
+    else { quitar_ultimo_bloque(b); }
+
+    quitar_ultimo_bucle(b);
+    I.cerrar(tipos);
+    b.sangria = b.sangria - 1;
+    emitir(b, "}");
+    cerrar_bucle_saltos(b);
+    return bien;
+}
+
+// Un extremo de un rango: el numero escrito tal cual, y lo demas en un
+// temporal.
+fn extremo_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, t: view, tipos: &I.Contexto) -> str {
+    let valor = expresion_c(b, s, n, t, tipos);
+    if es_desconocido(vista(valor)) || igual(vista(n.clase), "entero") { return valor; }
+    let tmp = nuevo_temporal(b);
+    let tc = tipo_c(t);
+    emitir(b, $"{tc} {tmp} = {valor};");
+    return tmp;
 }
 
 fn bloque_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,

@@ -70,6 +70,7 @@ fn simbolo_doble(a: usize, b: usize) -> bool {
     if a == 124 && b == 124 { return true; } // ||
     if a == 60 && b == 60 { return true; }   // <<
     if a == 62 && b == 62 { return true; }   // >>
+    if a == 46 && b == 46 { return true; }   // ..
     return false;
 }
 
@@ -405,9 +406,12 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
                     }
                 }
             }
-            // `12abc` o `1.`: ni numero ni otra cosa.
+            // `12abc` o `1.`: ni numero ni otra cosa. `0..3` si: el numero
+            // acaba antes de los dos puntos del rango.
+            let rango = j + 1 < largo(fuente) && byte(fuente, j) == 46
+            && byte(fuente, j + 1) == 46;
             if j < largo(fuente) && (es_letra(byte(fuente, j)) && byte(fuente, j) != 95
-                || byte(fuente, j) == 46) {
+                || byte(fuente, j) == 46 && !rango) {
                 let visto = repr_texto(rebanar(fuente, i, j + 1));
                 error = $"{archivo}:{linea}: numero mal formado cerca de {visto}";
                 falla "numero mal formado";

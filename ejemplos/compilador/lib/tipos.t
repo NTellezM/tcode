@@ -76,6 +76,11 @@ fn es_mapa(t: view) -> bool {
     return empieza(t, "mapa<") && termina_con(t, ">");
 }
 
+// Lo que recorre `for i en a..b`: los enteros de `a` a `b`, sin `b`.
+fn es_rango(t: view) -> bool {
+    return empieza(t, "rango<") && termina_con(t, ">");
+}
+
 fn es_funcion(t: view) -> bool {
     return empieza(t, "fn(");
 }

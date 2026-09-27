@@ -2899,7 +2899,47 @@ fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
     if igual(clase, "literal_lista") { return literal_arreglo(c, m, tipos, n, destino); }
     if igual(clase, "binaria") { return binaria(c, m, tipos, n); }
     if igual(clase, "llamada") { return llamada(c, m, tipos, n, false, destino); }
+    if igual(clase, "rango") { return rango(c, m, tipos, n); }
     return vacio();
+}
+
+// `a..b`, lo que recorre un `for`: los dos extremos son el mismo entero, y
+// un numero escrito toma el tipo del otro, o `usize` si los dos lo son.
+fn rango(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+    if largo(n.hijos) != 2 { return vacio(); }
+    let crudo_a = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
+    let crudo_b = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
+    if largo(crudo_a) == 0 || largo(crudo_b) == 0 { return vacio(); }
+    var a = sin_prestamo(vista(crudo_a));
+    var b = sin_prestamo(vista(crudo_b));
+    if igual(vista(a), literal()) && igual(vista(b), literal()) {
+        a = nuevo("usize");
+        b = nuevo("usize");
+    }
+    if igual(vista(a), literal()) && es_tipo_entero(vista(b)) { a = copiar(b); }
+    if igual(vista(b), literal()) && es_tipo_entero(vista(a)) { b = copiar(a); }
+    if !es_tipo_entero(vista(a)) || !es_tipo_entero(vista(b)) {
+        let de = extremo_dicho(vista(crudo_a));
+        let a_ = extremo_dicho(vista(crudo_b));
+        error(c, m, n.linea, $"un rango va de un entero a otro, y este va de {de} a {a_}");
+        return vacio();
+    }
+    if !igual(vista(a), vista(b)) {
+        error(c, m, n.linea, $"los dos extremos de un rango son del mismo tipo, y aqui son `{a}` y `{b}`");
+        return vacio();
+    }
+    comprobar_literal(c, m, n.hijos[0], vista(a));
+    fijar_literal(c, m, n.hijos[0], vista(a));
+    comprobar_literal(c, m, n.hijos[1], vista(a));
+    fijar_literal(c, m, n.hijos[1], vista(a));
+    return $"rango<{a}>";
+}
+
+// Un extremo de rango en un mensaje: su tipo, o que es un numero escrito.
+fn extremo_dicho(t: view) -> str {
+    if igual(t, literal()) { return nuevo("un entero escrito"); }
+    if igual(t, literal_decimal()) { return nuevo("un decimal escrito"); }
+    return $"`{t}`";
 }
 
 fn variable(c: mut Comprobacion, m: &Mundo, tipos: &I.Contexto, n: &P.Nodo,
@@ -3419,6 +3459,11 @@ fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     return $"[{final}; {hay}]";
 }
 
+// Un texto: con duenio o prestado.
+fn es_texto(t: view) -> bool {
+    return igual(t, "str") || igual(t, "view");
+}
+
 fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
     let op = vista(n.texto);
     let crudo_i = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
@@ -3468,11 +3513,11 @@ fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) ->
     let a = vista(ti);
     let b = vista(td);
     if igual(op, "==") || igual(op, "!=") {
+        // Dos textos se comparan por lo que dicen, sea cual sea su forma: el
+        // generador lo escribe como `igual(a, b)`.
+        if es_texto(a) && es_texto(b) { return nuevo("bool"); }
         if !igual(a, b) {
             error(c, m, n.linea, $"no se pueden comparar `{ti}` y `{td}`");
-        }
-        if igual(a, "str") {
-            error(c, m, n.linea, "no se comparan `str` con `==`: usa `igual(vista(a), vista(b))`");
         }
         if es_decimal(a) {
             aviso(c, m, n.linea, $"`{op}` entre decimales compara bit a bit: `0.1 + 0.2` no es `0.3`. Si querias 'aproximadamente', usa `cerca(a, b, tolerancia)` de `std/numero`");
@@ -5148,7 +5193,13 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         while coma < largo(nombres) && byte(nombres, coma) != 44 { coma = coma + 1; }
         variable = nuevo(recortar(rebanar(nombres, 0, coma)));
         if coma < largo(nombres) { valor = nuevo(recortar(rebanar(nombres, coma + 1, largo(nombres)))); }
-        if largo(tipo) > 0 && T.es_mapa(vista(tipo)) {
+        let es_rango = largo(tipo) > 0 && T.es_rango(vista(tipo));
+        if es_rango {
+            elem = nuevo(T.entre_angulos(vista(tipo)));
+            if largo(valor) > 0 {
+                error(c, m, s.linea, "un rango da un numero en cada vuelta: `for i en a..b`, con un solo nombre");
+            }
+        } else if largo(tipo) > 0 && T.es_mapa(vista(tipo)) {
             let ps = clave_y_valor(vista(tipo));
             elem = copiar(ps[0]);
             tipo_valor = copiar(ps[1]);
@@ -5174,7 +5225,9 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         c.en_condicional = c.en_condicional + 1;
         if largo(elem) > 0 {
             let i = declarar_simbolo(c, m, s.linea, vista(variable), vista(elem), false);
-            c.simbolos[i].prestado = true;
+            // El numero de un rango es suyo; el elemento de una coleccion se
+            // presta de ella.
+            c.simbolos[i].prestado = !es_rango;
             c.simbolos[i].leida = true;
         }
         if largo(tipo_valor) > 0 && largo(valor) > 0 {

@@ -2122,6 +2122,69 @@ la entrada no carga con el código de leerla.
 
 Está en `ejemplos/sistema.t`.
 
+## Lo que solo sabe `tcodec`
+
+El compilador de Python quedó congelado (ver «Dos compiladores, una regla»
+en el README): lo nuevo entra solo en `tcodec`. Cada novedad de aquí es una
+forma más corta de escribir algo que ya existía, y `tcodec` la traduce a esa
+forma antes de escribir C, así que el C que sale es el mismo que con la forma
+larga. Nada de esto añade reglas de propiedad nuevas: los préstamos, las
+vidas y los errores son los de siempre.
+
+### `==` y `!=` entre textos
+
+```tcode
+if nombre == "main" { ... }        // igual(nombre, "main")
+if ext != vista(otra) { ... }      // !igual(ext, vista(otra))
+```
+
+Entre dos textos —`str` o `view`, en cualquier combinación— `==` compara el
+contenido, como `igual`. Antes era un error con un `str` y, entre dos `view`,
+comparaba en silencio los punteros: eso ya no pasa. Un texto con un número
+sigue siendo un error: `no se pueden comparar `str` y `usize``.
+
+### Llamada con punto
+
+```tcode
+xs.anadir(v);              // anadir(xs, v)
+let n = s.largo();         // largo(s)
+let d = x.suma(4).doble(); // doble(suma(x, 4))
+```
+
+`a.f(b, c)` es `f(a, b, c)`, para cualquier función —las internas, las de
+`std` y las propias— y encadenado. Es solo sintaxis: `f` recibe `a` como
+primer argumento con todo lo que eso implica. Si `f` lo modifica, `a` tiene
+que ser `var`; si lo toma por valor, se mueve. No hay métodos ni búsqueda por
+tipo: si `f` no existe, el error es el de una llamada a `f`. `Forma.Variante(x)`
+de un `enum` sigue siendo lo que era.
+
+### Rangos en `for`
+
+```tcode
+for i en 0..n { ... }            // i = 0, 1, ..., n - 1
+for j en -2..fin { ... }         // con signo: los dos extremos, del mismo tipo
+```
+
+`a..b` va de `a` a `b` sin llegar a `b`, en el tipo entero de los extremos
+(un número escrito toma el del otro, y sin nada que lo decida es `usize`).
+Cada extremo se calcula **una vez**, antes de la primera vuelta y en su
+orden: cambiar dentro del cuerpo lo que dio el final no alarga el bucle. Si
+`a >= b` no da ninguna vuelta. El número es de solo lectura, como el
+elemento de cualquier `for`, y `break` y `continue` son los de siempre. En C
+es el `for` de toda la vida:
+
+```c
+size_t ss_tmp3 = n;
+for (size_t ss_k1 = (size_t)0; ss_k1 < ss_tmp3; ss_k1++)
+{
+    SS_LANG_QUIZA_SIN_USAR size_t i = ss_k1;
+    ...
+}
+```
+
+Un rango solo existe en la cabecera de un `for`: no es un valor que se
+guarde.
+
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: enums con parámetros de tipo, patrones sobre
