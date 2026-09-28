@@ -1,5 +1,6 @@
 """Analisis lexico de Tcode."""
 
+import re
 from dataclasses import dataclass
 
 PALABRAS = {
@@ -105,10 +106,24 @@ def fin_de_cadena(fuente, i, archivo="<entrada>", linea=1, validar=True):
         i += 1
 
 
+_BIDI = re.compile("[\u202a-\u202e\u2066-\u2069]")
+
+
 def tokenizar(fuente: str, archivo: str = "<entrada>",
               con_comentarios: bool = False, linea: int = 1) -> list:
     """`linea` es donde empieza `fuente`: el hueco de una cadena interpolada
     se lee aparte, y sus errores tienen que decir donde esta la cadena."""
+    # Los controles bidireccionales hacen que el codigo se vea distinto de
+    # como se compila ("Trojan Source"): no valen en ningun sitio, tampoco
+    # en una cadena o un comentario.
+    raro = _BIDI.search(fuente)
+    if raro is not None:
+        donde = linea + fuente.count("\n", 0, raro.start())
+        raise ErrorLexico(
+            f"{archivo}:{donde}: control bidireccional "
+            f"U+{ord(raro.group()):04X}: hace que el codigo se vea distinto "
+            f"de como se compila")
+
     toks = []
     i = 0
     inicio_linea = 0

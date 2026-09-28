@@ -1,0 +1,5 @@
+{
+  "origen": "ejemplos/compilador/expresiones.t",
+  "firma": "tcodec: rechaza sin archivo y linea: !! main\tN\texpresion\n!! main\tN\texpresion\ntcodec: no se escribir `main` entera",
+  "mutacion": "insertado '/'"
+}

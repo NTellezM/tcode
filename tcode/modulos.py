@@ -289,6 +289,9 @@ def cargar(ruta_principal, nombres_bonitos=None):
             if "\0" in d.ruta:
                 raise ErrorDeModulo(f"{mostrada}:{d.linea}: la ruta de un "
                                     f"modulo no puede llevar un byte cero")
+            if d.ruta.endswith("/"):
+                raise ErrorDeModulo(f"{mostrada}:{d.linea}: `{d.ruta}` termina "
+                                    f"en `/`, y un modulo es un archivo")
             destino = resolver(d.ruta, os.path.dirname(real))
             cargar_uno(destino, mostrada, d.linea)
             destinos[id(d)] = os.path.realpath(destino)
