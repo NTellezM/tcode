@@ -950,8 +950,10 @@ de la cadena, no en la primera del archivo.
 No hay formato en tiempo de ejecución. Cada hueco se convierte con las
 mismas reglas que `imprimir`, y como el tipo se conoce al compilar, el C que
 sale es una secuencia de `ss_append_view` — no un `printf` con cadena
-variable. Un `{}` sobre una lista o un struct es un error de compilación, no
-un `?` en la salida.
+variable. `imprimir` y los huecos escriben números, `bool` y texto, o un
+préstamo de uno de ellos. Lo demás —una lista, un struct, un enum, una
+función— es un error de compilación que dice qué hacer, no un `?` en la
+salida. Un enum se escribe con un `match` que da el nombre de cada forma.
 
 ## Autoanálisis
 

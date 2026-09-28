@@ -91,17 +91,20 @@ fn main() -> usize ! {
             var retorno = vacio();
             var falible = false;
             for h en d.hijos {
-                if h.clase == Clase.Param {
-                    tipos.anadir(tipo_pelado(h.texto));
-                    var m = nuevo(nombre_solo(h.texto));
-                    m.empujar(": ");
-                    m.empujar(solo_marca(h.texto));
-                    marcas.anadir(m);
+                match h.clase {
+                    Clase.Param -> {
+                        tipos.anadir(tipo_pelado(h.texto));
+                        var m = nuevo(nombre_solo(h.texto));
+                        m.empujar(": ");
+                        m.empujar(solo_marca(h.texto));
+                        marcas.anadir(m);
+                    }
+                    Clase.RetornoTipo -> {
+                        retorno = nuevo(h.texto);
+                    }
+                    Clase.Falible -> { falible = true; }
+                    _ -> { }
                 }
-                if h.clase == Clase.RetornoTipo {
-                    retorno = nuevo(h.texto);
-                }
-                if h.clase == Clase.Falible { falible = true; }
             }
             let firma = G.prototipo(vista(d.texto), tipos, marcas,
                 vista(retorno), falible);

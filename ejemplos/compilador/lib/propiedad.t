@@ -237,110 +237,109 @@ fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
 fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
     let clase = n.clase;
 
-    if clase == Clase.Si && n.hijos.largo() >= 2 {
-        // La condicion siempre se evalua. A partir de ahi, cada rama parte de
-        // la misma foto y solo aporta estado si puede alcanzar la continuacion.
-        mirar(c, n.hijos[0], vs);
-        let antes = fotografiar(vs, n.linea);
+    match clase {
+        Clase.Si -> {
+            if n.hijos.largo() >= 2 {
+                // La condicion siempre se evalua. A partir de ahi, cada rama parte de
+                // la misma foto y solo aporta estado si puede alcanzar la continuacion.
+                mirar(c, n.hijos[0], vs);
+                let antes = fotografiar(vs, n.linea);
 
-        mirar(c, n.hijos[1], vs);
-        let tras_entonces = fotografiar(vs, n.linea);
-        let entonces_sale = termina(n.hijos[1]);
+                mirar(c, n.hijos[1], vs);
+                let tras_entonces = fotografiar(vs, n.linea);
+                let entonces_sale = termina(n.hijos[1]);
 
-        restaurar(vs, antes);
-        var sino_sale = false;
-        if n.hijos.largo() > 2 {
-            mirar(c, n.hijos[2], vs);
-            sino_sale = termina(n.hijos[2]);
+                restaurar(vs, antes);
+                var sino_sale = false;
+                if n.hijos.largo() > 2 {
+                    mirar(c, n.hijos[2], vs);
+                    sino_sale = termina(n.hijos[2]);
+                }
+                let tras_sino = fotografiar(vs, n.linea);
+                unir_ramas(vs, tras_entonces, tras_sino, entonces_sale, sino_sale);
+                return;
+            }
         }
-        let tras_sino = fotografiar(vs, n.linea);
-        unir_ramas(vs, tras_entonces, tras_sino, entonces_sale, sino_sale);
-        return;
-    }
-
-    if clase == Clase.Retorno {
-        // `return x;` entrega `x` entero. Cualquier otra cosa que se
-        // devuelva no entrega una variable, la calcula.
-        if n.hijos.largo() > 0 {
-            let quien = variable_suelta(n.hijos[0]);
-            marcar_entregada(vs, quien, n.linea);
+        Clase.Retorno -> {
+            // `return x;` entrega `x` entero. Cualquier otra cosa que se
+            // devuelva no entrega una variable, la calcula.
+            if n.hijos.largo() > 0 {
+                let quien = variable_suelta(n.hijos[0]);
+                marcar_entregada(vs, quien, n.linea);
+            }
+            for h en n.hijos { mirar(c, h, vs); }
+            return;
         }
-        for h en n.hijos { mirar(c, h, vs); }
-        return;
-    }
-
-    if clase == Clase.Llamada {
-        mirar_llamada(c, n, vs);
-        return;
-    }
-
-    if clase == Clase.LiteralStruct {
-        // Un campo con duenio se queda con lo que le pongan.
-        var i = 0;
-        for h en n.hijos {
-            // Cada hijo es un `campo` con su valor dentro.
-            for x en h.hijos {
-                let quien = variable_suelta(x);
+        Clase.Llamada -> {
+            mirar_llamada(c, n, vs);
+            return;
+        }
+        Clase.LiteralStruct -> {
+            // Un campo con duenio se queda con lo que le pongan.
+            var i = 0;
+            for h en n.hijos {
+                // Cada hijo es un `campo` con su valor dentro.
+                for x en h.hijos {
+                    let quien = variable_suelta(x);
+                    if quien.largo() > 0 {
+                        let t = tipo_vigilado(vs, quien, x.linea);
+                        if tiene_duenio(c, vista(t)) {
+                            // En la linea del valor, no en la del literal: un literal
+                            // de struct suele ocupar varias lineas.
+                            marcar_movida(vs, quien, x.linea);
+                        }
+                    }
+                    mirar(c, x, vs);
+                }
+                i = i + 1;
+            }
+            return;
+        }
+        Clase.EnumLit -> {
+            // Una variante se queda con cada valor con dueño que lleva, igual que
+            // un struct se queda con sus campos. El sitio es el del argumento:
+            // la construcción puede estar repartida en varias líneas.
+            for h en n.hijos {
+                let quien = variable_suelta(h);
                 if quien.largo() > 0 {
-                    let t = tipo_vigilado(vs, quien, x.linea);
+                    let t = tipo_vigilado(vs, quien, h.linea);
                     if tiene_duenio(c, vista(t)) {
-                        // En la linea del valor, no en la del literal: un literal
-                        // de struct suele ocupar varias lineas.
-                        marcar_movida(vs, quien, x.linea);
+                        marcar_movida(vs, quien, h.linea);
                     }
                 }
-                mirar(c, x, vs);
+                mirar(c, h, vs);
             }
-            i = i + 1;
+            return;
         }
-        return;
-    }
-
-    if clase == Clase.EnumLit {
-        // Una variante se queda con cada valor con dueño que lleva, igual que
-        // un struct se queda con sus campos. El sitio es el del argumento:
-        // la construcción puede estar repartida en varias líneas.
-        for h en n.hijos {
-            let quien = variable_suelta(h);
-            if quien.largo() > 0 {
-                let t = tipo_vigilado(vs, quien, h.linea);
-                if tiene_duenio(c, vista(t)) {
-                    marcar_movida(vs, quien, h.linea);
+        Clase.Asignacion -> {
+            // `a = b` con `b` con duenio: `b` pasa a ser de `a`.
+            if n.hijos.largo() > 1 {
+                let quien = variable_suelta(n.hijos[1]);
+                if quien.largo() > 0 {
+                    let t = tipo_vigilado(vs, quien, n.linea);
+                    if tiene_duenio(c, vista(t)) {
+                        marcar_movida(vs, quien, n.linea);
+                    }
                 }
             }
-            mirar(c, h, vs);
+            for h en n.hijos { mirar(c, h, vs); }
+            return;
         }
-        return;
-    }
-
-    if clase == Clase.Asignacion {
-        // `a = b` con `b` con duenio: `b` pasa a ser de `a`.
-        if n.hijos.largo() > 1 {
-            let quien = variable_suelta(n.hijos[1]);
-            if quien.largo() > 0 {
-                let t = tipo_vigilado(vs, quien, n.linea);
-                if tiene_duenio(c, vista(t)) {
-                    marcar_movida(vs, quien, n.linea);
+        Clase.Declaracion -> {
+            // `let a = b` es lo mismo: `b` pasa a ser de `a`.
+            if n.hijos.largo() > 0 {
+                let quien = variable_suelta(n.hijos[0]);
+                if quien.largo() > 0 {
+                    let t = tipo_vigilado(vs, quien, n.linea);
+                    if tiene_duenio(c, vista(t)) {
+                        marcar_movida(vs, quien, n.linea);
+                    }
                 }
             }
+            for h en n.hijos { mirar(c, h, vs); }
+            return;
         }
-        for h en n.hijos { mirar(c, h, vs); }
-        return;
-    }
-
-    if clase == Clase.Declaracion {
-        // `let a = b` es lo mismo: `b` pasa a ser de `a`.
-        if n.hijos.largo() > 0 {
-            let quien = variable_suelta(n.hijos[0]);
-            if quien.largo() > 0 {
-                let t = tipo_vigilado(vs, quien, n.linea);
-                if tiene_duenio(c, vista(t)) {
-                    marcar_movida(vs, quien, n.linea);
-                }
-            }
-        }
-        for h en n.hijos { mirar(c, h, vs); }
-        return;
+        _ -> { }
     }
 
     for h en n.hijos { mirar(c, h, vs); }

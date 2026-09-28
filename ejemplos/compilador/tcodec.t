@@ -328,27 +328,30 @@ fn nombres_declarados(arbol: &P.Nodo) -> lista<str> {
 // un `for` y los que atrapa un `match`.
 fn locales_de(n: &P.Nodo, salida: mut lista<str>) {
     let clase = n.clase;
-    if clase == Clase.Param {
-        var i = 0;
-        while i < n.texto.largo() && byte(n.texto, i) != 58 { i = i + 1; }
-        salida.anadir(nuevo(recortar(rebanar(n.texto, 0, i))));
+    match clase {
+        Clase.Param -> {
+            var i = 0;
+            while i < n.texto.largo() && byte(n.texto, i) != 58 { i = i + 1; }
+            salida.anadir(nuevo(recortar(rebanar(n.texto, 0, i))));
+        }
+        Clase.Declaracion -> {
+            let t = vista(n.texto);
+            var i = 0;
+            while i < t.largo() && byte(t, i) != 32 { i = i + 1; }
+            var j = i + 1;
+            while j < t.largo() && byte(t, j) != 58 { j = j + 1; }
+            if i + 1 <= t.largo() { salida.anadir(nuevo(recortar(rebanar(t, i + 1, j)))); }
+        }
+        Clase.Para -> {
+            let t = vista(n.texto);
+            var i = 0;
+            while i < t.largo() && byte(t, i) != 44 { i = i + 1; }
+            salida.anadir(nuevo(recortar(rebanar(t, 0, i))));
+            if i < t.largo() { salida.anadir(nuevo(recortar(rebanar(t, i + 1, t.largo())))); }
+        }
+        Clase.Atrapa -> { salida.anadir(copiar(n.texto)); }
+        _ -> { }
     }
-    if clase == Clase.Declaracion {
-        let t = vista(n.texto);
-        var i = 0;
-        while i < t.largo() && byte(t, i) != 32 { i = i + 1; }
-        var j = i + 1;
-        while j < t.largo() && byte(t, j) != 58 { j = j + 1; }
-        if i + 1 <= t.largo() { salida.anadir(nuevo(recortar(rebanar(t, i + 1, j)))); }
-    }
-    if clase == Clase.Para {
-        let t = vista(n.texto);
-        var i = 0;
-        while i < t.largo() && byte(t, i) != 44 { i = i + 1; }
-        salida.anadir(nuevo(recortar(rebanar(t, 0, i))));
-        if i < t.largo() { salida.anadir(nuevo(recortar(rebanar(t, i + 1, t.largo())))); }
-    }
-    if clase == Clase.Atrapa { salida.anadir(copiar(n.texto)); }
     for h en n.hijos { locales_de(h, salida); }
 }
 
@@ -357,9 +360,12 @@ fn sin_pedir(n: &P.Nodo, visible: &mapa<str, str>, duenios: &mapa<str, str>,
     locales: &lista<str>) -> str {
     let clase = n.clase;
     var nombre = vacio();
-    if clase == Clase.Llamada { nombre = copiar(n.texto); }
-    if clase == Clase.LiteralStruct { nombre = copiar(n.texto); }
-    if clase == Clase.EnumLit { nombre = I.antes_del_punto(n.texto); }
+    match clase {
+        Clase.Llamada -> { nombre = copiar(n.texto); }
+        Clase.LiteralStruct -> { nombre = copiar(n.texto); }
+        Clase.EnumLit -> { nombre = I.antes_del_punto(n.texto); }
+        _ -> { }
+    }
     if nombre.largo() > 0 {
         let nv = vista(nombre);
         if !tiene(visible, nv) && tiene(duenios, nv) && !C.nombra_interna(nv)
@@ -842,27 +848,34 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
     var bien = true;
     for st en n.hijos {
         let clase = st.clase;
-        if clase == Clase.Declaracion && st.hijos.largo() == 1 {
-            let nombre = G.nombre_declarado(st.texto);
-            var escrito = G.tipo_escrito(st.texto);
-            if escrito.largo() == 0 { escrito = I.tipo_de(tipos, st.hijos[0]); }
-            let t = I.sin_alias_tipo(escrito);
-            if bien { bien = mirar_tipo(t, reg, global, structs); }
-            I.declarar(tipos, nombre, t);
-        }
-        if clase == Clase.Si {
-            var k = 1;
-            while k < st.hijos.largo() {
-                if bien {
-                    bien = mirar_bloque(st.hijos[k], tipos, reg, global, structs);
+        match clase {
+            Clase.Declaracion -> {
+                if st.hijos.largo() == 1 {
+                    let nombre = G.nombre_declarado(st.texto);
+                    var escrito = G.tipo_escrito(st.texto);
+                    if escrito.largo() == 0 { escrito = I.tipo_de(tipos, st.hijos[0]); }
+                    let t = I.sin_alias_tipo(escrito);
+                    if bien { bien = mirar_tipo(t, reg, global, structs); }
+                    I.declarar(tipos, nombre, t);
                 }
-                k = k + 1;
             }
-        }
-        if clase == Clase.Mientras && st.hijos.largo() == 2 {
-            if bien {
-                bien = mirar_bloque(st.hijos[1], tipos, reg, global, structs);
+            Clase.Si -> {
+                var k = 1;
+                while k < st.hijos.largo() {
+                    if bien {
+                        bien = mirar_bloque(st.hijos[k], tipos, reg, global, structs);
+                    }
+                    k = k + 1;
+                }
             }
+            Clase.Mientras -> {
+                if st.hijos.largo() == 2 {
+                    if bien {
+                        bien = mirar_bloque(st.hijos[1], tipos, reg, global, structs);
+                    }
+                }
+            }
+            _ -> { }
         }
     }
     I.cerrar(tipos);
@@ -2531,109 +2544,113 @@ fn main() -> usize ! {
         F.recoger_firmas(arbol, global);
         for d en arbol.hijos {
             let clase = d.clase;
-            if clase == Clase.Usar || clase == Clase.Alias { continue; }
-            if clase == Clase.Fn {
-                if F.es_generica(d) {
-                    poner(plantillas, vista(d.texto), arboles.largo());
+            match clase {
+                Clase.Fn -> {
+                    if F.es_generica(d) {
+                        poner(plantillas, vista(d.texto), arboles.largo());
+                        continue;
+                    }
+                    if d.texto == "main" && !igual(m, principal) {
+                        return rechazo("un `main` en un modulo");
+                    }
                     continue;
                 }
-                if d.texto == "main" && !igual(m, principal) {
-                    return rechazo("un `main` en un modulo");
-                }
-                continue;
-            }
-            if clase == Clase.Struct {
-                if tiene_tipo_param(d) {
-                    if tiene(stp_indice, d.texto) {
-                        return rechazo("un struct generico repetido entre modulos");
+                Clase.Struct -> {
+                    if tiene_tipo_param(d) {
+                        if tiene(stp_indice, d.texto) {
+                            return rechazo("un struct generico repetido entre modulos");
+                        }
+                        var tps: lista<str> = [];
+                        var cs: lista<str> = [];
+                        var ts: lista<str> = [];
+                        for h en d.hijos {
+                            if h.clase == Clase.TipoParam { tps.anadir(nuevo(h.texto)); }
+                            if h.clase == Clase.CampoDef {
+                                cs.anadir(F.nombre_de(h.texto));
+                                let tp = F.tipo_pelado(h.texto);
+                                ts.anadir(I.sin_alias_tipo(tp));
+                            }
+                        }
+                        poner(stp_indice, vista(d.texto), stp_nombres.largo());
+                        stp_nombres.anadir(nuevo(d.texto));
+                        stp_params.anadir(tps);
+                        stp_campos.anadir(cs);
+                        stp_tipos.anadir(ts);
+                        continue;
                     }
-                    var tps: lista<str> = [];
-                    var cs: lista<str> = [];
-                    var ts: lista<str> = [];
+                    if tiene(st_indice, d.texto) {
+                        return rechazo("un struct repetido entre modulos");
+                    }
+                    var campos: lista<str> = [];
+                    var tipos_campo: lista<str> = [];
                     for h en d.hijos {
-                        if h.clase == Clase.TipoParam { tps.anadir(nuevo(h.texto)); }
                         if h.clase == Clase.CampoDef {
-                            cs.anadir(F.nombre_de(h.texto));
                             let tp = F.tipo_pelado(h.texto);
-                            ts.anadir(I.sin_alias_tipo(tp));
+                            let t = I.sin_alias_tipo(tp);
+                            campos.anadir(F.nombre_de(h.texto));
+                            tipos_campo.anadir(t);
                         }
                     }
-                    poner(stp_indice, vista(d.texto), stp_nombres.largo());
-                    stp_nombres.anadir(nuevo(d.texto));
-                    stp_params.anadir(tps);
-                    stp_campos.anadir(cs);
-                    stp_tipos.anadir(ts);
+                    poner(st_indice, vista(d.texto), st_nombres.largo());
+                    st_nombres.anadir(nuevo(d.texto));
+                    st_campos.anadir(campos);
+                    st_tipos.anadir(tipos_campo);
                     continue;
                 }
-                if tiene(st_indice, d.texto) {
-                    return rechazo("un struct repetido entre modulos");
-                }
-                var campos: lista<str> = [];
-                var tipos_campo: lista<str> = [];
-                for h en d.hijos {
-                    if h.clase == Clase.CampoDef {
-                        let tp = F.tipo_pelado(h.texto);
-                        let t = I.sin_alias_tipo(tp);
-                        campos.anadir(F.nombre_de(h.texto));
-                        tipos_campo.anadir(t);
-                    }
-                }
-                poner(st_indice, vista(d.texto), st_nombres.largo());
-                st_nombres.anadir(nuevo(d.texto));
-                st_campos.anadir(campos);
-                st_tipos.anadir(tipos_campo);
-                continue;
-            }
-            if clase == Clase.Externo {
-                for f en d.hijos {
-                    if f.clase != Clase.Fn { continue; }
-                    var ps: lista<str> = [];
-                    var pn: lista<str> = [];
-                    var ret = vacio();
-                    for h en f.hijos {
-                        if h.clase == Clase.Param {
-                            let tp = F.tipo_pelado(h.texto);
-                            ps.anadir(I.sin_alias_tipo(tp));
-                            pn.anadir(F.nombre_de(h.texto));
+                Clase.Externo -> {
+                    for f en d.hijos {
+                        if f.clase != Clase.Fn { continue; }
+                        var ps: lista<str> = [];
+                        var pn: lista<str> = [];
+                        var ret = vacio();
+                        for h en f.hijos {
+                            if h.clase == Clase.Param {
+                                let tp = F.tipo_pelado(h.texto);
+                                ps.anadir(I.sin_alias_tipo(tp));
+                                pn.anadir(F.nombre_de(h.texto));
+                            }
+                            if h.clase == Clase.RetornoTipo {
+                                ret = nuevo(h.texto);
+                            }
                         }
-                        if h.clase == Clase.RetornoTipo {
-                            ret = nuevo(h.texto);
-                        }
+                        ext_cabeceras.anadir(nuevo(d.texto));
+                        ext_modulos.anadir(copiar(m));
+                        ext_protos.anadir(prototipo_externo(f.texto, ps, pn, ret));
                     }
-                    ext_cabeceras.anadir(nuevo(d.texto));
-                    ext_modulos.anadir(copiar(m));
-                    ext_protos.anadir(prototipo_externo(f.texto, ps, pn, ret));
+                    continue;
                 }
-                continue;
-            }
-            if clase == Clase.Enum {
-                if tiene(en_indice, d.texto) || tiene(st_indice, d.texto) {
-                    return rechazo("un enum repetido entre modulos");
-                }
-                var vs: lista<str> = [];
-                var ls: lista<str> = [];
-                for h en d.hijos {
-                    if h.clase != Clase.Variante { continue; }
-                    vs.anadir(nuevo(h.texto));
-                    var junto = vacio();
-                    var primero_t = true;
-                    for x en h.hijos {
-                        if x.clase != Clase.Lleva { continue; }
-                        let t = I.sin_alias_tipo(x.texto);
-                        if T.lleva_bloque_o_arreglo(t) {
-                            return rechazo("bloques o arreglos en un enum");
-                        }
-                        if !primero_t { junto.empujar("\t"); }
-                        primero_t = false;
-                        junto.empujar(t);
+                Clase.Enum -> {
+                    if tiene(en_indice, d.texto) || tiene(st_indice, d.texto) {
+                        return rechazo("un enum repetido entre modulos");
                     }
-                    ls.anadir(junto);
+                    var vs: lista<str> = [];
+                    var ls: lista<str> = [];
+                    for h en d.hijos {
+                        if h.clase != Clase.Variante { continue; }
+                        vs.anadir(nuevo(h.texto));
+                        var junto = vacio();
+                        var primero_t = true;
+                        for x en h.hijos {
+                            if x.clase != Clase.Lleva { continue; }
+                            let t = I.sin_alias_tipo(x.texto);
+                            if T.lleva_bloque_o_arreglo(t) {
+                                return rechazo("bloques o arreglos en un enum");
+                            }
+                            if !primero_t { junto.empujar("\t"); }
+                            primero_t = false;
+                            junto.empujar(t);
+                        }
+                        ls.anadir(junto);
+                    }
+                    poner(en_indice, vista(d.texto), en_nombres.largo());
+                    en_nombres.anadir(nuevo(d.texto));
+                    en_variantes.anadir(vs);
+                    en_lleva.anadir(ls);
+                    continue;
                 }
-                poner(en_indice, vista(d.texto), en_nombres.largo());
-                en_nombres.anadir(nuevo(d.texto));
-                en_variantes.anadir(vs);
-                en_lleva.anadir(ls);
-                continue;
+                _ -> {
+                    if clase == Clase.Usar || clase == Clase.Alias { continue; }
+                }
             }
             return rechazo($"`{nombre_de_clase(clase)}`");
         }

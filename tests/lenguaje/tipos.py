@@ -1,6 +1,7 @@
 """TIPOS: la capa de tipos del comprobador, en Tcode."""
 
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -28,10 +29,10 @@ def correr(suite: Resultado) -> None:
     from tcode.nodos import Funcion as _Funcion
     from tcode.nodos import Struct as _Struct
 
-    def _tipos_python(ruta, structs_previos):
+    def _tipos_python(ruta, structs_previos, enums):
         from tcode.parser import parsear as _parsear
         arbol = _parsear(open(ruta, encoding="utf-8").read(), ruta,
-                         set(structs_previos))
+                         set(structs_previos), set(enums))
         c = _Comprobador(ruta)
         for d in arbol:
             if isinstance(d, _Struct):
@@ -69,12 +70,19 @@ def correr(suite: Resultado) -> None:
                 suite.falla("la capa de tipos en Tcode compila", r.stderr[:600])
             else:
                 archivos = corpus_python()
+                # Los enums de todo el corpus: `Clase.Retorno ->` es el brazo
+                # de un enum que trae otro modulo.
+                enums: set[str] = set()
+                for a in archivos:
+                    with open(a, encoding="utf-8") as f:
+                        enums.update(re.findall(r"\benum\s+(\w+)", f.read()))
                 previos: set[str] = set()
                 for a in archivos:
                     from tcode.parser import parsear as _p
                     try:
                         previos |= {d.nombre for d in
-                                    _p(open(a, encoding="utf-8").read(), a, previos)
+                                    _p(open(a, encoding="utf-8").read(), a, previos,
+                                       enums)
                                     if isinstance(d, _Struct)}
                     except Exception:
                         pass
@@ -82,7 +90,7 @@ def correr(suite: Resultado) -> None:
                 for archivo in archivos:
                     suite.total += 1
                     try:
-                        esperado = _tipos_python(archivo, previos)
+                        esperado = _tipos_python(archivo, previos, enums)
                     except Exception:
                         continue        # lo que el parser de Python no lee, no cuenta
                     e = subprocess.run([binario, archivo], capture_output=True,
@@ -103,6 +111,13 @@ def correr(suite: Resultado) -> None:
                         continue
                     comparados += 1
                     tipos_vistos += len(salida)
+                # Un archivo que el parser de Python no lee se salta sin decir
+                # nada; que se salten de mas lo dice este minimo.
+                if comparados < 50:
+                    suite.total += 1
+                    suite.falla("la capa de tipos en Tcode",
+                                f"solo {comparados} archivos comparados, se esperaban "
+                                f"al menos 50")
                 suite.cifra("tipos_archivos", comparados)
                 suite.cifra("tipos", tipos_vistos)
                 print(f"    {comparados} archivos, {tipos_vistos} tipos, "

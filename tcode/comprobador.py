@@ -180,6 +180,14 @@ def sin_prestamo(t):
     return apuntado(t) if es_referencia(t) else t
 
 
+def se_muestra(t):
+    """Lo que `imprimir` y `{}` saben escribir: numeros, `bool` y texto, o un
+    prestamo de uno de ellos."""
+    t = sin_prestamo(t)
+    return (t in ENTEROS or t in DECIMALES
+            or t in (LITERAL, LITERAL_DECIMAL, "bool", "str", "view"))
+
+
 # Tipos que no son duenios de nada: se copian al leerlos, sin quitarle
 # memoria a nadie. Son los unicos que se pueden sacar de un prestamo.
 COPIABLES = NUMERICOS | {"bool", "view", LITERAL, LITERAL_DECIMAL, UNIDAD}
@@ -931,6 +939,16 @@ class Comprobador:
             return (f"`==` no compara `{t}`, que tiene partes: compara las "
                     f"que te importen")
         return ""
+
+    def _como_mostrar(self, t):
+        """Que hacer con un valor que `imprimir` no sabe escribir."""
+        t = sin_prestamo(t)
+        if t in self.enums:
+            return "escribe el nombre de cada forma con un `match`"
+        if (t in self.structs or es_lista(t) or es_mapa(t) or es_arreglo(t)
+                or es_bloque(t)):
+            return "muestra sus campos o elementos por separado"
+        return "muestra un numero, un `bool` o un texto"
 
     def es_compuesto(self, t):
         """Tiene partes: se puede leer un campo o modificarlo en el sitio.
@@ -2769,9 +2787,11 @@ class Comprobador:
                 t = self.expresion(x)
                 if t is None:
                     continue
-                if es_arreglo(t) or es_lista(t) or es_mapa(t) or t in self.structs:
+                if not se_muestra(t):
+                    pista = (f": {self._como_mostrar(t)}"
+                             if sin_prestamo(t) in self.enums else "")
                     self.error(e, f"dentro de `{{}}` va un escalar o texto, y "
-                                  f"`{t}` no lo es")
+                                  f"`{t}` no lo es{pista}")
             return "str"
 
         if isinstance(e, Variable):
@@ -4136,9 +4156,9 @@ class Comprobador:
             # `let` que no decia nada: `imprimir(marco("x"))` es lo natural.
 
             if (esperado == "@cualquiera" and t is not None
-                    and (es_arreglo(t) or t in self.structs)):
-                self.error(e, f"`{nombre}` no sabe mostrar un `{t}`: muestra "
-                              f"sus campos o elementos por separado")
+                    and not se_muestra(t)):
+                self.error(e, f"`{nombre}` no sabe mostrar un `{t}`: "
+                              f"{self._como_mostrar(t)}")
             if esperado == "view":
                 # Todos los duenios posibles, no el primero: con
                 # `if c { vista(a) } else { vista(b) }` puede ser cualquiera.
