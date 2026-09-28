@@ -583,6 +583,15 @@ class Generador:
                     self._mirar_cuerpo(s.sino, mirar)
             elif isinstance(s, Mientras):
                 self._mirar_cuerpo(s.cuerpo, mirar)
+            # Lo que se declara dentro de un `for` o de un brazo de `match`
+            # tambien pide sus listas: sin esto, `let xs: lista<usize>` en
+            # un brazo se usaba en el C y nadie la declaraba.
+            elif isinstance(s, Para):
+                self._mirar_cuerpo(s.cuerpo, mirar)
+            elif isinstance(s, ExprSentencia) and isinstance(s.expr, Match):
+                for b in s.expr.brazos:
+                    if not b.es_expresion:
+                        self._mirar_cuerpo(b.cuerpo, mirar)
 
     def cuerpo_enum(self, en):
         self.lineas.append(f"struct {en.nombre}")
