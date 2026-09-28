@@ -17,9 +17,9 @@ struct Vector<T> {
     largo: usize,
 }
 
-fn cuantos<T>(v: &Vector < T >) -> usize { return v.largo; }
+fn cuantos<T>(v: &Vector<T>) -> usize { return v.largo; }
 
-fn capacidad<T>(v: &Vector < T >) -> usize { return largo(v.datos); }
+fn capacidad<T>(v: &Vector<T>) -> usize { return largo(v.datos); }
 
 fn agregar<T>(v: mut Vector < T >, x: T) {
     if v.largo == largo(v.datos) {
@@ -38,9 +38,20 @@ fn sacar<T>(v: mut Vector < T >, vacio_del_tipo: T) -> T ! {
     return intercambiar(v.datos[v.largo], vacio_del_tipo);
 }
 
-fn copia_de<T>(v: &Vector < T >, i: usize) -> T ! {
+fn copia_de<T>(v: &Vector<T>, i: usize) -> T ! {
     if i >= v.largo { falla "esa posicion no existe en el vector"; }
     return copiar(v.datos[i]);
+}
+
+// Una lista independiente con los elementos vivos, no con toda la capacidad.
+fn a_lista<T>(v: &Vector<T>) -> lista<T> {
+    var salida: lista<T> = [];
+    var i = 0;
+    while i < v.largo {
+        anadir(salida, copiar(v.datos[i]));
+        i = i + 1;
+    }
+    return salida;
 }
 
 // Le sobra memoria si se le quito mucho: la devuelve.

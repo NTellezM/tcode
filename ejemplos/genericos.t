@@ -8,7 +8,7 @@ usar "std/par";
 
 struct Caja<T> { dentro: T, cuantas: usize }
 
-fn contar(c: &Caja < str >) -> usize { return c.cuantas + largo(c.dentro); }
+fn contar(c: &Caja<str>) -> usize { return c.cuantas + largo(c.dentro); }
 
 fn meter(xs: mut lista<Caja<usize>>, n: usize) {
     anadir(xs, Caja { dentro: n, cuantas: 1 });

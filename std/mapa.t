@@ -30,11 +30,30 @@ fn claves_ordenadas<V>(m: &mapa<str, V>) -> lista<str> {
     return ks;
 }
 
+// Los valores en orden de clave, para que el resultado no dependa del orden
+// interno de la tabla. Se copian porque la lista resultante es su duenio.
+fn valores_ordenados<V>(m: &mapa<str, V>) -> lista<V> ! {
+    var salida: lista<V> = [];
+    for k en claves_ordenadas(m) {
+        let v = try obtener(m, vista(k));
+        anadir(salida, copiar(v));
+    }
+    return salida;
+}
+
+// Mete todo lo de `otro`, reemplazando las claves que ya estaban.
+fn actualizar<V>(destino: mut mapa<str, V>, otro: &mapa<str, V>) ! {
+    for k en claves(otro) {
+        let v = try obtener(otro, vista(k));
+        poner(destino, vista(k), copiar(v));
+    }
+}
+
 // Mete en `destino` todo lo de `otro`. Lo que ya estaba se queda.
-fn completar<V>(destino: mut mapa<str, V>, otro: &mapa<str, V>) {
+fn completar<V>(destino: mut mapa<str, V>, otro: &mapa<str, V>) ! {
     for k en claves(otro) {
         if !tiene(destino, vista(k)) {
-            let v = obtener(otro, vista(k)) sino copiar(destino[k]);
+            let v = try obtener(otro, vista(k));
             poner(destino, vista(k), copiar(v));
         }
     }

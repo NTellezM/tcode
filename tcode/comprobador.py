@@ -1855,6 +1855,12 @@ class Comprobador:
         if isinstance(ultima, Si) and ultima.sino is not None:
             return (self._siempre_sale(ultima.entonces)
                     and self._siempre_sale(ultima.sino))
+        if (isinstance(ultima, ExprSentencia)
+                and isinstance(ultima.expr, Match)):
+            return (bool(ultima.expr.brazos)
+                    and all(not b.es_expresion
+                            and self._siempre_sale(b.cuerpo)
+                            for b in ultima.expr.brazos))
         return False
 
     def bloque(self, sentencias):
@@ -4239,6 +4245,8 @@ INTERNAS: dict[str, dict[str, Any]] = {
     "n_argumentos": {"params": [],                    "retorno": "usize"},
     "argumento":    {"params": ["usize"],             "retorno": "view"},
     "leer_archivo": {"params": ["view"], "retorno": "str", "falible": True},
+    "leer_parte_archivo": {"params": ["view", "usize", "usize"],
+                           "retorno": "str", "falible": True},
     "escribir_archivo": {"params": ["view", "view"], "retorno": UNIDAD,
                          "falible": True},
     "imprimir_error": {"params": ["@cualquiera"],     "retorno": UNIDAD},

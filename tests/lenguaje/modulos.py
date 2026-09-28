@@ -91,6 +91,25 @@ MODULOS = [
                '    return 0;\n}'},
      "a.t", None, "7 9\n"),
 
+    ("un enum que llega con nombre de modulo",
+     {"tipos.t": 'enum Interior { Nada, Numero(usize) }\n'
+                   'enum Exterior { Vacio, Dentro(Interior) }\n'
+                   'fn hacer(n: usize) -> Exterior {'
+                   ' return Exterior.Dentro(Interior.Numero(n)); }',
+      "a.t": 'usar "tipos.t" como t;\n'
+               'fn leer(e: &t.Exterior) -> usize { return match e {\n'
+               '    t.Exterior.Vacio -> 0,\n'
+               '    t.Exterior.Dentro(t.Interior.Nada) -> 1,\n'
+               '    t.Exterior.Dentro(t.Interior.Numero(n)) -> n,\n'
+               '    t.Exterior.Dentro(_) -> 2,\n'
+               '}; }\n'
+               'fn main() {\n'
+               '    let a: t.Exterior = t.Exterior.Vacio;\n'
+               '    let b = t.hacer(7);\n'
+               '    imprimir($"{leer(a)} {leer(b)}\\n");\n'
+               '}'},
+     "a.t", None, "0 7\n"),
+
     ("un error dentro de un modulo dice de que archivo es",
      {"roto.t": 'fn r() { let a: usize = 1; let b: i64 = 2;'
                   ' let c: usize = a + b; }',

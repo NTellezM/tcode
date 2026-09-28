@@ -1,7 +1,6 @@
 """TIPOS: la capa de tipos del comprobador, en Tcode."""
 
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -74,8 +73,13 @@ def correr(suite: Resultado) -> None:
                 # de un enum que trae otro modulo.
                 enums: set[str] = set()
                 for a in archivos:
+                    from tcode.lexer import tokenizar as _tokenizar
                     with open(a, encoding="utf-8") as f:
-                        enums.update(re.findall(r"\benum\s+(\w+)", f.read()))
+                        toks = _tokenizar(f.read(), a)
+                    enums.update(toks[i + 1].valor
+                                 for i, t in enumerate(toks[:-1])
+                                 if t.tipo == "palabra" and t.valor == "enum"
+                                 and toks[i + 1].tipo == "ident")
                 previos: set[str] = set()
                 for a in archivos:
                     from tcode.parser import parsear as _p
@@ -113,11 +117,11 @@ def correr(suite: Resultado) -> None:
                     tipos_vistos += len(salida)
                 # Un archivo que el parser de Python no lee se salta sin decir
                 # nada; que se salten de mas lo dice este minimo.
-                if comparados < 50:
+                if comparados < 52:
                     suite.total += 1
                     suite.falla("la capa de tipos en Tcode",
                                 f"solo {comparados} archivos comparados, se esperaban "
-                                f"al menos 50")
+                                f"al menos 52")
                 suite.cifra("tipos_archivos", comparados)
                 suite.cifra("tipos", tipos_vistos)
                 print(f"    {comparados} archivos, {tipos_vistos} tipos, "

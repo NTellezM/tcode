@@ -7,6 +7,8 @@
 //     ./firmas std/texto.t
 
 usar "lib/generar.t" como G;
+usar "lib/programa.t" como F;
+usar "lib/tipar.t" como I;
 usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
@@ -73,16 +75,8 @@ fn main() -> usize ! {
         return 1;
     }
 
-    let fuente = try leer_archivo(argumento(1));
-    let tokens = try analizar(fuente);
-    let nombres = P.structs_visibles(argumento(1), tokens);
-    let formas = P.enums_visibles(argumento(1), tokens);
-    var estado = P.estado_de(tokens, argumento(1), nombres, formas);
-    var arbol = try P.programa(estado);
-    // Lo que chocaria con C, renombrado como lo hace el cargador.
-    var intocables: lista<str> = [nuevo("main")];
-    G.externas_de(arbol, intocables);
-    G.renombrar_para_c(arbol, G.nombres_de_c(), intocables);
+    var contexto = I.contexto();
+    let arbol = try F.preparar(argumento(1), contexto);
 
     for d en arbol.hijos {
         if d.clase == Clase.Fn && !es_generica(d) {
@@ -106,7 +100,11 @@ fn main() -> usize ! {
                     _ -> { }
                 }
             }
-            let firma = G.prototipo(vista(d.texto), tipos, marcas,
+            var nombre_c = copiar(d.texto);
+            if tiene(contexto.renombradas, d.texto) {
+                nombre_c = nuevo(obtener(contexto.renombradas, d.texto) sino "");
+            }
+            let firma = G.prototipo(vista(nombre_c), tipos, marcas,
                 vista(retorno), falible);
             imprimir($"{firma}\n");
         }

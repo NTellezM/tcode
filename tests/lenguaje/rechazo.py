@@ -237,6 +237,12 @@ RECHAZO = [
      ' fn main() { }',
      "lleva 0 valores, y el patron atrapa 1"),
 
+    ("cada alternativa declara sus propios nombres",
+     'enum E { A(usize), B(usize) } '
+     'fn f(e: &E) -> usize { return match e { E.A(n) | E.B(m) -> n, }; }'
+     ' fn main() { }',
+     "`n` no esta declarada"),
+
     ("construir una forma pide el tipo que lleva",
      'enum E { A, B(usize), C(str) } '
      'fn f() -> E { return E.B(nuevo("x")); } fn main() { }',

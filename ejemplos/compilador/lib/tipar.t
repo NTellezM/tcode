@@ -150,7 +150,7 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
             return vacio();
         }
         // `Color.Rojo` es un `Color`.
-        Clase.EnumLit -> { return antes_del_punto(n.texto); }
+        Clase.EnumLit -> { return sin_modulo(antes_del_punto(n.texto)); }
         // Un `match` vale lo que valgan sus brazos, y eso lo dijo el comprobador.
         // Sin lo que dijo, basta con el primer brazo que de algo que se sepa
         // tipar: todos dan lo mismo. Uno que de lo atrapado no se sabe desde
@@ -451,6 +451,7 @@ fn tipo_fijo(nombre: view) -> str {
     if nombre == "vista" || nombre == "rebanar" { return nuevo("view"); }
     if nombre == "argumento" { return nuevo("view"); }
     if nombre == "leer_archivo" { return nuevo("str"); }
+    if nombre == "leer_parte_archivo" { return nuevo("str"); }
     // Las que hablan con el sistema. Las tres que devuelven memoria dan un
     // `str` de Tcode, no un prestamo: por eso son internas y no `externo`.
     if nombre == "leer_linea" { return nuevo("str"); }
@@ -516,23 +517,23 @@ fn posee_con_formas(c: &Contexto, t: view) -> bool {
     return posee_simple(c, t);
 }
 
-// `Color.Rojo` -> `Color`.
+// `Color.Rojo` -> `Color`; `m.Color.Rojo` -> `m.Color`.
 fn antes_del_punto(t: view) -> str {
-    var i = 0;
-    while i < t.largo() {
+    var i = t.largo();
+    while i > 0 {
+        i = i - 1;
         if byte(t, i) == 46 { return nuevo(rebanar(t, 0, i)); }
-        i = i + 1;
     }
     return nuevo(t);
 }
 
 fn tras_el_punto(t: view) -> str {
-    var i = 0;
-    while i < t.largo() {
+    var i = t.largo();
+    while i > 0 {
+        i = i - 1;
         if byte(t, i) == 46 {
             return nuevo(rebanar(t, i + 1, t.largo()));
         }
-        i = i + 1;
     }
     return vacio();
 }

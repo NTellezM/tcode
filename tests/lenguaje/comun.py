@@ -115,6 +115,18 @@ def nombre_estable(ruta):
     return os.path.relpath(completa, RAIZ)
 
 
+def structs_escritos(comp):
+    """Nombres de struct que el parser puede encontrar en el archivo raiz.
+
+    El cargador ya resolvio los imports y especializo genericas: una
+    `Vector<str>` puede figurar internamente como `Vector__str`. Para volver a
+    parsear el fuente crudo hacen falta tanto ese nombre como `Vector`.
+    """
+    nombres = set(comp.structs)
+    nombres.update(n.split("__", 1)[0] for n in comp.structs if "__" in n)
+    return nombres
+
+
 def c_de_tcodec(ruta):
     """El C de un `.t` del repositorio escrito por `tcodec`, y sus errores,
     como `compilar_archivo`. Es como se construyen las herramientas escritas

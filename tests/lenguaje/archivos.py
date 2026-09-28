@@ -35,6 +35,48 @@ def correr(suite: Resultado) -> None:
             elif "runtime error" in err or "AddressSanitizer" in err:
                 suite.falla("leer un archivo completo", f"sanitizer se quejo:\n{err}")
 
+        # Lectura acotada: posiciones, fin normal y el cero binario sobreviven.
+        suite.total += 1
+        fuente = f'''usar "std/archivo";
+    fn mostrar(v: view) {{ imprimir($"{{largo(v)}}:{{byte(v, 0)}} "); }}
+    fn main() -> usize ! {{
+        let a = try leer_parte_archivo("{ruta}", 0, 3);
+        let b = try leer_parte_archivo("{ruta}", 3, 3);
+        let c = try leer_parte_archivo("{ruta}", 6, 9);
+        let fin = try leer_parte_archivo("{ruta}", 8, 2);
+        imprimir($"{{a}} {{largo(b)}} {{byte(b, 1)}} {{c}} {{largo(fin)}}\\n");
+        try por_partes("{ruta}", 3, mostrar);
+        let partes = try partes_de_archivo("{ruta}", 3);
+        imprimir($"\\n{{largo(partes)}} {{largo(partes[2])}}\\n");
+        return 0;
+    }}'''
+        try:
+            rc, out, err = compilar_y_correr(fuente, tmp)
+        except AssertionError as exc:
+            suite.falla("leer un archivo por partes", str(exc))
+        else:
+            esperado = "uno 3 0 os 0\n3:117 3:10 2:111 \n3 2\n"
+            if rc != 0 or out != esperado:
+                suite.falla("leer un archivo por partes",
+                            f"codigo {rc}, salida {out!r}, stderr {err!r}")
+            elif "runtime error" in err or "AddressSanitizer" in err:
+                suite.falla("leer un archivo por partes", f"sanitizer se quejo:\n{err}")
+
+        # Un tamaño cero fallaría sin avanzar nunca; se rechaza como dato.
+        suite.total += 1
+        fuente = f'''fn main() -> usize ! {{
+        let _x = try leer_parte_archivo("{ruta}", 0, 0);
+        return 0;
+    }}'''
+        try:
+            rc, out, err = compilar_y_correr(fuente, tmp)
+        except AssertionError as exc:
+            suite.falla("leer una parte de tamaño cero", str(exc))
+        else:
+            if rc == 0 or "mayor que cero" not in err:
+                suite.falla("leer una parte de tamaño cero",
+                            f"codigo {rc}, salida {out!r}, stderr {err!r}")
+
         # Ida y vuelta: escribir con bytes cero dentro y volver a leerlo.
         suite.total += 1
         salida = os.path.join(tmp, "salida.bin")
