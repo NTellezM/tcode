@@ -1924,6 +1924,12 @@ struct Json
 };
 ```
 
+`==` y `!=` comparan un enum **sin datos** por su etiqueta:
+`n.clase == Clase.Para`. Uno en el que alguna forma lleva algo no se compara
+así —habría que decidir qué es ser iguales—, y se mira con `match`. Lo mismo
+vale para un struct, una lista, un mapa o un arreglo: `==` no compara lo que
+tiene partes.
+
 El `match` baja a un `switch` sobre `etiqueta`. La liberación y `copiar`
 salen generadas, cada una con su propio `switch`: se suelta o se duplica lo
 que lleve la forma que sea, y las que no llevan nada ni aparecen.

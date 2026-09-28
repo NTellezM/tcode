@@ -21,6 +21,7 @@ usar "tipos.t" como T;
 usar "../../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
 usar "std/lista";
+usar "../../lexer/lib/clase.t";
 
 struct Hecho {
     funcion: str,
@@ -92,8 +93,8 @@ fn tiene_duenio(c: &I.Contexto, t: view) -> bool {
 // El nombre de la variable si la expresion es exactamente una variable.
 // Mover es entregar la variable entera: `f(x)` la mueve, `f(x.campo)` no.
 fn variable_suelta(n: &P.Nodo) -> str {
-    if n.clase == "variable" { return nuevo(n.texto); }
-    if n.clase == "expresion" {
+    if n.clase == Clase.Variable { return nuevo(n.texto); }
+    if n.clase == Clase.Expresion {
         if n.hijos.largo() == 1 { return variable_suelta(n.hijos[0]); }
     }
     return vacio();
@@ -167,12 +168,12 @@ fn restaurar(vs: mut lista<Vigilada>, f: &Foto) {
 // codigo posterior. Es la misma definicion directa que usa el comprobador de
 // Python al juntar las dos ramas de un `if`.
 fn termina(n: &P.Nodo) -> bool {
-    if n.clase != "bloque" || n.hijos.largo() == 0 {
+    if n.clase != Clase.Bloque || n.hijos.largo() == 0 {
         return false;
     }
-    let clase = vista(n.hijos[n.hijos.largo() - 1].clase);
-    return clase == "retorno" || clase == "falla"
-    || clase == "romper" || clase == "continuar";
+    let clase = n.hijos[n.hijos.largo() - 1].clase;
+    return clase == Clase.Retorno || clase == Clase.Falla
+    || clase == Clase.Romper || clase == Clase.Continuar;
 }
 
 fn unir_ramas(vs: mut lista<Vigilada>, a: &Foto, b: &Foto,
@@ -234,9 +235,9 @@ fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
 // ------------------------------------------------------------------
 
 fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
-    let clase = vista(n.clase);
+    let clase = n.clase;
 
-    if clase == "si" && n.hijos.largo() >= 2 {
+    if clase == Clase.Si && n.hijos.largo() >= 2 {
         // La condicion siempre se evalua. A partir de ahi, cada rama parte de
         // la misma foto y solo aporta estado si puede alcanzar la continuacion.
         mirar(c, n.hijos[0], vs);
@@ -257,7 +258,7 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
         return;
     }
 
-    if clase == "retorno" {
+    if clase == Clase.Retorno {
         // `return x;` entrega `x` entero. Cualquier otra cosa que se
         // devuelva no entrega una variable, la calcula.
         if n.hijos.largo() > 0 {
@@ -268,12 +269,12 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
         return;
     }
 
-    if clase == "llamada" {
+    if clase == Clase.Llamada {
         mirar_llamada(c, n, vs);
         return;
     }
 
-    if clase == "literal_struct" {
+    if clase == Clase.LiteralStruct {
         // Un campo con duenio se queda con lo que le pongan.
         var i = 0;
         for h en n.hijos {
@@ -295,7 +296,7 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
         return;
     }
 
-    if clase == "enum_lit" {
+    if clase == Clase.EnumLit {
         // Una variante se queda con cada valor con dueño que lleva, igual que
         // un struct se queda con sus campos. El sitio es el del argumento:
         // la construcción puede estar repartida en varias líneas.
@@ -312,7 +313,7 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
         return;
     }
 
-    if clase == "asignacion" {
+    if clase == Clase.Asignacion {
         // `a = b` con `b` con duenio: `b` pasa a ser de `a`.
         if n.hijos.largo() > 1 {
             let quien = variable_suelta(n.hijos[1]);
@@ -327,7 +328,7 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
         return;
     }
 
-    if clase == "declaracion" {
+    if clase == Clase.Declaracion {
         // `let a = b` es lo mismo: `b` pasa a ser de `a`.
         if n.hijos.largo() > 0 {
             let quien = variable_suelta(n.hijos[0]);

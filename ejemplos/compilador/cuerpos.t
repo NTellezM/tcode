@@ -13,6 +13,7 @@ usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
 usar "std/lista";
+usar "../lexer/lib/clase.t";
 
 fn main() -> usize ! {
     if n_argumentos() < 2 {
@@ -24,7 +25,7 @@ fn main() -> usize ! {
     var tipos = I.contexto();
     let arbol = try F.preparar(ruta, tipos);
     for d en arbol.hijos {
-        if d.clase == "fn" && !F.es_generica(d)
+        if d.clase == Clase.Fn && !F.es_generica(d)
         && d.texto != "main" {
             // Cada funcion de cero: el oraculo renumera los contadores.
             var cta = F.cuenta_nueva();
