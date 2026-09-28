@@ -41,20 +41,15 @@ fn tipo_pelado(marcado: view) -> str {
     if empieza_con(t, "mut ") {
         return nuevo(rebanar(t, 4, t.largo()));
     }
-    if empieza_con(t, "&mut ") {
-        return nuevo(rebanar(t, 5, t.largo()));
-    }
-    if empieza_con(t, "&") {
-        return nuevo(rebanar(t, 1, t.largo()));
-    }
+    if T.es_referencia(t) { return nuevo(T.apuntado(t)); }
     return t;
 }
 
 fn marca_de(marcado: view) -> str {
     let t = tras_dos_puntos(marcado);
     if empieza_con(t, "mut ") { return nuevo("mut "); }
-    if empieza_con(t, "&mut ") { return nuevo("&mut "); }
-    if empieza_con(t, "&") { return nuevo("&"); }
+    if T.es_referencia_mutable(t) { return nuevo("&mut "); }
+    if T.es_referencia(t) { return nuevo("&"); }
     return vacio();
 }
 
@@ -743,9 +738,9 @@ fn declarar_de_para(st: &P.Nodo, tipos: mut I.Contexto) {
     let uno = G.primer_nombre(st.texto);
     let dos = G.segundo_nombre(st.texto);
     if T.es_rango(sobre) {
-        I.declarar(tipos, uno, T.entre_angulos(sobre));
+        I.declarar(tipos, uno, T.elemento(sobre));
     } else if T.es_mapa(sobre) {
-        let partes = T.partir_tipos(T.entre_angulos(sobre));
+        let partes = T.partes(sobre);
         if partes.largo() == 2 {
             I.declarar(tipos, uno, partes[0]);
             if dos.largo() > 0 { I.declarar(tipos, dos, partes[1]); }
