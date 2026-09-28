@@ -16,7 +16,7 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc fuzz
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc punto-fijo-cc fuzz
 
 all: tcodec
 
@@ -57,7 +57,9 @@ semilla: tcodec
 # `COMPILADORES`, no solo con el `cc` de la maquina. Cada uno se pone como
 # `cc` delante del PATH —asi lo usan tcodec y todas las secciones de la
 # suite— y con su propia cache. Con cada uno: la semilla compila sin un solo
-# aviso, reproduce su C byte a byte, y pasan las secciones rapidas.
+# aviso; el tcodec de ahora, construido desde ella, tambien, y compilado con
+# este compilador vuelve a escribir su propio C byte a byte; y pasan las
+# secciones rapidas.
 COMPILADORES ?= gcc clang
 
 compiladores:
@@ -69,15 +71,22 @@ compiladores:
 	        $(MAKE) -s --no-print-directory con-un-cc CC=cc || exit 1; \
 	done
 
-con-un-cc:
-	@mkdir -p .cache
-	@cc -std=c17 -O1 -Wall -Wextra -Werror -Iruntime $(SEMILLA) $(RUNTIME_C) \
-	    $(SISTEMA) -o .cache/tcodec-cc -lm
-	@TCODE_RAIZ=. ./.cache/tcodec-cc ejemplos/compilador/tcodec.t --mostrar-c \
-	    | cmp -s - $(SEMILLA) \
-	    || { echo "la semilla no reproduce su C con este compilador"; exit 1; }
-	@echo "    semilla sin avisos, y reproduce su C byte a byte"
+CC_ESTRICTO = cc -std=c17 -O1 -Wall -Wextra -Werror -Iruntime
+
+con-un-cc: punto-fijo-cc
 	@$(PY) tests/test_lenguaje.py $(RAPIDAS)
+
+# Sin la suite: lo que se puede comprobar con solo un compilador de C.
+punto-fijo-cc:
+	@mkdir -p .cache
+	@$(CC_ESTRICTO) $(SEMILLA) $(RUNTIME_C) $(SISTEMA) -o .cache/cc-etapa0 -lm
+	@TCODE_RAIZ=. ./.cache/cc-etapa0 ejemplos/compilador/tcodec.t --mostrar-c \
+	    > .cache/cc-etapa1.c
+	@$(CC_ESTRICTO) .cache/cc-etapa1.c $(RUNTIME_C) $(SISTEMA) -o .cache/cc-etapa1 -lm
+	@TCODE_RAIZ=. ./.cache/cc-etapa1 ejemplos/compilador/tcodec.t --mostrar-c \
+	    | cmp -s - .cache/cc-etapa1.c \
+	    || { echo "tcodec no reproduce su C con este compilador"; exit 1; }
+	@echo "    sin avisos, y tcodec reproduce su C byte a byte"
 
 # Fuzzing sobre los `.t` del repositorio: cada fallo se reduce y se guarda
 # en `tests/fuzz/hallazgos/`. `make check` repite los guardados.

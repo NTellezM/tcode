@@ -93,20 +93,15 @@ jobs:
       - name: ${{ matrix.cc }}
         run: make compiladores COMPILADORES=${{ matrix.cc }}
 
-  # Otro sistema: en macOS, con el clang de Apple, la semilla construye
-  # tcodec, se reproduce byte a byte, y los ejemplos compilan y corren.
+  # Otro sistema: en macOS, con el clang de Apple, todo compila sin avisos,
+  # tcodec reproduce su C byte a byte, y los ejemplos compilan y corren.
   macos:
     runs-on: macos-14
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: semilla sin avisos y punto fijo
-        run: |
-          cc -std=c17 -O1 -Wall -Wextra -Werror -Iruntime bootstrap/tcodec.c \
-              runtime/safestr.c ejemplos/compilador/lib/sistema_tcodec.c \
-              -o tcodec0 -lm
-          TCODE_RAIZ=. ./tcodec0 ejemplos/compilador/tcodec.t --mostrar-c \
-              | cmp - bootstrap/tcodec.c
+      - name: sin avisos, y punto fijo
+        run: make punto-fijo-cc
       - name: tcodec desde su semilla, y los ejemplos
         run: make tcodec && make ejemplos
 
