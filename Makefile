@@ -12,6 +12,9 @@
 #   make formato      deja todo el codigo Tcode en el formato canonico
 #   make lint         revisa el codigo Python con ruff y mypy
 #   make compiladores la semilla, el punto fijo y `rapido` con cada compilador de C
+#   make paquete      dist/tcode-VERSION.tar.gz, reproducible (arbol limpio)
+#   make probar-paquete  y desde el, sin Python, tcodec y un programa
+#   make version NUEVA=x.y.z  la version en todos sus sitios, y la semilla
 #   make ddc          la semilla y Python construyen el mismo tcodec
 #   make fuzz         rompe el codigo del repositorio al azar (FUZZ_SEGUNDOS=60)
 #   make limpiar      borra lo que genera todo lo anterior
@@ -20,7 +23,7 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar instalar desinstalar ddc
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar instalar desinstalar ddc paquete probar-paquete version
 
 all: tcodec
 
@@ -95,6 +98,25 @@ punto-fijo-cc:
 # Fuzzing sobre los `.t` del repositorio: cada fallo se reduce y se guarda
 # en `tests/fuzz/hallazgos/`. `make check` repite los guardados.
 FUZZ_SEGUNDOS ?= 60
+
+# Una version: ver `docs/VERSIONES.md`.
+paquete:
+	@$(PY) tests/paquete.py
+
+probar-paquete:
+	@$(PY) tests/paquete.py --probar
+
+# La version vive en tres sitios, y la suite (SALIDA) exige que digan lo
+# mismo: `VERSION`, lo que imprime `tcodec --version` y el compilador de
+# Python. Cambiarla cambia el C de tcodec, asi que la semilla se pone al dia.
+version:
+	@test -n "$(NUEVA)" || { echo "uso: make version NUEVA=1.0.0"; exit 1; }
+	@echo "$(NUEVA)" > VERSION
+	@sed -i 's/imprimir("tcodec [^"]*\\n");/imprimir("tcodec $(NUEVA)\\n");/' \
+	    ejemplos/compilador/tcodec.t
+	@sed -i 's/^VERSION = "[^"]*"$$/VERSION = "$(NUEVA)"/' tcode/cli.py
+	@$(MAKE) -s --no-print-directory tcodec semilla
+	@echo "version $(NUEVA): VERSION, tcodec y tcode/cli.py, y la semilla"
 
 # Compilacion doble diversa: el tcodec de la semilla y el que construye
 # Python sin ella escriben el mismo C. Ver `tests/ddc.py`.
