@@ -119,81 +119,84 @@ fn tras_espacio(texto: view) -> str {
 }
 
 fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
-    if n.clase == Clase.Struct {
-        var tipos: lista<str> = [];
-        var nombres: lista<str> = [];
-        for h en n.hijos {
-            if h.clase == Clase.CampoDef {
-                nombres.anadir(nombre_de(h.texto));
-                let tipo_campo = tipo_desnudo(h.texto);
-                tipos.anadir(I.sin_alias_tipo(tipo_campo));
-            }
-        }
-        poner(c.campos, vista(n.texto), tipos);
-        poner(c.nombres, vista(n.texto), nombres);
-        // Un struct generico: sus parametros, para leer `Par<str, usize>`.
-        var sueltos: lista<str> = [];
-        for h en n.hijos {
-            if h.clase == Clase.TipoParam { sueltos.anadir(nuevo(h.texto)); }
-        }
-        if sueltos.largo() > 0 { poner(c.struct_params, vista(n.texto), sueltos); }
-    }
-    if n.clase == Clase.Enum {
-        var cuales: lista<str> = [];
-        for h en n.hijos {
-            if h.clase == Clase.Variante {
-                cuales.anadir(nuevo(h.texto));
-                var lleva: lista<str> = [];
-                for x en h.hijos {
-                    if x.clase == Clase.Lleva {
-                        lleva.anadir(nuevo(x.texto));
-                    }
+    match n.clase {
+        Clase.Struct -> {
+            var tipos: lista<str> = [];
+            var nombres: lista<str> = [];
+            for h en n.hijos {
+                if h.clase == Clase.CampoDef {
+                    nombres.anadir(nombre_de(h.texto));
+                    let tipo_campo = tipo_desnudo(h.texto);
+                    tipos.anadir(I.sin_alias_tipo(tipo_campo));
                 }
-                var clave = nuevo(n.texto);
-                clave.empujar(".");
-                clave.empujar(h.texto);
-                poner(c.formas, vista(clave), lleva);
+            }
+            poner(c.campos, vista(n.texto), tipos);
+            poner(c.nombres, vista(n.texto), nombres);
+            // Un struct generico: sus parametros, para leer `Par<str, usize>`.
+            var sueltos: lista<str> = [];
+            for h en n.hijos {
+                if h.clase == Clase.TipoParam { sueltos.anadir(nuevo(h.texto)); }
+            }
+            if sueltos.largo() > 0 { poner(c.struct_params, vista(n.texto), sueltos); }
+        }
+        Clase.Enum -> {
+            var cuales: lista<str> = [];
+            for h en n.hijos {
+                if h.clase == Clase.Variante {
+                    cuales.anadir(nuevo(h.texto));
+                    var lleva: lista<str> = [];
+                    for x en h.hijos {
+                        if x.clase == Clase.Lleva {
+                            lleva.anadir(nuevo(x.texto));
+                        }
+                    }
+                    var clave = nuevo(n.texto);
+                    clave.empujar(".");
+                    clave.empujar(h.texto);
+                    poner(c.formas, vista(clave), lleva);
+                }
+            }
+            poner(c.variantes, vista(n.texto), cuales);
+        }
+        Clase.Fn -> {
+            var retorno = vacio();
+            var es_de_c = false;
+            var sueltos: lista<str> = [];
+            var tipos_param: lista<str> = [];
+            var marcados: lista<str> = [];
+            for h en n.hijos {
+                if h.clase == Clase.RetornoTipo {
+                    retorno = I.sin_alias_tipo(h.texto);
+                }
+                // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
+                // existe en el borde: lo que ve Tcode es un `str` suyo.
+                if h.clase == Clase.Externa { es_de_c = true; }
+                if h.clase == Clase.TipoParam {
+                    sueltos.anadir(nuevo(h.texto));
+                }
+                if h.clase == Clase.Param {
+                    let tipo_param = tipo_desnudo(h.texto);
+                    tipos_param.anadir(I.sin_alias_tipo(tipo_param));
+                    let con_marca = tipo_con_marca(h.texto);
+                    marcados.anadir(I.sin_alias_tipo(con_marca));
+                }
+            }
+            if es_de_c {
+                poner(c.externas, vista(n.texto), 1);
+                if retorno == "cadena_c" { retorno = nuevo("str"); }
+                // Una funcion de C presta lo que recibe: no se queda con nada.
+                var prestados: lista<str> = [];
+                for _m en marcados { prestados.anadir(nuevo("&")); }
+                marcados = prestados;
+            }
+            poner(c.retornos, vista(n.texto), retorno);
+            poner(c.params, vista(n.texto), tipos_param);
+            poner(c.params_marcados, vista(n.texto), marcados);
+            if sueltos.largo() > 0 {
+                poner(c.tipo_params, vista(n.texto), sueltos);
             }
         }
-        poner(c.variantes, vista(n.texto), cuales);
-    }
-    if n.clase == Clase.Fn {
-        var retorno = vacio();
-        var es_de_c = false;
-        var sueltos: lista<str> = [];
-        var tipos_param: lista<str> = [];
-        var marcados: lista<str> = [];
-        for h en n.hijos {
-            if h.clase == Clase.RetornoTipo {
-                retorno = I.sin_alias_tipo(h.texto);
-            }
-            // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
-            // existe en el borde: lo que ve Tcode es un `str` suyo.
-            if h.clase == Clase.Externa { es_de_c = true; }
-            if h.clase == Clase.TipoParam {
-                sueltos.anadir(nuevo(h.texto));
-            }
-            if h.clase == Clase.Param {
-                let tipo_param = tipo_desnudo(h.texto);
-                tipos_param.anadir(I.sin_alias_tipo(tipo_param));
-                let con_marca = tipo_con_marca(h.texto);
-                marcados.anadir(I.sin_alias_tipo(con_marca));
-            }
-        }
-        if es_de_c {
-            poner(c.externas, vista(n.texto), 1);
-            if retorno == "cadena_c" { retorno = nuevo("str"); }
-            // Una funcion de C presta lo que recibe: no se queda con nada.
-            var prestados: lista<str> = [];
-            for _m en marcados { prestados.anadir(nuevo("&")); }
-            marcados = prestados;
-        }
-        poner(c.retornos, vista(n.texto), retorno);
-        poner(c.params, vista(n.texto), tipos_param);
-        poner(c.params_marcados, vista(n.texto), marcados);
-        if sueltos.largo() > 0 {
-            poner(c.tipo_params, vista(n.texto), sueltos);
-        }
+        _ -> { }
     }
     for h en n.hijos { recoger_declaraciones(h, c); }
 }
@@ -204,79 +207,79 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
     lineas: mut lista<usize>) {
     let clase = n.clase;
 
-    if clase == Clase.Declaracion {
-        // Primero el valor, que se lee en el ambito de antes.
-        var tipo = vacio();
-        let escrito = tipo_desnudo(n.texto);
-        if escrito.largo() > 0 {
-            tipo = escrito;
-        } else {
-            if n.hijos.largo() > 0 { tipo = I.tipo_de(c, n.hijos[0]); }
-        }
-        for h en n.hijos { recorrer(h, c, quien, salida, lineas); }
-        let nombre = nombre_declarado(n.texto);
-        I.declarar(c, nombre, tipo);
-        salida.anadir($"{quien}\t{nombre}\t{tipo}");
-        // Cada fila lleva su linea, en la misma posicion: la propiedad las
-        // empareja por el indice. Sin esta, un `for` posterior dejaba su
-        // linea en el hueco de la declaracion, y la variable parecia
-        // declarada despues de usarse.
-        lineas.anadir(n.linea);
-        return;
-    }
-
-    if clase == Clase.Para {
-        // `for x en xs`: la variable toma el tipo del elemento.
-        if n.hijos.largo() > 0 {
-            let sobre = I.tipo_de(c, n.hijos[0]);
-            let base = elemento_de(sobre);
-            I.abrir(c);
-            let partes = try_partir(n.texto);
-            let uno = copiar(partes[0]);
-            I.declarar(c, uno, base);
-            salida.anadir($"{quien}\t{uno}\t{base}");
+    match clase {
+        Clase.Declaracion -> {
+            // Primero el valor, que se lee en el ambito de antes.
+            var tipo = vacio();
+            let escrito = tipo_desnudo(n.texto);
+            if escrito.largo() > 0 {
+                tipo = escrito;
+            } else {
+                if n.hijos.largo() > 0 { tipo = I.tipo_de(c, n.hijos[0]); }
+            }
+            for h en n.hijos { recorrer(h, c, quien, salida, lineas); }
+            let nombre = nombre_declarado(n.texto);
+            I.declarar(c, nombre, tipo);
+            salida.anadir($"{quien}\t{nombre}\t{tipo}");
+            // Cada fila lleva su linea, en la misma posicion: la propiedad las
+            // empareja por el indice. Sin esta, un `for` posterior dejaba su
+            // linea en el hueco de la declaracion, y la variable parecia
+            // declarada despues de usarse.
             lineas.anadir(n.linea);
-            if partes.largo() > 1 {
-                // `for clave, valor en mapa`: la segunda es el valor.
-                let dos = copiar(partes[1]);
-                let tv = valor_de(sobre);
-                I.declarar(c, dos, tv);
-                salida.anadir($"{quien}\t{dos}\t{tv}");
+            return;
+        }
+        Clase.Para -> {
+            // `for x en xs`: la variable toma el tipo del elemento.
+            if n.hijos.largo() > 0 {
+                let sobre = I.tipo_de(c, n.hijos[0]);
+                let base = elemento_de(sobre);
+                I.abrir(c);
+                let partes = try_partir(n.texto);
+                let uno = copiar(partes[0]);
+                I.declarar(c, uno, base);
+                salida.anadir($"{quien}\t{uno}\t{base}");
                 lineas.anadir(n.linea);
-            }
-            var k = 1;
-            while k < n.hijos.largo() {
-                recorrer(n.hijos[k], c, quien, salida, lineas);
-                k = k + 1;
-            }
-            I.cerrar(c);
-        }
-        return;
-    }
-
-    if clase == Clase.Match {
-        // Lo que atrapa cada patron vive solo dentro de su brazo, y se
-        // presta: `Json.Texto(s)` da una `view`, no un `str` que soltar.
-        for h en n.hijos {
-            if h.clase != Clase.Brazo { continue; }
-            I.abrir(c);
-            atrapar(h, c, quien, salida, lineas);
-            for x en h.hijos {
-                let xc = x.clase;
-                if xc != Clase.Atrapa && xc != Clase.Patron && xc != Clase.Literal {
-                    recorrer(x, c, quien, salida, lineas);
+                if partes.largo() > 1 {
+                    // `for clave, valor en mapa`: la segunda es el valor.
+                    let dos = copiar(partes[1]);
+                    let tv = valor_de(sobre);
+                    I.declarar(c, dos, tv);
+                    salida.anadir($"{quien}\t{dos}\t{tv}");
+                    lineas.anadir(n.linea);
                 }
+                var k = 1;
+                while k < n.hijos.largo() {
+                    recorrer(n.hijos[k], c, quien, salida, lineas);
+                    k = k + 1;
+                }
+                I.cerrar(c);
             }
-            I.cerrar(c);
+            return;
         }
-        return;
-    }
-
-    if clase == Clase.Bloque {
-        I.abrir(c);
-        for h en n.hijos { recorrer(h, c, quien, salida, lineas); }
-        I.cerrar(c);
-        return;
+        Clase.Match -> {
+            // Lo que atrapa cada patron vive solo dentro de su brazo, y se
+            // presta: `Json.Texto(s)` da una `view`, no un `str` que soltar.
+            for h en n.hijos {
+                if h.clase != Clase.Brazo { continue; }
+                I.abrir(c);
+                atrapar(h, c, quien, salida, lineas);
+                for x en h.hijos {
+                    let xc = x.clase;
+                    if xc != Clase.Atrapa && xc != Clase.Patron && xc != Clase.Literal {
+                        recorrer(x, c, quien, salida, lineas);
+                    }
+                }
+                I.cerrar(c);
+            }
+            return;
+        }
+        Clase.Bloque -> {
+            I.abrir(c);
+            for h en n.hijos { recorrer(h, c, quien, salida, lineas); }
+            I.cerrar(c);
+            return;
+        }
+        _ -> { }
     }
 
     for h en n.hijos { recorrer(h, c, quien, salida, lineas); }
