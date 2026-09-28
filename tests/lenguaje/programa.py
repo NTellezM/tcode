@@ -570,8 +570,22 @@ fn main() {
 
     _MINIMO_PROGRAMAS = 25
     # Rechazos cuyo primer error dice `tcodec` igual que Python: todos, tambien
-    # los de sintaxis, que dan el lexer y el parser escritos en Tcode.
-    _MINIMO_RECHAZOS = 157
+    # los de sintaxis, que dan el lexer y el parser escritos en Tcode. Menos
+    # estos, escritos con lo que el Python congelado no conoce —llamadas con
+    # punto, vistas implicitas, rangos— y que Python para antes, en la
+    # sintaxis. Que `tcodec` diga lo que tiene que decir en ellos lo mira la
+    # seccion RECHAZO. Cualquier otra diferencia es una falla, y tambien lo es
+    # que uno de estos deje de diferir: la lista se queda siempre exacta.
+    _RECHAZOS_SOLO_TCODEC = {
+        "con punto, lo de delante sigue siendo el primer argumento",
+        "con punto, modificar pide `var`",
+        "una vista implicita presta",
+        "una vista implicita no sobrevive a su dueno",
+        "un rango va de un entero a otro",
+        "los extremos de un rango son del mismo tipo",
+        "un rango da un solo numero por vuelta",
+        "el numero de un rango no se cambia",
+    }
     # Mutaciones por archivo para comparar los errores de sintaxis: se rompe un
     # token de cada archivo del repositorio de varias formas, siempre las mismas.
     _MUTACIONES_POR_ARCHIVO = 5
@@ -774,11 +788,20 @@ fn main() {
                                 f"{de_python[0][:200]!r}")
                 elif de_tcodec and de_tcodec[0] == de_python[0]:
                     mismos += 1
+                    if nombre in _RECHAZOS_SOLO_TCODEC:
+                        suite.falla("el comprobador en Tcode da los mismos errores",
+                                    f"{nombre}: ya coincide con Python; sacalo "
+                                    f"de _RECHAZOS_SOLO_TCODEC")
+                elif nombre not in _RECHAZOS_SOLO_TCODEC:
+                    suite.falla("el comprobador en Tcode da los mismos errores",
+                                f"{nombre}: Python dice {de_python[0][:200]!r}, "
+                                f"tcodec {(de_tcodec or ['nada'])[0][:200]!r}")
             suite.total += 1
-            if mismos < _MINIMO_RECHAZOS:
+            if mismos + len(_RECHAZOS_SOLO_TCODEC) != rechazados:
                 suite.falla("el comprobador en Tcode da los mismos errores",
-                            f"solo {mismos} de {rechazados} con el mismo primer "
-                            f"error; se esperaban al menos {_MINIMO_RECHAZOS}")
+                            f"{mismos} iguales y {len(_RECHAZOS_SOLO_TCODEC)} "
+                            f"propios de tcodec no suman los {rechazados} "
+                            f"rechazos: sobra alguno en _RECHAZOS_SOLO_TCODEC")
 
             correctos = 0
             aceptables = [(n, f) for n, f, *_ in ACEPTA]
@@ -808,7 +831,9 @@ fn main() {
             suite.cifra("rechazos", rechazados)
             suite.cifra("correctos", correctos)
             print(f"    comprobador: {mismos} de {rechazados} rechazos con el "
-                  f"mismo primer error, y ninguno de {correctos} programas "
+                  f"mismo primer error (los otros "
+                  f"{len(_RECHAZOS_SOLO_TCODEC)}, sintaxis que Python no "
+                  f"conoce), y ninguno de {correctos} programas "
                   f"correctos rechazado")
 
             # Los errores de sintaxis, sobre el codigo real: cada archivo del

@@ -304,7 +304,10 @@ error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 La suite pasa por los dos compiladores cada programa que tiene que
 rechazarse: **los <!--c:rechazos_iguales-->246<!--/c--> dan el mismo primer error, carácter por carácter**,
 también los de sintaxis, que salen del lexer y el parser en Tcode con su
-archivo, su línea y lo que encontraron:
+archivo, su línea y lo que encontraron. Los que faltan hasta el total están
+escritos con lo que el Python congelado no conoce —llamadas con punto,
+vistas implícitas, rangos— y están nombrados uno por uno: una diferencia
+nueva, o una de esas que deje de serlo, hace fallar la suite:
 
 ```
 $ ./tcodec roto.t
