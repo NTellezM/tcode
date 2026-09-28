@@ -135,11 +135,20 @@ def c_de_tcodec(ruta):
     return semilla.c_de(tcodec(), ruta)
 
 
+def escribir_fuente(ruta, fuente):
+    """Un `.t` de la suite: texto, o `bytes` para lo que no es UTF-8."""
+    if isinstance(fuente, bytes):
+        with open(ruta, "wb") as f:
+            f.write(fuente)
+    else:
+        with open(ruta, "w", encoding="utf-8") as f:
+            f.write(fuente)
+
+
 def tcodec_sobre(fuente, *opciones, directorio, nombre="p.t", timeout=120):
     """Escribe `fuente` como `nombre` en `directorio` y se lo pasa a `tcodec`
     desde ahi, con `opciones`: los mensajes dicen `p.t:3: ...`."""
-    with open(os.path.join(directorio, nombre), "w", encoding="utf-8") as f:
-        f.write(fuente)
+    escribir_fuente(os.path.join(directorio, nombre), fuente)
     return subprocess.run([tcodec(), nombre, *opciones], cwd=directorio,
                           capture_output=True, text=True, timeout=timeout,
                           env=ENTORNO_TCODEC)

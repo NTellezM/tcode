@@ -212,8 +212,8 @@ def _ejecutar(args):
     try:
         if args.formatear:
             from tcode.formato import formatear
-            with open(args.fuente, encoding="utf-8") as f:
-                fuente = f.read()
+            from tcode.lexer import leer_fuente
+            fuente = leer_fuente(args.fuente)
             salida = formatear(fuente, args.fuente)
             if args.escribir:
                 if salida != fuente:

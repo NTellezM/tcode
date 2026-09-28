@@ -667,6 +667,27 @@ El análisis de propiedad y préstamos normalmente sólo se ve cuando falla.
 es dueña o prestada, dónde se mueve, dónde se libera, y de dónde sale cada
 vista. Es el mismo modelo que produce los errores, escrito en positivo.
 
+## El texto del programa
+
+Un `.t` es **UTF-8 válido**. Si no lo es, el error dice la línea del primer
+byte que no encaja: las reglas son las de RFC 3629, sin formas largas, sin
+sustitutos y sin pasar de U+10FFFF.
+
+**Los controles bidireccionales no valen en ningún sitio**, tampoco dentro de
+una cadena o un comentario: U+202A–U+202E y U+2066–U+2069 hacen que el código
+se vea distinto de como se compila ("Trojan Source", CVE-2021-42574).
+
+**Un nombre** empieza por `_`, una letra ASCII o un carácter XID_Start, y
+sigue con eso, dígitos ASCII o caracteres XID_Continue (UAX #31, con las
+tablas de Unicode 15.0 que guarda `tests/generar_xid.py` para los dos
+compiladores). `año`, `π` y `名前` son nombres; `×`, `€` y el espacio de
+ancho cero no, y el error los nombra por su código: `caracter inesperado
+U+00D7`. Los nombres no se normalizan: `é` escrita de una pieza y `e` con el
+acento combinado son dos nombres distintos.
+
+**Los dígitos de un número son los ASCII**, `0` a `9`. `²` o `٣` no son
+números.
+
 ## Gramática v0
 
 ```
