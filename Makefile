@@ -12,6 +12,7 @@
 #   make formato      deja todo el codigo Tcode en el formato canonico
 #   make lint         revisa el codigo Python con ruff y mypy
 #   make compiladores la semilla, el punto fijo y `rapido` con cada compilador de C
+#   make ddc          la semilla y Python construyen el mismo tcodec
 #   make fuzz         rompe el codigo del repositorio al azar (FUZZ_SEGUNDOS=60)
 #   make limpiar      borra lo que genera todo lo anterior
 #   make instalar     tcodec, std/ y runtime/ en PREFIJO (/usr/local)
@@ -19,7 +20,7 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar instalar desinstalar
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar instalar desinstalar ddc
 
 all: tcodec
 
@@ -95,6 +96,11 @@ punto-fijo-cc:
 # en `tests/fuzz/hallazgos/`. `make check` repite los guardados.
 FUZZ_SEGUNDOS ?= 60
 
+# Compilacion doble diversa: el tcodec de la semilla y el que construye
+# Python sin ella escriben el mismo C. Ver `tests/ddc.py`.
+ddc:
+	@$(PY) tests/ddc.py
+
 fuzz:
 	@$(PY) tests/fuzz.py --segundos $(FUZZ_SEGUNDOS)
 
@@ -130,6 +136,7 @@ check:
 	@$(PY) tests/test_lenguaje.py
 	@$(PY) tests/test_propiedades.py
 	@$(PY) tests/fuzz.py --repetir
+	@$(PY) tests/ddc.py
 	@$(PY) tests/cifras.py --comprobar
 
 # Las secciones que prueban el lenguaje con `tcodec`; las que tardan son las

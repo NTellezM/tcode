@@ -85,6 +85,14 @@ El camino a 1.0.
   fallos, genéricas, clausuras, `como`, bloques, enums, structs— en siete
   contextos: 270 pares.
 - `docs/PLATAFORMAS.md` y `docs/COMPATIBILIDAD.md`.
+- `docs/AUDITORIA.md`: qué se promete, la base de confianza, dónde vive cada
+  invariante, cómo se prueba, lo conservador y por dónde empezar.
+- `make ddc` y `tests/ddc.py`: compilación doble diversa. La semilla y el
+  compilador de Python, sin ella, construyen el mismo `tcodec`; corre en
+  `make check`.
+- La versión portable de la aritmética comprobada (sin
+  `__builtin_*_overflow`) no la ejecutaba nada: P11 corre cada programa
+  también con `-DSS_LANG_SIN_BUILTINS`.
 
 ## 0.1.0
 
