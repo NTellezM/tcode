@@ -61,8 +61,9 @@ _RAROS = [
 
 def corpus():
     """Los `.t` del repositorio, relativos a la raiz."""
-    todos = glob.glob("std/*.t", root_dir=RAIZ) + glob.glob(
-        "ejemplos/**/*.t", root_dir=RAIZ, recursive=True)
+    todos = (glob.glob("std/*.t", root_dir=RAIZ)
+             + glob.glob("programas/*.t", root_dir=RAIZ)
+             + glob.glob("ejemplos/**/*.t", root_dir=RAIZ, recursive=True))
     return sorted(r for r in todos if not os.path.basename(r).startswith("."))
 
 

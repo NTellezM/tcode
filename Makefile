@@ -180,7 +180,7 @@ limpiar:
 
 # Sin opciones: hay un estilo y es este.
 formato: tcodec
-	@for f in $$(find std ejemplos bench -name '*.t'); do \
+	@for f in $$(find std ejemplos bench programas -name '*.t'); do \
 	    ./tcodec "$$f" --formatear --escribir; \
 	done
 	@echo "listo"

@@ -450,7 +450,7 @@ $ make formato
 Sin opciones, como `gofmt`: hay un estilo y es este. Pero **no mueve tokens
 de línea** — no decide dónde parte una expresión larga. Por eso no puede
 estropear nada: la salida lexea exactamente a los mismos tokens que la
-entrada, y la suite lo comprueba sobre los <!--c:formato_archivos-->58<!--/c--> `.t` del repositorio, junto con
+entrada, y la suite lo comprueba sobre los <!--c:formato_archivos-->64<!--/c--> `.t` del repositorio, junto con
 que formatear dos veces da lo mismo y que el repositorio ya está formateado.
 
 ## Depurar
@@ -769,7 +769,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-2456 casos, 0 fallas
+2708 casos, 0 fallas
 2069 comprobaciones sobre 60 programas, 0 fallas
 ```
 
