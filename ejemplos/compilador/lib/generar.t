@@ -2864,9 +2864,26 @@ fn movidas_hondo_en(punteros: &mapa<str, usize>, bloque: &P.Nodo,
                 movidas_hondo_en(punteros, h, tipos, salida, mias);
             }
         }
+        movidas_en_brazos(punteros, st, tipos, salida, mias);
         if es_para { I.cerrar(tipos); }
     }
     I.cerrar(tipos);
+}
+
+// Los bloques de los brazos de un `match`, este donde este dentro de la
+// sentencia: tambien son caminos, y lo que se entrega en ellos pide bandera
+// igual que en las ramas de un `if`.
+fn movidas_en_brazos(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: mut I.Contexto,
+    salida: mut lista<str>, visibles: &lista<str>) {
+    if n.clase == Clase.Bloque { return; }
+    if n.clase == Clase.Brazo {
+        for x en n.hijos {
+            if x.clase == Clase.Bloque {
+                movidas_hondo_en(punteros, x, tipos, salida, visibles);
+            }
+        }
+    }
+    for h en n.hijos { movidas_en_brazos(punteros, h, tipos, salida, visibles); }
 }
 
 fn visible_en(visibles: &lista<str>, nombre: view) -> str {
