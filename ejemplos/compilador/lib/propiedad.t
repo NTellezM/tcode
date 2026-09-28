@@ -217,7 +217,7 @@ fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
     if i >= marcados.largo() { return false; }
     let m = vista(marcados[i]);
     // Un prestamo no se queda con nada.
-    if empieza_con(m, "&") || empieza_con(m, "mut ") { return false; }
+    if T.es_referencia(m) || empieza_con(m, "mut ") { return false; }
     // En una generica, `a: A` se queda con lo que le den si eso posee, y eso
     // depende del argumento: lo mira quien llama, con el tipo de lo que pasa.
     if tiene(c.tipo_params, fn_) {

@@ -21,7 +21,7 @@ usar "../../lexer/lib/clase.t";
 fn mangle(t: view) -> str {
     if T.es_referencia(t) {
         var s = nuevo("ref_");
-        if empieza_con(t, "&mut ") { s = nuevo("refmut_"); }
+        if T.es_referencia_mutable(t) { s = nuevo("refmut_"); }
         let dentro = T.apuntado(t);
         let m = mangle(dentro);
         s.empujar(m);
@@ -44,7 +44,7 @@ fn mangle(t: view) -> str {
         return s;
     }
     if T.es_mapa(t) {
-        let partes = T.partir_tipos(T.entre_angulos(t));
+        let partes = T.partes(t);
         if partes.largo() != 2 { return nuevo(t); }
         var s = nuevo("mapa_");
         let k = mangle(partes[0]);
@@ -124,7 +124,7 @@ fn tipo_c(t: view) -> str {
         // que el propio compilador de C impide escribir por el.
         let dentro = T.apuntado(t);
         var s = vacio();
-        if !empieza_con(t, "&mut ") { s.empujar("const "); }
+        if !T.es_referencia_mutable(t) { s.empujar("const "); }
         let base = tipo_c(dentro);
         s.empujar(base);
         s.empujar("*");
@@ -386,11 +386,11 @@ fn prototipo(nombre: view, params: &lista<str>, marcas: &lista<str>,
         let solo = marca_sola(marcas[i]);
         let marca = vista(solo);
         let base = tipo_c(params[i]);
-        if empieza_con(marca, "&mut ") || empieza_con(marca, "mut ") {
+        if T.es_referencia_mutable(marca) || empieza_con(marca, "mut ") {
             salida.empujar(base);
             salida.empujar("* ");
         } else {
-            if empieza_con(marca, "&") {
+            if T.es_referencia(marca) {
                 salida.empujar("const ");
                 salida.empujar(base);
                 salida.empujar("* ");
@@ -1251,7 +1251,7 @@ fn sitio_solo_lectura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
             if marca == 2 { return true; }
         }
         let t = I.tipo_de(tipos, n);
-        return T.es_referencia(t) && !empieza_con(t, "&mut ");
+        return T.es_referencia(t) && !T.es_referencia_mutable(t);
     }
     if (clase == Clase.Campo || clase == Clase.Indice) && n.hijos.largo() > 0 {
         return sitio_solo_lectura(s, n.hijos[0], tipos);
@@ -2415,7 +2415,7 @@ fn llamada_a_valor(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
     while i + 1 < partes.largo() {
         let p = vista(partes[i]);
         firmados.anadir(T.apuntado_si(p));
-        if empieza_con(p, "&mut ") { marcados.anadir(nuevo("mut ")); }
+        if T.es_referencia_mutable(p) { marcados.anadir(nuevo("mut ")); }
         else {
             if T.es_referencia(p) { marcados.anadir(nuevo("&")); }
             else { marcados.anadir(vacio()); }
@@ -2449,7 +2449,7 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
         var presta_mut = false;
         if i < marcados.largo() {
             let m = vista(marcados[i]);
-            presta_el = empieza_con(m, "&") || empieza_con(m, "mut ");
+            presta_el = T.es_referencia(m) || empieza_con(m, "mut ");
             presta_mut = empieza_con(m, "mut ");
         }
         if presta_el {
@@ -2615,7 +2615,7 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             if !primero { en_c.empujar("_"); }
             primero = false;
             let ligado_c = I.nombre_resuelto(ligado);
-            let limpio = sanear(ligado_c);
+            let limpio = T.sanear(ligado_c);
             en_c.empujar(limpio);
         }
         // Lo que hace falta para escribir la copia: de que plantilla sale,
@@ -2698,7 +2698,7 @@ fn presta_argumento(tipos: &I.Contexto, nombre: view, i: usize) -> bool {
     let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];
     if i >= marcados.largo() { return true; }
     let m = vista(marcados[i]);
-    return empieza_con(m, "&") || empieza_con(m, "mut ");
+    return T.es_referencia(m) || empieza_con(m, "mut ");
 }
 
 fn apuntar_movida(salida: mut lista<str>, nombre: view) {
@@ -2847,7 +2847,7 @@ fn movidas_hondo_en(punteros: &mapa<str, usize>, bloque: &P.Nodo,
             let uno = primer_nombre(st.texto);
             let dos = segundo_nombre(st.texto);
             if T.es_mapa(sobre) {
-                let partes = T.partir_tipos(T.entre_angulos(sobre));
+                let partes = T.partes(sobre);
                 if partes.largo() == 2 {
                     I.declarar(tipos, uno, partes[0]);
                     if dos.largo() > 0 {
@@ -4262,7 +4262,7 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // se presta la que ya esta en la tabla.
         var elem = T.elemento(sobre);
         if es_mapa_ {
-            let partes = T.partir_tipos(T.entre_angulos(sobre));
+            let partes = T.partes(sobre);
             if partes.largo() != 2 { return false; }
             elem = copiar(partes[0]);
         }
@@ -4378,7 +4378,7 @@ fn para_rango_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     if n.hijos[0].hijos.largo() != 2 { return false; }
     let suyo = I.tipo_de(tipos, n.hijos[0]);
     if !T.es_rango(suyo) { return false; }
-    let t = T.entre_angulos(suyo);
+    let t = T.elemento(suyo);
     let tc = tipo_c(t);
     let desde = extremo_c(b, s, n.hijos[0].hijos[0], t, tipos);
     if es_desconocido(desde) { return false; }
@@ -5012,7 +5012,7 @@ fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
         } else if I.posee_con_formas(tipos, t) {
             let tc = tipo_c(t);
             emitir(b, $"SS_LANG_QUIZA_SIN_USAR const {tc}* {h.texto} = &{dentro};");
-            I.declarar(tipos, h.texto, $"&{t}");
+            I.declarar(tipos, h.texto, T.hacer_prestado(t));
         } else {
             let tc = tipo_c(t);
             emitir(b, $"SS_LANG_QUIZA_SIN_USAR {tc} {h.texto} = {dentro};");
@@ -5140,28 +5140,6 @@ fn match_valor(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     }
     if !match_c(b, s, n, tipos, retorno, falible, tmp) { return no_se(); }
     return copiar(tmp);
-}
-
-// Un tipo hecho nombre de C: cada racha de lo que no sea letra o cifra pasa
-// a ser un `_`, y sin `_` en los bordes. `lista<str>` da `lista_str`.
-fn sanear(t: view) -> str {
-    var r = vacio();
-    var pendiente = false;
-    var i = 0;
-    while i < t.largo() {
-        let c = byte(t, i);
-        let bueno = (c >= 97 && c <= 122) || (c >= 65 && c <= 90)
-        || (c >= 48 && c <= 57);
-        if bueno {
-            if pendiente && r.largo() > 0 { r.empujar("_"); }
-            pendiente = false;
-            r.empujar(rebanar(t, i, i + 1));
-        } else {
-            pendiente = true;
-        }
-        i = i + 1;
-    }
-    return r;
 }
 
 // De que tipo es lo que da una expresion suelta. Una llamada del programa

@@ -1,9 +1,10 @@
 // lib/tipos.t — la capa de tipos del comprobador, escrita en Tcode.
 //
-// Un tipo en Tcode es una cadena: `usize`, `lista<str>`, `mapa<str, Cosa>`,
-// `bloque<T>`, `[usize; 4]`, `&Cosa`, `fn(&T, &T) -> bool`. Todo lo que el
-// comprobador pregunta sobre un tipo sale de leer esa cadena y, para los
-// structs, de mirar sus campos.
+// Un tipo en Tcode viaja como cadena: `usize`, `lista<str>`,
+// `mapa<str, Cosa>`, `bloque<T>`, `[usize; 4]`, `&Cosa`, `fn(&T, &T) -> bool`.
+// Es como sale en los mensajes y en los nombres de C. Aqui se lee como arbol
+// (`leer_tipo`, `Tipo`, `Forma`) y se vuelve a escribir (`escribir_tipo`), y el
+// resto del compilador pregunta y construye tipos solo a traves de este modulo.
 //
 // Aqui estan las dos preguntas de las que cuelga el resto:
 //
@@ -160,6 +161,279 @@ fn valor_de_mapa(t: view) -> str ! {
 }
 
 // ------------------------------------------------------------------
+// El tipo como arbol
+// ------------------------------------------------------------------
+//
+// La cadena es como viaja un tipo entre las capas y como sale en los
+// mensajes. Para mirar dentro de el se lee una vez como arbol, y lo que se
+// construye se escribe desde el arbol: asi solo hay un sitio que sabe como
+// se escribe cada forma.
+
+// De que forma es un tipo. `Nombre` es todo lo que desde aqui no tiene
+// partes: los escalares, `str`, `view`, `()`, un struct, un enum, un
+// parametro de tipo, y la aplicacion de un struct generico, que lleva sus
+// argumentos (`Par<str, usize>`).
+enum Forma {
+    Nombre,
+    Lista,
+    Bloque,
+    Mapa,
+    Rango,
+    Arreglo,
+    Presta,
+    PrestaMut,
+    Funcion,
+}
+
+struct Tipo {
+    forma: Forma,
+    // El de un `Nombre`; vacio en lo demas.
+    nombre: str,
+    // Lo de dentro, en orden: el elemento; la clave y el valor; lo apuntado;
+    // los argumentos de una aplicacion; los parametros de una funcion y, si
+    // devuelve algo, su retorno al final.
+    args: lista<Tipo>,
+    // Cuantos lleva un arreglo, como se escribio.
+    cuantos: str,
+    devuelve: bool,
+}
+
+fn nuevo_tipo(forma: Forma, nombre: view) -> Tipo {
+    return Tipo { forma: forma, nombre: nuevo(nombre), args: [], cuantos: vacio(),
+        devuelve: false };
+}
+
+fn con_uno(forma: Forma, dentro: view) -> Tipo {
+    var t = nuevo_tipo(forma, "");
+    t.args.anadir(leer_tipo(dentro));
+    return t;
+}
+
+fn con_varios(forma: Forma, nombre: view, dentro: view) -> Tipo {
+    var t = nuevo_tipo(forma, nombre);
+    for x en partir_tipos(dentro) { t.args.anadir(leer_tipo(x)); }
+    return t;
+}
+
+// El arbol de un tipo escrito. Lo que no tiene una forma conocida es un
+// `Nombre` con el texto tal cual, asi que leer y escribir siempre vuelve a
+// dar lo mismo.
+fn leer_tipo(t: view) -> Tipo {
+    if empieza(t, "&mut ") { return con_uno(Forma.PrestaMut, rebanar(t, 5, t.largo())); }
+    if empieza(t, "&") { return con_uno(Forma.Presta, rebanar(t, 1, t.largo())); }
+    if es_arreglo(t) && termina_con(t, "]") && contiene(t, ";") {
+        var a = con_uno(Forma.Arreglo, elemento(t));
+        a.cuantos = cuantos_del_arreglo(t);
+        return a;
+    }
+    if es_funcion(t) {
+        let partes = partes_de_funcion(t);
+        if partes.largo() == 0 { return nuevo_tipo(Forma.Nombre, t); }
+        var f = nuevo_tipo(Forma.Funcion, "");
+        f.devuelve = tiene_flecha(t);
+        var i = 0;
+        while i < partes.largo() {
+            // Sin flecha, `partes_de_funcion` pone un `()` al final que no
+            // esta escrito.
+            if i + 1 < partes.largo() || f.devuelve { f.args.anadir(leer_tipo(partes[i])); }
+            i = i + 1;
+        }
+        return f;
+    }
+    if es_lista(t) { return con_uno(Forma.Lista, entre_angulos(t)); }
+    if es_bloque(t) { return con_uno(Forma.Bloque, entre_angulos(t)); }
+    if es_rango(t) { return con_uno(Forma.Rango, entre_angulos(t)); }
+    if es_mapa(t) { return con_varios(Forma.Mapa, "", entre_angulos(t)); }
+    let abre = primer_angulo(t);
+    if abre > 0 && termina_con(t, ">") {
+        return con_varios(Forma.Nombre, rebanar(t, 0, abre), entre_angulos(t));
+    }
+    return nuevo_tipo(Forma.Nombre, t);
+}
+
+fn primer_angulo(t: view) -> usize {
+    var i = 0;
+    while i < t.largo() {
+        if byte(t, i) == 60 { return i; }
+        i = i + 1;
+    }
+    return 0;
+}
+
+// Si detras del `)` de una funcion hay un `->`.
+fn tiene_flecha(t: view) -> bool {
+    var hondura = 0;
+    var i = 0;
+    while i < t.largo() {
+        let b = byte(t, i);
+        if b == 40 { hondura = hondura + 1; }
+        if b == 41 {
+            hondura = hondura - 1;
+            if hondura == 0 {
+                return empieza_con(recortar(rebanar(t, i + 1, t.largo())), "->");
+            }
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+fn escritos(ts: &lista<Tipo>, desde: usize, hasta: usize) -> str {
+    var s = vacio();
+    var i = desde;
+    while i < hasta {
+        if i > desde { s.empujar(", "); }
+        s.empujar(escribir_tipo(ts[i]));
+        i = i + 1;
+    }
+    return s;
+}
+
+// El tipo escrito, como lo escribe el resto del compilador.
+fn escribir_tipo(t: &Tipo) -> str {
+    let n = t.args.largo();
+    match t.forma {
+        Forma.Nombre -> {
+            if n == 0 { return copiar(t.nombre); }
+            return $"{t.nombre}<{escritos(t.args, 0, n)}>";
+        }
+        Forma.Lista -> { return $"lista<{escritos(t.args, 0, n)}>"; }
+        Forma.Bloque -> { return $"bloque<{escritos(t.args, 0, n)}>"; }
+        Forma.Mapa -> { return $"mapa<{escritos(t.args, 0, n)}>"; }
+        Forma.Rango -> { return $"rango<{escritos(t.args, 0, n)}>"; }
+        Forma.Arreglo -> { return $"[{escritos(t.args, 0, n)}; {t.cuantos}]"; }
+        Forma.Presta -> { return $"&{escritos(t.args, 0, n)}"; }
+        Forma.PrestaMut -> { return $"&mut {escritos(t.args, 0, n)}"; }
+        Forma.Funcion -> {
+            if !t.devuelve { return $"fn({escritos(t.args, 0, n)})"; }
+            if n == 0 { return nuevo("fn()"); }
+            return $"fn({escritos(t.args, 0, n - 1)}) -> {escribir_tipo(t.args[n - 1])}";
+        }
+    }
+    return vacio();
+}
+
+// Lo que un tipo lleva dentro, cada parte escrita: el elemento de una lista,
+// la clave y el valor de un mapa, lo apuntado, los argumentos de una
+// aplicacion, los parametros y el retorno de una funcion.
+fn partes(t: view) -> lista<str> {
+    var salida: lista<str> = [];
+    let a = leer_tipo(t);
+    for x en a.args { salida.anadir(escribir_tipo(x)); }
+    return salida;
+}
+
+// El mismo tipo con sus partes cambiadas por `nuevas`, en el orden de
+// `partes`. Es como se reescribe un tipo a cualquier hondura sin partir
+// cadenas: se cambia cada parte y se vuelve a montar.
+fn con_partes(t: view, nuevas: &lista<str>) -> str {
+    var a = leer_tipo(t);
+    if nuevas.largo() != a.args.largo() { return nuevo(t); }
+    var hechas: lista<Tipo> = [];
+    for x en nuevas { hechas.anadir(leer_tipo(x)); }
+    a.args = hechas;
+    return escribir_tipo(a);
+}
+
+// El nombre de una aplicacion, sin sus argumentos: `Par<str, usize>` ->
+// `Par`. Vacio si no es un nombre.
+fn base(t: view) -> str {
+    let a = leer_tipo(t);
+    if a.forma != Forma.Nombre { return vacio(); }
+    return copiar(a.nombre);
+}
+
+// `[T; N]` -> [T, N]; vacia si no es un arreglo.
+fn partes_de_arreglo(t: view) -> lista<str> {
+    var salida: lista<str> = [];
+    let a = leer_tipo(t);
+    if a.forma != Forma.Arreglo || a.args.largo() != 1 { return salida; }
+    salida.anadir(escribir_tipo(a.args[0]));
+    salida.anadir(copiar(a.cuantos));
+    return salida;
+}
+
+// Cuantos arreglos hay en el tipo, a cualquier hondura: `[[u8; 2]; 3]`
+// lleva dos. Ordena los typedef de los arreglos: los de dentro, antes.
+fn arreglos_dentro(t: view) -> usize {
+    return arreglos_en(leer_tipo(t));
+}
+
+fn arreglos_en(t: &Tipo) -> usize {
+    var n = 0;
+    if t.forma == Forma.Arreglo { n = 1; }
+    for x en t.args { n = n + arreglos_en(x); }
+    return n;
+}
+
+// Si en algun sitio del tipo hay un bloque o un arreglo.
+fn lleva_bloque_o_arreglo(t: view) -> bool {
+    return lleva_bloque_o_arreglo_en(leer_tipo(t));
+}
+
+fn lleva_bloque_o_arreglo_en(t: &Tipo) -> bool {
+    if t.forma == Forma.Bloque || t.forma == Forma.Arreglo { return true; }
+    for x en t.args {
+        if lleva_bloque_o_arreglo_en(x) { return true; }
+    }
+    return false;
+}
+
+fn hacer_lista(e: view) -> str { return $"lista<{e}>"; }
+fn hacer_bloque(e: view) -> str { return $"bloque<{e}>"; }
+fn hacer_rango(e: view) -> str { return $"rango<{e}>"; }
+fn hacer_mapa(k: view, v: view) -> str { return $"mapa<{k}, {v}>"; }
+fn hacer_arreglo(e: view, n: view) -> str { return $"[{e}; {n}]"; }
+fn hacer_prestado(t: view) -> str { return $"&{t}"; }
+fn hacer_prestado_mut(t: view) -> str { return $"&mut {t}"; }
+
+fn es_referencia_mutable(t: view) -> bool { return empieza(t, "&mut "); }
+
+// `[T; N]` -> `N`, como se escribio.
+fn cuantos_del_arreglo(t: view) -> str {
+    var i = t.largo();
+    while i > 0 && byte(t, i - 1) != 32 { i = i - 1; }
+    if t.largo() == 0 { return vacio(); }
+    return nuevo(rebanar(t, i, t.largo() - 1));
+}
+
+// Un nombre de C: lo que no sea letra o cifra, cambiado por `_`, sin
+// repetirlo ni dejarlo en los bordes.
+fn sanear(t: view) -> str {
+    var r = vacio();
+    var pendiente = false;
+    var i = 0;
+    while i < t.largo() {
+        let c = byte(t, i);
+        let bueno = (c >= 97 && c <= 122) || (c >= 65 && c <= 90)
+        || (c >= 48 && c <= 57);
+        if bueno {
+            if pendiente && r.largo() > 0 { r.empujar("_"); }
+            pendiente = false;
+            r.empujar(rebanar(t, i, i + 1));
+        } else {
+            pendiente = true;
+        }
+        i = i + 1;
+    }
+    return r;
+}
+
+// Como se llama la copia de un struct generico: `Par<str, usize>` es
+// `Par__str_usize`. `args` son los argumentos ya con sus propias copias.
+fn nombre_de_copia(base: view, args: &lista<str>) -> str {
+    var r = nuevo(base);
+    r.empujar("__");
+    var i = 0;
+    while i < args.largo() {
+        if i > 0 { r.empujar("_"); }
+        r.empujar(sanear(args[i]));
+        i = i + 1;
+    }
+    return r;
+}
+
+// ------------------------------------------------------------------
 // Las dos preguntas
 // ------------------------------------------------------------------
 
@@ -179,52 +453,69 @@ fn escalar(t: view) -> bool {
 // contiene a si mismo de forma finita, y preguntarle dos veces no aporta.
 fn posee(campos: &mapa<str, lista<str>>, t: view,
     visitados: mut mapa<str, usize>) -> bool ! {
-    if es_referencia(t) || es_funcion(t) { return false; }
-    if t == "str" { return true; }
-    if es_mapa(t) || es_lista(t) || es_bloque(t) { return true; }
-    if es_arreglo(t) {
-        let dentro = elemento(t);
-        return try posee(campos, vista(dentro), visitados);
+    let a = leer_tipo(t);
+    match a.forma {
+        // Lo prestado es de otro; una funcion y un rango no guardan nada.
+        Forma.Presta -> { return false; }
+        Forma.PrestaMut -> { return false; }
+        Forma.Funcion -> { return false; }
+        Forma.Rango -> { return false; }
+        Forma.Lista -> { return true; }
+        Forma.Bloque -> { return true; }
+        Forma.Mapa -> { return true; }
+        Forma.Arreglo -> {
+            let dentro = elemento(t);
+            return try posee(campos, dentro, visitados);
+        }
+        Forma.Nombre -> { }
     }
+    if t == "str" { return true; }
     if escalar(t) { return false; }
 
     // Un struct posee si alguno de sus campos posee.
     let nombre = nuevo(t);
     if tiene(visitados, nombre) { return false; }
     if !tiene(campos, nombre) { return false; }
-    poner(visitados, vista(nombre), 1);
+    poner(visitados, nombre, 1);
 
     var alguno = false;
     let suyos = try obtener(campos, nombre);
     for c en suyos {
-        if try posee(campos, vista(c), visitados) { alguno = true; }
+        if try posee(campos, c, visitados) { alguno = true; }
     }
     return alguno;
 }
 
 fn tipo_existe(campos: &mapa<str, lista<str>>, t: view) -> bool {
-    if es_referencia(t) {
-        return tipo_existe(campos, apuntado(t));
+    let a = leer_tipo(t);
+    match a.forma {
+        Forma.Presta -> { return tipo_existe(campos, apuntado(t)); }
+        Forma.PrestaMut -> { return tipo_existe(campos, apuntado(t)); }
+        Forma.Funcion -> { return true; }
+        Forma.Arreglo -> {
+            let dentro = elemento(t);
+            return tipo_existe(campos, dentro);
+        }
+        Forma.Mapa -> {
+            let ps = partes(t);
+            if ps.largo() != 2 { return false; }
+            return tipo_existe(campos, ps[0]) && tipo_existe(campos, ps[1]);
+        }
+        Forma.Lista -> { return coleccion_existe(campos, t); }
+        Forma.Bloque -> { return coleccion_existe(campos, t); }
+        // Un rango solo existe en la cabecera de un `for`.
+        Forma.Rango -> { return tiene(campos, t); }
+        Forma.Nombre -> { }
     }
     if t == "str" || escalar(t) { return true; }
-    if es_funcion(t) { return true; }
-    if es_arreglo(t) {
-        let dentro = elemento(t);
-        return tipo_existe(campos, vista(dentro));
-    }
-    if es_mapa(t) {
-        let partes = partir_tipos(entre_angulos(t));
-        if partes.largo() != 2 { return false; }
-        return tipo_existe(campos, vista(partes[0]))
-        && tipo_existe(campos, vista(partes[1]));
-    }
-    if es_lista(t) || es_bloque(t) {
-        let dentro = elemento(t);
-        // Guardar vistas o arreglos fijos en una coleccion exigiria expresar
-        // su vida util o su tamaño, y v0 no los lleva en el tipo.
-        if dentro == "view" { return false; }
-        if es_arreglo(dentro) { return false; }
-        return tipo_existe(campos, vista(dentro));
-    }
     return tiene(campos, t);
+}
+
+// Guardar vistas o arreglos fijos en una coleccion exigiria expresar su vida
+// util o su tamaño, y v0 no los lleva en el tipo.
+fn coleccion_existe(campos: &mapa<str, lista<str>>, t: view) -> bool {
+    let dentro = elemento(t);
+    if dentro == "view" { return false; }
+    if es_arreglo(dentro) { return false; }
+    return tipo_existe(campos, dentro);
 }
