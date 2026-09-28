@@ -41,6 +41,9 @@ El camino a 1.0.
 - `tcodec` abortaba con un byte cero en la ruta de un `usar`, y Python se
   escapaba con una excepción; también con un archivo que no es UTF-8.
 - Los fallos internos del generador salían sin archivo ni línea.
+- Una lista declarada sólo dentro de un `for` o de un brazo de `match` no
+  se declaraba en el C: Python escribía C que no compilaba y `tcodec` se
+  negaba.
 
 ### El compilador de Python
 
@@ -57,6 +60,8 @@ El camino a 1.0.
 - `make fuzz` y `tests/fuzz.py`: fuzzing del código real, con los hallazgos
   guardados como regresión.
 - `make bench-comprobar`: medidas con límites de regresión.
+- Sección REGLAS (`tests/reglas.py`): el oráculo de rechazo que no es un
+  compilador. Cada regla en pares mínimos y en varios contextos.
 - `docs/PLATAFORMAS.md` y `docs/COMPATIBILIDAD.md`.
 
 ## 0.1.0

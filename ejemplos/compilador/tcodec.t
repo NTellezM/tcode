@@ -964,11 +964,38 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
                     }
                 }
             }
+            // Lo que se declara dentro de un `for` o de un brazo de `match`
+            // tambien pide sus listas: sin esto, `let xs: lista<usize>` en un
+            // brazo se usaba y nadie la declaraba.
+            Clase.Para -> {
+                let ultimo = st.hijos.largo();
+                if bien && ultimo > 0 && st.hijos[ultimo - 1].clase == Clase.Bloque {
+                    bien = mirar_bloque(st.hijos[ultimo - 1], tipos, reg, global, structs);
+                }
+            }
+            Clase.Expresion -> {
+                if bien && st.hijos.largo() == 1 && st.hijos[0].clase == Clase.Match {
+                    bien = mirar_brazos(st.hijos[0], tipos, reg, global, structs);
+                }
+            }
             _ -> { }
         }
     }
     I.cerrar(tipos);
     return bien;
+}
+
+fn mirar_brazos(m: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
+    global: &I.Contexto, structs: &mapa<str, usize>) -> bool {
+    for b en m.hijos {
+        if b.clase != Clase.Brazo { continue; }
+        for h en b.hijos {
+            if h.clase == Clase.Bloque {
+                if !mirar_bloque(h, tipos, reg, global, structs) { return false; }
+            }
+        }
+    }
+    return true;
 }
 
 fn mirar_funcion(d: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,

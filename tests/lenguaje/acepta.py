@@ -11,6 +11,25 @@ from .comun import (
 )
 
 ACEPTA = [
+    # Una lista declarada dentro de un `for` o de un brazo de `match`, y
+    # en ningun otro sitio. Los dos compiladores recorrian solo los `if` y
+    # los `while` al registrar los tipos: Python escribia C que usaba la
+    # lista sin declararla y tcodec se negaba. Lo encontro la seccion
+    # REGLAS.
+    ("una lista que solo aparece dentro de un for o de un match",
+     '''enum C { U, D }
+        fn main() {
+            let k = C.U;
+            match k {
+                C.U -> { let xs: lista<usize> = [1, 2]; imprimir(xs[1]); }
+                C.D -> { }
+            }
+            let zs = [1, 2];
+            for z en zs { let ys: lista<bool> = [z == 2]; imprimir(ys[0]); }
+            imprimir("\\n");
+        }''',
+     "2falsetrue\n"),
+
     # Nombres de UAX #31: letras de cualquier escritura, en structs, campos,
     # funciones y variables. El C los lleva tal cual, y gcc y clang los
     # aceptan.
