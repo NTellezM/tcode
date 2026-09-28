@@ -90,6 +90,14 @@ fn main() -> usize ! {
         let duenio = posee_de(campos, vista(t));
         let existe = T.tipo_existe(campos, vista(t));
         imprimir($"{t}\t{duenio}\t{existe}\n");
+        // Leido como arbol y vuelto a escribir, el tipo es el mismo texto; y
+        // montado de nuevo con sus propias partes, tambien. Si no, la linea
+        // de mas hace fallar la comparacion.
+        let leido = T.leer_tipo(t);
+        let vuelta = T.escribir_tipo(leido);
+        if !igual(vuelta, t) { imprimir($"{t}\tida y vuelta\t{vuelta}\n"); }
+        let montado = T.con_partes(t, T.partes(t));
+        if !igual(montado, t) { imprimir($"{t}\tcon sus partes\t{montado}\n"); }
     }
     return 0;
 }

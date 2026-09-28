@@ -472,8 +472,8 @@ fn visitar_struct(nombre: view, indice: &mapa<str, usize>,
     for t en tipos_de[k] {
         // Un arreglo de structs necesita el tamaño del de dentro.
         var base = copiar(t);
-        while empieza_con(base, "[") {
-            let pa = partes_arreglo(base);
+        while T.es_arreglo(base) {
+            let pa = T.partes_de_arreglo(base);
             if pa.largo() != 2 { break; }
             base = copiar(pa[0]);
         }
@@ -504,8 +504,8 @@ fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<li
     }
     for t en lleva {
         var base = copiar(t);
-        while empieza_con(base, "[") {
-            let pa = partes_arreglo(base);
+        while T.es_arreglo(base) {
+            let pa = T.partes_de_arreglo(base);
             if pa.largo() != 2 { break; }
             base = copiar(pa[0]);
         }
@@ -721,74 +721,6 @@ fn rechazo(que: view) -> usize {
 // que es el de su recorrido previo: campos de struct, retorno, parametros y
 // declaraciones, entrando en `if` y `while` pero no en `for` ni `match`.
 
-fn es_lista_t(t: view) -> bool { return empieza_con(t, "lista<"); }
-
-fn interior_lista(t: view) -> str {
-    return nuevo(rebanar(t, 6, t.largo() - 1));
-}
-
-// Bloques y arreglos: este hito todavia no los escribe.
-fn es_bloque_o_arreglo(t: view) -> bool {
-    return contiene(t, "bloque<") || contiene(t, "[");
-}
-
-fn es_mapa_t(t: view) -> bool { return empieza_con(t, "mapa<"); }
-
-// La clave y el valor de un `mapa<K, V>`, cortando por la coma de fuera.
-fn partes_mapa(t: view) -> lista<str> {
-    var salida: lista<str> = [];
-    let dentro = rebanar(t, 5, t.largo() - 1);
-    var hondura = 0;
-    var i = 0;
-    while i < dentro.largo() {
-        let b = byte(dentro, i);
-        if b == 60 || b == 91 || b == 40 { hondura = hondura + 1; }
-        if (b == 62 || b == 93 || b == 41) && hondura > 0 { hondura = hondura - 1; }
-        if b == 44 && hondura == 0 {
-            salida.anadir(nuevo(rebanar(dentro, 0, i)));
-            var j = i + 1;
-            while j < dentro.largo() && byte(dentro, j) == 32 { j = j + 1; }
-            salida.anadir(nuevo(rebanar(dentro, j, dentro.largo())));
-            return salida;
-        }
-        i = i + 1;
-    }
-    return salida;
-}
-
-// `[T; N]` -> [T, N], cortando por el `;` de fuera.
-fn partes_arreglo(t: view) -> lista<str> {
-    var salida: lista<str> = [];
-    if t.largo() < 2 || !empieza_con(t, "[") { return salida; }
-    let dentro = rebanar(t, 1, t.largo() - 1);
-    var hondura = 0;
-    var corte = dentro.largo();
-    var i = 0;
-    while i < dentro.largo() {
-        let b = byte(dentro, i);
-        if b == 91 || b == 60 { hondura = hondura + 1; }
-        if (b == 93 || b == 62) && hondura > 0 { hondura = hondura - 1; }
-        if b == 59 && hondura == 0 { corte = i; }
-        i = i + 1;
-    }
-    if corte == dentro.largo() { return salida; }
-    salida.anadir(nuevo(rebanar(dentro, 0, corte)));
-    var j = corte + 1;
-    while j < dentro.largo() && byte(dentro, j) == 32 { j = j + 1; }
-    salida.anadir(nuevo(rebanar(dentro, j, dentro.largo())));
-    return salida;
-}
-
-fn cuantos_corchetes(t: view) -> usize {
-    var n = 0;
-    var i = 0;
-    while i < t.largo() {
-        if byte(t, i) == 91 { n = n + 1; }
-        i = i + 1;
-    }
-    return n;
-}
-
 // Lo que el recorrido previo registra, en el orden en que lo registra el
 // original: cada coleccion concreta y cada tipo resultado. Un mapa registra
 // al pasar la lista de sus claves y los resultados de `obtener`, asi que
@@ -822,9 +754,9 @@ fn registrar_resultado(reg: mut Registro, t: view) {
 
 // Tiene partes: se puede leer un campo o modificarlo en el sitio.
 fn es_compuesto_t(t: view, structs: &mapa<str, usize>) -> bool {
-    if t == "str" || empieza_con(t, "bloque<") { return true; }
-    if es_lista_t(t) || es_mapa_t(t) { return true; }
-    if empieza_con(t, "[") { return true; }
+    if t == "str" || T.es_bloque(t) { return true; }
+    if T.es_lista(t) || T.es_mapa(t) { return true; }
+    if T.es_arreglo(t) { return true; }
     return tiene(structs, t);
 }
 
@@ -832,7 +764,7 @@ fn es_compuesto_t(t: view, structs: &mapa<str, usize>) -> bool {
 fn tipo_obtener(v: view, global: &I.Contexto) -> str {
     if !I.posee_con_formas(global, v) { return nuevo(v); }
     if v == "str" { return nuevo("view"); }
-    return $"&{v}";
+    return T.hacer_prestado(v);
 }
 
 // Registra `t` si es una lista o un mapa, lo de dentro primero. Falso si
@@ -845,8 +777,8 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
             return mirar_tipo(resuelto, reg, global, structs);
         }
     }
-    if empieza_con(t, "[") {
-        let pa = partes_arreglo(t);
+    if T.es_arreglo(t) {
+        let pa = T.partes_de_arreglo(t);
         if pa.largo() != 2 { return false; }
         if tiene(reg.arr_vistos, t) { return true; }
         // El typedef del elemento va antes que el envoltorio del arreglo:
@@ -856,24 +788,24 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
         reg.arreglos.anadir(nuevo(t));
         return true;
     }
-    if empieza_con(t, "bloque<") {
+    if T.es_bloque(t) {
         if tiene(reg.vistos, t) { return true; }
         poner(reg.vistos, t, 1);
         reg.bloques.anadir(nuevo(t));
-        let dentro_b = nuevo(rebanar(t, 7, t.largo() - 1));
+        let dentro_b = T.elemento(t);
         return mirar_tipo(dentro_b, reg, global, structs);
     }
     // Una lista o un mapa de bloques o arreglos registran lo de dentro al
     // registrarse, como cualquier otra lista o mapa.
-    if es_bloque_o_arreglo(t) && !es_lista_t(t) && !es_mapa_t(t) {
+    if T.lleva_bloque_o_arreglo(t) && !T.es_lista(t) && !T.es_mapa(t) {
         // Un prestamo no registra nada, como en el original.
-        if empieza_con(t, "&") { return true; }
+        if T.es_referencia(t) { return true; }
         imprimir_error($"tcodec: el tipo `{t}`\n");
         return false;
     }
     if tiene(reg.vistos, t) { return true; }
-    if es_lista_t(t) {
-        let dentro = interior_lista(t);
+    if T.es_lista(t) {
+        let dentro = T.elemento(t);
         // Igual que el generador de referencia: lo que lleva dentro tiene que
         // registrarse antes, aunque sea un mapa o un bloque y no otra lista.
         if !mirar_tipo(dentro, reg, global, structs) { return false; }
@@ -881,22 +813,22 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
         reg.listas.anadir(nuevo(t));
         return true;
     }
-    if !es_mapa_t(t) { return true; }
-    let partes = partes_mapa(t);
+    if !T.es_mapa(t) { return true; }
+    let partes = T.partes(t);
     if partes.largo() != 2 { return false; }
     // El nombre en C de la clave y del valor, la lista que devuelve
     // `claves`, y los resultados de `obtener` y de `obtener_mut`.
     for x en partes {
-        if es_lista_t(x) || es_mapa_t(x) || es_bloque_o_arreglo(x) {
+        if T.es_lista(x) || T.es_mapa(x) || T.lleva_bloque_o_arreglo(x) {
             if !mirar_tipo(x, reg, global, structs) { return false; }
         }
     }
-    let de_claves = $"lista<{partes[0]}>";
+    let de_claves = T.hacer_lista(partes[0]);
     if !mirar_tipo(de_claves, reg, global, structs) { return false; }
     let obt = tipo_obtener(partes[1], global);
     registrar_resultado(reg, obt);
     if es_compuesto_t(partes[1], structs) {
-        let con_mut = $"&mut {partes[1]}";
+        let con_mut = T.hacer_prestado_mut(partes[1]);
         registrar_resultado(reg, con_mut);
     }
     poner(reg.vistos, t, 1);
@@ -969,21 +901,21 @@ fn poner_typedef(t: view, reg: &Registro, puestos: mut mapa<str, usize>,
     if tiene(puestos, t) || !tiene(reg.vistos, t) { return; }
     poner(puestos, t, 1);
     let tc = G.tipo_c(t);
-    if empieza_con(t, "bloque<") {
-        let dentro_b = nuevo(rebanar(t, 7, t.largo() - 1));
+    if T.es_bloque(t) {
+        let dentro_b = T.elemento(t);
         poner_typedef(dentro_b, reg, puestos, salida);
         let te_b = G.tipo_c(dentro_b);
         salida.anadir($"typedef struct {{ {te_b}* e; size_t n; }} {tc};");
         return;
     }
-    if es_lista_t(t) {
-        let dentro = interior_lista(t);
+    if T.es_lista(t) {
+        let dentro = T.elemento(t);
         poner_typedef(dentro, reg, puestos, salida);
         let te = G.tipo_c(dentro);
         salida.anadir($"typedef struct {{ {te}* e; size_t length; size_t capacity; }} {tc};");
         return;
     }
-    let partes = partes_mapa(t);
+    let partes = T.partes(t);
     for x en partes { poner_typedef(x, reg, puestos, salida); }
     let tk = G.tipo_c(partes[0]);
     let tv = G.tipo_c(partes[1]);
@@ -999,7 +931,7 @@ fn ordenable(t: view) -> bool {
 }
 
 fn funcion_push(t: view, salida: mut lista<str>) {
-    let dentro = interior_lista(t);
+    let dentro = T.elemento(t);
     let te = G.tipo_c(dentro);
     let tc = G.tipo_c(t);
     let m = G.mangle(t);
@@ -1030,7 +962,7 @@ fn funcion_push(t: view, salida: mut lista<str>) {
 }
 
 fn funcion_ordenar(t: view, salida: mut lista<str>) {
-    let dentro = interior_lista(t);
+    let dentro = T.elemento(t);
     if !ordenable(dentro) { return; }
     let te = G.tipo_c(dentro);
     let tc = G.tipo_c(t);
@@ -1076,14 +1008,14 @@ fn lineas_liberacion(global: &I.Contexto, donde: view, tipo: view,
 // direccionamiento abierto con sondeo lineal, y borrado sin lapidas.
 fn funcion_mapa(t: view, global: &I.Contexto, structs: &mapa<str, usize>,
     cta: mut F.Cuenta, salida: mut lista<str>) {
-    let partes = partes_mapa(t);
+    let partes = T.partes(t);
     let k = copiar(partes[0]);
     let v = copiar(partes[1]);
     let m = G.mangle(t);
     let nombre = G.tipo_c(t);
     let tc_k = G.tipo_c(k);
     let tc_v = G.tipo_c(v);
-    let de_claves = $"lista<{k}>";
+    let de_claves = T.hacer_lista(k);
     let lista_k = G.tipo_c(de_claves);
     let m_claves = G.mangle(de_claves);
     let obt = tipo_obtener(v, global);
@@ -1215,7 +1147,7 @@ fn funcion_mapa(t: view, global: &I.Contexto, structs: &mapa<str, usize>,
     salida.anadir(vacio());
 
     if es_compuesto_t(v, structs) {
-        let con_mut = $"&mut {v}";
+        let con_mut = T.hacer_prestado_mut(v);
         let rm = G.tipo_resultado(con_mut);
         salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
         salida.anadir($"static {rm} ss_mapa_obtener_mut_{m}({nombre}* p, SafeView clave)");
@@ -1290,7 +1222,7 @@ fn funcion_mapa(t: view, global: &I.Contexto, structs: &mapa<str, usize>,
 
 fn funcion_bloque(t: view, global: &I.Contexto, cta: mut F.Cuenta,
     salida: mut lista<str>) {
-    let elem = nuevo(rebanar(t, 7, t.largo() - 1));
+    let elem = T.elemento(t);
     let te = G.tipo_c(elem);
     let nombre = G.tipo_c(t);
     let m = G.mangle(t);
@@ -1417,26 +1349,26 @@ fn necesita_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
     }
     poner(vistos, t, 1);
     salida.anadir(nuevo(t));
-    if empieza_con(t, "bloque<") {
-        let dentro_b = nuevo(rebanar(t, 7, t.largo() - 1));
+    if T.es_bloque(t) {
+        let dentro_b = T.elemento(t);
         necesita_copiador(dentro_b, global, st_indice, st_tipos, vistos, salida);
         return;
     }
-    if es_lista_t(t) {
-        let dentro = interior_lista(t);
+    if T.es_lista(t) {
+        let dentro = T.elemento(t);
         necesita_copiador(dentro, global, st_indice, st_tipos, vistos, salida);
         return;
     }
-    if es_mapa_t(t) {
-        let partes = partes_mapa(t);
+    if T.es_mapa(t) {
+        let partes = T.partes(t);
         if partes.largo() == 2 {
             necesita_copiador(vista(partes[1]), global, st_indice, st_tipos,
                 vistos, salida);
         }
         return;
     }
-    if empieza_con(t, "[") {
-        let pa = partes_arreglo(t);
+    if T.es_arreglo(t) {
+        let pa = T.partes_de_arreglo(t);
         if pa.largo() == 2 {
             necesita_copiador(pa[0], global, st_indice, st_tipos, vistos, salida);
         }
@@ -1518,8 +1450,8 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
         salida.anadir(vacio());
         return true;
     }
-    if empieza_con(t, "bloque<") {
-        let elem_b = nuevo(rebanar(t, 7, t.largo() - 1));
+    if T.es_bloque(t) {
+        let elem_b = T.elemento(t);
         let te_b = G.tipo_c(elem_b);
         let cp_b = copia_de("p->e[i]", vista(elem_b), global);
         salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
@@ -1537,8 +1469,8 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
         salida.anadir(vacio());
         return true;
     }
-    if es_lista_t(t) {
-        let elem = interior_lista(t);
+    if T.es_lista(t) {
+        let elem = T.elemento(t);
         let te = G.tipo_c(elem);
         let cp = copia_de("p->e[i]", vista(elem), global);
         salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
@@ -1557,8 +1489,8 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
         salida.anadir(vacio());
         return true;
     }
-    if es_mapa_t(t) {
-        let partes = partes_mapa(t);
+    if T.es_mapa(t) {
+        let partes = T.partes(t);
         if partes.largo() != 2 { return false; }
         let tck = G.tipo_c(partes[0]);
         let tcv = G.tipo_c(partes[1]);
@@ -1585,8 +1517,8 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
         salida.anadir(vacio());
         return true;
     }
-    if empieza_con(t, "[") {
-        let pa = partes_arreglo(t);
+    if T.es_arreglo(t) {
+        let pa = T.partes_de_arreglo(t);
         if pa.largo() != 2 { return false; }
         let cp = copia_de("p->e[i]", vista(pa[0]), global);
         salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
@@ -1683,35 +1615,6 @@ fn ordenar_como_comprobador(desde: usize, orden: &lista<str>,
     st_tipos = tipos;
 }
 
-// Lo de dentro de `Base<a, b>`, cortado por las comas de fuera.
-fn partir_args(t: view) -> lista<str> {
-    var salida: lista<str> = [];
-    var ini = 0;
-    while ini < t.largo() && byte(t, ini) != 60 { ini = ini + 1; }
-    if ini + 1 >= t.largo() { return salida; }
-    let dentro = rebanar(t, ini + 1, t.largo() - 1);
-    var hondura = 0;
-    var desde = 0;
-    var i = 0;
-    while i <= dentro.largo() {
-        var corta = i == dentro.largo();
-        if !corta {
-            let b = byte(dentro, i);
-            if b == 60 || b == 91 || b == 40 { hondura = hondura + 1; }
-            if (b == 62 || b == 93 || b == 41) && hondura > 0 { hondura = hondura - 1; }
-            corta = b == 44 && hondura == 0;
-        }
-        if corta {
-            var j = desde;
-            while j < i && byte(dentro, j) == 32 { j = j + 1; }
-            salida.anadir(nuevo(rebanar(dentro, j, i)));
-            desde = i + 1;
-        }
-        i = i + 1;
-    }
-    return salida;
-}
-
 // Como `resolver_tipo` del comprobador: el tipo con cada aplicacion cambiada
 // por su copia, creando la copia la primera vez. Una copia se apunta despues
 // de resolver sus campos, asi que las que pide un campo van antes.
@@ -1722,63 +1625,35 @@ fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
     st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>,
     global: mut I.Contexto) -> str {
     if !contiene(t, "<") && !contiene(t, "[") { return nuevo(t); }
-    if empieza_con(t, "&mut ") {
-        let d = resolver_reg(rebanar(t, 5, t.largo()), plantillas_st, p_params, p_campos, p_tipos, en_curso,
-            st_nombres, st_indice, st_campos, st_tipos, global);
-        return $"&mut {d}";
-    }
-    if empieza_con(t, "&") {
-        let d = resolver_reg(rebanar(t, 1, t.largo()), plantillas_st, p_params, p_campos, p_tipos, en_curso,
-            st_nombres, st_indice, st_campos, st_tipos, global);
-        return $"&{d}";
-    }
-    if es_lista_t(t) {
-        let e = interior_lista(t);
-        let d = resolver_reg(vista(e), plantillas_st, p_params, p_campos, p_tipos, en_curso,
-            st_nombres, st_indice, st_campos, st_tipos, global);
-        return $"lista<{d}>";
-    }
-    if empieza_con(t, "bloque<") {
-        let e = nuevo(rebanar(t, 7, t.largo() - 1));
-        let d = resolver_reg(vista(e), plantillas_st, p_params, p_campos, p_tipos, en_curso,
-            st_nombres, st_indice, st_campos, st_tipos, global);
-        return $"bloque<{d}>";
-    }
-    if es_mapa_t(t) {
-        let partes = partes_mapa(t);
-        if partes.largo() != 2 { return nuevo(t); }
-        let k = resolver_reg(vista(partes[0]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
-            st_nombres, st_indice, st_campos, st_tipos, global);
-        let v = resolver_reg(vista(partes[1]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
-            st_nombres, st_indice, st_campos, st_tipos, global);
-        return $"mapa<{k}, {v}>";
-    }
-    if empieza_con(t, "[") {
-        let pa = partes_arreglo(t);
-        if pa.largo() != 2 { return nuevo(t); }
-        let d = resolver_reg(vista(pa[0]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
-            st_nombres, st_indice, st_campos, st_tipos, global);
-        return $"[{d}; {pa[1]}]";
+    // Lo que lleva tipos dentro se resuelve parte a parte y se vuelve a
+    // montar, en orden: la clave de un mapa antes que su valor.
+    if T.es_referencia(t) || T.es_lista(t) || T.es_bloque(t) || T.es_mapa(t)
+    || T.es_arreglo(t) {
+        var nuevas: lista<str> = [];
+        for parte en T.partes(t) {
+            let resuelta = resolver_reg(parte, plantillas_st, p_params, p_campos, p_tipos,
+                en_curso, st_nombres, st_indice, st_campos, st_tipos, global);
+            nuevas.anadir(resuelta);
+        }
+        return T.con_partes(t, nuevas);
     }
     if !I.es_aplicacion(t) { return nuevo(t); }
     let base = I.base_de_aplicacion(t);
     if !tiene(plantillas_st, base) { return nuevo(t); }
     let kp = obtener(plantillas_st, base) sino 0;
-    let dados = partir_args(t);
+    let dados = T.partes(t);
     if dados.largo() != p_params[kp].largo() { return nuevo(t); }
     var ligaduras: mapa<str, str> = [];
-    var nombre = copiar(base);
-    nombre.empujar("__");
+    var resueltos: lista<str> = [];
     var i = 0;
     while i < dados.largo() {
-        let d = resolver_reg(vista(dados[i]), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+        let d = resolver_reg(dados[i], plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
-        if i > 0 { nombre.empujar("_"); }
-        let limpio = G.sanear(d);
-        nombre.empujar(limpio);
-        poner(ligaduras, vista(p_params[kp][i]), d);
+        poner(ligaduras, vista(p_params[kp][i]), copiar(d));
+        resueltos.anadir(d);
         i = i + 1;
     }
+    let nombre = T.nombre_de_copia(base, resueltos);
     if tiene(st_indice, nombre) || tiene(en_curso, nombre) { return nombre; }
     poner(en_curso, vista(nombre), 1);
     var tipos_c: lista<str> = [];
@@ -2745,7 +2620,7 @@ fn main() -> usize ! {
                     for x en h.hijos {
                         if x.clase != Clase.Lleva { continue; }
                         let t = I.sin_alias_tipo(x.texto);
-                        if es_bloque_o_arreglo(t) {
+                        if T.lleva_bloque_o_arreglo(t) {
                             return rechazo("bloques o arreglos en un enum");
                         }
                         if !primero_t { junto.empujar("\t"); }
@@ -3183,7 +3058,7 @@ fn main() -> usize ! {
     var quedan_a = reg.arreglos.largo();
     while quedan_a > 0 {
         for t en reg.arreglos {
-            if cuantos_corchetes(t) == hondo_a {
+            if T.arreglos_dentro(t) == hondo_a {
                 arr_orden.anadir(copiar(t));
                 quedan_a = quedan_a - 1;
             }
@@ -3191,7 +3066,7 @@ fn main() -> usize ! {
         hondo_a = hondo_a + 1;
     }
     for t en arr_orden {
-        let pa = partes_arreglo(t);
+        let pa = T.partes_de_arreglo(t);
         let te = G.tipo_c(pa[0]);
         let tc = G.tipo_c(t);
         partes.anadir($"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
@@ -3419,8 +3294,8 @@ fn main() -> usize ! {
     var quedan_t = tardios_sin.largo();
     while quedan_t > 0 {
         for t en tardios_sin {
-            if cuantos_corchetes(t) == hondo_t {
-                let pa = partes_arreglo(t);
+            if T.arreglos_dentro(t) == hondo_t {
+                let pa = T.partes_de_arreglo(t);
                 let te = G.tipo_c(pa[0]);
                 let tc = G.tipo_c(t);
                 envoltorios.anadir($"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
