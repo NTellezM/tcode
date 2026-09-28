@@ -542,6 +542,13 @@ class Oraculo:
             x = self.expresion(origen, True, prof + 1)
         if origen in DECIMALES and t in ENTEROS:
             envolviendo = False
+        # Un numero escrito que no cabe en un entero no compila con `como`:
+        # es una cuenta de numeros escritos (eso lo prueba `cuentas_escritas`).
+        # Aqui se queda con los bits de abajo, que si es un programa.
+        if x.texto.lstrip("-").isdigit() and t in ENTEROS:
+            lo, hi = rango(t)
+            if not lo <= x.calcular() <= hi:
+                envolviendo = True
         palabra = "como?" if envolviendo else "como"
         fuente = x.texto if x.texto[0] == "(" or x.texto[0].isalnum() else f"({x.texto})"
         return Nodo(f"({fuente} {palabra} {t})", t,
@@ -694,7 +701,19 @@ def cuentas_escritas(semilla):
     que le da su tipo o en uno que no (y entonces es `usize`), y el error que
     tiene que dar al compilar: (fuente, (linea, mensaje) o None)."""
     r = random.Random(semilla)
-    sitio = r.choice(["let", "suelta", "imprimir", "al_lado", "retorno"])
+    sitio = r.choice(["let", "suelta", "imprimir", "al_lado", "retorno", "como"])
+    if sitio == "como":
+        # `N como T`: si no cabe, tampoco compila.
+        t = r.choice(list(ENTEROS))
+        n = r.choice([0, 1, 127, 128, 200, 255, 256, 300, 32767, 32768, 70000,
+                      2**31, 2**32, 5000000000, 2**63 - 1])
+        v = -n if r.random() < 0.3 else n
+        texto = f"-{n}" if v < 0 else str(n)
+        fuente = f"fn main() {{\n    imprimir({texto} como {t});\n}}\n"
+        lo, hi = rango(t)
+        if lo <= v <= hi:
+            return fuente, None
+        return fuente, (2, f"`{v} como {t}` no cabe en `{t}`" + AL_COMPILAR)
     t = "usize" if sitio in ("suelta", "imprimir") else r.choice(list(ENTEROS))
     texto, v = _cuenta_al_azar(r, t, r.randint(1, 3))
     if sitio == "let":
