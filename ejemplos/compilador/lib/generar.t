@@ -4852,7 +4852,7 @@ fn mayusculas_c(t: view) -> str {
     var i = 0;
     while i < t.largo() {
         let c = byte(t, i);
-        if c >= 97 && c <= 122 { empujar_byte(r, (c - 32) como ? u8); }
+        if c >= 97 && c <= 122 { empujar_byte(r, (c - 32) como? u8); }
         else { r.empujar(rebanar(t, i, i + 1)); }
         i = i + 1;
     }

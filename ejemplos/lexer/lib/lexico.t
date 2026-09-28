@@ -568,11 +568,14 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
                 error = $"{archivo}:{linea}: numero mal formado cerca de {visto}";
                 falla "numero mal formado";
             }
-            // `1_000` es `1000`: el guion bajo solo ayuda a leerlo.
+            // `1_000` es `1000`: el guion bajo solo ayuda a leerlo. Para el
+            // formato, con `comentarios`, el numero se queda como se escribio.
             var limpio = vacio();
             var q = i;
             while q < j {
-                if byte(fuente, q) != 95 { limpio.empujar(rebanar(fuente, q, q + 1)); }
+                if comentarios || byte(fuente, q) != 95 {
+                    limpio.empujar(rebanar(fuente, q, q + 1));
+                }
                 q = q + 1;
             }
             var clase = nuevo("entero");

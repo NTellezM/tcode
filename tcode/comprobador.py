@@ -2808,7 +2808,7 @@ class Comprobador:
                 f = self.funciones.get(e.nombre)
                 if f is not None:
                     if f.falible:
-                        self.error(e, f"`{e.nombre}` puede fallar, y en v0 una "
+                        self.error(e, f"`{e.nombre}` puede fallar, y una "
                                       f"funcion que se pasa como valor no "
                                       f"puede: quitale el `!` o envuelvela")
                         return None
@@ -3022,12 +3022,12 @@ class Comprobador:
         raise AssertionError(f"expresion desconocida: {type(e).__name__}")
 
     def comprobar_mapa_valido(self, nodo, tipo):
-        """Los limites de `mapa<K, V>` en v0, dichos donde se declara."""
+        """Los limites de `mapa<K, V>`, dichos donde se declara."""
         if not es_mapa(tipo):
             return
         k, v = partes_mapa(tipo)
         if k != "str":
-            self.error(nodo, f"en v0 la clave de un mapa tiene que ser `str`, "
+            self.error(nodo, f"la clave de un mapa tiene que ser `str`, "
                              f"y aqui es `{k}`")
         if es_referencia(v) or es_referencia(k):
             self.error(nodo, "un mapa guarda valores, no prestamos: `&T` no "

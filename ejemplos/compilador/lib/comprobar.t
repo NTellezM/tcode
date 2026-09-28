@@ -2932,8 +2932,8 @@ fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> E
             return valor_sabido(false, r);
         }
         // Un negativo rellena con unos: redondea hacia abajo.
-        let p = (patron_escrito(a) como ? i64) >> b.magnitud;
-        return desde_patron(p como ? u64, tipo);
+        let p = (patron_escrito(a) como? i64) >> b.magnitud;
+        return desde_patron(p como? u64, tipo);
     }
     return escrito_sin_saber();
 }
@@ -3055,7 +3055,7 @@ fn variable(c: mut Comprobacion, m: &Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let k = funcion_llamada(m, tipos, nombre);
         if k < m.funciones.largo() && !tiene_sueltos(m.funciones[k]) {
             if m.funciones[k].falible {
-                error(c, m, n.linea, $"`{nombre}` puede fallar, y en v0 una funcion que se pasa como valor no puede: quitale el `!` o envuelvela");
+                error(c, m, n.linea, $"`{nombre}` puede fallar, y una funcion que se pasa como valor no puede: quitale el `!` o envuelvela");
                 return vacio();
             }
             return firma_de(m.funciones[k]);
@@ -4488,7 +4488,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let is = buscar_simbolo(c, base);
         var tipo_lista = vacio();
         let hay = base.largo() > 0 && existe(c, is);
-        if hay { tipo_lista = tipo_de_lugar(c, m, tipos, n.hijos[0]); }
+        if hay { tipo_lista = sin_prestamo(tipo_de_lugar(c, m, tipos, n.hijos[0])); }
         if !hay {
             error(c, m, n.linea, "el primer argumento de `anadir` tiene que ser una variable, un campo o un elemento");
         } else if !T.es_lista(tipo_lista) {
@@ -4500,7 +4500,10 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             if t.largo() > 0 && !encaja(elem, t) {
                 error(c, m, n.linea, $"la lista guarda `{elem}` y se intento agregar `{t}`");
             }
-            mutar(c, m, n.hijos[0], n.hijos[0].linea, is, false);
+            // Por un `&mut lista<T>` —de `obtener_mut`, o un parametro— se
+            // modifica; por un `&` no, y el error lo dice.
+            mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
+                T.es_referencia(c.simbolos[is].tipo));
             return nuevo("()");
         }
         let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
@@ -4517,7 +4520,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let is = buscar_simbolo(c, base);
         let hay = base.largo() > 0 && existe(c, is);
         var t = vacio();
-        if hay { t = tipo_de_lugar(c, m, tipos, n.hijos[0]); }
+        if hay { t = sin_prestamo(tipo_de_lugar(c, m, tipos, n.hijos[0])); }
         if !hay {
             error(c, m, n.linea, "`ordenar` necesita una variable, un campo o un elemento");
         } else if !T.es_lista(t) {
@@ -4530,7 +4533,8 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 let cuales = con_comas(ords);
                 error(c, m, n.linea, $"`{e}` no tiene un orden natural; `ordenar` funciona sobre {cuales}");
             } else {
-                mutar(c, m, n.hijos[0], n.hijos[0].linea, is, false);
+                mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
+                    T.es_referencia(c.simbolos[is].tipo));
             }
         }
         return nuevo("()");
@@ -4935,7 +4939,7 @@ fn comprobar_mapa_valido(c: mut Comprobacion, m: &Mundo, linea: usize, t: view) 
     let k = vista(ps[0]);
     let v = vista(ps[1]);
     if k != "str" {
-        error(c, m, linea, $"en v0 la clave de un mapa tiene que ser `str`, y aqui es `{k}`");
+        error(c, m, linea, $"la clave de un mapa tiene que ser `str`, y aqui es `{k}`");
     }
     if T.es_referencia(v) || T.es_referencia(k) {
         error(c, m, linea, "un mapa guarda valores, no prestamos: `&T` no puede ser ni clave ni valor");

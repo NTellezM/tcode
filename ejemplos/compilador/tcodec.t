@@ -1156,7 +1156,7 @@ fn funcion_mapa(t: view, global: &I.Contexto, structs: &mapa<str, usize>,
     salida.anadir(nuevo("{"));
     salida.anadir(nuevo("    /* La capacidad es potencia de dos, asi que el resto es"));
     salida.anadir(nuevo("       una mascara. Sondeo lineal: bueno con la cache y sin"));
-    salida.anadir(nuevo("       lapidas, porque en v0 no se borra. */"));
+    salida.anadir(nuevo("       lapidas: `quitar` cierra el hueco arrastrando. */"));
     salida.anadir(nuevo("    size_t mascara = p->capacidad - 1;"));
     salida.anadir(nuevo("    size_t i = (size_t) sv_hash(clave) & mascara;"));
     salida.anadir(nuevo("    while (p->claves[i].data != NULL)"));
