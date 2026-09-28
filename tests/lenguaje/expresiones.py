@@ -40,6 +40,10 @@ def correr(suite: Resultado) -> None:
     # Falta lo que necesita emitir lineas propias: `byte` (guarda la vista en un
     # temporal antes de indexarla), interpolacion, `try`, clausuras y
     # colecciones.
+    #
+    # Lo que sale como `?` no queda sin mirar: la seccion PROGRAMA compara,
+    # byte a byte, el C entero de cada archivo del corpus que tiene `main`.
+    # El minimo es lo que cubre hoy, para que perder una no pase callada.
     from tcode.nodos import Retorno as _Ret
 
     def _retornos(nodo, fuera):
@@ -105,7 +109,7 @@ def correr(suite: Resultado) -> None:
                 fuera.append(f"{d.nombre}\t{r.linea}\t{c}")
         return fuera
 
-    _MINIMO_CUBIERTAS = 700
+    _MINIMO_CUBIERTAS = 1889
 
     tmp = tempfile.mkdtemp(prefix="tcode-expr-")
     try:
