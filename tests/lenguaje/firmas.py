@@ -34,12 +34,16 @@ def correr(suite: Resultado) -> None:
         # resuelve el cargador y en C no queda, asi que el arbol crudo daria una
         # firma que ni siquiera compila.
         from tcode.parser import parsear as _p
-        try:
-            arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set())
-        except Exception:
-            return None
         codigo, errores, comp = compilar_archivo(ruta, devolver_comp=True)
         if errores:
+            return None
+        # Con los enums de todo el programa: `Clase.Retorno ->` es el brazo de
+        # un enum que trae otro modulo, y sin saberlo el parser no lee el
+        # compilador.
+        try:
+            arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set(),
+                       set(comp.enums))
+        except Exception:
             return None
         propio = os.path.relpath(ruta, RAIZ)
         g = _Gen(comp, propio)
@@ -107,6 +111,13 @@ def correr(suite: Resultado) -> None:
                         continue
                     comparados += 1
                     firmas += len(dado)
+                # Un archivo que el parser de Python no lee se salta sin decir
+                # nada; que se salten de mas lo dice este minimo.
+                if comparados < 45:
+                    suite.total += 1
+                    suite.falla("firmas en Tcode",
+                                f"solo {comparados} archivos comparados, se esperaban "
+                                f"al menos 45")
                 suite.cifra("firmas_archivos", comparados)
                 suite.cifra("firmas", firmas)
                 print(f"    {comparados} archivos, {firmas} firmas, mismas que el "

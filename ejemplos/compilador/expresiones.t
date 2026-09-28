@@ -95,18 +95,21 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
         var tipos_param: lista<str> = [];
         var marcados: lista<str> = [];
         for h en n.hijos {
-            if h.clase == Clase.RetornoTipo {
-                retorno = nuevo(h.texto);
-            }
-            // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
-            // existe en el borde: lo que ve Tcode es un `str` suyo.
-            if h.clase == Clase.Externa { es_de_c = true; }
-            if h.clase == Clase.TipoParam {
-                sueltos.anadir(nuevo(h.texto));
-            }
-            if h.clase == Clase.Param {
-                tipos_param.anadir(tipo_pelado(h.texto));
-                marcados.anadir(marca_de(h.texto));
+            match h.clase {
+                Clase.RetornoTipo -> {
+                    retorno = nuevo(h.texto);
+                }
+                // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
+                // existe en el borde: lo que ve Tcode es un `str` suyo.
+                Clase.Externa -> { es_de_c = true; }
+                Clase.TipoParam -> {
+                    sueltos.anadir(nuevo(h.texto));
+                }
+                Clase.Param -> {
+                    tipos_param.anadir(tipo_pelado(h.texto));
+                    marcados.anadir(marca_de(h.texto));
+                }
+                _ -> { }
             }
         }
         if es_de_c {
