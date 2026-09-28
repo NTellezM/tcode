@@ -65,7 +65,8 @@ def correr(suite: Resultado) -> None:
     _TODOS = sorted(
         glob.glob(os.path.join(RAIZ, "std", "*.t"))
         + glob.glob(os.path.join(RAIZ, "ejemplos", "**", "*.t"), recursive=True)
-        + glob.glob(os.path.join(RAIZ, "bench", "*.t")))
+        + glob.glob(os.path.join(RAIZ, "bench", "*.t"))
+        + glob.glob(os.path.join(RAIZ, "programas", "*.t")))
 
     def _formatear_dos_veces(i_archivo):
         """Lo que da `tcodec --formatear` sobre el archivo, y otra vez sobre
