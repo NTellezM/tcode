@@ -13,6 +13,7 @@ usar "../../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
 usar "std/lista";
 usar "std/mapa";
+usar "../../lexer/lib/clase.t";
 
 // Lo que se sabe mientras se recorre un archivo.
 struct Contexto {
@@ -115,15 +116,15 @@ fn buscar(c: &Contexto, nombre: view) -> str {
 fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
     let anotado = tipo_anotado(c, n);
     if anotado.largo() > 0 { return anotado; }
-    let clase = vista(n.clase);
+    let clase = n.clase;
 
-    if clase == "entero" { return nuevo("usize"); }
-    if clase == "decimal" { return nuevo("f64"); }
-    if clase == "cadena" { return nuevo("view"); }
-    if clase == "interpolada" { return nuevo("str"); }
-    if clase == "booleano" { return nuevo("bool"); }
+    if clase == Clase.Entero { return nuevo("usize"); }
+    if clase == Clase.Decimal { return nuevo("f64"); }
+    if clase == Clase.Cadena { return nuevo("view"); }
+    if clase == Clase.Interpolada { return nuevo("str"); }
+    if clase == Clase.Booleano { return nuevo("bool"); }
 
-    if clase == "variable" {
+    if clase == Clase.Variable {
         let local = buscar(c, n.texto);
         if local.largo() > 0 { return local; }
         // El nombre de una funcion sin parentesis detras es un valor: el
@@ -132,35 +133,35 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
     }
 
     // Una clausura ya numerada lleva el nombre de su struct.
-    if clase == "cierre" { return copiar(n.texto); }
+    if clase == Clase.Cierre { return copiar(n.texto); }
 
     // `a..b` en un `for`: los dos extremos son del mismo entero.
-    if clase == "rango" && n.hijos.largo() == 2 {
+    if clase == Clase.Rango && n.hijos.largo() == 2 {
         let t = tipo_de(c, n.hijos[0]);
         return $"rango<{t}>";
     }
 
     // `if c { a } else { b }` vale lo que valga su primera rama: el
     // comprobador ya exige que las dos den lo mismo.
-    if clase == "si_expr" {
+    if clase == Clase.SiExpr {
         if n.hijos.largo() == 3 { return tipo_de(c, n.hijos[1]); }
         return vacio();
     }
 
     // `Color.Rojo` es un `Color`.
-    if clase == "enum_lit" { return antes_del_punto(n.texto); }
+    if clase == Clase.EnumLit { return antes_del_punto(n.texto); }
 
     // Un `match` vale lo que valgan sus brazos, y eso lo dijo el comprobador.
     // Sin lo que dijo, basta con el primer brazo que de algo que se sepa
     // tipar: todos dan lo mismo. Uno que de lo atrapado no se sabe desde
     // aqui, porque lo atrapado solo se declara dentro del brazo.
-    if clase == "match" {
+    if clase == Clase.Match {
         let dicho = anotado_crudo(c, n);
         if dicho.largo() > 0 && !empieza_con(dicho, "{") { return dicho; }
         for h en n.hijos {
-            if h.clase == "brazo" {
+            if h.clase == Clase.Brazo {
                 for x en h.hijos {
-                    if x.clase == "retorno" && x.hijos.largo() > 0 {
+                    if x.clase == Clase.Retorno && x.hijos.largo() > 0 {
                         let t = tipo_de(c, x.hijos[0]);
                         if t.largo() > 0 { return t; }
                     }
@@ -170,19 +171,19 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
         return vacio();
     }
 
-    if clase == "expresion" {
+    if clase == Clase.Expresion {
         if n.hijos.largo() > 0 { return tipo_de(c, n.hijos[0]); }
         return vacio();
     }
 
-    if clase == "conversion" {
+    if clase == Clase.Conversion {
         // El texto lleva el tipo destino, con `?` delante si es envolvente.
         let t = vista(n.texto);
         if empieza_con(t, "?") { return nuevo(rebanar(t, 1, t.largo())); }
         return nuevo(t);
     }
 
-    if clase == "unaria" {
+    if clase == Clase.Unaria {
         if n.texto == "!" { return nuevo("bool"); }
         // Un numero escrito con `-` delante solo cabe en uno con signo: sin
         // mas contexto es un `i64`, como en el comprobador.
@@ -194,7 +195,7 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
         return vacio();
     }
 
-    if clase == "binaria" {
+    if clase == Clase.Binaria {
         let op = vista(n.texto);
         if es_comparacion(op) { return nuevo("bool"); }
         if n.hijos.largo() == 0 { return vacio(); }
@@ -202,18 +203,18 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
         return tipo_cuenta(c, n, "");
     }
 
-    if clase == "try" || clase == "sino" {
+    if clase == Clase.Try || clase == Clase.Sino {
         if n.hijos.largo() > 0 { return tipo_de(c, n.hijos[0]); }
         return vacio();
     }
 
-    if clase == "si_expr" {
+    if clase == Clase.SiExpr {
         // La condicion es el primer hijo; el valor, el segundo.
         if n.hijos.largo() > 1 { return tipo_de(c, n.hijos[1]); }
         return vacio();
     }
 
-    if clase == "literal_struct" {
+    if clase == Clase.LiteralStruct {
         // `P.Estado { ... }` es un `Estado`: el modulo es de quien escribe.
         let escrito = sin_modulo(n.texto);
         // `Par { a: -3, b: 1 }` es la copia que dedujo el comprobador.
@@ -227,7 +228,7 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
         return escrito;
     }
 
-    if clase == "literal_lista" {
+    if clase == Clase.LiteralLista {
         // `[a, b, c]` sin tipo escrito es un arreglo de tamaño fijo. Un `[]`
         // vacio no dice de que es: eso lo pone la anotacion.
         if n.hijos.largo() == 0 { return vacio(); }
@@ -241,21 +242,21 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
         return t;
     }
 
-    if clase == "campo" {
+    if clase == Clase.Campo {
         if n.hijos.largo() == 0 { return vacio(); }
         let crudo = tipo_de(c, n.hijos[0]);
         let base = T.apuntado_si(crudo);
         return tipo_de_campo(c, base, n.texto);
     }
 
-    if clase == "indice" {
+    if clase == Clase.Indice {
         if n.hijos.largo() == 0 { return vacio(); }
         let crudo = tipo_de(c, n.hijos[0]);
         let base = T.apuntado_si(crudo);
         return T.elemento(base);
     }
 
-    if clase == "llamada" { return tipo_de_llamada(c, n); }
+    if clase == Clase.Llamada { return tipo_de_llamada(c, n); }
 
     return vacio();
 }
@@ -283,16 +284,16 @@ fn posee_simple(c: &Contexto, t: view) -> bool {
 // y `""` si no. Un numero asi toma el tipo del otro lado de la operacion, o
 // el que se espera de el; sin nada que lo decida, `usize` o `f64`.
 fn literal_de(n: &P.Nodo) -> view {
-    let clase = vista(n.clase);
-    if clase == "entero" { return "entero"; }
-    if clase == "decimal" { return "decimal"; }
+    let clase = n.clase;
+    if clase == Clase.Entero { return "entero"; }
+    if clase == Clase.Decimal { return "decimal"; }
     // `-1` ya es un `i64`; `-0.5` sigue sin decidir su ancho.
-    if clase == "unaria" && n.texto == "-"
+    if clase == Clase.Unaria && n.texto == "-"
     && n.hijos.largo() == 1 {
         if literal_de(n.hijos[0]) == "decimal" { return "decimal"; }
         return "";
     }
-    if clase == "binaria" && !es_comparacion(n.texto)
+    if clase == Clase.Binaria && !es_comparacion(n.texto)
     && n.hijos.largo() == 2 {
         let izq = literal_de(n.hijos[0]);
         let der = literal_de(n.hijos[1]);
@@ -303,7 +304,7 @@ fn literal_de(n: &P.Nodo) -> view {
             return "entero";
         }
     }
-    if clase == "si_expr" && n.hijos.largo() == 3 {
+    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
         let a = literal_de(n.hijos[1]);
         let b = literal_de(n.hijos[2]);
         if a.largo() > 0 && b.largo() > 0 {

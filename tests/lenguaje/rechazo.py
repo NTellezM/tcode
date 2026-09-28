@@ -56,6 +56,20 @@ RECHAZO = [
      'fn main() { let v: view = nuevo("x"); imprimir(v); }',
      "`v` se declaro `view` pero el valor es `str`"),
 
+    # `==` compara lo que no tiene partes. Antes el C no compilaba.
+    ("== no compara un enum con datos",
+     'enum E { A(usize), B }\nfn main() { let x = E.B; let y = E.B; imprimir(x == y); }',
+     "`==` compara enums sin datos, y alguna forma de `E` lleva algo: miralo con `match`"),
+
+    ("== no compara un struct",
+     'struct P { a: usize }\n'
+     'fn main() { let x = P { a: 1 }; let y = P { a: 1 }; imprimir(x == y); }',
+     "`==` no compara `P`, que tiene partes: compara las que te importen"),
+
+    ("== no compara listas",
+     'fn main() { let x: lista<usize> = []; let y: lista<usize> = []; imprimir(x != y); }',
+     "`==` no compara `lista<usize>`, que tiene partes"),
+
     ("un rango va de un entero a otro",
      'fn main() { for i en 0.."a" { imprimir(i); } }',
      "un rango va de un entero a otro, y este va de un entero escrito a `view`"),

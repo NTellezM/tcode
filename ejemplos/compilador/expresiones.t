@@ -13,6 +13,7 @@ usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
 usar "std/lista";
+usar "../lexer/lib/clase.t";
 
 fn nombre_de(texto: view) -> str {
     var i = 0;
@@ -67,7 +68,7 @@ fn presta(marcado: view) -> bool {
 
 fn es_generica(d: &P.Nodo) -> bool {
     for h en d.hijos {
-        if h.clase == "tipo_param" { return true; }
+        if h.clase == Clase.TipoParam { return true; }
     }
     return false;
 }
@@ -75,11 +76,11 @@ fn es_generica(d: &P.Nodo) -> bool {
 fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
     // Los campos de cada struct, con su tipo: un `0` en un campo `u64` es un
     // `u64`.
-    if n.clase == "struct" {
+    if n.clase == Clase.Struct {
         var suyos: lista<str> = [];
         var como_se_llaman: lista<str> = [];
         for h en n.hijos {
-            if h.clase == "campo_def" {
+            if h.clase == Clase.CampoDef {
                 como_se_llaman.anadir(nombre_de(h.texto));
                 suyos.anadir(tipo_pelado(h.texto));
             }
@@ -87,23 +88,23 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
         poner(c.campos, vista(n.texto), suyos);
         poner(c.nombres, vista(n.texto), como_se_llaman);
     }
-    if n.clase == "fn" {
+    if n.clase == Clase.Fn {
         var retorno = vacio();
         var es_de_c = false;
         var sueltos: lista<str> = [];
         var tipos_param: lista<str> = [];
         var marcados: lista<str> = [];
         for h en n.hijos {
-            if h.clase == "retorno_tipo" {
+            if h.clase == Clase.RetornoTipo {
                 retorno = nuevo(h.texto);
             }
             // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
             // existe en el borde: lo que ve Tcode es un `str` suyo.
-            if h.clase == "externa" { es_de_c = true; }
-            if h.clase == "tipo_param" {
+            if h.clase == Clase.Externa { es_de_c = true; }
+            if h.clase == Clase.TipoParam {
                 sueltos.anadir(nuevo(h.texto));
             }
-            if h.clase == "param" {
+            if h.clase == Clase.Param {
                 tipos_param.anadir(tipo_pelado(h.texto));
                 marcados.anadir(marca_de(h.texto));
             }
@@ -126,7 +127,7 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
 
 // Los `return` de una funcion, en orden.
 fn retornos_de(n: &P.Nodo, fuera: mut lista<usize>, nodos: mut lista<P.Nodo>) {
-    if n.clase == "retorno" {
+    if n.clase == Clase.Retorno {
         if n.hijos.largo() > 0 {
             fuera.anadir(n.linea);
             nodos.anadir(copiar(n.hijos[0]));
@@ -146,6 +147,7 @@ fn main() -> usize ! {
     let tokens = try analizar(fuente);
     let nombres = P.structs_visibles(ruta, tokens);
     let formas = P.enums_visibles(ruta, tokens);
+    let enums_vistos = claves(formas);
     var estado = P.estado_de(tokens, ruta, nombres, formas);
     var arbol = try P.programa(estado);
     // Lo que chocaria con C, renombrado como lo hace el cargador.
@@ -155,14 +157,22 @@ fn main() -> usize ! {
 
     var tipos = I.contexto();
     recoger_firmas(arbol, tipos);
+    // Los enums que se ven desde aqui, tambien los de otro modulo: de sus
+    // formas basta saber que es un enum, que se compara por su etiqueta.
+    for en_ en enums_vistos {
+        if !tiene(tipos.variantes, en_) {
+            let sin_formas: lista<str> = [];
+            poner(tipos.variantes, en_, sin_formas);
+        }
+    }
 
     for d en arbol.hijos {
-        if d.clase == "fn" && !es_generica(d) {
+        if d.clase == Clase.Fn && !es_generica(d) {
             var puntos: mapa<str, usize> = [];
             var de_tipo: mapa<str, str> = [];
             I.abrir(tipos);
             for h en d.hijos {
-                if h.clase == "param" {
+                if h.clase == Clase.Param {
                     let pn = nombre_de(h.texto);
                     let pt = tipo_pelado(h.texto);
                     poner(de_tipo, vista(pn), copiar(pt));
@@ -179,7 +189,7 @@ fn main() -> usize ! {
             let sin_banderas: mapa<str, usize> = [];
             var lo_que_devuelve = vacio();
             for h en d.hijos {
-                if h.clase == "retorno_tipo" {
+                if h.clase == Clase.RetornoTipo {
                     lo_que_devuelve = nuevo(h.texto);
                 }
             }
@@ -190,13 +200,13 @@ fn main() -> usize ! {
             var lineas: lista<usize> = [];
             var nodos: lista<P.Nodo> = [];
             for h en d.hijos {
-                if h.clase == "bloque" {
+                if h.clase == Clase.Bloque {
                     retornos_de(h, lineas, nodos);
                 }
             }
             var esperado = vacio();
             for h en d.hijos {
-                if h.clase == "retorno_tipo" {
+                if h.clase == Clase.RetornoTipo {
                     esperado = nuevo(h.texto);
                 }
             }
