@@ -1,0 +1,5 @@
+{
+  "origen": "ejemplos/compilador/tipos.t",
+  "firma": "tcodec: rechaza sin archivo y linea: tcodec: todavia no se escribir un `main` en un modulo",
+  "mutacion": "insertado '&'; borrada la pieza 'lib'"
+}

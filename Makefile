@@ -10,11 +10,13 @@
 #   make bench        Tcode contra el mismo programa en C a mano
 #   make formato      deja todo el codigo Tcode en el formato canonico
 #   make lint         revisa el codigo Python con ruff y mypy
+#   make compiladores la semilla, el punto fijo y `rapido` con cada compilador de C
+#   make fuzz         rompe el codigo del repositorio al azar (FUZZ_SEGUNDOS=60)
 #   make limpiar      borra lo que genera todo lo anterior
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc fuzz
 
 all: tcodec
 
@@ -51,12 +53,46 @@ semilla: tcodec
 	@mv .cache/semilla.c $(SEMILLA)
 	@echo "semilla al dia: $(SEMILLA)"
 
+# Tcode promete C17 portable: esto lo mira con cada compilador de
+# `COMPILADORES`, no solo con el `cc` de la maquina. Cada uno se pone como
+# `cc` delante del PATH —asi lo usan tcodec y todas las secciones de la
+# suite— y con su propia cache. Con cada uno: la semilla compila sin un solo
+# aviso, reproduce su C byte a byte, y pasan las secciones rapidas.
+COMPILADORES ?= gcc clang
+
+compiladores:
+	@for c in $(COMPILADORES); do \
+	    ruta=$$(command -v $$c) || { echo "no esta $$c"; exit 1; }; \
+	    mkdir -p .cache/cc-$$c && ln -sf "$$ruta" .cache/cc-$$c/cc; \
+	    echo "=== $$c: $$($$c --version | head -1)"; \
+	    PATH="$$PWD/.cache/cc-$$c:$$PATH" TCODE_CACHE="$$PWD/.cache/herramientas-$$c" \
+	        $(MAKE) -s --no-print-directory con-un-cc CC=cc || exit 1; \
+	done
+
+con-un-cc:
+	@mkdir -p .cache
+	@cc -std=c17 -O1 -Wall -Wextra -Werror -Iruntime $(SEMILLA) $(RUNTIME_C) \
+	    $(SISTEMA) -o .cache/tcodec-cc -lm
+	@TCODE_RAIZ=. ./.cache/tcodec-cc ejemplos/compilador/tcodec.t --mostrar-c \
+	    | cmp -s - $(SEMILLA) \
+	    || { echo "la semilla no reproduce su C con este compilador"; exit 1; }
+	@echo "    semilla sin avisos, y reproduce su C byte a byte"
+	@$(PY) tests/test_lenguaje.py $(RAPIDAS)
+
+# Fuzzing sobre los `.t` del repositorio: cada fallo se reduce y se guarda
+# en `tests/fuzz/hallazgos/`. `make check` repite los guardados.
+FUZZ_SEGUNDOS ?= 60
+
+fuzz:
+	@$(PY) tests/fuzz.py --segundos $(FUZZ_SEGUNDOS)
+
 bench:
 	@$(PY) bench/medir.py
 
 check:
 	@$(PY) tests/test_lenguaje.py
 	@$(PY) tests/test_propiedades.py
+	@$(PY) tests/fuzz.py --repetir
 	@$(PY) tests/cifras.py --comprobar
 
 # Las secciones que prueban el lenguaje con `tcodec`; las que tardan son las
