@@ -30,6 +30,26 @@ MODULOS = [
       "b.t": 'usar "a.t";\nfn b() {}'},
      "a.t", "dependencia circular", None),
 
+    # Un modulo que se usa no puede tener `main`. `tcodec` lo rechazaba sin
+    # archivo ni linea, y Python lo aceptaba sin decir nada si el que lo
+    # usaba no tenia su propio `main`. Lo encontro `tests/fuzz.py`.
+    ("un modulo con `main`",
+     {"lib/m.t": 'fn main() { imprimir("m"); }',
+      "a.t": 'usar "lib/m.t";\nfn main() -> usize { return 0; }'},
+     "a.t", "a.t:1: `lib/m.t` tiene `fn main`", None),
+
+    ("un modulo con `main`, y quien lo usa sin el suyo",
+     {"m.t": 'fn main() { imprimir("m"); }',
+      "a.t": 'usar "m.t" como m;\nfn f() -> usize { return 0; }'},
+     "a.t", "a.t:1: `m.t` tiene `fn main`", None),
+
+    # La ruta llega a funciones de C: con un cero en medio, Python se
+    # escapaba con un `ValueError` y `tcodec` abortaba. Lo encontro
+    # `tests/fuzz.py`.
+    ("la ruta de un modulo con un byte cero",
+     {"a.t": 'usar "a\0b.t";\nfn main() -> usize { return 0; }'},
+     "a.t", "a.t:1: la ruta de un modulo no puede llevar un byte cero", None),
+
     ("modulo que no existe",
      {"a.t": 'usar "fantasma.t";\nfn main() -> usize { return 0; }'},
      "a.t", "no encuentro el modulo", None),

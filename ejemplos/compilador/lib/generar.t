@@ -856,7 +856,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
             r.empujar(".");
             r.empujar(n.texto);
             let ruta = ruta_de_campo_c(n);
-            if ruta.largo() > 0 && tiene(s.sacados, $"{s.archivo}\t{n.linea}\t{ruta}") {
+            if ruta.largo() > 0 && tiene(s.sacados, $"{s.archivo}\t{n.id}\t{ruta}") {
                 // Sacar un campo: se copia y su sitio queda a ceros, que es un
                 // valor valido y al liberar el struct no suelta nada.
                 let t = I.tipo_de(tipos, n);
@@ -4206,6 +4206,17 @@ fn mientras_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     return bien;
 }
 
+// Si `a` y `b` nombran el mismo sitio sin calcular nada: la misma
+// variable, o el mismo camino de campos desde ella. Con un indice no: el
+// indice se calcula, y calcularlo dos veces puede dar dos sitios.
+fn mismo_sitio(a: &P.Nodo, b: &P.Nodo) -> bool {
+    if a.clase != b.clase || !igual(a.texto, b.texto) { return false; }
+    if a.clase == Clase.Variable { return true; }
+    if a.clase != Clase.Campo { return false; }
+    return a.hijos.largo() == 1 && b.hijos.largo() == 1
+    && mismo_sitio(a.hijos[0], b.hijos[0]);
+}
+
 fn asignacion_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
     if n.hijos.largo() != 2 { return false; }
@@ -4213,6 +4224,16 @@ fn asignacion_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     if a_que != Clase.Variable && a_que != Clase.Campo
     && a_que != Clase.Indice {
         return false;
+    }
+    if mismo_sitio(n.hijos[0], n.hijos[1]) {
+        // `x = x;` y `p.c = p.c;` no hacen nada. Generados como una
+        // asignacion cualquiera, el valor se sacaba del sitio, se soltaba
+        // lo viejo —que era el mismo valor— y se volvia a poner ya
+        // soltado. Y clang toma `x = x;` por un descuido.
+        let sitio = sitio_c(b, s, n.hijos[0], tipos);
+        if es_desconocido(sitio) { return false; }
+        emitir(b, $"(void) {sitio};");
+        return true;
     }
     // Solo una variable entera lleva bandera: un campo se apunta por su
     // struct, y eso es otra capa.

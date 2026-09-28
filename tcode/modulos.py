@@ -55,6 +55,21 @@ def _solo_usar(toks, archivo):
 IDENTIFICADOR = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*")
 
 
+def _tiene_main(toks):
+    """Si el archivo declara `fn main` fuera de toda llave. Se mira en los
+    tokens, antes de analizar nada: el error es del `usar` que lo trae."""
+    hondo = 0
+    for i, t in enumerate(toks):
+        if t.tipo == "simbolo" and t.valor == "{":
+            hondo += 1
+        elif t.tipo == "simbolo" and t.valor == "}":
+            hondo = max(hondo - 1, 0)
+        elif (hondo == 0 and t.valor == "fn" and i + 1 < len(toks)
+              and toks[i + 1].valor == "main"):
+            return True
+    return False
+
+
 def renombrar_tipo(t, mapa):
     """Cambia los nombres de struct dentro de un tipo, a cualquier hondura:
     `lista<par.Par<usize, str>>` con `par.Par -> par__Par`."""
@@ -260,12 +275,20 @@ def cargar(ruta_principal, nombres_bonitos=None):
             mostrada = real
 
         toks = tokenizar(fuente, mostrada)
+        if quien is not None and _tiene_main(toks):
+            raise ErrorDeModulo(
+                f"{quien}:{linea}: `{mostrada}` tiene `fn main`, y un modulo "
+                f"no puede tenerla: quitala, o compila `{mostrada}` por su "
+                f"cuenta")
         usars = _solo_usar(toks, mostrada)
         # Primero las dependencias: sus structs tienen que estar declarados
         # antes de analizar este archivo.
         pila.append(real)
         destinos = {}
         for d in usars:
+            if "\0" in d.ruta:
+                raise ErrorDeModulo(f"{mostrada}:{d.linea}: la ruta de un "
+                                    f"modulo no puede llevar un byte cero")
             destino = resolver(d.ruta, os.path.dirname(real))
             cargar_uno(destino, mostrada, d.linea)
             destinos[id(d)] = os.path.realpath(destino)

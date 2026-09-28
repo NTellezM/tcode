@@ -3311,7 +3311,10 @@ fn sacar_campo(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, base: view, raiz: vie
         return;
     }
     c.simbolos[i].sacados.anadir($"{ruta}\t{n.linea}");
-    c.sacados.anadir($"{c.archivo}\t{n.linea}\t{nombre}");
+    // El generador reconoce el nodo por su `id`, no por su linea: otro
+    // `p.c` en la misma linea —el destino de `p.c = p.c;`, o una lectura
+    // despues de reponerlo— no es este, y no se saca.
+    c.sacados.anadir($"{c.archivo}\t{n.id}\t{nombre}");
 }
 
 fn campo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,

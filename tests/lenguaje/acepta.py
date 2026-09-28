@@ -11,6 +11,66 @@ from .comun import (
 )
 
 ACEPTA = [
+    # La lista que lleva una forma de un enum se declara aunque el programa
+    # no la escriba en ningun otro sitio. Python escribia C que la usaba sin
+    # declararla, y `tcodec` se negaba sin decir donde. Lo encontro
+    # `tests/fuzz.py`, cortando `ejemplos/json.t`.
+    ("una lista dentro de una forma de enum",
+     '''enum J { Nada, Lista(lista<J>), Num(usize) }
+        fn cuenta(v: &J) -> usize {
+            match v {
+                J.Lista(xs) -> {
+                    var n = 0;
+                    for x en xs { n = n + cuenta(x); }
+                    return n;
+                }
+                J.Num(k) -> { return k; }
+                _ -> { return 0; }
+            }
+        }
+        fn main() {
+            let v = J.Lista([J.Num(2), J.Nada, J.Lista([J.Num(1)]), J.Num(5)]);
+            imprimir($"{cuenta(v)}\\n");
+        }''',
+     "8\n"),
+
+    # Asignar un sitio a si mismo no hace nada. Generado como cualquier
+    # asignacion, el valor se sacaba, se soltaba lo viejo —el mismo valor—
+    # y se volvia a poner ya soltado: `s = s;` con un `str`, una lista o un
+    # struct era un uso despues de liberar, y `p.s = p.s;` daba C que no
+    # compilaba. Sale `(void) x;`, que ademas clang no toma por un descuido
+    # como `x = x;` (-Wself-assign; lo vigila `make compiladores`).
+    ("asignar un sitio a si mismo",
+     '''struct P { x: usize, s: str }
+        fn main() {
+            var u: usize = 1;
+            u = u;
+            var b = true;
+            b = b;
+            var p = P { x: 2, s: nuevo("a") };
+            p.x = p.x;
+            p.s = p.s;
+            p = p;
+            var s = nuevo("t");
+            s = s;
+            if largo(s) > 0 { s = s; }
+            var xs: lista<usize> = [3];
+            xs[0] = xs[0];
+            xs = xs;
+            var ts: lista<str> = [nuevo("z")];
+            ts = ts;
+            imprimir($"{u} {b} {p.x} {p.s} {s} {xs[0]} {ts[0]}\\n");
+        }''',
+     "1 true 2 a t 3 z\n"),
+
+    # Sacar un campo marca ese nodo, no su linea: el destino y la lectura
+    # de `p.s` que vienen detras, en la misma linea, no se sacaban tambien.
+    ("sacar un campo y reponerlo en la misma linea",
+     '''struct P { s: str }
+        fn main() { var p = P { s: nuevo("a") }; let t = p.s; '''
+     '''p.s = nuevo("b"); imprimir($"{t} {p.s}\\n"); }''',
+     "a b\n"),
+
     # `a == b` entre textos compara lo que dicen, sea cual sea su forma: con
     # duenio, prestado o escrito. Se genera como `igual(a, b)`.
     ("== y != entre textos",
