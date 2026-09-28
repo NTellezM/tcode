@@ -137,6 +137,17 @@ fn marcar_entregada(vs: mut lista<Vigilada>, nombre: view, linea: usize) {
     vs[i].entregada_en = linea;
 }
 
+// Asignar un valor nuevo a una variable vuelve a hacerla dueña. El informe
+// conserva un símbolo por declaración, así que su destino es el de la última
+// vida del valor, no el de una que terminó antes de la reasignación.
+fn marcar_repuesta(vs: mut lista<Vigilada>, nombre: view, linea: usize) {
+    if nombre.largo() == 0 { return; }
+    let i = cual(vs, nombre, linea) sino vs.largo();
+    if i >= vs.largo() { return; }
+    vs[i].movida_en = 0;
+    vs[i].entregada_en = 0;
+}
+
 fn fotografiar(vs: &lista<Vigilada>, antes_de: usize) -> Foto {
     var indices: lista<usize> = [];
     var movidas: lista<usize> = [];
@@ -323,6 +334,9 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
                 }
             }
             for h en n.hijos { mirar(c, h, vs); }
+            if n.hijos.largo() > 0 {
+                marcar_repuesta(vs, variable_suelta(n.hijos[0]), n.linea);
+            }
             return;
         }
         Clase.Declaracion -> {

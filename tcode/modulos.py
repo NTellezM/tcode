@@ -24,7 +24,7 @@ import re
 from tcode.lexer import tokenizar
 from tcode.parser import parsear
 from tcode.nodos import (Usar, Struct, Funcion, Llamada, LiteralStruct,
-                         Enum, EnumLit, Match)
+                         Enum, EnumLit, Match, PatronForma)
 from tcode import nombres_c
 
 
@@ -73,11 +73,18 @@ def renombrar_en_arbol(nodo, mapa):
     campos = campos_de(nodo)
     if campos is None:
         return
-    if isinstance(nodo, (Llamada, LiteralStruct, EnumLit, Match)):
-        clave = nodo.nombre if isinstance(nodo, Llamada) else nodo.tipo
+    if isinstance(nodo, (Llamada, LiteralStruct, EnumLit, Match, PatronForma)):
+        if isinstance(nodo, Llamada):
+            clave = nodo.nombre
+        elif isinstance(nodo, PatronForma):
+            clave = nodo.enum
+        else:
+            clave = nodo.tipo
         if clave in mapa:
             if isinstance(nodo, Llamada):
                 nodo.nombre = mapa[clave]
+            elif isinstance(nodo, PatronForma):
+                nodo.enum = mapa[clave]
             else:
                 nodo.tipo = mapa[clave]
     for nombre in campos:

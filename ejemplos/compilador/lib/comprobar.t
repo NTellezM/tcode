@@ -213,6 +213,10 @@ fn firma_interna(nombre: view) -> Interna {
     else if nombre == "leer_archivo" {
         ps.anadir(nuevo("view")); r = nuevo("str"); fal = true;
     }
+    else if nombre == "leer_parte_archivo" {
+        ps.anadir(nuevo("view")); ps.anadir(nuevo("usize"));
+        ps.anadir(nuevo("usize")); r = nuevo("str"); fal = true;
+    }
     else if nombre == "escribir_archivo" {
         ps.anadir(nuevo("view")); ps.anadir(nuevo("view")); r = nuevo("()"); fal = true;
     }
@@ -1219,7 +1223,26 @@ fn siempre_sale(n: &P.Nodo) -> bool {
     if clase == Clase.Si && n.hijos[k].hijos.largo() == 3 {
         return siempre_sale(n.hijos[k].hijos[1]) && siempre_sale_rama(n.hijos[k].hijos[2]);
     }
+    if clase == Clase.Expresion && n.hijos[k].hijos.largo() == 1 {
+        return match_siempre_sale(n.hijos[k].hijos[0]);
+    }
     return false;
+}
+
+// Un `match` exhaustivo tambien sale si cada brazo es un bloque que sale.
+// Los brazos que dan una expresion llevan un `Retorno` interno, pero ese es
+// el valor del brazo, no un `return` de la funcion.
+fn match_siempre_sale(n: &P.Nodo) -> bool {
+    if n.clase != Clase.Match || n.hijos.largo() <= 1 { return false; }
+    var i = 1;
+    while i < n.hijos.largo() {
+        if n.hijos[i].hijos.largo() == 0 { return false; }
+        let k = n.hijos[i].hijos.largo() - 1;
+        if n.hijos[i].hijos[k].clase != Clase.Bloque
+        || !siempre_sale(n.hijos[i].hijos[k]) { return false; }
+        i = i + 1;
+    }
+    return true;
 }
 
 // La rama `else` puede ser un bloque o, en `else if`, otra sentencia.
@@ -3832,7 +3855,7 @@ fn patron_valido(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma
         let pc = p.clase;
         if pc == Clase.Atrapa { continue; }
         if pc == Clase.Patron {
-            let quien = I.antes_del_punto(p.texto);
+            let quien = I.sin_modulo(I.antes_del_punto(p.texto));
             let cual = I.tras_el_punto(p.texto);
             if !es_enum(m, t) || !igual(quien, t) {
                 error(c, m, linea, $"`{base}.{forma}` lleva un `{t}` en la posicion {i}, y el patron pone `{p.texto}`");

@@ -64,6 +64,30 @@ ACEPTA = [
         }''',
      "corto afx f resto\n"),
 
+    ("todos los brazos de match devuelven",
+     '''enum E { A, B }
+        fn valor(e: E) -> usize {
+            match e {
+                E.A -> { return 10; }
+                E.B -> { return 20; }
+            }
+        }
+        fn main() { imprimir($"{valor(E.A)} {valor(E.B)}\\n"); }''',
+     "10 20\n"),
+
+    ("patrones alternativos con capturas",
+     '''enum E { A, B, C(usize), D(usize) }
+        fn valor(e: E) -> usize {
+            match e {
+                E.A | E.B -> { return 1; }
+                E.C(n) | E.D(n) -> { return n; }
+            }
+        }
+        fn main() {
+            imprimir($"{valor(E.A)} {valor(E.B)} {valor(E.C(3))} {valor(E.D(4))}\\n");
+        }''',
+     "1 1 3 4\n"),
+
     # `imprimir` y `{}` escriben numeros, `bool` y texto, tambien prestados.
     ("imprimir y `{}` con prestamos",
      '''fn g(a: &usize, s: &str, m: &mut i64, b: &bool, d: &f64) {

@@ -22,6 +22,19 @@ TITULO = "un estilo, y el repositorio ya lo tiene"
 def correr(suite: Resultado) -> None:
     _tmp_fmt = tempfile.mkdtemp(prefix="tcode-formato-")
 
+    # El préstamo no oculta que `Caja<T>` es un tipo genérico.
+    suite.total += 1
+    _prestamo_generico = tcodec_sobre(
+        "struct Caja<T> { valor: T }\nfn mirar<T>(c: &Caja<T>) {}\n",
+        "--formatear", directorio=_tmp_fmt, nombre="prestamo_generico.t").stdout
+    from tcode.formato import formatear as _formatear_python
+    _prestamo_python = _formatear_python(
+        "struct Caja<T> { valor: T }\nfn mirar<T>(c: &Caja<T>) {}\n")
+    if ("c: &Caja<T>" not in _prestamo_generico
+            or _prestamo_generico != _prestamo_python):
+        suite.falla("un préstamo de tipo genérico queda unido",
+                    repr((_prestamo_generico, _prestamo_python)))
+
     # Un unario va pegado a su parentesis: `!(a)`, no `! (a)`.
     suite.total += 1
     _con_unario = tcodec_sobre(

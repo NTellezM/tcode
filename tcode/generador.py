@@ -190,6 +190,7 @@ class Generador:
         self.mapas = {}        # idem para mapa<K, V>
         self.resultados = {}   # tipo Tcode -> nombre del typedef de resultado
         self.usa_leer_archivo = False
+        self.usa_leer_parte_archivo = False
         self.usa_escribir_archivo = False
         # Las internas del sistema que se usan, y solo esas: un programa que
         # no toca la entrada no carga con el codigo de leerla.
@@ -532,6 +533,9 @@ class Generador:
         def recorrer(x):
             if isinstance(x, Llamada) and x.nombre == "leer_archivo":
                 self.usa_leer_archivo = True
+                self.tipo_resultado("str")
+            if isinstance(x, Llamada) and x.nombre == "leer_parte_archivo":
+                self.usa_leer_parte_archivo = True
                 self.tipo_resultado("str")
             if isinstance(x, Llamada) and x.nombre == "escribir_archivo":
                 self.usa_escribir_archivo = True
@@ -1063,6 +1067,65 @@ class Generador:
                 "            ss_free(&contenido);",
                 f'            return ({res}){{ .motivo = "sin memoria al leer el archivo" }};',
                 "        }",
+                "    }",
+                "    bool fallo_lectura = ferror(f) != 0;",
+                "    if (fclose(f) != 0) fallo_lectura = true;",
+                "    if (fallo_lectura)",
+                "    {",
+                "        ss_free(&contenido);",
+                f'        return ({res}){{ .motivo = "fallo al leer el archivo" }};',
+                "    }",
+                f"    return ({res}){{ .motivo = NULL, .valor = contenido }};",
+                "}",
+                "",
+            ])
+
+        if self.usa_leer_parte_archivo:
+            res = self.tipo_resultado("str")
+            self.lineas.extend([
+                "SS_LANG_QUIZA_SIN_USAR",
+                f"static {res} ss_lang_leer_parte_archivo_(SafeView ruta, "
+                "size_t desde, size_t cuantos)",
+                "{",
+                "    if (cuantos == 0)",
+                (f"        return ({res}){{ .motivo = "
+                 '"el tamano de lectura tiene que ser mayor que cero" };'),
+                "    if (desde > (size_t) LONG_MAX)",
+                (f"        return ({res}){{ .motivo = "
+                 '"la posicion del archivo es demasiado grande" };'),
+                "    if (ruta.len != 0 && memchr(ruta.ptr, 0, ruta.len) != NULL)",
+                f'        return ({res}){{ .motivo = "la ruta contiene un byte cero" }};',
+                "    SafeString nombre = ss_from_view(ruta);",
+                "    if (!ss_ok(&nombre))",
+                "    {",
+                "        ss_free(&nombre);",
+                f'        return ({res}){{ .motivo = "sin memoria para la ruta" }};',
+                "    }",
+                "    FILE* f = fopen(ss_cstr(&nombre), \"rb\");",
+                "    ss_free(&nombre);",
+                "    if (f == NULL)",
+                f'        return ({res}){{ .motivo = "no se pudo abrir el archivo" }};',
+                "    if (fseek(f, (long) desde, SEEK_SET) != 0)",
+                "    {",
+                "        fclose(f);",
+                (f"        return ({res}){{ .motivo = "
+                 '"no se pudo buscar la posicion del archivo" };'),
+                "    }",
+                "    SafeString contenido = ss_new();",
+                "    unsigned char bloque[8192];",
+                "    size_t quedan = cuantos;",
+                "    while (quedan != 0)",
+                "    {",
+                "        size_t pedido = quedan < sizeof(bloque) ? quedan : sizeof(bloque);",
+                "        size_t n = fread(bloque, 1, pedido, f);",
+                "        if (n != 0 && !ss_append_len(&contenido, (const char*) bloque, n))",
+                "        {",
+                "            fclose(f);",
+                "            ss_free(&contenido);",
+                f'            return ({res}){{ .motivo = "sin memoria al leer el archivo" }};',
+                "        }",
+                "        quedan -= n;",
+                "        if (n < pedido) break;",
                 "    }",
                 "    bool fallo_lectura = ferror(f) != 0;",
                 "    if (fclose(f) != 0) fallo_lectura = true;",
@@ -1739,10 +1802,10 @@ class Generador:
             self.sangria -= 1
             self.emitir("}")
         self.en_switch -= 1
-        # Un `match` es exhaustivo, asi que este `default` no se alcanza
-        # nunca. Esta para que el compilador de C no tenga que adivinarlo.
+        # Un `match` es exhaustivo. El `abort` no se alcanza con un enum
+        # valido y le demuestra a C que tampoco hay continuacion por ahi.
         if all(b.variante is not None for b in e.brazos):
-            self.emitir("default: break;")
+            self.emitir("default: abort();")
         self.emitir("}")
 
     def match_condiciones(self, e, base, sitio, destino):
@@ -1794,6 +1857,10 @@ class Generador:
             self.vars.pop()
             self.sangria -= 1
             self.emitir("}")
+        # Si ninguna condicion casa, el comprobador tiene un fallo: un match
+        # valido es exhaustivo. Ademas, esto hace visible para C que unos
+        # brazos que devuelven no dejan caer la funcion por el final.
+        self.emitir("abort();")
         self.emitir(f"{fin}: ;")
 
     def condiciones_patron(self, base, variante, args, sitio, conds):
@@ -3398,6 +3465,17 @@ class Generador:
 
         if n == "leer_archivo":
             return f"ss_lang_leer_archivo_({self.como_vista(e.args[0])})"
+
+        if n == "leer_parte_archivo":
+            valores = self.en_orden([
+                (e.args[0], lambda: self.como_vista(e.args[0]), "SafeView"),
+                (e.args[1], lambda: self.expr(e.args[1], "usize"), "size_t"),
+                (e.args[2], lambda: self.expr(e.args[2], "usize"), "size_t"),
+            ])
+            args, previos = self.argumentos_ordenados(e, valores)
+            llamada = (f"ss_lang_leer_parte_archivo_({args[0]}, {args[1]}, "
+                       f"{args[2]})")
+            return self.con_argumentos_ordenados(llamada, previos)
 
         if n in ("leer_linea", "entrada_completa"):
             return f"ss_lang_{n}_()"

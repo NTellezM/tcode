@@ -533,7 +533,9 @@ error: app.t:2: `contar` llega de dos sitios, uno.t y dos.t. Dale un nombre
                 `algo.contar`
 ```
 
-Vale también para los tipos: `t.Caja`, `t.Par<usize, str>`.
+Vale también para los tipos y las formas de un enum: `t.Caja`,
+`t.Par<usize, str>`, `t.Estado.Listo` y patrones como
+`t.Resultado.Valor(x)`.
 
 `como` **no es palabra reservada**: sólo significa eso detrás de una ruta de
 `usar`, así que sigue valiendo como nombre de variable.
@@ -633,6 +635,12 @@ memoria sin dejar buffers ni descriptores abiertos. Los bytes cero se
 conservan. `byte(texto, i)` devuelve un valor entre 0 y 255 y comprueba el
 índice.
 
+`leer_parte_archivo(ruta, desde, cuantos) -> str !` lee como máximo
+`cuantos` bytes desde una posición. Devuelve texto vacío al llegar al final y
+rechaza un tamaño cero. `std/archivo` construye encima `por_partes`, que llama
+a una función por cada bloque y mantiene acotada la memoria, y
+`partes_de_archivo`, que conserva los bloques cuando sí se necesitan después.
+
 `texto(x) -> str` materializa `usize`, `i64`, `bool`, `view` o `str`. Es la
 pieza mínima para construir mensajes sin introducir todavía interpolación ni
 un sistema de formatos.
@@ -690,7 +698,8 @@ sentencia  := "let" ident ":" tipo "=" expr ";"
             | expr ";"
 
 match      := "match" expr "{" brazo* "}"
-brazo      := patron "->" (expr "," | bloque ","?)
+brazo      := patron ("|" patron)* ("if" expr)?
+              "->" (expr "," | bloque ","?)
 patron     := "_" | ident "." ident ("(" ident ("," ident)* ")")?
 
 expr       := o ("sino" o)?
@@ -736,6 +745,7 @@ le corresponde.
 | `imprimir(x)` | `fwrite` / `printf` | solo lee |
 | `anadir(xs: mut lista<T>, x: T)` | `realloc` + asignación comprobada | **muta** `xs`, mueve `x` si es dueño |
 | `leer_archivo(ruta: view) -> str !` | `fopen` / `fread` / `fclose` | crea un dueño; el fallo es explícito |
+| `leer_parte_archivo(ruta: view, desde, cuantos) -> str !` | `fseek` / `fread` / `fclose` | crea un dueño de tamaño acotado; vacío indica fin |
 | `byte(texto: view, i) -> usize` | acceso con límite comprobado | solo lee |
 | `texto(x) -> str` | `ss_appendf` / copia | crea un dueño |
 
@@ -1042,15 +1052,17 @@ cualquier otra.
 | módulo | qué trae |
 |---|---|
 | `std/caracter` | `es_blanco`, `es_digito`, `es_letra`, `es_alfanumerico`, `es_minuscula`, `es_mayuscula` |
-| `std/texto` | `palabras`, `terminos`, `partir`, `unir`, `recortar`, `rellenar`, `alinear`, `minusculas`, `repetir`, `reemplazar`, `empieza_con`, `termina_con`, `contiene`, `indice_de`, `a_entero` |
+| `std/texto` | `palabras`, `terminos`, `lineas`, `partir`, `unir`, `recortar`, `rellenar`, `alinear`, `minusculas`, `mayusculas`, `apariciones`, `repetir`, `reemplazar`, `empieza_con`, `termina_con`, `contiene`, `indice_de`, `a_entero` |
+| `std/iterador` | recorridos de una pasada: `para_cada`, `todas`, `alguna`, `primera_que`, `plegar`, `transformar` |
+| `std/archivo` | `por_partes` con memoria acotada y `partes_de_archivo` |
 | `std/lista` | `suma`, `maximo`, `minimo`, `media`, `invertir` sobre `lista<usize>`; `incluye`, `posicion`, `primeras`, `invertida` sobre `lista<str>` |
 | `std/numero` | `dividir`, `resto`, `porcentaje`, `menor_de`, `mayor_de`, `acotar` |
 | `std/cuenta` | `contar` y `mayores` — lo que en Python es `Counter` y `most_common` |
-| `std/mapa` | `acumular`, `obtener_o`, `claves_ordenadas`, `completar`, `cuantas_claves` |
+| `std/mapa` | `acumular`, `obtener_o`, `claves_ordenadas`, `valores_ordenados`, `actualizar`, `completar`, `cuantas_claves` |
 | `std/conjunto` | `Conjunto` sobre un mapa: `union`, `interseccion`, `diferencia` |
 | `std/par` | `Par<A, B>`: dos valores juntos, para cuando uno no basta |
 | `std/bytes` | enteros en orden de red, `a_hex`, `de_hex` |
-| `std/vector` | `Vector<T>` sobre `bloque<T>`, escrito entero en Tcode |
+| `std/vector` | `Vector<T>` sobre `bloque<T>`, con conversión a `lista<T>` |
 | `std/formato` | `con_decimales`, `con_millares`, tablas alineadas |
 | `std/prueba` | afirmaciones y resumen: probar Tcode desde Tcode |
 
@@ -1868,6 +1880,19 @@ son lo mismo: el cuerpo de un brazo que da valor es un `return` de esa
 expresión. Un `match` suelto, como sentencia, no lleva `;` detrás, igual que
 `if` y `while`.
 
+Varios patrones que hacen lo mismo se pueden reunir con `|`:
+
+```tcode
+match e {
+    Estado.Inicial | Estado.Terminado -> imprimir("quieto"),
+    Estado.Trabajando(n) | Estado.Esperando(n) -> imprimir(n),
+}
+```
+
+Cada alternativa se comprueba por separado. Por eso, si el cuerpo usa un
+nombre atrapado, ese nombre tiene que aparecer en todas las alternativas.
+Una guarda escrita después de las alternativas se aplica a cada una.
+
 ### Es exhaustivo
 
 Si falta una forma, el error la nombra:
@@ -2212,7 +2237,7 @@ guarde.
 ## Qué NO tiene v0
 
 Es un v0 honesto. No hay: enums con parámetros de tipo, patrones sobre
-rangos, escritura incremental (un `escribir_archivo` deja el
+rangos, escritura incremental (un `escribir_archivo` reemplaza el
 archivo entero), punteros crudos ni recolector. La
 puerta a C existe (`externo`) pero es estrecha a propósito: sin punteros, sin
 structs y sin varargs.

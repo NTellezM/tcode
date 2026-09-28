@@ -95,6 +95,14 @@ fn es_generico(toks: &lista<Token>, i: usize) -> bool {
         if a2 == ":" || a2 == "->" || a2 == "<" || a2 == "," {
             return true;
         }
+        // El `&` de `&Nombre<...>` queda entre el contexto y el nombre.
+        if a2 == "&" && i >= 3 {
+            let ant3 = valor_py(toks[i - 3]);
+            let a3 = vista(ant3);
+            if a3 == ":" || a3 == "->" || a3 == "<" || a3 == "," {
+                return true;
+            }
+        }
     }
     return false;
 }

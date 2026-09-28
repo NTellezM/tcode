@@ -67,8 +67,12 @@ def _es_generico(toks, i):
     # `fn nombre<T>` o `struct Nombre<T>`
     if i >= 2 and toks[i - 2].valor in ("fn", "struct"):
         return True
-    # `Nombre<...>` en posicion de tipo: detras de `:` o `->`
+    # `Nombre<...>` en posicion de tipo: detras de `:` o `->`. El `&` de
+    # `&Nombre<...>` queda entre el contexto y el nombre.
     if i >= 2 and toks[i - 2].valor in (":", "->", "<", ","):
+        return True
+    if (i >= 3 and toks[i - 2].valor == "&"
+            and toks[i - 3].valor in (":", "->", "<", ",")):
         return True
     return False
 
