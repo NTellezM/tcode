@@ -42,6 +42,14 @@ El camino a 1.0.
   escapaba con una excepción; también con un archivo que no es UTF-8.
 - Los fallos internos del generador salían sin archivo ni línea.
 
+### El compilador de Python
+
+- **Congelado de verdad.** Hasta aquí recibió lo mismo que `tcodec`; desde
+  0.9.0 sólo recibe arreglos de corrección. Lo que sabe está guardado en
+  `tests/python_congelado.json` y la sección CONGELADO falla si cambia. Lo
+  nuevo del lenguaje va sólo a `tcodec` y se prueba con oráculos que no son
+  Python. Se retira después de 1.0.
+
 ### Herramientas
 
 - `make instalar` / `make desinstalar` (`PREFIJO`, `DESTDIR`).

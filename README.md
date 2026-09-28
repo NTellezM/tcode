@@ -151,9 +151,22 @@ es esta:
 - **Lo nuevo del lenguaje entra solo en `tcodec`.** Es el que se usa y el que
   prueba la suite: los programas de RECHAZO, ACEPTA, ABORTA, MODULOS y el
   resto compilan con él, construido con los sanitizers.
-- **El de Python queda congelado.** Hace de oráculo: todo programa que sabe
-  compilar tiene que salir igual de los dos. Se le arreglan los fallos; no
-  aprende nada nuevo.
+- **El de Python queda congelado, desde 0.9.0 de verdad.** Hace de oráculo:
+  todo programa que sabe compilar tiene que salir igual de los dos. Se le
+  arreglan los fallos, cada uno con el caso que lo demuestra; no aprende
+  nada nuevo. Lo que sabe —palabras, símbolos, tipos, funciones internas,
+  nodos, opciones— está guardado en `tests/python_congelado.json`, y la
+  sección CONGELADO falla si cambia.
+- **Lo que Python no sabe se prueba sin él.** Coincidir con Python dice que
+  `tcodec` no se separó de lo conocido, no que sea correcto: los fallos que
+  estaban en los dos a la vez (`s = s;`, la lista dentro de un enum, un
+  módulo con `main`) no los vio la comparación, los vieron clang, el fuzzing
+  y ASan. Una construcción nueva lleva sus casos en la suite y se juzga con
+  oráculos que no comparten nada con los compiladores: AddressSanitizer y
+  UBSan, las propiedades, `programas/` contra las herramientas del sistema.
+- **Después de 1.0 se retira.** El de Python pasa a un archivo y deja de
+  correr en la suite; antes hace falta un oráculo de rechazo —lo que no
+  debe compilar— que no sea él.
 - **`tcodec` se construye desde su C semilla**, `bootstrap/tcodec.c`: el C
   que escribe de sí mismo, guardado en el repositorio como hacen Zig y Go.
   `make` compila la semilla y la semilla compila el `tcodec.t` de ahora, así
@@ -769,7 +782,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-2708 casos, 0 fallas
+2709 casos, 0 fallas
 2069 comprobaciones sobre 60 programas, 0 fallas
 ```
 
