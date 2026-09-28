@@ -364,13 +364,18 @@ fn funcion_de(d: &P.Nodo, nombre: view, archivo: view, modulo: usize,
     var rs: lista<str> = [];
     for h en d.hijos {
         let clase = h.clase;
-        if clase == Clase.Param { ps.anadir(param_de(h.texto)); }
-        if clase == Clase.RetornoTipo { ret = I.sin_alias_tipo(h.texto); }
-        if clase == Clase.Falible { fal = true; }
-        if clase == Clase.TipoParam { tps.anadir(copiar(h.texto)); }
-        if clase == Clase.Restriccion && tps.largo() > 0 {
-            let tp = vista(tps[tps.largo() - 1]);
-            rs.anadir($"{tp}={h.texto}");
+        match clase {
+            Clase.Param -> { ps.anadir(param_de(h.texto)); }
+            Clase.RetornoTipo -> { ret = I.sin_alias_tipo(h.texto); }
+            Clase.Falible -> { fal = true; }
+            Clase.TipoParam -> { tps.anadir(copiar(h.texto)); }
+            Clase.Restriccion -> {
+                if tps.largo() > 0 {
+                    let tp = vista(tps[tps.largo() - 1]);
+                    rs.anadir($"{tp}={h.texto}");
+                }
+            }
+            _ -> { }
         }
     }
     var cadena = false;
@@ -1320,103 +1325,110 @@ fn apuntar_prestamo(p: mut Prestamos, camino: view, quien: view, mutable: bool) 
 
 fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
     let clase = n.clase;
-    if clase == Clase.Try && n.hijos.largo() > 0 { return procedencia_de(c, m, n.hijos[0]); }
-    if clase == Clase.Sino && n.hijos.largo() == 2 {
-        let a = procedencia_de(c, m, n.hijos[0]);
-        let b = procedencia_de(c, m, n.hijos[1]);
-        if a == "local" || b == "local" { return nuevo("local"); }
-        if a == "parametro" || b == "parametro" {
-            return nuevo("parametro");
+    match clase {
+        Clase.Try -> {
+            if n.hijos.largo() > 0 { return procedencia_de(c, m, n.hijos[0]); }
         }
-        return nuevo("estatico");
-    }
-    if clase == Clase.Cadena { return nuevo("estatico"); }
-    if clase == Clase.Variable {
-        let i = buscar_simbolo(c, n.texto);
-        if !existe(c, i) { return nuevo("local"); }
-        if c.simbolos[i].tipo == "view" || es_prestado_st(m, c.simbolos[i].tipo) {
-            if c.simbolos[i].procedencia.largo() > 0 { return copiar(c.simbolos[i].procedencia); }
-            return nuevo("local");
+        Clase.Sino -> {
+            if n.hijos.largo() == 2 {
+                let a = procedencia_de(c, m, n.hijos[0]);
+                let b = procedencia_de(c, m, n.hijos[1]);
+                if a == "local" || b == "local" { return nuevo("local"); }
+                if a == "parametro" || b == "parametro" {
+                    return nuevo("parametro");
+                }
+                return nuevo("estatico");
+            }
         }
-        return nuevo("local");
-    }
-    if clase == Clase.LiteralStruct {
-        // Lo peor de lo que prestan sus campos.
-        let st = I.sin_modulo(n.texto);
-        var peor = nuevo("estatico");
-        for h en n.hijos {
-            if h.hijos.largo() == 0 { continue; }
-            if !presta_tipo(m, tipo_del_campo(m, st, h.texto)) { continue; }
-            let p = procedencia_de(c, m, h.hijos[0]);
-            if p == "local" { return nuevo("local"); }
-            if p == "parametro" { peor = nuevo("parametro"); }
-        }
-        return peor;
-    }
-    if clase == Clase.Campo {
-        let raiz = variable_base(n);
-        let i = buscar_simbolo(c, raiz);
-        let tc = tipo_simple(c, m, n);
-        if raiz.largo() > 0 && existe(c, i) && presta_tipo(m, tc) {
-            let t = copiar(c.simbolos[i].tipo);
-            if c.simbolos[i].prestado || T.es_referencia(t) { return nuevo("parametro"); }
-            if es_prestado_st(m, t) {
+        Clase.Cadena -> { return nuevo("estatico"); }
+        Clase.Variable -> {
+            let i = buscar_simbolo(c, n.texto);
+            if !existe(c, i) { return nuevo("local"); }
+            if c.simbolos[i].tipo == "view" || es_prestado_st(m, c.simbolos[i].tipo) {
                 if c.simbolos[i].procedencia.largo() > 0 { return copiar(c.simbolos[i].procedencia); }
                 return nuevo("local");
             }
+            return nuevo("local");
         }
-        return nuevo("local");
-    }
-    if clase == Clase.Llamada {
-        let nombre = resolver_nombre(c_tipos_vacio(), n.texto);
-        let nn = vista(nombre);
-        if nn == "argumento" { return nuevo("estatico"); }
-        if (nn == "vista" || nn == "obtener" || nn == "obtener_mut")
-        && n.hijos.largo() > 0 {
-            let base = variable_base(n.hijos[0]);
-            let i = buscar_simbolo(c, base);
-            if base.largo() > 0 && existe(c, i) && c.simbolos[i].prestado {
-                return nuevo("parametro");
+        Clase.LiteralStruct -> {
+            // Lo peor de lo que prestan sus campos.
+            let st = I.sin_modulo(n.texto);
+            var peor = nuevo("estatico");
+            for h en n.hijos {
+                if h.hijos.largo() == 0 { continue; }
+                if !presta_tipo(m, tipo_del_campo(m, st, h.texto)) { continue; }
+                let p = procedencia_de(c, m, h.hijos[0]);
+                if p == "local" { return nuevo("local"); }
+                if p == "parametro" { peor = nuevo("parametro"); }
             }
-            return nuevo("local");
+            return peor;
         }
-        if nn == "nuevo" || nn == "vacio" { return nuevo("local"); }
-        if nn == "rebanar" {
-            if n.hijos.largo() > 0 { return procedencia_de(c, m, n.hijos[0]); }
-            return nuevo("local");
-        }
-        if nn == "copiar" && n.hijos.largo() == 1 {
-            let tc = tipo_simple(c, m, n.hijos[0]);
-            if presta_tipo(m, tc) { return procedencia_de(c, m, n.hijos[0]); }
-        }
-        let k = buscar_funcion(m, nn) sino m.funciones.largo();
-        if k >= m.funciones.largo() || tiene_sueltos(m.funciones[k]) { return nuevo("local"); }
-        let ret = copiar(m.funciones[k].retorno);
-        if !presta_tipo(m, ret) || T.es_referencia(ret) { return nuevo("local"); }
-        var peor = nuevo("estatico");
-        var i = 0;
-        while i < n.hijos.largo() && i < m.funciones[k].params.largo() {
-            var p = vacio();
-            let pt = vista(m.funciones[k].params[i].tipo);
-            if pt == "view" {
-                let visto = prestado_como_vista(c, m, n.hijos[i]);
-                p = procedencia_de(c, m, visto);
-            } else if !prestado(m.funciones[k].params[i]) && es_prestado_st(m, pt) {
-                p = procedencia_de(c, m, n.hijos[i]);
-            } else if prestado(m.funciones[k].params[i]) {
-                let base = variable_base(n.hijos[i]);
-                let j = buscar_simbolo(c, base);
-                if base.largo() > 0 && existe(c, j) && c.simbolos[j].prestado {
-                    p = nuevo("parametro");
-                } else {
-                    p = nuevo("local");
+        Clase.Campo -> {
+            let raiz = variable_base(n);
+            let i = buscar_simbolo(c, raiz);
+            let tc = tipo_simple(c, m, n);
+            if raiz.largo() > 0 && existe(c, i) && presta_tipo(m, tc) {
+                let t = copiar(c.simbolos[i].tipo);
+                if c.simbolos[i].prestado || T.es_referencia(t) { return nuevo("parametro"); }
+                if es_prestado_st(m, t) {
+                    if c.simbolos[i].procedencia.largo() > 0 { return copiar(c.simbolos[i].procedencia); }
+                    return nuevo("local");
                 }
             }
-            if p == "local" { return nuevo("local"); }
-            if p == "parametro" { peor = nuevo("parametro"); }
-            i = i + 1;
+            return nuevo("local");
         }
-        return peor;
+        Clase.Llamada -> {
+            let nombre = resolver_nombre(c_tipos_vacio(), n.texto);
+            let nn = vista(nombre);
+            if nn == "argumento" { return nuevo("estatico"); }
+            if (nn == "vista" || nn == "obtener" || nn == "obtener_mut")
+            && n.hijos.largo() > 0 {
+                let base = variable_base(n.hijos[0]);
+                let i = buscar_simbolo(c, base);
+                if base.largo() > 0 && existe(c, i) && c.simbolos[i].prestado {
+                    return nuevo("parametro");
+                }
+                return nuevo("local");
+            }
+            if nn == "nuevo" || nn == "vacio" { return nuevo("local"); }
+            if nn == "rebanar" {
+                if n.hijos.largo() > 0 { return procedencia_de(c, m, n.hijos[0]); }
+                return nuevo("local");
+            }
+            if nn == "copiar" && n.hijos.largo() == 1 {
+                let tc = tipo_simple(c, m, n.hijos[0]);
+                if presta_tipo(m, tc) { return procedencia_de(c, m, n.hijos[0]); }
+            }
+            let k = buscar_funcion(m, nn) sino m.funciones.largo();
+            if k >= m.funciones.largo() || tiene_sueltos(m.funciones[k]) { return nuevo("local"); }
+            let ret = copiar(m.funciones[k].retorno);
+            if !presta_tipo(m, ret) || T.es_referencia(ret) { return nuevo("local"); }
+            var peor = nuevo("estatico");
+            var i = 0;
+            while i < n.hijos.largo() && i < m.funciones[k].params.largo() {
+                var p = vacio();
+                let pt = vista(m.funciones[k].params[i].tipo);
+                if pt == "view" {
+                    let visto = prestado_como_vista(c, m, n.hijos[i]);
+                    p = procedencia_de(c, m, visto);
+                } else if !prestado(m.funciones[k].params[i]) && es_prestado_st(m, pt) {
+                    p = procedencia_de(c, m, n.hijos[i]);
+                } else if prestado(m.funciones[k].params[i]) {
+                    let base = variable_base(n.hijos[i]);
+                    let j = buscar_simbolo(c, base);
+                    if base.largo() > 0 && existe(c, j) && c.simbolos[j].prestado {
+                        p = nuevo("parametro");
+                    } else {
+                        p = nuevo("local");
+                    }
+                }
+                if p == "local" { return nuevo("local"); }
+                if p == "parametro" { peor = nuevo("parametro"); }
+                i = i + 1;
+            }
+            return peor;
+        }
+        _ -> { }
     }
     return nuevo("local");
 }
@@ -1482,135 +1494,147 @@ fn juntar_origenes(salida: mut lista<str>, de: &lista<str>) {
 fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
     var salida: lista<str> = [];
     let clase = n.clase;
-    if clase == Clase.Try && n.hijos.largo() > 0 { return origenes_de(c, m, n.hijos[0]); }
-    if clase == Clase.Sino && n.hijos.largo() == 2 {
-        juntar_origenes(salida, origenes_de(c, m, n.hijos[0]));
-        juntar_origenes(salida, origenes_de(c, m, n.hijos[1]));
-        return salida;
-    }
-    if clase == Clase.Llamada {
-        let nombre = I.sin_modulo(n.texto);
-        let nn = vista(nombre);
-        if nn == "vista" && n.hijos.largo() > 0 {
-            let base = variable_base(n.hijos[0]);
-            if base.largo() > 0 { salida.anadir(base); }
-            return salida;
+    match clase {
+        Clase.Try -> {
+            if n.hijos.largo() > 0 { return origenes_de(c, m, n.hijos[0]); }
         }
-        if nn == "rebanar" && n.hijos.largo() > 0 { return origenes_de(c, m, n.hijos[0]); }
-        if (nn == "obtener" || nn == "obtener_mut") && n.hijos.largo() > 0 {
-            let base = variable_base(n.hijos[0]);
-            if base.largo() > 0 { salida.anadir(base); } else { salida.anadir(nuevo("<temporal>")); }
-            return salida;
-        }
-        if nn == "copiar" && n.hijos.largo() == 1 {
-            // La copia de algo que presta presta de lo mismo. El tipo va
-            // aparte: dentro del `&&` se calcularia siempre.
-            let tc = tipo_simple(c, m, n.hijos[0]);
-            if presta_tipo(m, tc) { return origenes_de(c, m, n.hijos[0]); }
-        }
-        // Una funcion que devuelve `view` solo puede devolver algo derivado
-        // de lo que le prestaron. No se sabe de cual, asi que de todos.
-        let k = funcion_vista(c, m, n.texto);
-        if k < m.funciones.largo() {
-            let ret = vista(m.funciones[k].retorno);
-            if ret.largo() > 0 && !T.es_referencia(ret)
-            && (presta_tipo(m, ret) || lleva_suelto(ret, m.funciones[k].tipo_params)) {
-                juntar_origenes(salida, origenes_de_args(c, m, n, 0, k));
+        Clase.Sino -> {
+            if n.hijos.largo() == 2 {
+                juntar_origenes(salida, origenes_de(c, m, n.hijos[0]));
+                juntar_origenes(salida, origenes_de(c, m, n.hijos[1]));
+                return salida;
             }
-            return salida;
         }
-        let iv = buscar_simbolo(c, n.texto);
-        if existe(c, iv) {
-            // Una clausura: el entorno va delante, prestado, y lo demas como
-            // en su funcion.
-            let tv = sin_prestamo(c.simbolos[iv].tipo);
-            let de_cierre = I.funcion_de_cierre(tv);
-            let kc = buscar_funcion(m, de_cierre) sino m.funciones.largo();
-            if de_cierre.largo() > 0 && kc < m.funciones.largo() {
-                let ret = vista(m.funciones[kc].retorno);
-                if presta_tipo(m, ret) && !T.es_referencia(ret) {
-                    var entorno: lista<str> = [];
-                    entorno.anadir(copiar(n.texto));
-                    juntar_origenes(salida, entorno);
-                    juntar_origenes(salida, origenes_de_args(c, m, n, 1, kc));
+        Clase.Llamada -> {
+            let nombre = I.sin_modulo(n.texto);
+            let nn = vista(nombre);
+            if nn == "vista" && n.hijos.largo() > 0 {
+                let base = variable_base(n.hijos[0]);
+                if base.largo() > 0 { salida.anadir(base); }
+                return salida;
+            }
+            if nn == "rebanar" && n.hijos.largo() > 0 { return origenes_de(c, m, n.hijos[0]); }
+            if (nn == "obtener" || nn == "obtener_mut") && n.hijos.largo() > 0 {
+                let base = variable_base(n.hijos[0]);
+                if base.largo() > 0 { salida.anadir(base); } else { salida.anadir(nuevo("<temporal>")); }
+                return salida;
+            }
+            if nn == "copiar" && n.hijos.largo() == 1 {
+                // La copia de algo que presta presta de lo mismo. El tipo va
+                // aparte: dentro del `&&` se calcularia siempre.
+                let tc = tipo_simple(c, m, n.hijos[0]);
+                if presta_tipo(m, tc) { return origenes_de(c, m, n.hijos[0]); }
+            }
+            // Una funcion que devuelve `view` solo puede devolver algo derivado
+            // de lo que le prestaron. No se sabe de cual, asi que de todos.
+            let k = funcion_vista(c, m, n.texto);
+            if k < m.funciones.largo() {
+                let ret = vista(m.funciones[k].retorno);
+                if ret.largo() > 0 && !T.es_referencia(ret)
+                && (presta_tipo(m, ret) || lleva_suelto(ret, m.funciones[k].tipo_params)) {
+                    juntar_origenes(salida, origenes_de_args(c, m, n, 0, k));
                 }
-            } else if T.es_funcion(c.simbolos[iv].tipo) {
-                // Un puntero a funcion: su tipo dice lo mismo que la firma.
-                juntar_origenes(salida, origenes_de_puntero(c, m, n, c.simbolos[iv].tipo));
+                return salida;
             }
-        }
-        return salida;
-    }
-    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
-        // Puede ser cualquiera de las dos ramas.
-        juntar_origenes(salida, origenes_de(c, m, n.hijos[1]));
-        juntar_origenes(salida, origenes_de(c, m, n.hijos[2]));
-        return salida;
-    }
-    if clase == Clase.Match && n.hijos.largo() > 0 {
-        // Lo que da cada brazo; y si da algo que atrapo el patron, el valor
-        // mirado: lo atrapado es un prestamo suyo.
-        var mirado: lista<str> = [];
-        var visto = false;
-        var k = 1;
-        while k < n.hijos.largo() {
-            for h en n.hijos[k].hijos {
-                if h.clase != Clase.Retorno || h.hijos.largo() != 1 { continue; }
-                juntar_origenes(salida, origenes_de(c, m, h.hijos[0]));
-                var atrapados: lista<str> = [];
-                atrapados_de(n.hijos[k], atrapados);
-                if atrapados.largo() > 0 && menciona(h.hijos[0], atrapados) {
-                    if !visto {
-                        mirado = origenes_mirado(c, m, n.hijos[0]);
-                        if mirado.largo() == 0 { mirado.anadir(nuevo("<temporal>")); }
-                        visto = true;
+            let iv = buscar_simbolo(c, n.texto);
+            if existe(c, iv) {
+                // Una clausura: el entorno va delante, prestado, y lo demas como
+                // en su funcion.
+                let tv = sin_prestamo(c.simbolos[iv].tipo);
+                let de_cierre = I.funcion_de_cierre(tv);
+                let kc = buscar_funcion(m, de_cierre) sino m.funciones.largo();
+                if de_cierre.largo() > 0 && kc < m.funciones.largo() {
+                    let ret = vista(m.funciones[kc].retorno);
+                    if presta_tipo(m, ret) && !T.es_referencia(ret) {
+                        var entorno: lista<str> = [];
+                        entorno.anadir(copiar(n.texto));
+                        juntar_origenes(salida, entorno);
+                        juntar_origenes(salida, origenes_de_args(c, m, n, 1, kc));
                     }
-                    juntar_origenes(salida, mirado);
+                } else if T.es_funcion(c.simbolos[iv].tipo) {
+                    // Un puntero a funcion: su tipo dice lo mismo que la firma.
+                    juntar_origenes(salida, origenes_de_puntero(c, m, n, c.simbolos[iv].tipo));
                 }
             }
-            k = k + 1;
+            return salida;
         }
-        return salida;
-    }
-    if clase == Clase.Variable {
-        let i = buscar_simbolo(c, n.texto);
-        if existe(c, i) && (c.simbolos[i].tipo == "view"
-            || es_prestado_st(m, c.simbolos[i].tipo)) {
-            return copiar(c.simbolos[i].origenes);
-        }
-        if existe(c, i) && c.simbolos[i].tipo == "str" {
-            salida.anadir(copiar(n.texto));
-        }
-    }
-    if clase == Clase.LiteralStruct {
-        // Un struct que presta, de lo que prestan sus campos.
-        let st = I.sin_modulo(n.texto);
-        for h en n.hijos {
-            if h.hijos.largo() == 0 { continue; }
-            if !presta_tipo(m, tipo_del_campo(m, st, h.texto)) { continue; }
-            var de = origenes_de(c, m, h.hijos[0]);
-            if de.largo() == 0 && h.hijos[0].clase != Clase.Variable
-            && es_local(procedencia_de(c, m, h.hijos[0])) {
-                de.anadir(nuevo("<temporal>"));
+        Clase.SiExpr -> {
+            if n.hijos.largo() == 3 {
+                // Puede ser cualquiera de las dos ramas.
+                juntar_origenes(salida, origenes_de(c, m, n.hijos[1]));
+                juntar_origenes(salida, origenes_de(c, m, n.hijos[2]));
+                return salida;
             }
-            juntar_origenes(salida, de);
         }
-        return salida;
-    }
-    if clase == Clase.Campo || clase == Clase.Indice {
-        // Un sitio dentro de una variable: presta de ella. Si es la vista de
-        // un struct que presta, de lo mismo que el. Si la variable llego
-        // prestada, la memoria es de quien llama.
-        let raiz = variable_base(n);
-        let i = buscar_simbolo(c, raiz);
-        if raiz.largo() == 0 || !existe(c, i) { return salida; }
-        let t = copiar(c.simbolos[i].tipo);
-        if c.simbolos[i].prestado || T.es_referencia(t) { return salida; }
-        let tc = tipo_simple(c, m, n);
-        if es_prestado_st(m, t) && presta_tipo(m, tc) {
-            return copiar(c.simbolos[i].origenes);
+        Clase.Match -> {
+            if n.hijos.largo() > 0 {
+                // Lo que da cada brazo; y si da algo que atrapo el patron, el valor
+                // mirado: lo atrapado es un prestamo suyo.
+                var mirado: lista<str> = [];
+                var visto = false;
+                var k = 1;
+                while k < n.hijos.largo() {
+                    for h en n.hijos[k].hijos {
+                        if h.clase != Clase.Retorno || h.hijos.largo() != 1 { continue; }
+                        juntar_origenes(salida, origenes_de(c, m, h.hijos[0]));
+                        var atrapados: lista<str> = [];
+                        atrapados_de(n.hijos[k], atrapados);
+                        if atrapados.largo() > 0 && menciona(h.hijos[0], atrapados) {
+                            if !visto {
+                                mirado = origenes_mirado(c, m, n.hijos[0]);
+                                if mirado.largo() == 0 { mirado.anadir(nuevo("<temporal>")); }
+                                visto = true;
+                            }
+                            juntar_origenes(salida, mirado);
+                        }
+                    }
+                    k = k + 1;
+                }
+                return salida;
+            }
         }
-        salida.anadir(copiar(raiz));
+        Clase.Variable -> {
+            let i = buscar_simbolo(c, n.texto);
+            if existe(c, i) && (c.simbolos[i].tipo == "view"
+                || es_prestado_st(m, c.simbolos[i].tipo)) {
+                return copiar(c.simbolos[i].origenes);
+            }
+            if existe(c, i) && c.simbolos[i].tipo == "str" {
+                salida.anadir(copiar(n.texto));
+            }
+        }
+        Clase.LiteralStruct -> {
+            // Un struct que presta, de lo que prestan sus campos.
+            let st = I.sin_modulo(n.texto);
+            for h en n.hijos {
+                if h.hijos.largo() == 0 { continue; }
+                if !presta_tipo(m, tipo_del_campo(m, st, h.texto)) { continue; }
+                var de = origenes_de(c, m, h.hijos[0]);
+                if de.largo() == 0 && h.hijos[0].clase != Clase.Variable
+                && es_local(procedencia_de(c, m, h.hijos[0])) {
+                    de.anadir(nuevo("<temporal>"));
+                }
+                juntar_origenes(salida, de);
+            }
+            return salida;
+        }
+        _ -> {
+            if clase == Clase.Campo || clase == Clase.Indice {
+                // Un sitio dentro de una variable: presta de ella. Si es la vista de
+                // un struct que presta, de lo mismo que el. Si la variable llego
+                // prestada, la memoria es de quien llama.
+                let raiz = variable_base(n);
+                let i = buscar_simbolo(c, raiz);
+                if raiz.largo() == 0 || !existe(c, i) { return salida; }
+                let t = copiar(c.simbolos[i].tipo);
+                if c.simbolos[i].prestado || T.es_referencia(t) { return salida; }
+                let tc = tipo_simple(c, m, n);
+                if es_prestado_st(m, t) && presta_tipo(m, tc) {
+                    return copiar(c.simbolos[i].origenes);
+                }
+                salida.anadir(copiar(raiz));
+            }
+        }
     }
     return salida;
 }
@@ -2021,104 +2045,114 @@ fn funcion_llamada(m: &Mundo, tipos: &I.Contexto, nombre: view) -> usize {
 
 fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
     let clase = n.clase;
-    if (clase == Clase.Try || clase == Clase.Sino) && n.hijos.largo() > 0 {
-        return tipo_probable(c, m, tipos, n.hijos[0]);
-    }
-    if clase == Clase.Variable {
-        let i = buscar_simbolo(c, n.texto);
-        if existe(c, i) { return copiar(c.simbolos[i].tipo); }
-        let k = funcion_llamada(m, tipos, n.texto);
-        if k < m.funciones.largo() && !tiene_sueltos(m.funciones[k]) && !m.funciones[k].falible {
-            return firma_de(m.funciones[k]);
-        }
-        return vacio();
-    }
-    if clase == Clase.Cierre { return cierre(c, m, tipos, n); }
-    if clase == Clase.Cadena { return nuevo("view"); }
-    if clase == Clase.Entero { return nuevo("usize"); }
-    if clase == Clase.Decimal { return nuevo("f64"); }
-    if clase == Clase.Booleano { return nuevo("bool"); }
-    if clase == Clase.Interpolada { return nuevo("str"); }
-    if clase == Clase.Campo || clase == Clase.Indice {
-        return tipo_de_lugar(c, m, tipos, n);
-    }
-    if clase == Clase.LiteralStruct { return I.sin_modulo(n.texto); }
-    if clase == Clase.Unaria && n.hijos.largo() > 0 {
-        if n.texto == "!" { return nuevo("bool"); }
-        if n.texto == "-" && I.literal_de(n.hijos[0]) == "entero" {
-            return nuevo("i64");
-        }
-        let t = tipo_probable(c, m, tipos, n.hijos[0]);
-        if igual(t, literal()) { return nuevo("i64"); }
-        return t;
-    }
-    if clase == Clase.Conversion {
-        let destino = vista(n.texto);
-        if empieza_con(destino, "?") { return nuevo(rebanar(destino, 1, destino.largo())); }
-        return nuevo(destino);
-    }
-    // Una rama que es un numero escrito toma el tipo de la otra.
-    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
-        let lit_a = I.literal_de(n.hijos[1]);
-        let lit_b = I.literal_de(n.hijos[2]);
-        if lit_a.largo() > 0 && lit_b.largo() == 0 {
-            return tipo_probable(c, m, tipos, n.hijos[2]);
-        }
-        if lit_a.largo() > 0 {
-            if lit_a == "decimal" || lit_b == "decimal" { return nuevo("f64"); }
-            return nuevo("usize");
-        }
-        return tipo_probable(c, m, tipos, n.hijos[1]);
-    }
-    if clase == Clase.Binaria && n.hijos.largo() == 2 {
-        let op = vista(n.texto);
-        if op == "&&" || op == "||" || op == "==" || op == "!="
-        || op == "<" || op == "<=" || op == ">" || op == ">=" {
-            return nuevo("bool");
-        }
-        // Un numero escrito no decide nada por su cuenta: toma el tipo del
-        // otro lado.
-        let lit_i = I.literal_de(n.hijos[0]);
-        let lit_d = I.literal_de(n.hijos[1]);
-        if lit_i.largo() > 0 && lit_d.largo() > 0 {
-            if lit_i == "decimal" || lit_d == "decimal" { return nuevo("f64"); }
-            return nuevo("usize");
-        }
-        if lit_i.largo() > 0 { return tipo_probable(c, m, tipos, n.hijos[1]); }
-        let a = tipo_probable(c, m, tipos, n.hijos[0]);
-        let b = tipo_probable(c, m, tipos, n.hijos[1]);
-        if a.largo() == 0 || igual(a, literal()) {
-            if igual(b, literal()) { return nuevo("usize"); }
-            return b;
-        }
-        return a;
-    }
-    if clase == Clase.Llamada {
-        let nombre = I.sin_modulo(n.texto);
-        // Las que devuelven el tipo de lo que reciben, como al comprobar.
-        if (nombre == "absoluto" || nombre == "raiz" || nombre == "piso"
-            || nombre == "techo" || nombre == "redondear") && n.hijos.largo() == 1 {
-            let lit = I.literal_de(n.hijos[0]);
-            if lit.largo() > 0 {
-                if lit == "entero" && nombre == "absoluto" { return nuevo("i64"); }
-                return nuevo("f64");
+    match clase {
+        Clase.Variable -> {
+            let i = buscar_simbolo(c, n.texto);
+            if existe(c, i) { return copiar(c.simbolos[i].tipo); }
+            let k = funcion_llamada(m, tipos, n.texto);
+            if k < m.funciones.largo() && !tiene_sueltos(m.funciones[k]) && !m.funciones[k].falible {
+                return firma_de(m.funciones[k]);
             }
-            let t_a = tipo_probable(c, m, tipos, n.hijos[0]);
-            return T.apuntado_si(t_a);
-        }
-        let fi = firma_interna(nombre);
-        if fi.existe { return copiar(fi.retorno); }
-        let k = funcion_llamada(m, tipos, n.texto);
-        if k >= m.funciones.largo() { return vacio(); }
-        if !tiene_sueltos(m.funciones[k]) { return copiar(m.funciones[k].retorno); }
-        // Para saber que devuelve hay que elegir la copia, en silencio.
-        let antes = c.errores.largo();
-        let inst = instanciar(c, m, tipos, n, k);
-        if !inst.ok || c.errores.largo() > antes {
-            truncar_errores(c, antes);
             return vacio();
         }
-        return copiar(inst.retorno);
+        Clase.Cierre -> { return cierre(c, m, tipos, n); }
+        Clase.Cadena -> { return nuevo("view"); }
+        Clase.Entero -> { return nuevo("usize"); }
+        Clase.Decimal -> { return nuevo("f64"); }
+        Clase.Booleano -> { return nuevo("bool"); }
+        Clase.Interpolada -> { return nuevo("str"); }
+        Clase.LiteralStruct -> { return I.sin_modulo(n.texto); }
+        Clase.Unaria -> {
+            if n.hijos.largo() > 0 {
+                if n.texto == "!" { return nuevo("bool"); }
+                if n.texto == "-" && I.literal_de(n.hijos[0]) == "entero" {
+                    return nuevo("i64");
+                }
+                let t = tipo_probable(c, m, tipos, n.hijos[0]);
+                if igual(t, literal()) { return nuevo("i64"); }
+                return t;
+            }
+        }
+        Clase.Conversion -> {
+            let destino = vista(n.texto);
+            if empieza_con(destino, "?") { return nuevo(rebanar(destino, 1, destino.largo())); }
+            return nuevo(destino);
+        }
+        // Una rama que es un numero escrito toma el tipo de la otra.
+        Clase.SiExpr -> {
+            if n.hijos.largo() == 3 {
+                let lit_a = I.literal_de(n.hijos[1]);
+                let lit_b = I.literal_de(n.hijos[2]);
+                if lit_a.largo() > 0 && lit_b.largo() == 0 {
+                    return tipo_probable(c, m, tipos, n.hijos[2]);
+                }
+                if lit_a.largo() > 0 {
+                    if lit_a == "decimal" || lit_b == "decimal" { return nuevo("f64"); }
+                    return nuevo("usize");
+                }
+                return tipo_probable(c, m, tipos, n.hijos[1]);
+            }
+        }
+        Clase.Binaria -> {
+            if n.hijos.largo() == 2 {
+                let op = vista(n.texto);
+                if op == "&&" || op == "||" || op == "==" || op == "!="
+                || op == "<" || op == "<=" || op == ">" || op == ">=" {
+                    return nuevo("bool");
+                }
+                // Un numero escrito no decide nada por su cuenta: toma el tipo del
+                // otro lado.
+                let lit_i = I.literal_de(n.hijos[0]);
+                let lit_d = I.literal_de(n.hijos[1]);
+                if lit_i.largo() > 0 && lit_d.largo() > 0 {
+                    if lit_i == "decimal" || lit_d == "decimal" { return nuevo("f64"); }
+                    return nuevo("usize");
+                }
+                if lit_i.largo() > 0 { return tipo_probable(c, m, tipos, n.hijos[1]); }
+                let a = tipo_probable(c, m, tipos, n.hijos[0]);
+                let b = tipo_probable(c, m, tipos, n.hijos[1]);
+                if a.largo() == 0 || igual(a, literal()) {
+                    if igual(b, literal()) { return nuevo("usize"); }
+                    return b;
+                }
+                return a;
+            }
+        }
+        Clase.Llamada -> {
+            let nombre = I.sin_modulo(n.texto);
+            // Las que devuelven el tipo de lo que reciben, como al comprobar.
+            if (nombre == "absoluto" || nombre == "raiz" || nombre == "piso"
+                || nombre == "techo" || nombre == "redondear") && n.hijos.largo() == 1 {
+                let lit = I.literal_de(n.hijos[0]);
+                if lit.largo() > 0 {
+                    if lit == "entero" && nombre == "absoluto" { return nuevo("i64"); }
+                    return nuevo("f64");
+                }
+                let t_a = tipo_probable(c, m, tipos, n.hijos[0]);
+                return T.apuntado_si(t_a);
+            }
+            let fi = firma_interna(nombre);
+            if fi.existe { return copiar(fi.retorno); }
+            let k = funcion_llamada(m, tipos, n.texto);
+            if k >= m.funciones.largo() { return vacio(); }
+            if !tiene_sueltos(m.funciones[k]) { return copiar(m.funciones[k].retorno); }
+            // Para saber que devuelve hay que elegir la copia, en silencio.
+            let antes = c.errores.largo();
+            let inst = instanciar(c, m, tipos, n, k);
+            if !inst.ok || c.errores.largo() > antes {
+                truncar_errores(c, antes);
+                return vacio();
+            }
+            return copiar(inst.retorno);
+        }
+        _ -> {
+            if (clase == Clase.Try || clase == Clase.Sino) && n.hijos.largo() > 0 {
+                return tipo_probable(c, m, tipos, n.hijos[0]);
+            }
+            if clase == Clase.Campo || clase == Clase.Indice {
+                return tipo_de_lugar(c, m, tipos, n);
+            }
+        }
     }
     return vacio();
 }
@@ -2885,63 +2919,68 @@ fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
     n: &P.Nodo, destino: view, mover_variables: bool) -> str {
     if es_numerico(destino) { comprobar_literal(c, m, n, destino); }
     let clase = n.clase;
-    if clase == Clase.Entero { return nuevo(literal()); }
-    if clase == Clase.Decimal { return nuevo(literal_decimal()); }
-    if clase == Clase.Cadena { return nuevo("view"); }
-    if clase == Clase.Booleano { return nuevo("bool"); }
-    if clase == Clase.Expresion && n.hijos.largo() == 1 {
-        return comprobar_expresion(c, m, tipos, n.hijos[0], destino, mover_variables);
-    }
-    if clase == Clase.Interpolada {
-        for x en n.hijos {
-            let t = comprobar_expresion(c, m, tipos, x, "", false);
-            if t.largo() == 0 { continue; }
-            if !se_muestra(t) {
-                let limpio = sin_prestamo(t);
-                let pista = if es_enum(m, limpio) { $": {como_mostrar(m, t)}" } else { vacio() };
-                error(c, m, n.linea, $"dentro de `{{}}` va un escalar o texto, y `{t}` no lo es{pista}");
+    match clase {
+        Clase.Entero -> { return nuevo(literal()); }
+        Clase.Decimal -> { return nuevo(literal_decimal()); }
+        Clase.Cadena -> { return nuevo("view"); }
+        Clase.Booleano -> { return nuevo("bool"); }
+        Clase.Expresion -> {
+            if n.hijos.largo() == 1 {
+                return comprobar_expresion(c, m, tipos, n.hijos[0], destino, mover_variables);
             }
         }
-        return nuevo("str");
-    }
-    if clase == Clase.Variable {
-        return variable(c, m, tipos, n, mover_variables, false);
-    }
-    if clase == Clase.Unaria { return unaria(c, m, tipos, n, destino); }
-    if clase == Clase.Cierre { return cierre(c, m, tipos, n); }
-    if clase == Clase.SiExpr { return si_expr(c, m, tipos, n, destino, mover_variables); }
-    if clase == Clase.EnumLit { return enum_lit(c, m, tipos, n); }
-    if clase == Clase.Match { return comprobar_match(c, m, tipos, n, destino, mover_variables); }
-    if clase == Clase.Conversion { return comprobar_conversion(c, m, tipos, n); }
-    if clase == Clase.Try {
-        if !c.falible {
-            error(c, m, n.linea, "`try` deja subir la falla al que llamo, pero esta funcion no esta declarada con `!`");
+        Clase.Interpolada -> {
+            for x en n.hijos {
+                let t = comprobar_expresion(c, m, tipos, x, "", false);
+                if t.largo() == 0 { continue; }
+                if !se_muestra(t) {
+                    let limpio = sin_prestamo(t);
+                    let pista = if es_enum(m, limpio) { $": {como_mostrar(m, t)}" } else { vacio() };
+                    error(c, m, n.linea, $"dentro de `{{}}` va un escalar o texto, y `{t}` no lo es{pista}");
+                }
+            }
+            return nuevo("str");
         }
-        if c.en_condicion_bucle > 0 {
-            error(c, m, n.linea, "`try` no puede ir en la condicion de un `while`: se evaluaria una sola vez");
+        Clase.Variable -> {
+            return variable(c, m, tipos, n, mover_variables, false);
         }
-        return desenvolver(c, m, tipos, n, n.hijos[0], "try");
+        Clase.Unaria -> { return unaria(c, m, tipos, n, destino); }
+        Clase.Cierre -> { return cierre(c, m, tipos, n); }
+        Clase.SiExpr -> { return si_expr(c, m, tipos, n, destino, mover_variables); }
+        Clase.EnumLit -> { return enum_lit(c, m, tipos, n); }
+        Clase.Match -> { return comprobar_match(c, m, tipos, n, destino, mover_variables); }
+        Clase.Conversion -> { return comprobar_conversion(c, m, tipos, n); }
+        Clase.Try -> {
+            if !c.falible {
+                error(c, m, n.linea, "`try` deja subir la falla al que llamo, pero esta funcion no esta declarada con `!`");
+            }
+            if c.en_condicion_bucle > 0 {
+                error(c, m, n.linea, "`try` no puede ir en la condicion de un `while`: se evaluaria una sola vez");
+            }
+            return desenvolver(c, m, tipos, n, n.hijos[0], "try");
+        }
+        Clase.Sino -> {
+            if c.en_condicion_bucle > 0 {
+                error(c, m, n.linea, "`sino` no puede ir en la condicion de un `while`: se evaluaria una sola vez");
+            }
+            let t = desenvolver(c, m, tipos, n, n.hijos[0], "sino");
+            let alt = comprobar_expresion(c, m, tipos, n.hijos[1], t, true);
+            if t.largo() > 0 && T.es_referencia(t) {
+                error(c, m, n.linea, $"`sino` no vale aqui: la llamada devuelve un prestamo (`{t}`) y no hay nada que prestar cuando falla. Usa `try`, o pregunta antes con `tiene(...)`");
+            } else if t.largo() > 0 && alt.largo() > 0 && !encaja(t, alt) {
+                error(c, m, n.linea, $"la llamada da `{t}` y el valor de despues de `sino` es `{alt}`");
+            }
+            return t;
+        }
+        Clase.Campo -> { return campo(c, m, tipos, n, mover_variables); }
+        Clase.Indice -> { return indice(c, m, tipos, n, mover_variables); }
+        Clase.LiteralStruct -> { return literal_struct(c, m, tipos, n, destino); }
+        Clase.LiteralLista -> { return literal_arreglo(c, m, tipos, n, destino); }
+        Clase.Binaria -> { return binaria(c, m, tipos, n); }
+        Clase.Llamada -> { return llamada(c, m, tipos, n, false, destino); }
+        Clase.Rango -> { return rango(c, m, tipos, n); }
+        _ -> { }
     }
-    if clase == Clase.Sino {
-        if c.en_condicion_bucle > 0 {
-            error(c, m, n.linea, "`sino` no puede ir en la condicion de un `while`: se evaluaria una sola vez");
-        }
-        let t = desenvolver(c, m, tipos, n, n.hijos[0], "sino");
-        let alt = comprobar_expresion(c, m, tipos, n.hijos[1], t, true);
-        if t.largo() > 0 && T.es_referencia(t) {
-            error(c, m, n.linea, $"`sino` no vale aqui: la llamada devuelve un prestamo (`{t}`) y no hay nada que prestar cuando falla. Usa `try`, o pregunta antes con `tiene(...)`");
-        } else if t.largo() > 0 && alt.largo() > 0 && !encaja(t, alt) {
-            error(c, m, n.linea, $"la llamada da `{t}` y el valor de despues de `sino` es `{alt}`");
-        }
-        return t;
-    }
-    if clase == Clase.Campo { return campo(c, m, tipos, n, mover_variables); }
-    if clase == Clase.Indice { return indice(c, m, tipos, n, mover_variables); }
-    if clase == Clase.LiteralStruct { return literal_struct(c, m, tipos, n, destino); }
-    if clase == Clase.LiteralLista { return literal_arreglo(c, m, tipos, n, destino); }
-    if clase == Clase.Binaria { return binaria(c, m, tipos, n); }
-    if clase == Clase.Llamada { return llamada(c, m, tipos, n, false, destino); }
-    if clase == Clase.Rango { return rango(c, m, tipos, n); }
     return vacio();
 }
 
@@ -4728,19 +4767,22 @@ fn registrar_tipo(m: mut Mundo, t: view) {
 // Lo mismo en el cuerpo de una copia: sus declaraciones y clausuras.
 fn registrar_en_nodo(m: mut Mundo, n: &P.Nodo) {
     let clase = n.clase;
-    if clase == Clase.Declaracion {
-        var nombre = vacio();
-        var escrito = vacio();
-        let _mutable = partes_declaracion(n.texto, nombre, escrito);
-        if escrito.largo() > 0 { registrar_tipo(m, escrito); }
-    }
-    if clase == Clase.Param {
-        let p = param_de(n.texto);
-        registrar_tipo(m, p.tipo);
-    }
-    if clase == Clase.RetornoTipo {
-        let t = I.sin_alias_tipo(n.texto);
-        registrar_tipo(m, t);
+    match clase {
+        Clase.Declaracion -> {
+            var nombre = vacio();
+            var escrito = vacio();
+            let _mutable = partes_declaracion(n.texto, nombre, escrito);
+            if escrito.largo() > 0 { registrar_tipo(m, escrito); }
+        }
+        Clase.Param -> {
+            let p = param_de(n.texto);
+            registrar_tipo(m, p.tipo);
+        }
+        Clase.RetornoTipo -> {
+            let t = I.sin_alias_tipo(n.texto);
+            registrar_tipo(m, t);
+        }
+        _ -> { }
     }
     for h en n.hijos { registrar_en_nodo(m, h); }
 }
@@ -4998,332 +5040,330 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
     s: &P.Nodo) {
     let clase = s.clase;
 
-    if clase == Clase.Declaracion {
-        var nombre = vacio();
-        var escrito = vacio();
-        let mutable = partes_declaracion(s.texto, nombre, escrito);
-        var tipo = vacio();
-        if escrito.largo() == 0 {
-            let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", true);
-            if t.largo() == 0 { return; }
-            tipo = copiar(t);
-            if igual(tipo, literal()) {
-                comprobar_literal(c, m, s.hijos[0], "usize");
-                tipo = nuevo("usize");
+    match clase {
+        Clase.Declaracion -> {
+            var nombre = vacio();
+            var escrito = vacio();
+            let mutable = partes_declaracion(s.texto, nombre, escrito);
+            var tipo = vacio();
+            if escrito.largo() == 0 {
+                let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", true);
+                if t.largo() == 0 { return; }
+                tipo = copiar(t);
+                if igual(tipo, literal()) {
+                    comprobar_literal(c, m, s.hijos[0], "usize");
+                    tipo = nuevo("usize");
+                }
+                if !almacenable(m, tipo) {
+                    error(c, m, s.linea, $"no se puede deducir el tipo de `{nombre}`: escribelo con `: tipo`");
+                    return;
+                }
+            } else {
+                tipo = copiar(escrito);
+                comprobar_mapa_valido(c, m, s.linea, tipo);
+                if !almacenable(m, tipo) {
+                    if T.es_referencia(tipo) {
+                        let dentro = T.apuntado(tipo);
+                        error(c, m, s.linea, $"`{tipo}` no tiene sentido: `{dentro}` es un escalar, y prestarlo no aporta nada sobre copiarlo");
+                    } else {
+                        error(c, m, s.linea, $"`{tipo}` no es un tipo almacenable; las listas y los arreglos no pueden guardar `view`, y las listas tampoco arreglos fijos");
+                    }
+                }
+                let t = comprobar_expresion(c, m, tipos, s.hijos[0], tipo, true);
+                if t.largo() > 0 && !encaja(tipo, t) {
+                    error(c, m, s.linea, $"`{nombre}` se declaro `{tipo}` pero el valor es `{t}`");
+                }
             }
-            if !almacenable(m, tipo) {
-                error(c, m, s.linea, $"no se puede deducir el tipo de `{nombre}`: escribelo con `: tipo`");
+            let i = declarar_simbolo(c, m, s.linea, nombre, tipo, mutable);
+            if presta_tipo(m, tipo) {
+                c.simbolos[i].procedencia = procedencia_de(c, m, s.hijos[0]);
+                c.simbolos[i].prestado = T.es_referencia(tipo);
+                apuntar(c, m, s.linea, i, s.hijos[0]);
+            }
+            return;
+        }
+        Clase.Asignacion -> {
+            let lugar = copiar(s.hijos[0]);
+            let base = variable_base(lugar);
+            let i = buscar_simbolo(c, base);
+            if base.largo() == 0 || !existe(c, i) {
+                if base.largo() > 0 {
+                    error(c, m, s.linea, $"`{base}` no esta declarada");
+                } else {
+                    error(c, m, s.linea, "destino de asignacion invalido");
+                }
+                let _t = comprobar_expresion(c, m, tipos, s.hijos[1], "", false);
                 return;
             }
-        } else {
-            tipo = copiar(escrito);
-            comprobar_mapa_valido(c, m, s.linea, tipo);
-            if !almacenable(m, tipo) {
-                if T.es_referencia(tipo) {
-                    let dentro = T.apuntado(tipo);
-                    error(c, m, s.linea, $"`{tipo}` no tiene sentido: `{dentro}` es un escalar, y prestarlo no aporta nada sobre copiarlo");
-                } else {
-                    error(c, m, s.linea, $"`{tipo}` no es un tipo almacenable; las listas y los arreglos no pueden guardar `view`, y las listas tampoco arreglos fijos");
+            c.escribiendo = c.escribiendo + 1;
+            let destino = tipo_de_lugar(c, m, tipos, lugar);
+            c.escribiendo = c.escribiendo - 1;
+            let tipo = comprobar_expresion(c, m, tipos, s.hijos[1], destino, true);
+            if escribe_en_captura(c, m, lugar) { return; }
+            c.simbolos[i].mutada = true;
+            let st = copiar(c.simbolos[i].tipo);
+            if T.es_referencia(st) {
+                if !T.es_referencia_mutable(st) {
+                    error_solo_lectura(c, m, s.linea, base, st);
                 }
+            } else if !c.simbolos[i].mutable {
+                error_no_mutable(c, m, s.linea, i);
             }
-            let t = comprobar_expresion(c, m, tipos, s.hijos[0], tipo, true);
-            if t.largo() > 0 && !encaja(tipo, t) {
-                error(c, m, s.linea, $"`{nombre}` se declaro `{tipo}` pero el valor es `{t}`");
+            let vivos = prestamos_vivos(c, i);
+            if vivos.largo() > 0 {
+                let por = ocupada(vivos);
+                error(c, m, s.linea, $"no se puede modificar `{base}`: {por}");
             }
-        }
-        let i = declarar_simbolo(c, m, s.linea, nombre, tipo, mutable);
-        if presta_tipo(m, tipo) {
-            c.simbolos[i].procedencia = procedencia_de(c, m, s.hijos[0]);
-            c.simbolos[i].prestado = T.es_referencia(tipo);
-            apuntar(c, m, s.linea, i, s.hijos[0]);
-        }
-        return;
-    }
-
-    if clase == Clase.Asignacion {
-        let lugar = copiar(s.hijos[0]);
-        let base = variable_base(lugar);
-        let i = buscar_simbolo(c, base);
-        if base.largo() == 0 || !existe(c, i) {
-            if base.largo() > 0 {
-                error(c, m, s.linea, $"`{base}` no esta declarada");
-            } else {
-                error(c, m, s.linea, "destino de asignacion invalido");
+            if destino.largo() > 0 && tipo.largo() > 0 && !encaja(destino, tipo) {
+                error(c, m, s.linea, $"el destino es `{destino}` y se le asigna un `{tipo}`");
             }
-            let _t = comprobar_expresion(c, m, tipos, s.hijos[1], "", false);
-            return;
-        }
-        c.escribiendo = c.escribiendo + 1;
-        let destino = tipo_de_lugar(c, m, tipos, lugar);
-        c.escribiendo = c.escribiendo - 1;
-        let tipo = comprobar_expresion(c, m, tipos, s.hijos[1], destino, true);
-        if escribe_en_captura(c, m, lugar) { return; }
-        c.simbolos[i].mutada = true;
-        let st = copiar(c.simbolos[i].tipo);
-        if T.es_referencia(st) {
-            if !T.es_referencia_mutable(st) {
-                error_solo_lectura(c, m, s.linea, base, st);
-            }
-        } else if !c.simbolos[i].mutable {
-            error_no_mutable(c, m, s.linea, i);
-        }
-        let vivos = prestamos_vivos(c, i);
-        if vivos.largo() > 0 {
-            let por = ocupada(vivos);
-            error(c, m, s.linea, $"no se puede modificar `{base}`: {por}");
-        }
-        if destino.largo() > 0 && tipo.largo() > 0 && !encaja(destino, tipo) {
-            error(c, m, s.linea, $"el destino es `{destino}` y se le asigna un `{tipo}`");
-        }
-        // Una vista guardada en un campo: el struct de la raiz presta tambien
-        // de ella. Si la raiz llego prestada, quien la presto no sabria de
-        // donde presta ahora, salvo que sea un literal.
-        if lugar.clase == Clase.Campo && presta_tipo(m, tipo) {
-            let de_raiz = copiar(c.simbolos[i].tipo);
-            if c.simbolos[i].prestado || T.es_referencia(de_raiz) {
-                if procedencia_de(c, m, s.hijos[1]) != "estatico" {
-                    error(c, m, s.linea, $"no se puede guardar un prestamo en `{base}`: llego prestada, y quien la presto no sabria de donde presta ahora. Guarda un literal, o devuelve el valor");
-                }
-            } else if es_prestado_st(m, de_raiz) {
-                let nueva = procedencia_de(c, m, s.hijos[1]);
-                let antes = copiar(c.simbolos[i].procedencia);
-                if antes == "local" || nueva == "local" {
-                    c.simbolos[i].procedencia = nuevo("local");
-                } else if antes == "parametro" || nueva == "parametro" {
-                    c.simbolos[i].procedencia = nuevo("parametro");
-                }
-                apuntar(c, m, s.linea, i, s.hijos[1]);
-            }
-        }
-
-        // Lo que se habia sacado vuelve a estar, si se repone en el mismo
-        // nivel en que vive la variable. Dentro de un `if`, el otro camino no
-        // lo repuso.
-        if c.en_condicional == c.simbolos[i].condicional_al_declarar
-        && c.en_bucle == c.simbolos[i].bucle_al_declarar {
-            if lugar.clase == Clase.Variable {
-                c.simbolos[i].sacados = [];
-            } else {
-                let camino = ruta_de_campo(lugar);
-                if camino.largo() > 0 {
-                    let ruta = despues_de_tab(camino);
-                    var quedan: lista<str> = [];
-                    for x en c.simbolos[i].sacados {
-                        let r = antes_de_tab(x);
-                        if !igual(r, ruta) && !empieza_con(r, $"{ruta}.") {
-                            quedan.anadir(copiar(x));
-                        }
+            // Una vista guardada en un campo: el struct de la raiz presta tambien
+            // de ella. Si la raiz llego prestada, quien la presto no sabria de
+            // donde presta ahora, salvo que sea un literal.
+            if lugar.clase == Clase.Campo && presta_tipo(m, tipo) {
+                let de_raiz = copiar(c.simbolos[i].tipo);
+                if c.simbolos[i].prestado || T.es_referencia(de_raiz) {
+                    if procedencia_de(c, m, s.hijos[1]) != "estatico" {
+                        error(c, m, s.linea, $"no se puede guardar un prestamo en `{base}`: llego prestada, y quien la presto no sabria de donde presta ahora. Guarda un literal, o devuelve el valor");
                     }
-                    c.simbolos[i].sacados = quedan;
+                } else if es_prestado_st(m, de_raiz) {
+                    let nueva = procedencia_de(c, m, s.hijos[1]);
+                    let antes = copiar(c.simbolos[i].procedencia);
+                    if antes == "local" || nueva == "local" {
+                        c.simbolos[i].procedencia = nuevo("local");
+                    } else if antes == "parametro" || nueva == "parametro" {
+                        c.simbolos[i].procedencia = nuevo("parametro");
+                    }
+                    apuntar(c, m, s.linea, i, s.hijos[1]);
                 }
             }
-        }
-        if lugar.clase == Clase.Variable {
-            c.simbolos[i].movida = false;
-            if c.en_bucle_directo == c.en_bucle como i64 {
-                c.simbolos[i].reasignada_directo = true;
-            }
-            let ti = copiar(c.simbolos[i].tipo);
-            if presta_tipo(m, ti) {
-                // Lo peor de lo que tuvo y de lo que tiene ahora: si la
-                // asignacion va en una rama, la otra puede no haberla hecho.
-                let nueva = procedencia_de(c, m, s.hijos[1]);
-                let antes = copiar(c.simbolos[i].procedencia);
-                if antes == "local" || nueva == "local" {
-                    c.simbolos[i].procedencia = nuevo("local");
-                } else if antes == "parametro" || nueva == "parametro" {
-                    c.simbolos[i].procedencia = nuevo("parametro");
+
+            // Lo que se habia sacado vuelve a estar, si se repone en el mismo
+            // nivel en que vive la variable. Dentro de un `if`, el otro camino no
+            // lo repuso.
+            if c.en_condicional == c.simbolos[i].condicional_al_declarar
+            && c.en_bucle == c.simbolos[i].bucle_al_declarar {
+                if lugar.clase == Clase.Variable {
+                    c.simbolos[i].sacados = [];
+                } else {
+                    let camino = ruta_de_campo(lugar);
+                    if camino.largo() > 0 {
+                        let ruta = despues_de_tab(camino);
+                        var quedan: lista<str> = [];
+                        for x en c.simbolos[i].sacados {
+                            let r = antes_de_tab(x);
+                            if !igual(r, ruta) && !empieza_con(r, $"{ruta}.") {
+                                quedan.anadir(copiar(x));
+                            }
+                        }
+                        c.simbolos[i].sacados = quedan;
+                    }
                 }
-                apuntar(c, m, s.linea, i, s.hijos[1]);
             }
-        }
-        return;
-    }
-
-    if clase == Clase.Si {
-        let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
-        if t.largo() > 0 && t != "bool" {
-            error(c, m, s.linea, $"la condicion de `if` debe ser `bool`, es `{t}`");
-        }
-        c.en_condicional = c.en_condicional + 1;
-        let antes = foto(c);
-        comprobar_bloque(c, m, tipos, s.hijos[1]);
-        let tras_e = foto(c);
-        let sale_e = bloque_termina(s.hijos[1]);
-        var tras_s = copiar(antes);
-        var sale_s = false;
-        if s.hijos.largo() > 2 {
-            restaurar_foto(c, antes);
-            comprobar_bloque(c, m, tipos, s.hijos[2]);
-            tras_s = foto(c);
-            sale_s = termina_rama(s.hijos[2]);
-        }
-        // Una rama que no continua no aporta a lo que sigue.
-        var i = 0;
-        while i < c.simbolos.largo() && 4 * i + 3 < tras_e.largo() {
-            var mb = tras_e[4 * i];
-            var lb = tras_e[4 * i + 1];
-            var eb = tras_e[4 * i + 2];
-            var rb = tras_e[4 * i + 3];
-            if 4 * i + 3 < tras_s.largo() {
-                mb = tras_s[4 * i];
-                lb = tras_s[4 * i + 1];
-                eb = tras_s[4 * i + 2];
-                rb = tras_s[4 * i + 3];
-            }
-            let ma = tras_e[4 * i];
-            let la = tras_e[4 * i + 1];
-            let ea = tras_e[4 * i + 2];
-            let ra = tras_e[4 * i + 3];
-            if sale_e && !sale_s {
-                c.simbolos[i].movida = mb == 1;
-                c.simbolos[i].movida_en = lb;
-                c.simbolos[i].entregada_en = eb;
-                c.simbolos[i].reasignada_directo = rb == 1;
-            } else if sale_s && !sale_e {
-                c.simbolos[i].movida = ma == 1;
-                c.simbolos[i].movida_en = la;
-                c.simbolos[i].entregada_en = ea;
-                c.simbolos[i].reasignada_directo = ra == 1;
-            } else {
-                c.simbolos[i].movida = ma == 1 || mb == 1;
-                if ma == 1 { c.simbolos[i].movida_en = la; } else { c.simbolos[i].movida_en = lb; }
-                if ea != 0 { c.simbolos[i].entregada_en = ea; } else { c.simbolos[i].entregada_en = eb; }
-                c.simbolos[i].reasignada_directo = ra == 1 || rb == 1;
-            }
-            i = i + 1;
-        }
-        c.en_condicional = c.en_condicional - 1;
-        return;
-    }
-
-    if clase == Clase.Para {
-        let crudo = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
-        let tipo = sin_prestamo(crudo);
-        var elem = vacio();
-        var tipo_valor = vacio();
-        var variable = vacio();
-        var valor = vacio();
-        let nombres = vista(s.texto);
-        var coma = 0;
-        while coma < nombres.largo() && byte(nombres, coma) != 44 { coma = coma + 1; }
-        variable = nuevo(recortar(rebanar(nombres, 0, coma)));
-        if coma < nombres.largo() { valor = nuevo(recortar(rebanar(nombres, coma + 1, nombres.largo()))); }
-        let es_rango = tipo.largo() > 0 && T.es_rango(tipo);
-        if es_rango {
-            elem = T.elemento(tipo);
-            if valor.largo() > 0 {
-                error(c, m, s.linea, "un rango da un numero en cada vuelta: `for i en a..b`, con un solo nombre");
-            }
-        } else if tipo.largo() > 0 && T.es_mapa(tipo) {
-            let ps = T.partes(tipo);
-            elem = copiar(ps[0]);
-            tipo_valor = copiar(ps[1]);
-        } else if tipo.largo() > 0 && (T.es_lista(tipo) || T.es_arreglo(tipo)) {
-            if T.es_lista(tipo) { elem = T.elemento(tipo); }
-            else { elem = T.elemento(tipo); }
-            if valor.largo() > 0 {
-                error(c, m, s.linea, "los dos nombres de `for k, v en ...` son para un mapa; una lista solo da el elemento");
-            }
-        } else if tipo.largo() > 0 {
-            error(c, m, s.linea, $"`for` recorre una `lista<T>`, un arreglo o un `mapa<K, V>`, y `{tipo}` no lo es");
-        }
-        // El bucle presta la coleccion mientras dura.
-        let base = variable_base(s.hijos[0]);
-        let d = buscar_simbolo(c, base);
-        let marca = $"<el for de la linea {s.linea}>";
-        let hay_duenio = base.largo() > 0 && existe(c, d);
-        if hay_duenio { c.simbolos[d].prestamos.anadir(copiar(marca)); }
-        abrir_ambito(c);
-        c.en_bucle = c.en_bucle + 1;
-        let vacia: lista<usize> = [];
-        c.movidas_en_bucle.anadir(vacia);
-        c.en_condicional = c.en_condicional + 1;
-        if elem.largo() > 0 {
-            let i = declarar_simbolo(c, m, s.linea, variable, elem, false);
-            // El numero de un rango es suyo; el elemento de una coleccion se
-            // presta de ella.
-            c.simbolos[i].prestado = !es_rango;
-            c.simbolos[i].leida = true;
-        }
-        if tipo_valor.largo() > 0 && valor.largo() > 0 {
-            let j = declarar_simbolo(c, m, s.linea, valor, tipo_valor, false);
-            c.simbolos[j].leida = true;
-            if posee_memoria(m, tipo_valor) { c.simbolos[j].prestado = true; }
-        }
-        cuerpo_de_bucle(c, m, tipos, s.hijos[1]);
-        c.en_condicional = c.en_condicional - 1;
-        c.en_bucle = c.en_bucle - 1;
-        cerrar_ambito(c);
-        if hay_duenio && esta_entre(c.simbolos[d].prestamos, marca) {
-            soltar_prestamo(c, d, marca);
-        }
-        return;
-    }
-
-    if clase == Clase.Romper || clase == Clase.Continuar {
-        if c.en_bucle == 0 {
-            var palabra = nuevo("break");
-            if clase == Clase.Continuar { palabra = nuevo("continue"); }
-            error(c, m, s.linea, $"`{palabra}` solo tiene sentido dentro de un `for` o un `while`");
-        }
-        return;
-    }
-
-    if clase == Clase.Mientras {
-        c.en_condicion_bucle = c.en_condicion_bucle + 1;
-        let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
-        c.en_condicion_bucle = c.en_condicion_bucle - 1;
-        c.en_bucle = c.en_bucle + 1;
-        let vacia: lista<usize> = [];
-        c.movidas_en_bucle.anadir(vacia);
-        if t.largo() > 0 && t != "bool" {
-            error(c, m, s.linea, $"la condicion de `while` debe ser `bool`, es `{t}`");
-        }
-        c.en_condicional = c.en_condicional + 1;
-        cuerpo_de_bucle(c, m, tipos, s.hijos[1]);
-        c.en_condicional = c.en_condicional - 1;
-        c.en_bucle = c.en_bucle - 1;
-        return;
-    }
-
-    if clase == Clase.Retorno {
-        let r = copiar(c.retorno);
-        if s.hijos.largo() == 0 {
-            if r.largo() > 0 {
-                error(c, m, s.linea, $"esta funcion devuelve `{r}` y el `return` esta vacio");
+            if lugar.clase == Clase.Variable {
+                c.simbolos[i].movida = false;
+                if c.en_bucle_directo == c.en_bucle como i64 {
+                    c.simbolos[i].reasignada_directo = true;
+                }
+                let ti = copiar(c.simbolos[i].tipo);
+                if presta_tipo(m, ti) {
+                    // Lo peor de lo que tuvo y de lo que tiene ahora: si la
+                    // asignacion va en una rama, la otra puede no haberla hecho.
+                    let nueva = procedencia_de(c, m, s.hijos[1]);
+                    let antes = copiar(c.simbolos[i].procedencia);
+                    if antes == "local" || nueva == "local" {
+                        c.simbolos[i].procedencia = nuevo("local");
+                    } else if antes == "parametro" || nueva == "parametro" {
+                        c.simbolos[i].procedencia = nuevo("parametro");
+                    }
+                    apuntar(c, m, s.linea, i, s.hijos[1]);
+                }
             }
             return;
         }
-        if presta_tipo(m, r) {
-            comprobar_vista_devuelta(c, m, s);
+        Clase.Si -> {
+            let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
+            if t.largo() > 0 && t != "bool" {
+                error(c, m, s.linea, $"la condicion de `if` debe ser `bool`, es `{t}`");
+            }
+            c.en_condicional = c.en_condicional + 1;
+            let antes = foto(c);
+            comprobar_bloque(c, m, tipos, s.hijos[1]);
+            let tras_e = foto(c);
+            let sale_e = bloque_termina(s.hijos[1]);
+            var tras_s = copiar(antes);
+            var sale_s = false;
+            if s.hijos.largo() > 2 {
+                restaurar_foto(c, antes);
+                comprobar_bloque(c, m, tipos, s.hijos[2]);
+                tras_s = foto(c);
+                sale_s = termina_rama(s.hijos[2]);
+            }
+            // Una rama que no continua no aporta a lo que sigue.
+            var i = 0;
+            while i < c.simbolos.largo() && 4 * i + 3 < tras_e.largo() {
+                var mb = tras_e[4 * i];
+                var lb = tras_e[4 * i + 1];
+                var eb = tras_e[4 * i + 2];
+                var rb = tras_e[4 * i + 3];
+                if 4 * i + 3 < tras_s.largo() {
+                    mb = tras_s[4 * i];
+                    lb = tras_s[4 * i + 1];
+                    eb = tras_s[4 * i + 2];
+                    rb = tras_s[4 * i + 3];
+                }
+                let ma = tras_e[4 * i];
+                let la = tras_e[4 * i + 1];
+                let ea = tras_e[4 * i + 2];
+                let ra = tras_e[4 * i + 3];
+                if sale_e && !sale_s {
+                    c.simbolos[i].movida = mb == 1;
+                    c.simbolos[i].movida_en = lb;
+                    c.simbolos[i].entregada_en = eb;
+                    c.simbolos[i].reasignada_directo = rb == 1;
+                } else if sale_s && !sale_e {
+                    c.simbolos[i].movida = ma == 1;
+                    c.simbolos[i].movida_en = la;
+                    c.simbolos[i].entregada_en = ea;
+                    c.simbolos[i].reasignada_directo = ra == 1;
+                } else {
+                    c.simbolos[i].movida = ma == 1 || mb == 1;
+                    if ma == 1 { c.simbolos[i].movida_en = la; } else { c.simbolos[i].movida_en = lb; }
+                    if ea != 0 { c.simbolos[i].entregada_en = ea; } else { c.simbolos[i].entregada_en = eb; }
+                    c.simbolos[i].reasignada_directo = ra == 1 || rb == 1;
+                }
+                i = i + 1;
+            }
+            c.en_condicional = c.en_condicional - 1;
+            return;
         }
-        c.en_retorno = c.en_retorno + 1;
-        var tipo = vacio();
-        if s.hijos[0].clase == Clase.Variable {
-            tipo = variable(c, m, tipos, s.hijos[0], true, true);
-        } else {
-            tipo = comprobar_expresion(c, m, tipos, s.hijos[0], r, true);
+        Clase.Para -> {
+            let crudo = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
+            let tipo = sin_prestamo(crudo);
+            var elem = vacio();
+            var tipo_valor = vacio();
+            var variable = vacio();
+            var valor = vacio();
+            let nombres = vista(s.texto);
+            var coma = 0;
+            while coma < nombres.largo() && byte(nombres, coma) != 44 { coma = coma + 1; }
+            variable = nuevo(recortar(rebanar(nombres, 0, coma)));
+            if coma < nombres.largo() { valor = nuevo(recortar(rebanar(nombres, coma + 1, nombres.largo()))); }
+            let es_rango = tipo.largo() > 0 && T.es_rango(tipo);
+            if es_rango {
+                elem = T.elemento(tipo);
+                if valor.largo() > 0 {
+                    error(c, m, s.linea, "un rango da un numero en cada vuelta: `for i en a..b`, con un solo nombre");
+                }
+            } else if tipo.largo() > 0 && T.es_mapa(tipo) {
+                let ps = T.partes(tipo);
+                elem = copiar(ps[0]);
+                tipo_valor = copiar(ps[1]);
+            } else if tipo.largo() > 0 && (T.es_lista(tipo) || T.es_arreglo(tipo)) {
+                if T.es_lista(tipo) { elem = T.elemento(tipo); }
+                else { elem = T.elemento(tipo); }
+                if valor.largo() > 0 {
+                    error(c, m, s.linea, "los dos nombres de `for k, v en ...` son para un mapa; una lista solo da el elemento");
+                }
+            } else if tipo.largo() > 0 {
+                error(c, m, s.linea, $"`for` recorre una `lista<T>`, un arreglo o un `mapa<K, V>`, y `{tipo}` no lo es");
+            }
+            // El bucle presta la coleccion mientras dura.
+            let base = variable_base(s.hijos[0]);
+            let d = buscar_simbolo(c, base);
+            let marca = $"<el for de la linea {s.linea}>";
+            let hay_duenio = base.largo() > 0 && existe(c, d);
+            if hay_duenio { c.simbolos[d].prestamos.anadir(copiar(marca)); }
+            abrir_ambito(c);
+            c.en_bucle = c.en_bucle + 1;
+            let vacia: lista<usize> = [];
+            c.movidas_en_bucle.anadir(vacia);
+            c.en_condicional = c.en_condicional + 1;
+            if elem.largo() > 0 {
+                let i = declarar_simbolo(c, m, s.linea, variable, elem, false);
+                // El numero de un rango es suyo; el elemento de una coleccion se
+                // presta de ella.
+                c.simbolos[i].prestado = !es_rango;
+                c.simbolos[i].leida = true;
+            }
+            if tipo_valor.largo() > 0 && valor.largo() > 0 {
+                let j = declarar_simbolo(c, m, s.linea, valor, tipo_valor, false);
+                c.simbolos[j].leida = true;
+                if posee_memoria(m, tipo_valor) { c.simbolos[j].prestado = true; }
+            }
+            cuerpo_de_bucle(c, m, tipos, s.hijos[1]);
+            c.en_condicional = c.en_condicional - 1;
+            c.en_bucle = c.en_bucle - 1;
+            cerrar_ambito(c);
+            if hay_duenio && esta_entre(c.simbolos[d].prestamos, marca) {
+                soltar_prestamo(c, d, marca);
+            }
+            return;
         }
-        c.en_retorno = c.en_retorno - 1;
-        if r.largo() == 0 {
-            error(c, m, s.linea, "esta funcion no declara tipo de retorno");
-        } else if tipo.largo() > 0 && !encaja(r, tipo) {
-            error(c, m, s.linea, $"esta funcion devuelve `{r}` y aqui se devuelve `{tipo}`");
+        Clase.Mientras -> {
+            c.en_condicion_bucle = c.en_condicion_bucle + 1;
+            let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
+            c.en_condicion_bucle = c.en_condicion_bucle - 1;
+            c.en_bucle = c.en_bucle + 1;
+            let vacia: lista<usize> = [];
+            c.movidas_en_bucle.anadir(vacia);
+            if t.largo() > 0 && t != "bool" {
+                error(c, m, s.linea, $"la condicion de `while` debe ser `bool`, es `{t}`");
+            }
+            c.en_condicional = c.en_condicional + 1;
+            cuerpo_de_bucle(c, m, tipos, s.hijos[1]);
+            c.en_condicional = c.en_condicional - 1;
+            c.en_bucle = c.en_bucle - 1;
+            return;
         }
-        return;
-    }
-
-    if clase == Clase.Falla {
-        if !c.falible {
-            error(c, m, s.linea, "esta funcion no esta declarada con `!`, asi que no puede fallar; ponle `!` despues del tipo de retorno");
+        Clase.Retorno -> {
+            let r = copiar(c.retorno);
+            if s.hijos.largo() == 0 {
+                if r.largo() > 0 {
+                    error(c, m, s.linea, $"esta funcion devuelve `{r}` y el `return` esta vacio");
+                }
+                return;
+            }
+            if presta_tipo(m, r) {
+                comprobar_vista_devuelta(c, m, s);
+            }
+            c.en_retorno = c.en_retorno + 1;
+            var tipo = vacio();
+            if s.hijos[0].clase == Clase.Variable {
+                tipo = variable(c, m, tipos, s.hijos[0], true, true);
+            } else {
+                tipo = comprobar_expresion(c, m, tipos, s.hijos[0], r, true);
+            }
+            c.en_retorno = c.en_retorno - 1;
+            if r.largo() == 0 {
+                error(c, m, s.linea, "esta funcion no declara tipo de retorno");
+            } else if tipo.largo() > 0 && !encaja(r, tipo) {
+                error(c, m, s.linea, $"esta funcion devuelve `{r}` y aqui se devuelve `{tipo}`");
+            }
+            return;
         }
-        return;
-    }
-
-    if clase == Clase.Expresion && s.hijos.largo() > 0 {
-        let _t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
-        return;
+        Clase.Falla -> {
+            if !c.falible {
+                error(c, m, s.linea, "esta funcion no esta declarada con `!`, asi que no puede fallar; ponle `!` despues del tipo de retorno");
+            }
+            return;
+        }
+        Clase.Expresion -> {
+            if s.hijos.largo() > 0 {
+                let _t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
+                return;
+            }
+        }
+        _ -> {
+            if clase == Clase.Romper || clase == Clase.Continuar {
+                if c.en_bucle == 0 {
+                    var palabra = nuevo("break");
+                    if clase == Clase.Continuar { palabra = nuevo("continue"); }
+                    error(c, m, s.linea, $"`{palabra}` solo tiene sentido dentro de un `for` o un `while`");
+                }
+                return;
+            }
+        }
     }
 }
 

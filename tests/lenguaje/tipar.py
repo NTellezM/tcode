@@ -39,15 +39,19 @@ def correr(suite: Resultado) -> None:
     renombrados por chocar con una palabra de C. Nada de eso esta escrito en
     el archivo, asi que no hay nada que comparar."""
         from tcode.parser import parsear as _p
+        codigo, errores, comp = compilar_archivo(ruta, devolver_comp=True)
+        if errores:
+            return None
+        # Con los enums de todo el programa: `Clase.Retorno ->` es el brazo de
+        # un enum que trae otro modulo, y sin saberlo el parser no lee el
+        # compilador.
         try:
-            arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set())
+            arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set(),
+                       set(comp.enums))
         except Exception:
             return None
         propias = {d.nombre for d in arbol
                    if isinstance(d, _Fn_t) and not d.tipo_params}
-        codigo, errores, comp = compilar_archivo(ruta, devolver_comp=True)
-        if errores:
-            return None
         propio = os.path.relpath(ruta)
         fuera = []
         for entrada in comp.informe:
@@ -111,6 +115,13 @@ def correr(suite: Resultado) -> None:
                         continue
                     comparados += 1
                     simbolos += len(dado)
+                # Un archivo que el parser de Python no lee se salta sin decir
+                # nada; que se salten de mas lo dice este minimo.
+                if comparados < 45:
+                    suite.total += 1
+                    suite.falla("tipar en Tcode",
+                                f"solo {comparados} archivos comparados, se esperaban "
+                                f"al menos 45")
                 suite.cifra("tipar_archivos", comparados)
                 suite.cifra("tipar_variables", simbolos)
                 print(f"    {comparados} archivos, {simbolos} variables, "

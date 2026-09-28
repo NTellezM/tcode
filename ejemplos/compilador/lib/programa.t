@@ -65,85 +65,88 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
     // memoria, y de eso depende si el elemento de un `for` se presta o se
     // copia. Un struct de otro modulo se llama igual en C, asi que no lleva
     // alias.
-    if n.clase == Clase.Struct {
-        var suyos: lista<str> = [];
-        var como_se_llaman: lista<str> = [];
-        for h en n.hijos {
-            if h.clase == Clase.CampoDef {
-                como_se_llaman.anadir(nombre_de(h.texto));
-                suyos.anadir(tipo_pelado(h.texto));
-            }
-        }
-        poner(c.campos, vista(n.texto), suyos);
-        poner(c.nombres, vista(n.texto), como_se_llaman);
-        var sueltos_st: lista<str> = [];
-        for h en n.hijos {
-            if h.clase == Clase.TipoParam { sueltos_st.anadir(nuevo(h.texto)); }
-        }
-        if sueltos_st.largo() > 0 { poner(c.struct_params, vista(n.texto), sueltos_st); }
-    }
-    if n.clase == Clase.Enum {
-        var cuales: lista<str> = [];
-        for h en n.hijos {
-            if h.clase == Clase.Variante {
-                cuales.anadir(nuevo(h.texto));
-                var lleva: lista<str> = [];
-                for x en h.hijos {
-                    if x.clase == Clase.Lleva {
-                        lleva.anadir(nuevo(x.texto));
-                    }
+    match n.clase {
+        Clase.Struct -> {
+            var suyos: lista<str> = [];
+            var como_se_llaman: lista<str> = [];
+            for h en n.hijos {
+                if h.clase == Clase.CampoDef {
+                    como_se_llaman.anadir(nombre_de(h.texto));
+                    suyos.anadir(tipo_pelado(h.texto));
                 }
-                var clave = nuevo(n.texto);
-                clave.empujar(".");
-                clave.empujar(h.texto);
-                poner(c.formas, vista(clave), lleva);
             }
+            poner(c.campos, vista(n.texto), suyos);
+            poner(c.nombres, vista(n.texto), como_se_llaman);
+            var sueltos_st: lista<str> = [];
+            for h en n.hijos {
+                if h.clase == Clase.TipoParam { sueltos_st.anadir(nuevo(h.texto)); }
+            }
+            if sueltos_st.largo() > 0 { poner(c.struct_params, vista(n.texto), sueltos_st); }
         }
-        poner(c.variantes, vista(n.texto), cuales);
-    }
-    if n.clase == Clase.Fn {
-        var retorno = vacio();
-        var es_de_c = false;
-        var sueltos: lista<str> = [];
-        var tipos_param: lista<str> = [];
-        var marcados: lista<str> = [];
-        for h en n.hijos {
-            if h.clase == Clase.RetornoTipo {
-                retorno = nuevo(h.texto);
+        Clase.Enum -> {
+            var cuales: lista<str> = [];
+            for h en n.hijos {
+                if h.clase == Clase.Variante {
+                    cuales.anadir(nuevo(h.texto));
+                    var lleva: lista<str> = [];
+                    for x en h.hijos {
+                        if x.clase == Clase.Lleva {
+                            lleva.anadir(nuevo(x.texto));
+                        }
+                    }
+                    var clave = nuevo(n.texto);
+                    clave.empujar(".");
+                    clave.empujar(h.texto);
+                    poner(c.formas, vista(clave), lleva);
+                }
             }
-            // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
-            // existe en el borde: lo que ve Tcode es un `str` suyo.
-            if h.clase == Clase.Externa { es_de_c = true; }
-            if h.clase == Clase.TipoParam {
-                sueltos.anadir(nuevo(h.texto));
-            }
-            if h.clase == Clase.Param {
-                tipos_param.anadir(tipo_pelado(h.texto));
-                marcados.anadir(marca_de(h.texto));
-            }
+            poner(c.variantes, vista(n.texto), cuales);
         }
-        if es_de_c {
-            // 2 si devuelve `cadena_c`: la llamada se queda una copia.
-            if retorno == "cadena_c" {
-                poner(c.externas, vista(n.texto), 2);
-                retorno = nuevo("str");
-            } else {
-                poner(c.externas, vista(n.texto), 1);
+        Clase.Fn -> {
+            var retorno = vacio();
+            var es_de_c = false;
+            var sueltos: lista<str> = [];
+            var tipos_param: lista<str> = [];
+            var marcados: lista<str> = [];
+            for h en n.hijos {
+                if h.clase == Clase.RetornoTipo {
+                    retorno = nuevo(h.texto);
+                }
+                // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
+                // existe en el borde: lo que ve Tcode es un `str` suyo.
+                if h.clase == Clase.Externa { es_de_c = true; }
+                if h.clase == Clase.TipoParam {
+                    sueltos.anadir(nuevo(h.texto));
+                }
+                if h.clase == Clase.Param {
+                    tipos_param.anadir(tipo_pelado(h.texto));
+                    marcados.anadir(marca_de(h.texto));
+                }
             }
-            // Una funcion de C presta lo que recibe: no se queda con nada.
-            var prestados: lista<str> = [];
-            for _m en marcados { prestados.anadir(nuevo("&")); }
-            marcados = prestados;
+            if es_de_c {
+                // 2 si devuelve `cadena_c`: la llamada se queda una copia.
+                if retorno == "cadena_c" {
+                    poner(c.externas, vista(n.texto), 2);
+                    retorno = nuevo("str");
+                } else {
+                    poner(c.externas, vista(n.texto), 1);
+                }
+                // Una funcion de C presta lo que recibe: no se queda con nada.
+                var prestados: lista<str> = [];
+                for _m en marcados { prestados.anadir(nuevo("&")); }
+                marcados = prestados;
+            }
+            // Si un modulo usado ya declaraba este nombre, el cargador de verdad
+            // renombra los dos, y esta capa no sabe a que: no se emite la llamada.
+            if tiene(c.retornos, n.texto) {
+                poner(c.repetidas, vista(n.texto), 1);
+            }
+            poner(c.retornos, vista(n.texto), retorno);
+            poner(c.params, vista(n.texto), tipos_param);
+            poner(c.params_marcados, vista(n.texto), marcados);
+            if sueltos.largo() > 0 { poner(c.tipo_params, vista(n.texto), sueltos); }
         }
-        // Si un modulo usado ya declaraba este nombre, el cargador de verdad
-        // renombra los dos, y esta capa no sabe a que: no se emite la llamada.
-        if tiene(c.retornos, n.texto) {
-            poner(c.repetidas, vista(n.texto), 1);
-        }
-        poner(c.retornos, vista(n.texto), retorno);
-        poner(c.params, vista(n.texto), tipos_param);
-        poner(c.params_marcados, vista(n.texto), marcados);
-        if sueltos.largo() > 0 { poner(c.tipo_params, vista(n.texto), sueltos); }
+        _ -> { }
     }
     for h en n.hijos { recoger_firmas(h, c); }
 }
@@ -456,26 +459,29 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     tipos.dueno = copiar(cta.dueno);
     I.abrir(tipos);
     for h en d.hijos {
-        if h.clase == Clase.Param {
-            let pn = nombre_de(h.texto);
-            let pt = tipo_pelado(h.texto);
-            let m = marca_de(h.texto);
-            poner(de_tipo, vista(pn), copiar(pt));
-            I.declarar(tipos, pn, pt);
-            tipos_param.anadir(copiar(pt));
-            var junto = copiar(pn);
-            junto.empujar(": ");
-            junto.empujar(m);
-            marcas.anadir(junto);
-            if m.largo() > 0 {
-                if m == "&" { poner(puntos, vista(pn), 2); }
-                else { poner(puntos, vista(pn), 1); }
+        match h.clase {
+            Clase.Param -> {
+                let pn = nombre_de(h.texto);
+                let pt = tipo_pelado(h.texto);
+                let m = marca_de(h.texto);
+                poner(de_tipo, vista(pn), copiar(pt));
+                I.declarar(tipos, pn, pt);
+                tipos_param.anadir(copiar(pt));
+                var junto = copiar(pn);
+                junto.empujar(": ");
+                junto.empujar(m);
+                marcas.anadir(junto);
+                if m.largo() > 0 {
+                    if m == "&" { poner(puntos, vista(pn), 2); }
+                    else { poner(puntos, vista(pn), 1); }
+                }
             }
+            Clase.RetornoTipo -> {
+                retorno = nuevo(h.texto);
+            }
+            Clase.Falible -> { falible = true; }
+            _ -> { }
         }
-        if h.clase == Clase.RetornoTipo {
-            retorno = nuevo(h.texto);
-        }
-        if h.clase == Clase.Falible { falible = true; }
     }
     let es_main = d.texto == "main";
 
