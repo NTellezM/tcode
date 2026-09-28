@@ -11,6 +11,22 @@ from .comun import (
 )
 
 ACEPTA = [
+    # `anadir` y `ordenar` por un `&mut lista<T>` de `obtener_mut`, como por
+    # un parametro `&mut lista<T>`. Se rechazaban diciendo que no era una
+    # lista; lo encontro revisar la especificacion para 1.0.
+    ("anadir y ordenar por un prestamo para modificar",
+     '''fn main() -> usize ! {
+            var m: mapa<str, lista<usize>> = [];
+            poner(m, "a", [3, 1]);
+            let l: &mut lista<usize> = try obtener_mut(m, "a");
+            anadir(l, 2);
+            anadir(l, 0);
+            ordenar(l);
+            imprimir($"{l[0]} {l[3]} {largo(l)}\\n");
+            return 0;
+        }''',
+     "0 3 4\n"),
+
     # Una lista declarada dentro de un `for` o de un brazo de `match`, y
     # en ningun otro sitio. Los dos compiladores recorrian solo los `if` y
     # los `while` al registrar los tipos: Python escribia C que usaba la

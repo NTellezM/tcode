@@ -25,6 +25,12 @@ _MEDIO = ("struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } "
 _FORMAS = "enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } "
 
 RECHAZO = [
+    ("anadir por un prestamo de solo lectura",
+     'fn main() -> usize ! { var m: mapa<str, lista<usize>> = []; '
+     'poner(m, "a", [3]); let l: &lista<usize> = try obtener(m, "a"); '
+     'anadir(l, 2); return 0; }',
+     "`l` es un prestamo de solo lectura"),
+
     # Lo que no es un nombre (UAX #31) se nombra por su codigo. Antes tcodec
     # tomaba cualquier byte no ASCII por letra, y Python usaba `isalpha()`.
     ("un signo que no es una letra no es un nombre",
@@ -515,7 +521,7 @@ RECHAZO = [
      'fn main() -> usize { let a: f64 = 2.0; imprimir(a & 1); return 0; }',
      "trabaja sobre los bits de un entero"),
 
-    ("una funcion falible no se puede pasar como valor en v0",
+    ("una funcion falible no se puede pasar como valor",
      'fn r(n: usize) -> usize ! { if n == 0 { falla "cero"; } return n; }'
      ' fn f(g: fn(usize) -> usize) -> usize { return g(1); }'
      ' fn main() -> usize { return f(r); }',
@@ -803,7 +809,7 @@ RECHAZO = [
      "se evaluaria una sola vez"),
 
     # ---- mapas ----
-    ("en v0 la clave de un mapa tiene que ser `str`",
+    ("la clave de un mapa tiene que ser `str`",
      'fn f() { var m: mapa<usize, usize> = []; imprimir(largo(m)); }',
      "la clave de un mapa tiene que ser `str`"),
 

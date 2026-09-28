@@ -328,8 +328,12 @@ def tokenizar(fuente: str, archivo: str = "<entrada>",
                 raise ErrorLexico(
                     f"{archivo}:{linea}: numero mal formado cerca de "
                     f"{fuente[i:j+1]!r}")
+            # Para el formato, el numero tal como se escribio: `1_000` se
+            # queda asi. Para compilar, sin los `_`.
+            escrito = fuente[i:j]
             toks.append(Token("decimal" if decimal else "entero",
-                              fuente[i:j].replace("_", ""), linea, c0))
+                              escrito if con_comentarios else escrito.replace("_", ""),
+                              linea, c0))
             i = j
             continue
 

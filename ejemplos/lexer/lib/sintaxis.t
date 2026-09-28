@@ -715,7 +715,7 @@ fn desescapar(t: view) -> str {
                 let alto = de_hex(byte(t, i + 2));
                 let bajo = de_hex(byte(t, i + 3));
                 if alto < 16 && bajo < 16 {
-                    empujar_byte(r, ((alto * 16) + bajo) como ? u8);
+                    empujar_byte(r, ((alto * 16) + bajo) como? u8);
                     i = i + 4;
                     continue;
                 }

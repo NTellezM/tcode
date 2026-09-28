@@ -572,11 +572,13 @@ fn main() {
     _MINIMO_PROGRAMAS = 25
     # Rechazos cuyo primer error dice `tcodec` igual que Python: todos, tambien
     # los de sintaxis, que dan el lexer y el parser escritos en Tcode. Menos
-    # estos, escritos con lo que el Python congelado no conoce —llamadas con
-    # punto, vistas implicitas, rangos— y que Python para antes, en la
-    # sintaxis. Que `tcodec` diga lo que tiene que decir en ellos lo mira la
-    # seccion RECHAZO. Cualquier otra diferencia es una falla, y tambien lo es
-    # que uno de estos deje de diferir: la lista se queda siempre exacta.
+    # estos: los escritos con lo que el Python congelado no conoce —llamadas
+    # con punto, vistas implicitas, rangos—, que Python para antes, en la
+    # sintaxis; y los que tcodec explica mejor que el Python congelado, que ya
+    # no aprende mensajes nuevos. Que `tcodec` diga lo que tiene que decir en
+    # ellos lo mira la seccion RECHAZO. Cualquier otra diferencia es una falla,
+    # y tambien lo es que uno de estos deje de diferir: la lista se queda
+    # siempre exacta.
     _RECHAZOS_SOLO_TCODEC = {
         "con punto, lo de delante sigue siendo el primer argumento",
         "con punto, modificar pide `var`",
@@ -586,6 +588,7 @@ fn main() {
         "los extremos de un rango son del mismo tipo",
         "un rango da un solo numero por vuelta",
         "el numero de un rango no se cambia",
+        "anadir por un prestamo de solo lectura",
     }
     # Mutaciones por archivo para comparar los errores de sintaxis: se rompe un
     # token de cada archivo del repositorio de varias formas, siempre las mismas.
@@ -833,7 +836,7 @@ fn main() {
             print(f"    comprobador: {mismos} de {rechazados} rechazos con el "
                   f"mismo primer error (los otros "
                   f"{len(_RECHAZOS_SOLO_TCODEC)}, sintaxis que Python no "
-                  f"conoce), y ninguno de {correctos} programas "
+                  f"conoce o que tcodec explica mejor), y ninguno de {correctos} programas "
                   f"correctos rechazado")
 
             # Los errores de sintaxis, sobre el codigo real: cada archivo del

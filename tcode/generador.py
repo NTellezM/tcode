@@ -1293,7 +1293,7 @@ class Generador:
                 "{",
                 "    /* La capacidad es potencia de dos, asi que el resto es",
                 "       una mascara. Sondeo lineal: bueno con la cache y sin",
-                "       lapidas, porque en v0 no se borra. */",
+                "       lapidas: `quitar` cierra el hueco arrastrando. */",
                 "    size_t mascara = p->capacidad - 1;",
                 "    size_t i = (size_t) sv_hash(clave) & mascara;",
                 "    while (p->claves[i].data != NULL)",
