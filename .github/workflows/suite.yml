@@ -13,6 +13,9 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  # El fuzzing largo, cada noche.
+  schedule:
+    - cron: "17 3 * * *"
 
 # Un push nuevo a la misma rama deja viejo al anterior.
 concurrency:
@@ -70,3 +73,61 @@ jobs:
           restore-keys: herramientas-${{ runner.os }}-
       - name: make check
         run: make check
+
+  # C17 portable, comprobado: con cada compilador, la semilla compila sin
+  # avisos, se reproduce byte a byte, y pasan las secciones rapidas.
+  compiladores:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        cc: [gcc-12, gcc-13, gcc-14, clang-16, clang-17, clang-18]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: sitio para AddressSanitizer
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+      - name: ${{ matrix.cc }}
+        run: make compiladores COMPILADORES=${{ matrix.cc }}
+
+  # Otro sistema: en macOS, con el clang de Apple, la semilla construye
+  # tcodec, se reproduce byte a byte, y los ejemplos compilan y corren.
+  macos:
+    runs-on: macos-14
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: semilla sin avisos y punto fijo
+        run: |
+          cc -std=c17 -O1 -Wall -Wextra -Werror -Iruntime bootstrap/tcodec.c \
+              runtime/safestr.c ejemplos/compilador/lib/sistema_tcodec.c \
+              -o tcodec0 -lm
+          TCODE_RAIZ=. ./tcodec0 ejemplos/compilador/tcodec.t --mostrar-c \
+              | cmp - bootstrap/tcodec.c
+      - name: tcodec desde su semilla, y los ejemplos
+        run: make tcodec && make ejemplos
+
+  # Media hora rompiendo el codigo del repositorio al azar. Lo que falle se
+  # guarda reducido en `tests/fuzz/hallazgos/`, y queda aqui para bajarlo y
+  # anadirlo como regresion.
+  fuzz:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: sitio para AddressSanitizer
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+      - name: fuzz
+        run: make fuzz FUZZ_SEGUNDOS=1800
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hallazgos
+          path: tests/fuzz/hallazgos/
