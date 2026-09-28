@@ -25,14 +25,14 @@ LARGO = '"' + "x" * 40 + '"'
 OTRO = '"' + "y" * 60 + '"'
 
 # Lo que todos los casos pueden usar.
-PRELUDIO = f"""fn puede(n: usize) -> usize ! {{ if n > 5 {{ falla "no"; }} return n; }}
-fn dos(a: usize, b: usize) -> usize {{ return a + b; }}
-fn consumir(x: str) -> usize {{ return largo(x); }}
-fn g(a: mut str, b: mut str) {{ empujar(a, b); }}
-fn leer(x: &str) -> usize {{ return largo(x); }}
-enum E {{ A, B, C }}
-enum Ctx {{ Uno, Dos }}
-struct Q {{ s: str, n: usize }}
+PRELUDIO = """fn puede(n: usize) -> usize ! { if n > 5 { falla "no"; } return n; }
+fn dos(a: usize, b: usize) -> usize { return a + b; }
+fn consumir(x: str) -> usize { return largo(x); }
+fn g(a: mut str, b: mut str) { empujar(a, b); }
+fn leer(x: &str) -> usize { return largo(x); }
+enum E { A, B, C }
+enum Ctx { Uno, Dos }
+struct Q { s: str, n: usize }
 """
 
 
