@@ -138,7 +138,7 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
     // `a..b` en un `for`: los dos extremos son del mismo entero.
     if clase == Clase.Rango && n.hijos.largo() == 2 {
         let t = tipo_de(c, n.hijos[0]);
-        return $"rango<{t}>";
+        return T.hacer_rango(t);
     }
 
     // `if c { a } else { b }` vale lo que valga su primera rama: el
@@ -234,12 +234,7 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
         if n.hijos.largo() == 0 { return vacio(); }
         let elem = tipo_de(c, n.hijos[0]);
         if elem.largo() == 0 { return vacio(); }
-        var t = nuevo("[");
-        t.empujar(elem);
-        t.empujar("; ");
-        t.empujar(texto(n.hijos.largo()));
-        t.empujar("]");
-        return t;
+        return T.hacer_arreglo(elem, texto(n.hijos.largo()));
     }
 
     if clase == Clase.Campo {
@@ -411,7 +406,7 @@ fn tipos_de_aplicacion(c: &Contexto, t: view) -> lista<str> {
     let base = base_de_aplicacion(t);
     if !tiene(c.struct_params, base) { return salida; }
     let sueltos = lista_de(c.struct_params, vista(base)) sino [];
-    let dados = T.partir_tipos(T.entre_angulos(t));
+    let dados = T.partes(t);
     if dados.largo() != sueltos.largo() { return salida; }
     var ligaduras: mapa<str, str> = [];
     var i = 0;
@@ -488,9 +483,7 @@ fn tipo_fijo(nombre: view) -> str {
 fn tipo_atrapado(c: &Contexto, t: view) -> str {
     if t == "str" { return nuevo("view"); }
     if !posee_con_formas(c, t) { return nuevo(t); }
-    var r = nuevo("&");
-    r.empujar(t);
-    return r;
+    return T.hacer_prestado(t);
 }
 
 // Como `posee_simple`, pero sabiendo ademas de enums: uno posee si alguna
@@ -556,81 +549,20 @@ fn tras_el_punto(t: view) -> str {
 // generar; aqui el tipo escrito se queda como estaba y esto se usa al
 // escribirlo.
 fn nombre_resuelto(t: view) -> str {
-    if empieza_con(t, "&mut ") {
-        let d = nombre_resuelto(rebanar(t, 5, t.largo()));
-        return $"&mut {d}";
-    }
-    if empieza_con(t, "&") {
-        let d = nombre_resuelto(rebanar(t, 1, t.largo()));
-        return $"&{d}";
-    }
-    if T.es_lista(t) {
-        let e = T.elemento(t);
-        let d = nombre_resuelto(e);
-        return $"lista<{d}>";
-    }
-    if T.es_bloque(t) {
-        let e = T.elemento(t);
-        let d = nombre_resuelto(e);
-        return $"bloque<{d}>";
-    }
-    if T.es_mapa(t) {
-        let partes = T.partir_tipos(T.entre_angulos(t));
-        if partes.largo() != 2 { return nuevo(t); }
-        let k = nombre_resuelto(partes[0]);
-        let v = nombre_resuelto(partes[1]);
-        return $"mapa<{k}, {v}>";
-    }
-    if T.es_arreglo(t) {
-        let e = T.elemento(t);
-        let d = nombre_resuelto(e);
-        let n = cuantos_en_arreglo(t);
-        return $"[{d}; {n}]";
+    // Sin angulos ni corchetes no lleva ninguna aplicacion.
+    if !contiene(t, "<") && !contiene(t, "[") { return nuevo(t); }
+    // Lo que lleva tipos dentro se resuelve parte a parte y se vuelve a
+    // montar.
+    if T.es_referencia(t) || T.es_lista(t) || T.es_bloque(t) || T.es_mapa(t)
+    || T.es_arreglo(t) {
+        var nuevas: lista<str> = [];
+        for parte en T.partes(t) { nuevas.anadir(nombre_resuelto(parte)); }
+        return T.con_partes(t, nuevas);
     }
     if !es_aplicacion(t) { return nuevo(t); }
-    var r = base_de_aplicacion(t);
-    r.empujar("__");
-    let args = T.partir_tipos(T.entre_angulos(t));
-    var i = 0;
-    while i < args.largo() {
-        if i > 0 { r.empujar("_"); }
-        let d = nombre_resuelto(args[i]);
-        let limpio = sanear_nombre(d);
-        r.empujar(limpio);
-        i = i + 1;
-    }
-    return r;
-}
-
-// `[T; N]` -> `N`.
-fn cuantos_en_arreglo(t: view) -> str {
-    var i = t.largo();
-    while i > 0 && byte(t, i - 1) != 32 { i = i - 1; }
-    if t.largo() == 0 { return vacio(); }
-    return nuevo(rebanar(t, i, t.largo() - 1));
-}
-
-// Un nombre de C con lo que no sea letra o cifra cambiado por `_`, sin
-// repetirlo ni dejarlo en los bordes: lo que hace el comprobador con cada
-// tipo que va en el nombre de una copia.
-fn sanear_nombre(t: view) -> str {
-    var r = vacio();
-    var pendiente = false;
-    var i = 0;
-    while i < t.largo() {
-        let c = byte(t, i);
-        let bueno = (c >= 97 && c <= 122) || (c >= 65 && c <= 90)
-        || (c >= 48 && c <= 57);
-        if bueno {
-            if pendiente && r.largo() > 0 { r.empujar("_"); }
-            pendiente = false;
-            r.empujar(rebanar(t, i, i + 1));
-        } else {
-            pendiente = true;
-        }
-        i = i + 1;
-    }
-    return r;
+    var args: lista<str> = [];
+    for a en T.partes(t) { args.anadir(nombre_resuelto(a)); }
+    return T.nombre_de_copia(base_de_aplicacion(t), args);
 }
 
 fn sin_modulo(nombre: view) -> str {
@@ -659,31 +591,24 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
         if nombre == "intercambiar" { return copiar(primero); }
         if nombre == "absoluto" { return copiar(primero); }
         if nombre == "claves" {
-            let partes = T.partir_tipos(T.entre_angulos(primero));
+            let partes = T.partes(primero);
             if partes.largo() == 2 {
-                var t = nuevo("lista<");
-                t.empujar(partes[0]);
-                t.empujar(">");
-                return t;
+                return T.hacer_lista(partes[0]);
             }
             return vacio();
         }
         if nombre == "obtener" || nombre == "obtener_mut" {
-            let partes = T.partir_tipos(T.entre_angulos(primero));
+            let partes = T.partes(primero);
             if partes.largo() != 2 { return vacio(); }
             let valor = copiar(partes[1]);
             // Un valor con duenio no sale del mapa: sale prestado. Y un
             // `str` prestado es una vista, que es lo mismo con otro nombre.
             if nombre == "obtener_mut" {
-                var t = nuevo("&mut ");
-                t.empujar(valor);
-                return t;
+                return T.hacer_prestado_mut(valor);
             }
             if valor == "str" { return nuevo("view"); }
             if posee_simple(c, valor) {
-                var t = nuevo("&");
-                t.empujar(valor);
-                return t;
+                return T.hacer_prestado(valor);
             }
             return valor;
         }
@@ -791,10 +716,12 @@ fn unificar(patron: view, dado: view, sueltos: &lista<str>,
     }
     let p = T.apuntado_si(patron);
     let d = T.apuntado_si(dado);
-    if largo(T.entre_angulos(p)) == 0 { return; }
-    if largo(T.entre_angulos(d)) == 0 { return; }
-    let pp = T.partir_tipos(T.entre_angulos(p));
-    let dd = T.partir_tipos(T.entre_angulos(d));
+    // Se unifican los argumentos entre angulos: los de una lista, un mapa,
+    // un bloque o una aplicacion. Una funcion o un arreglo no ligan nada.
+    if T.es_funcion(p) || T.es_arreglo(p) || T.es_funcion(d) || T.es_arreglo(d) { return; }
+    let pp = T.partes(p);
+    let dd = T.partes(d);
+    if pp.largo() == 0 || dd.largo() == 0 { return; }
     if pp.largo() != dd.largo() { return; }
     var i = 0;
     while i < pp.largo() {

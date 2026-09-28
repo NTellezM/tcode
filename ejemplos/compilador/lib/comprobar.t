@@ -43,8 +43,6 @@ fn es_decimal(t: view) -> bool { return t == "f32" || t == "f64"; }
 
 fn es_numerico(t: view) -> bool { return es_tipo_entero(t) || es_decimal(t); }
 
-fn es_referencia_mutable(t: view) -> bool { return empieza_con(t, "&mut "); }
-
 fn sin_prestamo(t: view) -> str { return T.apuntado_si(t); }
 
 // Lo que no posee nada detras: se puede sacar de un prestamo.
@@ -69,43 +67,6 @@ fn concreto(t: view) -> str {
     if igual(t, literal()) { return nuevo("usize"); }
     return nuevo(t);
 }
-
-// `mapa<K, V>` -> [K, V].
-fn clave_y_valor(t: view) -> lista<str> {
-    return T.partir_tipos(T.entre_angulos(t));
-}
-
-// `[T; N]` -> T y N, respetando arreglos de arreglos.
-fn elem_arreglo(t: view) -> str {
-    var hondo = 0;
-    var i = t.largo() - 1;
-    while i > 1 {
-        i = i - 1;
-        let c = byte(t, i);
-        if c == 93 { hondo = hondo + 1; }
-        if c == 91 { hondo = hondo - 1; }
-        if c == 59 && hondo == 0 { return nuevo(rebanar(t, 1, i)); }
-    }
-    return vacio();
-}
-
-fn largo_arreglo(t: view) -> str {
-    var hondo = 0;
-    var i = t.largo() - 1;
-    while i > 1 {
-        i = i - 1;
-        let c = byte(t, i);
-        if c == 93 { hondo = hondo + 1; }
-        if c == 91 { hondo = hondo - 1; }
-        if c == 59 && hondo == 0 {
-            return nuevo(recortar(rebanar(t, i + 1, t.largo() - 1)));
-        }
-    }
-    return vacio();
-}
-
-fn elem_lista(t: view) -> str { return nuevo(rebanar(t, 6, t.largo() - 1)); }
-fn elem_bloque(t: view) -> str { return nuevo(rebanar(t, 7, t.largo() - 1)); }
 
 // `a`, `b` y `c` -> "`a`, `b` y `c`".
 fn lista_legible(nombres: &lista<str>) -> str {
@@ -380,12 +341,12 @@ fn param_de(texto: view) -> Param {
     if empieza_con(resto, "mut ") {
         mutable = true;
         resto = recortar(rebanar(resto, 4, resto.largo()));
-    } else if empieza_con(resto, "&mut ") {
+    } else if T.es_referencia_mutable(resto) {
         mutable = true;
-        resto = recortar(rebanar(resto, 5, resto.largo()));
-    } else if empieza_con(resto, "&") {
+        resto = recortar(T.apuntado(resto));
+    } else if T.es_referencia(resto) {
         compartido = true;
-        resto = recortar(rebanar(resto, 1, resto.largo()));
+        resto = recortar(T.apuntado(resto));
     }
     return Param { nombre: nuevo(nombre), tipo: I.sin_alias_tipo(resto),
         mutable: mutable, compartido: compartido };
@@ -478,7 +439,7 @@ fn campos_tipos(m: &Mundo, t: view) -> lista<str> {
     if es_struct_aplicado(m, t) {
         let base = I.base_de_aplicacion(t);
         let sueltos = I.lista_de(m.st_params, vista(base)) sino [];
-        let dados = T.partir_tipos(T.entre_angulos(t));
+        let dados = T.partes(t);
         if dados.largo() != sueltos.largo() { return salida; }
         var lig: mapa<str, str> = [];
         var i = 0;
@@ -533,7 +494,7 @@ fn posee_desde(m: &Mundo, t: view, vistos: mut lista<str>) -> bool {
     if t == "str" { return true; }
     if T.es_mapa(t) || T.es_bloque(t) || T.es_lista(t) { return true; }
     if T.es_arreglo(t) {
-        let e = elem_arreglo(t);
+        let e = T.elemento(t);
         return posee_desde(m, e, vistos);
     }
     if esta_entre(vistos, t) { return false; }
@@ -583,12 +544,12 @@ fn almacenable(m: &Mundo, t: view) -> bool {
         // Un arreglo tampoco guarda vistas: cada elemento se puede reasignar
         // por un indice que no se conoce al compilar, y no habria forma de
         // saber de quien presta cada uno.
-        let e = elem_arreglo(t);
+        let e = T.elemento(t);
         return e != "view" && !es_prestado_st(m, e)
         && almacenable(m, e);
     }
     if T.es_mapa(t) {
-        let ps = clave_y_valor(t);
+        let ps = T.partes(t);
         if ps.largo() != 2 { return false; }
         // Un mapa tampoco guarda vistas: nadie sabria cuanto viven.
         return almacenable(m, ps[0]) && almacenable(m, ps[1])
@@ -596,12 +557,12 @@ fn almacenable(m: &Mundo, t: view) -> bool {
         && ps[1] != "view" && !es_prestado_st(m, ps[1]);
     }
     if T.es_bloque(t) {
-        let e = elem_bloque(t);
+        let e = T.elemento(t);
         return e != "view" && !T.es_arreglo(e)
         && !es_prestado_st(m, e) && almacenable(m, e);
     }
     if T.es_lista(t) {
-        let e = elem_lista(t);
+        let e = T.elemento(t);
         return e != "view" && !T.es_arreglo(e)
         && !es_prestado_st(m, e) && almacenable(m, e);
     }
@@ -638,7 +599,7 @@ fn error_enum_prestado(c: mut Comprobacion, m: &Mundo, linea: usize, en_n: view,
 fn se_contiene(m: &Mundo, t: view, buscado: view, vistos: mut lista<str>) -> bool {
     if igual(t, buscado) { return true; }
     if T.es_arreglo(t) {
-        let e = elem_arreglo(t);
+        let e = T.elemento(t);
         return se_contiene(m, e, buscado, vistos);
     }
     if T.es_mapa(t) || T.es_lista(t) { return false; }
@@ -1142,7 +1103,7 @@ fn mutar(c: mut Comprobacion, m: &Mundo, lugar: &P.Nodo, linea: usize, i: usize,
     let t = copiar(c.simbolos[i].tipo);
     let n = copiar(c.simbolos[i].nombre);
     if por_referencia && T.es_referencia(t) {
-        if !es_referencia_mutable(t) {
+        if !T.es_referencia_mutable(t) {
             error_solo_lectura(c, m, linea, n, t);
         } else {
             let vivos_r = prestamos_vivos(c, i);
@@ -1963,33 +1924,33 @@ fn unificar_tipo(patron: view, dado: view, sueltos: &lista<str>,
         return igual(previo, dado);
     }
     if igual(patron, dado) { return true; }
-    if empieza_con(patron, "&mut ") {
-        return empieza_con(dado, "&mut ")
-        && unificar_tipo(rebanar(patron, 5, patron.largo()), rebanar(dado, 5, dado.largo()),
+    if T.es_referencia_mutable(patron) {
+        return T.es_referencia_mutable(dado)
+        && unificar_tipo(T.apuntado(patron), T.apuntado(dado),
             sueltos, lig);
     }
-    if empieza_con(patron, "&") {
-        return empieza_con(dado, "&")
-        && unificar_tipo(rebanar(patron, 1, patron.largo()), rebanar(dado, 1, dado.largo()),
+    if T.es_referencia(patron) {
+        return T.es_referencia(dado)
+        && unificar_tipo(T.apuntado(patron), T.apuntado(dado),
             sueltos, lig);
     }
     if T.es_lista(patron) && T.es_lista(dado) {
-        let a = elem_lista(patron);
-        let b = elem_lista(dado);
+        let a = T.elemento(patron);
+        let b = T.elemento(dado);
         return unificar_tipo(a, b, sueltos, lig);
     }
     if T.es_mapa(patron) && T.es_mapa(dado) {
-        let a = clave_y_valor(patron);
-        let b = clave_y_valor(dado);
+        let a = T.partes(patron);
+        let b = T.partes(dado);
         if a.largo() != 2 || b.largo() != 2 { return false; }
         return unificar_tipo(a[0], b[0], sueltos, lig)
         && unificar_tipo(a[1], b[1], sueltos, lig);
     }
     if T.es_arreglo(patron) && T.es_arreglo(dado) {
-        let na = largo_arreglo(patron);
-        let nb = largo_arreglo(dado);
-        let ea = elem_arreglo(patron);
-        let eb = elem_arreglo(dado);
+        let na = T.cuantos_del_arreglo(patron);
+        let nb = T.cuantos_del_arreglo(dado);
+        let ea = T.elemento(patron);
+        let eb = T.elemento(dado);
         return igual(na, nb) && unificar_tipo(ea, eb, sueltos, lig);
     }
     // `Par<A, B>` contra `Par<usize, str>`.
@@ -1997,8 +1958,8 @@ fn unificar_tipo(patron: view, dado: view, sueltos: &lista<str>,
         let ba = I.base_de_aplicacion(patron);
         let bb = I.base_de_aplicacion(dado);
         if !igual(ba, bb) { return false; }
-        let xs = T.partir_tipos(T.entre_angulos(patron));
-        let ys = T.partir_tipos(T.entre_angulos(dado));
+        let xs = T.partes(patron);
+        let ys = T.partes(dado);
         if xs.largo() != ys.largo() { return false; }
         var i = 0;
         while i < xs.largo() {
@@ -2259,7 +2220,7 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let resuelto = I.nombre_resuelto(puesto);
         if !primero_t { copia.empujar("_"); }
         primero_t = false;
-        copia.empujar(G.sanear(resuelto));
+        copia.empujar(T.sanear(resuelto));
     }
     let hecha = esta_entre(m.copias, clave);
     let inst = Instancia { ok: true, params: ps, retorno: I.sustituir(f.retorno, lig),
@@ -2433,7 +2394,7 @@ fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>)
         clave.empujar("|");
         clave.empujar(juego[i]);
         let resuelto = I.nombre_resuelto(juego[i]);
-        copia.empujar(G.sanear(resuelto));
+        copia.empujar(T.sanear(resuelto));
         i = i + 1;
     }
     let inst = Instancia { ok: true, params: ps, retorno: I.sustituir(f.retorno, lig),
@@ -2993,7 +2954,7 @@ fn rango(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> s
     fijar_literal(c, m, n.hijos[0], a);
     comprobar_literal(c, m, n.hijos[1], a);
     fijar_literal(c, m, n.hijos[1], a);
-    return $"rango<{a}>";
+    return T.hacer_rango(a);
 }
 
 // Un extremo de rango en un mensaje: su tipo, o que es un numero escrito.
@@ -3338,9 +3299,9 @@ fn indice(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         return vacio();
     }
     var elem = vacio();
-    if T.es_arreglo(b) { elem = elem_arreglo(b); }
-    else if T.es_bloque(b) { elem = elem_bloque(b); }
-    else { elem = elem_lista(b); }
+    if T.es_arreglo(b) { elem = T.elemento(b); }
+    else if T.es_bloque(b) { elem = T.elemento(b); }
+    else { elem = T.elemento(b); }
     if mover_variables && posee_memoria(m, elem) {
         var que = nuevo("un arreglo");
         if T.es_bloque(b) { que = nuevo("un bloque"); }
@@ -3357,7 +3318,7 @@ fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Context
     let sueltos = I.lista_de(m.st_params, base) sino [];
     if destino.largo() > 0 && I.es_aplicacion(destino) {
         let bd = I.base_de_aplicacion(destino);
-        let args = T.partir_tipos(T.entre_angulos(destino));
+        let args = T.partes(destino);
         if igual(bd, base) && args.largo() == sueltos.largo() {
             registrar_tipo(m, destino);
             return nuevo(destino);
@@ -3468,10 +3429,10 @@ fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     }
     var elem_esperado = vacio();
     if es_lista_esperada {
-        elem_esperado = elem_lista(esperado);
+        elem_esperado = T.elemento(esperado);
     } else if esperado.largo() > 0 && T.es_arreglo(esperado) {
-        elem_esperado = elem_arreglo(esperado);
-        let cuantos = largo_arreglo(esperado);
+        elem_esperado = T.elemento(esperado);
+        let cuantos = T.cuantos_del_arreglo(esperado);
         let hay = texto(n.hijos.largo());
         if !igual(cuantos, hay) {
             error(c, m, n.linea, $"el tipo dice {cuantos} elemento(s) y el literal tiene {hay}");
@@ -3495,7 +3456,7 @@ fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         }
         if es_lista_esperada { return nuevo(esperado); }
         let hay = n.hijos.largo();
-        return $"[{elem_esperado}; {hay}]";
+        return T.hacer_arreglo(elem_esperado, $"{hay}");
     }
     var conocidos: lista<str> = [];
     for t en tipos_e {
@@ -3517,7 +3478,7 @@ fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     }
     let final = concreto(elem);
     let hay = n.hijos.largo();
-    return $"[{final}; {hay}]";
+    return T.hacer_arreglo(final, $"{hay}");
 }
 
 // Un texto: con duenio o prestado.
@@ -3859,7 +3820,7 @@ fn declarar_patron(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, for
         } else if p.clase == Clase.Atrapa && p.texto != "_" {
             var tp = copiar(t);
             if posee_memoria(m, t) {
-                if t == "str" { tp = nuevo("view"); } else { tp = $"&{t}"; }
+                if t == "str" { tp = nuevo("view"); } else { tp = T.hacer_prestado(t); }
             }
             let si = declarar_simbolo(c, m, linea, p.texto, tp, false);
             if !igual(tp, t) {
@@ -4214,7 +4175,7 @@ fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &
             let base = variable_base(n.hijos[k]);
             let is = buscar_simbolo(c, base);
             if base.largo() > 0 && existe(c, is) {
-                let mutable = es_referencia_mutable(esperado);
+                let mutable = T.es_referencia_mutable(esperado);
                 let camino = camino_de(n.hijos[k]);
                 let choque = choque_prestamo(hechos, camino, mutable);
                 if choque.largo() == 2 {
@@ -4449,7 +4410,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             let visto = texto_o_none(tipo_lista);
             error(c, m, n.linea, $"`anadir` opera sobre `lista<T>`, recibio `{visto}`");
         } else {
-            let elem = elem_lista(tipo_lista);
+            let elem = T.elemento(tipo_lista);
             let t = comprobar_expresion(c, m, tipos, n.hijos[1], elem, posee_memoria(m, elem));
             if t.largo() > 0 && !encaja(elem, t) {
                 error(c, m, n.linea, $"la lista guarda `{elem}` y se intento agregar `{t}`");
@@ -4478,7 +4439,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             let visto = texto_o_none(t);
             error(c, m, n.linea, $"`ordenar` opera sobre `lista<T>`, recibio `{visto}`");
         } else {
-            let e = elem_lista(t);
+            let e = T.elemento(t);
             let ords = ordenables();
             if !esta_entre(ords, e) {
                 let cuales = con_comas(ords);
@@ -4640,13 +4601,13 @@ fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nod
         }
         return si_falla;
     }
-    let partes = clave_y_valor(tipo_mapa);
+    let partes = T.partes(tipo_mapa);
     let kt = copiar(partes[0]);
     let vt = copiar(partes[1]);
     let linea_m = n.hijos[0].linea;
     if nombre == "claves" {
         let _l = leer(c, m, linea_m, is);
-        return $"lista<{kt}>";
+        return T.hacer_lista(kt);
     }
     let tc = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
     if tc.largo() > 0 && !encaja(kt, tc)
@@ -4663,7 +4624,7 @@ fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nod
             return vt;
         }
         mutar(c, m, n.hijos[0], linea_m, is, false);
-        return $"&mut {vt}";
+        return T.hacer_prestado_mut(vt);
     }
     if nombre == "quitar" {
         mutar(c, m, n.hijos[0], linea_m, is, false);
@@ -4673,7 +4634,7 @@ fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nod
         let _l = leer(c, m, linea_m, is);
         if !posee_memoria(m, vt) { return vt; }
         if vt == "str" { return nuevo("view"); }
-        return $"&{vt}";
+        return T.hacer_prestado(vt);
     }
     let tv = comprobar_expresion(c, m, tipos, n.hijos[2], vt, posee_memoria(m, vt));
     if tv.largo() > 0 && !encaja(vt, tv) {
@@ -4688,37 +4649,26 @@ fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nod
 // ese numero de tipos
 // ------------------------------------------------------------------
 
+// Lo prestado, las listas, los bloques, los mapas y los arreglos: los tipos
+// que llevan otros dentro y no son la aplicacion de un generico.
+fn lleva_partes(t: view) -> bool {
+    return T.es_referencia(t) || T.es_bloque(t) || T.es_lista(t) || T.es_mapa(t)
+    || T.es_arreglo(t);
+}
+
 fn validar_tipo(c: mut Comprobacion, m: mut Mundo, linea: usize, t: view) {
     if !contiene(t, "<") && !contiene(t, "[") { return; }
-    if empieza_con(t, "&mut ") { validar_tipo(c, m, linea, rebanar(t, 5, t.largo())); return; }
-    if empieza_con(t, "&") { validar_tipo(c, m, linea, rebanar(t, 1, t.largo())); return; }
-    if T.es_bloque(t) {
-        let e = elem_bloque(t);
-        validar_tipo(c, m, linea, e);
-        return;
-    }
-    if T.es_lista(t) {
-        let e = elem_lista(t);
-        validar_tipo(c, m, linea, e);
-        return;
-    }
-    if T.es_mapa(t) {
-        for x en clave_y_valor(t) { validar_tipo(c, m, linea, x); }
-        return;
-    }
-    if T.es_arreglo(t) {
-        let e = elem_arreglo(t);
-        validar_tipo(c, m, linea, e);
+    // Lo que lleva tipos dentro vale si valen sus partes, en orden.
+    if lleva_partes(t) {
+        for x en T.partes(t) { validar_tipo(c, m, linea, x); }
         return;
     }
     if !termina_con(t, ">") || T.es_funcion(t) { return; }
-    var i = 0;
-    while i < t.largo() && byte(t, i) != 60 { i = i + 1; }
-    let base = rebanar(t, 0, i);
+    let base = T.base(t);
     if base.largo() == 0 { return; }
     let primero = byte(base, 0);
     if !((primero >= 65 && primero <= 90) || (primero >= 97 && primero <= 122)) { return; }
-    let args = T.partir_tipos(rebanar(t, i + 1, t.largo() - 1));
+    let args = T.partes(t);
     for a en args { validar_tipo(c, m, linea, a); }
     if !tiene(m.st_params, base) {
         error(c, m, linea, $"`{base}` no es un struct generico");
@@ -4747,29 +4697,12 @@ fn registrar_aplicacion(m: mut Mundo, t: view) {
 // Las copias que pide un tipo, sin errores: los de un tipo ya comprobado.
 fn registrar_tipo(m: mut Mundo, t: view) {
     if !contiene(t, "<") && !contiene(t, "[") { return; }
-    if empieza_con(t, "&mut ") { registrar_tipo(m, rebanar(t, 5, t.largo())); return; }
-    if empieza_con(t, "&") { registrar_tipo(m, rebanar(t, 1, t.largo())); return; }
-    if T.es_bloque(t) {
-        let e = elem_bloque(t);
-        registrar_tipo(m, e);
-        return;
-    }
-    if T.es_lista(t) {
-        let e = elem_lista(t);
-        registrar_tipo(m, e);
-        return;
-    }
-    if T.es_mapa(t) {
-        for x en clave_y_valor(t) { registrar_tipo(m, x); }
-        return;
-    }
-    if T.es_arreglo(t) {
-        let e = elem_arreglo(t);
-        registrar_tipo(m, e);
+    if lleva_partes(t) {
+        for x en T.partes(t) { registrar_tipo(m, x); }
         return;
     }
     if !es_struct_aplicado(m, t) { return; }
-    for a en T.partir_tipos(T.entre_angulos(t)) { registrar_tipo(m, a); }
+    for a en T.partes(t) { registrar_tipo(m, a); }
     registrar_aplicacion(m, t);
 }
 
@@ -4910,7 +4843,7 @@ fn partes_declaracion(texto: view, nombre: mut str, tipo: mut str) -> bool {
 
 fn comprobar_mapa_valido(c: mut Comprobacion, m: &Mundo, linea: usize, t: view) {
     if !T.es_mapa(t) { return; }
-    let ps = clave_y_valor(t);
+    let ps = T.partes(t);
     if ps.largo() != 2 { return; }
     let k = vista(ps[0]);
     let v = vista(ps[1]);
@@ -5109,7 +5042,7 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         c.simbolos[i].mutada = true;
         let st = copiar(c.simbolos[i].tipo);
         if T.es_referencia(st) {
-            if !es_referencia_mutable(st) {
+            if !T.es_referencia_mutable(st) {
                 error_solo_lectura(c, m, s.linea, base, st);
             }
         } else if !c.simbolos[i].mutable {
@@ -5259,17 +5192,17 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         if coma < nombres.largo() { valor = nuevo(recortar(rebanar(nombres, coma + 1, nombres.largo()))); }
         let es_rango = tipo.largo() > 0 && T.es_rango(tipo);
         if es_rango {
-            elem = nuevo(T.entre_angulos(tipo));
+            elem = T.elemento(tipo);
             if valor.largo() > 0 {
                 error(c, m, s.linea, "un rango da un numero en cada vuelta: `for i en a..b`, con un solo nombre");
             }
         } else if tipo.largo() > 0 && T.es_mapa(tipo) {
-            let ps = clave_y_valor(tipo);
+            let ps = T.partes(tipo);
             elem = copiar(ps[0]);
             tipo_valor = copiar(ps[1]);
         } else if tipo.largo() > 0 && (T.es_lista(tipo) || T.es_arreglo(tipo)) {
-            if T.es_lista(tipo) { elem = elem_lista(tipo); }
-            else { elem = elem_arreglo(tipo); }
+            if T.es_lista(tipo) { elem = T.elemento(tipo); }
+            else { elem = T.elemento(tipo); }
             if valor.largo() > 0 {
                 error(c, m, s.linea, "los dos nombres de `for k, v en ...` son para un mapa; una lista solo da el elemento");
             }
@@ -5562,9 +5495,9 @@ fn destino_de(m: &Mundo, s: &Simbolo) -> str {
         return $"se mueve{a} en la linea {s.movida_en}; lleva bandera por si el programa sale antes";
     }
     if T.es_arreglo(s.tipo) {
-        let e = elem_arreglo(s.tipo);
+        let e = T.elemento(s.tipo);
         if posee_memoria(m, e) {
-            let n = largo_arreglo(s.tipo);
+            let n = T.cuantos_del_arreglo(s.tipo);
             return $"se libera sola al cerrar su bloque, elemento por elemento ({n})";
         }
     }
