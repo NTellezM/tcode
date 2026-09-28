@@ -640,8 +640,15 @@ Por eso es una de las propiedades que comprueba la suite.
 
 ## Estado
 
-**v0, y lo digo en serio.** Funciona de punta a punta y la suite pasa, pero
-falta casi todo lo que un lenguaje necesita para ser usable en producción.
+**0.9.0, camino de 1.0.** El compilador se construye solo desde su semilla,
+la suite pasa con gcc y clang, y la especificación describe el lenguaje
+entero —su [gramática](docs/ESPECIFICACION.md#gramática), sus funciones
+internas y [lo que no tiene](docs/ESPECIFICACION.md#lo-que-tcode-10-no-tiene)—.
+Lo que falta para 1.0 es de fuera: la CI en otras máquinas, una auditoría
+independiente y programas escritos por otras personas. Qué se promete que no
+cambia está en [`docs/COMPATIBILIDAD.md`](docs/COMPATIBILIDAD.md).
+
+Lo que hay, en el orden en que llegó:
 
 Hay: funciones, `let`/`var`, `if`/`else`, `while`, `return`, aritmética
 comprobada, `str`/`view`/`usize`/`i64`/`bool`, préstamos con ámbito léxico,
@@ -789,7 +796,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-2976 casos, 0 fallas
+2980 casos, 0 fallas
 2069 comprobaciones sobre 60 programas, 0 fallas
 ```
 

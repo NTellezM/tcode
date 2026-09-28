@@ -135,7 +135,7 @@ check:
 # Las secciones que prueban el lenguaje con `tcodec`; las que tardan son las
 # que comparan sus capas con las del compilador de Python. Una sola se pide
 # por su nombre: `python3 tests/test_lenguaje.py ACEPTA`.
-RAPIDAS = RECHAZO AVISA ACEPTA SALIDA ARCHIVOS ABORTA MODULOS FORMATO LINEAS EJEMPLOS CONGELADO
+RAPIDAS = RECHAZO AVISA ACEPTA SALIDA ARCHIVOS ABORTA MODULOS FORMATO LINEAS EJEMPLOS CONGELADO ESPECIFICACION
 
 rapido:
 	@$(PY) tests/test_lenguaje.py $(RAPIDAS)

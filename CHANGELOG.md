@@ -23,6 +23,19 @@ El camino a 1.0.
   puede llevar un byte cero ni terminar en `/`. Los tres son un error en la
   línea del `usar`.
 
+### Especificación
+
+- **Ya no es un borrador de v0**: `docs/ESPECIFICACION.md` es la de 1.0.
+  Gramática completa sacada del parser, con un programa de muestra que usa
+  cada producción; la parte léxica entera (comentarios, números, cadenas y
+  escapes, palabras reservadas, símbolos); un índice de las 42 funciones
+  internas; y *Lo que Tcode 1.0 no tiene*, cada cosa comprobada.
+- Corregido lo que ya no era cierto: los mapas guardan cualquier valor que
+  se pueda guardar salvo `view` y `&T`, y se borran; las clausuras existen;
+  los mensajes citados son los de ahora.
+- La sección ESPECIFICACION de la suite compila y corre la muestra, y
+  exige que el índice nombre exactamente las internas de `tcodec`.
+
 ### Biblioteca
 
 - `std/archivo`: lectura por partes con memoria acotada
@@ -41,6 +54,10 @@ El camino a 1.0.
 - `tcodec` abortaba con un byte cero en la ruta de un `usar`, y Python se
   escapaba con una excepción; también con un archivo que no es UTF-8.
 - Los fallos internos del generador salían sin archivo ni línea.
+- El formateador separaba `&mut Par<A, B>` y `mut Vector<T>`, escribía
+  `como ? u8` y cambiaba `1_000` por `1000`.
+- `anadir` y `ordenar` por un `&mut lista<T>` de `obtener_mut` se
+  rechazaban.
 - Una lista declarada sólo dentro de un `for` o de un brazo de `match` no
   se declaraba en el C: Python escribía C que no compilaba y `tcodec` se
   negaba.

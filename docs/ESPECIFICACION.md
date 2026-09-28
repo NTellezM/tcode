@@ -1,4 +1,17 @@
-# Tcode — especificación del lenguaje, v0
+# Tcode — especificación del lenguaje, 1.0 (borrador)
+
+> **Cómo leer esto.** Lo que un programa puede escribir está en
+> [El texto del programa](#el-texto-del-programa) y en la
+> [Gramática](#gramática); las funciones que trae el lenguaje, en el
+> [índice de funciones internas](#índice-de-funciones-internas); lo que no
+> tiene, en [Lo que Tcode 1.0 no tiene](#lo-que-tcode-10-no-tiene). El resto
+> explica cada regla con su porqué, en el orden en que se fueron
+> añadiendo. Lo que se promete que no cambia está en
+> [`COMPATIBILIDAD.md`](COMPATIBILIDAD.md).
+>
+> La suite mantiene esto en sintonía con el compilador: el programa de
+> muestra de la gramática compila y corre, y el índice de funciones internas
+> nombra exactamente las que conoce `tcodec` (sección ESPECIFICACION).
 
 ## Por qué existe
 
@@ -404,7 +417,7 @@ generado. Al cerrar el bloque se liberan primero los elementos dueños y luego
 el buffer. La indexación usa la misma comprobación que los arreglos fijos.
 
 Una lista introduce indirección, por lo que permite estructuras recursivas de
-tamaño finito (`struct Nodo { hijos: lista<Nodo> }`). v0 no permite guardar
+tamaño finito (`struct Nodo { hijos: lista<Nodo> }`). No se puede guardar
 `view` —ni un struct que presta— en listas ni en arreglos fijos: cada
 elemento podría prestar de un dueño distinto, y saber cuál necesitaría vidas
 útiles en el tipo. Tampoco se usa un arreglo fijo como elemento de lista.
@@ -624,8 +637,9 @@ apagado porque no hay nada que recordar. Es la diferencia entre una regla y
 una costumbre — y esa diferencia costó tres fugas (`falla`, `try` y `sino`),
 cada una encontrada corriendo, no leyendo.
 
-Lo que v0 no admite: `try` y `sino` en la condición de un `while` (se
-evaluaría una sola vez), y el motivo es un literal, no un texto construido.
+`try` y `sino` no van en la condición de un `while` —se evaluarían una
+sola vez—, y el motivo de `falla` es una cadena escrita, no un texto
+construido.
 
 ### 9. Entrada de archivos y texto construido
 
@@ -688,56 +702,223 @@ acento combinado son dos nombres distintos.
 **Los dígitos de un número son los ASCII**, `0` a `9`. `²` o `٣` no son
 números.
 
-## Gramática v0
+**Comentarios**: `//` hasta el final de la línea, y `/* ... */`, que no se
+anidan. Un `/*` sin cerrar es un error.
+
+**Números.** Un entero son dígitos, con `_` donde ayude a leerlo (`1_000`);
+un cero delante no cambia la base (`010` es diez). Un decimal lleva dígitos a
+los dos lados del punto (`1.5`, no `1.` ni `.5`) y puede llevar exponente
+(`1.5e2`, `2E-3`). Un número pegado a una letra (`12abc`) es un error. El
+signo no es parte del número: `-1` es `-` aplicado a `1`.
+
+**Cadenas**: `"..."`, con los escapes `\n`, `\t`, `\0`, `\\`, `\"` y
+`\xNN` (un byte en hexadecimal; no un carácter Unicode). Cualquier otro
+escape es un error. Una **cadena interpolada**, `$"...{expr}..."`, admite
+además `\{` y `\}`, y `{{` y `}}` para una llave escrita; dentro de las
+llaves va cualquier expresión.
+
+**Palabras reservadas**: `fn`, `let`, `var`, `mut`, `if`, `else`, `while`,
+`for`, `en`, `break`, `continue`, `return`, `true`, `false`, `usar`, `try`,
+`sino`, `falla`, `struct`, `enum`, `match`, `externo`, `lista`, `mapa`, y
+los tipos `str`, `view`, `bool`, `u8`, `u16`, `u32`, `u64`, `usize`, `i8`,
+`i16`, `i32`, `i64`, `f32` y `f64`. `como`, `bloque`, `cadena_c` y `_` no lo
+son: son nombres con significado en su sitio, y fuera de él se pueden usar.
+
+**Símbolos**: `( ) { } [ ] , ; : . = + - * / % < > ! & | ^ ~ ? $`, y de dos
+caracteres `-> == != <= >= && || << >> .. +? -? *? /?`. El más largo gana:
+`+?` es uno, no `+` y `?`.
+
+## Gramática
+
+`X?` es opcional, `X*` cero o más, `X+` una o más. Las palabras entre
+comillas son literales. `NOMBRE` es un nombre; `CADENA`, `ENTERO`,
+`DECIMAL` e `INTERPOLADA`, los literales de arriba. `ALIAS` es un nombre
+dado con `usar ... como`; `STRUCT`, `ENUM` y `PARAM_T`, nombres declarados
+como struct, enum o parámetro de tipo de la función en curso.
 
 ```
-programa   := usar* (struct | enum | externo | funcion)*
-usar       := "usar" cadena ";"
-struct     := "struct" ident "{" (ident ":" tipo ",")* "}"
-enum       := "enum" ident "{" (variante ",")* "}"
-variante   := ident ("(" tipo ("," tipo)* ")")?
-externo    := "externo" cadena "{" firma* "}"
-firma      := "fn" ident "(" params? ")" ("->" tipo)? ";"
-funcion    := "fn" ident "(" params? ")" ("->" tipo)? "!"? bloque
-params     := param ("," param)*
-param      := ident ":" ("mut" | "&")? tipo
-tipo       := "str" | "view" | "usize" | "i64" | "bool"
-            | "lista" "<" tipo ">"
-            | IDENT_STRUCT | "[" tipo ";" entero "]"
-bloque     := "{" sentencia* "}"
+programa    := usar* declaracion*
+usar        := "usar" CADENA ("como" NOMBRE)? ";"
+declaracion := struct | enum | externo | funcion
 
-sentencia  := "let" ident ":" tipo "=" expr ";"
-            | "for" ident ("," ident)? "en" expr bloque
-            | "break" ";" | "continue" ";"
-            | "var" ident ":" tipo "=" expr ";"
-            | lugar "=" expr ";"
-            | "if" expr bloque ("else" bloque)?
-            | "while" expr bloque
-            | "return" expr? ";"
-            | "falla" cadena ";"
-            | match
-            | expr ";"
+struct      := "struct" NOMBRE params_tipo? "{" (campo ("," campo)* ","?)? "}"
+campo       := NOMBRE ":" tipo
+enum        := "enum" NOMBRE "{" variante ("," variante)* ","? "}"
+variante    := NOMBRE ("(" tipo ("," tipo)* ")")?
+externo     := "externo" CADENA "{" firma_c+ "}"
+firma_c     := "fn" NOMBRE "(" (NOMBRE ":" tipo ("," NOMBRE ":" tipo)*)? ")"
+               ("->" tipo)? ";"
+funcion     := "fn" NOMBRE params_tipo? "(" params? ")" ("->" tipo)? "!"? bloque
+params_tipo := "<" param_tipo ("," param_tipo)* ">"
+param_tipo  := NOMBRE (":" restriccion)?
+restriccion := "decimal" | "entero" | "igualable" | "numero" | "ordenable" | "texto"
+params      := param ("," param)*
+param       := NOMBRE ":" ("mut" | "&" | "&" "mut")? tipo
 
-match      := "match" expr "{" brazo* "}"
-brazo      := patron ("|" patron)* ("if" expr)?
-              "->" (expr "," | bloque ","?)
-patron     := "_" | ident "." ident ("(" ident ("," ident)* ")")?
+tipo        := "&" "mut"? tipo
+             | "str" | "view" | "bool" | "usize" | "u8" | "u16" | "u32" | "u64"
+             | "i8" | "i16" | "i32" | "i64" | "f32" | "f64"
+             | "lista" "<" tipo ">" | "mapa" "<" tipo "," tipo ">"
+             | "bloque" "<" tipo ">" | "[" tipo ";" ENTERO "]"
+             | "fn" "(" (tipo ("," tipo)*)? ")" ("->" tipo)?
+             | (STRUCT | ENUM | ALIAS "." NOMBRE) ("<" tipo ("," tipo)* ">")?
+             | PARAM_T | "cadena_c"
 
-expr       := o ("sino" o)?
-o          := y ("||" y)*
-y          := igualdad ("&&" igualdad)*
-igualdad   := comparacion (("==" | "!=") comparacion)*
-comparacion:= suma (("<" | "<=" | ">" | ">=") suma)*
-suma       := producto (("+" | "-" | "+?" | "-?") producto)*
-producto   := unario (("*" | "/" | "%" | "*?") unario)*
-unario     := "try" unario | ("!" | "-") unario | postfijo
-postfijo   := primario ("." ident | "[" expr "]")*
-lugar      := ident ("." ident | "[" expr "]")*
-primario   := entero | cadena | interpolada | "true" | "false" | ident
-            | ident "(" args? ")" | "(" expr ")" | match
-            | IDENT_ENUM "." ident ("(" args? ")")?
-            | IDENT_STRUCT "{" (ident ":" expr ",")* "}"
-            | "[" (expr ",")* "]"
+bloque      := "{" sentencia* "}"
+sentencia   := ("let" | "var") NOMBRE (":" tipo)? "=" expr ";"
+             | "if" expr bloque ("else" (bloque | sentencia_if))?
+             | "while" expr bloque
+             | "for" NOMBRE ("," NOMBRE)? "en" expr (".." expr)? bloque
+             | "break" ";" | "continue" ";"
+             | "return" expr? ";"
+             | "falla" CADENA ";"
+             | match
+             | lugar "=" expr ";"
+             | expr ";"
+lugar       := NOMBRE ("." NOMBRE | "[" expr "]")*
+
+expr        := o ("sino" o)?
+o           := y ("||" y)*
+y           := igualdad ("&&" igualdad)*
+igualdad    := orden (("==" | "!=") orden)*
+orden       := bit_o (("<" | "<=" | ">" | ">=") bit_o)*
+bit_o       := bit_x ("|" bit_x)*
+bit_x       := bit_y ("^" bit_y)*
+bit_y       := desplaza ("&" desplaza)*
+desplaza    := suma (("<<" | ">>") suma)*
+suma        := producto (("+" | "-" | "+?" | "-?") producto)*
+producto    := conversion (("*" | "/" | "%" | "*?" | "/?") conversion)*
+conversion  := unario (("como" | "como" "?") tipo)*
+unario      := "try" unario | ("!" | "-" | "~") unario | postfijo
+postfijo    := primario ("." NOMBRE ("(" args? ")")? | "[" expr "]")*
+primario    := ENTERO | DECIMAL | CADENA | INTERPOLADA | "true" | "false"
+             | "[" args? "]"
+             | NOMBRE ("(" args? ")")?
+             | STRUCT "{" inicios "}"
+             | ENUM "." NOMBRE ("(" args? ")")?
+             | ALIAS "." NOMBRE ("(" args? ")" | "{" inicios "}")?
+             | ALIAS "." NOMBRE "." NOMBRE ("(" args? ")")?
+             | "if" expr "{" expr "}" "else" "{" expr "}"
+             | clausura | match | "(" expr ")"
+args        := expr ("," expr)*
+inicios     := (NOMBRE ":" expr ("," NOMBRE ":" expr)* ","?)?
+clausura    := "fn" ("[" (captura ("," captura)*)? "]")? "(" params? ")"
+               ("->" tipo)? "!"? bloque
+captura     := "mut"? NOMBRE
+
+match       := "match" expr "{" brazo+ "}"
+brazo       := patrones ("if" expr)? "->" (bloque ","? | expr ",")
+             -- el ultimo brazo con expresion puede ir sin ","
+patrones    := patron ("|" patron)*
+patron      := "_" | forma
+forma       := (ENUM | ALIAS "." NOMBRE) "." NOMBRE
+               ("(" (posicion ("," posicion)*)? ")")?
+posicion    := forma | NOMBRE | "-"? ENTERO | CADENA | "true" | "false"
+```
+
+Lo que la gramática sola no dice:
+
+- **Precedencia.** De menos a más: `sino`, `||`, `&&`, `==` `!=`, las
+  comparaciones, `|`, `^`, `&`, los desplazamientos, `+` `-`, `*` `/` `%`,
+  `como`, los unarios, y `.` e `[]`. **Los operadores de bits atan más que
+  las comparaciones**, al revés que en C: `a & b == c` es `(a & b) == c`.
+  Todos los binarios asocian por la izquierda.
+- **`x.f(a)` es `f(x, a)`**: lo de delante del punto va primero. Un
+  `ALIAS.f(...)` es la función `f` del módulo, no esto.
+- **`else if`** es un `else` cuyo bloque es ese `if`.
+- **Un `match` suelto** es una sentencia y no lleva `;`; el que da un valor
+  va en una expresión (`return match ...;`, `let x = match ...;`).
+- **Un literal de struct** sólo se lee así si el nombre es de un struct
+  declarado; si no, `Nombre {` es un nombre seguido de un bloque.
+- **A la izquierda de `=`** sólo puede ir un `lugar`: una variable, un campo
+  o un elemento.
+- **Los `usar`** van todos al principio del archivo.
+
+Este programa usa cada producción. La suite lo compila y lo corre bajo
+AddressSanitizer: si la gramática deja de describir el lenguaje, se nota.
+
+```tcode muestra
+usar "std/texto" como t;
+
+/* Un comentario de bloque. */
+externo "math.h" { fn sqrt(x: f64) -> f64; }
+
+struct Par<A, B> { a: A, b: B, }
+enum Forma { Punto, Circulo(f64), Rect(i64, i64), }
+enum Arbol { Hoja(i64), Nodo(lista<Arbol>) }
+
+fn mayor<T: ordenable>(x: T, y: T) -> T {
+    if menor(x, y) { return y; } else { return x; }
+}
+
+fn area(f: &Forma) -> f64 {
+    return match f {
+        Forma.Circulo(r) -> 3.0 * r * r,
+        Forma.Rect(an, al) if an > 0 -> (an * al) como f64,
+        Forma.Punto | Forma.Rect(_, _) -> 0.0,
+    };
+}
+
+fn suma(a: &Arbol) -> i64 {
+    match a {
+        Arbol.Hoja(n) -> { return n; }
+        Arbol.Nodo(hijos) -> {
+            var s: i64 = 0;
+            for h en hijos { s = s + suma(h); }
+            return s;
+        }
+    }
+}
+
+fn mitad(n: usize) -> usize ! {
+    if n % 2 != 0 { falla "impar"; }
+    return n / 2;
+}
+
+fn uno_o_dos(n: usize, dos: bool) -> usize { if dos { return n * 2; } return n; }
+
+// Un comentario de linea.
+fn cuenta(p: &mut Par<usize, str>) { p.a = p.a + 1; }
+
+fn crece(s: mut str, veces: usize) {
+    for _i en 0..veces { empujar(s, "+"); }
+}
+
+fn main() -> usize ! {
+    var p = Par { a: 1, b: nuevo("uno") };
+    cuenta(p);
+    let grande = 1_000 + (300 como? u8 como usize);
+    let exponente: f64 = 1.5e2 /? 2.0;
+    let resta: u8 = 0 -? 1;
+    var xs: lista<usize> = [3, 1, 2];
+    xs.anadir(4);
+    ordenar(xs);
+    let arr: [u8; 3] = [1, 2, 3];
+    var m: mapa<str, usize> = [];
+    poner(m, "k", xs[0]);
+    let k = obtener(m, "k") sino 0;
+    let cuadrado = fn[k](x: usize) -> usize { return x * x + k; };
+    let h: fn(usize, bool) -> usize = uno_o_dos;
+    let doble = try mitad(h(4, true));
+    let r = mitad(3) sino 0;
+    var s = nuevo("a");
+    crece(s, 2);
+    let bits = (5 & 3 | 8 ^ 1) << 1 >> 1;
+    let envuelta: u8 = (arr[2] *? 100) +? 1;
+    let signo = -(2 como i64) + ~(0 como i64);
+    let c = if p.a == 2 && !false || true { "si" } else { "no" };
+    var i = 0;
+    while i < 3 {
+        i = i + 1;
+        if i == 1 { continue; } else if i == 3 { break; }
+    }
+    let arbol = Arbol.Nodo([Arbol.Hoja(4), Arbol.Hoja(5)]);
+    imprimir($"{p.b} {xs[0]} {k} {cuadrado(2)} {doble} {r} {s} {bits} {envuelta}\n");
+    imprimir($"{signo} {c} {i} {suma(arbol)} {mayor(2, 7)} {area(Forma.Rect(2, 3))} {sqrt(4.0)}\n");
+    imprimir($"{grande} {exponente} {resta}\n");
+    imprimir($"{t.mayusculas("fin")} {{llaves}} \x41\t|\n");
+    return 0;
+}
 ```
 
 Un programa puede anidar expresiones y bloques hasta **5000 niveles**. Más
@@ -749,7 +930,7 @@ error: hondo.t:1: el programa anida mas de 5000 niveles; parte la expresion
        o el bloque en trozos, se encontro '('
 ```
 
-## Funciones internas (v0)
+## Funciones internas
 
 Cada una es una operación de la librería de C, con la regla de préstamo que
 le corresponde.
@@ -778,6 +959,54 @@ que un índice.
 mi.t:3: rebanar(2, 9) fuera de rango (el texto tiene 4 bytes)
 ```
 
+### Índice de funciones internas
+
+Todas las que trae el lenguaje, sin `usar` nada. Las que **fallan** van con
+`try` o `sino`, como cualquier función `!`. El detalle de cada una está en la
+sección que se nombra.
+
+| función | falla | qué hace | dónde |
+|---|---|---|---|
+| `vacio() -> str` |  | un texto vacío, con dueño | Funciones internas |
+| `nuevo(v: view) -> str` |  | copia un texto a uno con dueño | Funciones internas |
+| `vista(s) -> view` |  | presta `s` | Funciones internas |
+| `texto(x) -> str` |  | un número, `bool`, `view` o `str` como texto | 9. Entrada de archivos y texto construido |
+| `empujar(s: mut str, x: view)` |  | añade al final | Funciones internas |
+| `empujar_byte(s: mut str, b: u8)` |  | añade un byte | Bytes |
+| `largo(x) -> usize` |  | bytes de un texto, elementos de una lista, arreglo, bloque o mapa | Funciones internas |
+| `byte(v: view, i: usize) -> usize` |  | el byte `i`, con el índice comprobado | Funciones internas |
+| `rebanar(v: view, desde, hasta) -> view` |  | un trozo, con los límites comprobados | Funciones internas |
+| `igual(a, b) -> bool` |  | igualdad de dos valores sin partes | `igual` y `menor` sobre cualquier tipo sin partes |
+| `menor(a, b) -> bool` |  | orden de dos valores sin partes; los textos, byte a byte | `igual` y `menor` sobre cualquier tipo sin partes |
+| `imprimir(x)` |  | a la salida | 11. Salida, escritura y orden |
+| `imprimir_error(x)` |  | a la salida de error | 11. Salida, escritura y orden |
+| `anadir(xs: mut lista<T>, x: T)` |  | añade al final; mueve `x` si tiene dueño | Listas dinámicas |
+| `ordenar(xs: mut lista<T>)` |  | ordena en el sitio: `usize`, `i64`, `bool` o `str` | 12. Recorridos |
+| `copiar(x: &T) -> T` |  | copia profunda de cualquier valor | `copiar`: copia profunda, explícita, sin anotar nada |
+| `reservar(n: usize) -> bloque<T>` |  | `n` ranuras, todas a ceros | Memoria propia: `bloque<T>`, `reservar` e `intercambiar` |
+| `redimensionar(b: mut bloque<T>, n: usize)` |  | cambia el tamaño; lo nuevo, a ceros | Memoria propia: `bloque<T>`, `reservar` e `intercambiar` |
+| `intercambiar(sitio, valor: T) -> T` |  | deja `valor` en `sitio` y devuelve lo que había | `intercambiar` |
+| `poner(m: mut mapa<K, V>, clave, valor)` |  | inserta o reemplaza | 10. Mapas y argumentos |
+| `obtener(m, clave) -> V` | sí | una copia, una `view` o un `&V`, según `V` | 10. Mapas y argumentos |
+| `obtener_mut(m: mut mapa<K, V>, clave) -> &mut V` | sí | presta para modificar lo guardado | `&mut T`: préstamos que sí escriben |
+| `tiene(m, clave) -> bool` |  | si la clave está | 10. Mapas y argumentos |
+| `quitar(m: mut mapa<K, V>, clave) -> bool` |  | borra; dice si había algo | Borrado en los mapas |
+| `claves(m) -> lista<K>` |  | copias de las claves | 10. Mapas y argumentos |
+| `raiz(x), piso(x), techo(x), redondear(x)` |  | de `f32` o `f64`, en su tipo; `redondear` lleva el `.5` lejos de cero | Lo que trae `std` |
+| `absoluto(x)` |  | de un entero con signo; el del mínimo para el programa | Lo que trae `std` |
+| `n_argumentos() -> usize` |  | cuántos argumentos, el programa incluido | Argumentos de la línea de órdenes |
+| `argumento(i: usize) -> view` |  | el argumento `i`, con el índice comprobado | Argumentos de la línea de órdenes |
+| `leer_archivo(ruta: view) -> str` | sí | el archivo entero, bytes tal cual | 9. Entrada de archivos y texto construido |
+| `leer_parte_archivo(ruta: view, desde, cuantos) -> str` | sí | como mucho `cuantos` bytes desde `desde`; vacío al final | Funciones internas |
+| `escribir_archivo(ruta: view, contenido: view)` | sí | reemplaza el archivo entero, de una vez | 11. Salida, escritura y orden |
+| `leer_linea() -> str` | sí | una línea de la entrada, sin el salto; falla al acabarse | El sistema: lo que no puede ir por `externo` |
+| `entrada_completa() -> str` | sí | toda la entrada | El sistema: lo que no puede ir por `externo` |
+| `variable_entorno(nombre: view) -> str` | sí | falla si no está; vacía si está vacía | El sistema: lo que no puede ir por `externo` |
+| `ahora_ms() -> i64` |  | reloj de pared, en milisegundos | El sistema: lo que no puede ir por `externo` |
+| `monotono_ms() -> i64` |  | reloj para medir duraciones | El sistema: lo que no puede ir por `externo` |
+| `azar(n: usize) -> usize` |  | de `0` a `n - 1`, sin sesgo | El sistema: lo que no puede ir por `externo` |
+| `sembrar(s: u64)` |  | fija la semilla de `azar` | El sistema: lo que no puede ir por `externo` |
+
 ### 10. Mapas y argumentos
 
 `mapa<K, V>` es una tabla hash dueña de sus claves:
@@ -795,21 +1024,27 @@ let n: usize = obtener(cuenta, "hola") sino 0;
 | `tiene(m, clave) -> bool` | sin construir el valor |
 | `claves(m) -> lista<K>` | copias, para poder recorrerlo |
 | `largo(m) -> usize` | cuántas entradas |
+| `obtener_mut(m, clave) -> &mut V !` | presta para modificar lo guardado (ver `&mut T`) |
+| `quitar(m, clave) -> bool` | borra, y dice si había algo (ver *Borrado en los mapas*) |
 
 Por dentro es direccionamiento abierto con sondeo lineal y capacidad
-potencia de dos, que crece al 70% de ocupación. En v0 no hay borrado, así que
-tampoco lápidas: una celda con clave vacía corta la búsqueda.
+potencia de dos, que crece al 70% de ocupación. Borrar no deja lápidas, así
+que una celda con clave vacía corta la búsqueda.
 
 Que `obtener` sea falible no es celo: es la misma decisión que en
 `leer_archivo`. Una clave que no está no es un valor, y devolver un cero
 disfrazado es exactamente cómo se cuelan los errores.
 
-**Los dos límites de v0, dichos donde se declara el mapa:**
+**Los límites, dichos donde se declara el mapa:**
 
 - **La clave tiene que ser `str`.** Se consulta con un `view`, sin copiar.
-- **El valor es un escalar o un `str`.** Para un escalar, `obtener` devuelve
-  una copia; para un `str`, **devuelve una vista prestada del texto que ya
-  vive dentro de la tabla**, así que no se saca al dueño ni se copia nada:
+- **El valor es cualquier tipo que se pueda guardar, menos `view` y
+  `&T`**: un mapa guarda valores, no préstamos. Un escalar, un `str`, un
+  struct, un enum, una lista, otro mapa, un bloque o un arreglo.
+
+Lo que devuelve `obtener` depende del valor. Para un escalar, una copia;
+para un `str`, **una vista prestada del texto que ya vive dentro de la
+tabla**, así que no se saca al dueño ni se copia nada:
 
   ```tcode
   var cfg: mapa<str, str> = [];
@@ -827,8 +1062,9 @@ disfrazado es exactamente cómo se cuelan los errores.
   Y no puede salir de la función, por la misma regla que cualquier vista de
   algo local.
 
-  Para un struct, `obtener` devuelve un **`&V`**: un préstamo de solo
-  lectura del valor que está en la tabla.
+  Para cualquier otro valor —un struct, una lista, un mapa—, `obtener`
+  devuelve un **`&V`**: un préstamo de solo lectura del valor que está en
+  la tabla.
 
   ```tcode
   struct Simbolo { tipo: str, mutable: bool, usos: usize }
@@ -1294,8 +1530,9 @@ error:
 $ cat sin.t
 fn suma<T>(ns: &lista<T>) -> T { var t = ns[0]; return t; }
 
-error: sin.t:1: en v0 no se puede sacar un elemento de un arreglo: dejaria
-                un hueco. Mueve el arreglo entero
+error: sin.t:1: no se puede sacar un elemento de una lista y dejar el hueco
+                sin duenio. Si quieres sacarlo, di que dejas en su sitio:
+                `intercambiar(...)`. Si solo quieres leerlo, `copiar(...)`
   al usar `suma` con T = str, desde sin.t:5
 ```
 
@@ -1304,7 +1541,8 @@ $ cat con.t
 fn suma<T: numero>(ns: &lista<T>) -> T { ... }
 
 error: con.t:6: `suma` pide que `T` sea `numero`, y aqui `T` es `str`.
-                `numero` son: `i64`, `usize`
+                `numero` son: `f32`, `f64`, `i16`, `i32`, `i64`, `i8`,
+                `u16`, `u32`, `u64`, `u8`, `usize`
 ```
 
 El primero te cuenta un problema de propiedad que no tienes. El segundo te
@@ -1465,10 +1703,10 @@ fn ordenadas_por<T>(xs: &lista<T>, antes: fn(&T, &T) -> bool) -> lista<T>
 Eso es un puntero a función: **coste cero, y no posee nada**, así que se
 copia como un número y no hay que liberarlo.
 
-**No hay capturas.** Una clausura que se lleva variables consigo obliga a
-decidir qué posee y cuánto vive, y eso es un diseño entero —en Rust son tres
-traits— que v0 no tiene. Lo que hay es lo que basta para pasar un criterio,
-y se dice en la firma.
+**Un puntero a función no captura nada.** Para llevarse variables consigo
+están las [clausuras](#clausuras), con la lista de lo que capturan escrita
+delante: decidir qué posee y cuánto vive es un diseño entero —en Rust son
+tres traits— y aquí se resuelve capturando por valor.
 
 Tampoco se puede pasar como valor una función que **puede fallar**, ni una
 **genérica** (hay una por cada juego de tipos, y ahí no se sabe cuál). Las
@@ -2020,9 +2258,8 @@ Un `match` así no cabe en un `switch` de C: sale como una fila de `if`, y el
 brazo que casa salta al final con un `goto`. De paso, un `break` dentro del
 `switch` de un `match` simple sale del bucle, no del `switch`.
 
-Lo que Tcode todavía no tiene: enums con parámetros de tipo
-(`enum Quiza<T>`) y patrones sobre rangos. Un enum no lleva vistas ni
-structs que prestan.
+Tcode no tiene enums con parámetros de tipo (`enum Quiza<T>`) ni patrones
+sobre rangos. Un enum no lleva vistas ni structs que prestan.
 
 ## La puerta a C: `externo`
 
@@ -2255,13 +2492,39 @@ for (size_t ss_k1 = (size_t)0; ss_k1 < ss_tmp3; ss_k1++)
 Un rango solo existe en la cabecera de un `for`: no es un valor que se
 guarde.
 
-## Qué NO tiene v0
+## Lo que Tcode 1.0 no tiene
 
-Es un v0 honesto. No hay: enums con parámetros de tipo, patrones sobre
-rangos, escritura incremental (un `escribir_archivo` reemplaza el
-archivo entero), punteros crudos ni recolector. La
-puerta a C existe (`externo`) pero es estrecha a propósito: sin punteros, sin
-structs y sin varargs.
-Todo valor que sale
-de su bloque sin ser devuelto ni movido se libera automáticamente, a
-cualquier hondura.
+Todo esto lo rechaza el compilador con un error que lo dice, en su línea.
+
+**Tipos**
+- Enums con parámetros de tipo (`enum Quiza<T>`); los structs sí los tienen.
+- Restricciones propias: las de `T` son las seis de la gramática, sin
+  traits ni interfaces que declarar.
+- Claves de mapa que no sean `str`.
+- Préstamos guardados: una `view`, un `&T` o un struct que presta no van en
+  listas, arreglos, mapas ni enums. Un arreglo fijo no va en una lista.
+
+**Funciones**
+- Sobrecarga: un nombre es una sola función.
+- Pasar como valor una función que puede fallar, o una genérica.
+
+**Control**
+- Patrones sobre rangos en un `match`.
+- `try` o `sino` en la condición de un `while`, y un motivo de `falla` que
+  no sea una cadena escrita.
+- Excepciones: un fallo es un valor, y se trata o se sube.
+
+**Memoria y sistema**
+- Punteros crudos, aritmética de punteros, `unsafe` y recolector de basura.
+  Todo valor que sale de su bloque sin ser devuelto ni movido se libera
+  solo, a cualquier hondura.
+- Escritura incremental: `escribir_archivo` reemplaza el archivo entero.
+- La puerta a C (`externo`) es estrecha a propósito: sin punteros, sin
+  structs, sin varargs; una función de C no puede ser genérica ni fallar.
+
+**Texto**
+- Normalizar los nombres: `é` compuesta y `e` con acento combinado son dos
+  nombres distintos.
+
+Las plataformas que se comprueban están en
+[`PLATAFORMAS.md`](PLATAFORMAS.md).
