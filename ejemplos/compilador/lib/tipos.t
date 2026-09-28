@@ -215,40 +215,62 @@ fn con_varios(forma: Forma, nombre: view, dentro: view) -> Tipo {
     return t;
 }
 
+// La forma de un tipo escrito, sin leer lo de dentro. Es lo unico que
+// preguntan `posee` y `tipo_existe` antes de bajar, y no reserva nada: leer
+// el arbol entero para eso era la mayor parte de lo que se leian tipos.
+fn forma_de(t: view) -> Forma {
+    if empieza(t, "&mut ") { return Forma.PrestaMut; }
+    if empieza(t, "&") { return Forma.Presta; }
+    if es_arreglo(t) && termina_con(t, "]") && contiene(t, ";") { return Forma.Arreglo; }
+    if es_funcion(t) {
+        if partes_de_funcion(t).largo() == 0 { return Forma.Nombre; }
+        return Forma.Funcion;
+    }
+    if es_lista(t) { return Forma.Lista; }
+    if es_bloque(t) { return Forma.Bloque; }
+    if es_rango(t) { return Forma.Rango; }
+    if es_mapa(t) { return Forma.Mapa; }
+    return Forma.Nombre;
+}
+
 // El arbol de un tipo escrito. Lo que no tiene una forma conocida es un
 // `Nombre` con el texto tal cual, asi que leer y escribir siempre vuelve a
 // dar lo mismo.
 fn leer_tipo(t: view) -> Tipo {
-    if empieza(t, "&mut ") { return con_uno(Forma.PrestaMut, rebanar(t, 5, t.largo())); }
-    if empieza(t, "&") { return con_uno(Forma.Presta, rebanar(t, 1, t.largo())); }
-    if es_arreglo(t) && termina_con(t, "]") && contiene(t, ";") {
-        var a = con_uno(Forma.Arreglo, elemento(t));
-        a.cuantos = cuantos_del_arreglo(t);
-        return a;
-    }
-    if es_funcion(t) {
-        let partes = partes_de_funcion(t);
-        if partes.largo() == 0 { return nuevo_tipo(Forma.Nombre, t); }
-        var f = nuevo_tipo(Forma.Funcion, "");
-        f.devuelve = tiene_flecha(t);
-        var i = 0;
-        while i < partes.largo() {
-            // Sin flecha, `partes_de_funcion` pone un `()` al final que no
-            // esta escrito.
-            if i + 1 < partes.largo() || f.devuelve { f.args.anadir(leer_tipo(partes[i])); }
-            i = i + 1;
+    let forma = forma_de(t);
+    match forma {
+        Forma.PrestaMut -> { return con_uno(forma, rebanar(t, 5, t.largo())); }
+        Forma.Presta -> { return con_uno(forma, rebanar(t, 1, t.largo())); }
+        Forma.Arreglo -> {
+            var a = con_uno(forma, elemento(t));
+            a.cuantos = cuantos_del_arreglo(t);
+            return a;
         }
-        return f;
+        Forma.Funcion -> {
+            let partes = partes_de_funcion(t);
+            var f = nuevo_tipo(forma, "");
+            f.devuelve = tiene_flecha(t);
+            var i = 0;
+            while i < partes.largo() {
+                // Sin flecha, `partes_de_funcion` pone un `()` al final que no
+                // esta escrito.
+                if i + 1 < partes.largo() || f.devuelve { f.args.anadir(leer_tipo(partes[i])); }
+                i = i + 1;
+            }
+            return f;
+        }
+        Forma.Lista -> { return con_uno(forma, entre_angulos(t)); }
+        Forma.Bloque -> { return con_uno(forma, entre_angulos(t)); }
+        Forma.Rango -> { return con_uno(forma, entre_angulos(t)); }
+        Forma.Mapa -> { return con_varios(forma, "", entre_angulos(t)); }
+        Forma.Nombre -> { }
     }
-    if es_lista(t) { return con_uno(Forma.Lista, entre_angulos(t)); }
-    if es_bloque(t) { return con_uno(Forma.Bloque, entre_angulos(t)); }
-    if es_rango(t) { return con_uno(Forma.Rango, entre_angulos(t)); }
-    if es_mapa(t) { return con_varios(Forma.Mapa, "", entre_angulos(t)); }
+    // Un nombre, o la aplicacion de un struct generico: `Par<str, usize>`.
     let abre = primer_angulo(t);
     if abre > 0 && termina_con(t, ">") {
-        return con_varios(Forma.Nombre, rebanar(t, 0, abre), entre_angulos(t));
+        return con_varios(forma, rebanar(t, 0, abre), entre_angulos(t));
     }
-    return nuevo_tipo(Forma.Nombre, t);
+    return nuevo_tipo(forma, t);
 }
 
 fn primer_angulo(t: view) -> usize {
@@ -453,8 +475,7 @@ fn escalar(t: view) -> bool {
 // contiene a si mismo de forma finita, y preguntarle dos veces no aporta.
 fn posee(campos: &mapa<str, lista<str>>, t: view,
     visitados: mut mapa<str, usize>) -> bool ! {
-    let a = leer_tipo(t);
-    match a.forma {
+    match forma_de(t) {
         // Lo prestado es de otro; una funcion y un rango no guardan nada.
         Forma.Presta -> { return false; }
         Forma.PrestaMut -> { return false; }
@@ -487,8 +508,7 @@ fn posee(campos: &mapa<str, lista<str>>, t: view,
 }
 
 fn tipo_existe(campos: &mapa<str, lista<str>>, t: view) -> bool {
-    let a = leer_tipo(t);
-    match a.forma {
+    match forma_de(t) {
         Forma.Presta -> { return tipo_existe(campos, apuntado(t)); }
         Forma.PrestaMut -> { return tipo_existe(campos, apuntado(t)); }
         Forma.Funcion -> { return true; }
