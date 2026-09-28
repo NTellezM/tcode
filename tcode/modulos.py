@@ -21,7 +21,7 @@ generado, que es lo que se quiere al leerlo.
 import os
 import re
 
-from tcode.lexer import tokenizar
+from tcode.lexer import leer_fuente, tokenizar
 from tcode.parser import parsear
 from tcode.nodos import (Usar, Struct, Funcion, Llamada, LiteralStruct,
                          Enum, EnumLit, Match, PatronForma)
@@ -265,14 +265,12 @@ def cargar(ruta_principal, nombres_bonitos=None):
             raise ErrorDeModulo(
                 f"{de}no encuentro el modulo {os.path.basename(ruta)!r}{pista}")
 
-        with open(real, encoding="utf-8") as f:
-            fuente = f.read()
-
         # Ruta relativa al directorio de trabajo: los errores quedan cortos
         # y se pueden pinchar en el terminal.
         mostrada = os.path.relpath(real)
         if mostrada.startswith(".."):
             mostrada = real
+        fuente = leer_fuente(real, mostrada)
 
         toks = tokenizar(fuente, mostrada)
         if quien is not None and _tiene_main(toks):

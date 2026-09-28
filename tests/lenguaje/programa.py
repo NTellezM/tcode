@@ -17,6 +17,7 @@ from .aborta import ABORTA
 from .acepta import ACEPTA
 from .avisa import AVISA
 from .comun import (
+    escribir_fuente,
     RAIZ,
     RUNTIME,
     SISTEMA_TCODEC,
@@ -769,8 +770,7 @@ fn main() {
             escritos_r = []
             for i, (nombre, fuente, _esperado) in enumerate(RECHAZO):
                 ruta_r = os.path.join(tmp, f"rechazo-{i}.t")
-                with open(ruta_r, "w", encoding="utf-8") as f:
-                    f.write(fuente)
+                escribir_fuente(ruta_r, fuente)
                 escritos_r.append((nombre, ruta_r))
             trabajos_r = [(nombre, ruta_r, de_python)
                           for (nombre, ruta_r), de_python in zip(

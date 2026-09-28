@@ -23,6 +23,8 @@ import os
 import re
 import shutil
 
+from tcode.xid import sigue_nombre
+
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # Lo que esta escrito con lo que solo sabe `tcodec`.
 CARPETAS = (os.path.join("ejemplos", "compilador"), os.path.join("ejemplos", "lexer"))
@@ -96,7 +98,7 @@ def _pareja(s, i, paso):
 
 
 def _es_nombre(c):
-    return c.isalnum() or c == "_"
+    return sigue_nombre(c)
 
 
 def _receptor(s, punto):

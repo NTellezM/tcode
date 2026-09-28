@@ -174,8 +174,8 @@ es esta:
 comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
-Sobre los <!--c:lexer_archivos-->52<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
-**<!--c:tokens-->177.950<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+Sobre los <!--c:lexer_archivos-->53<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
+**<!--c:tokens-->198.548<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -184,14 +184,14 @@ instante.
 <!--c:bloque:lexer-->
 ```
 $ ./ejemplos/lexer/lexer ejemplos/lexer/lib/lexico.t --contar
-ejemplos/lexer/lib/lexico.t: 3802 tokens
-  cadena  87
-  entero  293
+ejemplos/lexer/lib/lexico.t: 4452 tokens
+  cadena  89
+  entero  346
   fin  1
-  ident  992
-  interpolada  11
-  palabra  453
-  simbolo  1965
+  ident  1168
+  interpolada  14
+  palabra  540
+  simbolo  2294
 ```
 
 Es el primer programa grande del lenguaje y su primera prueba de fuego: usa
@@ -203,8 +203,8 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 
 `ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.763<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
-de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->52<!--/c--> archivos que
-el parser del compilador, y sobre ellos produce <!--c:nodos-->89.660<!--/c--> nodos:
+de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->53<!--/c--> archivos que
+el parser del compilador, y sobre ellos produce <!--c:nodos-->106.626<!--/c--> nodos:
 
 <!--c:bloque:parser-->
 ```
@@ -215,25 +215,25 @@ ejemplos/lexer/parser.t: 79 nodos, hondura 10
 Y dos capas más del comprobador, en `ejemplos/compilador/`:
 
 - `lib/tipos.t` responde las dos preguntas de las que cuelga todo —¿este tipo
-  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **<!--c:tipos_archivos-->52<!--/c--> archivos, <!--c:tipos-->437<!--/c-->
+  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **<!--c:tipos_archivos-->53<!--/c--> archivos, <!--c:tipos-->439<!--/c-->
   tipos**, las mismas respuestas que el comprobador de Python. Es también
   el único sitio que lee y construye tipos: los lee como árbol (`Tipo`, con
   su `Forma` como enum) y los vuelve a escribir, y cada uno de esos tipos
   tiene que dar, leído y escrito, el mismo texto.
 - `lib/tipar.t` dice **de qué tipo es cada variable de cada función**, con
-  llamadas, campos, índices, préstamos y genéricas instanciadas: **<!--c:tipar_archivos-->52<!--/c-->
-  archivos, <!--c:tipar_variables-->6.310<!--/c--> variables**, los mismos tipos.
+  llamadas, campos, índices, préstamos y genéricas instanciadas: **<!--c:tipar_archivos-->53<!--/c-->
+  archivos, <!--c:tipar_variables-->6.339<!--/c--> variables**, los mismos tipos.
 - `lib/propiedad.t` dice **qué le pasa a cada valor con dueño** —se presta,
   se entrega en la línea N, se mueve en la línea N, o se libera al cerrar su
-  bloque—, que es lo único que de verdad separa a Tcode de C: **<!--c:propiedad_archivos-->52<!--/c--> archivos,
-  <!--c:propiedad_variables-->6.310<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
+  bloque—, que es lo único que de verdad separa a Tcode de C: **<!--c:propiedad_archivos-->53<!--/c--> archivos,
+  <!--c:propiedad_variables-->6.339<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
 - `lib/generar.t` es **el generador**: cómo se llama cada tipo en C, cómo
-  queda la firma de cada función —**<!--c:firmas_archivos-->52<!--/c--> archivos, <!--c:firmas-->872<!--/c--> firmas**— y el C de cada
-  expresión que se devuelve: **<!--c:expresiones_iguales-->1.913<!--/c--> de <!--c:expresiones-->2.162<!--/c--> expresiones, carácter por
+  queda la firma de cada función —**<!--c:firmas_archivos-->53<!--/c--> archivos, <!--c:firmas-->880<!--/c--> firmas**— y el C de cada
+  expresión que se devuelve: **<!--c:expresiones_iguales-->3.619<!--/c--> de <!--c:expresiones-->3.872<!--/c--> expresiones, carácter por
   carácter**, las mismas que emite el generador de Python. Lo que aún no
   cubre sale marcado y no se compara; la suite exige un mínimo en vez de
   hacer como que están todas. Y **la función entera** —firma, cuerpo, y los
-  `ss_free` puestos solos donde tocan—: **<!--c:cuerpos-->847<!--/c--> funciones idénticas**, línea por
+  `ss_free` puestos solos donde tocan—: **<!--c:cuerpos-->855<!--/c--> funciones idénticas**, línea por
   línea, normalizando sólo los números de temporal.
 
 Las dos se comparan contra el comprobador de Python en cada ejecución de la
@@ -245,11 +245,11 @@ suite, sobre el código real del repositorio.
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->20.758<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->20.860<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa) y el resultado se compara byte a
 byte con el del generador de Python: **los <!--c:programas_enteros-->25<!--/c--> programas del repositorio, idénticos**,
 entre ellos el lexer, el parser y el propio `tcodec`, y también **los
-<!--c:programas_suite-->173<!--/c--> programas de la suite que compilan** y cada programa que generan las
+<!--c:programas_suite-->174<!--/c--> programas de la suite que compilan** y cada programa que generan las
 propiedades.
 
 Y hace el último paso él solo: llama al compilador de C, enlaza lo que
@@ -276,7 +276,7 @@ igual
 ```
 
 El `tcodec` construido por sí mismo vuelve a escribir exactamente los mismos
-bytes (<!--c:punto_fijo_bytes-->5,16<!--/c--> MB), y el construido desde su propio C también, bajo
+bytes (<!--c:punto_fijo_bytes-->6,06<!--/c--> MB), y el construido desde su propio C también, bajo
 AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
 El compilador ya no necesita a Python para existir: se construye desde su
 semilla, que es el paso que dieron Go en la 1.5 y Rust con su primer `rustc`
@@ -302,7 +302,7 @@ error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 ```
 
 La suite pasa por los dos compiladores cada programa que tiene que
-rechazarse: **los <!--c:rechazos_iguales-->248<!--/c--> dan el mismo primer error, carácter por carácter**,
+rechazarse: **los <!--c:rechazos_iguales-->254<!--/c--> dan el mismo primer error, carácter por carácter**,
 también los de sintaxis, que salen del lexer y el parser en Tcode con su
 archivo, su línea y lo que encontraron. Los que faltan hasta el total están
 escritos con lo que el Python congelado no conoce —llamadas con punto,
@@ -317,8 +317,8 @@ error: roto.t:3: se esperaba ';', se encontro ')'
 Y como siete casos no bastan para fiarse de un parser, la suite rompe cada
 archivo del repositorio de varias formas —un token de menos o de más, un
 símbolo fuera de sitio, una cadena sin cerrar, un carácter que no existe— y
-exige el mismo primer error en todos: **<!--c:rotos_iguales-->248<!--/c--> de <!--c:rotos-->248<!--/c-->**. Y el otro lado, que
-importa más: **ninguno de los <!--c:correctos-->186<!--/c--> programas correctos** —los del repositorio
+exige el mismo primer error en todos: **<!--c:rotos_iguales-->253<!--/c--> de <!--c:rotos-->253<!--/c-->**. Y el otro lado, que
+importa más: **ninguno de los <!--c:correctos-->188<!--/c--> programas correctos** —los del repositorio
 y los de la suite— se rechaza. `tcodec --solo-comprobar` hace sólo esta
 parte.
 
@@ -333,7 +333,7 @@ y numeradas como el original—, tipos función, structs genéricos
 (`Par<A, B>`), bloques, `externo`, enums, arreglos `[T; N]`, funciones
 repetidas entre módulos, funciones con nombre de palabra de C (`union`),
 `else if` y `escribir_archivo`. Y escribe todo lo que escribe Python: los
-<!--c:programas_enteros-->25<!--/c--> programas del repositorio, los <!--c:programas_suite-->173<!--/c--> de la suite que compilan —uno por
+<!--c:programas_enteros-->25<!--/c--> programas del repositorio, los <!--c:programas_suite-->174<!--/c--> de la suite que compilan —uno por
 construcción del lenguaje— y los generados al azar de las propiedades (P12)
 salen byte a byte iguales, y la suite falla si uno solo no lo está, también
 si `tcodec` lo rechaza.
@@ -450,7 +450,7 @@ $ make formato
 Sin opciones, como `gofmt`: hay un estilo y es este. Pero **no mueve tokens
 de línea** — no decide dónde parte una expresión larga. Por eso no puede
 estropear nada: la salida lexea exactamente a los mismos tokens que la
-entrada, y la suite lo comprueba sobre los <!--c:formato_archivos-->57<!--/c--> `.t` del repositorio, junto con
+entrada, y la suite lo comprueba sobre los <!--c:formato_archivos-->58<!--/c--> `.t` del repositorio, junto con
 que formatear dos veces da lo mismo y que el repositorio ya está formateado.
 
 ## Depurar
@@ -763,7 +763,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-2417 casos, 0 fallas
+2454 casos, 0 fallas
 2069 comprobaciones sobre 60 programas, 0 fallas
 ```
 

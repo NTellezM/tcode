@@ -11,6 +11,19 @@ from .comun import (
 )
 
 ACEPTA = [
+    # Nombres de UAX #31: letras de cualquier escritura, en structs, campos,
+    # funciones y variables. El C los lleva tal cual, y gcc y clang los
+    # aceptan.
+    ("nombres con letras no ASCII",
+     '''struct A\u00f1o { d\u00eda: usize }
+        fn doble_\u03c0(x: usize) -> usize { return x * 2; }
+        fn main() {
+            let \u540d\u524d = A\u00f1o { d\u00eda: 3 };
+            let \U0001d465 = doble_\u03c0(\u540d\u524d.d\u00eda);
+            imprimir($"{\U0001d465}\\n");
+        }''',
+     "6\n"),
+
     # La lista que lleva una forma de un enum se declara aunque el programa
     # no la escriba en ningun otro sitio. Python escribia C que la usaba sin
     # declararla, y `tcodec` se negaba sin decir donde. Lo encontro
