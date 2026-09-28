@@ -95,7 +95,9 @@ static void ss_lang_division_cero_(const char* archivo, int linea)
  * casi nunca se toma. La version portable que va debajo es correcta pero
  * cuesta: la de multiplicar necesita una division, que son decenas de
  * ciclos, y se nota en un bucle cerrado. */
-#if defined(__GNUC__) || defined(__clang__)
+/* `-DSS_LANG_SIN_BUILTINS` fuerza la version portable, para probarla con un
+   compilador que tiene los builtins: si no, nada la ejecutaria nunca. */
+#if (defined(__GNUC__) || defined(__clang__)) && !defined(SS_LANG_SIN_BUILTINS)
 #  define SS_LANG_HAY_BUILTINS 1
 #endif
 

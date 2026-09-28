@@ -296,7 +296,7 @@ igual
 ```
 
 El `tcodec` construido por sí mismo vuelve a escribir exactamente los mismos
-bytes (<!--c:punto_fijo_bytes-->6,07<!--/c--> MB), y el construido desde su propio C también, bajo
+bytes (<!--c:punto_fijo_bytes-->6,08<!--/c--> MB), y el construido desde su propio C también, bajo
 AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
 El compilador ya no necesita a Python para existir: se construye desde su
 semilla, que es el paso que dieron Go en la 1.5 y Rust con su primer `rustc`
@@ -550,7 +550,8 @@ make desinstalar PREFIJO=~/.local
 Dónde se comprueba que funciona está en
 [`docs/PLATAFORMAS.md`](docs/PLATAFORMAS.md); qué promete cada versión, en
 [`docs/COMPATIBILIDAD.md`](docs/COMPATIBILIDAD.md); qué cambió, en
-[`CHANGELOG.md`](CHANGELOG.md).
+[`CHANGELOG.md`](CHANGELOG.md); y cómo revisarlo sin haberlo escrito, en
+[`docs/AUDITORIA.md`](docs/AUDITORIA.md).
 
 ## Uso
 

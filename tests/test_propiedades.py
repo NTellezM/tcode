@@ -325,41 +325,50 @@ def probar_oraculo(tmp, tcodec):
                                   f"tcodec escribe otro C (codigo {r.returncode})\n"
                                   + r.stderr[:400]))
         ruta_c = ruta[:-2] + ".c"
-        binario = ruta[:-2]
         with open(ruta_c, "w", encoding="utf-8") as f:
             f.write(codigo)
+        # Dos veces: con los builtins de desborde del compilador, y con la
+        # version portable de `runtime/cabecera.inc`, que sin esto no se
+        # ejecutaria nunca. Las dos tienen que dar lo mismo.
+        for extra, cual in (([], ""), (["-DSS_LANG_SIN_BUILTINS"], " (portable)")):
+            problemas += correr_binario(ruta, ruta_c, extra, cual, salida, parada)
+        return problemas
+
+    def correr_binario(ruta, ruta_c, extra, cual, salida, parada):
+        problemas = []
+        binario = ruta[:-2] + ("_portable" if extra else "")
         r = cc(
             ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
-             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer", *extra,
              f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
              "-o", binario, "-lm"],
             capture_output=True, text=True)
         if r.returncode != 0:
-            return problemas + [("P11 C limpio", r.stderr)]
+            return [(f"P11 C limpio{cual}", r.stderr)]
         e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
         if "Sanitizer" in e.stderr or "runtime error" in e.stderr:
-            problemas.append(("P11 memoria limpia", e.stderr))
+            problemas.append((f"P11 memoria limpia{cual}", e.stderr))
         if e.stdout != salida:
             dados, esperados = e.stdout.splitlines(), salida.splitlines()
             for i, (x, y) in enumerate(zip(dados, esperados)):
                 if x != y:
-                    problemas.append(("P11 salida correcta",
+                    problemas.append((f"P11 salida correcta{cual}",
                                       f"linea {i + 1} de la salida: da {x!r}, "
                                       f"tenia que dar {y!r}"))
                     break
             else:
-                problemas.append(("P11 salida correcta",
+                problemas.append((f"P11 salida correcta{cual}",
                                   f"da {len(dados)} lineas, tenia que dar "
                                   f"{len(esperados)}\n{e.stderr[:300]}"))
         if parada:
             linea, mensaje = parada
             if e.returncode == 0 or f"{ruta}:{linea}: {mensaje}" not in e.stderr:
-                problemas.append(("P11 para donde tiene que parar",
+                problemas.append((f"P11 para donde tiene que parar{cual}",
                                   f"tenia que parar en la linea {linea}: "
                                   f"{mensaje}\ncodigo {e.returncode}: "
                                   f"{e.stderr[:300]}"))
         elif e.returncode != 0:
-            problemas.append(("P11 no para sin motivo",
+            problemas.append((f"P11 no para sin motivo{cual}",
                               f"codigo {e.returncode}: {e.stderr[:300]}"))
         return problemas
 
