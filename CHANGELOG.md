@@ -58,6 +58,9 @@ El camino a 1.0.
   `como ? u8` y cambiaba `1_000` por `1000`.
 - `anadir` y `ordenar` por un `&mut lista<T>` de `obtener_mut` se
   rechazaban.
+- `300 como u8` compilaba y paraba el programa al correr; es una cuenta de
+  números escritos y ahora es un error de compilación, como `let x: u8 =
+  256;`.
 - Una lista declarada sólo dentro de un `for` o de un brazo de `match` no
   se declaraba en el C: Python escribía C que no compilaba y `tcodec` se
   negaba.
@@ -78,7 +81,9 @@ El camino a 1.0.
   guardados como regresión.
 - `make bench-comprobar`: medidas con límites de regresión.
 - Sección REGLAS (`tests/reglas.py`): el oráculo de rechazo que no es un
-  compilador. Cada regla en pares mínimos y en varios contextos.
+  compilador. 44 reglas en pares mínimos —propiedad, préstamos, tipos,
+  fallos, genéricas, clausuras, `como`, bloques, enums, structs— en siete
+  contextos: 270 pares.
 - `docs/PLATAFORMAS.md` y `docs/COMPATIBILIDAD.md`.
 
 ## 0.1.0

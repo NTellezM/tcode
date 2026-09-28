@@ -3213,6 +3213,42 @@ fn formas_legibles(m: &Mundo, en_t: view) -> str {
 fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
     let dado = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
     let t = sin_prestamo(dado);
+    // `300 como u8` es una cuenta de numeros escritos: lo que en marcha
+    // pararia el programa es un error aqui, como `let x: u8 = 256;`. Se
+    // cuenta antes de fijarle el tipo, que tambien la contaria.
+    let destino_t = I.sin_alias_tipo(vista(n.texto));
+    // `-300` es un `i64`: se cuenta lo de dentro y se le cambia el signo.
+    let x = copiar(n.hijos[0]);
+    let negada = x.clase == Clase.Unaria && x.texto == "-" && x.hijos.largo() == 1
+    && I.literal_de(x.hijos[0]) == "entero";
+    if (igual(t, literal()) || negada) && es_tipo_entero(destino_t) {
+        var v = escrito_sin_saber();
+        if negada {
+            // Al tiparla como `i64` ya se conto, y sus errores ya se dieron:
+            // se cuenta otra vez aparte, sin repetirlos.
+            let contadas_antes = copiar(c.contadas);
+            let errores_antes = c.errores.largo();
+            c.contadas = [];
+            let dentro = valor_escrito(c, m, x.hijos[0], "i64");
+            c.contadas = contadas_antes;
+            if c.errores.largo() > errores_antes {
+                var quedan: lista<str> = [];
+                var k = 0;
+                while k < errores_antes {
+                    quedan.anadir(copiar(c.errores[k]));
+                    k = k + 1;
+                }
+                c.errores = quedan;
+            }
+            if dentro.sabido { v = valor_sabido(!dentro.negativo, dentro.magnitud); }
+        } else {
+            v = valor_escrito(c, m, x, "usize");
+        }
+        if v.sabido && !cabe_escrito(v, destino_t) {
+            let tv = texto_escrito(v);
+            let _p = cuenta_parada(c, m, n, $"`{tv} como {destino_t}` no cabe en `{destino_t}`");
+        }
+    }
     // Un numero escrito sin nada al lado sale de su tipo de siempre.
     if igual(t, literal()) { fijar_literal(c, m, n.hijos[0], "usize"); }
     else if igual(t, literal_decimal()) { fijar_literal(c, m, n.hijos[0], "f64"); }

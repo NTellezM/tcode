@@ -224,8 +224,8 @@ pararía el programa es un error de compilación, en su línea:
 ejemplo.t:2: `200 + 100` no cabe en `u8`: es una cuenta de numeros escritos, y se hace al compilar
 ```
 
-Igual con `1 - 2` sin tipo (un `usize` no baja de cero), `7 / (3 - 3)`, y
-`1 << 32` en un `u32`. Con `+?`, `-?` y `*?` la cuenta da la vuelta y no
+Igual con `1 - 2` sin tipo (un `usize` no baja de cero), `7 / (3 - 3)`,
+`1 << 32` en un `u32`, y `300 como u8`. Con `+?`, `-?` y `*?` la cuenta da la vuelta y no
 para nunca. Una rama de un `if` cuya condición no se sabe se cuenta sola, y
 lo que depende de cuál se tome queda para cuando corra:
 `(if c { 200 } else { 1 }) + 100` en un `u8` compila, y para si `c` es cierto.
@@ -1621,7 +1621,8 @@ maneja `usize` no carga con las nueve.
 ### Conversión: `como`
 
 ```tcode
-let ancho = a como u32;     // aborta si el valor no cabe
+let ancho = a como u32;     // aborta si el valor no cabe; con numeros
+                            // escritos, no compila: `300 como u8`
 let corto = v como? u8;     // se queda con los bits de abajo, a propósito
 ```
 
