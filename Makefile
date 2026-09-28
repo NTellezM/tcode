@@ -14,10 +14,12 @@
 #   make compiladores la semilla, el punto fijo y `rapido` con cada compilador de C
 #   make fuzz         rompe el codigo del repositorio al azar (FUZZ_SEGUNDOS=60)
 #   make limpiar      borra lo que genera todo lo anterior
+#   make instalar     tcodec, std/ y runtime/ en PREFIJO (/usr/local)
+#   make desinstalar  lo quita de PREFIJO
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar instalar desinstalar
 
 all: tcodec
 
@@ -95,6 +97,28 @@ FUZZ_SEGUNDOS ?= 60
 
 fuzz:
 	@$(PY) tests/fuzz.py --segundos $(FUZZ_SEGUNDOS)
+
+# Instalado: `PREFIJO/lib/tcode/` lleva tcodec, `std/` y `runtime/` juntos,
+# y `PREFIJO/bin/tcodec` es un enlace. tcodec sigue el enlace hasta su
+# binario y sube hasta dar con `runtime/`, asi que no hace falta
+# `TCODE_RAIZ`. `DESTDIR` es para quien empaqueta.
+PREFIJO ?= /usr/local
+INSTALADO = $(DESTDIR)$(PREFIJO)/lib/tcode
+
+instalar: tcodec
+	@install -d $(INSTALADO)/std $(INSTALADO)/runtime/sistema $(DESTDIR)$(PREFIJO)/bin
+	@install -m 755 tcodec $(INSTALADO)/tcodec
+	@install -m 644 std/*.t $(INSTALADO)/std/
+	@install -m 644 runtime/*.c runtime/*.h runtime/*.inc $(INSTALADO)/runtime/
+	@install -m 644 runtime/sistema/*.inc $(INSTALADO)/runtime/sistema/
+	@install -m 644 VERSION $(INSTALADO)/VERSION
+	@ln -sf ../lib/tcode/tcodec $(DESTDIR)$(PREFIJO)/bin/tcodec
+	@echo "tcodec $$(cat VERSION) en $(DESTDIR)$(PREFIJO)/bin/tcodec"
+
+desinstalar:
+	@rm -rf $(INSTALADO)
+	@rm -f $(DESTDIR)$(PREFIJO)/bin/tcodec
+	@echo "quitado de $(DESTDIR)$(PREFIJO)"
 
 bench: tcodec
 	@$(PY) bench/medir.py

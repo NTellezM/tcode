@@ -518,13 +518,19 @@ $ ./tcodec hola.t && ./hola
 hola
 ```
 
-Para usarlo desde cualquier sitio basta un enlace: `tcodec` busca `std/` y
+Para usarlo desde cualquier sitio, instálalo: `tcodec` busca `std/` y
 `runtime/` subiendo desde donde está de verdad, así que funciona desde
 cualquier directorio.
 
 ```
-ln -s "$PWD/tcodec" ~/.local/bin/tcodec
+make instalar PREFIJO=~/.local     # ~/.local/bin/tcodec
+make desinstalar PREFIJO=~/.local
 ```
+
+Dónde se comprueba que funciona está en
+[`docs/PLATAFORMAS.md`](docs/PLATAFORMAS.md); qué promete cada versión, en
+[`docs/COMPATIBILIDAD.md`](docs/COMPATIBILIDAD.md); qué cambió, en
+[`CHANGELOG.md`](CHANGELOG.md).
 
 ## Uso
 
@@ -763,7 +769,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-2454 casos, 0 fallas
+2456 casos, 0 fallas
 2069 comprobaciones sobre 60 programas, 0 fallas
 ```
 
