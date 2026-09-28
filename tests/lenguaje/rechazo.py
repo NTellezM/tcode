@@ -829,6 +829,39 @@ RECHAZO = [
      'fn f() { var xs: lista<usize> = []; let m: str = $"{xs}"; imprimir(m); }',
      "va un escalar o texto"),
 
+    # `imprimir` y `{}` escriben numeros, `bool` y texto. Lo demas pasaba el
+    # comprobador y luego salia `?` o C que no compilaba.
+    ("imprimir no muestra un enum",
+     'enum Color { Rojo, Verde }\nfn main() { let c = Color.Rojo; imprimir(c); }',
+     "`imprimir` no sabe mostrar un `Color`: escribe el nombre de cada forma con un `match`"),
+
+    ("dentro de `{}` no cabe un enum",
+     'enum Color { Rojo, Verde }\n'
+     'fn main() { let c = Color.Verde; imprimir($"color {c}"); }',
+     "va un escalar o texto, y `Color` no lo es: escribe el nombre de cada forma"),
+
+    ("imprimir no muestra una funcion",
+     'fn f(x: usize) -> usize { return x; }\nfn main() { let g = f; imprimir(g); }',
+     "`imprimir` no sabe mostrar un `fn(usize) -> usize`: muestra un numero"),
+
+    ("dentro de `{}` no cabe una funcion",
+     'fn f(x: usize) -> usize { return x; }\n'
+     'fn main() { let g = f; imprimir($"{g}"); }',
+     "va un escalar o texto, y `fn(usize) -> usize` no lo es"),
+
+    ("imprimir no muestra una lista",
+     'fn main() { let xs: lista<usize> = [1]; imprimir(xs); }',
+     "`imprimir` no sabe mostrar un `lista<usize>`: muestra sus campos o elementos"),
+
+    ("imprimir no muestra un struct prestado",
+     'struct P { a: usize }\nfn g(p: &P) { imprimir(p); }\n'
+     'fn main() { let p = P { a: 1 }; g(p); }',
+     "`imprimir` no sabe mostrar un `P`: muestra sus campos"),
+
+    ("imprimir no muestra ()",
+     'fn u() { }\nfn main() { imprimir(u()); }',
+     "`imprimir` no sabe mostrar un `()`"),
+
     ("`{}` vacio",
      'fn f() { let m: str = $"hola {}"; imprimir(m); }',
      "vacio en una cadena interpolada"),

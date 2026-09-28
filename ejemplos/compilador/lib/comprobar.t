@@ -433,6 +433,25 @@ fn por_que_no_se_compara(m: &Mundo, t: view) -> str {
     return vacio();
 }
 
+// Lo que `imprimir` y `{}` saben escribir: numeros, `bool` y texto, o un
+// prestamo de uno de ellos.
+fn se_muestra(t: view) -> bool {
+    let limpio = sin_prestamo(t);
+    return es_numerico(limpio) || limpio == "bool" || limpio == "str" || limpio == "view"
+    || igual(limpio, literal()) || igual(limpio, literal_decimal());
+}
+
+// Que hacer con un valor que `imprimir` no sabe escribir.
+fn como_mostrar(m: &Mundo, t: view) -> str {
+    let limpio = sin_prestamo(t);
+    if es_enum(m, limpio) { return nuevo("escribe el nombre de cada forma con un `match`"); }
+    if es_struct(m, limpio) || T.es_lista(limpio) || T.es_mapa(limpio) || T.es_arreglo(limpio)
+    || T.es_bloque(limpio) {
+        return nuevo("muestra sus campos o elementos por separado");
+    }
+    return nuevo("muestra un numero, un `bool` o un texto");
+}
+
 // Los campos de un struct, con los tipos de una aplicacion ya puestos.
 fn campos_tipos(m: &Mundo, t: view) -> lista<str> {
     var salida: lista<str> = [];
@@ -2877,9 +2896,10 @@ fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         for x en n.hijos {
             let t = comprobar_expresion(c, m, tipos, x, "", false);
             if t.largo() == 0 { continue; }
-            if T.es_arreglo(t) || T.es_lista(t) || T.es_mapa(t)
-            || es_struct(m, t) {
-                error(c, m, n.linea, $"dentro de `{{}}` va un escalar o texto, y `{t}` no lo es");
+            if !se_muestra(t) {
+                let limpio = sin_prestamo(t);
+                let pista = if es_enum(m, limpio) { $": {como_mostrar(m, t)}" } else { vacio() };
+                error(c, m, n.linea, $"dentro de `{{}}` va un escalar o texto, y `{t}` no lo es{pista}");
             }
         }
         return nuevo("str");
@@ -4512,9 +4532,8 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 error(c, m, n.linea, $"el argumento {k} de `{nombre}` debe ser `{esperado}` y es `{t}`");
             }
         }
-        if esperado == "@cualquiera" && t.largo() > 0
-        && (T.es_arreglo(t) || es_struct(m, t)) {
-            error(c, m, n.linea, $"`{nombre}` no sabe mostrar un `{t}`: muestra sus campos o elementos por separado");
+        if esperado == "@cualquiera" && t.largo() > 0 && !se_muestra(t) {
+            error(c, m, n.linea, $"`{nombre}` no sabe mostrar un `{t}`: {como_mostrar(m, t)}");
         }
         if esperado == "view" {
             // Todos los duenios posibles, no el primero: con

@@ -26,6 +26,60 @@ ACEPTA = [
         }''',
      "true true true false true\ntrue false false\n"),
 
+    # Lo que se entrega dentro de un brazo de `match` pide bandera igual que
+    # en una rama de `if`. `tcodec` no miraba los brazos y no sabia escribir
+    # la funcion.
+    ("entregar dentro de un brazo de match",
+     '''enum C { A, B, D }
+        fn junta(r: str, xs: lista<str>) -> str {
+            var s = r;
+            for x en xs { empujar(s, x); }
+            return s;
+        }
+        fn f(c: C, n: usize) -> str {
+            let fuera = nuevo("f");
+            match c {
+                C.A -> {
+                    var r = nuevo("a");
+                    var previos: lista<str> = [];
+                    anadir(previos, nuevo("x"));
+                    var i = 0;
+                    while i < 3 {
+                        if i == n { return nuevo("corto"); }
+                        i = i + 1;
+                    }
+                    empujar(r, fuera);
+                    return junta(r, previos);
+                }
+                C.B -> {
+                    let otro = fuera;
+                    return otro;
+                }
+                _ -> { }
+            }
+            return nuevo("resto");
+        }
+        fn main() {
+            imprimir($"{f(C.A, 1)} {f(C.A, 5)} {f(C.B, 0)} {f(C.D, 0)}\\n");
+        }''',
+     "corto afx f resto\n"),
+
+    # `imprimir` y `{}` escriben numeros, `bool` y texto, tambien prestados.
+    ("imprimir y `{}` con prestamos",
+     '''fn g(a: &usize, s: &str, m: &mut i64, b: &bool, d: &f64) {
+            m = m - 1;
+            imprimir(a); imprimir(" "); imprimir(s); imprimir(" "); imprimir(m);
+            imprimir(" "); imprimir(b); imprimir(" "); imprimir(d);
+            imprimir($" [{a} {s} {m} {b} {d}]\\n");
+        }
+        fn main() {
+            var m: i64 = 7;
+            let s = texto(5);
+            let d: f64 = 2.5;
+            g(3, s, m, true, d);
+        }''',
+     "3 5 6 true 2.5 [3 5 6 true 2.5]\n"),
+
     # `x.f(a)` es `f(x, a)`: lo de delante del punto va primero. Vale con las
     # internas y con las funciones de cualquiera, y encadenado.
     ("la llamada con punto",
