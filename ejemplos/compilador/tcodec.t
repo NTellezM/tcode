@@ -244,6 +244,28 @@ fn usar_con_alias(fuente: view) -> lista<str> ! {
     return salida;
 }
 
+// Si el archivo declara `fn main` fuera de toda llave. Se mira en los
+// tokens, antes de analizar nada: el error es del `usar` que lo trae.
+fn tiene_main(fuente: view) -> bool {
+    let toks = analizar(fuente) sino [];
+    var hondo = 0;
+    var i = 0;
+    while i < toks.largo() {
+        let t = vista(toks[i].valor);
+        let es_simbolo = toks[i].tipo == "simbolo";
+        if es_simbolo && t == "{" {
+            hondo = hondo + 1;
+        } else if es_simbolo && t == "}" {
+            if hondo > 0 { hondo = hondo - 1; }
+        } else if hondo == 0 && t == "fn" && i + 1 < toks.largo()
+        && toks[i + 1].valor == "main" {
+            return true;
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
 // Primero las dependencias, en el orden de los `usar`, y cada modulo una sola
 // vez: el mismo recorrido que el cargador, que es el orden en que salen las
 // funciones en el C. Si algo falla, `error` lo dice como el cargador de
@@ -278,6 +300,10 @@ fn visitar(ruta: view, raiz: view, hechos: mut lista<str>,
         return false;
     }
     let fuente = leer_archivo(ruta) sino vacio();
+    if quien.largo() > 0 && tiene_main(fuente) {
+        error = $"{quien}:{linea}: `{ruta}` tiene `fn main`, y un modulo no puede tenerla: quitala, o compila `{ruta}` por su cuenta";
+        return false;
+    }
     pila.anadir(nuevo(ruta));
     let pedidos = usar_de(fuente) sino [];
     let dir = P.carpeta(ruta);
@@ -285,6 +311,10 @@ fn visitar(ruta: view, raiz: view, hechos: mut lista<str>,
         let pedida = campo_pedido(pedido, 0);
         let texto_linea = campo_pedido(pedido, 1);
         let n = a_entero(texto_linea) sino 0;
+        if contiene(pedida, "\0") {
+            error = $"{ruta}:{n}: la ruta de un modulo no puede llevar un byte cero";
+            return false;
+        }
         let destino = resolver(pedida, dir, raiz) sino vacio();
         if !visitar(destino, raiz, hechos, pila, error, ruta, n) { return false; }
     }
@@ -3813,6 +3843,21 @@ fn main() -> usize ! {
                     if h.clase == Clase.CampoDef {
                         let tp = F.tipo_pelado(h.texto);
                         let t = I.sin_alias_tipo(tp);
+                        if !mirar_tipo(t, reg, global, con_partes) {
+                            return rechazo("mapas, bloques ni arreglos");
+                        }
+                    }
+                }
+            }
+            if d.clase == Clase.Enum {
+                // Lo que lleva una forma tambien: `Lista(lista<Json>)` pedia
+                // su lista y nadie la declaraba si el programa no la
+                // escribia en otro sitio.
+                for v en d.hijos {
+                    if v.clase != Clase.Variante { continue; }
+                    for x en v.hijos {
+                        if x.clase != Clase.Lleva { continue; }
+                        let t = I.sin_alias_tipo(x.texto);
                         if !mirar_tipo(t, reg, global, con_partes) {
                             return rechazo("mapas, bloques ni arreglos");
                         }

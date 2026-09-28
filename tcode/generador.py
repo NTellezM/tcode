@@ -161,6 +161,17 @@ def es_constante(e):
     return isinstance(e, (Entero, Decimal, Booleano, Cadena))
 
 
+def _mismo_sitio(a, b):
+    """True si `a` y `b` nombran el mismo sitio sin calcular nada: la misma
+    variable, o el mismo camino de campos desde ella. Con un indice no: el
+    indice se calcula, y calcularlo dos veces puede dar dos sitios."""
+    if isinstance(a, Variable) and isinstance(b, Variable):
+        return a.nombre == b.nombre and not a.es_funcion and not b.es_funcion
+    if isinstance(a, Campo) and isinstance(b, Campo):
+        return a.nombre == b.nombre and _mismo_sitio(a.objeto, b.objeto)
+    return False
+
+
 class Generador:
     def __init__(self, comprobador, archivo="<entrada>"):
         self.c = comprobador
@@ -515,6 +526,13 @@ class Generador:
             if isinstance(d, Struct):
                 for c in d.campos:
                     mirar(c.tipo)
+            elif isinstance(d, Enum):
+                # Lo que lleva una forma tambien: `Lista(lista<Json>)` pedia
+                # su lista y nadie la declaraba si el programa no la
+                # escribia en otro sitio.
+                for v in d.variantes:
+                    for t in v.tipos:
+                        mirar(t)
             elif isinstance(d, Funcion):
                 mirar(d.retorno)
                 if d.falible:
@@ -2170,6 +2188,13 @@ class Generador:
             return
 
         if isinstance(s, Asignacion):
+            if _mismo_sitio(s.lugar, s.valor):
+                # `x = x;` y `p.c = p.c;` no hacen nada. Generados como una
+                # asignacion cualquiera, el valor se sacaba del sitio, se
+                # soltaba lo viejo —que era el mismo valor— y se volvia a
+                # poner ya soltado. Y clang toma `x = x;` por un descuido.
+                self.emitir(f"(void) {self.lugar(s.lugar)};")
+                return
             destino = self.lugar(s.lugar)
             tipo = self._tipo_de(s.lugar)
 
