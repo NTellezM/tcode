@@ -5,6 +5,7 @@ import subprocess
 import tempfile
 
 from .comun import (
+    RAIZ,
     ENTORNO_TCODEC,
     Resultado,
     tcodec,
@@ -93,3 +94,45 @@ def correr(suite: Resultado) -> None:
             suite.falla("un binario nuevo respeta el umask",
                         f"codigo {r.returncode}, modo {oct(modo) if modo else None}, "
                         f"stderr {r.stderr[:300]!r}")
+
+        # Una sola version: la de `VERSION`, la que dice tcodec y la del
+        # compilador de Python.
+        suite.total += 1
+        with open(os.path.join(RAIZ, "VERSION"), encoding="utf-8") as f:
+            version = f.read().strip()
+        dice_tcodec = subprocess.run([tcodec(), "--version"], env=ENTORNO_TCODEC,
+                                     capture_output=True, text=True).stdout.strip()
+        from tcode.cli import VERSION as de_python
+        if dice_tcodec != f"tcodec {version}" or de_python != version:
+            suite.falla("una sola version",
+                        f"VERSION {version!r}, tcodec {dice_tcodec!r}, "
+                        f"Python {de_python!r}")
+
+        # Instalado en un prefijo, compila desde cualquier sitio y sin
+        # `TCODE_RAIZ`, tambien con `std/`; y desinstalado no deja nada.
+        suite.total += 1
+        prefijo = os.path.join(tmp, "prefijo")
+        fuera = os.path.join(tmp, "fuera")
+        os.makedirs(fuera)
+        with open(os.path.join(fuera, "h.t"), "w", encoding="utf-8") as f:
+            f.write('usar "std/texto";\n'
+                    'fn main() { imprimir($"{mayusculas("hola")}\\n"); }\n')
+        sin_raiz = {k: v for k, v in os.environ.items() if k != "TCODE_RAIZ"}
+        pasos = [
+            ["make", "-s", "-C", RAIZ, "instalar", f"PREFIJO={prefijo}"],
+            [os.path.join(prefijo, "bin", "tcodec"), "h.t", "-o", "h"],
+            [os.path.join(fuera, "h")],
+            ["make", "-s", "-C", RAIZ, "desinstalar", f"PREFIJO={prefijo}"],
+        ]
+        salidas = [subprocess.run(p, cwd=fuera, env=sin_raiz, capture_output=True,
+                                  text=True) for p in pasos]
+        quedan = [os.path.relpath(os.path.join(d, n), prefijo)
+                  for d, _, ns in os.walk(prefijo) for n in ns]
+        if any(s.returncode != 0 for s in salidas) or salidas[2].stdout != "HOLA\n":
+            malo = next((s for s in salidas if s.returncode != 0), salidas[2])
+            suite.falla("instalar, compilar fuera y desinstalar",
+                        f"{malo.args[0]}: codigo {malo.returncode}, "
+                        f"{(malo.stderr or malo.stdout)[:300]!r}")
+        elif quedan:
+            suite.falla("instalar, compilar fuera y desinstalar",
+                        f"desinstalar deja {quedan}")
