@@ -73,6 +73,10 @@ jobs:
           restore-keys: herramientas-${{ runner.os }}-
       - name: make check
         run: make check
+      # Razones, no segundos: Tcode / C en cada caso, y el compilador en
+      # unidades de la misma maquina. Los limites, en `bench/limites.json`.
+      - name: medidas dentro de sus limites
+        run: make bench-comprobar
 
   # C17 portable, comprobado: con cada compilador, la semilla compila sin
   # avisos, se reproduce byte a byte, y pasan las secciones rapidas.

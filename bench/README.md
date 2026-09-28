@@ -1,8 +1,26 @@
 # Medidas
 
 ```
-$ python3 bench/medir.py
+$ make bench              # las tablas
+$ make bench-comprobar    # falla si algo pasa de bench/limites.json
+$ python3 bench/medir.py --fijar   # pone los limites: lo medido x 1,25
 ```
+
+Mide el C que escribe `tcodec`.
+
+## Límites de regresión
+
+Los segundos dependen de la máquina; las razones mucho menos. Por eso
+`bench/limites.json` guarda razones:
+
+- **Tcode / C** en cada caso con C a mano, con `-O2` y con `-O3`.
+- **El compilador**: lo que tarda `tcodec` en escribir su propio C, en
+  *unidades* — el tiempo del caso `aritmetica` en C a mano con `-O2`, medido
+  en la misma máquina y en la misma pasada.
+
+`make bench-comprobar` corre en la CI completa. Si un cambio hace el código
+generado o el compilador más lento que su límite, falla; si la mejora es
+de verdad, `--fijar` pone los límites nuevos y el cambio lo dice.
 
 Compila cada caso tres veces y toma el mejor de cinco corridas:
 
@@ -55,11 +73,7 @@ C. Si tu programa tiene bucles cerrados con aritmética, prueba `-O3` y mide.
 
 ## El compilador
 
-| | |
-|---|---|
-| frontend de Tcode | ~40.000 líneas/s |
-| porcentaje del tiempo total | **0.5%** |
-
-El otro 99.5% es gcc compilando el C generado. Escribir el frontend en
-Python no se nota: el cuello de botella es el backend, y es el mismo que
-tendría cualquier proyecto de C.
+`tcodec` escribe su propio C —unas 20.900 líneas de Tcode más `std/`, 5 MB
+de C— en **1,3 s** (gcc 13, `-O1` en la semilla; unas 9 unidades). Lo que
+más pesa es copiar textos, listas y nodos (17 %) y buscar símbolos (14 %),
+medido con callgrind.

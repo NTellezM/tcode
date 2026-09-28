@@ -8,6 +8,7 @@
 #   make cifras       pone en el README las cifras de la ultima `make check`
 #   make ejemplos     compila y corre los ejemplos
 #   make bench        Tcode contra el mismo programa en C a mano
+#   make bench-comprobar  y falla si algo pasa de `bench/limites.json`
 #   make formato      deja todo el codigo Tcode en el formato canonico
 #   make lint         revisa el codigo Python con ruff y mypy
 #   make compiladores la semilla, el punto fijo y `rapido` con cada compilador de C
@@ -16,7 +17,7 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc punto-fijo-cc fuzz
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar
 
 all: tcodec
 
@@ -95,8 +96,11 @@ FUZZ_SEGUNDOS ?= 60
 fuzz:
 	@$(PY) tests/fuzz.py --segundos $(FUZZ_SEGUNDOS)
 
-bench:
+bench: tcodec
 	@$(PY) bench/medir.py
+
+bench-comprobar: tcodec
+	@$(PY) bench/medir.py --comprobar
 
 check:
 	@$(PY) tests/test_lenguaje.py
