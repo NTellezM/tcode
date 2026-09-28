@@ -1,0 +1,660 @@
+{
+ "decimales": [
+  "f32",
+  "f64"
+ ],
+ "enteros": [
+  "i16",
+  "i32",
+  "i64",
+  "i8",
+  "u16",
+  "u32",
+  "u64",
+  "u8",
+  "usize"
+ ],
+ "internas": {
+  "absoluto": {
+   "params": [
+    "@con_signo"
+   ],
+   "retorno": null
+  },
+  "ahora_ms": {
+   "params": [],
+   "retorno": "i64"
+  },
+  "anadir": {
+   "params": [
+    "@lista_mut",
+    "@elemento"
+   ],
+   "retorno": "()"
+  },
+  "argumento": {
+   "params": [
+    "usize"
+   ],
+   "retorno": "view"
+  },
+  "azar": {
+   "params": [
+    "usize"
+   ],
+   "retorno": "usize"
+  },
+  "byte": {
+   "params": [
+    "view",
+    "usize"
+   ],
+   "retorno": "usize"
+  },
+  "claves": {
+   "params": [
+    "@mapa"
+   ],
+   "retorno": null
+  },
+  "copiar": {
+   "params": [
+    "@copiable"
+   ],
+   "retorno": null
+  },
+  "empujar": {
+   "params": [
+    "@mut",
+    "view"
+   ],
+   "retorno": "()"
+  },
+  "empujar_byte": {
+   "params": [
+    "@mut",
+    "u8"
+   ],
+   "retorno": "()"
+  },
+  "entrada_completa": {
+   "falible": true,
+   "params": [],
+   "retorno": "str"
+  },
+  "escribir_archivo": {
+   "falible": true,
+   "params": [
+    "view",
+    "view"
+   ],
+   "retorno": "()"
+  },
+  "igual": {
+   "params": [
+    "@comparable",
+    "@comparable"
+   ],
+   "retorno": "bool"
+  },
+  "imprimir": {
+   "params": [
+    "@cualquiera"
+   ],
+   "retorno": "()"
+  },
+  "imprimir_error": {
+   "params": [
+    "@cualquiera"
+   ],
+   "retorno": "()"
+  },
+  "intercambiar": {
+   "params": [
+    "@lugar_mut",
+    "@valor_igual"
+   ],
+   "retorno": null
+  },
+  "largo": {
+   "params": [
+    "@dimensionable"
+   ],
+   "retorno": "usize"
+  },
+  "leer_archivo": {
+   "falible": true,
+   "params": [
+    "view"
+   ],
+   "retorno": "str"
+  },
+  "leer_linea": {
+   "falible": true,
+   "params": [],
+   "retorno": "str"
+  },
+  "leer_parte_archivo": {
+   "falible": true,
+   "params": [
+    "view",
+    "usize",
+    "usize"
+   ],
+   "retorno": "str"
+  },
+  "menor": {
+   "params": [
+    "@comparable",
+    "@comparable"
+   ],
+   "retorno": "bool"
+  },
+  "monotono_ms": {
+   "params": [],
+   "retorno": "i64"
+  },
+  "n_argumentos": {
+   "params": [],
+   "retorno": "usize"
+  },
+  "nuevo": {
+   "params": [
+    "view"
+   ],
+   "retorno": "str"
+  },
+  "obtener": {
+   "falible": true,
+   "params": [
+    "@mapa",
+    "@clave"
+   ],
+   "retorno": null
+  },
+  "obtener_mut": {
+   "falible": true,
+   "params": [
+    "@mapa_mut",
+    "@clave"
+   ],
+   "retorno": null
+  },
+  "ordenar": {
+   "params": [
+    "@lista_mut"
+   ],
+   "retorno": "()"
+  },
+  "piso": {
+   "params": [
+    "@decimal"
+   ],
+   "retorno": null
+  },
+  "poner": {
+   "params": [
+    "@mapa_mut",
+    "@clave",
+    "@valor"
+   ],
+   "retorno": "()"
+  },
+  "quitar": {
+   "params": [
+    "@mapa_mut",
+    "@clave"
+   ],
+   "retorno": "bool"
+  },
+  "raiz": {
+   "params": [
+    "@decimal"
+   ],
+   "retorno": null
+  },
+  "rebanar": {
+   "params": [
+    "view",
+    "usize",
+    "usize"
+   ],
+   "retorno": "view"
+  },
+  "redimensionar": {
+   "params": [
+    "@bloque_mut",
+    "usize"
+   ],
+   "retorno": "()"
+  },
+  "redondear": {
+   "params": [
+    "@decimal"
+   ],
+   "retorno": null
+  },
+  "reservar": {
+   "params": [
+    "usize"
+   ],
+   "retorno": null
+  },
+  "sembrar": {
+   "params": [
+    "u64"
+   ],
+   "retorno": "()"
+  },
+  "techo": {
+   "params": [
+    "@decimal"
+   ],
+   "retorno": null
+  },
+  "texto": {
+   "params": [
+    "@escalar"
+   ],
+   "retorno": "str"
+  },
+  "tiene": {
+   "params": [
+    "@mapa",
+    "@clave"
+   ],
+   "retorno": "bool"
+  },
+  "vacio": {
+   "params": [],
+   "retorno": "str"
+  },
+  "variable_entorno": {
+   "falible": true,
+   "params": [
+    "view"
+   ],
+   "retorno": "str"
+  },
+  "vista": {
+   "params": [
+    "@presta"
+   ],
+   "retorno": "view"
+  }
+ },
+ "nodos": {
+  "Asignacion": [
+   "linea",
+   "archivo",
+   "lugar",
+   "valor"
+  ],
+  "Binaria": [
+   "linea",
+   "archivo",
+   "op",
+   "izq",
+   "der"
+  ],
+  "Booleano": [
+   "linea",
+   "archivo",
+   "valor"
+  ],
+  "Brazo": [
+   "variante",
+   "nombres",
+   "cuerpo",
+   "es_expresion",
+   "linea",
+   "guarda"
+  ],
+  "Cadena": [
+   "linea",
+   "archivo",
+   "valor"
+  ],
+  "Campo": [
+   "linea",
+   "archivo",
+   "objeto",
+   "nombre"
+  ],
+  "CampoDef": [
+   "nombre",
+   "tipo",
+   "linea"
+  ],
+  "Cierre": [
+   "linea",
+   "archivo",
+   "capturas",
+   "params",
+   "retorno",
+   "cuerpo",
+   "falible",
+   "mutables",
+   "tipo_struct",
+   "funcion"
+  ],
+  "Continuar": [
+   "linea",
+   "archivo"
+  ],
+  "Conversion": [
+   "linea",
+   "archivo",
+   "valor",
+   "a_tipo",
+   "envolviendo"
+  ],
+  "Decimal": [
+   "linea",
+   "archivo",
+   "valor"
+  ],
+  "Declaracion": [
+   "linea",
+   "archivo",
+   "nombre",
+   "tipo",
+   "valor",
+   "mutable",
+   "movida"
+  ],
+  "Entero": [
+   "linea",
+   "archivo",
+   "valor"
+  ],
+  "Enum": [
+   "linea",
+   "archivo",
+   "nombre",
+   "variantes"
+  ],
+  "EnumLit": [
+   "linea",
+   "archivo",
+   "tipo",
+   "variante",
+   "args"
+  ],
+  "ExprSentencia": [
+   "linea",
+   "archivo",
+   "expr"
+  ],
+  "Externo": [
+   "linea",
+   "archivo",
+   "cabecera",
+   "funciones"
+  ],
+  "Falla": [
+   "linea",
+   "archivo",
+   "motivo"
+  ],
+  "Funcion": [
+   "linea",
+   "archivo",
+   "nombre",
+   "params",
+   "retorno",
+   "cuerpo",
+   "falible",
+   "tipo_params",
+   "restricciones",
+   "externa",
+   "cabecera",
+   "devuelve_cstr"
+  ],
+  "Indice": [
+   "linea",
+   "archivo",
+   "arreglo",
+   "indice"
+  ],
+  "Interpolada": [
+   "linea",
+   "archivo",
+   "trozos",
+   "expresiones"
+  ],
+  "LiteralArreglo": [
+   "linea",
+   "archivo",
+   "elementos"
+  ],
+  "LiteralStruct": [
+   "linea",
+   "archivo",
+   "tipo",
+   "campos"
+  ],
+  "Llamada": [
+   "linea",
+   "archivo",
+   "nombre",
+   "args"
+  ],
+  "Match": [
+   "linea",
+   "archivo",
+   "valor",
+   "brazos",
+   "tipo",
+   "resultado"
+  ],
+  "Mientras": [
+   "linea",
+   "archivo",
+   "cond",
+   "cuerpo"
+  ],
+  "Nodo": [
+   "linea",
+   "archivo"
+  ],
+  "Para": [
+   "linea",
+   "archivo",
+   "variable",
+   "coleccion",
+   "cuerpo",
+   "valor"
+  ],
+  "Parametro": [
+   "nombre",
+   "tipo",
+   "mutable",
+   "compartido",
+   "movida"
+  ],
+  "PatronForma": [
+   "linea",
+   "archivo",
+   "enum",
+   "variante",
+   "args"
+  ],
+  "PatronLiteral": [
+   "linea",
+   "archivo",
+   "valor"
+  ],
+  "Retorno": [
+   "linea",
+   "archivo",
+   "valor"
+  ],
+  "Romper": [
+   "linea",
+   "archivo"
+  ],
+  "Si": [
+   "linea",
+   "archivo",
+   "cond",
+   "entonces",
+   "sino"
+  ],
+  "SiExpr": [
+   "linea",
+   "archivo",
+   "cond",
+   "entonces",
+   "sino_"
+  ],
+  "Sino": [
+   "linea",
+   "archivo",
+   "expr",
+   "alternativa"
+  ],
+  "Struct": [
+   "linea",
+   "archivo",
+   "nombre",
+   "campos",
+   "tipo_params"
+  ],
+  "Try": [
+   "linea",
+   "archivo",
+   "expr"
+  ],
+  "Unaria": [
+   "linea",
+   "archivo",
+   "op",
+   "valor"
+  ],
+  "Usar": [
+   "linea",
+   "archivo",
+   "ruta",
+   "alias"
+  ],
+  "Variable": [
+   "linea",
+   "archivo",
+   "nombre",
+   "es_funcion"
+  ],
+  "VarianteDef": [
+   "nombre",
+   "tipos",
+   "linea"
+  ]
+ },
+ "opciones": [
+  "--avisos-como-errores",
+  "--cc",
+  "--emitir-c",
+  "--escribir",
+  "--explicar",
+  "--formatear",
+  "--optimizacion",
+  "--salida",
+  "--sin-avisos",
+  "--sin-lineas",
+  "--solo-comprobar",
+  "--version",
+  "-O",
+  "-Wall",
+  "-Wextra",
+  "-lm",
+  "-o"
+ ],
+ "palabras": [
+  "bool",
+  "break",
+  "continue",
+  "else",
+  "en",
+  "enum",
+  "externo",
+  "f32",
+  "f64",
+  "falla",
+  "false",
+  "fn",
+  "for",
+  "i16",
+  "i32",
+  "i64",
+  "i8",
+  "if",
+  "let",
+  "lista",
+  "mapa",
+  "match",
+  "mut",
+  "return",
+  "sino",
+  "str",
+  "struct",
+  "true",
+  "try",
+  "u16",
+  "u32",
+  "u64",
+  "u8",
+  "usar",
+  "usize",
+  "var",
+  "view",
+  "while"
+ ],
+ "restricciones": [
+  "decimal",
+  "entero",
+  "igualable",
+  "numero",
+  "ordenable",
+  "texto"
+ ],
+ "simbolos": [
+  "<<",
+  ">>",
+  "+?",
+  "-?",
+  "*?",
+  "/?",
+  "->",
+  "==",
+  "!=",
+  "<=",
+  ">=",
+  "&&",
+  "||",
+  "(",
+  ")",
+  "{",
+  "}",
+  "[",
+  "]",
+  ",",
+  ";",
+  ":",
+  ".",
+  "=",
+  "+",
+  "-",
+  "*",
+  "/",
+  "%",
+  "<",
+  ">",
+  "!",
+  "&",
+  "|",
+  "^",
+  "~",
+  "?",
+  "$"
+ ]
+}

@@ -40,7 +40,7 @@ SECCIONES = [
     "RECHAZO", "AVISA", "ACEPTA", "SALIDA", "ARCHIVOS", "AUTOANALISIS",
     "TIPOS", "TIPAR", "PROPIEDAD", "FIRMAS", "EXPRESIONES", "CUERPOS",
     "PROGRAMA", "FORMATO", "LINEAS", "ABORTA", "MODULOS", "EJEMPLOS",
-    "PROGRAMAS",
+    "PROGRAMAS", "CONGELADO",
 ]
 # Las que mas tardan, en el orden en que conviene empezarlas: con una seccion
 # por proceso, la pasada entera dura lo que la mas larga.
