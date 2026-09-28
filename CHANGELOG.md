@@ -76,6 +76,9 @@ El camino a 1.0.
 ### Herramientas
 
 - `make instalar` / `make desinstalar` (`PREFIJO`, `DESTDIR`).
+- `make paquete` / `make probar-paquete`: el `.tar.gz` de una versión,
+  reproducible, que se construye sin Python; `make version NUEVA=...`; el
+  procedimiento en `docs/VERSIONES.md`.
 - `make compiladores`: gcc y clang, sin avisos y con punto fijo.
 - `make fuzz` y `tests/fuzz.py`: fuzzing del código real, con los hallazgos
   guardados como regresión.

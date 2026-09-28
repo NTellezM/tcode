@@ -84,3 +84,6 @@ programas/buscar
 programas/calc
 programas/vida
 programas/*.c
+
+# Los paquetes de `make paquete`
+/dist/
