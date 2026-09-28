@@ -315,6 +315,10 @@ fn visitar(ruta: view, raiz: view, hechos: mut lista<str>,
             error = $"{ruta}:{n}: la ruta de un modulo no puede llevar un byte cero";
             return false;
         }
+        if termina_con(pedida, "/") {
+            error = $"{ruta}:{n}: `{pedida}` termina en `/`, y un modulo es un archivo";
+            return false;
+        }
         let destino = resolver(pedida, dir, raiz) sino vacio();
         if !visitar(destino, raiz, hechos, pila, error, ruta, n) { return false; }
     }
@@ -2196,7 +2200,7 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     conversiones: mut mapa<str, usize>) -> bool {
     let lineas = F.generar_funcion(d, tipos, ruta, cta);
     if lineas.largo() == 0 {
-        imprimir_error($"tcodec: no se escribir `{d.texto}` entera\n");
+        imprimir_error($"{cta.fallo}\n");
         return false;
     }
     if d.texto != "main" {

@@ -25,6 +25,18 @@ _MEDIO = ("struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } "
 _FORMAS = "enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } "
 
 RECHAZO = [
+    # "Trojan Source": un control bidireccional hace que el codigo se vea
+    # distinto de como se compila. No vale en ningun sitio. `tcodec` lo
+    # aceptaba dentro de un nombre y lo pasaba al C; lo encontro
+    # `tests/fuzz.py`.
+    ("un control bidireccional en un nombre",
+     'fn main() { let x\u202ey = 1; imprimir($"{x\u202ey}"); }',
+     "control bidireccional U+202E"),
+
+    ("un control bidireccional en una cadena",
+     'fn main() {\n    imprimir("a\u2067b");\n}',
+     ":2: control bidireccional U+2067"),
+
     # ---- la llamada con punto es una llamada: las mismas reglas ----
     ("con punto, lo de delante sigue siendo el primer argumento",
      'fn doble(n: usize) -> usize { return n * 2; }\n'

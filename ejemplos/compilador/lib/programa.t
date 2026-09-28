@@ -339,7 +339,7 @@ struct Cuenta {
     // Las etiquetas de `goto`: se numeran en todo el archivo.
     etiquetas: usize,
     // Los campos que el comprobador vio sacar de su struct:
-    // `archivo\tlinea\tp.a.b`.
+    // `archivo\tid del nodo\tp.a.b`.
     sacados: mapa<str, usize>,
     ultima_linea: usize,
     // Las copias de genericas que han pedido las funciones escritas.
@@ -352,12 +352,15 @@ struct Cuenta {
     // la clave de los tipos que dejo anotados. Vacio, no hay anotaciones y
     // los tipos se deducen.
     dueno: str,
+    // Si la ultima funcion no se pudo escribir entera, el error que lo dice:
+    // donde, y que no se supo escribir.
+    fallo: str,
 }
 
 fn cuenta_nueva() -> Cuenta {
     return Cuenta { temporal: 0, bucle: 0, etiquetas: 0, sacados: [], ultima_linea: 0,
         instancias: [],
-        copias: [], arreglos: [], dueno: vacio() };
+        copias: [], arreglos: [], dueno: vacio(), fallo: vacio() };
 }
 
 // Lee y analiza un archivo, y deja en `tipos` todo lo que hace falta saber
@@ -567,7 +570,9 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     }
     I.cerrar(tipos);
     if !bien {
-        imprimir_error($"!! {d.texto}\t{b.fallo_linea}\t{b.fallo_clase}\n");
+        var donde = nuevo(ruta);
+        if b.fallo_linea > 0 { donde = $"{ruta}:{b.fallo_linea}"; }
+        cta.fallo = $"error: {donde}: tcodec no sabe escribir esta {b.fallo_clase} de `{d.texto}`. Es un fallo del compilador, no de tu programa";
         return ninguna;
     }
 

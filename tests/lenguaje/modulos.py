@@ -50,6 +50,14 @@ MODULOS = [
      {"a.t": 'usar "a\0b.t";\nfn main() -> usize { return 0; }'},
      "a.t", "a.t:1: la ruta de un modulo no puede llevar un byte cero", None),
 
+    # `lib/m.t/` no es un archivo. Python lo aceptaba —`realpath` quita la
+    # barra— y tcodec lo cargaba, pero no casaba el alias y no sabia
+    # escribir las llamadas. Lo encontro `tests/fuzz.py`.
+    ("la ruta de un modulo con `/` al final",
+     {"lib/m.t": 'fn doble(n: usize) -> usize { return n * 2; }',
+      "a.t": 'usar "lib/m.t/" como m;\nfn main() -> usize { return m.doble(0); }'},
+     "a.t", "a.t:1: `lib/m.t/` termina en `/`", None),
+
     ("modulo que no existe",
      {"a.t": 'usar "fantasma.t";\nfn main() -> usize { return 0; }'},
      "a.t", "no encuentro el modulo", None),

@@ -127,6 +127,8 @@ class Juez:
             return "tcodec: " + _limpia(san)
         if r.returncode < 0 or r.returncode > 1:
             return f"tcodec: codigo {r.returncode}: {_limpia(err[-200:])}"
+        if "fallo del compilador" in err:
+            return "tcodec: " + _limpia(err.strip().splitlines()[-1])
         if r.returncode == 1:
             if not re.search(r"^error: .+:\d+: ", err, re.M):
                 return f"tcodec: rechaza sin archivo y linea: {_limpia(err[:200])}"

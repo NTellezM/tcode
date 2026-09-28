@@ -294,8 +294,63 @@ fn tokens_desde(fuente: view, archivo: view, linea: usize, error: mut str) -> li
 
 // Con `comentarios`, tambien los comentarios, como tokens `comentario`: el
 // formateador los necesita para dejarlos donde estaban.
+// Donde empieza el primer control bidireccional de `fuente`, o su largo si
+// no hay ninguno. En UTF-8 son E2 80 AA..AE (U+202A..U+202E) y E2 81 A6..A9
+// (U+2066..U+2069).
+fn control_bidireccional(fuente: view) -> usize {
+    var i = 0;
+    while i + 2 < fuente.largo() {
+        if byte(fuente, i) == 226 {
+            let b1 = byte(fuente, i + 1);
+            let b2 = byte(fuente, i + 2);
+            if b1 == 128 && b2 >= 170 && b2 <= 174 { return i; }
+            if b1 == 129 && b2 >= 166 && b2 <= 169 { return i; }
+        }
+        i = i + 1;
+    }
+    return fuente.largo();
+}
+
+// `U+202E`, el del control bidireccional que empieza en `i`.
+fn nombre_bidireccional(fuente: view, i: usize) -> str {
+    let b1 = byte(fuente, i + 1);
+    let b2 = byte(fuente, i + 2);
+    if b1 == 128 {
+        if b2 == 170 { return nuevo("U+202A"); }
+        if b2 == 171 { return nuevo("U+202B"); }
+        if b2 == 172 { return nuevo("U+202C"); }
+        if b2 == 173 { return nuevo("U+202D"); }
+        return nuevo("U+202E");
+    }
+    if b2 == 166 { return nuevo("U+2066"); }
+    if b2 == 167 { return nuevo("U+2067"); }
+    if b2 == 168 { return nuevo("U+2068"); }
+    return nuevo("U+2069");
+}
+
+// Cuantos saltos de linea hay antes de la posicion `hasta`.
+fn lineas_hasta(fuente: view, hasta: usize) -> usize {
+    var n = 0;
+    var i = 0;
+    while i < hasta && i < fuente.largo() {
+        if byte(fuente, i) == 10 { n = n + 1; }
+        i = i + 1;
+    }
+    return n;
+}
+
 fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: usize,
     error: mut str) -> lista<Token> ! {
+    // Los controles bidireccionales hacen que el codigo se vea distinto de
+    // como se compila ("Trojan Source"): no valen en ningun sitio, tampoco
+    // en una cadena o un comentario.
+    let bidi = control_bidireccional(fuente);
+    if bidi < fuente.largo() {
+        let donde = desde_linea + lineas_hasta(fuente, bidi);
+        let cual = nombre_bidireccional(fuente, bidi);
+        error = $"{archivo}:{donde}: control bidireccional {cual}: hace que el codigo se vea distinto de como se compila";
+        falla "control bidireccional";
+    }
     var salida: lista<Token> = [];
     var i = 0;
     var linea = desde_linea;
