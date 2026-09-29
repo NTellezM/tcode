@@ -10,7 +10,7 @@ TITULO = "el compilador de Python no aprende nada nuevo"
 
 
 def correr(suite: Resultado) -> None:
-    # Desde 0.9.0 Python es un oraculo congelado: solo arreglos de
+    # Desde 1.0.0-rc1 Python es un oraculo congelado: solo arreglos de
     # correccion. Lo nuevo va a `tcodec`, validado con oraculos que no son
     # Python. Ver `tests/python_congelado.py`.
     suite.total += 1
@@ -23,4 +23,4 @@ def correr(suite: Resultado) -> None:
                     + "\n         ".join(cambios))
     else:
         print("    palabras, simbolos, tipos, internas, nodos y opciones: "
-              "los de 0.9.0")
+              "los de 1.0.0-rc1")

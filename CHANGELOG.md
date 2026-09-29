@@ -2,9 +2,15 @@
 
 Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
-## 0.9.0 — sin publicar
+## 1.0.0-rc1 — 2026-09-28, candidata local
 
-El camino a 1.0.
+La primera candidata a 1.0. Recoge todo lo que se trabajó como 0.9.0, que no
+llegó a publicarse. Está etiquetada en local (`v1.0.0-rc1`); falta la CI en
+otras máquinas antes de publicarla, y `docs/COMPATIBILIDAD.md` sigue siendo
+una propuesta.
+
+Antes de cerrarla: 1.000 programas de propiedades (27.605 comprobaciones) y
+una hora de fuzzing (43.112 mutantes), sin fallos.
 
 ### Lenguaje
 
@@ -68,7 +74,7 @@ El camino a 1.0.
 ### El compilador de Python
 
 - **Congelado de verdad.** Hasta aquí recibió lo mismo que `tcodec`; desde
-  0.9.0 sólo recibe arreglos de corrección. Lo que sabe está guardado en
+  esta versión sólo recibe arreglos de corrección. Lo que sabe está guardado en
   `tests/python_congelado.json` y la sección CONGELADO falla si cambia. Lo
   nuevo del lenguaje va sólo a `tcodec` y se prueba con oráculos que no son
   Python. Se retira después de 1.0.

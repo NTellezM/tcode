@@ -222,7 +222,7 @@ En un solo sitio; cada uno se explica donde se enlaza.
 4. **`runtime/safestr.c`**: es C escrito a mano, el origen del proyecto, y
    cada programa lo enlaza.
 5. **Los fallos que compartían los dos compiladores** (ver `CHANGELOG.md`,
-   0.9.0, *Corregido*): la comparación con Python no puede ver un error de
+   1.0.0-rc1, *Corregido*): la comparación con Python no puede ver un error de
    diseño que está en los dos.
 
 ## Cómo reproducir
