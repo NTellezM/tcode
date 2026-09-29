@@ -1,7 +1,7 @@
 """
 La superficie del compilador de Python, congelada.
 
-Desde 0.9.0 el compilador de Python (`tcode/`) es un oraculo congelado: no
+Desde 1.0.0-rc1 el compilador de Python (`tcode/`) es un oraculo congelado: no
 aprende nada nuevo, solo recibe arreglos de correccion. Lo nuevo del
 lenguaje va a `tcodec` y se valida con oraculos que no son Python. Esto
 guarda lo que Python sabe —palabras, simbolos, tipos, funciones internas y

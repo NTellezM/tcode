@@ -111518,7 +111518,7 @@ Opciones leer_opciones(void)
                                                 if (((ss_tmp33382 = a, ss_tmp33383 = sv_len("--version", 9), sv_equals(ss_tmp33382, ss_tmp33383))))
                                                 {
 #line 2559 "ejemplos/compilador/tcodec.t"
-                                                    SafeView ss_tmp33384 = sv_len("tcodec 0.9.0\n", 13);
+                                                    SafeView ss_tmp33384 = sv_len("tcodec 1.0.0-rc1\n", 17);
 #line 2559 "ejemplos/compilador/tcodec.t"
                                                     ss_lang_escribir_(stdout, ss_tmp33384);
 #line 2560 "ejemplos/compilador/tcodec.t"

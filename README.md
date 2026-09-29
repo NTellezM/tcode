@@ -151,7 +151,7 @@ es esta:
 - **Lo nuevo del lenguaje entra solo en `tcodec`.** Es el que se usa y el que
   prueba la suite: los programas de RECHAZO, ACEPTA, ABORTA, MODULOS y el
   resto compilan con él, construido con los sanitizers.
-- **El de Python queda congelado, desde 0.9.0 de verdad.** Hace de oráculo:
+- **El de Python queda congelado, desde 1.0.0-rc1 de verdad.** Hace de oráculo:
   todo programa que sabe compilar tiene que salir igual de los dos. Se le
   arreglan los fallos, cada uno con el caso que lo demuestra; no aprende
   nada nuevo. Lo que sabe —palabras, símbolos, tipos, funciones internas,
@@ -641,7 +641,7 @@ Por eso es una de las propiedades que comprueba la suite.
 
 ## Estado
 
-**0.9.0, camino de 1.0.** El compilador se construye solo desde su semilla,
+**1.0.0-rc1, candidata a 1.0.** El compilador se construye solo desde su semilla,
 la suite pasa con gcc y clang, y la especificación describe el lenguaje
 entero —su [gramática](docs/ESPECIFICACION.md#gramática), sus funciones
 internas y [lo que no tiene](docs/ESPECIFICACION.md#lo-que-tcode-10-no-tiene)—.
