@@ -160,13 +160,18 @@ class Juez:
                  f"-I{RUNTIME}", codigo_c]
         orden += ([os.path.join(RUNTIME, "safestr.c"), "-o", binario, "-lm"]
                   if programa else ["-c", "-o", binario])
+        # En C: los mensajes de `cc` y `ld` se miran, y no pueden depender
+        # del idioma de la maquina.
         c = subprocess.run(orden, cwd=RAIZ, capture_output=True, text=True,
-                           timeout=120)
+                           timeout=120, env=dict(os.environ, LC_ALL="C"))
         if c.returncode != 0:
             primero = next((x for x in c.stderr.splitlines()
                             if "error" in x), c.stderr[:200])
-            if "undefined reference" in primero:
-                return None     # un `externo` que no enlaza solo: no es de Tcode
+            # Un modulo usado con `externo "algo.c"` no enlaza solo: el `.c` no
+            # esta en el C que se escribe. Eso no es de Tcode. `ld` lo dice en
+            # otra linea que la de `collect2`, asi que se mira todo.
+            if "undefined reference" in c.stderr or "Undefined symbols" in c.stderr:
+                return None
             return "C: " + _limpia(primero)
         if not programa:
             os.remove(codigo_c)
