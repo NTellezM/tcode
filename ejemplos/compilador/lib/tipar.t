@@ -482,26 +482,39 @@ fn tipo_atrapado(c: &Contexto, t: view) -> str {
 }
 
 // Como `posee_simple`, pero sabiendo ademas de enums: uno posee si alguna
-// de sus formas posee.
+// de sus formas posee. Un struct pregunta lo mismo por cada campo, que
+// tambien puede ser un enum o venir de otro modulo.
 fn posee_con_formas(c: &Contexto, t: view) -> bool {
+    var vistos: mapa<str, usize> = [];
+    return posee_formas_desde(c, t, vistos);
+}
+
+fn posee_formas_desde(c: &Contexto, t: view, vistos: mut mapa<str, usize>) -> bool {
     // Un struct generico aplicado posee si posee alguno de sus campos, con
     // los tipos ya puestos.
     if es_aplicacion(t) {
         let tipos_a = tipos_de_aplicacion(c, t);
         for x en tipos_a {
-            if posee_con_formas(c, x) { return true; }
+            if posee_formas_desde(c, x, vistos) { return true; }
         }
         return false;
+    }
+    if T.es_arreglo(t) {
+        let dentro = T.elemento(t);
+        return posee_formas_desde(c, dentro, vistos);
     }
     // `Q.Vigilada` es `Vigilada`: el alias es de quien escribe, y los tipos
     // se apuntan por su nombre.
     if !tiene(c.variantes, t) && !tiene(c.campos, t) {
         let corto = sin_modulo(t);
         if tiene(c.variantes, corto) || tiene(c.campos, corto) {
-            return posee_con_formas(c, corto);
+            return posee_formas_desde(c, corto, vistos);
         }
     }
     if tiene(c.variantes, t) {
+        // Un tipo que ya se esta mirando no aporta nada nuevo.
+        if tiene(vistos, t) { return false; }
+        poner(vistos, t, 1);
         let cuales = lista_de(c.variantes, t) sino [];
         for v en cuales {
             var clave = nuevo(t);
@@ -509,8 +522,17 @@ fn posee_con_formas(c: &Contexto, t: view) -> bool {
             clave.empujar(v);
             let lleva = lista_de(c.formas, vista(clave)) sino [];
             for x en lleva {
-                if posee_con_formas(c, x) { return true; }
+                if posee_formas_desde(c, x, vistos) { return true; }
             }
+        }
+        return false;
+    }
+    if tiene(c.campos, t) && t != "str" {
+        if tiene(vistos, t) { return false; }
+        poner(vistos, t, 1);
+        let suyos = lista_de(c.campos, t) sino [];
+        for x en suyos {
+            if posee_formas_desde(c, x, vistos) { return true; }
         }
         return false;
     }

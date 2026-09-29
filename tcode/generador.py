@@ -960,8 +960,24 @@ class Generador:
         # enum o un struct necesita el tamaño de lo que lleva por valor, asi
         # que antes de cada uno va lo suyo: un enum que lleva un struct, o
         # otro enum escrito mas abajo, lo encuentra ya definido.
+        # Un campo arreglo es un struct de C por valor: su envoltorio va
+        # antes, y el de su elemento antes que el.
         por_nombre = {x.nombre: x for x in list(enums) + list(structs)}
         definidos = set()
+        envueltos = set()
+
+        def envolver(t):
+            if t in envueltos:
+                return
+            envueltos.add(t)
+            elem, n = partes_arreglo(t)
+            if es_arreglo(elem):
+                envolver(elem)
+            else:
+                definir(elem)
+            self.lineas.append(
+                f"typedef struct {{ {self.tipo_c(elem)} e[{n}]; }} "
+                f"{self.tipo_c(t)};")
 
         def definir(nombre):
             if nombre in definidos or nombre not in por_nombre:
@@ -971,9 +987,10 @@ class Generador:
             lleva = ([t for v in x.variantes for t in v.tipos]
                      if isinstance(x, Enum) else [c.tipo for c in x.campos])
             for t in lleva:
-                while es_arreglo(t):
-                    t = elem_de(t)
-                definir(t)
+                if es_arreglo(t):
+                    envolver(t)
+                else:
+                    definir(t)
             if isinstance(x, Enum):
                 self.cuerpo_enum(x)
             else:
@@ -998,11 +1015,13 @@ class Generador:
 
         # envoltorios de arreglo, de dentro hacia fuera
         for t in sorted(self.arreglos, key=lambda x: x.count("[")):
+            if t in envueltos:
+                continue
             elem, n = partes_arreglo(t)
             self.lineas.append(
                 f"typedef struct {{ {self.tipo_c(elem)} e[{n}]; }} "
                 f"{self.arreglos[t]};")
-        if self.arreglos:
+        if set(self.arreglos) - envueltos:
             self.lineas.append("")
         # Un arreglo que solo aparece al escribir un cuerpo —`for x en [1, 2]`
         # no declara nada que el recorrido previo mire— llega tarde a esta

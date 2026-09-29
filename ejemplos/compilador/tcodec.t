@@ -650,7 +650,8 @@ fn visitar_struct(nombre: view, indice: &mapa<str, usize>,
 fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<lista<str>>,
     en_lleva: &lista<lista<str>>, st_indice: &mapa<str, usize>,
     st_campos: &lista<lista<str>>, st_tipos: &lista<lista<str>>,
-    definidos: mut mapa<str, usize>, partes: mut lista<str>) {
+    definidos: mut mapa<str, usize>, envueltos: mut mapa<str, usize>,
+    partes: mut lista<str>) {
     if tiene(definidos, nombre) { return; }
     var ie = 0;
     while ie < en_nombres.largo() && !igual(en_nombres[ie], nombre) { ie = ie + 1; }
@@ -667,14 +668,13 @@ fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<li
         for t en st_tipos[k] { lleva.anadir(copiar(t)); }
     }
     for t en lleva {
-        var base = copiar(t);
-        while T.es_arreglo(base) {
-            let pa = T.partes_de_arreglo(base);
-            if pa.largo() != 2 { break; }
-            base = copiar(pa[0]);
+        if T.es_arreglo(t) {
+            envolver_arreglo_c(t, en_nombres, en_variantes, en_lleva, st_indice, st_campos,
+                st_tipos, definidos, envueltos, partes);
+        } else {
+            definir_tipo_c(t, en_nombres, en_variantes, en_lleva, st_indice, st_campos,
+                st_tipos, definidos, envueltos, partes);
         }
-        definir_tipo_c(vista(base), en_nombres, en_variantes, en_lleva, st_indice, st_campos,
-            st_tipos, definidos, partes);
     }
     if es_enum {
         cuerpo_enum_c(ie, en_nombres, en_variantes, en_lleva, partes);
@@ -691,6 +691,29 @@ fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<li
         partes.anadir(nuevo("};"));
         partes.anadir(vacio());
     }
+}
+
+// Un campo arreglo es un struct de C por valor: su envoltorio va antes que
+// el struct que lo lleva, y el de su elemento antes que el.
+fn envolver_arreglo_c(t: view, en_nombres: &lista<str>, en_variantes: &lista<lista<str>>,
+    en_lleva: &lista<lista<str>>, st_indice: &mapa<str, usize>,
+    st_campos: &lista<lista<str>>, st_tipos: &lista<lista<str>>,
+    definidos: mut mapa<str, usize>, envueltos: mut mapa<str, usize>,
+    partes: mut lista<str>) {
+    if tiene(envueltos, t) { return; }
+    poner(envueltos, t, 1);
+    let pa = T.partes_de_arreglo(t);
+    if pa.largo() != 2 { return; }
+    if T.es_arreglo(pa[0]) {
+        envolver_arreglo_c(pa[0], en_nombres, en_variantes, en_lleva, st_indice, st_campos,
+            st_tipos, definidos, envueltos, partes);
+    } else {
+        definir_tipo_c(pa[0], en_nombres, en_variantes, en_lleva, st_indice, st_campos,
+            st_tipos, definidos, envueltos, partes);
+    }
+    let te = G.tipo_c(pa[0]);
+    let tc = G.tipo_c(t);
+    partes.anadir($"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
 }
 
 // Un enum en C: la etiqueta y, a su lado, una union con lo de cada forma.
@@ -3736,13 +3759,14 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
     // Los enums, y detras los structs en orden de dependencia. Cada uno
     // necesita el tamanio de lo que lleva por valor, asi que va despues.
     var definidos: mapa<str, usize> = [];
+    var envueltos: mapa<str, usize> = [];
     for en_n en en_nombres {
         definir_tipo_c(vista(en_n), en_nombres, en_variantes, en_lleva,
-            st_indice, st_campos, st_tipos, definidos, partes);
+            st_indice, st_campos, st_tipos, definidos, envueltos, partes);
     }
     for n en orden {
         definir_tipo_c(vista(n), en_nombres, en_variantes, en_lleva,
-            st_indice, st_campos, st_tipos, definidos, partes);
+            st_indice, st_campos, st_tipos, definidos, envueltos, partes);
     }
     var alguno_posee = false;
     for n en orden {
@@ -3772,13 +3796,16 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
         }
         hondo_a = hondo_a + 1;
     }
+    var sueltos = 0;
     for t en arr_orden {
+        if tiene(envueltos, t) { continue; }
         let pa = T.partes_de_arreglo(t);
         let te = G.tipo_c(pa[0]);
         let tc = G.tipo_c(t);
         partes.anadir($"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
+        sueltos = sueltos + 1;
     }
-    if reg.arreglos.largo() > 0 { partes.anadir(vacio()); }
+    if sueltos > 0 { partes.anadir(vacio()); }
     for r en reg.resultados { partes.anadir(typedef_resultado(r)); }
     if reg.resultados.largo() > 0 { partes.anadir(vacio()); }
 

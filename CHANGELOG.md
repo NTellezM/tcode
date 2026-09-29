@@ -12,6 +12,15 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   función se renombra en el C como si chocara con otro módulo. Solo en ese
   caso: ningún programa que ya compilaba cambia su C. Lo encontró la
   biblioteca gráfica del Tamagotchi.
+- `tcodec` no liberaba un struct cuyo único campo con dueño era un enum
+  (`struct Ficha { quien: Nombre }`), ni uno con un campo de otro módulo
+  (`hoja: Q.Hoja`): perdía esa memoria. Python sí lo liberaba. Ahora
+  `tcodec` mira cada campo con la misma regla que el propio struct, y el C
+  de los dos compiladores coincide. Lo encontró ASan en el Tamagotchi.
+- Un struct con un campo arreglo (`b: [i64; 2]`) daba C que no compilaba,
+  en los dos compiladores: el envoltorio del arreglo salía después del
+  struct que lo lleva. Ahora sale justo antes. Solo cambia el C de esos
+  programas, que antes no compilaban.
 - `tests/fuzz.py` mira los errores de `cc` y `ld` en inglés (`LC_ALL=C`).
 
 ## 1.0.0-rc1 — 2026-09-28, candidata local

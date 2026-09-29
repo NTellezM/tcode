@@ -11,6 +11,22 @@ from .comun import (
 )
 
 ACEPTA = [
+    # Un struct cuyo unico campo con duenio es un enum. tcodec no lo
+    # liberaba —lo tomaba por un struct sin nada que soltar— y se perdia la
+    # memoria de la forma; Python si. Lo encontro ASan en la biblioteca
+    # grafica del Tamagotchi.
+    ("un struct con un enum que posee se libera",
+     '''enum Nombre { Nadie, Alguien(str) }
+        struct Ficha { quien: Nombre, n: i64 }
+        struct Par { a: Ficha, b: [Nombre; 2] }
+        fn main() {
+            let f = Ficha { quien: Nombre.Alguien(nuevo("ana")), n: 3 };
+            let p = Par { a: Ficha { quien: Nombre.Alguien(nuevo("eva")), n: 1 },
+                b: [Nombre.Nadie, Nombre.Alguien(nuevo("luz"))] };
+            imprimir($"{f.n} {p.a.n}\\n");
+        }''',
+     "3 1\n"),
+
     # Una variable que se llama igual que una funcion a la que se llama desde
     # ahi. En Tcode son dos cosas; en C la variable tapaba a la funcion y el C
     # no compilaba, en los dos compiladores. Ahora la funcion se renombra en

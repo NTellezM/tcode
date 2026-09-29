@@ -67,6 +67,20 @@ MODULOS = [
              ' imprimir(cuadro(cuadro)); return 0; }'},
      "a.t", None, "4242"),
 
+    # Un struct con un campo `Q.Tipo` de otro modulo que posee: tcodec no
+    # veia el prefijo y no lo liberaba. Lo encontro ASan en el Tamagotchi.
+    ("un campo de otro modulo que posee se libera",
+     {"q.t": 'struct Hoja { nombres: lista<str> }\n'
+             'enum Talvez { No, Si(str) }',
+      "m.t": 'usar "q.t" como Q;\n'
+             'struct Lamina { hoja: Q.Hoja, marca: Q.Talvez, id: i64 }\n'
+             'fn hacer() -> Lamina { var h = Q.Hoja { nombres: [] };'
+             ' anadir(h.nombres, nuevo("a")); return Lamina { hoja: h,'
+             ' marca: Q.Talvez.Si(nuevo("b")), id: 7 }; }',
+      "a.t": 'usar "m.t" como M;\n'
+             'fn main() -> usize { let l = M.hacer(); imprimir(l.id); return 0; }'},
+     "a.t", None, "7"),
+
     ("modulo que no existe",
      {"a.t": 'usar "fantasma.t";\nfn main() -> usize { return 0; }'},
      "a.t", "no encuentro el modulo", None),

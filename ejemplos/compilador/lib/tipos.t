@@ -493,7 +493,14 @@ fn posee(campos: &mapa<str, lista<str>>, t: view,
     if t == "str" { return true; }
     if escalar(t) { return false; }
 
-    // Un struct posee si alguno de sus campos posee.
+    // Un struct posee si alguno de sus campos posee. Un campo de otro modulo
+    // se escribe `Q.Nombre`, pero los structs se apuntan por su nombre.
+    if !tiene(campos, t) {
+        let punto = indice_de(t, ".") sino largo(t);
+        if punto < largo(t) {
+            return try posee(campos, rebanar(t, punto + 1, largo(t)), visitados);
+        }
+    }
     let nombre = nuevo(t);
     if tiene(visitados, nombre) { return false; }
     if !tiene(campos, nombre) { return false; }
