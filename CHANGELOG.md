@@ -2,6 +2,18 @@
 
 Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
+## Sin publicar
+
+### Corregido
+
+- Una variable o un parámetro que se llama igual que una función a la que
+  se llama donde la variable está a la vista daba C que no compilaba, en
+  los dos compiladores: en C la variable tapaba a la función. Ahora la
+  función se renombra en el C como si chocara con otro módulo. Solo en ese
+  caso: ningún programa que ya compilaba cambia su C. Lo encontró la
+  biblioteca gráfica del Tamagotchi.
+- `tests/fuzz.py` mira los errores de `cc` y `ld` en inglés (`LC_ALL=C`).
+
 ## 1.0.0-rc1 — 2026-09-28, candidata local
 
 La primera candidata a 1.0. Recoge todo lo que se trabajó como 0.9.0, que no

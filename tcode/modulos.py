@@ -175,6 +175,66 @@ def _locales(funcion):
     return salida
 
 
+def _nombres_de_patron(nombres):
+    """Lo que atrapa un patron, tambien dentro de formas anidadas."""
+    salida = set()
+    for n in nombres:
+        if isinstance(n, str):
+            if n != "_":
+                salida.add(n)
+        elif isinstance(n, PatronForma):
+            salida |= _nombres_de_patron(n.args)
+    return salida
+
+
+def _llamadas_tapadas(funcion):
+    """Las funciones que `funcion` llama donde una variable o un parametro
+    con su mismo nombre esta a la vista: desde su declaracion hasta el final
+    de su bloque, o dentro de su `for`, su brazo o su clausura. En C la
+    variable taparia a la funcion."""
+    from dataclasses import fields, is_dataclass
+    from tcode.nodos import Brazo, Cierre, Declaracion, Para
+    salida = set()
+
+    def mirar(x, vis):
+        if isinstance(x, list):
+            dentro = set(vis)
+            for y in x:
+                dentro = mirar(y, dentro)
+            return vis
+        if not is_dataclass(x):
+            return vis
+        if isinstance(x, Llamada):
+            base = x.nombre.rsplit(".", 1)[-1]
+            if base in vis and base != "main":
+                salida.add(base)
+            mirar(x.args, vis)
+            return vis
+        if isinstance(x, Declaracion):
+            mirar(x.valor, vis)
+            return vis | {x.nombre}
+        if isinstance(x, Para):
+            mirar(x.coleccion, vis)
+            dentro = vis | {x.variable} | ({x.valor} if x.valor else set())
+            mirar(x.cuerpo, dentro)
+            return vis
+        if isinstance(x, Brazo):
+            dentro = vis | _nombres_de_patron(x.nombres)
+            mirar(x.guarda, dentro)
+            mirar(x.cuerpo, dentro)
+            return vis
+        if isinstance(x, Cierre):
+            dentro = vis | set(x.capturas) | {q.nombre for q in x.params}
+            mirar(x.cuerpo, dentro)
+            return vis
+        for f in fields(x):
+            mirar(getattr(x, f.name), vis)
+        return vis
+
+    mirar(funcion.cuerpo, {q.nombre for q in funcion.params})
+    return salida
+
+
 def _sin_usar_directo(m, visible, duenios, modulos):
     """Un archivo solo ve lo que el mismo usa. Sin esta comprobacion, como
     todo acaba en un unico C, se veia tambien lo que usaban sus modulos:
@@ -334,13 +394,26 @@ def cargar(ruta_principal, nombres_bonitos=None):
         for n in propios:
             duenios.setdefault(n, []).append(real)
 
+    # Una funcion que se llama igual que una variable o un parametro de otra
+    # funcion desde la que se la llama: en C, la variable la taparia y la
+    # llamada no compilaria. Se renombra como si chocara con otro modulo.
+    # Solo esas: un programa que hoy compila no cambia su C.
+    tapadas = set()
+    for m in modulos.values():
+        for d in m["decls"]:
+            if isinstance(d, Funcion) and not getattr(d, "externa", False):
+                tapadas |= _llamadas_tapadas(d)
+
     # Renombrar solo lo que choca: mientras `palabras` sea de un solo modulo,
     # se sigue llamando `palabras` en el C generado.
     interno = {}        # (real, nombre) -> nombre interno
     for nombre, reales in duenios.items():
         prefijo = prefijos_unicos({r: modulos[r]["mostrada"] for r in reales})
+        unica = declara[reales[0]][nombre]
+        tapada = (len(reales) == 1 and nombre in tapadas
+                  and isinstance(unica, Funcion) and not unica.tipo_params)
         for real in reales:
-            if len(reales) == 1:
+            if len(reales) == 1 and not tapada:
                 interno[(real, nombre)] = nombre
             else:
                 interno[(real, nombre)] = f"{prefijo[real]}__{nombre}"

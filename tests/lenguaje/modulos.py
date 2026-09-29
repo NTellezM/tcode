@@ -58,6 +58,15 @@ MODULOS = [
       "a.t": 'usar "lib/m.t/" como m;\nfn main() -> usize { return m.doble(0); }'},
      "a.t", "a.t:1: `lib/m.t/` termina en `/`", None),
 
+    # La funcion de otro modulo, llamada desde donde una variable se llama
+    # igual: en C la variable la tapaba.
+    ("una variable con el nombre de una funcion de otro modulo",
+     {"m.t": 'fn cuadro(x: usize) -> usize { return x + 1; }',
+      "a.t": 'usar "m.t" como M;\nusar "m.t";\n'
+             'fn main() -> usize { let cuadro = 41; imprimir(M.cuadro(cuadro));'
+             ' imprimir(cuadro(cuadro)); return 0; }'},
+     "a.t", None, "4242"),
+
     ("modulo que no existe",
      {"a.t": 'usar "fantasma.t";\nfn main() -> usize { return 0; }'},
      "a.t", "no encuentro el modulo", None),

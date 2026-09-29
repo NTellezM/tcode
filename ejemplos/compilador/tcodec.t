@@ -389,6 +389,130 @@ fn locales_de(n: &P.Nodo, salida: mut lista<str>) {
     for h en n.hijos { locales_de(h, salida); }
 }
 
+// Las llamadas de un arbol, con el nombre tal como se escribio.
+fn llamadas_de(n: &P.Nodo, salida: mut lista<str>) {
+    if n.clase == Clase.Llamada { salida.anadir(copiar(n.texto)); }
+    for h en n.hijos { llamadas_de(h, salida); }
+}
+
+fn tras_el_ultimo_punto(t: view) -> str {
+    var i = t.largo();
+    while i > 0 {
+        if byte(t, i - 1) == 46 { return nuevo(rebanar(t, i, t.largo())); }
+        i = i - 1;
+    }
+    return nuevo(t);
+}
+
+fn nombre_de_param(t: view) -> str {
+    var i = 0;
+    while i < t.largo() && byte(t, i) != 58 { i = i + 1; }
+    return nuevo(recortar(rebanar(t, 0, i)));
+}
+
+// `let x: T` -> `x`.
+fn nombre_de_declaracion(t: view) -> str {
+    var i = 0;
+    while i < t.largo() && byte(t, i) != 32 { i = i + 1; }
+    var j = i + 1;
+    while j < t.largo() && byte(t, j) != 58 { j = j + 1; }
+    if i + 1 > t.largo() { return vacio(); }
+    return nuevo(recortar(rebanar(t, i + 1, j)));
+}
+
+// Lo que atrapa un patron, tambien dentro de formas anidadas.
+fn atrapas_de(n: &P.Nodo, salida: mut lista<str>) {
+    if n.clase == Clase.Atrapa && !igual(n.texto, "_") { salida.anadir(copiar(n.texto)); }
+    if n.clase == Clase.Atrapa || n.clase == Clase.Patron {
+        for h en n.hijos { atrapas_de(h, salida); }
+    }
+}
+
+// Las funciones que se llaman donde una variable o un parametro con su
+// mismo nombre esta a la vista: desde su declaracion hasta el final de su
+// bloque, o dentro de su `for`, su brazo o su clausura. Devuelve lo que se
+// ve despues de `n`, que solo cambia con una declaracion.
+fn mirar_tapadas(n: &P.Nodo, vis: &lista<str>, salida: mut lista<str>) -> lista<str> {
+    let clase = n.clase;
+    if clase == Clase.Bloque {
+        var dentro = copiar(vis);
+        for h en n.hijos { dentro = mirar_tapadas(h, dentro, salida); }
+        return copiar(vis);
+    }
+    if clase == Clase.Llamada {
+        let base = tras_el_ultimo_punto(n.texto);
+        if esta_en(vis, base) && !igual(base, "main") && !esta_en(salida, base) {
+            salida.anadir(nuevo(base));
+        }
+        for h en n.hijos { let _v = mirar_tapadas(h, vis, salida); }
+        return copiar(vis);
+    }
+    if clase == Clase.Declaracion {
+        for h en n.hijos { let _v = mirar_tapadas(h, vis, salida); }
+        var mas = copiar(vis);
+        mas.anadir(nombre_de_declaracion(n.texto));
+        return mas;
+    }
+    if clase == Clase.Para || clase == Clase.Brazo || clase == Clase.Cierre {
+        var dentro = copiar(vis);
+        if clase == Clase.Para {
+            let t = vista(n.texto);
+            var i = 0;
+            while i < t.largo() && byte(t, i) != 44 { i = i + 1; }
+            dentro.anadir(nuevo(recortar(rebanar(t, 0, i))));
+            if i < t.largo() { dentro.anadir(nuevo(recortar(rebanar(t, i + 1, t.largo())))); }
+        }
+        for h en n.hijos {
+            if clase == Clase.Brazo { atrapas_de(h, dentro); }
+            if h.clase == Clase.Captura { dentro.anadir(copiar(h.texto)); }
+            if h.clase == Clase.Param { dentro.anadir(nombre_de_param(h.texto)); }
+        }
+        for h en n.hijos {
+            // Lo que se recorre en un `for` se calcula fuera de el.
+            if clase == Clase.Para && h.clase != Clase.Bloque {
+                let _v = mirar_tapadas(h, vis, salida);
+            } else {
+                let _v = mirar_tapadas(h, dentro, salida);
+            }
+        }
+        return copiar(vis);
+    }
+    for h en n.hijos { let _v = mirar_tapadas(h, vis, salida); }
+    return copiar(vis);
+}
+
+// Una funcion que se llama igual que una variable o un parametro que esta a
+// la vista donde se la llama: en C, la variable la taparia y la llamada no
+// compilaria. Se marca como repetida y el cargador la renombra como si
+// chocara con otro modulo. Solo esas: un programa que hoy compila no cambia
+// su C. Las genericas no, que en C llevan los tipos en el nombre.
+fn marcar_tapadas(arboles: &lista<P.Nodo>, plantillas: &mapa<str, usize>,
+    global: mut I.Contexto) {
+    for arbol en arboles {
+        for d en arbol.hijos {
+            if d.clase != Clase.Fn { continue; }
+            var params: lista<str> = [];
+            for h en d.hijos {
+                if h.clase == Clase.Param { params.anadir(nombre_de_param(h.texto)); }
+            }
+            var tapadas: lista<str> = [];
+            for h en d.hijos {
+                if h.clase == Clase.Bloque { let _v = mirar_tapadas(h, params, tapadas); }
+            }
+            for base en tapadas {
+                if tiene(plantillas, base) { continue; }
+                var declarada = false;
+                for otro en arboles {
+                    for x en otro.hijos {
+                        if x.clase == Clase.Fn && igual(x.texto, base) { declarada = true; }
+                    }
+                }
+                if declarada { poner(global.repetidas, base, 1); }
+            }
+        }
+    }
+}
+
 // El primer nombre que se usa sin haberlo pedido, en preorden: `nombre\tlinea`.
 fn sin_pedir(n: &P.Nodo, visible: &mapa<str, str>, duenios: &mapa<str, str>,
     locales: &lista<str>) -> str {
@@ -3354,6 +3478,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
         arboles.anadir(arbol);
         contextos.anadir(tipos);
     }
+    marcar_tapadas(arboles, plantillas, global);
     if !(try ajustar_contextos(arboles, modulos, raiz, global, plantillas, contextos)) {
         return programa_no_leido();
     }

@@ -11,6 +11,20 @@ from .comun import (
 )
 
 ACEPTA = [
+    # Una variable que se llama igual que una funcion a la que se llama desde
+    # ahi. En Tcode son dos cosas; en C la variable tapaba a la funcion y el C
+    # no compilaba, en los dos compiladores. Ahora la funcion se renombra en
+    # el C como si chocara con otro modulo. Lo encontro la biblioteca RPG del
+    # Tamagotchi.
+    ("una variable con el nombre de una funcion que se llama",
+     '''fn cuadro(x: usize) -> usize { return x + 1; }
+        fn usa(cuadro: usize) -> usize { return cuadro(cuadro) * 2; }
+        fn main() {
+            let cuadro = 41;
+            imprimir($"{cuadro(cuadro)} {usa(1)}\\n");
+        }''',
+     "42 4\n"),
+
     # `anadir` y `ordenar` por un `&mut lista<T>` de `obtener_mut`, como por
     # un parametro `&mut lista<T>`. Se rechazaban diciendo que no era una
     # lista; lo encontro revisar la especificacion para 1.0.
