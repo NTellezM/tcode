@@ -7,6 +7,11 @@
    copia enseguida: no guarda nada de un llamada a otra que no sea suyo. */
 
 #define _XOPEN_SOURCE 700
+/* En macOS, `_XOPEN_SOURCE` esconde lo que no es X/Open estricto, y con ello
+   `mkdtemp`. `_DARWIN_C_SOURCE` lo vuelve a mostrar todo. */
+#if defined(__APPLE__)
+#  define _DARWIN_C_SOURCE 1
+#endif
 
 #include <errno.h>
 #include <libgen.h>

@@ -64,6 +64,8 @@ una hora de fuzzing (43.112 mutantes), sin fallos.
   `como ? u8` y cambiaba `1_000` por `1000`.
 - `anadir` y `ordenar` por un `&mut lista<T>` de `obtener_mut` se
   rechazaban.
+- `tcodec` no compilaba en macOS: `_XOPEN_SOURCE` escondía `mkdtemp`. Lo
+  encontró la CI.
 - `300 como u8` compilaba y paraba el programa al correr; es una cuenta de
   números escritos y ahora es un error de compilación, como `let x: u8 =
   256;`.
