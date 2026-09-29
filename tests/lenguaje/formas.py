@@ -303,7 +303,7 @@ def correr(suite: Resultado) -> None:
             suite.total += len(casos)
             for quien, que in fallos:
                 suite.falla(f"{sitio}: {quien}", que)
-        por_razon = {}
+        por_razon: dict[str, int] = {}
         for r in saltadas:
             por_razon[r] = por_razon.get(r, 0) + 1
         print(f"    {len(casos)} formas en {len(SITIOS)} sitios; sin escribir: "
