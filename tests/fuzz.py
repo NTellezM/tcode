@@ -116,11 +116,21 @@ class Juez:
 
     def juzgar(self, ruta, n):
         """`ruta` relativa a la raiz; `n` distingue los binarios."""
-        try:
-            r = subprocess.run([self.tcodec, ruta, "--mostrar-c"], cwd=RAIZ,
-                               env=ENTORNO, capture_output=True,
-                               timeout=TIEMPO_TCODEC, stdin=subprocess.DEVNULL)
-        except subprocess.TimeoutExpired:
+        # Con la maquina llena —el fuzzing usa todos los nucleos, y a veces
+        # hay mas cosas corriendo— un archivo grande bajo ASan puede pasar
+        # del tiempo sin colgarse: se repite una vez con diez veces mas, y
+        # solo entonces es un cuelgue. Asi salio uno falso, en una pasada de
+        # una hora junto a mil programas de propiedades.
+        r = None
+        for tiempo in (TIEMPO_TCODEC, TIEMPO_TCODEC * 10):
+            try:
+                r = subprocess.run([self.tcodec, ruta, "--mostrar-c"], cwd=RAIZ,
+                                   env=ENTORNO, capture_output=True,
+                                   timeout=tiempo, stdin=subprocess.DEVNULL)
+                break
+            except subprocess.TimeoutExpired:
+                continue
+        if r is None:
             return "tcodec: se cuelga"
         err = r.stderr.decode("utf-8", "replace")
         san = _sanitizer(err)
