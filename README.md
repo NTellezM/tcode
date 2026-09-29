@@ -302,7 +302,7 @@ El compilador ya no necesita a Python para existir: se construye desde su
 semilla, que es el paso que dieron Go en la 1.5 y Rust con su primer `rustc`
 escrito en Rust. Lo
 que necesita del sistema y Tcode no trae —ejecutar el compilador de C, un
-temporal, sustituir un archivo de una vez, subir la pila— son <!--c:lineas_sistema-->223<!--/c--> líneas de C en
+temporal, sustituir un archivo de una vez, subir la pila— son <!--c:lineas_sistema-->228<!--/c--> líneas de C en
 `lib/sistema_tcodec.c`, que `tcodec` pide con un `externo` como cualquier
 otro programa.
 
