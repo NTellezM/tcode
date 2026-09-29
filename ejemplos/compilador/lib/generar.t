@@ -2720,8 +2720,9 @@ fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
             }
         }
         // `let y = x;` y `y = x;` mueven tanto como pasarla a una funcion.
+        // `let y: &T = x;` no: solo la presta.
         Clase.Declaracion -> {
-            if n.hijos.largo() == 1 {
+            if n.hijos.largo() == 1 && !T.es_referencia(tipo_escrito(n.texto)) {
                 if entrega_suelta(punteros, n.hijos[0], tipos) {
                     apuntar_movida(salida, n.hijos[0].texto);
                 }
@@ -3895,6 +3896,10 @@ fn declaracion_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         // Sus brazos pueden llevar sentencias: se genera desde aqui,
         // donde el sitio se puede modificar, como en `return`.
         valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible);
+    } else if T.es_referencia(tipo) && (cual == Clase.Variable || cual == Clase.Campo
+        || cual == Clase.Indice) && !T.es_referencia(I.tipo_de(tipos, n.hijos[0])) {
+        // `let x: &T = l[i];`: la direccion del sitio, sin copiarlo.
+        valor = direccion_del_sitio(b, s, n.hijos[0], tipos);
     } else {
         valor = expresion_c(b, s, n.hijos[0], tipo, tipos);
     }

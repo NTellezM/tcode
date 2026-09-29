@@ -396,6 +396,16 @@ El envoltorio le devuelve la semántica de valor que el lenguaje promete.
   de la función. De algo prestado no se saca nada. Un elemento de una lista o
   de un arreglo tampoco: su índice no se conoce al compilar, y para eso está
   `intercambiar(...)`.
+- **Prestar un sitio.** Para leer un elemento o un campo sin copiarlo, se
+  presta: `let x: &Articulo = inv[2];` apunta al elemento, y
+  `let x: &mut Articulo = inv[2];` deja modificarlo por `x`. Mientras `x` se
+  use, la lista entera queda prestada —de un elemento no se sigue el índice,
+  como en una llamada—: no se mueve ni se modifica, salvo a través de un
+  `&mut`. Solo se presta lo que tiene partes; un escalar se copia.
+
+  ```
+  error: no se puede modificar `inv`: esta prestada por `x`
+  ```
 - **Recursión directa por valor.** `struct Nodo { hijo: Nodo }` no tiene tamaño
   finito y da error; la recursión mediante `lista<Nodo>` sí está permitida.
 
@@ -1535,8 +1545,9 @@ $ cat sin.t
 fn suma<T>(ns: &lista<T>) -> T { var t = ns[0]; return t; }
 
 error: sin.t:1: no se puede sacar un elemento de una lista y dejar el hueco
-                sin duenio. Si quieres sacarlo, di que dejas en su sitio:
-                `intercambiar(...)`. Si solo quieres leerlo, `copiar(...)`
+                sin duenio. Si solo quieres leerlo, prestalo:
+                `let x: &str = ...`; si lo necesitas tuyo, `copiar(...)`; si
+                quieres sacarlo, di que dejas en su sitio: `intercambiar(...)`
   al usar `suma` con T = str, desde sin.t:5
 ```
 

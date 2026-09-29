@@ -11,6 +11,33 @@ from .comun import (
 )
 
 ACEPTA = [
+    # Prestar un sitio: un elemento, un campo o una variable se leen o se
+    # modifican por un `&T`/`&mut T` sin copiarlos. Antes habia que
+    # `copiar(...)` el elemento entero.
+    ("prestar un elemento, un campo o una variable",
+     '''struct H { t: str }
+        struct N { s: str, hijo: H, hijos: lista<N> }
+        fn nuevo_n(t: view) -> N { return N { s: nuevo(t), hijo: H { t: nuevo("h") }, hijos: [] }; }
+        fn main() {
+            var l: lista<N> = [];
+            anadir(l, nuevo_n("hola"));
+            anadir(l, nuevo_n("adios!"));
+            let x: &N = l[1];
+            let h: &H = x.hijo;
+            imprimir($"{largo(x.s)} {largo(h.t)}\\n");
+            var p = nuevo_n("abc");
+            let w: &mut N = p;
+            empujar(w.s, "d");
+            let q: &mut N = l[0];
+            empujar(q.s, "!");
+            var a: [N; 2] = [nuevo_n("x"), nuevo_n("yz")];
+            let e: &N = a[1];
+            imprimir($"{largo(p.s)} {largo(l[0].s)} {largo(e.s)}\\n");
+            anadir(l, nuevo_n("despues"));
+            imprimir($"{largo(l)}\\n");
+        }''',
+     "6 1\n4 5 2\n3\n"),
+
     # Un local que se llama como una funcion y no se puede llamar: la llamada
     # es a la funcion, tambien cuando su resultado se guarda y hay que saber
     # su tipo. `tcodec` tomaba el tipo del local y no sabia escribir el `let`.

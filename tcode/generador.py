@@ -2211,7 +2211,12 @@ class Generador:
             tc = self.tipo_c(s.tipo)
             # Una variable declarada y no usada es legitima en Tcode; el aviso
             # de gcc apuntaria a este C, que el usuario no escribio.
-            valor_c = self.expr(s.valor, s.tipo)
+            if (es_referencia(s.tipo) and isinstance(s.valor, (Variable, Campo, Indice))
+                    and not es_referencia(self._tipo_de(s.valor) or "")):
+                # `let x: &T = l[i];`: la direccion del sitio, sin copiarlo.
+                valor_c = self.dir_de(s.valor)
+            else:
+                valor_c = self.expr(s.valor, s.tipo)
             self.reclamar(valor_c)      # la variable se queda con el temporal
             # En C una variable ya esta en ambito DENTRO de su propio
             # inicializador, asi que `var cuerpo = cuerpo();` se leeria como

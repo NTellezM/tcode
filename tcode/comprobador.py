@@ -1968,6 +1968,9 @@ class Comprobador:
                     return
                 # El generador espera siempre un tipo concreto.
                 s.tipo = tipo
+            elif self._presta_un_sitio(s):
+                self.prestar_sitio(s)
+                return
             else:
                 self.comprobar_mapa_valido(s, s.tipo)
                 if not self.tipo_existe(s.tipo):
@@ -2562,12 +2565,59 @@ class Comprobador:
                     return c.tipo
         return None
 
-    def _apuntar(self, nodo, sim, valor):
+    def _presta_un_sitio(self, s):
+        """`let x: &T = l[i];`: un prestamo de un sitio que ya existe —una
+        variable, un campo, un elemento—, no de lo que da una llamada."""
+        if not es_referencia(s.tipo or ""):
+            return False
+        if not isinstance(s.valor, (Variable, Campo, Indice)):
+            return False
+        # Se presta lo que tiene partes; un escalar se copia, y pedirlo
+        # prestado sigue siendo el error de siempre.
+        if not self.es_compuesto(apuntado(s.tipo)):
+            return False
+        # Un `&T` que ya se tiene se copia como cualquier otro valor.
+        return not es_referencia(self._tipo_de_sitio(s.valor) or "")
+
+    def _tipo_de_sitio(self, e):
+        """El tipo de un sitio sin comprobar nada ni marcar usos."""
+        if isinstance(e, Variable):
+            sim = self.buscar(e.nombre)
+            return sim.tipo if sim is not None else None
+        return None
+
+    def prestar_sitio(self, s):
+        """`let x: &T = sitio;` y `let x: &mut T = sitio;`: `x` apunta al
+        sitio sin copiarlo. Mientras se use, la variable de la que sale queda
+        prestada entera —de un elemento no se sigue el indice, como en una
+        llamada—: no se mueve ni se modifica, salvo a traves de `x` si es
+        `&mut`."""
+        tipo = self.expresion(s.valor)
+        base = self.variable_base(s.valor)
+        sim_b = self.buscar(base) if base else None
+        if tipo is not None and sin_prestamo(tipo) != apuntado(s.tipo):
+            self.error(s, f"`{s.nombre}` se declaro `{s.tipo}` pero el valor "
+                          f"es `{sin_prestamo(tipo)}`")
+        if sim_b is not None and es_referencia_mutable(s.tipo):
+            self.mutar(s.valor, sim_b, por_referencia=es_referencia(sim_b.tipo or ""))
+        sim = self.declarar(s, s.nombre, s.tipo, s.mutable, decl=s)
+        sim.prestado = True
+        sim.procedencia = LOCAL
+        if sim_b is None:
+            return
+        # Presta de la variable, y si ella misma presta, de lo suyo.
+        origenes = [base]
+        if self.presta(sim_b.tipo):
+            origenes += [o for o in sim_b.origenes if o not in origenes]
+        self._apuntar(s, sim, s.valor, origenes)
+
+    def _apuntar(self, nodo, sim, valor, nuevos=None):
         """La vista `sim` pasa a apuntar a lo que da `valor`: cada duenio
         queda prestado mientras ella viva, y tiene que vivir al menos lo
         mismo. Lo que ya prestaba lo sigue prestando: si la asignacion va en
         una rama, la otra puede no haberla hecho."""
-        nuevos = self._origenes_de(valor)
+        if nuevos is None:
+            nuevos = self._origenes_de(valor)
         if TEMPORAL in nuevos:
             self.error(nodo, f"`{sim.nombre}` apuntaria a un valor temporal, "
                              f"que se libera al acabar esta sentencia: guarda "
@@ -3285,9 +3335,10 @@ class Comprobador:
             que = ("un bloque" if es_bloque(base)
                    else "una lista" if es_lista(base) else "un arreglo")
             self.error(e, f"no se puede sacar un elemento de {que} y dejar el "
-                          f"hueco sin duenio. Si quieres sacarlo, di que dejas "
-                          f"en su sitio: `intercambiar(...)`. Si solo quieres "
-                          f"leerlo, `copiar(...)`")
+                          f"hueco sin duenio. Si solo quieres leerlo, "
+                          f"prestalo: `let x: &{elem} = ...`; si lo necesitas "
+                          f"tuyo, `copiar(...)`; si quieres sacarlo, di que "
+                          f"dejas en su sitio: `intercambiar(...)`")
         return elem
 
     def _patron_valido(self, e, base, variante, args):

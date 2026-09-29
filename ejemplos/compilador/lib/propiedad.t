@@ -340,8 +340,9 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
             return;
         }
         Clase.Declaracion -> {
-            // `let a = b` es lo mismo: `b` pasa a ser de `a`.
-            if n.hijos.largo() > 0 {
+            // `let a = b` es lo mismo: `b` pasa a ser de `a`. Con
+            // `let a: &T = b`, `b` solo se presta.
+            if n.hijos.largo() > 0 && !declara_prestamo(n.texto) {
                 let quien = variable_suelta(n.hijos[0]);
                 if quien.largo() > 0 {
                     let t = tipo_vigilado(vs, quien, n.linea);
@@ -357,6 +358,12 @@ fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
     }
 
     for h en n.hijos { mirar(c, h, vs); }
+}
+
+// `let x: &T = ...` o `let x: &mut T = ...`.
+fn declara_prestamo(texto: view) -> bool {
+    let i = indice_de(texto, ": ") sino texto.largo();
+    return i + 2 < texto.largo() && byte(texto, i + 2) == 38;
 }
 
 fn mirar_llamada(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {

@@ -1850,6 +1850,61 @@ fn nivel_de_simbolo(c: &Comprobacion, i: usize) -> usize {
 // puede no haberla hecho.
 fn apuntar(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, valor: &P.Nodo) {
     let nuevos = origenes_de(c, m, valor);
+    apuntar_a(c, m, linea, i, nuevos);
+}
+
+// `let x: &T = l[i];`: un prestamo de un sitio que ya existe —una variable,
+// un campo, un elemento—, no de lo que da una llamada. Solo de lo que tiene
+// partes: un escalar se copia, y pedirlo prestado sigue siendo el error de
+// siempre. Un `&T` que ya se tiene se copia como cualquier otro valor.
+fn presta_un_sitio(c: &Comprobacion, m: &Mundo, escrito: view, valor: &P.Nodo) -> bool {
+    if !T.es_referencia(escrito) { return false; }
+    let cl = valor.clase;
+    if cl != Clase.Variable && cl != Clase.Campo && cl != Clase.Indice { return false; }
+    if !es_compuesto(m, T.apuntado(escrito)) { return false; }
+    if cl == Clase.Variable {
+        let iv = buscar_simbolo(c, valor.texto);
+        if existe(c, iv) && T.es_referencia(c.simbolos[iv].tipo) { return false; }
+    }
+    return true;
+}
+
+// `x` apunta al sitio sin copiarlo. Mientras se use, la variable de la que
+// sale queda prestada entera —de un elemento no se sigue el indice, como en
+// una llamada—: no se mueve ni se modifica, salvo a traves de `x` si es
+// `&mut`.
+fn prestar_sitio(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nodo,
+    nombre: view, escrito: view, mutable: bool) {
+    let valor = copiar(s.hijos[0]);
+    let t = comprobar_expresion(c, m, tipos, valor, "", false);
+    let base = variable_base(valor);
+    let ib = buscar_simbolo(c, base);
+    let quiere = T.apuntado(escrito);
+    let dado = sin_prestamo(t);
+    if t.largo() > 0 && !igual(dado, quiere) {
+        error(c, m, s.linea, $"`{nombre}` se declaro `{escrito}` pero el valor es `{dado}`");
+    }
+    if base.largo() > 0 && existe(c, ib) && T.es_referencia_mutable(escrito) {
+        let por_puntero = T.es_referencia(c.simbolos[ib].tipo);
+        mutar(c, m, valor, s.linea, ib, por_puntero);
+    }
+    let i = declarar_simbolo(c, m, s.linea, nombre, escrito, mutable);
+    c.simbolos[i].prestado = true;
+    c.simbolos[i].procedencia = nuevo("local");
+    if base.largo() == 0 || !existe(c, ib) { return; }
+    // Presta de la variable, y si ella misma presta, de lo suyo.
+    var origenes: lista<str> = [nuevo(base)];
+    if presta_tipo(m, c.simbolos[ib].tipo) {
+        for o en c.simbolos[ib].origenes {
+            if !esta_entre(origenes, o) { origenes.anadir(copiar(o)); }
+        }
+    }
+    apuntar_a(c, m, s.linea, i, origenes);
+}
+
+// La vista del simbolo `i` pasa a apuntar a `nuevos`: cada duenio queda
+// prestado mientras ella viva, y tiene que vivir al menos lo mismo.
+fn apuntar_a(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, nuevos: &lista<str>) {
     let nombre = copiar(c.simbolos[i].nombre);
     if esta_entre(nuevos, "<temporal>") {
         error(c, m, linea, $"`{nombre}` apuntaria a un valor temporal, que se libera al acabar esta sentencia: guarda ese valor en una variable y presta de ella");
@@ -3401,7 +3456,7 @@ fn indice(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         var que = nuevo("un arreglo");
         if T.es_bloque(b) { que = nuevo("un bloque"); }
         else if T.es_lista(b) { que = nuevo("una lista"); }
-        error(c, m, n.linea, $"no se puede sacar un elemento de {que} y dejar el hueco sin duenio. Si quieres sacarlo, di que dejas en su sitio: `intercambiar(...)`. Si solo quieres leerlo, `copiar(...)`");
+        error(c, m, n.linea, $"no se puede sacar un elemento de {que} y dejar el hueco sin duenio. Si solo quieres leerlo, prestalo: `let x: &{elem} = ...`; si lo necesitas tuyo, `copiar(...)`; si quieres sacarlo, di que dejas en su sitio: `intercambiar(...)`");
     }
     return elem;
 }
@@ -5103,6 +5158,9 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
                     error(c, m, s.linea, $"no se puede deducir el tipo de `{nombre}`: escribelo con `: tipo`");
                     return;
                 }
+            } else if presta_un_sitio(c, m, escrito, s.hijos[0]) {
+                prestar_sitio(c, m, tipos, s, nombre, escrito, mutable);
+                return;
             } else {
                 tipo = copiar(escrito);
                 comprobar_mapa_valido(c, m, s.linea, tipo);

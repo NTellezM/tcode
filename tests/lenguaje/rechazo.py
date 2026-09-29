@@ -25,6 +25,30 @@ _MEDIO = ("struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } "
 _FORMAS = "enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } "
 
 RECHAZO = [
+    # Un sitio prestado con `let x: &T = ...` no se modifica ni se mueve
+    # mientras `x` se use; por un `&T` no se modifica nada.
+    ("modificar la lista de la que se presto un elemento",
+     'struct N { s: str } fn main() { var l: lista<N> = []; '
+     'anadir(l, N { s: nuevo("a") }); let x: &N = l[0]; '
+     'anadir(l, N { s: nuevo("b") }); imprimir(largo(x.s)); }',
+     "no se puede modificar `l`: esta prestada por `x`"),
+    ("mover lo que se presto",
+     'struct N { s: str } fn main() { var p = N { s: nuevo("a") }; '
+     'let x: &N = p; let q = p; imprimir(largo(x.s)); imprimir(largo(q.s)); }',
+     "no se puede mover `p`: esta prestada por `x`"),
+    ("modificar por un prestamo de solo lectura de un sitio",
+     'struct N { s: str } fn main() { var p = N { s: nuevo("a") }; '
+     'let x: &N = p; empujar(x.s, "z"); }',
+     "`x` es un prestamo de solo lectura (`&N`)"),
+    ("prestar para modificar algo declarado con `let`",
+     'struct N { s: str } fn main() { let p = N { s: nuevo("a") }; '
+     'let w: &mut N = p; empujar(w.s, "z"); }',
+     "`p` se declaro con `let` y no se puede modificar"),
+    ("sacar un elemento sugiere prestarlo",
+     'struct N { s: str } fn main() { var l: lista<N> = []; '
+     'anadir(l, N { s: nuevo("a") }); let x = l[0]; imprimir(largo(x.s)); }',
+     "Si solo quieres leerlo, prestalo: `let x: &N = ...`"),
+
     # Un prestamo que ya se tiene se pasa a una funcion que presta; pero uno
     # de solo lectura no se pasa a una que modifica.
     ("pasar un `&T` a un parametro `mut`",

@@ -53,6 +53,16 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   Las llamadas lo conservan: `Q.hecho` dice de qué módulo es la función.
 - `tests/fuzz.py` mira los errores de `cc` y `ld` en inglés (`LC_ALL=C`).
 
+### Añadido
+
+- Prestar un sitio: `let x: &T = l[i];` lee un elemento, un campo o una
+  variable sin copiarlo, y `let x: &mut T = l[i];` deja modificarlo por
+  `x`. Mientras `x` se use, la variable de la que sale queda prestada
+  entera. Antes la única forma de leer un elemento con dueño era
+  `copiar(...)` —una copia profunda—, y el mensaje de error lo decía; ahora
+  sugiere el préstamo. Solo con tipos que tienen partes; con un escalar, el
+  error de siempre. Igual en los dos compiladores.
+
 ### Cambiado
 
 - Las funciones del programa salen `static` en el C, con
