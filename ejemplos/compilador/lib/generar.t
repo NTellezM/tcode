@@ -4923,7 +4923,7 @@ fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     var todos = true;
     k = 1;
     while k < n.hijos.largo() {
-        let brazo = copiar(n.hijos[k]);
+        let brazo: &P.Nodo = n.hijos[k];
         let variante = I.tras_el_punto(brazo.texto);
         if brazo.texto.largo() == 0 {
             todos = false;
@@ -4979,7 +4979,7 @@ fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Conte
     let fin = nueva_etiqueta(b, "match");
     var k = 1;
     while k < n.hijos.largo() {
-        let brazo = copiar(n.hijos[k]);
+        let brazo: &P.Nodo = n.hijos[k];
         k = k + 1;
         let variante = I.tras_el_punto(brazo.texto);
         let con_forma = brazo.texto.largo() > 0;
@@ -5023,7 +5023,7 @@ fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Conte
         } else {
             // La guarda, con sus temporales soltados en el acto: el brazo
             // puede no casar, y entonces no llega a su final.
-            let g = copiar(brazo.hijos[guarda como usize]);
+            let g: &P.Nodo = brazo.hijos[guarda como usize];
             var antes: lista<str> = [];
             for x en b.temporales { antes.anadir(copiar(x)); }
             olvidar_temporales(b);

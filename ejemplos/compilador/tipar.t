@@ -79,6 +79,16 @@ fn tipo_con_marca(texto: view) -> str {
     return vacio();
 }
 
+fn tipo_de_declaracion(texto: view) -> str {
+    let t = tipo_desnudo(texto);
+    if t.largo() == 0 { return t; }
+    let corte = indice_de(texto, ": ") sino texto.largo();
+    let escrito = recortar(rebanar(texto, corte + 2, texto.largo()));
+    if empieza_con(escrito, "&mut ") { return $"&mut {t}"; }
+    if empieza_con(escrito, "&") { return $"&{t}"; }
+    return t;
+}
+
 fn tipo_desnudo(texto: view) -> str {
     var i = 0;
     while i + 1 < texto.largo() {
@@ -212,7 +222,8 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
         Clase.Declaracion -> {
             // Primero el valor, que se lee en el ambito de antes.
             var tipo = vacio();
-            let escrito = tipo_desnudo(n.texto);
+            // Un `let x: &T = ...` es un prestamo, y lo dice: el `&` se queda.
+            let escrito = tipo_de_declaracion(n.texto);
             if escrito.largo() > 0 {
                 tipo = escrito;
             } else {

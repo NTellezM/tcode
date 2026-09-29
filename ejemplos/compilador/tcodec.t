@@ -1576,6 +1576,44 @@ fn tipo_de_nombre_mapa(u: view) -> str {
 }
 
 // Los nombres de C que empiezan por `prefijo`: `ss_lista_str` en una linea.
+// Los nombres de C que llevan `_`, cada uno una vez y en el orden en que
+// aparecen. Un nombre empieza donde no lo precede otro caracter de nombre:
+// `posicion__` esta dentro de `ultima_posicion__usize`, y esa es otra.
+fn nombres_con_raya(lineas: &lista<str>) -> lista<str> {
+    var vistos: mapa<str, usize> = [];
+    var salida: lista<str> = [];
+    for t en lineas {
+        var i = 0;
+        while i < t.largo() {
+            if !T.es_de_nombre(byte(t, i)) {
+                i = i + 1;
+                continue;
+            }
+            var j = i;
+            var con_raya = false;
+            while j < t.largo() && T.es_de_nombre(byte(t, j)) {
+                if byte(t, j) == 95 { con_raya = true; }
+                j = j + 1;
+            }
+            if con_raya {
+                let nombre = rebanar(t, i, j);
+                if !tiene(vistos, nombre) {
+                    poner(vistos, nombre, 1);
+                    salida.anadir(nuevo(nombre));
+                }
+            }
+            i = j;
+        }
+    }
+    return salida;
+}
+
+fn con_prefijo(nombres: &lista<str>, prefijo: view, salida: mut mapa<str, usize>) {
+    for x en nombres {
+        if empieza_con(x, prefijo) { poner(salida, x, 1); }
+    }
+}
+
 fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
     var i = buscar_desde(t, prefijo, 0);
     while i < t.largo() {
@@ -2966,10 +3004,14 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
     vistas_inst: &mapa<str, usize>) -> UsosGenerados {
     var limpios: lista<str> = [];
     for l en cuerpos { limpios.anadir(sin_cadenas(l)); }
+    // Cada nombre de C de los cuerpos, una vez. Las revisiones de abajo la
+    // miran a ella: recorrer todas las lineas por cada prefijo, y por cada
+    // generica, se llevaba la quinta parte de lo que tarda el compilador.
+    let nombres = nombres_con_raya(limpios);
     var registradas: mapa<str, usize> = [];
 
     var usadas: mapa<str, usize> = [];
-    for l en limpios { apuntar_nombres(l, "ss_lista_", usadas); }
+    con_prefijo(nombres, "ss_lista_", usadas);
     for x en reg.listas {
         let nombre_c = G.tipo_c(x);
         poner(registradas, vista(nombre_c), 1);
@@ -2982,7 +3024,7 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
     }
 
     var usados_b: mapa<str, usize> = [];
-    for l en limpios { apuntar_nombres(l, "ss_bloque_", usados_b); }
+    con_prefijo(nombres, "ss_bloque_", usados_b);
     for x en reg.bloques {
         let nombre_c = G.tipo_c(x);
         poner(registradas, vista(nombre_c), 1);
@@ -3017,7 +3059,7 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
     }
     if envoltorios.largo() > 0 { envoltorios.anadir(vacio()); }
     var usados_a: mapa<str, usize> = [];
-    for l en limpios { apuntar_nombres(l, "ss_arr_", usados_a); }
+    con_prefijo(nombres, "ss_arr_", usados_a);
     for x en reg.arreglos {
         let nombre_c = G.tipo_c(x);
         poner(registradas, vista(nombre_c), 1);
@@ -3035,10 +3077,8 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
 
     var usados_m: mapa<str, usize> = [];
     var usados_r: mapa<str, usize> = [];
-    for l en limpios {
-        apuntar_nombres(l, "ss_mapa_", usados_m);
-        apuntar_nombres(l, "ss_res_", usados_r);
-    }
+    con_prefijo(nombres, "ss_mapa_", usados_m);
+    con_prefijo(nombres, "ss_res_", usados_r);
     for x en reg.mapas {
         let nombre_c = G.tipo_c(x);
         poner(registradas, vista(nombre_c), 1);
@@ -3061,15 +3101,17 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
         }
     }
 
-    for g en claves(plantillas) {
-        var usadas_g: mapa<str, usize> = [];
-        let prefijo = $"{g}__";
-        for l en limpios { apuntar_nombres(l, prefijo, usadas_g); }
-        for u en claves(usadas_g) {
-            if !tiene(vistas_inst, u) {
+    // Una copia de una generica se llama `plantilla__tipos`: lo que va antes
+    // de un `__` que sea una plantilla.
+    for u en nombres {
+        var k = 0;
+        while k + 1 < u.largo() {
+            if byte(u, k) == 95 && byte(u, k + 1) == 95 && tiene(plantillas, rebanar(u, 0, k))
+            && !tiene(vistas_inst, u) {
                 imprimir_error($"tcodec: la copia `{u}` se usa y no se escribio\n");
                 return UsosGenerados { ok: false, limpios: [], envoltorios: [] };
             }
+            k = k + 1;
         }
     }
     return UsosGenerados { ok: true, limpios: limpios, envoltorios: envoltorios };

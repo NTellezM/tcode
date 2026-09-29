@@ -76,7 +76,20 @@ tcode programa.t -O3
 
 ## El compilador
 
-`tcodec` escribe su propio C —unas 20.900 líneas de Tcode más `std/`, 5 MB
-de C— en **1,3 s** (gcc 13, `-O1` en la semilla; unas 9 unidades). Lo que
-más pesa es copiar textos, listas y nodos (17 %) y buscar símbolos (14 %),
-medido con callgrind.
+`tcodec` escribe su propio C —unas 21.100 líneas de Tcode más `std/`, 6 MB
+de C— en **1,2 s** (gcc 13, `-O1` en la semilla; unas 9 unidades).
+
+Medido con gprof, lo que más pesaba (27 %) era una comprobación sobre el C
+ya escrito: que cada nombre compuesto que usan los cuerpos tenga su
+declaración. Recorría todas las líneas una vez por cada prefijo y por cada
+genérica. Ahora es una sola pasada que recoge los nombres, y el compilador
+tardó un 8 % menos (1,32 s a 1,22 s). Lo que queda arriba son copias:
+textos, la foto del programa que se toma antes de probar cada genérica, y
+listas de parámetros.
+
+## Prestar en vez de copiar
+
+Leer un elemento con dueño exigía `copiar(...)`, una copia profunda. Con
+`let x: &T = l[i];` es su dirección. En un bucle que lee cinco millones de
+elementos —un struct con un texto y una lista de textos—, copiando tarda
+0,35 s y prestando 0,01 s. El resultado es el mismo.

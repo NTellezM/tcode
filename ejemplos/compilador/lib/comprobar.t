@@ -1875,7 +1875,7 @@ fn presta_un_sitio(c: &Comprobacion, m: &Mundo, escrito: view, valor: &P.Nodo) -
 // `&mut`.
 fn prestar_sitio(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nodo,
     nombre: view, escrito: view, mutable: bool) {
-    let valor = copiar(s.hijos[0]);
+    let valor: &P.Nodo = s.hijos[0];
     let t = comprobar_expresion(c, m, tipos, valor, "", false);
     let base = variable_base(valor);
     let ib = buscar_simbolo(c, base);
@@ -3247,7 +3247,7 @@ fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n
     // cuenta antes de fijarle el tipo, que tambien la contaria.
     let destino_t = T.sin_alias_tipo(vista(n.texto));
     // `-300` es un `i64`: se cuenta lo de dentro y se le cambia el signo.
-    let x = copiar(n.hijos[0]);
+    let x: &P.Nodo = n.hijos[0];
     let negada = x.clase == Clase.Unaria && x.texto == "-" && x.hijos.largo() == 1
     && I.literal_de(x.hijos[0]) == "entero";
     if (igual(t, literal()) || negada) && es_tipo_entero(destino_t) {
@@ -3771,7 +3771,7 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     var hay_comodin = false;
     var k = 1;
     while k < n.hijos.largo() {
-        let b = copiar(n.hijos[k]);
+        let b: &P.Nodo = n.hijos[k];
         k = k + 1;
         if hay_comodin {
             error(c, m, n.linea, "hay brazos detras del `_`, y no se miran nunca: el `_` vale para todo lo que quede");
@@ -3816,7 +3816,7 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
             declarar_patron(c, m, n.linea, base, forma, posiciones, mirado);
         }
         if guarda >= 0 {
-            let g = copiar(b.hijos[guarda como usize]);
+            let g: &P.Nodo = b.hijos[guarda como usize];
             c.en_guarda = c.en_guarda + 1;
             let tg = comprobar_expresion(c, m, tipos, g.hijos[0], "", false);
             c.en_guarda = c.en_guarda - 1;
@@ -3937,7 +3937,7 @@ fn patron_valido(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma
             if !patron_valido(c, m, linea, t, cual, posiciones_de(p)) { return false; }
             continue;
         }
-        let lit = copiar(p.hijos[0]);
+        let lit: &P.Nodo = p.hijos[0];
         let lc = lit.clase;
         var numero = lc == Clase.Entero;
         if lc == Clase.Unaria && lit.texto == "-" && lit.hijos.largo() > 0 {
@@ -4215,8 +4215,8 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     var hechos = prestamos();
     var i = 0;
     while i < n.hijos.largo() && i < f.params.largo() {
-        let arg = copiar(n.hijos[i]);
-        let p = copiar(f.params[i]);
+        let arg: &P.Nodo = n.hijos[i];
+        let p: &Param = f.params[i];
         i = i + 1;
         if prestado(p) {
             let base = variable_base(arg);
@@ -4643,7 +4643,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     var i = 0;
     while i < dados {
         let esperado = vista(fi.params[i]);
-        let arg = copiar(n.hijos[i]);
+        let arg: &P.Nodo = n.hijos[i];
         let k = i + 1;
         i = i + 1;
         if esperado == "@mut" { continue; }
@@ -4694,7 +4694,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     while j < dados {
         let k = j + 1;
         let esperado = vista(fi.params[j]);
-        let arg = copiar(n.hijos[j]);
+        let arg: &P.Nodo = n.hijos[j];
         j = j + 1;
         if esperado != "@mut" { continue; }
         let base = variable_base(arg);
@@ -5186,7 +5186,7 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
             return;
         }
         Clase.Asignacion -> {
-            let lugar = copiar(s.hijos[0]);
+            let lugar: &P.Nodo = s.hijos[0];
             let base = variable_base(lugar);
             let i = buscar_simbolo(c, base);
             if base.largo() == 0 || !existe(c, i) {
@@ -6100,7 +6100,7 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
     while e < m.funciones.largo() {
         if m.funciones[e].externa {
             c.archivo = copiar(m.funciones[e].archivo);
-            let f = copiar(m.funciones[e]);
+            let f: &Funcion = m.funciones[e];
             comprobar_externa(c, m, f);
         }
         e = e + 1;

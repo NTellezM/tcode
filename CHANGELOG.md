@@ -65,6 +65,12 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
 ### Cambiado
 
+- `tcodec` tarda un 8 % menos en escribir su propio C (1,32 s a 1,22 s).
+  Una comprobación sobre el C ya escrito recorría todas las líneas una vez
+  por cada prefijo y por cada genérica, y era el 27 % del tiempo; ahora es
+  una sola pasada. El propio compilador presta nodos y funciones en vez de
+  copiarlos donde puede.
+
 - Las funciones del programa salen `static` en el C, con
   `SS_LANG_QUIZA_SIN_USAR`. El programa es un solo archivo de C y nadie de
   fuera las llama; con enlace externo, gcc en `-O2` dejaba de integrar una
