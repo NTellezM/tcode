@@ -361,7 +361,12 @@ fn prototipo(nombre: view, params: &lista<str>, marcas: &lista<str>,
         return nuevo("int main(int argc, char** argv)");
     }
 
-    var salida = vacio();
+    // El programa entero es un solo archivo de C: sus funciones no se ven
+    // desde fuera. Con `static`, gcc sabe que nadie mas la llama y la integra
+    // tambien en `-O2`; sin el, una funcion pequena llamada en un bucle se
+    // quedaba en `call` y costaba 1,65 veces lo de C. Puede no usarse, y eso
+    // no es un aviso para nadie.
+    var salida = nuevo("SS_LANG_QUIZA_SIN_USAR static ");
     if falible {
         let r = tipo_resultado(retorno);
         salida.empujar(r);

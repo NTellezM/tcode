@@ -53,6 +53,16 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   Las llamadas lo conservan: `Q.hecho` dice de qué módulo es la función.
 - `tests/fuzz.py` mira los errores de `cc` y `ld` en inglés (`LC_ALL=C`).
 
+### Cambiado
+
+- Las funciones del programa salen `static` en el C, con
+  `SS_LANG_QUIZA_SIN_USAR`. El programa es un solo archivo de C y nadie de
+  fuera las llama; con enlace externo, gcc en `-O2` dejaba de integrar una
+  función pequeña cuyo cuerpo crecía con las comprobaciones, y el caso
+  `structs` del benchmark iba a 1.65x de C. Ahora va a 1.00x con el `-O2` de
+  siempre. Cambia el C de todos los programas, igual en los dos
+  compiladores; los archivos de C de un `externo` no se ven afectados.
+
 ### Añadido
 
 - Sección FORMAS en la suite: cada forma de guardar un tipo dentro de otro

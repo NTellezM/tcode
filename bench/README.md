@@ -35,14 +35,14 @@ cuánto cuestan las comprobaciones sobre código por lo demás idéntico. En
 todos los casos iguala a la primera, que es la señal de que el resto de lo
 que genera Tcode no cuesta nada.
 
-## Resultados (2 vCPU, gcc 13, `-O3`)
+## Resultados (2 vCPU, gcc 13)
 
-| caso | C a mano | Tcode | Tcode\* | Tcode / C |
+| caso | C a mano | Tcode `-O2` | Tcode/C `-O2` | Tcode/C `-O3` |
 |---|---|---|---|---|
-| aritmetica | 0.140s | 0.158s | 0.140s | **1.13x** |
-| arreglo | 0.266s | 0.265s | 0.265s | **1.00x** |
-| cadenas | 0.021s | 0.020s | 0.021s | **0.98x** |
-| structs | 0.160s | 0.169s | 0.160s | **1.05x** |
+| aritmetica | 0.141s | 0.145s | **1.03x** | 1.12x |
+| arreglo | 0.266s | 0.265s | **1.00x** | 1.00x |
+| cadenas | 0.022s | 0.022s | **1.01x** | 1.02x |
+| structs | 0.168s | 0.168s | **1.00x** | 1.04x |
 
 Lo que se paga es la aritmética comprobada, y sólo cuando el bucle está
 dominado por aritmética. Todo lo demás —índices comprobados, préstamos,
@@ -51,25 +51,28 @@ liberación automática, arreglos envueltos en struct, cadenas— sale a 1.00x.
 Los índices comprobados no cuestan nada medible: el salto lo predice siempre
 bien el procesador y cabe en huecos que ya estaban libres.
 
-## `-O2` contra `-O3`
+## Por qué las funciones salen `static`
 
-| caso | Tcode/C con `-O2` | Tcode/C con `-O3` |
-|---|---|---|
-| structs | 1.65x | **1.05x** |
+El programa entero es un solo archivo de C, y sus funciones no se llaman
+desde fuera. Hasta 1.0.0-rc1 salían con enlace externo, y en `-O2` eso
+costaba caro: `structs` iba a **1.65x**. No eran las comprobaciones
+—anuladas a mano, el mismo C iba a 1.00x—, sino que el cuerpo comprobado de
+`dist2` crecía, gcc tenía que conservar una copia suelta de la función por
+si alguien de fuera la llamaba, y dejaba de integrarla: en el desensamblado
+había un `call dist2` por vuelta del bucle. Solo `-O3` lo recuperaba.
 
-La diferencia no son las comprobaciones: es que el cuerpo comprobado crece y
-en `-O2` deja de caber en el presupuesto de integración de gcc. En el
-desensamblado se ve directamente —`call dist2` en una versión, el cuerpo
-integrado en la otra—. `-O3` lo recupera.
+Con `static`, gcc sabe que nadie más la llama y la integra también en
+`-O2`: `structs` pasa a 1.00x sin tocar el nivel. Cada función lleva además
+`SS_LANG_QUIZA_SIN_USAR`, porque un programa puede no llamar a alguna y eso
+no es un aviso para nadie. Los archivos de C de un `externo` no se ven
+afectados: llaman a su sistema, no a funciones de Tcode.
 
-Por eso `tcode` acepta `-O`:
+`tcode` sigue aceptando `-O`, pero `-O2`, lo que espera quien viene de C, ya
+no deja nada en la mesa:
 
 ```
 tcode programa.t -O3
 ```
-
-El valor por defecto sigue siendo `-O2`, que es lo que espera quien viene de
-C. Si tu programa tiene bucles cerrados con aritmética, prueba `-O3` y mide.
 
 ## El compilador
 

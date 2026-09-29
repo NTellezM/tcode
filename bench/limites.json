@@ -1,15 +1,15 @@
 {
   "O2": {
-    "aritmetica": 1.29,
+    "aritmetica": 1.27,
     "arreglo": 1.25,
-    "cadenas": 1.3,
-    "structs": 2.07
+    "cadenas": 1.24,
+    "structs": 1.29
   },
   "O3": {
-    "aritmetica": 1.41,
+    "aritmetica": 1.4,
     "arreglo": 1.25,
     "cadenas": 1.32,
     "structs": 1.3
   },
-  "compilador": 11.5
+  "compilador": 11.9
 }

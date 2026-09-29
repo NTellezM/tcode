@@ -203,7 +203,7 @@ comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
 Sobre los <!--c:lexer_archivos-->53<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
-**<!--c:tokens-->201.033<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+**<!--c:tokens-->201.034<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -232,7 +232,7 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 `ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.763<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->53<!--/c--> archivos que
-el parser del compilador, y sobre ellos produce <!--c:nodos-->107.796<!--/c--> nodos:
+el parser del compilador, y sobre ellos produce <!--c:nodos-->107.797<!--/c--> nodos:
 
 <!--c:bloque:parser-->
 ```
@@ -273,7 +273,7 @@ suite, sobre el código real del repositorio.
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.160<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.165<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa) y el resultado se compara byte a
 byte con el del generador de Python: **los <!--c:programas_enteros-->25<!--/c--> programas del repositorio, idénticos**,
 entre ellos el lexer, el parser y el propio `tcodec`, y también **los
@@ -304,7 +304,7 @@ igual
 ```
 
 El `tcodec` construido por sí mismo vuelve a escribir exactamente los mismos
-bytes (<!--c:punto_fijo_bytes-->6,13<!--/c--> MB), y el construido desde su propio C también, bajo
+bytes (<!--c:punto_fijo_bytes-->6,18<!--/c--> MB), y el construido desde su propio C también, bajo
 AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
 El compilador ya no necesita a Python para existir: se construye desde su
 semilla, que es el paso que dieron Go en la 1.5 y Rust con su primer `rustc`
@@ -501,22 +501,23 @@ perder el sitio.
 
 ## Velocidad
 
-Medido contra el mismo programa escrito en C a mano (`make bench`):
+Medido contra el mismo programa escrito en C a mano (`make bench`), con el
+`-O2` de siempre:
 
 | caso | C a mano | Tcode | Tcode / C |
 |---|---|---|---|
-| aritmética | 0.140s | 0.158s | **1.13x** |
+| aritmética | 0.141s | 0.145s | **1.03x** |
 | arreglo (índices comprobados) | 0.266s | 0.265s | **1.00x** |
-| cadenas | 0.021s | 0.020s | **0.98x** |
-| structs prestados | 0.160s | 0.169s | **1.05x** |
+| cadenas | 0.022s | 0.022s | **1.01x** |
+| structs prestados | 0.168s | 0.168s | **1.00x** |
 
 Lo único que se paga es la aritmética comprobada, y sólo cuando el bucle está
 dominado por aritmética. Los índices comprobados, los préstamos, la
 liberación automática y los arreglos envueltos en struct salen a 1.00x.
 
 El detalle está en [`bench/README.md`](bench/README.md), incluido por qué
-`-O3` importa aquí y por qué el compilador escrito en Python no se nota
-(es el 0.5% del tiempo; el otro 99.5% es gcc).
+todas las funciones del programa salen `static` y por qué el compilador
+escrito en Python no se nota (es el 0.5% del tiempo; el otro 99.5% es gcc).
 
 ## Probarlo
 
