@@ -36,13 +36,14 @@ fn tras_dos_puntos(texto: view) -> str {
     return vacio();
 }
 
+// El tipo de `nombre: tipo`, sin marca de prestamo y sin alias de modulo.
 fn tipo_pelado(marcado: view) -> str {
     let t = tras_dos_puntos(marcado);
     if empieza_con(t, "mut ") {
-        return nuevo(rebanar(t, 4, t.largo()));
+        return T.sin_alias_tipo(rebanar(t, 4, t.largo()));
     }
-    if T.es_referencia(t) { return nuevo(T.apuntado(t)); }
-    return t;
+    if T.es_referencia(t) { return T.sin_alias_tipo(T.apuntado(t)); }
+    return T.sin_alias_tipo(t);
 }
 
 fn marca_de(marcado: view) -> str {
@@ -112,7 +113,7 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
             var marcados: lista<str> = [];
             for h en n.hijos {
                 if h.clase == Clase.RetornoTipo {
-                    retorno = nuevo(h.texto);
+                    retorno = T.sin_alias_tipo(h.texto);
                 }
                 // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
                 // existe en el borde: lo que ve Tcode es un `str` suyo.
@@ -381,6 +382,57 @@ fn preparar(ruta: view, tipos: mut I.Contexto) -> P.Nodo ! {
 // leidos: el cargador de Python se los da al parser, y con ellos `Caja { .. }`
 // es un literal aunque `Caja` venga de un modulo que este no usa. En
 // `leidos` va lo que ya se leyo de otros archivos en esta compilacion.
+// Los tipos se escriben como los ve quien los escribe —`Q.Caja`,
+// `lista<H.Nombre>`, `Q.Sobre.Con`—, pero en el compilador se apuntan por su
+// nombre: el alias de un modulo solo dice de donde viene, y dos modulos no
+// declaran el mismo tipo. Se quita una vez, al leer —despues de mirar que
+// cada archivo pide lo que usa, que eso si depende de como se escribio—, en
+// cada sitio donde el arbol guarda un tipo, y ninguna capa de despues vuelve
+// a ver un alias en un tipo. Las firmas que se recogen al leer ya se guardan
+// sin el. Las llamadas lo conservan: dos modulos si pueden declarar la misma
+// funcion, y `Q.hecho` dice cual.
+fn quitar_alias_de_tipos(n: mut P.Nodo) {
+    let cl = n.clase;
+    if cl == Clase.CampoDef || cl == Clase.Param || cl == Clase.Declaracion {
+        n.texto = tipo_sin_alias_tras_nombre(n.texto);
+    } else if cl == Clase.RetornoTipo || cl == Clase.Lleva || cl == Clase.Conversion
+    || cl == Clase.LiteralStruct {
+        if contiene(n.texto, ".") { n.texto = T.sin_alias_tipo(n.texto); }
+    } else if cl == Clase.EnumLit || cl == Clase.Brazo || cl == Clase.Patron {
+        n.texto = forma_sin_alias(n.texto);
+    }
+    var i = 0;
+    while i < n.hijos.largo() {
+        quitar_alias_de_tipos(n.hijos[i]);
+        i = i + 1;
+    }
+}
+
+// `x: &Q.Caja` -> `x: &Caja`; `let w` se queda como esta.
+fn tipo_sin_alias_tras_nombre(texto: view) -> str {
+    let corte = indice_de(texto, ": ") sino texto.largo();
+    if corte == texto.largo() { return nuevo(texto); }
+    var r = nuevo(rebanar(texto, 0, corte + 2));
+    r.empujar(T.sin_alias_tipo(rebanar(texto, corte + 2, texto.largo())));
+    return r;
+}
+
+// `Q.Sobre.Con` -> `Sobre.Con`: con alias, una forma tiene tres partes.
+fn forma_sin_alias(texto: view) -> str {
+    var puntos = 0;
+    var primero = texto.largo();
+    var i = 0;
+    while i < texto.largo() {
+        if byte(texto, i) == 46 {
+            if puntos == 0 { primero = i; }
+            puntos = puntos + 1;
+        }
+        i = i + 1;
+    }
+    if puntos < 2 { return nuevo(texto); }
+    return nuevo(rebanar(texto, primero + 1, texto.largo()));
+}
+
 fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
     previos_st: &mapa<str, usize>, previos_en: &mapa<str, usize>,
     leidos: mut P.Leidos) -> P.Nodo ! {

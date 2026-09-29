@@ -949,7 +949,7 @@ fn es_falible(d: &P.Nodo) -> bool {
 fn retorno_de(d: &P.Nodo) -> str {
     for h en d.hijos {
         if h.clase == Clase.RetornoTipo {
-            return T.sin_alias_tipo(h.texto);
+            return nuevo(h.texto);
         }
     }
     return vacio();
@@ -1027,12 +1027,6 @@ fn tipo_obtener(v: view, global: &I.Contexto) -> str {
 // es algo que este hito todavia no escribe.
 fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     structs: &mapa<str, usize>) -> bool {
-    // `[Q.Caja; 2]` es `[Caja; 2]`: registrado con el alias, su envoltorio
-    // salia dos veces.
-    if contiene(t, ".") {
-        let sin = T.sin_alias_tipo(t);
-        if !igual(sin, t) { return mirar_tipo(sin, reg, global, structs); }
-    }
     if contiene(t, "<") {
         let resuelto = I.nombre_resuelto(t);
         if !igual(resuelto, t) {
@@ -1110,7 +1104,7 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
                     let nombre = G.nombre_declarado(st.texto);
                     var escrito = G.tipo_escrito(st.texto);
                     if escrito.largo() == 0 { escrito = I.tipo_de(tipos, st.hijos[0]); }
-                    let t = T.sin_alias_tipo(escrito);
+                    let t = escrito;
                     if bien { bien = mirar_tipo(t, reg, global, structs); }
                     I.declarar(tipos, nombre, t);
                 }
@@ -1174,8 +1168,7 @@ fn mirar_funcion(d: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
     var bien = true;
     for h en d.hijos {
         if h.clase == Clase.Param {
-            let pelado = F.tipo_pelado(h.texto);
-            let t = T.sin_alias_tipo(pelado);
+            let t = F.tipo_pelado(h.texto);
             if bien { bien = mirar_tipo(t, reg, global, structs); }
             let pn = F.nombre_de(h.texto);
             I.declarar(tipos, pn, t);
@@ -1978,21 +1971,19 @@ fn resolver_en_nodo(n: &P.Nodo, plantillas_st: &mapa<str, usize>,
     global: mut I.Contexto) {
     let clase = n.clase;
     if clase == Clase.Param {
-        let tp = F.tipo_pelado(n.texto);
-        let t = T.sin_alias_tipo(tp);
+        let t = F.tipo_pelado(n.texto);
         let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
     if clase == Clase.RetornoTipo || clase == Clase.LiteralStruct {
-        let t = T.sin_alias_tipo(n.texto);
+        let t = nuevo(n.texto);
         let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
     if clase == Clase.Declaracion {
         let escrito = G.tipo_escrito(n.texto);
         if escrito.largo() > 0 {
-            let t = T.sin_alias_tipo(escrito);
-            let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
+            let _r = resolver_reg(vista(escrito), plantillas_st, p_params, p_campos, p_tipos, en_curso,
                 st_nombres, st_indice, st_campos, st_tipos, global);
         }
     }
@@ -3004,8 +2995,7 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
     }
 
     var tardios: lista<str> = [];
-    for t_escrito en cta.arreglos {
-        let t = T.sin_alias_tipo(t_escrito);
+    for t en cta.arreglos {
         if !tiene(reg.arr_vistos, t) && !esta_en(tardios, t) {
             tardios.anadir(copiar(t));
         }
@@ -3432,7 +3422,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                             if h.clase == Clase.CampoDef {
                                 cs.anadir(F.nombre_de(h.texto));
                                 let tp = F.tipo_pelado(h.texto);
-                                ts.anadir(T.sin_alias_tipo(tp));
+                                ts.anadir(tp);
                             }
                         }
                         poner(stp_indice, vista(d.texto), stp_nombres.largo());
@@ -3452,7 +3442,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                         if h.clase == Clase.CampoDef {
                             let tp = F.tipo_pelado(h.texto);
                             campos.anadir(F.nombre_de(h.texto));
-                            tipos_campo.anadir(T.sin_alias_tipo(tp));
+                            tipos_campo.anadir(tp);
                         }
                     }
                     poner(st_indice, vista(d.texto), st_nombres.largo());
@@ -3470,7 +3460,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                         for h en f.hijos {
                             if h.clase == Clase.Param {
                                 let tp = F.tipo_pelado(h.texto);
-                                ps.anadir(T.sin_alias_tipo(tp));
+                                ps.anadir(tp);
                                 pn.anadir(F.nombre_de(h.texto));
                             }
                             if h.clase == Clase.RetornoTipo { ret = nuevo(h.texto); }
@@ -3525,6 +3515,13 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
     marcar_tapadas(arboles, plantillas, global);
     if !(try ajustar_contextos(arboles, modulos, raiz, global, plantillas, contextos)) {
         return programa_no_leido();
+    }
+    // Ya se sabe que cada archivo pide lo que usa: desde aqui los tipos van
+    // sin el alias de su modulo.
+    var k_alias = 0;
+    while k_alias < arboles.largo() {
+        F.quitar_alias_de_tipos(arboles[k_alias]);
+        k_alias = k_alias + 1;
     }
     let structs = StructsLeidos { nombres: st_nombres, campos: st_campos,
         tipos: st_tipos, indice: st_indice };
@@ -3781,8 +3778,7 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
     var adelantados_orden: lista<str> = [];
     for x en ordenadas {
         let dependencias = dependencias_de_agregado(x);
-        for d_escrito en dependencias {
-            let d = T.sin_alias_tipo(d_escrito);
+        for d en dependencias {
             if T.es_arreglo(d) && !tiene(adelantados, d) {
                 poner(adelantados, d, 1);
                 adelantados_orden.anadir(copiar(d));
@@ -4062,8 +4058,7 @@ fn main() -> usize ! {
             if d.clase == Clase.Struct && !tiene_tipo_param(d) {
                 for h en d.hijos {
                     if h.clase == Clase.CampoDef {
-                        let tp = F.tipo_pelado(h.texto);
-                        let t = T.sin_alias_tipo(tp);
+                        let t = F.tipo_pelado(h.texto);
                         if !mirar_tipo(t, reg, global, con_partes) {
                             return rechazo("mapas, bloques ni arreglos");
                         }
@@ -4078,8 +4073,7 @@ fn main() -> usize ! {
                     if v.clase != Clase.Variante { continue; }
                     for x en v.hijos {
                         if x.clase != Clase.Lleva { continue; }
-                        let t = T.sin_alias_tipo(x.texto);
-                        if !mirar_tipo(t, reg, global, con_partes) {
+                        if !mirar_tipo(x.texto, reg, global, con_partes) {
                             return rechazo("mapas, bloques ni arreglos");
                         }
                     }

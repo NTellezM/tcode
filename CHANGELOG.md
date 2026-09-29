@@ -44,6 +44,13 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   cuatro archivos de `tcodec`, y de ahí salió la fuga de los structs con un
   enum. Ahora hay una sola regla, `posee_en` en `lib/tipos.t`, que conoce
   structs, genéricas, enums y alias de módulo.
+- Los tipos de `tcodec` se normalizan una sola vez, al leer: tras mirar que
+  cada archivo pide lo que usa, el árbol pierde el alias de módulo en cada
+  sitio donde guarda un tipo (`Q.Caja`, `lista<H.Nombre>`, `Q.Sobre.Con`), y
+  las firmas que se recogen al leer ya se guardan sin él. Tres de los
+  fallos de arriba venían de una capa que olvidaba quitarlo; desde aquí
+  ninguna lo ve, y `tcodec.t` pasa de quince sitios que lo quitaban a uno.
+  Las llamadas lo conservan: `Q.hecho` dice de qué módulo es la función.
 - `tests/fuzz.py` mira los errores de `cc` y `ld` en inglés (`LC_ALL=C`).
 
 ### Añadido
