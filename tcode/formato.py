@@ -67,10 +67,12 @@ def _es_generico(toks, i):
     # `fn nombre<T>` o `struct Nombre<T>`
     if i >= 2 and toks[i - 2].valor in ("fn", "struct"):
         return True
-    # `Nombre<...>` en posicion de tipo: detras de `:` o `->`
-    if i >= 2 and toks[i - 2].valor in (":", "->", "<", ","):
-        return True
-    return False
+    # `Nombre<...>` en posicion de tipo: detras de `:` o `->`. Entre el
+    # contexto y el nombre pueden ir `&`, `mut` o los dos: `&mut Par<A, B>`.
+    k = i - 2
+    while k >= 0 and toks[k].valor in ("&", "mut"):
+        k -= 1
+    return k >= 0 and toks[k].valor in (":", "->", "<", ",")
 
 
 def formatear(fuente, archivo="<entrada>"):
@@ -309,6 +311,9 @@ def _pega(ant, i_ant, t, i, generico, unario):
     if ant.tipo == "comentario":
         return False
     if t.tipo == "simbolo" and t.valor in SIN_ESPACIO_ANTES:
+        return True
+    # `como?`: el `?` es parte de la conversion.
+    if t.tipo == "simbolo" and t.valor == "?" and ant.valor == "como":
         return True
     if ant.tipo == "simbolo" and ant.valor in SIN_ESPACIO_DESPUES:
         return True

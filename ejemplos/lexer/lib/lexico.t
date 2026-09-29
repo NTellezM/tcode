@@ -3,6 +3,7 @@
 // Lo usan `lexer.t`, que imprime los tokens, y `parser.t`, que los analiza.
 
 usar "std/caracter";
+usar "xid.t";
 
 struct Token {
     tipo: str, // palabra, ident, entero, cadena, interpolada, simbolo
@@ -294,8 +295,159 @@ fn tokens_desde(fuente: view, archivo: view, linea: usize, error: mut str) -> li
 
 // Con `comentarios`, tambien los comentarios, como tokens `comentario`: el
 // formateador los necesita para dejarlos donde estaban.
+// Donde empieza la primera secuencia que no es UTF-8, o el largo si todo lo
+// es: las mismas reglas que el decodificador estricto de Python (RFC 3629),
+// sin formas largas, sin sustitutos y sin pasar de U+10FFFF.
+fn utf8_invalido(f: view) -> usize {
+    var i = 0;
+    while i < f.largo() {
+        let b = byte(f, i);
+        var n = 0;
+        var bajo = 128;
+        var alto = 191;
+        if b < 128 {
+            n = 1;
+        } else if b >= 194 && b <= 223 {
+            n = 2;
+        } else if b >= 224 && b <= 239 {
+            n = 3;
+            if b == 224 { bajo = 160; }
+            if b == 237 { alto = 159; }
+        } else if b >= 240 && b <= 244 {
+            n = 4;
+            if b == 240 { bajo = 144; }
+            if b == 244 { alto = 143; }
+        } else {
+            return i;
+        }
+        if i + n > f.largo() { return i; }
+        var k = 1;
+        while k < n {
+            let c = byte(f, i + k);
+            if k == 1 && (c < bajo || c > alto) { return i; }
+            if k > 1 && (c < 128 || c > 191) { return i; }
+            k = k + 1;
+        }
+        i = i + n;
+    }
+    return f.largo();
+}
+
+// Cuantos bytes ocupa el caracter que empieza con `b`.
+fn largo_utf8(b: usize) -> usize {
+    if b < 128 { return 1; }
+    if b < 224 { return 2; }
+    if b < 240 { return 3; }
+    return 4;
+}
+
+// El punto de codigo que empieza en `i`, que ya se sabe UTF-8 valido.
+fn punto_utf8(f: view, i: usize) -> usize {
+    let b = byte(f, i);
+    let n = largo_utf8(b);
+    if n == 1 { return b; }
+    var cp = b % 32;
+    if n == 3 { cp = b % 16; }
+    if n == 4 { cp = b % 8; }
+    var k = 1;
+    while k < n {
+        cp = cp * 64 + byte(f, i + k) % 64;
+        k = k + 1;
+    }
+    return cp;
+}
+
+// Un nombre empieza por `_`, una letra ASCII o un caracter XID_Start, y
+// sigue con eso, digitos ASCII o XID_Continue (UAX #31).
+fn empieza_nombre(f: view, i: usize) -> bool {
+    let b = byte(f, i);
+    if b < 128 { return es_minuscula(b) || es_mayuscula(b) || b == 95; }
+    return xid_inicio(punto_utf8(f, i));
+}
+
+fn sigue_nombre(f: view, i: usize) -> bool {
+    let b = byte(f, i);
+    if b < 128 { return es_minuscula(b) || es_mayuscula(b) || b == 95 || es_digito(b); }
+    return xid_sigue(punto_utf8(f, i));
+}
+
+// `n` en hexadecimal con mayusculas y al menos cuatro cifras, como `U+00D7`.
+fn hexadecimal(n: usize) -> str {
+    var cifras = vacio();
+    var resto = n;
+    while resto > 0 || cifras.largo() < 4 {
+        let d = resto % 16;
+        cifras = $"{rebanar("0123456789ABCDEF", d, d + 1)}{cifras}";
+        resto = resto / 16;
+    }
+    return cifras;
+}
+
+// Donde empieza el primer control bidireccional de `fuente`, o su largo si
+// no hay ninguno. En UTF-8 son E2 80 AA..AE (U+202A..U+202E) y E2 81 A6..A9
+// (U+2066..U+2069).
+fn control_bidireccional(fuente: view) -> usize {
+    var i = 0;
+    while i + 2 < fuente.largo() {
+        if byte(fuente, i) == 226 {
+            let b1 = byte(fuente, i + 1);
+            let b2 = byte(fuente, i + 2);
+            if b1 == 128 && b2 >= 170 && b2 <= 174 { return i; }
+            if b1 == 129 && b2 >= 166 && b2 <= 169 { return i; }
+        }
+        i = i + 1;
+    }
+    return fuente.largo();
+}
+
+// `U+202E`, el del control bidireccional que empieza en `i`.
+fn nombre_bidireccional(fuente: view, i: usize) -> str {
+    let b1 = byte(fuente, i + 1);
+    let b2 = byte(fuente, i + 2);
+    if b1 == 128 {
+        if b2 == 170 { return nuevo("U+202A"); }
+        if b2 == 171 { return nuevo("U+202B"); }
+        if b2 == 172 { return nuevo("U+202C"); }
+        if b2 == 173 { return nuevo("U+202D"); }
+        return nuevo("U+202E");
+    }
+    if b2 == 166 { return nuevo("U+2066"); }
+    if b2 == 167 { return nuevo("U+2067"); }
+    if b2 == 168 { return nuevo("U+2068"); }
+    return nuevo("U+2069");
+}
+
+// Cuantos saltos de linea hay antes de la posicion `hasta`.
+fn lineas_hasta(fuente: view, hasta: usize) -> usize {
+    var n = 0;
+    var i = 0;
+    while i < hasta && i < fuente.largo() {
+        if byte(fuente, i) == 10 { n = n + 1; }
+        i = i + 1;
+    }
+    return n;
+}
+
 fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: usize,
     error: mut str) -> lista<Token> ! {
+    // Los controles bidireccionales hacen que el codigo se vea distinto de
+    // como se compila ("Trojan Source"): no valen en ningun sitio, tampoco
+    // en una cadena o un comentario.
+    // Un `.t` es UTF-8: si no, se dice la linea del primer byte que no lo
+    // es, como el compilador de Python.
+    let roto = utf8_invalido(fuente);
+    if roto < fuente.largo() {
+        let donde = desde_linea + lineas_hasta(fuente, roto);
+        error = $"{archivo}:{donde}: el archivo no es UTF-8 valido";
+        falla "no es UTF-8";
+    }
+    let bidi = control_bidireccional(fuente);
+    if bidi < fuente.largo() {
+        let donde = desde_linea + lineas_hasta(fuente, bidi);
+        let cual = nombre_bidireccional(fuente, bidi);
+        error = $"{archivo}:{donde}: control bidireccional {cual}: hace que el codigo se vea distinto de como se compila";
+        falla "control bidireccional";
+    }
     var salida: lista<Token> = [];
     var i = 0;
     var linea = desde_linea;
@@ -410,17 +562,20 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
             // acaba antes de los dos puntos del rango.
             let rango = j + 1 < fuente.largo() && byte(fuente, j) == 46
             && byte(fuente, j + 1) == 46;
-            if j < fuente.largo() && (es_letra(byte(fuente, j)) && byte(fuente, j) != 95
+            if j < fuente.largo() && (empieza_nombre(fuente, j) && byte(fuente, j) != 95
                 || byte(fuente, j) == 46 && !rango) {
-                let visto = repr_texto(rebanar(fuente, i, j + 1));
+                let visto = repr_texto(rebanar(fuente, i, j + largo_utf8(byte(fuente, j))));
                 error = $"{archivo}:{linea}: numero mal formado cerca de {visto}";
                 falla "numero mal formado";
             }
-            // `1_000` es `1000`: el guion bajo solo ayuda a leerlo.
+            // `1_000` es `1000`: el guion bajo solo ayuda a leerlo. Para el
+            // formato, con `comentarios`, el numero se queda como se escribio.
             var limpio = vacio();
             var q = i;
             while q < j {
-                if byte(fuente, q) != 95 { limpio.empujar(rebanar(fuente, q, q + 1)); }
+                if comentarios || byte(fuente, q) != 95 {
+                    limpio.empujar(rebanar(fuente, q, q + 1));
+                }
                 q = q + 1;
             }
             var clase = nuevo("entero");
@@ -431,10 +586,10 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
         }
 
         // identificador o palabra reservada
-        if es_letra(b) {
-            var j = i;
-            while j < fuente.largo() && es_alfanumerico(byte(fuente, j)) {
-                j = j + 1;
+        if empieza_nombre(fuente, i) {
+            var j = i + largo_utf8(b);
+            while j < fuente.largo() && sigue_nombre(fuente, j) {
+                j = j + largo_utf8(byte(fuente, j));
             }
             let texto_pieza = rebanar(fuente, i, j);
             if es_reservada(texto_pieza) {
@@ -458,7 +613,12 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
             continue;
         }
 
-        let visto = repr_caracter(rebanar(fuente, i, i + 1));
+        var visto = vacio();
+        if b < 128 {
+            visto = repr_caracter(rebanar(fuente, i, i + 1));
+        } else {
+            visto = $"U+{hexadecimal(punto_utf8(fuente, i))}";
+        }
         error = $"{archivo}:{linea}: caracter inesperado {visto}";
         falla "caracter inesperado";
     }

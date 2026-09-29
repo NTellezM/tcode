@@ -17,6 +17,7 @@ from .comun import (
     Resultado,
     c_de_tcodec,
     corpus_python,
+    structs_escritos,
 )
 
 TITULO = "la cara en C de cada funcion, dicha por Tcode"
@@ -41,7 +42,8 @@ def correr(suite: Resultado) -> None:
         # un enum que trae otro modulo, y sin saberlo el parser no lee el
         # compilador.
         try:
-            arbol = _p(open(ruta, encoding="utf-8").read(), ruta, set(),
+            arbol = _p(open(ruta, encoding="utf-8").read(), ruta,
+                       structs_escritos(comp),
                        set(comp.enums))
         except Exception:
             return None
@@ -55,10 +57,12 @@ def correr(suite: Resultado) -> None:
         salida = []
         for nombre in escritas:
             d = comp.funciones.get(nombre)
-            if d is None:
-                d = next((f for k, f in comp.funciones.items()
-                          if k == "ss_id_" + nombre or k.endswith("__" + nombre)),
-                         None)
+            if d is None or (d.archivo or propio) != propio:
+                candidatas = [f for k, f in comp.funciones.items()
+                              if k == "ss_id_" + nombre
+                              or k.endswith("__" + nombre)]
+                d = next((f for f in candidatas
+                          if (f.archivo or propio) == propio), None)
             if d is None:
                 return None
             salida.append(g.prototipo(d))
@@ -113,11 +117,11 @@ def correr(suite: Resultado) -> None:
                     firmas += len(dado)
                 # Un archivo que el parser de Python no lee se salta sin decir
                 # nada; que se salten de mas lo dice este minimo.
-                if comparados < 45:
+                if comparados < 52:
                     suite.total += 1
                     suite.falla("firmas en Tcode",
                                 f"solo {comparados} archivos comparados, se esperaban "
-                                f"al menos 45")
+                                f"al menos 52")
                 suite.cifra("firmas_archivos", comparados)
                 suite.cifra("firmas", firmas)
                 print(f"    {comparados} archivos, {firmas} firmas, mismas que el "

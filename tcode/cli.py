@@ -25,7 +25,7 @@ from tcode import nombres_c
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNTIME = os.path.join(RAIZ, "runtime")
 
-VERSION = "0.1.0"
+VERSION = "1.0.0-rc1"
 MARCA = "/* Generado por el compilador de Tcode. No editar a mano. */"
 
 
@@ -212,8 +212,8 @@ def _ejecutar(args):
     try:
         if args.formatear:
             from tcode.formato import formatear
-            with open(args.fuente, encoding="utf-8") as f:
-                fuente = f.read()
+            from tcode.lexer import leer_fuente
+            fuente = leer_fuente(args.fuente)
             salida = formatear(fuente, args.fuente)
             if args.escribir:
                 if salida != fuente:

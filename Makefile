@@ -8,13 +8,22 @@
 #   make cifras       pone en el README las cifras de la ultima `make check`
 #   make ejemplos     compila y corre los ejemplos
 #   make bench        Tcode contra el mismo programa en C a mano
+#   make bench-comprobar  y falla si algo pasa de `bench/limites.json`
 #   make formato      deja todo el codigo Tcode en el formato canonico
 #   make lint         revisa el codigo Python con ruff y mypy
+#   make compiladores la semilla, el punto fijo y `rapido` con cada compilador de C
+#   make paquete      dist/tcode-VERSION.tar.gz, reproducible (arbol limpio)
+#   make probar-paquete  y desde el, sin Python, tcodec y un programa
+#   make version NUEVA=x.y.z  la version en todos sus sitios, y la semilla
+#   make ddc          la semilla y Python construyen el mismo tcodec
+#   make fuzz         rompe el codigo del repositorio al azar (FUZZ_SEGUNDOS=60)
 #   make limpiar      borra lo que genera todo lo anterior
+#   make instalar     tcodec, std/ y runtime/ en PREFIJO (/usr/local)
+#   make desinstalar  lo quita de PREFIJO
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar instalar desinstalar ddc paquete probar-paquete version
 
 all: tcodec
 
@@ -51,18 +60,111 @@ semilla: tcodec
 	@mv .cache/semilla.c $(SEMILLA)
 	@echo "semilla al dia: $(SEMILLA)"
 
-bench:
+# Tcode promete C17 portable: esto lo mira con cada compilador de
+# `COMPILADORES`, no solo con el `cc` de la maquina. Cada uno se pone como
+# `cc` delante del PATH —asi lo usan tcodec y todas las secciones de la
+# suite— y con su propia cache. Con cada uno: la semilla compila sin un solo
+# aviso; el tcodec de ahora, construido desde ella, tambien, y compilado con
+# este compilador vuelve a escribir su propio C byte a byte; y pasan las
+# secciones rapidas.
+COMPILADORES ?= gcc clang
+
+compiladores:
+	@for c in $(COMPILADORES); do \
+	    ruta=$$(command -v $$c) || { echo "no esta $$c"; exit 1; }; \
+	    mkdir -p .cache/cc-$$c && ln -sf "$$ruta" .cache/cc-$$c/cc; \
+	    echo "=== $$c: $$($$c --version | head -1)"; \
+	    PATH="$$PWD/.cache/cc-$$c:$$PATH" TCODE_CACHE="$$PWD/.cache/herramientas-$$c" \
+	        $(MAKE) -s --no-print-directory con-un-cc CC=cc || exit 1; \
+	done
+
+CC_ESTRICTO = cc -std=c17 -O1 -Wall -Wextra -Werror -Iruntime
+
+con-un-cc: punto-fijo-cc
+	@$(PY) tests/test_lenguaje.py $(RAPIDAS)
+
+# Sin la suite: lo que se puede comprobar con solo un compilador de C.
+punto-fijo-cc:
+	@mkdir -p .cache
+	@$(CC_ESTRICTO) $(SEMILLA) $(RUNTIME_C) $(SISTEMA) -o .cache/cc-etapa0 -lm
+	@TCODE_RAIZ=. ./.cache/cc-etapa0 ejemplos/compilador/tcodec.t --mostrar-c \
+	    > .cache/cc-etapa1.c
+	@$(CC_ESTRICTO) .cache/cc-etapa1.c $(RUNTIME_C) $(SISTEMA) -o .cache/cc-etapa1 -lm
+	@TCODE_RAIZ=. ./.cache/cc-etapa1 ejemplos/compilador/tcodec.t --mostrar-c \
+	    | cmp -s - .cache/cc-etapa1.c \
+	    || { echo "tcodec no reproduce su C con este compilador"; exit 1; }
+	@echo "    sin avisos, y tcodec reproduce su C byte a byte"
+
+# Fuzzing sobre los `.t` del repositorio: cada fallo se reduce y se guarda
+# en `tests/fuzz/hallazgos/`. `make check` repite los guardados.
+FUZZ_SEGUNDOS ?= 60
+
+# Una version: ver `docs/VERSIONES.md`.
+paquete:
+	@$(PY) tests/paquete.py
+
+probar-paquete:
+	@$(PY) tests/paquete.py --probar
+
+# La version vive en tres sitios, y la suite (SALIDA) exige que digan lo
+# mismo: `VERSION`, lo que imprime `tcodec --version` y el compilador de
+# Python. Cambiarla cambia el C de tcodec, asi que la semilla se pone al dia.
+version:
+	@test -n "$(NUEVA)" || { echo "uso: make version NUEVA=1.0.0"; exit 1; }
+	@echo "$(NUEVA)" > VERSION
+	@sed -i 's/imprimir("tcodec [^"]*\\n");/imprimir("tcodec $(NUEVA)\\n");/' \
+	    ejemplos/compilador/tcodec.t
+	@sed -i 's/^VERSION = "[^"]*"$$/VERSION = "$(NUEVA)"/' tcode/cli.py
+	@$(MAKE) -s --no-print-directory tcodec semilla
+	@echo "version $(NUEVA): VERSION, tcodec y tcode/cli.py, y la semilla"
+
+# Compilacion doble diversa: el tcodec de la semilla y el que construye
+# Python sin ella escriben el mismo C. Ver `tests/ddc.py`.
+ddc:
+	@$(PY) tests/ddc.py
+
+fuzz:
+	@$(PY) tests/fuzz.py --segundos $(FUZZ_SEGUNDOS)
+
+# Instalado: `PREFIJO/lib/tcode/` lleva tcodec, `std/` y `runtime/` juntos,
+# y `PREFIJO/bin/tcodec` es un enlace. tcodec sigue el enlace hasta su
+# binario y sube hasta dar con `runtime/`, asi que no hace falta
+# `TCODE_RAIZ`. `DESTDIR` es para quien empaqueta.
+PREFIJO ?= /usr/local
+INSTALADO = $(DESTDIR)$(PREFIJO)/lib/tcode
+
+instalar: tcodec
+	@install -d $(INSTALADO)/std $(INSTALADO)/runtime/sistema $(DESTDIR)$(PREFIJO)/bin
+	@install -m 755 tcodec $(INSTALADO)/tcodec
+	@install -m 644 std/*.t $(INSTALADO)/std/
+	@install -m 644 runtime/*.c runtime/*.h runtime/*.inc $(INSTALADO)/runtime/
+	@install -m 644 runtime/sistema/*.inc $(INSTALADO)/runtime/sistema/
+	@install -m 644 VERSION $(INSTALADO)/VERSION
+	@ln -sf ../lib/tcode/tcodec $(DESTDIR)$(PREFIJO)/bin/tcodec
+	@echo "tcodec $$(cat VERSION) en $(DESTDIR)$(PREFIJO)/bin/tcodec"
+
+desinstalar:
+	@rm -rf $(INSTALADO)
+	@rm -f $(DESTDIR)$(PREFIJO)/bin/tcodec
+	@echo "quitado de $(DESTDIR)$(PREFIJO)"
+
+bench: tcodec
 	@$(PY) bench/medir.py
+
+bench-comprobar: tcodec
+	@$(PY) bench/medir.py --comprobar
 
 check:
 	@$(PY) tests/test_lenguaje.py
 	@$(PY) tests/test_propiedades.py
+	@$(PY) tests/fuzz.py --repetir
+	@$(PY) tests/ddc.py
 	@$(PY) tests/cifras.py --comprobar
 
 # Las secciones que prueban el lenguaje con `tcodec`; las que tardan son las
 # que comparan sus capas con las del compilador de Python. Una sola se pide
 # por su nombre: `python3 tests/test_lenguaje.py ACEPTA`.
-RAPIDAS = RECHAZO AVISA ACEPTA SALIDA ARCHIVOS ABORTA MODULOS FORMATO LINEAS EJEMPLOS
+RAPIDAS = RECHAZO AVISA ACEPTA SALIDA ARCHIVOS ABORTA MODULOS FORMATO LINEAS EJEMPLOS CONGELADO ESPECIFICACION
 
 rapido:
 	@$(PY) tests/test_lenguaje.py $(RAPIDAS)
@@ -107,7 +209,7 @@ limpiar:
 
 # Sin opciones: hay un estilo y es este.
 formato: tcodec
-	@for f in $$(find std ejemplos bench -name '*.t'); do \
+	@for f in $$(find std ejemplos bench programas -name '*.t'); do \
 	    ./tcodec "$$f" --formatear --escribir; \
 	done
 	@echo "listo"

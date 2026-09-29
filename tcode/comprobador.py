@@ -1855,6 +1855,12 @@ class Comprobador:
         if isinstance(ultima, Si) and ultima.sino is not None:
             return (self._siempre_sale(ultima.entonces)
                     and self._siempre_sale(ultima.sino))
+        if (isinstance(ultima, ExprSentencia)
+                and isinstance(ultima.expr, Match)):
+            return (bool(ultima.expr.brazos)
+                    and all(not b.es_expresion
+                            and self._siempre_sale(b.cuerpo)
+                            for b in ultima.expr.brazos))
         return False
 
     def bloque(self, sentencias):
@@ -2718,6 +2724,32 @@ class Comprobador:
                 self.contar_escrita(e, "usize")
         del self.escritas[desde:]
 
+    def _conversion_escrita(self, e):
+        """`N como T` con `N` hecho solo de numeros escritos: si no cabe en
+        `T`, no compila. `-300` es un `i64`: se cuenta lo de dentro."""
+        x = e.valor
+        try:
+            if isinstance(x, Unaria) and x.op == "-" and literal_de(x.valor) == "entero":
+                # Al tiparla como `i64` ya se conto, y sus errores ya se
+                # dieron: se cuenta otra vez aparte, sin repetirlos.
+                contadas, self.contadas = self.contadas, set()
+                try:
+                    dentro = self._valor_escrito(x.valor, "i64")
+                except _CuentaParada:
+                    dentro = None
+                finally:
+                    self.contadas = contadas
+                v = None if dentro is None else -dentro
+            else:
+                v = self._valor_escrito(x, "usize")
+        except _CuentaParada as p:
+            self.error(p.nodo, p.mensaje)
+            return
+        minimo, maximo, _, _ = _limites(e.a_tipo)
+        if v is not None and not minimo <= v <= maximo:
+            self.error(e, f"`{v} como {e.a_tipo}` no cabe en `{e.a_tipo}`"
+                          f"{AL_COMPILAR}")
+
     def _valor_escrito(self, e, tipo):
         """El valor de la cuenta, o None si depende de algo que solo se sabe
         en marcha: la condicion de un `if`. Cada nodo se cuenta una vez."""
@@ -2802,7 +2834,7 @@ class Comprobador:
                 f = self.funciones.get(e.nombre)
                 if f is not None:
                     if f.falible:
-                        self.error(e, f"`{e.nombre}` puede fallar, y en v0 una "
+                        self.error(e, f"`{e.nombre}` puede fallar, y una "
                                       f"funcion que se pasa como valor no "
                                       f"puede: quitale el `!` o envuelvela")
                         return None
@@ -2944,6 +2976,14 @@ class Comprobador:
 
         if isinstance(e, Conversion):
             t = sin_prestamo(self.expresion(e.valor) or "")
+            # `300 como u8` es una cuenta de numeros escritos: lo que en
+            # marcha pararia el programa es un error aqui, como
+            # `let x: u8 = 256;`. Se cuenta antes de fijarle el tipo.
+            negada = (isinstance(e.valor, Unaria) and e.valor.op == "-"
+                      and literal_de(e.valor.valor) == "entero")
+            if ((t == LITERAL or negada) and e.a_tipo in ENTEROS
+                    and not e.envolviendo):
+                self._conversion_escrita(e)
             # Un numero escrito sin nada al lado sale de su tipo de siempre.
             if t == LITERAL:
                 self.fijar_literal(e.valor, "usize")
@@ -3016,12 +3056,12 @@ class Comprobador:
         raise AssertionError(f"expresion desconocida: {type(e).__name__}")
 
     def comprobar_mapa_valido(self, nodo, tipo):
-        """Los limites de `mapa<K, V>` en v0, dichos donde se declara."""
+        """Los limites de `mapa<K, V>`, dichos donde se declara."""
         if not es_mapa(tipo):
             return
         k, v = partes_mapa(tipo)
         if k != "str":
-            self.error(nodo, f"en v0 la clave de un mapa tiene que ser `str`, "
+            self.error(nodo, f"la clave de un mapa tiene que ser `str`, "
                              f"y aqui es `{k}`")
         if es_referencia(v) or es_referencia(k):
             self.error(nodo, "un mapa guarda valores, no prestamos: `&T` no "
@@ -4239,6 +4279,8 @@ INTERNAS: dict[str, dict[str, Any]] = {
     "n_argumentos": {"params": [],                    "retorno": "usize"},
     "argumento":    {"params": ["usize"],             "retorno": "view"},
     "leer_archivo": {"params": ["view"], "retorno": "str", "falible": True},
+    "leer_parte_archivo": {"params": ["view", "usize", "usize"],
+                           "retorno": "str", "falible": True},
     "escribir_archivo": {"params": ["view", "view"], "retorno": UNIDAD,
                          "falible": True},
     "imprimir_error": {"params": ["@cualquiera"],     "retorno": UNIDAD},

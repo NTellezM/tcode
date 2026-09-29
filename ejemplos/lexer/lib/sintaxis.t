@@ -468,46 +468,70 @@ fn match_(e: mut Estado) -> Nodo ! {
             error_aqui(e, "match sin cerrar");
             falla "sintaxis";
         }
-        let bl = linea_actual(e);
-        var b = rama(Clase.Brazo, bl);
-        if es(e, "ident", "_") {
-            avanzar(e);
-        } else {
-            let quien = try espera(e, "ident", "");
-            try espera(e, "simbolo", ".");
-            let cual = try espera(e, "ident", "");
-            if !tiene(e.enums, quien) {
-                error_aqui(e, $"`{quien}` no es un enum");
-                falla "sintaxis";
+        var alternativas: lista<Nodo> = [];
+        while true {
+            let bl = linea_actual(e);
+            var b = rama(Clase.Brazo, bl);
+            if es(e, "ident", "_") {
+                avanzar(e);
+            } else {
+                let quien = try espera(e, "ident", "");
+                try espera(e, "simbolo", ".");
+                var cual = try espera(e, "ident", "");
+                var enum_nombre = copiar(quien);
+                if tiene(e.alias, quien) && acepta(e, "simbolo", ".") {
+                    enum_nombre.empujar(".");
+                    enum_nombre.empujar(cual);
+                    cual = try espera(e, "ident", "");
+                }
+                if !tiene(e.enums, enum_nombre) && !tiene(e.alias, quien) {
+                    error_aqui(e, $"`{enum_nombre}` no es un enum");
+                    falla "sintaxis";
+                }
+                b.texto.empujar(enum_nombre);
+                b.texto.empujar(".");
+                b.texto.empujar(cual);
+                try posiciones_patron(e, b);
             }
-            b.texto.empujar(quien);
-            b.texto.empujar(".");
-            b.texto.empujar(cual);
-            try posiciones_patron(e, b);
+            alternativas.anadir(b);
+            if !acepta(e, "simbolo", "|") { break; }
         }
         // Una guarda: el brazo solo vale si ademas se cumple esto.
+        var guarda = rama(Clase.Vacio, 0);
         if acepta(e, "palabra", "if") {
             var g = rama(Clase.Guarda, linea_actual(e));
             let cond = try expresion(e);
             g.hijos.anadir(cond);
-            b.hijos.anadir(g);
+            guarda = g;
         }
         try espera(e, "simbolo", "->");
-        brazos = brazos + 1;
+        brazos = brazos + alternativas.largo();
         if es(e, "simbolo", "{") {
             let cuerpo = try bloque(e);
-            b.hijos.anadir(cuerpo);
-            n.hijos.anadir(b);
+            var ai = 0;
+            while ai < alternativas.largo() {
+                var b = copiar(alternativas[ai]);
+                if guarda.clase == Clase.Guarda { b.hijos.anadir(copiar(guarda)); }
+                b.hijos.anadir(copiar(cuerpo));
+                n.hijos.anadir(b);
+                ai = ai + 1;
+            }
             let _coma = acepta(e, "simbolo", ",");
         } else {
             // Un brazo que da un valor es un `return` de esa expresion: por
             // dentro es lo mismo que un brazo con bloque, y asi el arbol no
             // tiene dos formas de decir la misma cosa.
             let x = try expresion(e);
-            var r = rama(Clase.Retorno, bl);
-            r.hijos.anadir(x);
-            b.hijos.anadir(r);
-            n.hijos.anadir(b);
+            var ai = 0;
+            while ai < alternativas.largo() {
+                var b = copiar(alternativas[ai]);
+                if guarda.clase == Clase.Guarda { b.hijos.anadir(copiar(guarda)); }
+                var r = rama(Clase.Retorno, b.linea);
+                r.hijos.anadir(copiar(x));
+                b.hijos.anadir(r);
+                n.hijos.anadir(b);
+                ai = ai + 1;
+            }
             if !acepta(e, "simbolo", ",") { break; }
         }
     }
@@ -539,13 +563,19 @@ fn posicion_patron(e: mut Estado, n: mut Nodo) ! {
     if es(e, "ident", "") && tipo_en(e, 1) == "simbolo" && valor_en(e, 1) == "." {
         let quien = try espera(e, "ident", "");
         try espera(e, "simbolo", ".");
-        let cual = try espera(e, "ident", "");
-        if !tiene(e.enums, quien) {
-            error_aqui(e, $"`{quien}` no es un enum");
+        var cual = try espera(e, "ident", "");
+        var enum_nombre = copiar(quien);
+        if tiene(e.alias, quien) && acepta(e, "simbolo", ".") {
+            enum_nombre.empujar(".");
+            enum_nombre.empujar(cual);
+            cual = try espera(e, "ident", "");
+        }
+        if !tiene(e.enums, enum_nombre) && !tiene(e.alias, quien) {
+            error_aqui(e, $"`{enum_nombre}` no es un enum");
             falla "sintaxis";
         }
         var p = rama(Clase.Patron, l);
-        p.texto = $"{quien}.{cual}";
+        p.texto = $"{enum_nombre}.{cual}";
         try posiciones_patron(e, p);
         n.hijos.anadir(p);
         return;
@@ -685,7 +715,7 @@ fn desescapar(t: view) -> str {
                 let alto = de_hex(byte(t, i + 2));
                 let bajo = de_hex(byte(t, i + 3));
                 if alto < 16 && bajo < 16 {
-                    empujar_byte(r, ((alto * 16) + bajo) como ? u8);
+                    empujar_byte(r, ((alto * 16) + bajo) como? u8);
                     i = i + 4;
                     continue;
                 }
@@ -888,6 +918,22 @@ fn primario(e: mut Estado) -> Nodo ! {
             avanzar(e);
             let miembro = try espera(e, "ident", "");
             let completo = $"{nombre}.{miembro}";
+            if acepta(e, "simbolo", ".") {
+                let cual = try espera(e, "ident", "");
+                var n = rama(Clase.EnumLit, l);
+                n.texto = $"{completo}.{cual}";
+                if acepta(e, "simbolo", "(") {
+                    if !es(e, "simbolo", ")") {
+                        while true {
+                            let x = try expresion(e);
+                            n.hijos.anadir(x);
+                            if !acepta(e, "simbolo", ",") { break; }
+                        }
+                    }
+                    try espera(e, "simbolo", ")");
+                }
+                return n;
+            }
             if es(e, "simbolo", "{") { return try cuerpo_literal_struct(e, completo, l); }
             try espera(e, "simbolo", "(");
             return try cuerpo_llamada(e, completo, l);

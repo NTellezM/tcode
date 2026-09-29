@@ -75,3 +75,15 @@ ejemplos/genericos
 
 # El compilador que construye `make`
 /tcodec
+
+# binarios y C de programas/
+programas/wc
+programas/base64
+programas/ordenar
+programas/buscar
+programas/calc
+programas/vida
+programas/*.c
+
+# Los paquetes de `make paquete`
+/dist/

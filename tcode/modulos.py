@@ -21,10 +21,10 @@ generado, que es lo que se quiere al leerlo.
 import os
 import re
 
-from tcode.lexer import tokenizar
+from tcode.lexer import leer_fuente, tokenizar
 from tcode.parser import parsear
 from tcode.nodos import (Usar, Struct, Funcion, Llamada, LiteralStruct,
-                         Enum, EnumLit, Match)
+                         Enum, EnumLit, Match, PatronForma)
 from tcode import nombres_c
 
 
@@ -55,6 +55,21 @@ def _solo_usar(toks, archivo):
 IDENTIFICADOR = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*")
 
 
+def _tiene_main(toks):
+    """Si el archivo declara `fn main` fuera de toda llave. Se mira en los
+    tokens, antes de analizar nada: el error es del `usar` que lo trae."""
+    hondo = 0
+    for i, t in enumerate(toks):
+        if t.tipo == "simbolo" and t.valor == "{":
+            hondo += 1
+        elif t.tipo == "simbolo" and t.valor == "}":
+            hondo = max(hondo - 1, 0)
+        elif (hondo == 0 and t.valor == "fn" and i + 1 < len(toks)
+              and toks[i + 1].valor == "main"):
+            return True
+    return False
+
+
 def renombrar_tipo(t, mapa):
     """Cambia los nombres de struct dentro de un tipo, a cualquier hondura:
     `lista<par.Par<usize, str>>` con `par.Par -> par__Par`."""
@@ -73,11 +88,18 @@ def renombrar_en_arbol(nodo, mapa):
     campos = campos_de(nodo)
     if campos is None:
         return
-    if isinstance(nodo, (Llamada, LiteralStruct, EnumLit, Match)):
-        clave = nodo.nombre if isinstance(nodo, Llamada) else nodo.tipo
+    if isinstance(nodo, (Llamada, LiteralStruct, EnumLit, Match, PatronForma)):
+        if isinstance(nodo, Llamada):
+            clave = nodo.nombre
+        elif isinstance(nodo, PatronForma):
+            clave = nodo.enum
+        else:
+            clave = nodo.tipo
         if clave in mapa:
             if isinstance(nodo, Llamada):
                 nodo.nombre = mapa[clave]
+            elif isinstance(nodo, PatronForma):
+                nodo.enum = mapa[clave]
             else:
                 nodo.tipo = mapa[clave]
     for nombre in campos:
@@ -243,22 +265,31 @@ def cargar(ruta_principal, nombres_bonitos=None):
             raise ErrorDeModulo(
                 f"{de}no encuentro el modulo {os.path.basename(ruta)!r}{pista}")
 
-        with open(real, encoding="utf-8") as f:
-            fuente = f.read()
-
         # Ruta relativa al directorio de trabajo: los errores quedan cortos
         # y se pueden pinchar en el terminal.
         mostrada = os.path.relpath(real)
         if mostrada.startswith(".."):
             mostrada = real
+        fuente = leer_fuente(real, mostrada)
 
         toks = tokenizar(fuente, mostrada)
+        if quien is not None and _tiene_main(toks):
+            raise ErrorDeModulo(
+                f"{quien}:{linea}: `{mostrada}` tiene `fn main`, y un modulo "
+                f"no puede tenerla: quitala, o compila `{mostrada}` por su "
+                f"cuenta")
         usars = _solo_usar(toks, mostrada)
         # Primero las dependencias: sus structs tienen que estar declarados
         # antes de analizar este archivo.
         pila.append(real)
         destinos = {}
         for d in usars:
+            if "\0" in d.ruta:
+                raise ErrorDeModulo(f"{mostrada}:{d.linea}: la ruta de un "
+                                    f"modulo no puede llevar un byte cero")
+            if d.ruta.endswith("/"):
+                raise ErrorDeModulo(f"{mostrada}:{d.linea}: `{d.ruta}` termina "
+                                    f"en `/`, y un modulo es un archivo")
             destino = resolver(d.ruta, os.path.dirname(real))
             cargar_uno(destino, mostrada, d.linea)
             destinos[id(d)] = os.path.realpath(destino)

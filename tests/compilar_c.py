@@ -125,7 +125,11 @@ def herramienta(orden, **kw):
     clave = _hash_de(orden)
     guardado = os.path.join(CACHE, clave)
     if os.path.isfile(guardado):
-        shutil.copy2(guardado, salida)
+        # Con `cp`, no con `shutil.copy2`: mientras se escribe el binario, un
+        # `fork` de otro hilo de la suite hereda el descriptor abierto hasta
+        # su `exec`, y ejecutar el binario en ese momento da ETXTBSY ("Text
+        # file busy"). Escrito por otro proceso, ningun hilo lo hereda.
+        subprocess.run(["cp", "-p", guardado, salida], check=True)
         os.utime(guardado)
         return subprocess.CompletedProcess(orden, 0, "", "")
     r = cc(orden, **kw)

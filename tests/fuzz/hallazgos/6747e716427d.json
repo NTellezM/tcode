@@ -1,0 +1,5 @@
+{
+  "origen": "std/archivo.t",
+  "firma": "C: <sitio>: error: unpaired UTF-N bidirectional control character detected [-Werror=bidi-chars=]",
+  "mutacion": "intercambiadas 'el' y 'tamano'; insertado '0xffffffffffffffffff'; insertado '\\u202e'"
+}

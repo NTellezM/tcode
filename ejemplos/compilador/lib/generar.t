@@ -708,11 +708,10 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         // `Json.Numero(42)`: la etiqueta de la forma y, en su hueco de la union,
         // lo que lleve. La variante se queda con lo que recibe.
         Clase.EnumLit -> {
-            let en_t = I.antes_del_punto(n.texto);
+            let en_t = I.sin_modulo(I.antes_del_punto(n.texto));
             let cual = I.tras_el_punto(n.texto);
-            // Con el alias de un modulo delante no se sabe como quedo el nombre.
-            if contiene(cual, ".") { return no_se(); }
-            let lleva = I.lista_de(tipos.formas, vista(n.texto)) sino [];
+            let clave = $"{en_t}.{cual}";
+            let lleva = I.lista_de(tipos.formas, vista(clave)) sino [];
             if lleva.largo() != n.hijos.largo() { return no_se(); }
             let etq = etiqueta(en_t, cual);
             var r = $"({en_t}){{ .etiqueta = {etq}";
@@ -857,7 +856,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
             r.empujar(".");
             r.empujar(n.texto);
             let ruta = ruta_de_campo_c(n);
-            if ruta.largo() > 0 && tiene(s.sacados, $"{s.archivo}\t{n.linea}\t{ruta}") {
+            if ruta.largo() > 0 && tiene(s.sacados, $"{s.archivo}\t{n.id}\t{ruta}") {
                 // Sacar un campo: se copia y su sitio queda a ceros, que es un
                 // valor valido y al liberar el struct no suelta nada.
                 let t = I.tipo_de(tipos, n);
@@ -2491,6 +2490,14 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
                 i = i + 1;
                 continue;
             }
+            // Una capa aislada puede conocer la firma pero no los campos de
+            // un struct importado. Emitir el campo como si ya fuera `view`
+            // seria inventar C; se declara fuera de cobertura con `?`.
+            if suyo.largo() == 0 && (h.clase == Clase.Campo
+                || h.clase == Clase.Indice) {
+                let _m = cerrar_marco(b);
+                return no_se();
+            }
         }
 
         // Pasar una variable con duenio a algo que se la queda es moverla.
@@ -2548,7 +2555,8 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     }
     let pura = interna_pura(b, s, n, tipos);
     if !es_desconocido(pura) { return pura; }
-    if nombre == "leer_archivo" || nombre == "escribir_archivo"
+    if nombre == "leer_archivo" || nombre == "leer_parte_archivo"
+    || nombre == "escribir_archivo"
     || nombre == "leer_linea"
     || nombre == "entrada_completa" || nombre == "variable_entorno"
     || nombre == "ahora_ms" || nombre == "monotono_ms"
@@ -2895,6 +2903,34 @@ fn interna_del_sistema(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         r.empujar(ruta);
         r.empujar(")");
         return r;
+    }
+    if nombre == "leer_parte_archivo" {
+        if n.hijos.largo() != 3 { return no_se(); }
+        abrir_marco(b);
+        let ruta_0 = como_vista(b, s, n.hijos[0], tipos);
+        apuntar_pendiente(b, operando(n.hijos[0], ruta_0, "SafeView"));
+        let desde_0 = expresion_c(b, s, n.hijos[1], "usize", tipos);
+        apuntar_pendiente(b, operando(n.hijos[1], desde_0, "size_t"));
+        let cuantos = expresion_c(b, s, n.hijos[2], "usize", tipos);
+        let marco_a = cerrar_marco(b);
+        let ruta = copiar(marco_a.entradas[0].valor);
+        let desde = copiar(marco_a.entradas[1].valor);
+        if es_desconocido(ruta) || es_desconocido(desde)
+        || es_desconocido(cuantos) { return no_se(); }
+        var r = nuevo("ss_lang_leer_parte_archivo_(");
+        var previos: lista<str> = [];
+        agregar_argumento_ordenado(b, r, previos, vista(ruta), "view",
+            false, false, true);
+        r.empujar(", ");
+        agregar_argumento_ordenado(b, r, previos, vista(desde), "usize",
+            false, false, true);
+        r.empujar(", ");
+        agregar_argumento_ordenado(b, r, previos, vista(cuantos), "usize",
+            false, false, true);
+        r.empujar(")");
+        b.ultima_linea = 0;
+        marcar(b, s, n.linea);
+        return envolver_llamada_ordenada(r, previos);
     }
     // La ruta y luego los datos, cada uno una sola vez.
     if nombre == "escribir_archivo" {
@@ -3766,564 +3802,28 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
 
     match clase {
         Clase.Declaracion -> {
-            if n.hijos.largo() != 1 { return false; }
-            let nombre = nombre_declarado(n.texto);
-            var tipo = tipo_escrito(n.texto);
-            if tipo.largo() == 0 { tipo = I.tipo_de(tipos, n.hijos[0]); }
-            if tipo.largo() == 0 { return false; }
-
-            var valor = vacio();
-            let cual = n.hijos[0].clase;
-
-            if cual == Clase.Try {
-                // `try f(...)`: se guarda el resultado, y si trae motivo se sale
-                // por el mismo camino sin tocar lo que ya esta vivo.
-                if !falible { return false; }
-                valor = try_c(b, s, n.hijos[0], tipos);
-            } else if cual == Clase.Match {
-                // Sus brazos pueden llevar sentencias: se genera desde aqui,
-                // donde el sitio se puede modificar, como en `return`.
-                valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible);
-            } else {
-                valor = expresion_c(b, s, n.hijos[0], tipo, tipos);
-            }
-            if es_desconocido(valor) { return false; }
-            // La variable se queda con el temporal: deja de soltarse al acabar
-            // la sentencia, porque ahora tiene duenio con nombre.
-            reclamar(b, valor);
-            // En C la variable ya esta en ambito DENTRO de su propio
-            // inicializador: `var leidos = P.leidos();` llamaria a la variable.
-            // En Tcode son cosas distintas: el valor se calcula antes.
-            if se_llama_como(n.hijos[0], nombre, tipos) {
-                let previo = nuevo_temporal(b);
-                let tc = tipo_c(tipo);
-                emitir(b, $"{tc} {previo} = {valor};");
-                valor = copiar(previo);
-            }
-
-            var l = nuevo("SS_LANG_QUIZA_SIN_USAR ");
-            l.empujar(tipo_c(tipo));
-            l.empujar(" ");
-            l.empujar(nombre);
-            l.empujar(" = ");
-            l.empujar(valor);
-            l.empujar(";");
-            emitir(b, l);
-
-            I.declarar(tipos, nombre, tipo);
-            if I.posee_con_formas(tipos, tipo) {
-                let clave = clave_de(nombre, n.linea);
-                anotar_duenio(b, nombre, tipo, clave);
-                if tiene(s.pide_bandera, clave) {
-                    nace_bandera(b, nombre);
-                }
-            }
-            apagar_las_de(b, s, n, tipos);
-            return true;
+            return declaracion_c(b, s, n, tipos, retorno, falible);
         }
         Clase.Expresion -> {
-            if n.hijos.largo() != 1 { return false; }
-            if anadir_c(b, s, n.hijos[0], tipos) {
-                apagar_las_de(b, s, n, tipos);
-                return true;
-            }
-            if empujar_c(b, s, n.hijos[0], tipos) {
-                apagar_las_de(b, s, n, tipos);
-                return true;
-            }
-            // `poner(m, k, v)` devuelve algo que casi nadie mira: como sentencia
-            // se escribe la llamada y se tira el valor, como en C.
-            if n.hijos[0].clase == Clase.Llamada
-            && n.hijos[0].texto == "poner" {
-                let hecha = interna_pura(b, s, n.hijos[0], tipos);
-                if es_desconocido(hecha) { return false; }
-                var l = copiar(hecha);
-                l.empujar(";");
-                emitir(b, l);
-                apagar_las_de(b, s, n, tipos);
-                return true;
-            }
-            // Un `match` suelto mira y hace: el `switch` va tal cual, sin
-            // temporal donde dejar nada.
-            if n.hijos[0].clase == Clase.Match {
-                if !match_c(b, s, n.hijos[0], tipos, retorno, falible, "") {
-                    return false;
-                }
-                apagar_las_de(b, s, n, tipos);
-                return true;
-            }
-            // Cualquier otra expresion suelta. Descarta su valor, y si ese valor
-            // tenia duenio, este es el sitio donde se devuelve: `try espera(...)`
-            // como sentencia tira el `str` que devuelve, y nadie mas lo iba a
-            // soltar.
-            let hecha = expresion_c(b, s, n.hijos[0], "", tipos);
-            if es_desconocido(hecha) { return false; }
-            descartar_c(b, tipos, hecha, n.hijos[0]);
-            apagar_las_de(b, s, n, tipos);
-            return true;
+            return expresion_sentencia_c(b, s, n, tipos, retorno, falible);
         }
         Clase.Falla -> {
-            // Salir por el camino malo: se suelta todo y se devuelve el motivo.
-            if !falible { return false; }
-            liberar_todo(b, s, tipos, "");
-            var l = nuevo("return (");
-            l.empujar(tipo_resultado(retorno));
-            l.empujar("){ .motivo = ");
-            l.empujar(literal_c(n.texto));
-            l.empujar(" };");
-            emitir(b, l);
-            olvidar_temporales(b);
-            return true;
+            return falla_c(b, s, n, tipos, retorno, falible);
         }
         Clase.Retorno -> {
-            if n.hijos.largo() == 0 {
-                liberar_todo(b, s, tipos, "");
-                if falible {
-                    var l = nuevo("return (");
-                    l.empujar(tipo_resultado(retorno));
-                    l.empujar("){ .motivo = NULL };");
-                    emitir(b, l);
-                    olvidar_temporales(b);
-                    return true;
-                }
-                emitir(b, "return;");
-                olvidar_temporales(b);
-                return true;
-            }
-            // Devolver una variable entera no necesita temporal: no hay nada
-            // que calcular, y liberar lo demas no la toca.
-            if n.hijos[0].clase == Clase.Variable {
-                let quien = vista(n.hijos[0].texto);
-                // Si lleva bandera porque se entrega por otro camino, al
-                // devolverla tambien se entrega: se apaga antes de salir, o la
-                // liberacion la veria encendida.
-                if lleva_bandera(b, s, quien) {
-                    var apaga = nuevo("ss_vivo_");
-                    apaga.empujar(quien);
-                    apaga.empujar(" = false;");
-                    emitir(b, apaga);
-                }
-                liberar_todo(b, s, tipos, quien);
-                let c = expresion_c(b, s, n.hijos[0], retorno, tipos);
-                var r = nuevo("return ");
-                if falible {
-                    r.empujar("(");
-                    r.empujar(tipo_resultado(retorno));
-                    r.empujar("){ .motivo = NULL, .valor = ");
-                    r.empujar(c);
-                    r.empujar(" };");
-                } else {
-                    r.empujar(c);
-                    r.empujar(";");
-                }
-                emitir(b, r);
-                olvidar_temporales(b);
-                return true;
-            }
-
-            // Un `match` que da valor puede llevar brazos con sentencias, y eso
-            // solo se genera desde aqui, donde el sitio se puede modificar.
-            var valor = vacio();
-            if n.hijos[0].clase == Clase.Match {
-                valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible);
-            } else {
-                valor = expresion_c(b, s, n.hijos[0], retorno, tipos);
-            }
-            if es_desconocido(valor) { return false; }
-            // Lo que se devuelve no se suelta: se entrega.
-            reclamar(b, valor);
-            // El valor se guarda antes de soltar nada: puede leer justo lo que
-            // se va a liberar.
-            let tmp = nuevo_temporal(b);
-            var l = nuevo(tipo_c(retorno));
-            l.empujar(" ");
-            l.empujar(tmp);
-            l.empujar(" = ");
-            l.empujar(valor);
-            l.empujar(";");
-            emitir(b, l);
-            // Antes de liberar, y no despues: lo que se apague detras de un
-            // `return` no se ejecuta nunca, y la liberacion veria la bandera
-            // encendida todavia.
-            apagar_las_de(b, s, n, tipos);
-            // Lo que se entrega no se libera.
-            var entregada = vacio();
-            if n.hijos[0].clase == Clase.Variable {
-                entregada = nuevo(n.hijos[0].texto);
-            }
-            liberar_todo(b, s, tipos, entregada);
-            var r = nuevo("return ");
-            if falible {
-                // En una falible lo que se devuelve va envuelto: `motivo` a
-                // NULL dice que fue bien.
-                r.empujar("(");
-                r.empujar(tipo_resultado(retorno));
-                r.empujar("){ .motivo = NULL, .valor = ");
-                r.empujar(tmp);
-                r.empujar(" };");
-            } else {
-                r.empujar(tmp);
-                r.empujar(";");
-            }
-            emitir(b, r);
-            olvidar_temporales(b);
-            return true;
+            return retorno_c(b, s, n, tipos, retorno, falible);
         }
         Clase.Si -> {
-            if n.hijos.largo() < 2 { return false; }
-            if mueve_algo(s, n.hijos[0], tipos) { return false; }
-            let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
-            if es_desconocido(cond) { return false; }
-            var l = nuevo("if (");
-            l.empujar(cond);
-            l.empujar(")");
-            emitir(b, l);
-            if !bloque_c(b, s, n.hijos[1], tipos, retorno, falible) {
-                return false;
-            }
-            if n.hijos.largo() > 2 {
-                emitir(b, "else");
-                if !bloque_c(b, s, n.hijos[2], tipos, retorno, falible) {
-                    return false;
-                }
-            }
-            return true;
+            return si_c(b, s, n, tipos, retorno, falible);
         }
         Clase.Mientras -> {
-            if n.hijos.largo() != 2 { return false; }
-            if mueve_algo(s, n.hijos[0], tipos) { return false; }
-
-            // Casi toda condicion sale entera en una expresion de C y va donde
-            // va. Pero alguna necesita lineas propias —`byte` guarda la vista en
-            // un temporal antes de indexarla— y esas lineas tienen que correr en
-            // CADA vuelta: dejarlas fuera del bucle seria mirar, en la segunda,
-            // algo calculado antes de que el cuerpo lo cambiara.
-            let marca = b.lineas.largo();
-            let temporal_antes = b.temporal;
-            let bucle_antes = b.bucle;
-            var temporales_antes: lista<str> = [];
-            for t en b.temporales { temporales_antes.anadir(copiar(t)); }
-            let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
-            if es_desconocido(cond) { return false; }
-            if b.lineas.largo() == marca {
-                var l = nuevo("while (");
-                l.empujar(cond);
-                l.empujar(")");
-                emitir(b, l);
-                b.bucles.anadir(b.bloques.largo());
-                b.bucles_t.anadir(b.fuera.largo());
-                abrir_bucle_saltos(b);
-                let salio = bloque_c(b, s, n.hijos[1], tipos, retorno, falible);
-                quitar_ultimo_bucle(b);
-                cerrar_bucle_saltos(b);
-                return salio;
-            }
-
-            // Dejo lineas: se deshace y se rehace dentro.
-            recortar_lineas(b, marca);
-            b.temporal = temporal_antes;
-            b.bucle = bucle_antes;
-            b.temporales = temporales_antes;
-            emitir(b, "while (true)");
-            emitir(b, "{");
-            b.sangria = b.sangria + 1;
-            abrir_bloque(b);
-            b.bucles.anadir(b.bloques.largo() - 1);
-            b.bucles_t.anadir(b.fuera.largo());
-            abrir_bucle_saltos(b);
-            I.abrir(tipos);
-            let base = b.temporales.largo();
-            var dentro = expresion_c(b, s, n.hijos[0], "bool", tipos);
-            if es_desconocido(dentro) { return false; }
-            // Si la condicion dejo temporales con duenio, se sueltan en cada
-            // vuelta, antes de decidir: dejarlos para el final de la sentencia
-            // los liberaria fuera del bucle, donde ya no existen, y se escaparia
-            // uno por vuelta.
-            if b.temporales.largo() > base {
-                let vale = nuevo_temporal(b);
-                var cap = nuevo("bool ");
-                cap.empujar(vale);
-                cap.empujar(" = ");
-                cap.empujar(dentro);
-                cap.empujar(";");
-                emitir(b, cap);
-                var k = base;
-                while k < b.temporales.largo() {
-                    let entrada = copiar(b.temporales[k]);
-                    let nt = antes_de_dos_puntos(entrada);
-                    let tt = despues_de_dos_puntos(entrada);
-                    liberacion(b, tipos, nt, tt);
-                    k = k + 1;
-                }
-                var quedan: lista<str> = [];
-                var q = 0;
-                while q < base {
-                    quedan.anadir(copiar(b.temporales[q]));
-                    q = q + 1;
-                }
-                b.temporales = quedan;
-                dentro = copiar(vale);
-            }
-            var g = nuevo("if (!(");
-            g.empujar(dentro);
-            g.empujar("))");
-            emitir(b, g);
-            emitir(b, "{");
-            b.sangria = b.sangria + 1;
-            emitir(b, "break;");
-            b.sangria = b.sangria - 1;
-            emitir(b, "}");
-            var bien = true;
-            for st en n.hijos[1].hijos {
-                if bien {
-                    bien = sentencia_c(b, s, st, tipos, retorno, falible);
-                    if !bien { apuntar_fallo(b, st); }
-                }
-            }
-            if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s, tipos); }
-            else { quitar_ultimo_bloque(b); }
-            quitar_ultimo_bucle(b);
-            I.cerrar(tipos);
-            b.sangria = b.sangria - 1;
-            emitir(b, "}");
-            cerrar_bucle_saltos(b);
-            return bien;
+            return mientras_c(b, s, n, tipos, retorno, falible);
         }
         Clase.Asignacion -> {
-            if n.hijos.largo() != 2 { return false; }
-            let a_que = n.hijos[0].clase;
-            if a_que != Clase.Variable && a_que != Clase.Campo
-            && a_que != Clase.Indice {
-                return false;
-            }
-            // Solo una variable entera lleva bandera: un campo se apunta por su
-            // struct, y eso es otra capa.
-            var nombre = vacio();
-            if a_que == Clase.Variable { nombre = nuevo(n.hijos[0].texto); }
-            let tipo = I.tipo_de(tipos, n.hijos[0]);
-            if tipo.largo() == 0 { return false; }
-            // Se fija primero el sitio. Ademas de coincidir con el generador de
-            // Python, esto evita que el valor cambie un indice o la coleccion de
-            // la izquierda antes de que sepamos donde se escribira.
-            let destino = expresion_c(b, s, n.hijos[0], tipo, tipos);
-            if es_desconocido(destino) { return false; }
-            var valor = vacio();
-            if n.hijos[1].clase == Clase.Match {
-                valor = match_valor(b, s, n.hijos[1], tipos, retorno, falible);
-            } else {
-                valor = expresion_c(b, s, n.hijos[1], tipo, tipos);
-            }
-            if es_desconocido(valor) { return false; }
-            reclamar(b, valor);
-
-            // Asignar a algo con duenio pide soltar lo viejo. `liberacion` ya sabe
-            // soltar cualquier cosa que posea: `str`, listas, mapas y structs.
-            if I.posee_con_formas(tipos, tipo) {
-                // El valor se guarda antes de soltar lo viejo, porque en C lo
-                // que cuenta no es donde se calculo la expresion sino donde
-                // queda escrita: `s = nuevo(rebanar(vista(s), 0, 6))` leeria
-                // `s` despues de haberlo soltado.
-                let tmp = nuevo_temporal(b);
-                var g = nuevo(tipo_c(tipo));
-                g.empujar(" ");
-                g.empujar(tmp);
-                g.empujar(" = ");
-                g.empujar(valor);
-                g.empujar(";");
-                emitir(b, g);
-
-                if lleva_bandera(b, s, nombre) {
-                    // Si ya se lo llevaron, aqui no hay nada que devolver:
-                    // soltarlo seria soltarlo dos veces.
-                    var w = nuevo("if (ss_vivo_");
-                    w.empujar(nombre);
-                    w.empujar(")");
-                    emitir(b, w);
-                    emitir(b, "{");
-                    b.sangria = b.sangria + 1;
-                    liberacion(b, tipos, destino, tipo);
-                    b.sangria = b.sangria - 1;
-                    emitir(b, "}");
-                    var a = copiar(destino);
-                    a.empujar(" = ");
-                    a.empujar(tmp);
-                    a.empujar(";");
-                    emitir(b, a);
-                    var enciende = nuevo("ss_vivo_");
-                    enciende.empujar(nombre);
-                    enciende.empujar(" = true;");
-                    emitir(b, enciende);
-                    apagar_las_de(b, s, n, tipos);
-                    return true;
-                }
-                liberacion(b, tipos, destino, tipo);
-                var a = copiar(destino);
-                a.empujar(" = ");
-                a.empujar(tmp);
-                a.empujar(";");
-                emitir(b, a);
-                apagar_las_de(b, s, n, tipos);
-                return true;
-            }
-
-            var l = copiar(destino);
-            l.empujar(" = ");
-            l.empujar(valor);
-            l.empujar(";");
-            emitir(b, l);
-            apagar_las_de(b, s, n, tipos);
-            return true;
+            return asignacion_c(b, s, n, tipos, retorno, falible);
         }
         Clase.Para -> {
-            if n.hijos.largo() == 2 && n.hijos[0].clase == Clase.Rango {
-                return para_rango_c(b, s, n, tipos, retorno, falible);
-            }
-            if n.hijos.largo() != 2 { return false; }
-            // `for x en ...` o, sobre un mapa, `for clave, valor en m`.
-            let uno = primer_nombre(n.texto);
-            let dos = segundo_nombre(n.texto);
-            // Un sitio con nombre: variable, campo o elemento. `for x en f(...)`
-            // no, que se calcula una sola vez y eso pide un temporal que soltar
-            // al final.
-            let que = n.hijos[0].clase;
-            let suyo = I.tipo_de(tipos, n.hijos[0]);
-            let sobre = T.apuntado_si(suyo);
-            let es_mapa_ = T.es_mapa(sobre);
-            let es_arreglo_ = T.es_arreglo(sobre);
-            if !T.es_lista(sobre) && !es_mapa_ && !es_arreglo_ { return false; }
-            if dos.largo() > 0 && !es_mapa_ { return false; }
-            var lugar = vacio();
-            if que == Clase.Variable || que == Clase.Campo || que == Clase.Indice {
-                lugar = sitio_c(b, s, n.hijos[0], tipos);
-            } else {
-                // `for x en f(...)`: la coleccion se calcula UNA vez. Dejar la
-                // llamada en la condicion la repetiria en cada vuelta, y cada
-                // vuelta filtraria una copia.
-                let tmp = nuevo_temporal(b);
-                let valor = expresion_c(b, s, n.hijos[0], sobre, tipos);
-                if es_desconocido(valor) { return false; }
-                reclamar(b, valor);
-                var l = nuevo(tipo_c(sobre));
-                l.empujar(" ");
-                l.empujar(tmp);
-                l.empujar(" = ");
-                l.empujar(valor);
-                l.empujar(";");
-                emitir(b, l);
-                apuntar_temporal(b, tmp, sobre);
-                lugar = copiar(tmp);
-            }
-            if es_desconocido(lugar) { return false; }
-
-            b.bucle = b.bucle + 1;
-            let i = nombre_de_indice(b.bucle);
-            var f = nuevo("for (size_t ");
-            f.empujar(i);
-            f.empujar(" = 0; ");
-            f.empujar(i);
-            f.empujar(" < ");
-            if es_arreglo_ {
-                let cuantos = cuantos_de_arreglo(sobre);
-                f.empujar(cuantos);
-                f.empujar("; ");
-            } else {
-                f.empujar(lugar);
-                // Una tabla se recorre por sus celdas, y se saltan las vacias.
-                if es_mapa_ { f.empujar(".capacidad; "); }
-                else { f.empujar(".length; "); }
-            }
-            f.empujar(i);
-            f.empujar("++)");
-            emitir(b, f);
-            emitir(b, "{");
-            b.sangria = b.sangria + 1;
-            if es_mapa_ {
-                var salta = nuevo("if (");
-                salta.empujar(lugar);
-                salta.empujar(".claves[");
-                salta.empujar(i);
-                salta.empujar("].data == NULL) continue;");
-                emitir(b, salta);
-            }
-            abrir_bloque(b);
-            b.bucles.anadir(b.bloques.largo() - 1);
-            b.bucles_t.anadir(b.fuera.largo());
-            abrir_bucle_saltos(b);
-            I.abrir(tipos);
-
-            // El elemento se presta, no se copia: un `str` copiado tendria dos
-            // duenios. Los escalares van por valor, que no hay nada que duplicar.
-            // Sobre un mapa lo que se recorre son las claves, y nadie copia una:
-            // se presta la que ya esta en la tabla.
-            var elem = T.elemento(sobre);
-            if es_mapa_ {
-                let partes = T.partes(sobre);
-                if partes.largo() != 2 { return false; }
-                elem = copiar(partes[0]);
-            }
-            let quien = vista(uno);
-            let elem_posee = I.posee_con_formas(tipos, elem);
-            var acceso = copiar(lugar);
-            if es_mapa_ { acceso.empujar(".claves["); }
-            else { acceso.empujar(".e["); }
-            acceso.empujar(i);
-            acceso.empujar("]");
-            var d = nuevo("SS_LANG_QUIZA_SIN_USAR ");
-            let presta = elem_posee;
-            if presta {
-                d.empujar("const ");
-                d.empujar(tipo_c(elem));
-                d.empujar("* ");
-                d.empujar(quien);
-                d.empujar(" = &");
-            } else {
-                d.empujar(tipo_c(elem));
-                d.empujar(" ");
-                d.empujar(quien);
-                d.empujar(" = ");
-            }
-            d.empujar(acceso);
-            d.empujar(";");
-            emitir(b, d);
-            I.declarar(tipos, quien, elem);
-            if dos.largo() > 0 {
-                // El valor va tal cual: un escalar se copia solo.
-                let tv = T.valor_de_mapa(sobre) sino vacio();
-                if tv.largo() == 0 { return false; }
-                var dv = nuevo("SS_LANG_QUIZA_SIN_USAR ");
-                dv.empujar(tipo_c(tv));
-                dv.empujar(" ");
-                dv.empujar(dos);
-                dv.empujar(" = ");
-                dv.empujar(lugar);
-                dv.empujar(".valores[");
-                dv.empujar(i);
-                dv.empujar("];");
-                emitir(b, dv);
-                I.declarar(tipos, dos, tv);
-            }
-            let ya_era = tiene(s.punteros, quien);
-            if presta { poner(s.punteros, quien, 2); }
-
-            var bien = true;
-            for st en n.hijos[1].hijos {
-                if bien {
-                    bien = sentencia_c(b, s, st, tipos, retorno, falible);
-                    if !bien { apuntar_fallo(b, st); }
-                }
-            }
-            if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s, tipos); }
-            else { quitar_ultimo_bloque(b); }
-
-            if presta && !ya_era { quitar(s.punteros, quien); }
-            quitar_ultimo_bucle(b);
-            I.cerrar(tipos);
-            b.sangria = b.sangria - 1;
-            emitir(b, "}");
-            cerrar_bucle_saltos(b);
-            // `for c en filtradas(xs, f)` entrega `f` al calcular la coleccion.
-            if bien { apagar_las_de(b, s, n, tipos); }
-            return bien;
+            return para_c(b, s, n, tipos, retorno, falible);
         }
         _ -> {
             if clase == Clase.Romper || clase == Clase.Continuar {
@@ -4370,6 +3870,603 @@ fn una_sentencia(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
 // que el cuerpo puede cambiar lo que se leyo para calcularlo. El contador es
 // del bucle y `i` una copia suya en cada vuelta: asi `for i en 0..i` mira
 // el `i` de fuera.
+fn declaracion_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
+    tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
+    if n.hijos.largo() != 1 { return false; }
+    let nombre = nombre_declarado(n.texto);
+    var tipo = tipo_escrito(n.texto);
+    if tipo.largo() == 0 { tipo = I.tipo_de(tipos, n.hijos[0]); }
+    if tipo.largo() == 0 { return false; }
+
+    var valor = vacio();
+    let cual = n.hijos[0].clase;
+
+    if cual == Clase.Try {
+        // `try f(...)`: se guarda el resultado, y si trae motivo se sale
+        // por el mismo camino sin tocar lo que ya esta vivo.
+        if !falible { return false; }
+        valor = try_c(b, s, n.hijos[0], tipos);
+    } else if cual == Clase.Match {
+        // Sus brazos pueden llevar sentencias: se genera desde aqui,
+        // donde el sitio se puede modificar, como en `return`.
+        valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible);
+    } else {
+        valor = expresion_c(b, s, n.hijos[0], tipo, tipos);
+    }
+    if es_desconocido(valor) { return false; }
+    // La variable se queda con el temporal: deja de soltarse al acabar
+    // la sentencia, porque ahora tiene duenio con nombre.
+    reclamar(b, valor);
+    // En C la variable ya esta en ambito DENTRO de su propio
+    // inicializador: `var leidos = P.leidos();` llamaria a la variable.
+    // En Tcode son cosas distintas: el valor se calcula antes.
+    if se_llama_como(n.hijos[0], nombre, tipos) {
+        let previo = nuevo_temporal(b);
+        let tc = tipo_c(tipo);
+        emitir(b, $"{tc} {previo} = {valor};");
+        valor = copiar(previo);
+    }
+
+    var l = nuevo("SS_LANG_QUIZA_SIN_USAR ");
+    l.empujar(tipo_c(tipo));
+    l.empujar(" ");
+    l.empujar(nombre);
+    l.empujar(" = ");
+    l.empujar(valor);
+    l.empujar(";");
+    emitir(b, l);
+
+    I.declarar(tipos, nombre, tipo);
+    if I.posee_con_formas(tipos, tipo) {
+        let clave = clave_de(nombre, n.linea);
+        anotar_duenio(b, nombre, tipo, clave);
+        if tiene(s.pide_bandera, clave) {
+            nace_bandera(b, nombre);
+        }
+    }
+    apagar_las_de(b, s, n, tipos);
+    return true;
+}
+
+fn expresion_sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
+    tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
+    if n.hijos.largo() != 1 { return false; }
+    if anadir_c(b, s, n.hijos[0], tipos) {
+        apagar_las_de(b, s, n, tipos);
+        return true;
+    }
+    if empujar_c(b, s, n.hijos[0], tipos) {
+        apagar_las_de(b, s, n, tipos);
+        return true;
+    }
+    // `poner(m, k, v)` devuelve algo que casi nadie mira: como sentencia
+    // se escribe la llamada y se tira el valor, como en C.
+    if n.hijos[0].clase == Clase.Llamada
+    && n.hijos[0].texto == "poner" {
+        let hecha = interna_pura(b, s, n.hijos[0], tipos);
+        if es_desconocido(hecha) { return false; }
+        var l = copiar(hecha);
+        l.empujar(";");
+        emitir(b, l);
+        apagar_las_de(b, s, n, tipos);
+        return true;
+    }
+    // Un `match` suelto mira y hace: el `switch` va tal cual, sin
+    // temporal donde dejar nada.
+    if n.hijos[0].clase == Clase.Match {
+        if !match_c(b, s, n.hijos[0], tipos, retorno, falible, "") {
+            return false;
+        }
+        apagar_las_de(b, s, n, tipos);
+        return true;
+    }
+    // Cualquier otra expresion suelta. Descarta su valor, y si ese valor
+    // tenia duenio, este es el sitio donde se devuelve: `try espera(...)`
+    // como sentencia tira el `str` que devuelve, y nadie mas lo iba a
+    // soltar.
+    let hecha = expresion_c(b, s, n.hijos[0], "", tipos);
+    if es_desconocido(hecha) { return false; }
+    descartar_c(b, tipos, hecha, n.hijos[0]);
+    apagar_las_de(b, s, n, tipos);
+    return true;
+}
+
+fn falla_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto, retorno: view, falible: bool) -> bool {
+    // Salir por el camino malo: se suelta todo y se devuelve el motivo.
+    if !falible { return false; }
+    liberar_todo(b, s, tipos, "");
+    var l = nuevo("return (");
+    l.empujar(tipo_resultado(retorno));
+    l.empujar("){ .motivo = ");
+    l.empujar(literal_c(n.texto));
+    l.empujar(" };");
+    emitir(b, l);
+    olvidar_temporales(b);
+    return true;
+}
+
+fn si_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
+    tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
+    if n.hijos.largo() < 2 { return false; }
+    if mueve_algo(s, n.hijos[0], tipos) { return false; }
+    let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
+    if es_desconocido(cond) { return false; }
+    var l = nuevo("if (");
+    l.empujar(cond);
+    l.empujar(")");
+    emitir(b, l);
+    if !bloque_c(b, s, n.hijos[1], tipos, retorno, falible) {
+        return false;
+    }
+    if n.hijos.largo() > 2 {
+        emitir(b, "else");
+        if !bloque_c(b, s, n.hijos[2], tipos, retorno, falible) {
+            return false;
+        }
+    }
+    return true;
+}
+
+fn retorno_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
+    tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
+    if n.hijos.largo() == 0 {
+        liberar_todo(b, s, tipos, "");
+        if falible {
+            var l = nuevo("return (");
+            l.empujar(tipo_resultado(retorno));
+            l.empujar("){ .motivo = NULL };");
+            emitir(b, l);
+            olvidar_temporales(b);
+            return true;
+        }
+        emitir(b, "return;");
+        olvidar_temporales(b);
+        return true;
+    }
+    // Devolver una variable entera no necesita temporal: no hay nada
+    // que calcular, y liberar lo demas no la toca.
+    if n.hijos[0].clase == Clase.Variable {
+        let quien = vista(n.hijos[0].texto);
+        // Si lleva bandera porque se entrega por otro camino, al
+        // devolverla tambien se entrega: se apaga antes de salir, o la
+        // liberacion la veria encendida.
+        if lleva_bandera(b, s, quien) {
+            var apaga = nuevo("ss_vivo_");
+            apaga.empujar(quien);
+            apaga.empujar(" = false;");
+            emitir(b, apaga);
+        }
+        liberar_todo(b, s, tipos, quien);
+        let c = expresion_c(b, s, n.hijos[0], retorno, tipos);
+        var r = nuevo("return ");
+        if falible {
+            r.empujar("(");
+            r.empujar(tipo_resultado(retorno));
+            r.empujar("){ .motivo = NULL, .valor = ");
+            r.empujar(c);
+            r.empujar(" };");
+        } else {
+            r.empujar(c);
+            r.empujar(";");
+        }
+        emitir(b, r);
+        olvidar_temporales(b);
+        return true;
+    }
+
+    // Un `match` que da valor puede llevar brazos con sentencias, y eso
+    // solo se genera desde aqui, donde el sitio se puede modificar.
+    var valor = vacio();
+    if n.hijos[0].clase == Clase.Match {
+        valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible);
+    } else {
+        valor = expresion_c(b, s, n.hijos[0], retorno, tipos);
+    }
+    if es_desconocido(valor) { return false; }
+    // Lo que se devuelve no se suelta: se entrega.
+    reclamar(b, valor);
+    // El valor se guarda antes de soltar nada: puede leer justo lo que
+    // se va a liberar.
+    let tmp = nuevo_temporal(b);
+    var l = nuevo(tipo_c(retorno));
+    l.empujar(" ");
+    l.empujar(tmp);
+    l.empujar(" = ");
+    l.empujar(valor);
+    l.empujar(";");
+    emitir(b, l);
+    // Antes de liberar, y no despues: lo que se apague detras de un
+    // `return` no se ejecuta nunca, y la liberacion veria la bandera
+    // encendida todavia.
+    apagar_las_de(b, s, n, tipos);
+    // Lo que se entrega no se libera.
+    var entregada = vacio();
+    if n.hijos[0].clase == Clase.Variable {
+        entregada = nuevo(n.hijos[0].texto);
+    }
+    liberar_todo(b, s, tipos, entregada);
+    var r = nuevo("return ");
+    if falible {
+        // En una falible lo que se devuelve va envuelto: `motivo` a
+        // NULL dice que fue bien.
+        r.empujar("(");
+        r.empujar(tipo_resultado(retorno));
+        r.empujar("){ .motivo = NULL, .valor = ");
+        r.empujar(tmp);
+        r.empujar(" };");
+    } else {
+        r.empujar(tmp);
+        r.empujar(";");
+    }
+    emitir(b, r);
+    olvidar_temporales(b);
+    return true;
+}
+
+fn mientras_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
+    tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
+    if n.hijos.largo() != 2 { return false; }
+    if mueve_algo(s, n.hijos[0], tipos) { return false; }
+
+    // Casi toda condicion sale entera en una expresion de C y va donde
+    // va. Pero alguna necesita lineas propias —`byte` guarda la vista en
+    // un temporal antes de indexarla— y esas lineas tienen que correr en
+    // CADA vuelta: dejarlas fuera del bucle seria mirar, en la segunda,
+    // algo calculado antes de que el cuerpo lo cambiara.
+    let marca = b.lineas.largo();
+    let temporal_antes = b.temporal;
+    let bucle_antes = b.bucle;
+    var temporales_antes: lista<str> = [];
+    for t en b.temporales { temporales_antes.anadir(copiar(t)); }
+    let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
+    if es_desconocido(cond) { return false; }
+    if b.lineas.largo() == marca {
+        var l = nuevo("while (");
+        l.empujar(cond);
+        l.empujar(")");
+        emitir(b, l);
+        b.bucles.anadir(b.bloques.largo());
+        b.bucles_t.anadir(b.fuera.largo());
+        abrir_bucle_saltos(b);
+        let salio = bloque_c(b, s, n.hijos[1], tipos, retorno, falible);
+        quitar_ultimo_bucle(b);
+        cerrar_bucle_saltos(b);
+        return salio;
+    }
+
+    // Dejo lineas: se deshace y se rehace dentro.
+    recortar_lineas(b, marca);
+    b.temporal = temporal_antes;
+    b.bucle = bucle_antes;
+    b.temporales = temporales_antes;
+    emitir(b, "while (true)");
+    emitir(b, "{");
+    b.sangria = b.sangria + 1;
+    abrir_bloque(b);
+    b.bucles.anadir(b.bloques.largo() - 1);
+    b.bucles_t.anadir(b.fuera.largo());
+    abrir_bucle_saltos(b);
+    I.abrir(tipos);
+    let base = b.temporales.largo();
+    var dentro = expresion_c(b, s, n.hijos[0], "bool", tipos);
+    if es_desconocido(dentro) { return false; }
+    // Si la condicion dejo temporales con duenio, se sueltan en cada
+    // vuelta, antes de decidir: dejarlos para el final de la sentencia
+    // los liberaria fuera del bucle, donde ya no existen, y se escaparia
+    // uno por vuelta.
+    if b.temporales.largo() > base {
+        let vale = nuevo_temporal(b);
+        var cap = nuevo("bool ");
+        cap.empujar(vale);
+        cap.empujar(" = ");
+        cap.empujar(dentro);
+        cap.empujar(";");
+        emitir(b, cap);
+        var k = base;
+        while k < b.temporales.largo() {
+            let entrada = copiar(b.temporales[k]);
+            let nt = antes_de_dos_puntos(entrada);
+            let tt = despues_de_dos_puntos(entrada);
+            liberacion(b, tipos, nt, tt);
+            k = k + 1;
+        }
+        var quedan: lista<str> = [];
+        var q = 0;
+        while q < base {
+            quedan.anadir(copiar(b.temporales[q]));
+            q = q + 1;
+        }
+        b.temporales = quedan;
+        dentro = copiar(vale);
+    }
+    var g = nuevo("if (!(");
+    g.empujar(dentro);
+    g.empujar("))");
+    emitir(b, g);
+    emitir(b, "{");
+    b.sangria = b.sangria + 1;
+    emitir(b, "break;");
+    b.sangria = b.sangria - 1;
+    emitir(b, "}");
+    var bien = true;
+    for st en n.hijos[1].hijos {
+        if bien {
+            bien = sentencia_c(b, s, st, tipos, retorno, falible);
+            if !bien { apuntar_fallo(b, st); }
+        }
+    }
+    if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s, tipos); }
+    else { quitar_ultimo_bloque(b); }
+    quitar_ultimo_bucle(b);
+    I.cerrar(tipos);
+    b.sangria = b.sangria - 1;
+    emitir(b, "}");
+    cerrar_bucle_saltos(b);
+    return bien;
+}
+
+// Si `a` y `b` nombran el mismo sitio sin calcular nada: la misma
+// variable, o el mismo camino de campos desde ella. Con un indice no: el
+// indice se calcula, y calcularlo dos veces puede dar dos sitios.
+fn mismo_sitio(a: &P.Nodo, b: &P.Nodo) -> bool {
+    if a.clase != b.clase || !igual(a.texto, b.texto) { return false; }
+    if a.clase == Clase.Variable { return true; }
+    if a.clase != Clase.Campo { return false; }
+    return a.hijos.largo() == 1 && b.hijos.largo() == 1
+    && mismo_sitio(a.hijos[0], b.hijos[0]);
+}
+
+fn asignacion_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
+    tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
+    if n.hijos.largo() != 2 { return false; }
+    let a_que = n.hijos[0].clase;
+    if a_que != Clase.Variable && a_que != Clase.Campo
+    && a_que != Clase.Indice {
+        return false;
+    }
+    if mismo_sitio(n.hijos[0], n.hijos[1]) {
+        // `x = x;` y `p.c = p.c;` no hacen nada. Generados como una
+        // asignacion cualquiera, el valor se sacaba del sitio, se soltaba
+        // lo viejo —que era el mismo valor— y se volvia a poner ya
+        // soltado. Y clang toma `x = x;` por un descuido.
+        let sitio = sitio_c(b, s, n.hijos[0], tipos);
+        if es_desconocido(sitio) { return false; }
+        emitir(b, $"(void) {sitio};");
+        return true;
+    }
+    // Solo una variable entera lleva bandera: un campo se apunta por su
+    // struct, y eso es otra capa.
+    var nombre = vacio();
+    if a_que == Clase.Variable { nombre = nuevo(n.hijos[0].texto); }
+    let tipo = I.tipo_de(tipos, n.hijos[0]);
+    if tipo.largo() == 0 { return false; }
+    // Se fija primero el sitio. Ademas de coincidir con el generador de
+    // Python, esto evita que el valor cambie un indice o la coleccion de
+    // la izquierda antes de que sepamos donde se escribira.
+    let destino = expresion_c(b, s, n.hijos[0], tipo, tipos);
+    if es_desconocido(destino) { return false; }
+    var valor = vacio();
+    if n.hijos[1].clase == Clase.Match {
+        valor = match_valor(b, s, n.hijos[1], tipos, retorno, falible);
+    } else {
+        valor = expresion_c(b, s, n.hijos[1], tipo, tipos);
+    }
+    if es_desconocido(valor) { return false; }
+    reclamar(b, valor);
+
+    // Asignar a algo con duenio pide soltar lo viejo. `liberacion` ya sabe
+    // soltar cualquier cosa que posea: `str`, listas, mapas y structs.
+    if I.posee_con_formas(tipos, tipo) {
+        // El valor se guarda antes de soltar lo viejo, porque en C lo
+        // que cuenta no es donde se calculo la expresion sino donde
+        // queda escrita: `s = nuevo(rebanar(vista(s), 0, 6))` leeria
+        // `s` despues de haberlo soltado.
+        let tmp = nuevo_temporal(b);
+        var g = nuevo(tipo_c(tipo));
+        g.empujar(" ");
+        g.empujar(tmp);
+        g.empujar(" = ");
+        g.empujar(valor);
+        g.empujar(";");
+        emitir(b, g);
+
+        if lleva_bandera(b, s, nombre) {
+            // Si ya se lo llevaron, aqui no hay nada que devolver:
+            // soltarlo seria soltarlo dos veces.
+            var w = nuevo("if (ss_vivo_");
+            w.empujar(nombre);
+            w.empujar(")");
+            emitir(b, w);
+            emitir(b, "{");
+            b.sangria = b.sangria + 1;
+            liberacion(b, tipos, destino, tipo);
+            b.sangria = b.sangria - 1;
+            emitir(b, "}");
+            var a = copiar(destino);
+            a.empujar(" = ");
+            a.empujar(tmp);
+            a.empujar(";");
+            emitir(b, a);
+            var enciende = nuevo("ss_vivo_");
+            enciende.empujar(nombre);
+            enciende.empujar(" = true;");
+            emitir(b, enciende);
+            apagar_las_de(b, s, n, tipos);
+            return true;
+        }
+        liberacion(b, tipos, destino, tipo);
+        var a = copiar(destino);
+        a.empujar(" = ");
+        a.empujar(tmp);
+        a.empujar(";");
+        emitir(b, a);
+        apagar_las_de(b, s, n, tipos);
+        return true;
+    }
+
+    var l = copiar(destino);
+    l.empujar(" = ");
+    l.empujar(valor);
+    l.empujar(";");
+    emitir(b, l);
+    apagar_las_de(b, s, n, tipos);
+    return true;
+}
+
+fn para_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
+    tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
+    if n.hijos.largo() == 2 && n.hijos[0].clase == Clase.Rango {
+        return para_rango_c(b, s, n, tipos, retorno, falible);
+    }
+    if n.hijos.largo() != 2 { return false; }
+    // `for x en ...` o, sobre un mapa, `for clave, valor en m`.
+    let uno = primer_nombre(n.texto);
+    let dos = segundo_nombre(n.texto);
+    // Un sitio con nombre: variable, campo o elemento. `for x en f(...)`
+    // no, que se calcula una sola vez y eso pide un temporal que soltar
+    // al final.
+    let que = n.hijos[0].clase;
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    let sobre = T.apuntado_si(suyo);
+    let es_mapa_ = T.es_mapa(sobre);
+    let es_arreglo_ = T.es_arreglo(sobre);
+    if !T.es_lista(sobre) && !es_mapa_ && !es_arreglo_ { return false; }
+    if dos.largo() > 0 && !es_mapa_ { return false; }
+    var lugar = vacio();
+    if que == Clase.Variable || que == Clase.Campo || que == Clase.Indice {
+        lugar = sitio_c(b, s, n.hijos[0], tipos);
+    } else {
+        // `for x en f(...)`: la coleccion se calcula UNA vez. Dejar la
+        // llamada en la condicion la repetiria en cada vuelta, y cada
+        // vuelta filtraria una copia.
+        let tmp = nuevo_temporal(b);
+        let valor = expresion_c(b, s, n.hijos[0], sobre, tipos);
+        if es_desconocido(valor) { return false; }
+        reclamar(b, valor);
+        var l = nuevo(tipo_c(sobre));
+        l.empujar(" ");
+        l.empujar(tmp);
+        l.empujar(" = ");
+        l.empujar(valor);
+        l.empujar(";");
+        emitir(b, l);
+        apuntar_temporal(b, tmp, sobre);
+        lugar = copiar(tmp);
+    }
+    if es_desconocido(lugar) { return false; }
+
+    b.bucle = b.bucle + 1;
+    let i = nombre_de_indice(b.bucle);
+    var f = nuevo("for (size_t ");
+    f.empujar(i);
+    f.empujar(" = 0; ");
+    f.empujar(i);
+    f.empujar(" < ");
+    if es_arreglo_ {
+        let cuantos = cuantos_de_arreglo(sobre);
+        f.empujar(cuantos);
+        f.empujar("; ");
+    } else {
+        f.empujar(lugar);
+        // Una tabla se recorre por sus celdas, y se saltan las vacias.
+        if es_mapa_ { f.empujar(".capacidad; "); }
+        else { f.empujar(".length; "); }
+    }
+    f.empujar(i);
+    f.empujar("++)");
+    emitir(b, f);
+    emitir(b, "{");
+    b.sangria = b.sangria + 1;
+    if es_mapa_ {
+        var salta = nuevo("if (");
+        salta.empujar(lugar);
+        salta.empujar(".claves[");
+        salta.empujar(i);
+        salta.empujar("].data == NULL) continue;");
+        emitir(b, salta);
+    }
+    abrir_bloque(b);
+    b.bucles.anadir(b.bloques.largo() - 1);
+    b.bucles_t.anadir(b.fuera.largo());
+    abrir_bucle_saltos(b);
+    I.abrir(tipos);
+
+    // El elemento se presta, no se copia: un `str` copiado tendria dos
+    // duenios. Los escalares van por valor, que no hay nada que duplicar.
+    // Sobre un mapa lo que se recorre son las claves, y nadie copia una:
+    // se presta la que ya esta en la tabla.
+    var elem = T.elemento(sobre);
+    if es_mapa_ {
+        let partes = T.partes(sobre);
+        if partes.largo() != 2 { return false; }
+        elem = copiar(partes[0]);
+    }
+    let quien = vista(uno);
+    let elem_posee = I.posee_con_formas(tipos, elem);
+    var acceso = copiar(lugar);
+    if es_mapa_ { acceso.empujar(".claves["); }
+    else { acceso.empujar(".e["); }
+    acceso.empujar(i);
+    acceso.empujar("]");
+    var d = nuevo("SS_LANG_QUIZA_SIN_USAR ");
+    let presta = elem_posee;
+    if presta {
+        d.empujar("const ");
+        d.empujar(tipo_c(elem));
+        d.empujar("* ");
+        d.empujar(quien);
+        d.empujar(" = &");
+    } else {
+        d.empujar(tipo_c(elem));
+        d.empujar(" ");
+        d.empujar(quien);
+        d.empujar(" = ");
+    }
+    d.empujar(acceso);
+    d.empujar(";");
+    emitir(b, d);
+    I.declarar(tipos, quien, elem);
+    if dos.largo() > 0 {
+        // El valor va tal cual: un escalar se copia solo.
+        let tv = T.valor_de_mapa(sobre) sino vacio();
+        if tv.largo() == 0 { return false; }
+        var dv = nuevo("SS_LANG_QUIZA_SIN_USAR ");
+        dv.empujar(tipo_c(tv));
+        dv.empujar(" ");
+        dv.empujar(dos);
+        dv.empujar(" = ");
+        dv.empujar(lugar);
+        dv.empujar(".valores[");
+        dv.empujar(i);
+        dv.empujar("];");
+        emitir(b, dv);
+        I.declarar(tipos, dos, tv);
+    }
+    let ya_era = tiene(s.punteros, quien);
+    if presta { poner(s.punteros, quien, 2); }
+
+    var bien = true;
+    for st en n.hijos[1].hijos {
+        if bien {
+            bien = sentencia_c(b, s, st, tipos, retorno, falible);
+            if !bien { apuntar_fallo(b, st); }
+        }
+    }
+    if bien && !termina_saliendo(n.hijos[1]) { cerrar_bloque(b, s, tipos); }
+    else { quitar_ultimo_bloque(b); }
+
+    if presta && !ya_era { quitar(s.punteros, quien); }
+    quitar_ultimo_bucle(b);
+    I.cerrar(tipos);
+    b.sangria = b.sangria - 1;
+    emitir(b, "}");
+    cerrar_bucle_saltos(b);
+    // `for c en filtradas(xs, f)` entrega `f` al calcular la coleccion.
+    if bien { apagar_las_de(b, s, n, tipos); }
+    return bien;
+}
+
 fn para_rango_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     retorno: view, falible: bool) -> bool {
     if n.hijos[0].hijos.largo() != 2 { return false; }
@@ -4517,7 +4614,7 @@ fn tipo_si_va_bien(n: &P.Nodo, tipos: &I.Contexto) -> str {
     // Escribir sale bien o no, sin valor.
     if llamado == "escribir_archivo" { return nuevo("()"); }
     if llamado == "obtener" || llamado == "obtener_mut"
-    || llamado == "leer_archivo"
+    || llamado == "leer_archivo" || llamado == "leer_parte_archivo"
     || llamado == "leer_linea" || llamado == "entrada_completa"
     || llamado == "variable_entorno" {
         return I.tipo_de(tipos, n);
@@ -4741,8 +4838,8 @@ fn si_expr_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
 
 // `SS_FIGURA_CIRCULO`: el nombre en C de una forma.
 fn etiqueta(enum_: view, variante: view) -> str {
-    let a = mayusculas(enum_);
-    let v = mayusculas(variante);
+    let a = mayusculas_c(enum_);
+    let v = mayusculas_c(variante);
     var r = nuevo("SS_");
     r.empujar(a);
     r.empujar("_");
@@ -4750,12 +4847,12 @@ fn etiqueta(enum_: view, variante: view) -> str {
     return r;
 }
 
-fn mayusculas(t: view) -> str {
+fn mayusculas_c(t: view) -> str {
     var r = vacio();
     var i = 0;
     while i < t.largo() {
         let c = byte(t, i);
-        if c >= 97 && c <= 122 { empujar_byte(r, (c - 32) como ? u8); }
+        if c >= 97 && c <= 122 { empujar_byte(r, (c - 32) como? u8); }
         else { r.empujar(rebanar(t, i, i + 1)); }
         i = i + 1;
     }
@@ -4843,9 +4940,9 @@ fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
         k = k + 1;
     }
     b.en_switch = b.en_switch - 1;
-    // Un `match` es exhaustivo, asi que este `default` no se alcanza nunca.
-    // Esta para que el compilador de C no tenga que adivinarlo.
-    if todos { emitir(b, "default: break;"); }
+    // Un `match` es exhaustivo. El `abort` no se alcanza con un enum valido
+    // y le demuestra a C que tampoco hay continuacion por ahi.
+    if todos { emitir(b, "default: abort();"); }
     emitir(b, "}");
     return true;
 }
@@ -4942,6 +5039,9 @@ fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Conte
         b.sangria = b.sangria - 1;
         emitir(b, "}");
     }
+    // Ninguna condicion puede quedar sin casar en un `match` valido. Esto
+    // tambien demuestra a C que los brazos que devuelven cierran la funcion.
+    emitir(b, "abort();");
     emitir(b, $"{fin}: ;");
     return true;
 }

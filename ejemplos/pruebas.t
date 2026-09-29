@@ -16,8 +16,11 @@ usar "std/formato";
 usar "std/bytes";
 usar "std/vector";
 usar "std/par";
+usar "std/iterador";
 
 fn corto(x: &str) -> bool { return largo(x) < 5; }
+
+fn positivo(n: &usize) -> bool { return n > 0; }
 
 fn main() -> usize ! {
     var p = pruebas();
@@ -27,6 +30,10 @@ fn main() -> usize ! {
         unir(try partir("a,b,,c", ","), "-"), "a-b--c");
     afirmar_igual_texto(p, "recortar", recortar("  hola  "), "hola");
     afirmar_igual_texto(p, "minusculas", minusculas("HoLa"), "hola");
+    afirmar_igual_texto(p, "mayusculas", mayusculas("HoLa"), "HOLA");
+    afirmar_igual_texto(p, "lineas",
+        unir(lineas("una\x0d\n\ndos\n"), "|"), "una||dos");
+    afirmar_igual_numero(p, "apariciones", try apariciones("aaaa", "aa"), 2);
     afirmar_igual_texto(p, "reemplazar",
         try reemplazar("uno dos uno", "uno", "tres"), "tres dos tres");
     afirmar_igual_texto(p, "terminos sin puntuacion",
@@ -65,6 +72,18 @@ fn main() -> usize ! {
     afirmar_igual_texto(p, "aplanar",
         unir(aplanar(dos_listas()), ","), "a,b,c");
 
+    // ---- iteradores de una pasada ----
+    afirmar(p, "todas", todas(ns, positivo));
+    afirmar(p, "alguna", alguna(ns, fn(n: &usize) -> bool { return n == 9; }));
+    afirmar_igual_numero(p, "primera que",
+        try primera_que(ns, fn(n: &usize) -> bool { return n > 5; }), 9);
+    afirmar_igual_numero(p, "plegar",
+        plegar(ns, 10, fn(total: usize, n: &usize) -> usize {
+                return total + n;
+            }), 25);
+    let dobles = transformar(ns, fn(n: &usize) -> usize { return n * 2; });
+    afirmar_igual_numero(p, "transformar", suma(dobles), 30);
+
     // ---- numero ----
     afirmar_igual_numero(p, "porcentaje", try porcentaje(1, 8), 12);
     afirmar_igual_numero(p, "acotar", acotar(99, 0, 10), 10);
@@ -77,6 +96,11 @@ fn main() -> usize ! {
     afirmar_igual_numero(p, "acumular", obtener_o(m, "a", 0), 5);
     afirmar_igual_texto(p, "claves ordenadas", unir(claves_ordenadas(m), ","),
         "a,b");
+    let valores_m: lista<usize> = try valores_ordenados(m);
+    afirmar_igual_numero(p, "valores ordenados", suma(valores_m), 6);
+    var otro: mapa<str, usize> = [];
+    poner(otro, "a", 8); poner(otro, "c", 2); try actualizar(m, otro);
+    afirmar_igual_numero(p, "actualizar", obtener_o(m, "a", 0), 8);
 
     let c1 = de_lista(palabras("uno dos tres"));
     let c2 = de_lista(palabras("dos tres cuatro"));
@@ -104,6 +128,7 @@ fn main() -> usize ! {
     afirmar_igual_numero(p, "vector cuenta", cuantos(v), 2);
     afirmar_igual_texto(p, "vector saca", try sacar(v, vacio()), "y");
     afirmar_igual_numero(p, "vector encoge", cuantos(v), 1);
+    afirmar_igual_texto(p, "vector a lista", unir(a_lista(v), ","), "x");
 
     // ---- par ----
     let dos = par(nuevo("clave"), 9);

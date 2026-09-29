@@ -88,15 +88,17 @@ fn es_generico(toks: &lista<Token>, i: usize) -> bool {
         return true;
     }
     if toks[i - 1].tipo != "ident" { return false; }
-    if i >= 2 {
-        let ant2 = valor_py(toks[i - 2]);
-        let a2 = vista(ant2);
-        if a2 == "fn" || a2 == "struct" { return true; }
-        if a2 == ":" || a2 == "->" || a2 == "<" || a2 == "," {
-            return true;
-        }
-    }
-    return false;
+    if i < 2 { return false; }
+    let ant2 = valor_py(toks[i - 2]);
+    let a2 = vista(ant2);
+    if a2 == "fn" || a2 == "struct" { return true; }
+    // `Nombre<...>` en posicion de tipo: detras de `:` o `->`. Entre el
+    // contexto y el nombre pueden ir `&`, `mut` o los dos: `&mut Par<A, B>`.
+    var k = i - 2;
+    while k > 0 && (toks[k].valor == "&" || toks[k].valor == "mut") { k = k - 1; }
+    let ak = valor_py(toks[k]);
+    let a = vista(ak);
+    return a == ":" || a == "->" || a == "<" || a == ",";
 }
 
 fn hex_minuscula(b: usize) -> str {
@@ -237,6 +239,8 @@ fn pega(toks: &lista<Token>, i_ant: usize, i: usize, mc: &Marcas) -> bool {
     if as_ && (va == "(" || va == "[" || va == "." || igual(va, "$")) {
         return true;
     }
+    // `como?`: el `?` es parte de la conversion.
+    if ts && v == "?" && va == "como" { return true; }
     // Un rango va pegado: `0..n`.
     if (ts && v == "..") || (as_ && va == "..") { return true; }
     // Dentro de un tipo, `<` y `>` van pegados.

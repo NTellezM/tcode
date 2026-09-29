@@ -1,6 +1,9 @@
 """Analisis lexico de Tcode."""
 
+import re
 from dataclasses import dataclass
+
+from tcode.xid import empieza_nombre, sigue_nombre
 
 PALABRAS = {
     "fn", "let", "var", "mut", "if", "else", "while", "return",
@@ -105,10 +108,42 @@ def fin_de_cadena(fuente, i, archivo="<entrada>", linea=1, validar=True):
         i += 1
 
 
+def _digito(c):
+    """Solo los de ASCII: `isdigit()` tambien dice que si a `²` y a `٣`."""
+    return "0" <= c <= "9"
+
+
+def leer_fuente(ruta, mostrada=None):
+    """El texto de un `.t`. Tiene que ser UTF-8: si no, el error dice la
+    linea del primer byte que no lo es, como el lexer de `tcodec`."""
+    with open(ruta, "rb") as f:
+        crudo = f.read()
+    try:
+        return crudo.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        linea = crudo.count(b"\n", 0, exc.start) + 1
+        raise ErrorLexico(f"{mostrada or ruta}:{linea}: el archivo no es "
+                          f"UTF-8 valido") from None
+
+
+_BIDI = re.compile("[\u202a-\u202e\u2066-\u2069]")
+
+
 def tokenizar(fuente: str, archivo: str = "<entrada>",
               con_comentarios: bool = False, linea: int = 1) -> list:
     """`linea` es donde empieza `fuente`: el hueco de una cadena interpolada
     se lee aparte, y sus errores tienen que decir donde esta la cadena."""
+    # Los controles bidireccionales hacen que el codigo se vea distinto de
+    # como se compila ("Trojan Source"): no valen en ningun sitio, tampoco
+    # en una cadena o un comentario.
+    raro = _BIDI.search(fuente)
+    if raro is not None:
+        donde = linea + fuente.count("\n", 0, raro.start())
+        raise ErrorLexico(
+            f"{archivo}:{donde}: control bidireccional "
+            f"U+{ord(raro.group()):04X}: hace que el codigo se vea distinto "
+            f"de como se compila")
+
     toks = []
     i = 0
     inicio_linea = 0
@@ -264,45 +299,49 @@ def tokenizar(fuente: str, archivo: str = "<entrada>",
             continue
 
         # numero
-        if c.isdigit():
+        if _digito(c):
             c0 = col()
             j = i
-            while j < n and (fuente[j].isdigit() or fuente[j] == "_"):
+            while j < n and (_digito(fuente[j]) or fuente[j] == "_"):
                 j += 1
 
             # Decimal: el punto tiene que llevar un digito a cada lado. `1.`
             # y `.5` no valen, porque `1.largo()` seria ambiguo y `.5` se
             # confunde con el acceso a un campo.
             decimal = False
-            if (j + 1 < n and fuente[j] == "." and fuente[j + 1].isdigit()):
+            if (j + 1 < n and fuente[j] == "." and _digito(fuente[j + 1])):
                 decimal = True
                 j += 1
-                while j < n and (fuente[j].isdigit() or fuente[j] == "_"):
+                while j < n and (_digito(fuente[j]) or fuente[j] == "_"):
                     j += 1
             if j < n and fuente[j] in "eE":
                 k = j + 1
                 if k < n and fuente[k] in "+-":
                     k += 1
-                if k < n and fuente[k].isdigit():
+                if k < n and _digito(fuente[k]):
                     decimal = True
                     j = k
-                    while j < n and fuente[j].isdigit():
+                    while j < n and _digito(fuente[j]):
                         j += 1
 
-            if j < n and (fuente[j].isalpha() or fuente[j] == "."):
+            if j < n and (empieza_nombre(fuente[j]) or fuente[j] == "."):
                 raise ErrorLexico(
                     f"{archivo}:{linea}: numero mal formado cerca de "
                     f"{fuente[i:j+1]!r}")
+            # Para el formato, el numero tal como se escribio: `1_000` se
+            # queda asi. Para compilar, sin los `_`.
+            escrito = fuente[i:j]
             toks.append(Token("decimal" if decimal else "entero",
-                              fuente[i:j].replace("_", ""), linea, c0))
+                              escrito if con_comentarios else escrito.replace("_", ""),
+                              linea, c0))
             i = j
             continue
 
         # identificador o palabra reservada
-        if c.isalpha() or c == "_":
+        if empieza_nombre(c):
             c0 = col()
             j = i
-            while j < n and (fuente[j].isalnum() or fuente[j] == "_"):
+            while j < n and sigue_nombre(fuente[j]):
                 j += 1
             palabra = fuente[i:j]
             toks.append(Token("palabra" if palabra in PALABRAS else "ident",
@@ -317,7 +356,8 @@ def tokenizar(fuente: str, archivo: str = "<entrada>",
                 i += len(s)
                 break
         else:
-            raise ErrorLexico(f"{archivo}:{linea}: caracter inesperado {c!r}")
+            visto = repr(c) if c < "\x80" else f"U+{ord(c):04X}"
+            raise ErrorLexico(f"{archivo}:{linea}: caracter inesperado {visto}")
 
     toks.append(Token("fin", "", linea, 1))
     return toks

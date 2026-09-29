@@ -32,7 +32,8 @@ def correr(suite: Resultado) -> None:
     # salir identico.
     #
     # Una funcion que esta capa no sabe hacer entera no se emite a medias: se
-    # descarta. Se cuentan las que salen, y se exige un minimo.
+    # descarta. Se cuentan las que salen, y se exige como minimo lo que sale
+    # hoy: perder una tiene que notarse.
     import re as _re_cuerpos
 
     def _normaliza_tmp(texto):
@@ -49,7 +50,7 @@ def correr(suite: Resultado) -> None:
             texto = renumera(texto, prefijo)
         return texto
 
-    _MINIMO_CUERPOS = 420
+    _MINIMO_CUERPOS = 842
 
     tmp = tempfile.mkdtemp(prefix="tcode-cuerpos-")
     try:

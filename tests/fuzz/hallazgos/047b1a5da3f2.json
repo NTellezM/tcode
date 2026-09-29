@@ -1,0 +1,5 @@
+{
+  "origen": "ejemplos/json.t",
+  "firma": "tcodec: rechaza sin archivo y linea: tcodec: `ss_lista_Json` se usa y el recorrido no la registro",
+  "mutacion": "cortado en el byte 3209; cortado en el byte 2548"
+}

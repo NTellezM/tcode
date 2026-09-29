@@ -11,6 +11,114 @@ from .comun import (
 )
 
 ACEPTA = [
+    # `anadir` y `ordenar` por un `&mut lista<T>` de `obtener_mut`, como por
+    # un parametro `&mut lista<T>`. Se rechazaban diciendo que no era una
+    # lista; lo encontro revisar la especificacion para 1.0.
+    ("anadir y ordenar por un prestamo para modificar",
+     '''fn main() -> usize ! {
+            var m: mapa<str, lista<usize>> = [];
+            poner(m, "a", [3, 1]);
+            let l: &mut lista<usize> = try obtener_mut(m, "a");
+            anadir(l, 2);
+            anadir(l, 0);
+            ordenar(l);
+            imprimir($"{l[0]} {l[3]} {largo(l)}\\n");
+            return 0;
+        }''',
+     "0 3 4\n"),
+
+    # Una lista declarada dentro de un `for` o de un brazo de `match`, y
+    # en ningun otro sitio. Los dos compiladores recorrian solo los `if` y
+    # los `while` al registrar los tipos: Python escribia C que usaba la
+    # lista sin declararla y tcodec se negaba. Lo encontro la seccion
+    # REGLAS.
+    ("una lista que solo aparece dentro de un for o de un match",
+     '''enum C { U, D }
+        fn main() {
+            let k = C.U;
+            match k {
+                C.U -> { let xs: lista<usize> = [1, 2]; imprimir(xs[1]); }
+                C.D -> { }
+            }
+            let zs = [1, 2];
+            for z en zs { let ys: lista<bool> = [z == 2]; imprimir(ys[0]); }
+            imprimir("\\n");
+        }''',
+     "2falsetrue\n"),
+
+    # Nombres de UAX #31: letras de cualquier escritura, en structs, campos,
+    # funciones y variables. El C los lleva tal cual, y gcc y clang los
+    # aceptan.
+    ("nombres con letras no ASCII",
+     '''struct A\u00f1o { d\u00eda: usize }
+        fn doble_\u03c0(x: usize) -> usize { return x * 2; }
+        fn main() {
+            let \u540d\u524d = A\u00f1o { d\u00eda: 3 };
+            let \U0001d465 = doble_\u03c0(\u540d\u524d.d\u00eda);
+            imprimir($"{\U0001d465}\\n");
+        }''',
+     "6\n"),
+
+    # La lista que lleva una forma de un enum se declara aunque el programa
+    # no la escriba en ningun otro sitio. Python escribia C que la usaba sin
+    # declararla, y `tcodec` se negaba sin decir donde. Lo encontro
+    # `tests/fuzz.py`, cortando `ejemplos/json.t`.
+    ("una lista dentro de una forma de enum",
+     '''enum J { Nada, Lista(lista<J>), Num(usize) }
+        fn cuenta(v: &J) -> usize {
+            match v {
+                J.Lista(xs) -> {
+                    var n = 0;
+                    for x en xs { n = n + cuenta(x); }
+                    return n;
+                }
+                J.Num(k) -> { return k; }
+                _ -> { return 0; }
+            }
+        }
+        fn main() {
+            let v = J.Lista([J.Num(2), J.Nada, J.Lista([J.Num(1)]), J.Num(5)]);
+            imprimir($"{cuenta(v)}\\n");
+        }''',
+     "8\n"),
+
+    # Asignar un sitio a si mismo no hace nada. Generado como cualquier
+    # asignacion, el valor se sacaba, se soltaba lo viejo —el mismo valor—
+    # y se volvia a poner ya soltado: `s = s;` con un `str`, una lista o un
+    # struct era un uso despues de liberar, y `p.s = p.s;` daba C que no
+    # compilaba. Sale `(void) x;`, que ademas clang no toma por un descuido
+    # como `x = x;` (-Wself-assign; lo vigila `make compiladores`).
+    ("asignar un sitio a si mismo",
+     '''struct P { x: usize, s: str }
+        fn main() {
+            var u: usize = 1;
+            u = u;
+            var b = true;
+            b = b;
+            var p = P { x: 2, s: nuevo("a") };
+            p.x = p.x;
+            p.s = p.s;
+            p = p;
+            var s = nuevo("t");
+            s = s;
+            if largo(s) > 0 { s = s; }
+            var xs: lista<usize> = [3];
+            xs[0] = xs[0];
+            xs = xs;
+            var ts: lista<str> = [nuevo("z")];
+            ts = ts;
+            imprimir($"{u} {b} {p.x} {p.s} {s} {xs[0]} {ts[0]}\\n");
+        }''',
+     "1 true 2 a t 3 z\n"),
+
+    # Sacar un campo marca ese nodo, no su linea: el destino y la lectura
+    # de `p.s` que vienen detras, en la misma linea, no se sacaban tambien.
+    ("sacar un campo y reponerlo en la misma linea",
+     '''struct P { s: str }
+        fn main() { var p = P { s: nuevo("a") }; let t = p.s; '''
+     '''p.s = nuevo("b"); imprimir($"{t} {p.s}\\n"); }''',
+     "a b\n"),
+
     # `a == b` entre textos compara lo que dicen, sea cual sea su forma: con
     # duenio, prestado o escrito. Se genera como `igual(a, b)`.
     ("== y != entre textos",
@@ -63,6 +171,30 @@ ACEPTA = [
             imprimir($"{f(C.A, 1)} {f(C.A, 5)} {f(C.B, 0)} {f(C.D, 0)}\\n");
         }''',
      "corto afx f resto\n"),
+
+    ("todos los brazos de match devuelven",
+     '''enum E { A, B }
+        fn valor(e: E) -> usize {
+            match e {
+                E.A -> { return 10; }
+                E.B -> { return 20; }
+            }
+        }
+        fn main() { imprimir($"{valor(E.A)} {valor(E.B)}\\n"); }''',
+     "10 20\n"),
+
+    ("patrones alternativos con capturas",
+     '''enum E { A, B, C(usize), D(usize) }
+        fn valor(e: E) -> usize {
+            match e {
+                E.A | E.B -> { return 1; }
+                E.C(n) | E.D(n) -> { return n; }
+            }
+        }
+        fn main() {
+            imprimir($"{valor(E.A)} {valor(E.B)} {valor(E.C(3))} {valor(E.D(4))}\\n");
+        }''',
+     "1 1 3 4\n"),
 
     # `imprimir` y `{}` escriben numeros, `bool` y texto, tambien prestados.
     ("imprimir y `{}` con prestamos",

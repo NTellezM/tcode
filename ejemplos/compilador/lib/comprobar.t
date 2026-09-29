@@ -213,6 +213,10 @@ fn firma_interna(nombre: view) -> Interna {
     else if nombre == "leer_archivo" {
         ps.anadir(nuevo("view")); r = nuevo("str"); fal = true;
     }
+    else if nombre == "leer_parte_archivo" {
+        ps.anadir(nuevo("view")); ps.anadir(nuevo("usize"));
+        ps.anadir(nuevo("usize")); r = nuevo("str"); fal = true;
+    }
     else if nombre == "escribir_archivo" {
         ps.anadir(nuevo("view")); ps.anadir(nuevo("view")); r = nuevo("()"); fal = true;
     }
@@ -1219,7 +1223,26 @@ fn siempre_sale(n: &P.Nodo) -> bool {
     if clase == Clase.Si && n.hijos[k].hijos.largo() == 3 {
         return siempre_sale(n.hijos[k].hijos[1]) && siempre_sale_rama(n.hijos[k].hijos[2]);
     }
+    if clase == Clase.Expresion && n.hijos[k].hijos.largo() == 1 {
+        return match_siempre_sale(n.hijos[k].hijos[0]);
+    }
     return false;
+}
+
+// Un `match` exhaustivo tambien sale si cada brazo es un bloque que sale.
+// Los brazos que dan una expresion llevan un `Retorno` interno, pero ese es
+// el valor del brazo, no un `return` de la funcion.
+fn match_siempre_sale(n: &P.Nodo) -> bool {
+    if n.clase != Clase.Match || n.hijos.largo() <= 1 { return false; }
+    var i = 1;
+    while i < n.hijos.largo() {
+        if n.hijos[i].hijos.largo() == 0 { return false; }
+        let k = n.hijos[i].hijos.largo() - 1;
+        if n.hijos[i].hijos[k].clase != Clase.Bloque
+        || !siempre_sale(n.hijos[i].hijos[k]) { return false; }
+        i = i + 1;
+    }
+    return true;
 }
 
 // La rama `else` puede ser un bloque o, en `else if`, otra sentencia.
@@ -2909,8 +2932,8 @@ fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> E
             return valor_sabido(false, r);
         }
         // Un negativo rellena con unos: redondea hacia abajo.
-        let p = (patron_escrito(a) como ? i64) >> b.magnitud;
-        return desde_patron(p como ? u64, tipo);
+        let p = (patron_escrito(a) como? i64) >> b.magnitud;
+        return desde_patron(p como? u64, tipo);
     }
     return escrito_sin_saber();
 }
@@ -3032,7 +3055,7 @@ fn variable(c: mut Comprobacion, m: &Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let k = funcion_llamada(m, tipos, nombre);
         if k < m.funciones.largo() && !tiene_sueltos(m.funciones[k]) {
             if m.funciones[k].falible {
-                error(c, m, n.linea, $"`{nombre}` puede fallar, y en v0 una funcion que se pasa como valor no puede: quitale el `!` o envuelvela");
+                error(c, m, n.linea, $"`{nombre}` puede fallar, y una funcion que se pasa como valor no puede: quitale el `!` o envuelvela");
                 return vacio();
             }
             return firma_de(m.funciones[k]);
@@ -3190,6 +3213,42 @@ fn formas_legibles(m: &Mundo, en_t: view) -> str {
 fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
     let dado = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
     let t = sin_prestamo(dado);
+    // `300 como u8` es una cuenta de numeros escritos: lo que en marcha
+    // pararia el programa es un error aqui, como `let x: u8 = 256;`. Se
+    // cuenta antes de fijarle el tipo, que tambien la contaria.
+    let destino_t = I.sin_alias_tipo(vista(n.texto));
+    // `-300` es un `i64`: se cuenta lo de dentro y se le cambia el signo.
+    let x = copiar(n.hijos[0]);
+    let negada = x.clase == Clase.Unaria && x.texto == "-" && x.hijos.largo() == 1
+    && I.literal_de(x.hijos[0]) == "entero";
+    if (igual(t, literal()) || negada) && es_tipo_entero(destino_t) {
+        var v = escrito_sin_saber();
+        if negada {
+            // Al tiparla como `i64` ya se conto, y sus errores ya se dieron:
+            // se cuenta otra vez aparte, sin repetirlos.
+            let contadas_antes = copiar(c.contadas);
+            let errores_antes = c.errores.largo();
+            c.contadas = [];
+            let dentro = valor_escrito(c, m, x.hijos[0], "i64");
+            c.contadas = contadas_antes;
+            if c.errores.largo() > errores_antes {
+                var quedan: lista<str> = [];
+                var k = 0;
+                while k < errores_antes {
+                    quedan.anadir(copiar(c.errores[k]));
+                    k = k + 1;
+                }
+                c.errores = quedan;
+            }
+            if dentro.sabido { v = valor_sabido(!dentro.negativo, dentro.magnitud); }
+        } else {
+            v = valor_escrito(c, m, x, "usize");
+        }
+        if v.sabido && !cabe_escrito(v, destino_t) {
+            let tv = texto_escrito(v);
+            let _p = cuenta_parada(c, m, n, $"`{tv} como {destino_t}` no cabe en `{destino_t}`");
+        }
+    }
     // Un numero escrito sin nada al lado sale de su tipo de siempre.
     if igual(t, literal()) { fijar_literal(c, m, n.hijos[0], "usize"); }
     else if igual(t, literal_decimal()) { fijar_literal(c, m, n.hijos[0], "f64"); }
@@ -3288,7 +3347,10 @@ fn sacar_campo(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, base: view, raiz: vie
         return;
     }
     c.simbolos[i].sacados.anadir($"{ruta}\t{n.linea}");
-    c.sacados.anadir($"{c.archivo}\t{n.linea}\t{nombre}");
+    // El generador reconoce el nodo por su `id`, no por su linea: otro
+    // `p.c` en la misma linea —el destino de `p.c = p.c;`, o una lectura
+    // despues de reponerlo— no es este, y no se saca.
+    c.sacados.anadir($"{c.archivo}\t{n.id}\t{nombre}");
 }
 
 fn campo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
@@ -3832,7 +3894,7 @@ fn patron_valido(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma
         let pc = p.clase;
         if pc == Clase.Atrapa { continue; }
         if pc == Clase.Patron {
-            let quien = I.antes_del_punto(p.texto);
+            let quien = I.sin_modulo(I.antes_del_punto(p.texto));
             let cual = I.tras_el_punto(p.texto);
             if !es_enum(m, t) || !igual(quien, t) {
                 error(c, m, linea, $"`{base}.{forma}` lleva un `{t}` en la posicion {i}, y el patron pone `{p.texto}`");
@@ -4462,7 +4524,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let is = buscar_simbolo(c, base);
         var tipo_lista = vacio();
         let hay = base.largo() > 0 && existe(c, is);
-        if hay { tipo_lista = tipo_de_lugar(c, m, tipos, n.hijos[0]); }
+        if hay { tipo_lista = sin_prestamo(tipo_de_lugar(c, m, tipos, n.hijos[0])); }
         if !hay {
             error(c, m, n.linea, "el primer argumento de `anadir` tiene que ser una variable, un campo o un elemento");
         } else if !T.es_lista(tipo_lista) {
@@ -4474,7 +4536,10 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             if t.largo() > 0 && !encaja(elem, t) {
                 error(c, m, n.linea, $"la lista guarda `{elem}` y se intento agregar `{t}`");
             }
-            mutar(c, m, n.hijos[0], n.hijos[0].linea, is, false);
+            // Por un `&mut lista<T>` —de `obtener_mut`, o un parametro— se
+            // modifica; por un `&` no, y el error lo dice.
+            mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
+                T.es_referencia(c.simbolos[is].tipo));
             return nuevo("()");
         }
         let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
@@ -4491,7 +4556,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let is = buscar_simbolo(c, base);
         let hay = base.largo() > 0 && existe(c, is);
         var t = vacio();
-        if hay { t = tipo_de_lugar(c, m, tipos, n.hijos[0]); }
+        if hay { t = sin_prestamo(tipo_de_lugar(c, m, tipos, n.hijos[0])); }
         if !hay {
             error(c, m, n.linea, "`ordenar` necesita una variable, un campo o un elemento");
         } else if !T.es_lista(t) {
@@ -4504,7 +4569,8 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 let cuales = con_comas(ords);
                 error(c, m, n.linea, $"`{e}` no tiene un orden natural; `ordenar` funciona sobre {cuales}");
             } else {
-                mutar(c, m, n.hijos[0], n.hijos[0].linea, is, false);
+                mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
+                    T.es_referencia(c.simbolos[is].tipo));
             }
         }
         return nuevo("()");
@@ -4909,7 +4975,7 @@ fn comprobar_mapa_valido(c: mut Comprobacion, m: &Mundo, linea: usize, t: view) 
     let k = vista(ps[0]);
     let v = vista(ps[1]);
     if k != "str" {
-        error(c, m, linea, $"en v0 la clave de un mapa tiene que ser `str`, y aqui es `{k}`");
+        error(c, m, linea, $"la clave de un mapa tiene que ser `str`, y aqui es `{k}`");
     }
     if T.es_referencia(v) || T.es_referencia(k) {
         error(c, m, linea, "un mapa guarda valores, no prestamos: `&T` no puede ser ni clave ni valor");

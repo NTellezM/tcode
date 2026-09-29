@@ -20,6 +20,22 @@ fn minusculas(v: view) -> str {
     return salida;
 }
 
+fn mayusculas(v: view) -> str {
+    var salida = vacio();
+    var i = 0;
+    while i < largo(v) {
+        let b = byte(v, i);
+        if b >= 97 && b <= 122 {
+            let alfabeto = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            empujar(salida, rebanar(alfabeto, b - 97, b - 96));
+        } else {
+            empujar(salida, rebanar(v, i, i + 1));
+        }
+        i = i + 1;
+    }
+    return salida;
+}
+
 // Parte por espacios, saltos y tabuladores, descartando los vacios.
 fn palabras(v: view) -> lista<str> {
     var salida: lista<str> = [];
@@ -75,6 +91,47 @@ fn partir(v: view, sep: view) -> lista<str> ! {
     }
     anadir(salida, nuevo(rebanar(v, desde, largo(v))));
     return salida;
+}
+
+// Lineas sin el salto final. Entiende LF y CRLF, conserva las lineas vacias
+// de en medio y no inventa otra despues de un ultimo salto.
+fn lineas(v: view) -> lista<str> {
+    var salida: lista<str> = [];
+    var desde = 0;
+    var i = 0;
+    while i < largo(v) {
+        if byte(v, i) == 10 {
+            var hasta = i;
+            if hasta > desde && byte(v, hasta - 1) == 13 { hasta = hasta - 1; }
+            anadir(salida, nuevo(rebanar(v, desde, hasta)));
+            desde = i + 1;
+        }
+        i = i + 1;
+    }
+    if desde < largo(v) {
+        var hasta = largo(v);
+        if hasta > desde && byte(v, hasta - 1) == 13 { hasta = hasta - 1; }
+        anadir(salida, nuevo(rebanar(v, desde, hasta)));
+    }
+    return salida;
+}
+
+// Apariciones sin solaparlas: `aaaa` contiene dos `aa`.
+fn apariciones(v: view, aguja: view) -> usize ! {
+    if largo(aguja) == 0 { falla "no se cuentan apariciones de la cadena vacia"; }
+    var cuantas = 0;
+    var i = 0;
+    let primero = byte(aguja, 0);
+    while i + largo(aguja) <= largo(v) {
+        if byte(v, i) == primero
+        && igual(rebanar(v, i, i + largo(aguja)), aguja) {
+            cuantas = cuantas + 1;
+            i = i + largo(aguja);
+        } else {
+            i = i + 1;
+        }
+    }
+    return cuantas;
 }
 
 fn a_entero(v: view) -> usize ! {

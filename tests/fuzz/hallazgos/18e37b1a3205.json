@@ -1,0 +1,5 @@
+{
+  "origen": "ejemplos/banderas.t",
+  "firma": "tcodec: codigo -6: <sitio>: esta cadena lleva un cero en medio y va a una funcion de C, que la leeria cortada",
+  "mutacion": "borrada la linea 14: 'var xs: lista<str> = [];'; insertado '\\x00'"
+}

@@ -25,6 +25,52 @@ _MEDIO = ("struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } "
 _FORMAS = "enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } "
 
 RECHAZO = [
+    ("anadir por un prestamo de solo lectura",
+     'fn main() -> usize ! { var m: mapa<str, lista<usize>> = []; '
+     'poner(m, "a", [3]); let l: &lista<usize> = try obtener(m, "a"); '
+     'anadir(l, 2); return 0; }',
+     "`l` es un prestamo de solo lectura"),
+
+    # Lo que no es un nombre (UAX #31) se nombra por su codigo. Antes tcodec
+    # tomaba cualquier byte no ASCII por letra, y Python usaba `isalpha()`.
+    ("un signo que no es una letra no es un nombre",
+     'fn main() { let x = 2 \u00d7 3; }',
+     "caracter inesperado U+00D7"),
+
+    ("un espacio de ancho cero no es parte de un nombre",
+     'fn main() { let a\u200bb = 1; }',
+     "caracter inesperado U+200B"),
+
+    ("un superindice no es un digito",
+     'fn main() { let x = \u00b2; }',
+     "caracter inesperado U+00B2"),
+
+    ("un numero pegado a una letra no ASCII",
+     'fn main() { let x = 1\u00f1; }',
+     "numero mal formado cerca de '1\u00f1'"),
+
+    # Un `.t` es UTF-8. Python se escapaba con un `UnicodeDecodeError`, y
+    # tcodec tomaba el byte por una letra.
+    ("un byte que no es UTF-8",
+     b'fn main() {}\n\xff\n',
+     "p.t:2: el archivo no es UTF-8 valido"),
+
+    ("un sustituto escrito en UTF-8",
+     b'fn main() {\n    let s = "\xed\xa0\x80";\n}\n',
+     "p.t:2: el archivo no es UTF-8 valido"),
+
+    # "Trojan Source": un control bidireccional hace que el codigo se vea
+    # distinto de como se compila. No vale en ningun sitio. `tcodec` lo
+    # aceptaba dentro de un nombre y lo pasaba al C; lo encontro
+    # `tests/fuzz.py`.
+    ("un control bidireccional en un nombre",
+     'fn main() { let x\u202ey = 1; imprimir($"{x\u202ey}"); }',
+     "control bidireccional U+202E"),
+
+    ("un control bidireccional en una cadena",
+     'fn main() {\n    imprimir("a\u2067b");\n}',
+     ":2: control bidireccional U+2067"),
+
     # ---- la llamada con punto es una llamada: las mismas reglas ----
     ("con punto, lo de delante sigue siendo el primer argumento",
      'fn doble(n: usize) -> usize { return n * 2; }\n'
@@ -236,6 +282,12 @@ RECHAZO = [
      'fn f(e: &E) -> usize { return match e { E.A(x) -> x, _ -> 0, }; }'
      ' fn main() { }',
      "lleva 0 valores, y el patron atrapa 1"),
+
+    ("cada alternativa declara sus propios nombres",
+     'enum E { A(usize), B(usize) } '
+     'fn f(e: &E) -> usize { return match e { E.A(n) | E.B(m) -> n, }; }'
+     ' fn main() { }',
+     "`n` no esta declarada"),
 
     ("construir una forma pide el tipo que lleva",
      'enum E { A, B(usize), C(str) } '
@@ -469,7 +521,7 @@ RECHAZO = [
      'fn main() -> usize { let a: f64 = 2.0; imprimir(a & 1); return 0; }',
      "trabaja sobre los bits de un entero"),
 
-    ("una funcion falible no se puede pasar como valor en v0",
+    ("una funcion falible no se puede pasar como valor",
      'fn r(n: usize) -> usize ! { if n == 0 { falla "cero"; } return n; }'
      ' fn f(g: fn(usize) -> usize) -> usize { return g(1); }'
      ' fn main() -> usize { return f(r); }',
@@ -757,7 +809,7 @@ RECHAZO = [
      "se evaluaria una sola vez"),
 
     # ---- mapas ----
-    ("en v0 la clave de un mapa tiene que ser `str`",
+    ("la clave de un mapa tiene que ser `str`",
      'fn f() { var m: mapa<usize, usize> = []; imprimir(largo(m)); }',
      "la clave de un mapa tiene que ser `str`"),
 

@@ -778,6 +778,8 @@ class Parser:
         Rust y Swift piden `=>` o `case`; aqui el `->` es el mismo de siempre
         y significa lo mismo: a la izquierda de que, a la derecha lo que da.
         """
+        from copy import deepcopy
+
         tok = self.espera("palabra", "match")
         valor = self.expr()
         self.espera("simbolo", "{")
@@ -785,30 +787,43 @@ class Parser:
         while not self.es("simbolo", "}"):
             if self.es("fin"):
                 self.error("match sin cerrar")
-            bt = self.actual
-            variante = None
-            nombres = []
-            if self.acepta("ident", "_"):
-                pass
-            else:
-                enum_nombre = self.espera("ident").valor
-                self.espera("simbolo", ".")
-                variante = self.espera("ident").valor
-                if enum_nombre not in self.enums:
-                    self.error(f"`{enum_nombre}` no es un enum")
-                nombres = self.posiciones_patron()
+            alternativas = []
+            while True:
+                linea = self.actual.linea
+                variante = None
+                nombres = []
+                if self.acepta("ident", "_"):
+                    pass
+                else:
+                    enum_nombre = self.espera("ident").valor
+                    self.espera("simbolo", ".")
+                    variante = self.espera("ident").valor
+                    if (enum_nombre in self.alias
+                            and self.acepta("simbolo", ".")):
+                        enum_nombre = f"{enum_nombre}.{variante}"
+                        variante = self.espera("ident").valor
+                    if (enum_nombre not in self.enums
+                            and enum_nombre.split(".", 1)[0] not in self.alias):
+                        self.error(f"`{enum_nombre}` no es un enum")
+                    nombres = self.posiciones_patron()
+                alternativas.append((variante, nombres, linea))
+                if not self.acepta("simbolo", "|"):
+                    break
             # Una guarda: el brazo solo vale si ademas se cumple esto.
             guarda = self.expr() if self.acepta("palabra", "if") else None
             self.espera("simbolo", "->")
             if self.es("simbolo", "{"):
-                brazos.append(Brazo(variante, nombres, self.bloque(),
-                                    False, bt.linea, guarda))
+                cuerpo = self.bloque()
+                for variante, nombres, linea in alternativas:
+                    brazos.append(Brazo(variante, nombres, deepcopy(cuerpo),
+                                        False, linea, deepcopy(guarda)))
                 self.acepta("simbolo", ",")
             else:
                 e = self.expr()
-                brazos.append(Brazo(variante, nombres,
-                                    [Retorno(e, linea=bt.linea)],
-                                    True, bt.linea, guarda))
+                for variante, nombres, linea in alternativas:
+                    brazos.append(Brazo(variante, nombres,
+                                        [Retorno(deepcopy(e), linea=linea)],
+                                        True, linea, deepcopy(guarda)))
                 if not self.acepta("simbolo", ","):
                     break
         self.espera("simbolo", "}")
@@ -838,7 +853,11 @@ class Parser:
             enum_nombre = self.espera("ident").valor
             self.espera("simbolo", ".")
             variante = self.espera("ident").valor
-            if enum_nombre not in self.enums:
+            if enum_nombre in self.alias and self.acepta("simbolo", "."):
+                enum_nombre = f"{enum_nombre}.{variante}"
+                variante = self.espera("ident").valor
+            if (enum_nombre not in self.enums
+                    and enum_nombre.split(".", 1)[0] not in self.alias):
                 self.error(f"`{enum_nombre}` no es un enum")
             return PatronForma(enum_nombre, variante, self.posiciones_patron(),
                                linea=t.linea)
@@ -950,6 +969,17 @@ class Parser:
                 self.i += 1
                 miembro = self.espera("ident").valor
                 completo = f"{t.valor}.{miembro}"
+                if self.acepta("simbolo", "."):
+                    variante = self.espera("ident").valor
+                    args = []
+                    if self.acepta("simbolo", "("):
+                        if not self.es("simbolo", ")"):
+                            while True:
+                                args.append(self.expr())
+                                if not self.acepta("simbolo", ","):
+                                    break
+                        self.espera("simbolo", ")")
+                    return EnumLit(completo, variante, args, linea=t.linea)
                 if self.es("simbolo", "{"):
                     return self.cuerpo_literal_struct(completo, t.linea)
                 self.espera("simbolo", "(")
