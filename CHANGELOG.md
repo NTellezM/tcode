@@ -21,7 +21,37 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   en los dos compiladores: el envoltorio del arreglo salía después del
   struct que lo lleva. Ahora sale justo antes. Solo cambia el C de esos
   programas, que antes no compilaban.
+- Un préstamo que ya se tiene —lo que da `obtener` u `obtener_mut`, lo que
+  atrapa un `match`— no se podía pasar a una función que presta, en los dos
+  compiladores: se comparaba `&N` con el `N` del parámetro. Ahora pasa tal
+  cual; un `&T` hacia un parámetro `mut` sigue siendo error, con un mensaje
+  que dice por qué (antes pedía `mut &mut N`).
+- `mapa<str, [T; n]>` daba C que no compilaba, en los dos compiladores: el
+  mapa guarda un puntero al envoltorio del arreglo, que se definía después.
+  Ahora esos envoltorios llevan nombre y se declaran antes; el C de los
+  demás programas no cambia.
+- `tcodec` escribía dos veces el envoltorio de `[Q.T; n]` (con y sin el
+  alias del módulo), y no sabía copiar un enum que lleva un tipo con dueño
+  de otro módulo (`Con(H.Nombre)`). Python no aceptaba esa forma de enum, y
+  tipaba como `usize` un `match` de números escritos donde se esperaba otro
+  entero.
+- Con un local que no se puede llamar y se llama como una función
+  (`var partes: lista<str>` y `partes(x)` o `T.partes(x)`), `tcodec` tomaba
+  el tipo del local para la llamada y no sabía escribir la declaración que
+  la guardaba. Ahora busca el local por el nombre entero, como el
+  generador, y si no se puede llamar sigue con la función.
+- La pregunta «¿este tipo es dueño de memoria?» tenía siete respuestas en
+  cuatro archivos de `tcodec`, y de ahí salió la fuga de los structs con un
+  enum. Ahora hay una sola regla, `posee_en` en `lib/tipos.t`, que conoce
+  structs, genéricas, enums y alias de módulo.
 - `tests/fuzz.py` mira los errores de `cc` y `ld` en inglés (`LC_ALL=C`).
+
+### Añadido
+
+- Sección FORMAS en la suite: cada forma de guardar un tipo dentro de otro
+  —siete hojas, cinco envolturas, una o dos de hondo, en uno, dos o tres
+  archivos—, 588 programas con los dos compiladores y bajo ASan. Encontró
+  todo lo anterior.
 
 ## 1.0.0-rc1 — 2026-09-28, candidata local
 

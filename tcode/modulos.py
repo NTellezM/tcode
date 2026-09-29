@@ -106,6 +106,10 @@ def renombrar_en_arbol(nodo, mapa):
         valor = getattr(nodo, nombre)
         if nombre in ("tipo", "retorno") and isinstance(valor, str):
             setattr(nodo, nombre, renombrar_tipo(valor, mapa))
+        elif (nombre == "tipos" and isinstance(valor, list)
+              and all(isinstance(x, str) for x in valor)):
+            # Lo que lleva una forma de enum: `Con(H.Color)`.
+            setattr(nodo, nombre, [renombrar_tipo(x, mapa) for x in valor])
         elif nombre != "nombre":
             renombrar_en_arbol(valor, mapa)
 

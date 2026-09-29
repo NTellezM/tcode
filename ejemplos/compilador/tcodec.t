@@ -651,7 +651,7 @@ fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<li
     en_lleva: &lista<lista<str>>, st_indice: &mapa<str, usize>,
     st_campos: &lista<lista<str>>, st_tipos: &lista<lista<str>>,
     definidos: mut mapa<str, usize>, envueltos: mut mapa<str, usize>,
-    partes: mut lista<str>) {
+    adelantados: &mapa<str, usize>, partes: mut lista<str>) {
     if tiene(definidos, nombre) { return; }
     var ie = 0;
     while ie < en_nombres.largo() && !igual(en_nombres[ie], nombre) { ie = ie + 1; }
@@ -670,10 +670,10 @@ fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<li
     for t en lleva {
         if T.es_arreglo(t) {
             envolver_arreglo_c(t, en_nombres, en_variantes, en_lleva, st_indice, st_campos,
-                st_tipos, definidos, envueltos, partes);
+                st_tipos, definidos, envueltos, adelantados, partes);
         } else {
             definir_tipo_c(t, en_nombres, en_variantes, en_lleva, st_indice, st_campos,
-                st_tipos, definidos, envueltos, partes);
+                st_tipos, definidos, envueltos, adelantados, partes);
         }
     }
     if es_enum {
@@ -699,21 +699,35 @@ fn envolver_arreglo_c(t: view, en_nombres: &lista<str>, en_variantes: &lista<lis
     en_lleva: &lista<lista<str>>, st_indice: &mapa<str, usize>,
     st_campos: &lista<lista<str>>, st_tipos: &lista<lista<str>>,
     definidos: mut mapa<str, usize>, envueltos: mut mapa<str, usize>,
-    partes: mut lista<str>) {
+    adelantados: &mapa<str, usize>, partes: mut lista<str>) {
     if tiene(envueltos, t) { return; }
     poner(envueltos, t, 1);
     let pa = T.partes_de_arreglo(t);
     if pa.largo() != 2 { return; }
     if T.es_arreglo(pa[0]) {
         envolver_arreglo_c(pa[0], en_nombres, en_variantes, en_lleva, st_indice, st_campos,
-            st_tipos, definidos, envueltos, partes);
+            st_tipos, definidos, envueltos, adelantados, partes);
     } else {
         definir_tipo_c(pa[0], en_nombres, en_variantes, en_lleva, st_indice, st_campos,
-            st_tipos, definidos, envueltos, partes);
+            st_tipos, definidos, envueltos, adelantados, partes);
     }
+    partes.anadir(linea_arreglo(t, adelantados));
+}
+
+// Lo que guarda un bloque, una lista o un mapa: sus typedefs dependen de ello.
+fn dependencias_de_agregado(t: view) -> lista<str> {
+    if T.es_bloque(t) || T.es_lista(t) { return [T.elemento(t)]; }
+    return T.partes(t);
+}
+
+// La definicion en C del envoltorio del arreglo `t`: un struct sin nombre,
+// o con el suyo si se declaro antes porque lo guarda un mapa o un bloque.
+fn linea_arreglo(t: view, adelantados: &mapa<str, usize>) -> str {
+    let pa = T.partes_de_arreglo(t);
     let te = G.tipo_c(pa[0]);
     let tc = G.tipo_c(t);
-    partes.anadir($"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
+    if tiene(adelantados, t) { return $"struct {tc} {{ {te} e[{pa[1]}]; }};"; }
+    return $"typedef struct {{ {te} e[{pa[1]}]; }} {tc};";
 }
 
 // Un enum en C: la etiqueta y, a su lado, una union con lo de cada forma.
@@ -935,7 +949,7 @@ fn es_falible(d: &P.Nodo) -> bool {
 fn retorno_de(d: &P.Nodo) -> str {
     for h en d.hijos {
         if h.clase == Clase.RetornoTipo {
-            return I.sin_alias_tipo(h.texto);
+            return T.sin_alias_tipo(h.texto);
         }
     }
     return vacio();
@@ -1013,6 +1027,12 @@ fn tipo_obtener(v: view, global: &I.Contexto) -> str {
 // es algo que este hito todavia no escribe.
 fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     structs: &mapa<str, usize>) -> bool {
+    // `[Q.Caja; 2]` es `[Caja; 2]`: registrado con el alias, su envoltorio
+    // salia dos veces.
+    if contiene(t, ".") {
+        let sin = T.sin_alias_tipo(t);
+        if !igual(sin, t) { return mirar_tipo(sin, reg, global, structs); }
+    }
     if contiene(t, "<") {
         let resuelto = I.nombre_resuelto(t);
         if !igual(resuelto, t) {
@@ -1090,7 +1110,7 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
                     let nombre = G.nombre_declarado(st.texto);
                     var escrito = G.tipo_escrito(st.texto);
                     if escrito.largo() == 0 { escrito = I.tipo_de(tipos, st.hijos[0]); }
-                    let t = I.sin_alias_tipo(escrito);
+                    let t = T.sin_alias_tipo(escrito);
                     if bien { bien = mirar_tipo(t, reg, global, structs); }
                     I.declarar(tipos, nombre, t);
                 }
@@ -1155,7 +1175,7 @@ fn mirar_funcion(d: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
     for h en d.hijos {
         if h.clase == Clase.Param {
             let pelado = F.tipo_pelado(h.texto);
-            let t = I.sin_alias_tipo(pelado);
+            let t = T.sin_alias_tipo(pelado);
             if bien { bien = mirar_tipo(t, reg, global, structs); }
             let pn = F.nombre_de(h.texto);
             I.declarar(tipos, pn, t);
@@ -1567,10 +1587,10 @@ fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
     var i = buscar_desde(t, prefijo, 0);
     while i < t.largo() {
         var j = i + prefijo.largo();
-        while j < t.largo() && I.es_de_nombre(byte(t, j)) { j = j + 1; }
+        while j < t.largo() && T.es_de_nombre(byte(t, j)) { j = j + 1; }
         // Solo al principio de un nombre: `posicion__` esta dentro de
         // `ultima_posicion__usize`, y esa es otra copia.
-        if i == 0 || !I.es_de_nombre(byte(t, i - 1)) {
+        if i == 0 || !T.es_de_nombre(byte(t, i - 1)) {
             poner(salida, rebanar(t, i, j), 1);
         }
         i = buscar_desde(t, prefijo, j);
@@ -1913,8 +1933,8 @@ fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
         }
         return T.con_partes(t, nuevas);
     }
-    if !I.es_aplicacion(t) { return nuevo(t); }
-    let base = I.base_de_aplicacion(t);
+    if !T.es_aplicacion(t) { return nuevo(t); }
+    let base = T.base_de_aplicacion(t);
     if !tiene(plantillas_st, base) { return nuevo(t); }
     let kp = obtener(plantillas_st, base) sino 0;
     let dados = T.partes(t);
@@ -1935,7 +1955,7 @@ fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
     var tipos_c: lista<str> = [];
     let crudos = copiar(p_tipos[kp]);
     for x en crudos {
-        let puesto = I.sustituir(x, ligaduras);
+        let puesto = T.sustituir(x, ligaduras);
         anadir(tipos_c, resolver_reg(vista(puesto), plantillas_st, p_params, p_campos, p_tipos, en_curso,
                 st_nombres, st_indice, st_campos, st_tipos, global));
     }
@@ -1959,19 +1979,19 @@ fn resolver_en_nodo(n: &P.Nodo, plantillas_st: &mapa<str, usize>,
     let clase = n.clase;
     if clase == Clase.Param {
         let tp = F.tipo_pelado(n.texto);
-        let t = I.sin_alias_tipo(tp);
+        let t = T.sin_alias_tipo(tp);
         let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
     if clase == Clase.RetornoTipo || clase == Clase.LiteralStruct {
-        let t = I.sin_alias_tipo(n.texto);
+        let t = T.sin_alias_tipo(n.texto);
         let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
             st_nombres, st_indice, st_campos, st_tipos, global);
     }
     if clase == Clase.Declaracion {
         let escrito = G.tipo_escrito(n.texto);
         if escrito.largo() > 0 {
-            let t = I.sin_alias_tipo(escrito);
+            let t = T.sin_alias_tipo(escrito);
             let _r = resolver_reg(vista(t), plantillas_st, p_params, p_campos, p_tipos, en_curso,
                 st_nombres, st_indice, st_campos, st_tipos, global);
         }
@@ -2205,7 +2225,7 @@ fn copiar_sustituido(n: &P.Nodo, lig: &mapa<str, str>) -> P.Nodo {
     // El mismo numero: es por el que el comprobador dejo anotado su tipo.
     r.id = n.id;
     if lleva_tipo(n.clase) {
-        r.texto = I.sustituir(n.texto, lig);
+        r.texto = T.sustituir(n.texto, lig);
     } else {
         r.texto = copiar(n.texto);
     }
@@ -2984,7 +3004,8 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
     }
 
     var tardios: lista<str> = [];
-    for t en cta.arreglos {
+    for t_escrito en cta.arreglos {
+        let t = T.sin_alias_tipo(t_escrito);
         if !tiene(reg.arr_vistos, t) && !esta_en(tardios, t) {
             tardios.anadir(copiar(t));
         }
@@ -3411,7 +3432,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                             if h.clase == Clase.CampoDef {
                                 cs.anadir(F.nombre_de(h.texto));
                                 let tp = F.tipo_pelado(h.texto);
-                                ts.anadir(I.sin_alias_tipo(tp));
+                                ts.anadir(T.sin_alias_tipo(tp));
                             }
                         }
                         poner(stp_indice, vista(d.texto), stp_nombres.largo());
@@ -3431,7 +3452,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                         if h.clase == Clase.CampoDef {
                             let tp = F.tipo_pelado(h.texto);
                             campos.anadir(F.nombre_de(h.texto));
-                            tipos_campo.anadir(I.sin_alias_tipo(tp));
+                            tipos_campo.anadir(T.sin_alias_tipo(tp));
                         }
                     }
                     poner(st_indice, vista(d.texto), st_nombres.largo());
@@ -3449,7 +3470,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                         for h en f.hijos {
                             if h.clase == Clase.Param {
                                 let tp = F.tipo_pelado(h.texto);
-                                ps.anadir(I.sin_alias_tipo(tp));
+                                ps.anadir(T.sin_alias_tipo(tp));
                                 pn.anadir(F.nombre_de(h.texto));
                             }
                             if h.clase == Clase.RetornoTipo { ret = nuevo(h.texto); }
@@ -3474,7 +3495,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                         var primero_t = true;
                         for x en h.hijos {
                             if x.clase != Clase.Lleva { continue; }
-                            let t = I.sin_alias_tipo(x.texto);
+                            let t = T.sin_alias_tipo(x.texto);
                             if T.lleva_bloque_o_arreglo(t) {
                                 let _r = rechazo("bloques o arreglos en un enum");
                                 return programa_no_leido();
@@ -3753,6 +3774,26 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
     for x en reg.listas { ordenadas.anadir(copiar(x)); }
     for x en reg.mapas { ordenadas.anadir(copiar(x)); }
     ordenar(ordenadas);
+    // Un mapa o un bloque de arreglos guarda un puntero al envoltorio, y el
+    // envoltorio se define despues de los structs. A esos se les da nombre
+    // para declararlos aqui; los demas siguen sin nombre.
+    var adelantados: mapa<str, usize> = [];
+    var adelantados_orden: lista<str> = [];
+    for x en ordenadas {
+        let dependencias = dependencias_de_agregado(x);
+        for d_escrito en dependencias {
+            let d = T.sin_alias_tipo(d_escrito);
+            if T.es_arreglo(d) && !tiene(adelantados, d) {
+                poner(adelantados, d, 1);
+                adelantados_orden.anadir(copiar(d));
+            }
+        }
+    }
+    ordenar(adelantados_orden);
+    for d en adelantados_orden {
+        let tc_d = G.tipo_c(d);
+        partes.anadir($"typedef struct {tc_d} {tc_d};");
+    }
     var puestos: mapa<str, usize> = [];
     for x en ordenadas { poner_typedef(x, reg, puestos, partes); }
     if ordenadas.largo() > 0 { partes.anadir(vacio()); }
@@ -3762,11 +3803,11 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
     var envueltos: mapa<str, usize> = [];
     for en_n en en_nombres {
         definir_tipo_c(vista(en_n), en_nombres, en_variantes, en_lleva,
-            st_indice, st_campos, st_tipos, definidos, envueltos, partes);
+            st_indice, st_campos, st_tipos, definidos, envueltos, adelantados, partes);
     }
     for n en orden {
         definir_tipo_c(vista(n), en_nombres, en_variantes, en_lleva,
-            st_indice, st_campos, st_tipos, definidos, envueltos, partes);
+            st_indice, st_campos, st_tipos, definidos, envueltos, adelantados, partes);
     }
     var alguno_posee = false;
     for n en orden {
@@ -3799,10 +3840,7 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
     var sueltos = 0;
     for t en arr_orden {
         if tiene(envueltos, t) { continue; }
-        let pa = T.partes_de_arreglo(t);
-        let te = G.tipo_c(pa[0]);
-        let tc = G.tipo_c(t);
-        partes.anadir($"typedef struct {{ {te} e[{pa[1]}]; }} {tc};");
+        partes.anadir(linea_arreglo(t, adelantados));
         sueltos = sueltos + 1;
     }
     if sueltos > 0 { partes.anadir(vacio()); }
@@ -4025,7 +4063,7 @@ fn main() -> usize ! {
                 for h en d.hijos {
                     if h.clase == Clase.CampoDef {
                         let tp = F.tipo_pelado(h.texto);
-                        let t = I.sin_alias_tipo(tp);
+                        let t = T.sin_alias_tipo(tp);
                         if !mirar_tipo(t, reg, global, con_partes) {
                             return rechazo("mapas, bloques ni arreglos");
                         }
@@ -4040,7 +4078,7 @@ fn main() -> usize ! {
                     if v.clase != Clase.Variante { continue; }
                     for x en v.hijos {
                         if x.clase != Clase.Lleva { continue; }
-                        let t = I.sin_alias_tipo(x.texto);
+                        let t = T.sin_alias_tipo(x.texto);
                         if !mirar_tipo(t, reg, global, con_partes) {
                             return rechazo("mapas, bloques ni arreglos");
                         }

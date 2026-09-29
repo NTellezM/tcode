@@ -81,6 +81,16 @@ MODULOS = [
              'fn main() -> usize { let l = M.hacer(); imprimir(l.id); return 0; }'},
      "a.t", None, "7"),
 
+    # `T.partes(x)` es la funcion de `T` aunque haya un local `partes`.
+    ("una funcion de otro modulo con el nombre de un local",
+     {"m.t": 'fn partes(t: view) -> lista<str> { return [nuevo(t), nuevo("b")]; }',
+      "a.t": 'usar "m.t" como T;\n'
+             'fn junta(x: view) -> usize { var partes: lista<str> = [];'
+             ' let de_x = T.partes(x); for p en de_x { anadir(partes, copiar(p)); }'
+             ' return largo(partes); }\n'
+             'fn main() -> usize { imprimir(junta("a")); return 0; }'},
+     "a.t", None, "2"),
+
     ("modulo que no existe",
      {"a.t": 'usar "fantasma.t";\nfn main() -> usize { return 0; }'},
      "a.t", "no encuentro el modulo", None),

@@ -1806,6 +1806,12 @@ class Comprobador:
                               f"{lista_f} sin mirar: sus brazos tienen guarda "
                               f"o un patron que puede no casar. Pon uno que "
                               f"valga para todos, o un brazo `_`")
+        # Si todos los brazos son numeros escritos, el `match` da lo que se
+        # espera de el: en `return match ...` de una funcion `-> i64`, un
+        # `i64`, no un `usize`.
+        if (tipo_comun is None and escritos and destino is not None
+                and sin_prestamo(destino) in NUMERICOS):
+            tipo_comun = sin_prestamo(destino)
         # Un brazo que es un numero escrito toma el tipo de los demas, y tiene
         # que caber en el.
         if sin_prestamo(tipo_comun or "") in NUMERICOS:
@@ -3821,7 +3827,11 @@ class Comprobador:
                     continue
 
                 tipo_arg = self.tipo_de_lugar(arg)
-                if tipo_arg is not None and tipo_arg != param.tipo:
+                # Un prestamo que ya se tiene —lo que da `obtener`, lo que
+                # atrapa un `match`— se pasa tal cual: es el mismo puntero.
+                ya_prestado = (tipo_arg is not None and es_referencia(tipo_arg)
+                               and apuntado(tipo_arg) == param.tipo)
+                if tipo_arg is not None and tipo_arg != param.tipo and not ya_prestado:
                     self.error(e, f"`{param.nombre}` de `{nombre}` es "
                                   f"`{param.tipo}` y recibio `{tipo_arg}`")
 
@@ -3837,7 +3847,7 @@ class Comprobador:
                 prestamos.apuntar(camino, param.nombre, param.mutable)
 
                 if param.mutable:
-                    self.mutar(arg, sim)
+                    self.mutar(arg, sim, por_referencia=es_referencia(sim.tipo or ""))
                     # Prestar para modificar tambien es usar: quien lo recibe
                     # casi siempre lee antes de escribir, y avisar de que
                     # "nunca se lee" seria falso.

@@ -102,9 +102,9 @@ fn main() -> usize ! {
     return 0;
 }
 
-// `posee` es falible porque mira dentro de los structs; aqui un tipo que no
-// se reconoce simplemente no posee nada.
+// Aqui solo hay structs: sin genericas ni enums.
 fn posee_de(campos: &mapa<str, lista<str>>, t: view) -> bool {
-    var visitados: mapa<str, usize> = [];
-    return T.posee(campos, t, visitados) sino false;
+    var nada: mapa<str, lista<str>> = [];
+    var vistos: mapa<str, usize> = [];
+    return T.posee_en(t, campos, nada, nada, nada, vistos);
 }

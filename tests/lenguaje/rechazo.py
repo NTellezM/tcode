@@ -25,6 +25,16 @@ _MEDIO = ("struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } "
 _FORMAS = "enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } "
 
 RECHAZO = [
+    # Un prestamo que ya se tiene se pasa a una funcion que presta; pero uno
+    # de solo lectura no se pasa a una que modifica.
+    ("pasar un `&T` a un parametro `mut`",
+     'struct N { s: str } fn cambiar(x: mut N) { empujar(x.s, "!"); } '
+     'fn main() -> usize ! { var m: mapa<str, N> = []; '
+     'poner(m, "a", N { s: nuevo("a") }); let r = try obtener(m, "a"); '
+     'cambiar(r); return 0; }',
+     "`r` es un prestamo de solo lectura (`&N`): para modificar lo que apunta "
+     "hace falta `&mut N`"),
+
     ("anadir por un prestamo de solo lectura",
      'fn main() -> usize ! { var m: mapa<str, lista<usize>> = []; '
      'poner(m, "a", [3]); let l: &lista<usize> = try obtener(m, "a"); '

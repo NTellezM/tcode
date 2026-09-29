@@ -80,7 +80,7 @@ fn mangle(t: view) -> str {
     }
     // `()` no es un nombre valido en C.
     if t == "()" { return nuevo("nada"); }
-    if I.es_aplicacion(t) { return I.nombre_resuelto(t); }
+    if T.es_aplicacion(t) { return I.nombre_resuelto(t); }
     // El alias del modulo —`P.Nodo`— es cosa de quien lee el archivo.
     return I.sin_modulo(t);
 }
@@ -138,7 +138,7 @@ fn tipo_c(t: view) -> str {
         return s;
     }
     // Un struct generico aplicado se llama en C como su copia.
-    if I.es_aplicacion(t) { return I.nombre_resuelto(t); }
+    if T.es_aplicacion(t) { return I.nombre_resuelto(t); }
     // Un struct se llama igual en los dos lados. El alias con el que se
     // escribio —`P.Nodo`— es cosa de quien lee el archivo: en C no queda.
     return I.sin_modulo(t);
@@ -276,7 +276,7 @@ fn legible_c(t: view) -> str {
     while i < t.largo() {
         if empieza_nombre(byte(t, i)) {
             var j = i;
-            while j < t.largo() && I.es_de_nombre(byte(t, j)) { j = j + 1; }
+            while j < t.largo() && T.es_de_nombre(byte(t, j)) { j = j + 1; }
             let e = escrito(rebanar(t, i, j));
             r.empujar(e);
             i = j;
@@ -313,7 +313,7 @@ fn texto_para_c(t: view, de_c: &mapa<str, usize>, intocables: &lista<str>,
             continue;
         }
         var j = i;
-        while j < t.largo() && I.es_de_nombre(byte(t, j)) { j = j + 1; }
+        while j < t.largo() && T.es_de_nombre(byte(t, j)) { j = j + 1; }
         let n = rebanar(t, i, j);
         if (solo_el_primero && visto_punto) || (j < t.largo() && byte(t, j) == 46 && !solo_el_primero) {
             r.empujar(n);
@@ -1095,15 +1095,15 @@ fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
     // `Par { ... }` sin sus tipos, donde se espera un `Par<str, usize>`: es
     // ese, como deduce el comprobador.
     var escrito_s = nuevo(n.texto);
-    if !contiene(escrito_s, "<") && I.es_aplicacion(esperado) {
-        let base_e = I.base_de_aplicacion(esperado);
+    if !contiene(escrito_s, "<") && T.es_aplicacion(esperado) {
+        let base_e = T.base_de_aplicacion(esperado);
         let corto_e = I.sin_modulo(escrito_s);
         if igual(base_e, corto_e) { escrito_s = nuevo(esperado); }
     }
     // Sin tipos escritos ni esperados, los que dedujo el comprobador.
     if !contiene(escrito_s, "<") {
         let dicho = I.tipo_de(tipos, n);
-        if I.es_aplicacion(dicho) { escrito_s = dicho; }
+        if T.es_aplicacion(dicho) { escrito_s = dicho; }
     }
     let escrito = vista(escrito_s);
     var r = nuevo("(");
@@ -1814,7 +1814,7 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
             return r;
         }
         // El copiador se escribe aparte, al final: se apunta que hace falta.
-        b.copias.anadir(I.sin_alias_tipo(t));
+        b.copias.anadir(T.sin_alias_tipo(t));
         var r = nuevo("ss_copia_");
         r.empujar(mangle(t));
         r.empujar("(");
@@ -2367,7 +2367,7 @@ fn cierre_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         if piezas.largo() > 0 { piezas.empujar(", "); }
         let pieza = $".{nombre} = {valor}";
         piezas.empujar(pieza);
-        let sin_alias = I.sin_alias_tipo(t);
+        let sin_alias = T.sin_alias_tipo(t);
         let campo = $"\t{nombre}={sin_alias}";
         pedido.empujar(campo);
     }
@@ -2617,14 +2617,14 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         pedido.empujar(en_c);
         for tp en sueltos {
             let ligado = obtener(ligaduras, tp) sino "";
-            let sin_alias = I.sin_alias_tipo(ligado);
+            let sin_alias = T.sin_alias_tipo(ligado);
             pedido.empujar("\t");
             pedido.empujar(tp);
             pedido.empujar("=");
             pedido.empujar(sin_alias);
         }
         var puestos: lista<str> = [];
-        for f en firmados { puestos.anadir(I.sustituir(f, ligaduras)); }
+        for f en firmados { puestos.anadir(T.sustituir(f, ligaduras)); }
         firmados = puestos;
     }
     return llamada_con_firma(b, s, n, tipos, vista(en_c), firmados, marcados,
@@ -3695,7 +3695,7 @@ fn liberacion(b: mut Cuerpo, tipos: &I.Contexto, nombre: view,
     // en orden. El nombre no lleva el alias del modulo: en C no queda.
     if I.posee_con_formas(tipos, tipo) {
         var corto = I.sin_modulo(tipo);
-        if I.es_aplicacion(tipo) { corto = I.nombre_resuelto(tipo); }
+        if T.es_aplicacion(tipo) { corto = I.nombre_resuelto(tipo); }
         var l = nuevo("ss_drop_");
         l.empujar(corto);
         l.empujar("(&");

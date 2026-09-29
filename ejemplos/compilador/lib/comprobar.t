@@ -352,7 +352,7 @@ fn param_de(texto: view) -> Param {
         compartido = true;
         resto = recortar(T.apuntado(resto));
     }
-    return Param { nombre: nuevo(nombre), tipo: I.sin_alias_tipo(resto),
+    return Param { nombre: nuevo(nombre), tipo: T.sin_alias_tipo(resto),
         mutable: mutable, compartido: compartido };
 }
 
@@ -370,7 +370,7 @@ fn funcion_de(d: &P.Nodo, nombre: view, archivo: view, modulo: usize,
         let clase = h.clase;
         match clase {
             Clase.Param -> { ps.anadir(param_de(h.texto)); }
-            Clase.RetornoTipo -> { ret = I.sin_alias_tipo(h.texto); }
+            Clase.RetornoTipo -> { ret = T.sin_alias_tipo(h.texto); }
             Clase.Falible -> { fal = true; }
             Clase.TipoParam -> { tps.anadir(copiar(h.texto)); }
             Clase.Restriccion -> {
@@ -408,8 +408,8 @@ fn resolver_nombre(tipos: &I.Contexto, nombre: view) -> str {
 
 // Un struct generico aplicado: `Par<i64, usize>`.
 fn es_struct_aplicado(m: &Mundo, t: view) -> bool {
-    if !I.es_aplicacion(t) { return false; }
-    let base = I.base_de_aplicacion(t);
+    if !T.es_aplicacion(t) { return false; }
+    let base = T.base_de_aplicacion(t);
     return tiene(m.st_params, base);
 }
 
@@ -465,7 +465,7 @@ fn como_mostrar(m: &Mundo, t: view) -> str {
 fn campos_tipos(m: &Mundo, t: view) -> lista<str> {
     var salida: lista<str> = [];
     if es_struct_aplicado(m, t) {
-        let base = I.base_de_aplicacion(t);
+        let base = T.base_de_aplicacion(t);
         let sueltos = I.lista_de(m.st_params, vista(base)) sino [];
         let dados = T.partes(t);
         if dados.largo() != sueltos.largo() { return salida; }
@@ -476,7 +476,7 @@ fn campos_tipos(m: &Mundo, t: view) -> lista<str> {
             i = i + 1;
         }
         let crudos = I.lista_de(m.st_tipos, vista(base)) sino [];
-        for x en crudos { salida.anadir(I.sustituir(x, lig)); }
+        for x en crudos { salida.anadir(T.sustituir(x, lig)); }
         return salida;
     }
     return I.lista_de(m.st_tipos, t) sino [];
@@ -484,7 +484,7 @@ fn campos_tipos(m: &Mundo, t: view) -> lista<str> {
 
 fn campos_nombres(m: &Mundo, t: view) -> lista<str> {
     if es_struct_aplicado(m, t) {
-        let base = I.base_de_aplicacion(t);
+        let base = T.base_de_aplicacion(t);
         return I.lista_de(m.st_nombres, vista(base)) sino [];
     }
     return I.lista_de(m.st_nombres, t) sino [];
@@ -511,37 +511,11 @@ fn tiene_forma(m: &Mundo, en_t: view, forma: view) -> bool {
     return esta_entre(vs, forma);
 }
 
-// Un valor de este tipo es duenio de memoria del heap.
+// Un valor de este tipo es duenio de memoria del heap: la regla de
+// `tipos.t`, con lo que este mundo sabe de structs, genericas y enums.
 fn posee_memoria(m: &Mundo, t: view) -> bool {
-    var vistos: lista<str> = [];
-    return posee_desde(m, t, vistos);
-}
-
-fn posee_desde(m: &Mundo, t: view, vistos: mut lista<str>) -> bool {
-    if T.es_referencia(t) || T.es_funcion(t) { return false; }
-    if t == "str" { return true; }
-    if T.es_mapa(t) || T.es_bloque(t) || T.es_lista(t) { return true; }
-    if T.es_arreglo(t) {
-        let e = T.elemento(t);
-        return posee_desde(m, e, vistos);
-    }
-    if esta_entre(vistos, t) { return false; }
-    if es_enum(m, t) {
-        vistos.anadir(nuevo(t));
-        let vs = I.lista_de(m.en_variantes, t) sino [];
-        for v en vs {
-            for x en formas_de(m, t, v) {
-                if posee_desde(m, x, vistos) { return true; }
-            }
-        }
-        return false;
-    }
-    if !es_struct(m, t) { return false; }
-    vistos.anadir(nuevo(t));
-    for x en campos_tipos(m, t) {
-        if posee_desde(m, x, vistos) { return true; }
-    }
-    return false;
+    var vistos: mapa<str, usize> = [];
+    return T.posee_en(t, m.st_tipos, m.st_params, m.en_variantes, m.en_formas, vistos);
 }
 
 // Tiene partes: se puede mirar o modificar por dentro.
@@ -778,9 +752,9 @@ fn legible(m: &Mundo, mensaje: view) -> str {
     var i = 0;
     while i < mensaje.largo() {
         let c = byte(mensaje, i);
-        if I.es_de_nombre(c) && (i == 0 || !I.es_de_nombre(byte(mensaje, i - 1))) {
+        if T.es_de_nombre(c) && (i == 0 || !T.es_de_nombre(byte(mensaje, i - 1))) {
             var j = i;
-            while j < mensaje.largo() && I.es_de_nombre(byte(mensaje, j)) { j = j + 1; }
+            while j < mensaje.largo() && T.es_de_nombre(byte(mensaje, j)) { j = j + 1; }
             let palabra = rebanar(mensaje, i, j);
             let resto = rebanar(mensaje, j, mensaje.largo());
             if j < mensaje.largo() && byte(mensaje, j) == 60 && tiene(m.st_params, palabra)
@@ -1676,9 +1650,9 @@ fn funcion_vista(c: &Comprobacion, m: &Mundo, escrito: view) -> usize {
 fn lleva_suelto(t: view, sueltos: &lista<str>) -> bool {
     var i = 0;
     while i < t.largo() {
-        if I.es_de_nombre(byte(t, i)) {
+        if T.es_de_nombre(byte(t, i)) {
             var j = i;
-            while j < t.largo() && I.es_de_nombre(byte(t, j)) { j = j + 1; }
+            while j < t.largo() && T.es_de_nombre(byte(t, j)) { j = j + 1; }
             if esta_entre(sueltos, rebanar(t, i, j)) { return true; }
             i = j;
         } else {
@@ -2020,9 +1994,9 @@ fn unificar_tipo(patron: view, dado: view, sueltos: &lista<str>,
         return igual(na, nb) && unificar_tipo(ea, eb, sueltos, lig);
     }
     // `Par<A, B>` contra `Par<usize, str>`.
-    if I.es_aplicacion(patron) && I.es_aplicacion(dado) {
-        let ba = I.base_de_aplicacion(patron);
-        let bb = I.base_de_aplicacion(dado);
+    if T.es_aplicacion(patron) && T.es_aplicacion(dado) {
+        let ba = T.base_de_aplicacion(patron);
+        let bb = T.base_de_aplicacion(dado);
         if !igual(ba, bb) { return false; }
         let xs = T.partes(patron);
         let ys = T.partes(dado);
@@ -2267,7 +2241,7 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     }
     var ps: lista<Param> = [];
     for p en f.params {
-        anadir(ps, Param { nombre: copiar(p.nombre), tipo: I.sustituir(p.tipo, lig),
+        anadir(ps, Param { nombre: copiar(p.nombre), tipo: T.sustituir(p.tipo, lig),
                 mutable: p.mutable, compartido: p.compartido });
     }
     var ligadas = vacio();
@@ -2299,7 +2273,7 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         copia.empujar(T.sanear(resuelto));
     }
     let hecha = esta_entre(m.copias, clave);
-    let inst = Instancia { ok: true, params: ps, retorno: I.sustituir(f.retorno, lig),
+    let inst = Instancia { ok: true, params: ps, retorno: T.sustituir(f.retorno, lig),
         ligadas: ligadas, clave: copiar(clave), copia: copiar(copia) };
     if !hecha {
         m.copias.anadir(copiar(clave));
@@ -2439,10 +2413,10 @@ fn ligaduras_de_juego(f: &Funcion, juego: &lista<str>) -> mapa<str, str> {
 fn firma_valida(m: &Mundo, f: &Funcion, juego: &lista<str>) -> bool {
     let lig = ligaduras_de_juego(f, juego);
     for p en f.params {
-        let t = I.sustituir(p.tipo, lig);
+        let t = T.sustituir(p.tipo, lig);
         if !almacenable(m, t) || (prestado(p) && t == "view") { return false; }
     }
-    let r = I.sustituir(f.retorno, lig);
+    let r = T.sustituir(f.retorno, lig);
     return r.largo() == 0 || r == "()" || almacenable(m, r);
 }
 
@@ -2453,7 +2427,7 @@ fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>)
     let lig = ligaduras_de_juego(f, juego);
     var ps: lista<Param> = [];
     for p en f.params {
-        anadir(ps, Param { nombre: copiar(p.nombre), tipo: I.sustituir(p.tipo, lig),
+        anadir(ps, Param { nombre: copiar(p.nombre), tipo: T.sustituir(p.tipo, lig),
                 mutable: p.mutable, compartido: p.compartido });
     }
     var ligadas = vacio();
@@ -2473,7 +2447,7 @@ fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>)
         copia.empujar(T.sanear(resuelto));
         i = i + 1;
     }
-    let inst = Instancia { ok: true, params: ps, retorno: I.sustituir(f.retorno, lig),
+    let inst = Instancia { ok: true, params: ps, retorno: T.sustituir(f.retorno, lig),
         ligadas: ligadas, clave: copiar(clave), copia: copia };
     let c_antes = copiar(c);
     let m_antes = Mundo { funciones: copiar(m.funciones), indice: copiar(m.indice),
@@ -2530,12 +2504,12 @@ fn sustituir_en_arbol(n: mut P.Nodo, lig: &mapa<str, str>) {
         var j = 0;
         while j < t.largo() && byte(t, j) != 58 { j = j + 1; }
         if j < t.largo() {
-            let tipo = I.sustituir(rebanar(t, j + 1, t.largo()), lig);
+            let tipo = T.sustituir(rebanar(t, j + 1, t.largo()), lig);
             n.texto = $"{rebanar(vista(t), 0, j + 1)}{tipo}";
         }
     } else if clase == Clase.RetornoTipo || clase == Clase.Conversion {
         let t = copiar(n.texto);
-        n.texto = I.sustituir(t, lig);
+        n.texto = T.sustituir(t, lig);
     }
     var i = 0;
     while i < n.hijos.largo() {
@@ -3216,7 +3190,7 @@ fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n
     // `300 como u8` es una cuenta de numeros escritos: lo que en marcha
     // pararia el programa es un error aqui, como `let x: u8 = 256;`. Se
     // cuenta antes de fijarle el tipo, que tambien la contaria.
-    let destino_t = I.sin_alias_tipo(vista(n.texto));
+    let destino_t = T.sin_alias_tipo(vista(n.texto));
     // `-300` es un `i64`: se cuenta lo de dentro y se le cambia el signo.
     let x = copiar(n.hijos[0]);
     let negada = x.clase == Clase.Unaria && x.texto == "-" && x.hijos.largo() == 1
@@ -3258,7 +3232,7 @@ fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n
         envolviendo = true;
         a = nuevo(rebanar(a, 1, a.largo()));
     }
-    a = I.sin_alias_tipo(a);
+    a = T.sin_alias_tipo(a);
     if !es_numerico(a) {
         error(c, m, n.linea, $"`como` convierte entre numeros, y `{a}` no es uno");
     } else if t.largo() > 0 && !igual(t, literal()) && !igual(t, literal_decimal())
@@ -3437,8 +3411,8 @@ fn indice(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
 fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
     n: &P.Nodo, base: view, destino: view) -> str {
     let sueltos = I.lista_de(m.st_params, base) sino [];
-    if destino.largo() > 0 && I.es_aplicacion(destino) {
-        let bd = I.base_de_aplicacion(destino);
+    if destino.largo() > 0 && T.es_aplicacion(destino) {
+        let bd = T.base_de_aplicacion(destino);
         let args = T.partes(destino);
         if igual(bd, base) && args.largo() == sueltos.largo() {
             registrar_tipo(m, destino);
@@ -4202,7 +4176,11 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 continue;
             }
             let tipo_arg = tipo_de_lugar(c, m, tipos, arg);
-            if tipo_arg.largo() > 0 && !igual(tipo_arg, p.tipo) {
+            // Un prestamo que ya se tiene —lo que da `obtener`, lo que
+            // atrapa un `match`— se pasa tal cual: es el mismo puntero.
+            let ya_prestado = tipo_arg.largo() > 0 && T.es_referencia(tipo_arg)
+            && igual(T.apuntado(tipo_arg), p.tipo);
+            if tipo_arg.largo() > 0 && !igual(tipo_arg, p.tipo) && !ya_prestado {
                 error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `{p.tipo}` y recibio `{tipo_arg}`");
             }
             let camino = camino_de(arg);
@@ -4216,7 +4194,8 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             }
             apuntar_prestamo(hechos, camino, p.nombre, p.mutable);
             if p.mutable {
-                mutar(c, m, arg, arg.linea, is, false);
+                let por_puntero = T.es_referencia(c.simbolos[is].tipo);
+                mutar(c, m, arg, arg.linea, is, por_puntero);
                 // Quien lo recibe casi siempre lee antes de escribir.
                 c.simbolos[is].leida = true;
             } else {
@@ -4845,7 +4824,7 @@ fn registrar_en_nodo(m: mut Mundo, n: &P.Nodo) {
             registrar_tipo(m, p.tipo);
         }
         Clase.RetornoTipo -> {
-            let t = I.sin_alias_tipo(n.texto);
+            let t = T.sin_alias_tipo(n.texto);
             registrar_tipo(m, t);
         }
         _ -> { }
@@ -4864,7 +4843,7 @@ fn validar_en_funcion(c: mut Comprobacion, m: mut Mundo, d: &P.Nodo) {
     }
     for h en d.hijos {
         if h.clase == Clase.RetornoTipo {
-            let t = I.sin_alias_tipo(h.texto);
+            let t = T.sin_alias_tipo(h.texto);
             validar_tipo(c, m, d.linea, t);
         }
     }
@@ -4891,7 +4870,7 @@ fn validar_en_nodo(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo) {
         }
         for h en n.hijos {
             if h.clase == Clase.RetornoTipo {
-                let t = I.sin_alias_tipo(h.texto);
+                let t = T.sin_alias_tipo(h.texto);
                 validar_tipo(c, m, n.linea, t);
             }
         }
@@ -4961,7 +4940,7 @@ fn partes_declaracion(texto: view, nombre: mut str, tipo: mut str) -> bool {
     while j < resto.largo() && byte(resto, j) != 58 { j = j + 1; }
     nombre = nuevo(recortar(rebanar(resto, 0, j)));
     if j < resto.largo() {
-        tipo = I.sin_alias_tipo(recortar(rebanar(resto, j + 1, resto.largo())));
+        tipo = T.sin_alias_tipo(recortar(rebanar(resto, j + 1, resto.largo())));
     } else {
         tipo = vacio();
     }
@@ -5804,7 +5783,7 @@ fn campo_de(texto: view, nombre: mut str, tipo: mut str) {
     var j = 0;
     while j < texto.largo() && byte(texto, j) != 58 { j = j + 1; }
     nombre = nuevo(recortar(rebanar(texto, 0, j)));
-    tipo = I.sin_alias_tipo(recortar(rebanar(texto, j + 1, texto.largo())));
+    tipo = T.sin_alias_tipo(recortar(rebanar(texto, j + 1, texto.largo())));
 }
 
 // El programa entero, con las clausuras ya numeradas: cada una es su nodo
@@ -5902,7 +5881,7 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
                 formas.anadir(copiar(v.texto));
                 var lleva: lista<str> = [];
                 for x en v.hijos {
-                    if x.clase == Clase.Lleva { lleva.anadir(I.sin_alias_tipo(x.texto)); }
+                    if x.clase == Clase.Lleva { lleva.anadir(T.sin_alias_tipo(x.texto)); }
                 }
                 poner(m.en_formas, $"{nombre}.{v.texto}", lleva);
             }
@@ -6019,7 +5998,7 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
                 if v.clase != Clase.Variante { continue; }
                 for x en v.hijos {
                     if x.clase != Clase.Lleva { continue; }
-                    let t = I.sin_alias_tipo(x.texto);
+                    let t = T.sin_alias_tipo(x.texto);
                     validar_tipo(c, m, d.linea, t);
                     if !almacenable(m, t) {
                         error(c, m, d.linea, $"`{nombre}.{v.texto}` lleva un `{t}`, que no es un tipo");

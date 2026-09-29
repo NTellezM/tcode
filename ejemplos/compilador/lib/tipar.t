@@ -204,8 +204,8 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
             // `Par { a: -3, b: 1 }` es la copia que dedujo el comprobador.
             if !contiene(escrito, "<") {
                 let dicho = anotado_crudo(c, n);
-                if es_aplicacion(dicho) {
-                    let base = base_de_aplicacion(dicho);
+                if T.es_aplicacion(dicho) {
+                    let base = T.base_de_aplicacion(dicho);
                     if igual(base, escrito) { return dicho; }
                 }
             }
@@ -252,13 +252,6 @@ fn mirar_tipos(c: &Contexto, struct_: view) -> lista<str> ! {
 
 fn mirar_nombres(c: &Contexto, struct_: view) -> lista<str> ! {
     return copiar(try obtener(c.nombres, struct_));
-}
-
-// Si un tipo tiene duenio. Es la pregunta de `tipos.t`, con los campos que
-// este contexto conoce.
-fn posee_simple(c: &Contexto, t: view) -> bool {
-    var visitados: mapa<str, usize> = [];
-    return T.posee(c.campos, t, visitados) sino false;
 }
 
 // `"entero"` o `"decimal"` si el comprobador ve aqui un numero escrito que
@@ -369,35 +362,10 @@ fn es_comparacion(op: view) -> bool {
     return op == "&&" || op == "||";
 }
 
-// `Par<str, usize>`: un struct generico aplicado a sus tipos. `lista<...>`,
-// `mapa<...>`, `bloque<...>` y `fn(...)` no, que esos los pone el lenguaje.
-fn es_aplicacion(t: view) -> bool {
-    if t.largo() == 0 || !termina_con(t, ">") { return false; }
-    var i = 0;
-    while i < t.largo() && byte(t, i) != 60 {
-        if !es_de_nombre(byte(t, i)) && byte(t, i) != 46 { return false; }
-        i = i + 1;
-    }
-    if i == 0 || i == t.largo() { return false; }
-    let base = rebanar(t, 0, i);
-    if base == "lista" || base == "mapa" || base == "bloque" {
-        return false;
-    }
-    let primero = byte(t, 0);
-    return (primero >= 65 && primero <= 90) || (primero >= 97 && primero <= 122);
-}
-
-// El struct generico de una aplicacion, sin alias: `t.Par<A, B>` -> `Par`.
-fn base_de_aplicacion(t: view) -> str {
-    var i = 0;
-    while i < t.largo() && byte(t, i) != 60 { i = i + 1; }
-    return sin_alias_tipo(rebanar(t, 0, i));
-}
-
 // Los tipos de los campos de una aplicacion, con sus parametros puestos.
 fn tipos_de_aplicacion(c: &Contexto, t: view) -> lista<str> {
     var salida: lista<str> = [];
-    let base = base_de_aplicacion(t);
+    let base = T.base_de_aplicacion(t);
     if !tiene(c.struct_params, base) { return salida; }
     let sueltos = lista_de(c.struct_params, vista(base)) sino [];
     let dados = T.partes(t);
@@ -409,13 +377,13 @@ fn tipos_de_aplicacion(c: &Contexto, t: view) -> lista<str> {
         i = i + 1;
     }
     let crudos = mirar_tipos(c, base) sino [];
-    for x en crudos { salida.anadir(sustituir(x, ligaduras)); }
+    for x en crudos { salida.anadir(T.sustituir(x, ligaduras)); }
     return salida;
 }
 
 fn tipo_de_campo(c: &Contexto, struct_: view, campo: view) -> str {
-    if es_aplicacion(struct_) {
-        let base = base_de_aplicacion(struct_);
+    if T.es_aplicacion(struct_) {
+        let base = T.base_de_aplicacion(struct_);
         let tipos_a = tipos_de_aplicacion(c, struct_);
         let nombres_a = mirar_nombres(c, base) sino [];
         var k = 0;
@@ -481,62 +449,11 @@ fn tipo_atrapado(c: &Contexto, t: view) -> str {
     return T.hacer_prestado(t);
 }
 
-// Como `posee_simple`, pero sabiendo ademas de enums: uno posee si alguna
-// de sus formas posee. Un struct pregunta lo mismo por cada campo, que
-// tambien puede ser un enum o venir de otro modulo.
+// Si un tipo tiene duenio: la regla de `tipos.t`, con lo que este contexto
+// sabe de structs, genericas y enums.
 fn posee_con_formas(c: &Contexto, t: view) -> bool {
     var vistos: mapa<str, usize> = [];
-    return posee_formas_desde(c, t, vistos);
-}
-
-fn posee_formas_desde(c: &Contexto, t: view, vistos: mut mapa<str, usize>) -> bool {
-    // Un struct generico aplicado posee si posee alguno de sus campos, con
-    // los tipos ya puestos.
-    if es_aplicacion(t) {
-        let tipos_a = tipos_de_aplicacion(c, t);
-        for x en tipos_a {
-            if posee_formas_desde(c, x, vistos) { return true; }
-        }
-        return false;
-    }
-    if T.es_arreglo(t) {
-        let dentro = T.elemento(t);
-        return posee_formas_desde(c, dentro, vistos);
-    }
-    // `Q.Vigilada` es `Vigilada`: el alias es de quien escribe, y los tipos
-    // se apuntan por su nombre.
-    if !tiene(c.variantes, t) && !tiene(c.campos, t) {
-        let corto = sin_modulo(t);
-        if tiene(c.variantes, corto) || tiene(c.campos, corto) {
-            return posee_formas_desde(c, corto, vistos);
-        }
-    }
-    if tiene(c.variantes, t) {
-        // Un tipo que ya se esta mirando no aporta nada nuevo.
-        if tiene(vistos, t) { return false; }
-        poner(vistos, t, 1);
-        let cuales = lista_de(c.variantes, t) sino [];
-        for v en cuales {
-            var clave = nuevo(t);
-            clave.empujar(".");
-            clave.empujar(v);
-            let lleva = lista_de(c.formas, vista(clave)) sino [];
-            for x en lleva {
-                if posee_formas_desde(c, x, vistos) { return true; }
-            }
-        }
-        return false;
-    }
-    if tiene(c.campos, t) && t != "str" {
-        if tiene(vistos, t) { return false; }
-        poner(vistos, t, 1);
-        let suyos = lista_de(c.campos, t) sino [];
-        for x en suyos {
-            if posee_formas_desde(c, x, vistos) { return true; }
-        }
-        return false;
-    }
-    return posee_simple(c, t);
+    return T.posee_en(t, c.campos, c.struct_params, c.variantes, c.formas, vistos);
 }
 
 // `Color.Rojo` -> `Color`; `m.Color.Rojo` -> `m.Color`.
@@ -576,10 +493,10 @@ fn nombre_resuelto(t: view) -> str {
         for parte en T.partes(t) { nuevas.anadir(nombre_resuelto(parte)); }
         return T.con_partes(t, nuevas);
     }
-    if !es_aplicacion(t) { return nuevo(t); }
+    if !T.es_aplicacion(t) { return nuevo(t); }
     var args: lista<str> = [];
     for a en T.partes(t) { args.anadir(nombre_resuelto(a)); }
-    return T.nombre_de_copia(base_de_aplicacion(t), args);
+    return T.nombre_de_copia(T.base_de_aplicacion(t), args);
 }
 
 fn sin_modulo(nombre: view) -> str {
@@ -624,7 +541,7 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
                 return T.hacer_prestado_mut(valor);
             }
             if valor == "str" { return nuevo("view"); }
-            if posee_simple(c, valor) {
+            if posee_con_formas(c, valor) {
                 return T.hacer_prestado(valor);
             }
             return valor;
@@ -632,8 +549,11 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
     }
 
     // Una variable que guarda una clausura o una funcion se llama igual que
-    // una funcion: la clausura es su struct mas `ss_cierre_N`.
-    let local = buscar(c, nombre);
+    // una funcion: la clausura es su struct mas `ss_cierre_N`. Se busca por
+    // el nombre entero, como en el generador: `T.partes(x)` es la funcion de
+    // `T` aunque haya un local `partes`. Un local que no se puede llamar no
+    // cambia nada: la llamada es a la funcion de su nombre.
+    let local = buscar(c, n.texto);
     if local.largo() > 0 {
         let t = T.apuntado_si(local);
         let de_cierre = funcion_de_cierre(t);
@@ -645,7 +565,6 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
             if partes.largo() == 0 { return vacio(); }
             return copiar(partes[partes.largo() - 1]);
         }
-        return vacio();
     }
 
     // Una funcion del programa. `B.hecho` se busca como la escribe quien
@@ -669,7 +588,7 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
         unificar(declarados[i], limpio, sueltos, ligaduras);
         i = i + 1;
     }
-    return sustituir(retorno, ligaduras);
+    return T.sustituir(retorno, ligaduras);
 }
 
 // `Cierre_3` -> `ss_cierre_3`, la funcion que recibe ese entorno. Vacio si
@@ -745,61 +664,4 @@ fn unificar(patron: view, dado: view, sueltos: &lista<str>,
         unificar(pp[i], dd[i], sueltos, ligaduras);
         i = i + 1;
     }
-}
-
-// Cambia cada parametro de tipo por lo que se le ligo, respetando los bordes
-// del identificador: `lista<T>` con `T = str` da `lista<str>`.
-fn sustituir(t: view, ligaduras: &mapa<str, str>) -> str {
-    var salida = vacio();
-    var desde = 0;
-    var i = 0;
-    while i <= t.largo() {
-        var corta = true;
-        if i < t.largo() { corta = !es_de_nombre(byte(t, i)); }
-        if corta {
-            if i > desde {
-                let pieza = rebanar(t, desde, i);
-                if tiene(ligaduras, pieza) {
-                    salida.empujar(obtener(ligaduras, pieza) sino "");
-                } else {
-                    salida.empujar(pieza);
-                }
-            }
-            if i < t.largo() { salida.empujar(rebanar(t, i, i + 1)); }
-            desde = i + 1;
-        }
-        i = i + 1;
-    }
-    return salida;
-}
-
-// `lista<P.Nodo>` -> `lista<Nodo>`. El alias de un modulo es de quien lo
-// escribe: visto desde otro archivo no significa nada, y el cargador de
-// verdad reescribe el arbol entero sin ellos.
-fn sin_alias_tipo(t: view) -> str {
-    var r = vacio();
-    var i = 0;
-    while i < t.largo() {
-        if es_de_nombre(byte(t, i)) {
-            var j = i;
-            while j < t.largo() && es_de_nombre(byte(t, j)) { j = j + 1; }
-            if j < t.largo() && byte(t, j) == 46 {
-                i = j + 1; // `P.` fuera
-                continue;
-            }
-            r.empujar(rebanar(t, i, j));
-            i = j;
-            continue;
-        }
-        r.empujar(rebanar(t, i, i + 1));
-        i = i + 1;
-    }
-    return r;
-}
-
-fn es_de_nombre(b: usize) -> bool {
-    if b >= 97 && b <= 122 { return true; }
-    if b >= 65 && b <= 90 { return true; }
-    if b >= 48 && b <= 57 { return true; }
-    return b == 95;
 }

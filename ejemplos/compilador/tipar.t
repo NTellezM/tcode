@@ -7,6 +7,7 @@
 //     ./tipar std/texto.t
 
 usar "lib/tipar.t" como I;
+usar "lib/tipos.t" como T;
 usar "lib/propiedad.t" como Q;
 usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
@@ -127,7 +128,7 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
                 if h.clase == Clase.CampoDef {
                     nombres.anadir(nombre_de(h.texto));
                     let tipo_campo = tipo_desnudo(h.texto);
-                    tipos.anadir(I.sin_alias_tipo(tipo_campo));
+                    tipos.anadir(T.sin_alias_tipo(tipo_campo));
                 }
             }
             poner(c.campos, vista(n.texto), tipos);
@@ -166,7 +167,7 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
             var marcados: lista<str> = [];
             for h en n.hijos {
                 if h.clase == Clase.RetornoTipo {
-                    retorno = I.sin_alias_tipo(h.texto);
+                    retorno = T.sin_alias_tipo(h.texto);
                 }
                 // Una firma de `externo` no tiene cuerpo, y `cadena_c` solo
                 // existe en el borde: lo que ve Tcode es un `str` suyo.
@@ -176,9 +177,9 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
                 }
                 if h.clase == Clase.Param {
                     let tipo_param = tipo_desnudo(h.texto);
-                    tipos_param.anadir(I.sin_alias_tipo(tipo_param));
+                    tipos_param.anadir(T.sin_alias_tipo(tipo_param));
                     let con_marca = tipo_con_marca(h.texto);
-                    marcados.anadir(I.sin_alias_tipo(con_marca));
+                    marcados.anadir(T.sin_alias_tipo(con_marca));
                 }
             }
             if es_de_c {

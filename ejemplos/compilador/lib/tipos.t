@@ -470,11 +470,29 @@ fn escalar(t: view) -> bool {
     return t == "f32" || t == "f64" || t == "()";
 }
 
-// `campos` lleva, por cada struct, los tipos de sus campos.
-// `visitados` corta la recursion: un `Nodo` con un campo `lista<Nodo>` se
-// contiene a si mismo de forma finita, y preguntarle dos veces no aporta.
-fn posee(campos: &mapa<str, lista<str>>, t: view,
-    visitados: mut mapa<str, usize>) -> bool ! {
+// Si un valor de tipo `t` es dueno de memoria del heap. Es la unica regla
+// del compilador para esa pregunta: la usan el comprobador, el que tipa y el
+// generador, cada uno con lo que sabe de los tipos con nombre.
+//
+// - `campos`: struct -> los tipos de sus campos, tambien de las plantillas.
+// - `parametros`: struct generico -> sus parametros de tipo.
+// - `variantes`: enum -> sus formas.
+// - `formas`: `Enum.Forma` -> lo que lleva.
+//
+// Un tipo de otro modulo se escribe `Q.Nombre`, pero se apunta por su
+// nombre. `vistos` corta la recursion: un `Nodo` con un campo `lista<Nodo>`
+// se contiene a si mismo de forma finita, y preguntarle dos veces no aporta.
+fn posee_en(t: view, campos: &mapa<str, lista<str>>, parametros: &mapa<str, lista<str>>,
+    variantes: &mapa<str, lista<str>>, formas: &mapa<str, lista<str>>,
+    vistos: mut mapa<str, usize>) -> bool {
+    return posee_desde(t, campos, parametros, variantes, formas, vistos) sino false;
+}
+
+// Falible solo para leer los mapas sin copiar; cada `obtener` va detras de
+// su `tiene`, asi que no falla.
+fn posee_desde(t: view, campos: &mapa<str, lista<str>>, parametros: &mapa<str, lista<str>>,
+    variantes: &mapa<str, lista<str>>, formas: &mapa<str, lista<str>>,
+    vistos: mut mapa<str, usize>) -> bool ! {
     match forma_de(t) {
         // Lo prestado es de otro; una funcion y un rango no guardan nada.
         Forma.Presta -> { return false; }
@@ -486,32 +504,140 @@ fn posee(campos: &mapa<str, lista<str>>, t: view,
         Forma.Mapa -> { return true; }
         Forma.Arreglo -> {
             let dentro = elemento(t);
-            return try posee(campos, dentro, visitados);
+            return try posee_desde(dentro, campos, parametros, variantes, formas, vistos);
         }
         Forma.Nombre -> { }
     }
     if t == "str" { return true; }
     if escalar(t) { return false; }
 
-    // Un struct posee si alguno de sus campos posee. Un campo de otro modulo
-    // se escribe `Q.Nombre`, pero los structs se apuntan por su nombre.
-    if !tiene(campos, t) {
-        let punto = indice_de(t, ".") sino largo(t);
-        if punto < largo(t) {
-            return try posee(campos, rebanar(t, punto + 1, largo(t)), visitados);
+    // Un struct generico aplicado posee si posee alguno de sus campos, con
+    // los tipos ya puestos.
+    if es_aplicacion(t) {
+        let base = base_de_aplicacion(t);
+        if !tiene(parametros, base) || !tiene(campos, base) { return false; }
+        let sueltos = try obtener(parametros, base);
+        let dados = partes(t);
+        if dados.largo() != sueltos.largo() { return false; }
+        var ligaduras: mapa<str, str> = [];
+        var i = 0;
+        while i < sueltos.largo() {
+            poner(ligaduras, vista(sueltos[i]), copiar(dados[i]));
+            i = i + 1;
         }
+        let crudos = try obtener(campos, base);
+        for x en crudos {
+            let puesto = sustituir(x, ligaduras);
+            if try posee_desde(puesto, campos, parametros, variantes, formas, vistos) { return true; }
+        }
+        return false;
     }
-    let nombre = nuevo(t);
-    if tiene(visitados, nombre) { return false; }
-    if !tiene(campos, nombre) { return false; }
-    poner(visitados, nombre, 1);
 
-    var alguno = false;
-    let suyos = try obtener(campos, nombre);
-    for c en suyos {
-        if try posee(campos, c, visitados) { alguno = true; }
+    let nombre = sin_alias_tipo(t);
+    if tiene(vistos, nombre) { return false; }
+    poner(vistos, vista(nombre), 1);
+    // Un enum posee si alguna de sus formas lleva algo que posee: en tiempo
+    // de ejecucion solo hay una, pero cual sea no se sabe aqui.
+    if tiene(variantes, nombre) {
+        let cuales = try obtener(variantes, nombre);
+        for v en cuales {
+            let clave = $"{nombre}.{v}";
+            if !tiene(formas, clave) { continue; }
+            let lleva = try obtener(formas, clave);
+            for x en lleva {
+                if try posee_desde(x, campos, parametros, variantes, formas, vistos) { return true; }
+            }
+        }
+        return false;
     }
-    return alguno;
+    // Una plantilla sin aplicar no es un tipo: no guarda nada.
+    if tiene(parametros, nombre) || !tiene(campos, nombre) { return false; }
+    let suyos = try obtener(campos, nombre);
+    for x en suyos {
+        if try posee_desde(x, campos, parametros, variantes, formas, vistos) { return true; }
+    }
+    return false;
+}
+
+// `Par<str, usize>`: un struct generico aplicado a sus tipos. `lista<...>`,
+// `mapa<...>`, `bloque<...>` y `fn(...)` no, que esos los pone el lenguaje.
+fn es_aplicacion(t: view) -> bool {
+    if t.largo() == 0 || !termina_con(t, ">") { return false; }
+    var i = 0;
+    while i < t.largo() && byte(t, i) != 60 {
+        if !es_de_nombre(byte(t, i)) && byte(t, i) != 46 { return false; }
+        i = i + 1;
+    }
+    if i == 0 || i == t.largo() { return false; }
+    let base = rebanar(t, 0, i);
+    if base == "lista" || base == "mapa" || base == "bloque" {
+        return false;
+    }
+    let primero = byte(t, 0);
+    return (primero >= 65 && primero <= 90) || (primero >= 97 && primero <= 122);
+}
+
+// El struct generico de una aplicacion, sin alias: `t.Par<A, B>` -> `Par`.
+fn base_de_aplicacion(t: view) -> str {
+    var i = 0;
+    while i < t.largo() && byte(t, i) != 60 { i = i + 1; }
+    return sin_alias_tipo(rebanar(t, 0, i));
+}
+
+// Cambia cada nombre de `t` que este en `ligaduras` por lo suyo: los
+// parametros de una plantilla por los tipos de una aplicacion.
+fn sustituir(t: view, ligaduras: &mapa<str, str>) -> str {
+    var salida = vacio();
+    var desde = 0;
+    var i = 0;
+    while i <= t.largo() {
+        var corta = true;
+        if i < t.largo() { corta = !es_de_nombre(byte(t, i)); }
+        if corta {
+            if i > desde {
+                let pieza = rebanar(t, desde, i);
+                if tiene(ligaduras, pieza) {
+                    salida.empujar(obtener(ligaduras, pieza) sino "");
+                } else {
+                    salida.empujar(pieza);
+                }
+            }
+            if i < t.largo() { salida.empujar(rebanar(t, i, i + 1)); }
+            desde = i + 1;
+        }
+        i = i + 1;
+    }
+    return salida;
+}
+
+// `lista<P.Nodo>` -> `lista<Nodo>`: el alias de un modulo es de quien lo
+// escribe, y los tipos se apuntan por su nombre.
+fn sin_alias_tipo(t: view) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < t.largo() {
+        if es_de_nombre(byte(t, i)) {
+            var j = i;
+            while j < t.largo() && es_de_nombre(byte(t, j)) { j = j + 1; }
+            if j < t.largo() && byte(t, j) == 46 {
+                i = j + 1; // `P.` fuera
+                continue;
+            }
+            r.empujar(rebanar(t, i, j));
+            i = j;
+            continue;
+        }
+        r.empujar(rebanar(t, i, i + 1));
+        i = i + 1;
+    }
+    return r;
+}
+
+fn es_de_nombre(b: usize) -> bool {
+    if b >= 97 && b <= 122 { return true; }
+    if b >= 65 && b <= 90 { return true; }
+    if b >= 48 && b <= 57 { return true; }
+    return b == 95;
 }
 
 fn tipo_existe(campos: &mapa<str, lista<str>>, t: view) -> bool {

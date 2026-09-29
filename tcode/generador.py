@@ -273,6 +273,15 @@ class Generador:
             self.resultados[clave] = f"ss_res_{sufijo}"
         return self.resultados[clave]
 
+    def linea_arreglo(self, t):
+        """La definicion en C del envoltorio del arreglo `t`: un struct sin
+        nombre, o con el suyo si se declaro antes (ver `adelantados`)."""
+        elem, n = partes_arreglo(t)
+        nombre = self.tipo_c(t)
+        if t in getattr(self, "adelantados", ()):
+            return f"struct {nombre} {{ {self.tipo_c(elem)} e[{n}]; }};"
+        return f"typedef struct {{ {self.tipo_c(elem)} e[{n}]; }} {nombre};"
+
     def registrar_arreglo(self, t):
         if t not in self.arreglos:
             elem, _ = partes_arreglo(t)
@@ -938,6 +947,14 @@ class Generador:
                 f"{self.tipo_c(v)}* valores; size_t largo; "
                 f"size_t capacidad; }} {nombre};", [k, v])
 
+        # Un mapa o un bloque de arreglos guarda un puntero al envoltorio, y
+        # el envoltorio se define despues de los structs. A esos se les da
+        # nombre para declararlos aqui; los demas siguen sin nombre.
+        self.adelantados = sorted({d for _, deps in agregados.values()
+                                   for d in deps if es_arreglo(d)})
+        for t in self.adelantados:
+            self.lineas.append(f"typedef struct {self.tipo_c(t)} {self.tipo_c(t)};")
+
         puestos = set()
         en_curso = set()
 
@@ -975,9 +992,7 @@ class Generador:
                 envolver(elem)
             else:
                 definir(elem)
-            self.lineas.append(
-                f"typedef struct {{ {self.tipo_c(elem)} e[{n}]; }} "
-                f"{self.tipo_c(t)};")
+            self.lineas.append(self.linea_arreglo(t))
 
         def definir(nombre):
             if nombre in definidos or nombre not in por_nombre:
@@ -1017,10 +1032,7 @@ class Generador:
         for t in sorted(self.arreglos, key=lambda x: x.count("[")):
             if t in envueltos:
                 continue
-            elem, n = partes_arreglo(t)
-            self.lineas.append(
-                f"typedef struct {{ {self.tipo_c(elem)} e[{n}]; }} "
-                f"{self.arreglos[t]};")
+            self.lineas.append(self.linea_arreglo(t))
         if set(self.arreglos) - envueltos:
             self.lineas.append("")
         # Un arreglo que solo aparece al escribir un cuerpo —`for x en [1, 2]`
@@ -1633,9 +1645,7 @@ class Generador:
                          key=lambda x: x.count("["))
         envoltorios = []
         for t in tardios:
-            elem, n = partes_arreglo(t)
-            envoltorios.append(f"typedef struct {{ {self.tipo_c(elem)} e[{n}]; }} "
-                               f"{self.arreglos[t]};")
+            envoltorios.append(self.linea_arreglo(t))
         if envoltorios:
             envoltorios.append("")
         self.lineas[hueco_funciones:hueco_funciones] = envoltorios

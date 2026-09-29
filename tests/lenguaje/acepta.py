@@ -11,6 +11,42 @@ from .comun import (
 )
 
 ACEPTA = [
+    # Un local que se llama como una funcion y no se puede llamar: la llamada
+    # es a la funcion, tambien cuando su resultado se guarda y hay que saber
+    # su tipo. `tcodec` tomaba el tipo del local y no sabia escribir el `let`.
+    ("un local que no se llama no tapa a la funcion de su nombre",
+     '''fn partes(t: view) -> lista<str> { return [nuevo(t), nuevo("b")]; }
+        fn junta(x: view) -> usize {
+            var partes: lista<str> = [];
+            let de_x = partes(x);
+            for p en de_x { anadir(partes, copiar(p)); }
+            return largo(partes);
+        }
+        fn main() { imprimir($"{junta("a")}\\n"); }''',
+     "2\n"),
+
+    # Un prestamo que ya se tiene —lo que da `obtener` u `obtener_mut`, lo
+    # que atrapa un `match`— se pasa a una funcion que presta, tal cual. Los
+    # dos compiladores lo rechazaban: comparaban `&N` con el `N` del
+    # parametro. Lo encontro la seccion FORMAS.
+    ("un prestamo que ya se tiene se pasa a una funcion que presta",
+     '''struct N { s: str }
+        enum E { Nada, Con(N) }
+        fn ver(x: &N) -> usize { return largo(x.s); }
+        fn cambiar(x: mut N) { empujar(x.s, "!"); }
+        fn mirar(e: &E) -> usize { return match e { E.Nada -> 0, E.Con(y) -> ver(y) }; }
+        fn main() -> usize ! {
+            var m: mapa<str, N> = [];
+            poner(m, "a", N { s: nuevo("hola") });
+            let w = try obtener_mut(m, "a");
+            cambiar(w);
+            let r = try obtener(m, "a");
+            let e = E.Con(N { s: nuevo("abc") });
+            imprimir($"{ver(r)} {mirar(e)}\\n");
+            return 0;
+        }''',
+     "5 3\n"),
+
     # Un struct cuyo unico campo con duenio es un enum. tcodec no lo
     # liberaba —lo tomaba por un struct sin nada que soltar— y se perdia la
     # memoria de la forma; Python si. Lo encontro ASan en la biblioteca

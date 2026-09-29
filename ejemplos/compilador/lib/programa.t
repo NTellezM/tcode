@@ -90,8 +90,10 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
                     cuales.anadir(nuevo(h.texto));
                     var lleva: lista<str> = [];
                     for x en h.hijos {
+                        // Sin alias, como los nombres de los tipos:
+                        // `Con(H.Nombre)` lleva un `Nombre`.
                         if x.clase == Clase.Lleva {
-                            lleva.anadir(nuevo(x.texto));
+                            lleva.anadir(T.sin_alias_tipo(x.texto));
                         }
                     }
                     var clave = nuevo(n.texto);
@@ -319,7 +321,7 @@ fn prefijo_unico(ruta: view, modulos: &lista<str>) -> str {
         k = k + 1;
         // Un caracter de UTF-8 es un solo `_`, no uno por byte.
         if b >= 128 && b < 192 { continue; }
-        if I.es_de_nombre(b) { empujar_byte(r, b como u8); } else { r.empujar("_"); }
+        if T.es_de_nombre(b) { empujar_byte(r, b como u8); } else { r.empujar("_"); }
     }
     var desde = 0;
     var fin = r.largo();
@@ -662,7 +664,7 @@ fn vistas_en_funcion(f: mut P.Nodo, tipos: mut I.Contexto, cambio: mut bool) {
             I.declarar(tipos, pn, pt);
         }
         if h.clase == Clase.RetornoTipo {
-            retorno = I.sin_alias_tipo(h.texto);
+            retorno = T.sin_alias_tipo(h.texto);
         }
     }
     var i = 0;
@@ -694,7 +696,7 @@ fn vistas_en_sentencia(st: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
     let es_declaracion = clase == Clase.Declaracion && st.hijos.largo() == 1;
     if es_declaracion {
         let escrito = G.tipo_escrito(st.texto);
-        let t = I.sin_alias_tipo(escrito);
+        let t = T.sin_alias_tipo(escrito);
         if t == "view" { prestar_si_str(st.hijos[0], tipos, cambio); }
     }
     if clase == Clase.Asignacion && st.hijos.largo() == 2 {

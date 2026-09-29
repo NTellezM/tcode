@@ -235,7 +235,7 @@ fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
         let sueltos = I.lista_de(c.tipo_params, fn_) sino [];
         var cualquiera: mapa<str, str> = [];
         for tp en sueltos { poner(cualquiera, vista(tp), nuevo("str")); }
-        let puesto = I.sustituir(m, cualquiera);
+        let puesto = T.sustituir(m, cualquiera);
         if !igual(puesto, m) { return true; }
     }
     return tiene_duenio(c, m);

@@ -1262,6 +1262,10 @@ Las reglas son las de cualquier préstamo, y se comprueban igual:
 - Mientras viva, lo prestado no se puede modificar ni mover.
 - No puede salir de la función si presta de algo local.
 - No se puede mover: no es suyo.
+- Se pasa tal cual a una función que presta: con `ver(x: &Simbolo)`,
+  `ver(s)` le da el mismo puntero. Lo que atrapa un `match` es igual. Un
+  `&mut T` también va a un parámetro `mut T`; un `&T`, no, y el error lo
+  dice.
 - Un mapa guarda valores, no préstamos: `mapa<str, &T>` es un error.
 
 En C sale como `const T*`, así que el propio compilador de C también
