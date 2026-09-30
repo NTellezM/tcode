@@ -24,6 +24,7 @@ aparte.
 """
 
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -132,17 +133,27 @@ CLASES = ["campo", "arreglo", "lista", "mapa", "enum"]
 
 
 def permitida(clase, dentro):
-    """None si se escribe; si no, por que no."""
+    """(la razon, lo que tiene que decir el error), o None si se escribe.
+
+    La razon se cuenta y el texto se comprueba: lo que el lenguaje no deja
+    escribir tiene que rechazarse, y con el mismo primer error en los dos
+    compiladores. Lo que empieza por `tcodec:` es un hueco suyo --todavia no
+    lo escribe, pero Python si--, y solo se cuenta.
+    """
     lleva_arreglo = dentro.esquema.startswith("[")
     if clase == "lista" and lleva_arreglo:
-        return "el lenguaje: un arreglo no va en una lista"
+        return "el lenguaje: un arreglo no va en una lista", "no se puede almacenar"
     if clase == "enum" and "[" in dentro.esquema:
-        return "tcodec: todavia no escribe arreglos en un enum"
+        return "tcodec: todavia no escribe arreglos en un enum", None
     # Lo que presta solo cabe como campo de un struct: ahi el struct presta,
     # que es lo que el lenguaje sabe seguir. En una lista, un mapa, un arreglo
     # o un enum no hay donde anotar cuanto vive lo que apuntan.
     if dentro.presta and clase != "campo":
-        return f"el lenguaje: `{clase}` no guarda lo que presta"
+        if clase == "enum":
+            return ("el lenguaje: un enum no guarda lo que presta",
+                    "un enum no guarda prestamos")
+        return (f"el lenguaje: `{clase}` no guarda lo que presta",
+                "no se puede almacenar")
     return None
 
 
@@ -153,20 +164,21 @@ def formas():
     n = 0
     for h in base:
         for c1 in CLASES:
-            razon = permitida(c1, h)
             n += 1
-            if razon:
-                saltadas.append(razon)
-                continue
             uno = envolver(c1, h, n)
+            permiso = permitida(c1, h)
+            if permiso:
+                saltadas.append((uno, permiso[0], permiso[1]))
+                continue
             salida.append(uno)
             for c2 in CLASES:
-                razon = permitida(c2, uno)
                 n += 1
-                if razon:
-                    saltadas.append(razon)
+                dos = envolver(c2, uno, n)
+                permiso = permitida(c2, uno)
+                if permiso:
+                    saltadas.append((dos, permiso[0], permiso[1]))
                     continue
-                salida.append(envolver(c2, uno, n))
+                salida.append(dos)
     return base, salida, saltadas
 
 
@@ -289,6 +301,70 @@ def probar(sitio, casos, tmp):
     return None
 
 
+def _sin_ruta(texto):
+    """`p.t:12: lo que dice` -> `12: lo que dice`, para comparar los dos."""
+    m = re.match(r"^.+?:(\d+): (.*)$", texto, re.S)
+    return f"{m.group(1)}: {m.group(2)}" if m else texto
+
+
+def probar_rechazo(sitio, caso, dice, tmp):
+    """None si esa forma se rechaza igual en los dos, y con ese error.
+
+    Es lo que el lenguaje no deja escribir: no vale con que no compile, tiene
+    que decirlo el mismo primer error en los dos compiladores.
+    """
+    os.makedirs(tmp, exist_ok=True)
+    for ruta, texto in programa(sitio, [caso]).items():
+        with open(os.path.join(tmp, ruta), "w", encoding="utf-8") as f:
+            f.write(texto)
+    principal = os.path.join(tmp, "p.t")
+    _codigo, errores = compilar_archivo(principal)
+    if not errores:
+        return "Python lo acepta, y no se escribe"
+    t = subprocess.run([tcodec(), principal, "--solo-comprobar", "--sin-avisos"],
+                       capture_output=True, text=True, timeout=300,
+                       env=ENTORNO_TCODEC)
+    if t.returncode == 0:
+        return "tcodec lo acepta, y no se escribe"
+    de_tcodec = [x[len("error: "):] for x in t.stderr.splitlines()
+                 if x.startswith("error: ")]
+    if not de_tcodec:
+        return f"tcodec no dice archivo ni linea: {t.stderr.strip()[:200]}"
+    suyo, mio = _sin_ruta(de_tcodec[0]), _sin_ruta(errores[0])
+    if suyo != mio:
+        return (f"otro primer error que Python:\n"
+                f"           tcodec: {suyo!r}\n           Python: {mio!r}")
+    if dice not in mio:
+        return f"dice {mio!r}, y tendria que decir {dice!r}"
+    return None
+
+
+def probar_hueco(sitio, caso, razon, tmp):
+    """None si sigue siendo un hueco de `tcodec`: Python lo escribe y el no.
+
+    Un hueco se cuenta, pero no se deja crecer: si Python tambien lo rechaza,
+    o si `tcodec` aprende a escribirlo, esto lo dice para quitar la excepcion
+    --como la lista de rechazos que solo entiende `tcodec`.
+    """
+    os.makedirs(tmp, exist_ok=True)
+    for ruta, texto in programa(sitio, [caso]).items():
+        with open(os.path.join(tmp, ruta), "w", encoding="utf-8") as f:
+            f.write(texto)
+    principal = os.path.join(tmp, "p.t")
+    _codigo, errores = compilar_archivo(principal)
+    t = subprocess.run([tcodec(), principal, "--solo-comprobar", "--sin-avisos"],
+                       capture_output=True, text=True, timeout=300,
+                       env=ENTORNO_TCODEC)
+    if not errores and t.returncode != 0:
+        return None                     # el hueco sigue: Python lo escribe
+    if errores and t.returncode == 0:
+        return "Python lo rechaza y tcodec lo acepta: no es un hueco suyo"
+    if errores:
+        return (f"ya no es un hueco suyo: Python tambien lo rechaza "
+                f"({_sin_ruta(errores[0])!r}); quitalo de la lista")
+    return f"tcodec ya lo escribe ({razon}): quita el hueco de la lista"
+
+
 def nombre(caso):
     return " en ".join(p.esquema.replace("{H}", "").replace("{E}", "")
                        for p in reversed(piezas(caso)))
@@ -299,6 +375,10 @@ TITULO = "cada forma de un tipo dentro de otro, en uno o dos modulos"
 
 def correr(suite: Resultado) -> None:
     _, casos, saltadas = formas()
+    # Lo que no se escribe, se rechaza: y lo dicen los dos igual. Lo que es
+    # un hueco de `tcodec` --Python lo escribe-- se vigila aparte.
+    rechazos = [(caso, razon, dice) for caso, razon, dice in saltadas if dice]
+    huecos = [(caso, razon) for caso, razon, dice in saltadas if dice is None]
     tmp = tempfile.mkdtemp(prefix="tcode-formas-")
     try:
         def _sitio(sitio):
@@ -314,15 +394,47 @@ def correr(suite: Resultado) -> None:
                     fallos.append((nombre(caso), solo))
             return fallos or [("todos juntos", malo)]
 
+        def _hueco(sitio):
+            fallos = []
+            for i, (caso, razon) in enumerate(huecos):
+                carpeta = f"hueco_{sitio}_{i}".replace(" ", "_")
+                que = probar_hueco(sitio, caso, razon, os.path.join(tmp, carpeta))
+                if que is not None:
+                    fallos.append((nombre(caso), que))
+            return fallos
+
+        def _rechazo(sitio):
+            # Cada forma rechazada se prueba suelta: el primer error tiene que
+            # ser el suyo, y el mismo en los dos.
+            fallos = []
+            for i, (caso, _razon, dice) in enumerate(rechazos):
+                carpeta = f"rechazo_{sitio}_{i}".replace(" ", "_")
+                que = probar_rechazo(sitio, caso, dice, os.path.join(tmp, carpeta))
+                if que is not None:
+                    fallos.append((nombre(caso), que))
+            return fallos
+
         for sitio, fallos in zip(SITIOS, en_paralelo(_sitio, list(SITIOS))):
             suite.total += len(casos)
             for quien, que in fallos:
                 suite.falla(f"{sitio}: {quien}", que)
+        for sitio, fallos in zip(SITIOS, en_paralelo(_rechazo, list(SITIOS))):
+            suite.total += len(rechazos)
+            for quien, que in fallos:
+                suite.falla(f"{sitio}: {quien}: no se escribe, y no se "
+                            f"rechaza igual en los dos", que)
+        for sitio, fallos in zip(SITIOS, en_paralelo(_hueco, list(SITIOS))):
+            suite.total += len(huecos)
+            for quien, que in fallos:
+                suite.falla(f"{sitio}: {quien}: el hueco de tcodec ha cambiado",
+                            que)
         por_razon: dict[str, int] = {}
-        for r in saltadas:
-            por_razon[r] = por_razon.get(r, 0) + 1
+        for _caso, razon, _dice in saltadas:
+            por_razon[razon] = por_razon.get(razon, 0) + 1
         print(f"    {len(casos)} formas en {len(SITIOS)} sitios; sin escribir: "
-              + "; ".join(f"{n} ({r})" for r, n in sorted(por_razon.items())))
+              + "; ".join(f"{n} ({r})" for r, n in sorted(por_razon.items()))
+              + f"; de esas, {len(rechazos)} se comprueba que se rechazan y "
+              + f"{len(huecos)} son huecos de tcodec que Python si escribe")
         suite.cifra("formas", len(casos) * len(SITIOS))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

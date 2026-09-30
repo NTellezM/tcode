@@ -24,13 +24,19 @@ OTRO = '"' + "y" * 60 + '"'
 
 # Lo que se declara fuera de `main` para que cada forma exista.
 PRELUDIO = f"""enum E {{ A(str), B }}
+enum K {{ Uno, Dos }}
 struct Palabra {{ t: view }}
+struct Caja {{ p: Palabra }}
 fn primero(v: view) -> view {{ return v; }}
 fn id<T>(x: T) -> T {{ return x; }}
 fn crecer(x: mut str) {{ empujar(x, {OTRO}); }}
 fn consumir(x: str) -> usize {{ return largo(x); }}
 fn sin_vista() -> view ! {{ falla "no"; }}
 fn g(a: mut str, b: view) {{ empujar(a, {OTRO}); imprimir(byte(b, 0)); }}
+fn palabra(t: view) -> Palabra {{ return Palabra {{ t: t }}; }}
+fn eco(p: Palabra) -> Palabra {{ return p; }}
+fn caja(t: view) -> Caja {{ return Caja {{ p: Palabra {{ t: t }} }}; }}
+fn hp(a: mut str, b: Palabra) {{ empujar(a, {OTRO}); imprimir(byte(b.t, 0)); }}
 """
 
 # Como se invalida al duenio `s` (o `e`, o `m`).
@@ -79,6 +85,30 @@ FORMAS = [
       "quita": 'imprimir(quitar(m, "k"));'}),
     ("str_prestado", f"var xs: lista<str> = [nuevo({LARGO})];",
      "xs[0]", "&str", INVALIDAN_XS),
+    # El struct que presta es la otra cara del prestamo: se trata como una
+    # vista, y esa vista es su campo. Antes habia una sola forma (el literal);
+    # aqui se transporta como cualquier vista, y con dos campos de hondo.
+    ("palabra", f"var s = nuevo({LARGO});",
+     "Palabra { t: vista(s) }", "Palabra", INVALIDAN_S),
+    ("palabra_rebanar", f"var s = nuevo({LARGO});",
+     "Palabra { t: rebanar(vista(s), 0, 3) }", "Palabra", INVALIDAN_S),
+    ("palabra_funcion", f"var s = nuevo({LARGO});",
+     "palabra(vista(s))", "Palabra", INVALIDAN_S),
+    ("palabra_eco", f"var s = nuevo({LARGO});",
+     "eco(Palabra { t: vista(s) })", "Palabra", INVALIDAN_S),
+    ("palabra_if", f"var s = nuevo({LARGO}); let c = largo(s) > 1;",
+     'if c { Palabra { t: vista(s) } } else { Palabra { t: "" } }',
+     "Palabra", INVALIDAN_S),
+    ("palabra_match", f"var s = nuevo({LARGO}); let k = K.Uno;",
+     'match k { K.Uno -> Palabra { t: vista(s) }, K.Dos -> Palabra { t: "" } }',
+     "Palabra", INVALIDAN_S),
+    ("caja", f"var s = nuevo({LARGO});",
+     "Caja { p: Palabra { t: vista(s) } }", "Caja", INVALIDAN_S),
+    ("caja_funcion", f"var s = nuevo({LARGO});",
+     "caja(vista(s))", "Caja", INVALIDAN_S),
+    ("caja_if", f"var s = nuevo({LARGO}); let c = largo(s) > 1;",
+     'if c { Caja { p: Palabra { t: vista(s) } } } '
+     'else { Caja { p: Palabra { t: "" } } }', "Caja", INVALIDAN_S),
     # Composicion de dos capas: la vista pasa por dos formas antes de
     # llegar a su variable. Lo que importa no es cada capa suelta —eso
     # ya esta— sino que la procedencia se propague por las dos.
@@ -108,11 +138,28 @@ FORMAS = [
 
 
 def _uso(tipo):
-    return "imprimir(byte(v.t, 0));" if tipo == "Palabra" else "imprimir(byte(v, 0));"
+    if tipo == "Palabra":
+        return "imprimir(byte(v.t, 0));"
+    if tipo == "Caja":
+        return "imprimir(byte(v.p.t, 0));"
+    return "imprimir(byte(v, 0));"
 
 
 def _vacia(tipo):
-    return 'Palabra { t: "" }' if tipo == "Palabra" else '""'
+    if tipo == "Palabra":
+        return 'Palabra { t: "" }'
+    if tipo == "Caja":
+        return 'Caja { p: Palabra { t: "" } }'
+    return '""'
+
+
+def _leida(tipo):
+    """Algo del valor que el programa lea, para que no avise de uno sin leer."""
+    if tipo == "Palabra":
+        return "largo(v.t)"
+    if tipo == "Caja":
+        return "largo(v.p.t)"
+    return "largo(v)"
 
 
 def _enlaces(expr, tipo):
@@ -125,8 +172,7 @@ def _enlaces(expr, tipo):
         yield "let", f"let v: {tipo} = {expr};"
         return
     yield "let", f"let v = {expr};"
-    leida = "largo(v.t)" if tipo == "Palabra" else "largo(v)"
-    yield "asigna", (f"var v: {tipo} = {_vacia(tipo)}; imprimir({leida}); "
+    yield "asigna", (f"var v: {tipo} = {_vacia(tipo)}; imprimir({_leida(tipo)}); "
                      f"v = {expr};")
 
 
@@ -144,10 +190,15 @@ def casos():
                 bueno = _programa([dueno, "if true {", "    " + texto,
                                    "    " + _uso(tipo), "}", invalida])
                 yield f"{forma}/{enlace}/{como}", malo, bueno
-        # La vista sin nombre, prestada a una funcion que modifica al duenio
-        # en la misma llamada: el fallo 2 de la especificacion.
-        if invalidan is INVALIDAN_S and tipo == "view":
-            malo = _programa([dueno, f"g(s, {expr});"])
-            bueno = _programa([dueno, f"let copia = nuevo({expr});",
-                               "g(s, vista(copia));"])
+        # La vista —o el struct que presta— sin nombre, prestada a una funcion
+        # que modifica al duenio en la misma llamada: el fallo 2 de la
+        # especificacion.
+        if invalidan is INVALIDAN_S and tipo in ("view", "Palabra"):
+            llama = "g" if tipo == "view" else "hp"
+            malo = _programa([dueno, f"{llama}(s, {expr});"])
+            if tipo == "view":
+                bueno = _programa([dueno, f"let copia = nuevo({expr});",
+                                   "g(s, vista(copia));"])
+            else:
+                bueno = _programa([dueno, 'hp(s, palabra("z"));'])
             yield f"{forma}/llamada", malo, bueno

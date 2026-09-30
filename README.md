@@ -806,8 +806,8 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-3958 casos, 0 fallas
-2359 comprobaciones sobre 60 programas, 0 fallas
+4024 casos, 0 fallas
+2754 comprobaciones sobre 60 programas, 0 fallas
 ```
 
 La suite tiene dos mitades. La primera son **casos por ejemplo**: este

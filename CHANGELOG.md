@@ -40,6 +40,14 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   con los dos compiladores y bajo ASan. Un `&T` no puede ser hoja: una
   funcion no puede devolver un prestamo a algo suyo; esos casos son rechazos
   y viven en RECHAZO.
+- Los generadores comprueban lo que antes solo contaban. FORMAS prueba sus 15
+  formas «no se escribe» —una lista, un mapa, un arreglo y un enum de algo que
+  presta, y un arreglo dentro de una lista— contra los dos compiladores, y
+  vigila sus 7 huecos (Python los escribe y `tcodec` no): si uno cambia, lo
+  dice, como la lista de rechazos que solo entiende `tcodec`. Y P10 pasa de
+  una forma de struct que presta a nueve —el literal, `rebanar`, una funcion,
+  `if`, `match`, y dos campos de hondo—, cada una con sus dos enlaces, sus
+  cuatro invalidantes y la llamada con el prestamo sin nombre: 221 pares.
 
 ## 1.0.0-rc2 — 2026-09-30, candidata local
 
