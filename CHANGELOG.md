@@ -22,6 +22,24 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   tampoco cabe en un `const T**`), y la llamada presta el sitio donde vive el
   `&T` en vez de pasar el puntero tal cual, que daba un argumento de otro
   tipo. Lo encontró el fuzzing; el hallazgo guardado queda de regresión.
+- Un `&T` dentro de un contenedor no se rechazaba: `lista<&str>`, `[&str; n]`
+  y `bloque<&str>` se aceptaban en los dos compiladores, y un `mapa<str, &T>`
+  se colaba en un campo de struct, en un parametro y en el retorno de una
+  funcion. Usarlos tampoco iba bien: en Python el C no compilaba y `tcodec`
+  se rendia con «no sabe escribir esta expresion». Ahora los contenedores
+  rechazan un prestamo dentro, como ya hacia el mapa en una variable.
+  Salió al ampliar FORMAS con una hoja `view`: al mirar qué contenedores
+  aceptan una vista, apareció que aceptaban una referencia.
+
+### Añadido
+
+- FORMAS cubre el struct que presta: una hoja `vista` —el unico prestamo que
+  se puede tener en la mano, porque sale de un literal— como campo de un
+  struct, y ese struct dentro de otro. En una lista, un mapa, un arreglo o un
+  enum no cabe, y la suite lo cuenta aparte. Son 198 formas en tres sitios,
+  con los dos compiladores y bajo ASan. Un `&T` no puede ser hoja: una
+  funcion no puede devolver un prestamo a algo suyo; esos casos son rechazos
+  y viven en RECHAZO.
 
 ## 1.0.0-rc2 — 2026-09-30, candidata local
 

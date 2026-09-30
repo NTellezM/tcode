@@ -440,6 +440,30 @@ RECHAZO = [
      'fn main() { var m: mapa<str, view> = []; imprimir(largo(m)); }',
      "no es un tipo almacenable"),
 
+    # Un `&T` dentro de un contenedor tampoco: no habria donde anotar cuanto
+    # vive lo que apunta. El mapa ya lo decia en una variable; la lista, el
+    # arreglo y el bloque se colaban, y en un campo o en una firma se colaba
+    # hasta el mapa.
+    ("una lista no guarda prestamos con `&`",
+     'fn main() { var l: lista<&str> = []; imprimir(largo(l)); }',
+     "no es un tipo almacenable"),
+
+    ("un bloque tampoco",
+     'fn main() { var b: bloque<&str> = reservar(3); imprimir(largo(b)); }',
+     "no es un tipo almacenable"),
+
+    ("ni un campo de struct",
+     'struct S { l: lista<&str> } fn main() { }',
+     "usa el tipo `lista<&str>`"),
+
+    ("ni el valor de un mapa, dentro de un struct",
+     'struct S { m: mapa<str, &str> } fn main() { }',
+     "usa el tipo `mapa<str, &str>`"),
+
+    ("ni el retorno de una funcion",
+     'fn g() -> lista<&str> { return []; } fn main() { imprimir(largo(g())); }',
+     "que no se puede almacenar"),
+
     ("un enum no lleva vistas",
      'enum E { A(view), B } fn main() { }',
      "un enum no guarda prestamos"),

@@ -52,6 +52,7 @@ class Tipo:
         self.ver = ""               # cuerpo de `ver`, sobre `x`
         self.param = "&{T}"         # como recibe `ver` el valor
         self.dueno = True           # si `pasar` y `copiar` tienen sentido
+        self.presta = False         # si lo que guarda apunta a memoria de otro
 
     def tipo(self, sitio):
         return self.esquema.format(**sitio)
@@ -63,13 +64,21 @@ class Tipo:
 def hojas():
     salida = []
 
-    def hoja(ident, esquema, valor, hacer, ver, param="&{T}", decl="", dueno=True):
+    def hoja(ident, esquema, valor, hacer, ver, param="&{T}", decl="", dueno=True,
+             presta=False):
         t = Tipo(ident, True, esquema, valor)
-        t.hacer, t.ver, t.param, t.declaracion, t.dueno = hacer, ver, param, decl, dueno
+        t.hacer, t.ver, t.param = hacer, ver, param
+        t.declaracion, t.dueno, t.presta = decl, dueno, presta
         salida.append(t)
 
     hoja("entero", "i64", 7, "return 7;", "return x;", param="{T}", dueno=False)
     hoja("texto", "str", 2, 'return nuevo("ab");', "return largo(x) como i64;", param="view")
+    # Una vista es el unico prestamo que se puede tener en la mano, porque
+    # sale de un literal. Como campo hace del struct uno que presta; en una
+    # lista, un mapa, un arreglo o un enum no cabe. Un `&T` no puede ser
+    # hoja: una funcion no puede devolver un prestamo a algo suyo.
+    hoja("vista", "view", 2, 'return "ab";', "return largo(x) como i64;",
+         param="{T}", dueno=False, presta=True)
     hoja("color", "{H}Color", 2, "return {H}Color.Verde;",
          "return match x {{ {H}Color.Rojo -> 1, {H}Color.Verde -> 2 }};",
          param="{T}", decl="enum Color {{ Rojo, Verde }}", dueno=False)
@@ -90,6 +99,7 @@ def envolver(clase, dentro, n):
     j = dentro.ident
     if clase == "campo":
         t = Tipo(n, False, "{E}Caja" + str(n), dentro.valor + 1, dentro)
+        t.presta = dentro.presta
         t.declaracion = "struct Caja%d {{ v: %s, n: i64 }}" % (n, dentro.esquema)
         t.hacer = "return {E}Caja%d {{ v: hacer_%s(), n: 1 }};" % (n, j)
         t.ver = "return ver_%s(x.v) + x.n;" % j
@@ -128,6 +138,11 @@ def permitida(clase, dentro):
         return "el lenguaje: un arreglo no va en una lista"
     if clase == "enum" and "[" in dentro.esquema:
         return "tcodec: todavia no escribe arreglos en un enum"
+    # Lo que presta solo cabe como campo de un struct: ahi el struct presta,
+    # que es lo que el lenguaje sabe seguir. En una lista, un mapa, un arreglo
+    # o un enum no hay donde anotar cuanto vive lo que apuntan.
+    if dentro.presta and clase != "campo":
+        return f"el lenguaje: `{clase}` no guarda lo que presta"
     return None
 
 

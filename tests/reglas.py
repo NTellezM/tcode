@@ -278,6 +278,14 @@ REGLAS = [
           [("let protocolo = 1;", "error")],
           [],
           ["se esperaba 'ident'"]),
+    # Guardar un prestamo pediria expresar cuanto vive lo que apunta, y el
+    # tipo no lo dice. El mapa ya lo rechazaba; la lista, el arreglo y el
+    # bloque no.
+    Regla("un prestamo guardado en una lista",
+          [],
+          ["var l: lista<str> = [];"], [("var l: lista<&str> = [];", "error")],
+          ["imprimir(largo(l));"],
+          ["no es un tipo almacenable"]),
 ]
 
 

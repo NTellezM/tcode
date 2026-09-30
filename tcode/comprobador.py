@@ -971,27 +971,32 @@ class Comprobador:
                 or t in self.structs or t in self.enums):
             return True
         if es_arreglo(t):
-            # Un arreglo tampoco guarda vistas: cada elemento se puede
-            # reasignar por un indice que no se conoce al compilar, y no
+            # Un arreglo tampoco guarda vistas ni prestamos: cada elemento se
+            # puede reasignar por un indice que no se conoce al compilar, y no
             # habria forma de saber de quien presta cada uno.
             elem = elem_de(t)
-            return (elem != "view" and not self.es_prestado_st(elem)
+            return (elem != "view" and not es_referencia(elem)
+                    and not self.es_prestado_st(elem)
                     and self.tipo_existe(elem))
         if es_mapa(t):
             k, v = partes_mapa(t)
-            # Un mapa tampoco guarda vistas: nadie sabria cuanto viven.
+            # Un mapa tampoco guarda vistas ni prestamos: nadie sabria
+            # cuanto viven.
             return (self.tipo_existe(k) and self.tipo_existe(v)
-                    and not any(x == "view" or self.es_prestado_st(x)
-                                for x in (k, v)))
+                    and not any(x == "view" or es_referencia(x)
+                                or self.es_prestado_st(x) for x in (k, v)))
         if es_bloque(t):
             elem = elem_bloque(t)
-            return (elem != "view" and not es_arreglo(elem)
+            return (elem != "view" and not es_referencia(elem)
+                    and not es_arreglo(elem)
                     and not self.es_prestado_st(elem)
                     and self.tipo_existe(elem))
         if es_lista(t):
             elem = elem_lista(t)
-            # Guardar vistas en una coleccion exigiria expresar su vida util.
-            return (elem != "view" and not es_arreglo(elem)
+            # Guardar una vista o un prestamo en una coleccion exigiria
+            # expresar cuanto vive lo que apuntan.
+            return (elem != "view" and not es_referencia(elem)
+                    and not es_arreglo(elem)
                     and not self.es_prestado_st(elem) and self.tipo_existe(elem))
         return False
 
@@ -1991,8 +1996,8 @@ class Comprobador:
                     else:
                         self.error(s, f"`{s.tipo}` no es un tipo almacenable; "
                                       "las listas y los arreglos no pueden "
-                                      "guardar `view`, y las listas tampoco "
-                                      "arreglos fijos")
+                                      "guardar `view` ni prestamos `&T`, y las "
+                                      "listas tampoco arreglos fijos")
                 tipo = self.expresion(s.valor, destino=s.tipo,
                                       mover_variables=True)
                 if tipo is not None and not encaja(s.tipo, tipo):

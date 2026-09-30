@@ -2525,7 +2525,8 @@ Todo esto lo rechaza el compilador con un error que lo dice, en su línea.
   traits ni interfaces que declarar.
 - Claves de mapa que no sean `str`.
 - Préstamos guardados: una `view`, un `&T` o un struct que presta no van en
-  listas, arreglos, mapas ni enums. Un arreglo fijo no va en una lista.
+  listas, arreglos, bloques, mapas ni enums. Un arreglo fijo no va en una
+  lista.
 - Un campo de struct de tipo `&T`/`&mut T`: no dice de quién presta ni cuánto
   vive, y en C quedaba el valor copiado sin dueño. Para que el struct preste
   de lo que le pongan, el campo es `view`; si el campo es suyo, no lleva `&`.

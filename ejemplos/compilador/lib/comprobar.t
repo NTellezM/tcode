@@ -543,29 +543,33 @@ fn almacenable(m: &Mundo, t: view) -> bool {
     }
     if es_struct(m, t) || es_enum(m, t) { return true; }
     if T.es_arreglo(t) {
-        // Un arreglo tampoco guarda vistas: cada elemento se puede reasignar
-        // por un indice que no se conoce al compilar, y no habria forma de
-        // saber de quien presta cada uno.
+        // Un arreglo tampoco guarda vistas ni prestamos: cada elemento se
+        // puede reasignar por un indice que no se conoce al compilar, y no
+        // habria forma de saber de quien presta cada uno.
         let e = T.elemento(t);
-        return e != "view" && !es_prestado_st(m, e)
-        && almacenable(m, e);
+        return e != "view" && !T.es_referencia(e)
+        && !es_prestado_st(m, e) && almacenable(m, e);
     }
     if T.es_mapa(t) {
         let ps = T.partes(t);
         if ps.largo() != 2 { return false; }
-        // Un mapa tampoco guarda vistas: nadie sabria cuanto viven.
+        // Un mapa tampoco guarda vistas ni prestamos: nadie sabria cuanto
+        // viven.
         return almacenable(m, ps[0]) && almacenable(m, ps[1])
-        && ps[0] != "view" && !es_prestado_st(m, ps[0])
-        && ps[1] != "view" && !es_prestado_st(m, ps[1]);
+        && ps[0] != "view" && !T.es_referencia(ps[0])
+        && !es_prestado_st(m, ps[0])
+        && ps[1] != "view" && !T.es_referencia(ps[1])
+        && !es_prestado_st(m, ps[1]);
     }
     if T.es_bloque(t) {
         let e = T.elemento(t);
-        return e != "view" && !T.es_arreglo(e)
+        return e != "view" && !T.es_referencia(e) && !T.es_arreglo(e)
         && !es_prestado_st(m, e) && almacenable(m, e);
     }
     if T.es_lista(t) {
+        // Guardar un prestamo pediria expresar cuanto vive lo que apunta.
         let e = T.elemento(t);
-        return e != "view" && !T.es_arreglo(e)
+        return e != "view" && !T.es_referencia(e) && !T.es_arreglo(e)
         && !es_prestado_st(m, e) && almacenable(m, e);
     }
     return false;
@@ -5169,7 +5173,7 @@ fn comprobar_sentencia_sin_contar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
                         let dentro = T.apuntado(tipo);
                         error(c, m, s.linea, $"`{tipo}` no tiene sentido: `{dentro}` es un escalar, y prestarlo no aporta nada sobre copiarlo");
                     } else {
-                        error(c, m, s.linea, $"`{tipo}` no es un tipo almacenable; las listas y los arreglos no pueden guardar `view`, y las listas tampoco arreglos fijos");
+                        error(c, m, s.linea, $"`{tipo}` no es un tipo almacenable; las listas y los arreglos no pueden guardar `view` ni prestamos `&T`, y las listas tampoco arreglos fijos");
                     }
                 }
                 let t = comprobar_expresion(c, m, tipos, s.hijos[0], tipo, true);
