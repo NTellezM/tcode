@@ -86,6 +86,7 @@ from mutador import mutar
 from violaciones import casos as casos_de_violacion
 from oraculo import generar as generar_oraculo, cuentas_escritas
 from prestamos import generar as generar_prestamos
+from sentencias import CASOS as CASOS_DE_SENTENCIA
 
 RUNTIME = os.path.join(RAIZ, "runtime")
 from semilla import construir_tcodec as desde_la_semilla
@@ -279,6 +280,53 @@ def probar_violaciones(tmp):
             total += 1
             if problema:
                 falla("P10 lo valido corre limpio", nombre, problema, bueno)
+
+
+def probar_sentencias(tmp):
+    """P14: un valor que se mueve por algunos caminos y por otros no se
+    libera exactamente una vez, por cualquier camino."""
+    global total
+    listos = []
+    for i, (nombre, fuente) in enumerate(CASOS_DE_SENTENCIA):
+        total += 1
+        try:
+            codigo, errores = compilar_a_c(fuente, f"sent{i}.t")
+        except Exception:
+            falla("P14 compila", nombre, traceback.format_exc(), fuente)
+            continue
+        if errores:
+            falla("P14 compila", nombre, "\n".join(errores), fuente)
+            continue
+        ruta_c = os.path.join(tmp, f"sent{i}.c")
+        binario = os.path.join(tmp, f"sent{i}")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        listos.append((nombre, fuente, ruta_c, binario))
+
+    def uno(listo):
+        _, _, ruta_c, binario = listo
+        r = cc(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            return "P14 C limpio", r.stderr
+        try:
+            e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
+        except subprocess.TimeoutExpired:
+            return "P14 memoria limpia", "el programa no termino"
+        if e.returncode != 0 or "Sanitizer" in e.stderr or "runtime error" in e.stderr:
+            return "P14 memoria limpia", f"codigo {e.returncode}\n{e.stderr}"
+        return None
+
+    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 2) as hilos:
+        resultados = list(hilos.map(uno, listos))
+    for (nombre, fuente, _, _), problema in zip(listos, resultados):
+        total += 1
+        if problema:
+            falla(problema[0], nombre, problema[1], fuente)
 
 
 def construir_tcodec(tmp):
@@ -699,6 +747,9 @@ def main():
 
         print("=== VIOLACIONES: una vista, su duenio invalidado, la vista usada ===")
         probar_violaciones(tmp)
+
+        print("=== SENTENCIAS: un valor que se mueve por algunos caminos ===")
+        probar_sentencias(tmp)
 
         tcodec = None if SIN_TCODEC else construir_tcodec(tmp)
         print("=== ORACULO: la aritmetica da lo que tiene que dar ===")
