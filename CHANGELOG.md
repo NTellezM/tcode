@@ -66,6 +66,14 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   lista. Es la forma que faltaba: un préstamo a un sitio dentro de
   una lista, y la lista la que crece.
 
+- La composicion de tres capas (funcion sobre funcion sobre `if`)
+  tambien esta cubierta: `id(primero(if c { vista(s) } else { "z" }))`.
+  El caso literal de la auditoria —una vista dentro de un `if`
+  dentro de un argumento de una clausura generica— no se puede
+  probar todavia: el comprobador no acepta `aplica<T, F>` con
+  `T = view`, porque no puede saber que `f(x)` devuelve una vista
+  que sale de un parametro. Queda anotado como limite conocido.
+
 - Prestar un sitio: `let x: &T = l[i];` lee un elemento, un campo o una
   variable sin copiarlo, y `let x: &mut T = l[i];` deja modificarlo por
   `x`. Mientras `x` se use, la variable de la que sale queda prestada

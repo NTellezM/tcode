@@ -90,6 +90,20 @@ FORMAS = [
      'if c { primero(vista(s)) } else { "z" }', "view", INVALIDAN_S),
     ("primero_de_if", f"var s = nuevo({LARGO}); let c = largo(s) > 1;",
      'primero(if c { vista(s) } else { "z" })', "view", INVALIDAN_S),
+    # Composicion de tres capas con funciones: la vista nace de
+    # `vista(s)`, va dentro del valor de un `if`, y ese `if` es
+    # argumento de `primero`, cuyo resultado pasa por `id`. Tres
+    # funciones encadenadas, cada una tiene que propagar la procedencia.
+    ("id_de_primero_de_if",
+     f"var s = nuevo({LARGO}); let c = largo(s) > 1;",
+     'id(primero(if c { vista(s) } else { "z" }))', "view", INVALIDAN_S),
+    # Y la clausura con un `if` dentro, sin la generica: el caso de la
+    # auditoria ("clausura generica") no se puede probar hoy porque el
+    # comprobador no acepta `aplica<T, F>` con T = view.
+    ("clausura_de_if",
+     f"var s = nuevo({LARGO}); let c = largo(s) > 1; "
+     f"let cl = fn(x: view) -> view {{ return x; }};",
+     'cl(if c { vista(s) } else { "z" })', "view", INVALIDAN_S),
 ]
 
 
