@@ -47,11 +47,13 @@ fn es_reservada(t: view) -> bool {
     if n == 5 {
         return t == "while" || t == "break" || t == "falla"
         || t == "lista" || t == "match" || t == "false"
-        || t == "usize";
+        || t == "usize" || t == "ancla";
     }
-    if n == 6 { return t == "return" || t == "struct"; }
+    if n == 6 { return t == "return" || t == "struct" || t == "soltar"; }
     if n == 7 { return t == "externo"; }
-    if n == 8 { return t == "continue"; }
+    if n == 8 { return t == "continue" || t == "extiende"; }
+    if n == 9 { return t == "protocolo"; }
+    if n == 10 { return t == "implementa"; }
     return false;
 }
 

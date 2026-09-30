@@ -734,6 +734,11 @@ los tipos `str`, `view`, `bool`, `u8`, `u16`, `u32`, `u64`, `usize`, `i8`,
 `i16`, `i32`, `i64`, `f32` y `f64`. `como`, `bloque`, `cadena_c` y `_` no lo
 son: son nombres con significado en su sitio, y fuera de él se pueden usar.
 
+**Reservadas de antemano**: `protocolo`, `implementa`, `extiende`, `ancla` y
+`soltar`. Todavía no significan nada, pero ya no valen como nombre: se
+reservan para poder añadir anclajes en 1.x sin romper programas después.
+Usarlas como nombre es un error de sintaxis, como cualquier otra reservada.
+
 **Símbolos**: `( ) { } [ ] , ; : . = + - * / % < > ! & | ^ ~ ? $`, y de dos
 caracteres `-> == != <= >= && || << >> .. +? -? *? /?`. El más largo gana:
 `+?` es uno, no `+` y `?`.

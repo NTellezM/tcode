@@ -55,6 +55,12 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
 ### Añadido
 
+- Cinco palabras reservadas de antemano: `protocolo`, `implementa`,
+  `extiende`, `ancla` y `soltar`. Todavía no significan nada, pero un
+  programa que las use como nombre ya no compila. Se reservan ahora para
+  poder añadir anclajes en 1.x sin romper programas después. Solo en
+  `tcodec`; el compilador de Python está congelado y no las conoce.
+
 - Prestar un sitio: `let x: &T = l[i];` lee un elemento, un campo o una
   variable sin copiarlo, y `let x: &mut T = l[i];` deja modificarlo por
   `x`. Mientras `x` se use, la variable de la que sale queda prestada

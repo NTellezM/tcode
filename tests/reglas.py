@@ -273,6 +273,11 @@ REGLAS = [
           ['imprimir(byte("a", 0));'], [('imprimir(byte("a", true));', "error")],
           [],
           ["el argumento 2 de `byte` debe ser `usize`"]),
+    Regla("una palabra reservada de antemano no es un nombre",
+          [], ["let x = 1;"],
+          [("let protocolo = 1;", "error")],
+          [],
+          ["se esperaba 'ident'"]),
 ]
 
 

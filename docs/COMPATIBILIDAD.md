@@ -20,9 +20,16 @@ mismo**, con estas excepciones, que no son opcionales:
    distintas porque nada decía cuál era la buena, se elige una, se escribe en
    `docs/ESPECIFICACION.md` y el `CHANGELOG.md` lo dice. Así pasó con los
    caracteres de un nombre en 0.9.
+3. **Palabras reservadas de antemano.** Las palabras `protocolo`,
+   `implementa`, `extiende`, `ancla` y `soltar` quedan reservadas en
+   1.x aunque todavía no signifiquen nada. Un programa que las use
+   como nombre deja de compilar. Se reservan ahora para poder añadir
+   anclajes en 1.x sin romper programas después.
 
 Dentro de 1.x no se quita ni se cambia de significado ninguna palabra, ningún
 operador, ninguna función interna ni ninguna opción de `tcodec`.
+
+
 
 ## Lo que sí puede cambiar dentro de 1.x
 

@@ -1146,9 +1146,9 @@ RECHAZO = [
      "esta prestada por `v`"),
 
     ("redimensionar reserva el bloque mientras calcula el tamaño",
-     'fn soltar(x: bloque<usize>) -> usize { return 1; }'
+     'fn drenar(x: bloque<usize>) -> usize { return 1; }'
      ' fn main() { var b: bloque<usize> = reservar(1);'
-     ' redimensionar(b, soltar(b)); }',
+     ' redimensionar(b, drenar(b)); }',
      "esta reservada por `redimensionar` mientras se calcula el tamaño"),
 
     ("intercambiar por &mut no invalida una vista viva",
@@ -1336,6 +1336,21 @@ RECHAZO = [
      'enum E { A, B } fn main() { let x: u8 = 7; let e = E.A;'
      ' imprimir(match e { E.A -> 300, E.B -> x }); }',
      "el literal `300` no cabe en `u8`"),
+    ("`protocolo` no es un nombre",
+     'fn main() -> usize { let protocolo = 1; return 0; }',
+     "se esperaba 'ident'"),
+    ("`implementa` no es un nombre",
+     'fn main() -> usize { let implementa = 1; return 0; }',
+     "se esperaba 'ident'"),
+    ("`extiende` no es un nombre",
+     'fn main() -> usize { let extiende = 1; return 0; }',
+     "se esperaba 'ident'"),
+    ("`ancla` no es un nombre",
+     'fn main() -> usize { let ancla = 1; return 0; }',
+     "se esperaba 'ident'"),
+    ("`soltar` no es un nombre",
+     'fn main() -> usize { let soltar = 1; return 0; }',
+     "se esperaba 'ident'"),
 ]
 
 
