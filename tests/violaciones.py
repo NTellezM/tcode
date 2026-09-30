@@ -79,6 +79,17 @@ FORMAS = [
       "quita": 'imprimir(quitar(m, "k"));'}),
     ("str_prestado", f"var xs: lista<str> = [nuevo({LARGO})];",
      "xs[0]", "&str", INVALIDAN_XS),
+    # Composicion de dos capas: la vista pasa por dos formas antes de
+    # llegar a su variable. Lo que importa no es cada capa suelta —eso
+    # ya esta— sino que la procedencia se propague por las dos.
+    ("id_de_primero", f"var s = nuevo({LARGO});",
+     "id(primero(vista(s)))", "view", INVALIDAN_S),
+    ("primero_de_id", f"var s = nuevo({LARGO});",
+     "primero(id(vista(s)))", "view", INVALIDAN_S),
+    ("if_de_primero", f"var s = nuevo({LARGO}); let c = largo(s) > 1;",
+     'if c { primero(vista(s)) } else { "z" }', "view", INVALIDAN_S),
+    ("primero_de_if", f"var s = nuevo({LARGO}); let c = largo(s) > 1;",
+     'primero(if c { vista(s) } else { "z" })', "view", INVALIDAN_S),
 ]
 
 
