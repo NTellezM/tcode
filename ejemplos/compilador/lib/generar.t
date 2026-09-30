@@ -2117,6 +2117,17 @@ fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         return r;
     }
     if t == "view" { return expresion_c(b, s, n, "view", tipos); }
+    // Un `&str` ya es el puntero que necesita `ss_view`: en C es un
+    // `const SafeString *`, y `direccion_del_sitio` lo devuelve tal cual
+    // cuando el nombre ya es puntero. Antes caia aqui al `no_se()`.
+    if T.es_referencia(t) && T.apuntado(t) == "str" {
+        let donde = direccion_del_sitio(b, s, n, tipos);
+        if es_desconocido(donde) { return no_se(); }
+        var r = nuevo("ss_view(");
+        r.empujar(donde);
+        r.empujar(")");
+        return r;
+    }
     return no_se();
 }
 

@@ -162,6 +162,12 @@ una hora de fuzzing (43.112 mutantes), sin fallos.
 - Una lista declarada sólo dentro de un `for` o de un brazo de `match` no
   se declaraba en el C: Python escribía C que no compilaba y `tcodec` se
   negaba.
+- `let x: &str = xs[0];` usado donde se pide una vista: el generador de
+  Python escribía `ss_view((*x))`, que C rechaza, y el de `tcodec` se
+  negaba a escribir la expresión. Ahora los dos emiten `ss_view(x)`,
+  donde `x` ya es el `const SafeString *`. Un `&str` como variable
+  local no había llegado al generador en ningún test; lo encontró el
+  generador de préstamos que se estaba añadiendo para la rc2.
 
 ### El compilador de Python
 

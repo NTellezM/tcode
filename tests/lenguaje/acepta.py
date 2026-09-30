@@ -2480,6 +2480,15 @@ fn main() {
             imprimir($"{-1} {-(2 + 3)} {(1 + n) como i64} {1 << k}\\n");
         }''',
      "3.5 5.0 true -2 -5 0.5 253\n-1 -5 -2 8\n"),
+
+    ("prestar un texto y usarlo como vista",
+     '''fn main() {
+            var xs: lista<str> = [nuevo("xxxx")];
+            let x: &str = xs[0];
+            imprimir(byte(x, 0));
+            imprimir("\\n");
+        }''',
+     "120\n"),
 ]
 
 

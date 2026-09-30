@@ -3694,8 +3694,10 @@ class Generador:
         """Un argumento donde se pide una SafeView."""
         t = self._tipo_de(a)
         if es_referencia(t) and apuntado(t) == "str":
-            # Un `&mut str` ya es el puntero que necesita `ss_view`.
-            return f"ss_view({self.lugar(a)})"
+            # Un `&str` ya es el puntero que necesita `ss_view`. `lugar`
+            # desreferencia (`(*x)`) y pasaba el `SafeString` en vez del
+            # puntero; `dir_de` devuelve el nombre tal cual si ya es puntero.
+            return f"ss_view({self.dir_de(a)})"
         if t != "str":
             return self.expr(a, "view")
         if isinstance(a, (Variable, Campo, Indice)):
