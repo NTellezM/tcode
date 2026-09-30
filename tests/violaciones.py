@@ -41,6 +41,14 @@ INVALIDAN_S = {
     "mueve": "imprimir(consumir(s));",
 }
 
+# Como se invalida al duenio `xs`, que es un contenedor y no un
+# `str` suelto. `xs[0] = ...` no vale: reemplaza el `SafeString`
+# en el sitio, y el puntero al sitio no cambia.
+INVALIDAN_XS = {
+    "anade": f"anadir(xs, nuevo({OTRO}));",
+    "reasigna": f"xs = [nuevo({OTRO})];",
+}
+
 # (nombre, lo que se declara en `main`, la expresion que da la vista, el
 # tipo de la vista, como se usa, como se invalida)
 FORMAS = [
@@ -69,6 +77,8 @@ FORMAS = [
      'obtener(m, "k") sino "z"', "view",
      {"pone": f'poner(m, "k", nuevo({OTRO}));',
       "quita": 'imprimir(quitar(m, "k"));'}),
+    ("str_prestado", f"var xs: lista<str> = [nuevo({LARGO})];",
+     "xs[0]", "&str", INVALIDAN_XS),
 ]
 
 
@@ -81,8 +91,14 @@ def _vacia(tipo):
 
 
 def _enlaces(expr, tipo):
-    """Las dos formas de dejar la vista en `v`: al declararla, o despues. Lo
-    que tenia antes se lee, para que no avise de un valor que nadie lee."""
+    """Las dos formas de dejar la vista en `v`: al declararla, o
+    despues. Lo que tenia antes se lee, para que no avise de un
+    valor que nadie lee. Un `&T` se declara con su tipo —sin el,
+    `xs[0]` se tomaria por un movimiento— y no admite la variante
+    `asigna`: un prestamo no puede nacer vacio."""
+    if tipo.startswith("&"):
+        yield "let", f"let v: {tipo} = {expr};"
+        return
     yield "let", f"let v = {expr};"
     leida = "largo(v.t)" if tipo == "Palabra" else "largo(v)"
     yield "asigna", (f"var v: {tipo} = {_vacia(tipo)}; imprimir({leida}); "

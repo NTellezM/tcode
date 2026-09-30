@@ -61,6 +61,11 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   poder añadir anclajes en 1.x sin romper programas después. Solo en
   `tcodec`; el compilador de Python está congelado y no las conoce.
 
+- P10 cubre un `&str` prestado de un contenedor: `let v = xs[0];`
+  con `xs: lista<str>`, invalidado por `anadir` o reasignando la
+  lista. Es la forma que faltaba: un préstamo a un sitio dentro de
+  una lista, y la lista la que crece.
+
 - Prestar un sitio: `let x: &T = l[i];` lee un elemento, un campo o una
   variable sin copiarlo, y `let x: &mut T = l[i];` deja modificarlo por
   `x`. Mientras `x` se use, la variable de la que sale queda prestada
