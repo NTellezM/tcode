@@ -104,6 +104,18 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   —siete hojas, cinco envolturas, una o dos de hondo, en uno, dos o tres
   archivos—, 588 programas con los dos compiladores y bajo ASan. Encontró
   todo lo anterior.
+- P14: un valor que se mueve por algunos caminos y por otros no se
+  libera exactamente una vez, por cualquier camino (`if` con `continue`,
+  `match` con guardas, `break` en un bucle anidado). El generador de C
+  lleva una bandera `ss_vivo_x` para esos casos; ASan la comprueba.
+
+- Dos notas para los tests que vengan:
+  - Python no conoce los rangos `0..n` (son azúcar de `tcodec`); los
+    programas que compila de oráculo recorren con `for i en [0, 1, 2]`.
+  - El comprobador no modela que `continue` sale del camino: mover una
+    variable en un brazo de `match` que termina en `continue` y usarla
+    después del `match` lo rechaza, aunque el flujo nunca llegue ahí.
+    Queda como límite conocido.
 
 ## 1.0.0-rc1 — 2026-09-28, candidata local
 
