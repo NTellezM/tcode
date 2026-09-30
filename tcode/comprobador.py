@@ -1151,7 +1151,7 @@ class Comprobador:
                     if not self.tipo_existe(v.tipos[i]):
                         self.error(en, f"`{en.nombre}.{v.nombre}` lleva un "
                                        f"`{v.tipos[i]}`, que no es un tipo")
-                    elif v.tipos[i] == "view":
+                    elif v.tipos[i] == "view" or es_referencia(v.tipos[i]):
                         self.error_enum_prestado(en, v, v.tipos[i])
                     # Un enum que se contiene a si mismo por valor tendria
                     # tamaño infinito, igual que un struct.
@@ -1213,6 +1213,16 @@ class Comprobador:
         for st in concretos:
             for c in st.campos:
                 c.tipo = self.resolver_tipo(c.tipo, st)
+                # Un `&T` guardado no dice de quien presta ni cuanto vive: el
+                # struct no lo sigue, y en C quedaba el valor copiado sin
+                # dueno (dos liberaciones). Prestar un campo es `view`.
+                if es_referencia(c.tipo):
+                    self.error(st, f"`{st.nombre}.{c.nombre}` es `{c.tipo}`, "
+                                   f"un prestamo: un campo no guarda `&T`, "
+                                   f"porque nadie sabria cuanto vive. Si el "
+                                   f"struct presta de lo que le pongan, el "
+                                   f"campo es `view`; si el campo es suyo, "
+                                   f"quita el `&`")
 
         structs = concretos + self.structs_instanciados
         for st in structs:

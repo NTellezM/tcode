@@ -376,7 +376,9 @@ El envoltorio le devuelve la semántica de valor que el lenguaje promete.
   sabría cuánto vive: ni en una `lista`, un arreglo fijo, un `mapa` o un
   `bloque`, ni en un enum, ni en lo que captura una clausura. Tampoco se
   guarda una vista en un struct que llegó prestado: quien lo prestó no sabría
-  de dónde presta ahora.
+  de dónde presta ahora. Un campo `&T` no vale —tampoco `&mut T`—: no dice de
+  quién presta ni cuánto vive, y el struct no lo sigue. Para prestar está
+  `view`.
 - **Sacar un campo.** `let n = p.nombre;` saca el campo de una variable que
   es dueña del struct. En C se copia y su sitio queda a ceros —que en Tcode
   es un valor válido—, así que al liberar el struct ese campo no suelta nada.
@@ -2524,6 +2526,9 @@ Todo esto lo rechaza el compilador con un error que lo dice, en su línea.
 - Claves de mapa que no sean `str`.
 - Préstamos guardados: una `view`, un `&T` o un struct que presta no van en
   listas, arreglos, mapas ni enums. Un arreglo fijo no va en una lista.
+- Un campo de struct de tipo `&T`/`&mut T`: no dice de quién presta ni cuánto
+  vive, y en C quedaba el valor copiado sin dueño. Para que el struct preste
+  de lo que le pongan, el campo es `view`; si el campo es suyo, no lleva `&`.
 
 **Funciones**
 - Sobrecarga: un nombre es una sola función.

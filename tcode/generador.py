@@ -252,10 +252,7 @@ class Generador:
         if es_arreglo(t):
             return self.registrar_arreglo(t)
         if es_referencia(t):
-            # Un prestamo es un puntero. El de solo lectura sale `const`, asi
-            # que el propio compilador de C impide escribir por el.
-            interno = self.tipo_c(apuntado(t))
-            return f"{interno}*" if es_referencia_mutable(t) else f"const {interno}*"
+            return self.tipo_c_prestamo(apuntado(t), es_referencia_mutable(t))
         if es_bloque(t):
             return self.registrar_bloque(t)
         if es_mapa(t):
@@ -263,6 +260,22 @@ class Generador:
         if es_lista(t):
             return self.registrar_lista(t)
         return TIPOS_C.get(t, t)
+
+    def tipo_c_prestamo(self, t, mutable):
+        """El C de un prestamo a `t`: un puntero al valor.
+
+        El de solo lectura sale `const`, asi que el propio compilador de C
+        impide escribir por el. Cuando `t` ya es un puntero —`& &T`— el
+        `const` va en el puntero de dentro: `const T* const*`. Anteponerlo
+        otra vez daria `const const T**`, que no compila, y en el nivel de
+        fuera no valdria para `& &mut T`, que necesita `T* const*`.
+        """
+        base = self.tipo_c(t)
+        if mutable:
+            return f"{base}*"
+        if es_referencia(t):
+            return f"{base} const*"
+        return f"const {base}*"
 
     def tipo_resultado(self, t):
         """El `T !` de Tcode es un struct: motivo == NULL significa que fue
@@ -1657,15 +1670,17 @@ class Generador:
             return "int main(int argc, char** argv)"
         params = []
         for p in f.params:
-            tc = self.tipo_c(p.tipo)
             if p.mutable:
-                params.append(f"SS_LANG_QUIZA_SIN_USAR {tc}* {p.nombre}")
+                tc = self.tipo_c_prestamo(p.tipo, True)
+                params.append(f"SS_LANG_QUIZA_SIN_USAR {tc} {p.nombre}")
             elif p.compartido:
                 # solo lectura: el `const` lo documenta y lo hace cumplir el
                 # propio compilador de C
-                params.append(f"SS_LANG_QUIZA_SIN_USAR const {tc}* {p.nombre}")
-            else:
+                tc = self.tipo_c_prestamo(p.tipo, False)
                 params.append(f"SS_LANG_QUIZA_SIN_USAR {tc} {p.nombre}")
+            else:
+                params.append(f"SS_LANG_QUIZA_SIN_USAR "
+                              f"{self.tipo_c(p.tipo)} {p.nombre}")
         if f.falible:
             ret = self.tipo_resultado(f.retorno)
         elif f.retorno in (None, UNIDAD):
@@ -3589,7 +3604,14 @@ class Generador:
             p = f.params[i] if f and i < len(f.params) else None
             if p is not None and p.prestado:
                 if isinstance(a, (Variable, Campo, Indice)):
-                    arg_c = self.dir_de(a)
+                    if isinstance(a, Variable) and es_referencia(p.tipo):
+                        # Lo que se pide es `& &T`: el `&T` que hay en el
+                        # sitio es el valor prestado, no la direccion que se
+                        # busca, asi que se presta el sitio como cualquier otro
+                        # valor.
+                        arg_c = f"&{a.nombre}"
+                    else:
+                        arg_c = self.dir_de(a)
                 else:
                     # Prestar algo recien hecho: se guarda en un temporal para
                     # poder tomarle la direccion, y se libera al acabar la
@@ -3617,8 +3639,9 @@ class Generador:
             if secuenciar and p is not None:
                 tmp_arg = self.nuevo_tmp()
                 if p.prestado:
-                    const = "" if getattr(p, "mutable", False) else "const "
-                    self.emitir(f"{const}{self.tipo_c(p.tipo)}* {tmp_arg};")
+                    prestado = self.tipo_c_prestamo(
+                        p.tipo, bool(getattr(p, "mutable", False)))
+                    self.emitir(f"{prestado} {tmp_arg};")
                 else:
                     self.emitir(f"{self.tipo_c(p.tipo)} {tmp_arg};")
                 entrada.append(tmp_arg)

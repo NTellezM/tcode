@@ -1,0 +1,5 @@
+{
+  "origen": "std/conjunto.t",
+  "firma": "C: <sitio>: error: duplicate 'const' declaration specifier [-Werror=duplicate-decl-specifier]",
+  "mutacion": "borrada la pieza 'el'; insertado '&'"
+}

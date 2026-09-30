@@ -309,6 +309,16 @@ ARRIBA = [
      "fn f() -> usize { return; }",
      "imprimir(f());",
      ["el `return` esta vacio"]),
+    # Un campo de struct guarda un valor con duenio, o es `view` y hace del
+    # struct uno que presta. Un `&T` no: nadie sabria de quien presta ni
+    # cuanto vive, y en C quedaba el valor copiado sin dueno (dos
+    # liberaciones, con ASan).
+    ("un campo de struct no guarda un prestamo con `&`",
+     "struct A { v: view, n: usize }",
+     "struct A { v: &str, n: usize }",
+     f"var t = nuevo({LARGO}); var a = A {{ v: vista(t), n: 1 }}; "
+     f"imprimir(largo(a.v) + a.n);",
+     ["un campo no guarda `&T`", "el campo es `view`"]),
 ]
 
 

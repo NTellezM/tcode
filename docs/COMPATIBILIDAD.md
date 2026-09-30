@@ -1,8 +1,10 @@
 # Compatibilidad
 
-> **Propuesta para 1.0.** Esto es lo que Tcode prometerá a partir de 1.0.
-> Hasta entonces (0.x), cualquier cosa puede cambiar, y el `CHANGELOG.md`
-> lo dice.
+> **Lo que Tcode promete a partir de 1.0.0.** Está cerrado para 1.0: la
+> única decisión que faltaba —reservar las palabras de los anclajes
+> futuros— ya está tomada (excepción 3). Antes de 1.0.0, una `-rcN` no
+> promete nada que no prometa `1.0.0`, y el `CHANGELOG.md` dice lo que
+> cambia.
 
 Las versiones son `MAYOR.MENOR.PARCHE` y están en `VERSION`; `tcodec
 --version` dice la misma.

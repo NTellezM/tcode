@@ -6,6 +6,27 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
 ### Corregido
 
+- Un campo de struct —o una carga de enum— de tipo `&T` no decía de quién
+  prestaba ni cuánto vivía, y salía mal en los dos compiladores: `tcodec` lo
+  escribía en C por valor y con dueño, así que el struct y su dueño liberaban
+  el mismo búfer (doble liberación, confirmada con ASan), y el compilador de
+  Python escribía un puntero pero le daba el valor, con C que no compilaba.
+  Ahora los dos lo rechazan al compilar, y el mensaje dice cuál es la forma
+  de que un struct preste: el campo `view`. Lo encontró una revisión con
+  ASan, y ninguna suite lo veía: ningún programa del repositorio tenía un
+  campo así.
+- Una vista de una vista —`& &T`— daba C que no compilaba, en los dos
+  compiladores: el `const` se anteponía al tipo de dentro, que ya era
+  `const T*`, y salía `const const T**`. Ahora el `const` va en el nivel del
+  puntero (`const T* const*`; `T* const*` cuando dentro hay un `&mut T`, que
+  tampoco cabe en un `const T**`), y la llamada presta el sitio donde vive el
+  `&T` en vez de pasar el puntero tal cual, que daba un argumento de otro
+  tipo. Lo encontró el fuzzing; el hallazgo guardado queda de regresión.
+
+## 1.0.0-rc2 — 2026-09-30, candidata local
+
+### Corregido
+
 - Una variable o un parámetro que se llama igual que una función a la que
   se llama donde la variable está a la vista daba C que no compilaba, en
   los dos compiladores: en C la variable tapaba a la función. Ahora la

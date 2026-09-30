@@ -15,8 +15,11 @@ probablemente funcione.
 En local se comprueban igual gcc 12, gcc 13 y clang 18 con
 `make compiladores COMPILADORES="gcc-12 gcc-13 clang-18"`.
 
-Las filas de la CI están configuradas y todavía **no se han ejecutado**: la
-tabla vale cuando la CI de la rama que las añade salga en verde.
+Las filas de la CI corren en cada `push` y en cada pull request sobre `main`,
+y salieron en verde en `1.0.0-rc2`
+([run 62](https://github.com/NTellezM/tcode/actions/runs/36742678493), 2026-09-30):
+`completa`, `rapido` con `ruff` y `mypy`, gcc 12–14, clang 16–18 y macOS. El
+fuzzing de esa lista no va en el `push`, sino en la pasada nocturna.
 
 ## Qué hace falta
 

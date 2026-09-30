@@ -2489,6 +2489,19 @@ fn main() {
             imprimir("\\n");
         }''',
      "120\n"),
+
+    # Una vista de una vista: prestar el sitio donde vive un `&T`. En C el
+    # `const` va en el nivel del puntero (`const T* const*`), no delante del
+    # tipo de dentro, que ya es `const T*` y daba `const const T**`.
+    ("una vista de una vista",
+     '''struct Caja { n: i64 }
+        fn mira(_b: & &Caja) -> i64 { return 7; }
+        fn main() {
+            var c = Caja { n: 1 };
+            let p: &Caja = c;
+            imprimir($"{mira(p)}\\n");
+        }''',
+     "7\n"),
 ]
 
 

@@ -6031,6 +6031,12 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
                 if !almacenable(m, ct) {
                     error(c, m, d.linea, $"`{nombre}.{cn}` usa el tipo `{ct}`, que no existe");
                 }
+                // Un `&T` guardado no dice de quien presta ni cuanto vive: el
+                // struct no lo sigue, y en C quedaba el valor copiado sin
+                // dueno (dos liberaciones). Prestar un campo es `view`.
+                if T.es_referencia(ct) {
+                    error(c, m, d.linea, $"`{nombre}.{cn}` es `{ct}`, un prestamo: un campo no guarda `&T`, porque nadie sabria cuanto vive. Si el struct presta de lo que le pongan, el campo es `view`; si el campo es suyo, quita el `&`");
+                }
             }
             var ciclo = false;
             for t en tipos_c {
@@ -6060,7 +6066,7 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
                     validar_tipo(c, m, d.linea, t);
                     if !almacenable(m, t) {
                         error(c, m, d.linea, $"`{nombre}.{v.texto}` lleva un `{t}`, que no es un tipo");
-                    } else if t == "view" {
+                    } else if t == "view" || T.es_referencia(t) {
                         error_enum_prestado(c, m, d.linea, nombre, v.texto, t);
                     }
                     var vistos: lista<str> = [];

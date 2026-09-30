@@ -444,6 +444,16 @@ RECHAZO = [
      'enum E { A(view), B } fn main() { }',
      "un enum no guarda prestamos"),
 
+    # Un `&T` guardado no dice de quien presta ni cuanto vive. El struct
+    # presta con un campo `view`; el enum, con nada.
+    ("un campo de struct no guarda un prestamo con `&`",
+     'struct S { v: &str } fn main() { }',
+     "un campo no guarda `&T`"),
+
+    ("un enum tampoco lleva un prestamo con `&`",
+     'struct Caja { n: i64 } enum E { A(&Caja), B } fn main() { }',
+     "un enum no guarda prestamos"),
+
     ("no se guarda una vista en algo prestado",
      _PALABRA + 'fn g(p: mut Palabra, v: view) { p.texto = v; }',
      "no se puede guardar un prestamo en `p`"),

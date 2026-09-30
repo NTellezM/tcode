@@ -120,15 +120,7 @@ fn tipo_c(t: view) -> str {
     if t == "()" || t.largo() == 0 { return nuevo("void"); }
 
     if T.es_referencia(t) {
-        // Un prestamo es un puntero. El de solo lectura sale `const`, asi
-        // que el propio compilador de C impide escribir por el.
-        let dentro = T.apuntado(t);
-        var s = vacio();
-        if !T.es_referencia_mutable(t) { s.empujar("const "); }
-        let base = tipo_c(dentro);
-        s.empujar(base);
-        s.empujar("*");
-        return s;
+        return tipo_c_prestamo(T.apuntado(t), T.es_referencia_mutable(t));
     }
     if T.es_arreglo(t) || T.es_bloque(t) || T.es_mapa(t) || T.es_lista(t)
     || T.es_funcion(t) {
@@ -142,6 +134,19 @@ fn tipo_c(t: view) -> str {
     // Un struct se llama igual en los dos lados. El alias con el que se
     // escribio —`P.Nodo`— es cosa de quien lee el archivo: en C no queda.
     return I.sin_modulo(t);
+}
+
+// El C de un prestamo a `t`: un puntero al valor. El de solo lectura sale
+// `const`, asi que el propio compilador de C impide escribir por el. Cuando
+// `t` ya es un puntero —`& &T`— el `const` va en el puntero de dentro:
+// `const T* const*`. Anteponerlo otra vez daria `const const T**`, que no
+// compila, y en el nivel de fuera no valdria para `& &mut T`, que necesita
+// `T* const*`.
+fn tipo_c_prestamo(t: view, mutable: bool) -> str {
+    let base = tipo_c(t);
+    if mutable { return $"{base}*"; }
+    if T.es_referencia(t) { return $"{base} const*"; }
+    return $"const {base}*";
 }
 
 // El `T !` de Tcode es un struct: `motivo == NULL` significa que fue bien.
@@ -390,20 +395,16 @@ fn prototipo(nombre: view, params: &lista<str>, marcas: &lista<str>,
         salida.empujar("SS_LANG_QUIZA_SIN_USAR ");
         let solo = marca_sola(marcas[i]);
         let marca = vista(solo);
-        let base = tipo_c(params[i]);
         if T.es_referencia_mutable(marca) || empieza_con(marca, "mut ") {
-            salida.empujar(base);
-            salida.empujar("* ");
+            salida.empujar(tipo_c_prestamo(params[i], true));
         } else {
             if T.es_referencia(marca) {
-                salida.empujar("const ");
-                salida.empujar(base);
-                salida.empujar("* ");
+                salida.empujar(tipo_c_prestamo(params[i], false));
             } else {
-                salida.empujar(base);
-                salida.empujar(" ");
+                salida.empujar(tipo_c(params[i]));
             }
         }
+        salida.empujar(" ");
         let pn = nombre_de_param(marcas[i]);
         salida.empujar(pn);
         i = i + 1;
@@ -2283,9 +2284,8 @@ fn agregar_argumento_ordenado(b: mut Cuerpo, llamada: mut str,
     }
     let tmp = nuevo_temporal(b);
     var d = vacio();
-    if presta && !mutable { d.empujar("const "); }
-    d.empujar(tipo_c(tipo));
-    if presta { d.empujar("*"); }
+    if presta { d.empujar(tipo_c_prestamo(tipo, mutable)); }
+    else { d.empujar(tipo_c(tipo)); }
     d.empujar(" ");
     d.empujar(tmp);
     d.empujar(";");
@@ -2305,9 +2305,8 @@ fn agregar_argumento_marcado(b: mut Cuerpo, nodo: &P.Nodo, arg: view, tipo: view
     if secuenciar {
         let tmp = nuevo_temporal(b);
         var d = vacio();
-        if presta && !mutable { d.empujar("const "); }
-        d.empujar(tipo_c(tipo));
-        if presta { d.empujar("*"); }
+        if presta { d.empujar(tipo_c_prestamo(tipo, mutable)); }
+        else { d.empujar(tipo_c(tipo)); }
         d.empujar(" ");
         d.empujar(tmp);
         d.empujar(";");
@@ -2454,7 +2453,15 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
             let clase_h = h.clase;
             if clase_h == Clase.Variable || clase_h == Clase.Campo
             || clase_h == Clase.Indice {
-                let dir = direccion_del_sitio(b, s, h, tipos);
+                var dir = vacio();
+                // Lo que se pide es `& &T`: el `&T` que hay en el sitio es el
+                // valor prestado, no la direccion que se busca, asi que hay
+                // que pedir la direccion del sitio como con cualquier valor.
+                if clase_h == Clase.Variable && T.es_referencia(esperado) {
+                    dir = $"&{h.texto}";
+                } else {
+                    dir = direccion_del_sitio(b, s, h, tipos);
+                }
                 if es_desconocido(dir) {
                     let _m = cerrar_marco(b);
                     return no_se();

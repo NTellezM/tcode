@@ -193,7 +193,9 @@ comprobar sin anotar vidas:
   dentro de un `if`, un `match` o un bucle.
 - No se **saca** un elemento de una lista o un bloque: se `intercambia` o se
   `copia`.
-- **No se guardan préstamos** en listas, arreglos, mapas ni enums.
+- **No se guardan préstamos** en listas, arreglos, mapas ni enums. Un campo
+  de struct tampoco guarda un `&T`: si el struct presta de lo que le pongan,
+  el campo es `view`.
 - Las **clausuras capturan por valor**.
 - Una función que **puede fallar** o una **genérica** no se pasan como valor.
 
