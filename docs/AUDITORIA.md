@@ -208,6 +208,12 @@ En un solo sitio; cada uno se explica donde se enlaza.
 - Los nombres no se normalizan (NFC).
 - El compilador de Python, que es el segundo camino de DDC, no conoce el
   azúcar de `tcodec`: la prueba necesita la copia sin azúcar.
+- **Una genérica cuyo tipo de retorno es el tipo del parámetro no se puede
+  usar con `T = view`.** El comprobador no puede saber que `f(x)` devuelve
+  una vista que sale de un parámetro, así que rechaza `aplica<T, F>(x: T,
+  f: F) -> T` cuando `T = view`. Afecta a cualquier forma con ese perfil, y
+  por eso el caso «clausura genérica» de la [pregunta abierta
+  1](#preguntas-abiertas-por-dónde-empezaría) no está en P10.
 
 ## Preguntas abiertas: por dónde empezaría
 
