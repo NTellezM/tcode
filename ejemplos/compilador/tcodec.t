@@ -962,8 +962,34 @@ fn tiene_tipo_param(d: &P.Nodo) -> bool {
     return false;
 }
 
-fn rechazo(que: view) -> usize {
-    imprimir_error($"tcodec: todavia no se escribir {que}\n");
+// El sitio del programa que pidio algo que el compilador no sabe escribir:
+// `archivo:linea`, para poder decir donde y que se pueda esquivar.
+fn sitio(archivo: view, linea: usize) -> str {
+    return $"{archivo}:{linea}";
+}
+
+// Donde se declaro un struct, un enum o una funcion con este nombre. Si no
+// aparece se dice el archivo principal: solo pasa si el nombre lo invento el
+// propio compilador.
+fn sitio_de_nombre(arboles: &lista<P.Nodo>, modulos: &lista<str>,
+    nombre: view) -> str {
+    var i = 0;
+    while i < arboles.largo() {
+        for d en arboles[i].hijos {
+            if d.clase == Clase.Fn || d.clase == Clase.Struct
+            || d.clase == Clase.Enum {
+                if igual(d.texto, nombre) { return sitio(modulos[i], d.linea); }
+            }
+        }
+        i = i + 1;
+    }
+    return sitio(modulos[0], 1);
+}
+
+// Un fallo del compilador --todavia no sabe escribir algo-- con el sitio que
+// lo pidio: sin el no hay forma ni de esquivarlo ni de arreglarlo.
+fn rechazo(sitio_fallo: view, que: view) -> usize {
+    imprimir_error($"error: {sitio_fallo}: tcodec {que}\n");
     return 1;
 }
 
@@ -1056,7 +1082,6 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
     if T.lleva_bloque_o_arreglo(t) && !T.es_lista(t) && !T.es_mapa(t) {
         // Un prestamo no registra nada, como en el original.
         if T.es_referencia(t) { return true; }
-        imprimir_error($"tcodec: el tipo `{t}`\n");
         return false;
     }
     if tiene(reg.vistos, t) { return true; }
@@ -2348,7 +2373,7 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
     contextos: mut lista<I.Contexto>, modulos: &lista<str>,
     plantillas: &mapa<str, usize>, vistos: mut mapa<str, usize>,
     orden: mut lista<str>, creados: mut lista<str>, cierres: &Cierres,
-    global: mut I.Contexto) -> bool {
+    global: mut I.Contexto, sitio_del_fallo: view) -> bool {
     for p en pedidos {
         let en_c = campo_pedido(p, 1);
         if tiene(vistos, en_c) { continue; }
@@ -2359,7 +2384,8 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
             // Una clausura: su struct existe desde que se crea, y su funcion
             // se apunta antes de comprobar su cuerpo, al reves que una copia.
             if !tiene(cierres.indice, en_c) {
-                imprimir_error($"tcodec: `{en_c}` no es una clausura conocida\n");
+                let _r = rechazo(sitio_del_fallo,
+                    $"no conoce la clausura `{en_c}`");
                 return false;
             }
             let k = obtener(cierres.indice, en_c) sino 0;
@@ -2383,17 +2409,20 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
             let lineas_c = F.generar_funcion(cierres.fns[k], contextos[de],
                 vista(modulos[de]), borrador_c);
             if lineas_c.largo() == 0 {
-                imprimir_error($"tcodec: no se escribir la clausura `{en_c}`\n");
+                let _r = rechazo(sitio(modulos[de], cierres.fns[k].linea),
+                    $"no escribe la clausura `{en_c}`");
                 return false;
             }
             if !descubrir(borrador_c.instancias, arboles, contextos, modulos,
-                plantillas, vistos, orden, creados, cierres, global) {
+                plantillas, vistos, orden, creados, cierres, global,
+                sitio(modulos[de], cierres.fns[k].linea)) {
                 return false;
             }
             continue;
         }
         if !tiene(plantillas, plantilla) {
-            imprimir_error($"tcodec: `{plantilla}` no es una generica conocida\n");
+            let _r = rechazo(sitio_del_fallo,
+                $"no conoce la generica `{plantilla}`");
             return false;
         }
         let de = obtener(plantillas, plantilla) sino 0;
@@ -2403,11 +2432,12 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
         borrador.dueno = dueno_de_pedido(p);
         let lineas = F.generar_funcion(copia, contextos[de], modulos[de], borrador);
         if lineas.largo() == 0 {
-            imprimir_error($"tcodec: no se escribir la copia `{en_c}`\n");
+            let _r = rechazo(sitio(modulos[de], copia.linea),
+                $"no escribe la copia `{en_c}`");
             return false;
         }
         if !descubrir(borrador.instancias, arboles, contextos, modulos, plantillas,
-            vistos, orden, creados, cierres, global) {
+            vistos, orden, creados, cierres, global, sitio_del_fallo) {
             return false;
         }
         orden.anadir(copiar(p));
@@ -3126,7 +3156,8 @@ fn generar_copiadores(cta: &F.Cuenta, global: &I.Contexto,
     st_indice: &mapa<str, usize>, st_campos: &lista<lista<str>>,
     st_tipos: &lista<lista<str>>, en_indice: &mapa<str, usize>,
     en_variantes: &lista<lista<str>>, en_lleva: &lista<lista<str>>,
-    limpios: &lista<str>) -> CopiadoresGenerados {
+    limpios: &lista<str>, arboles: &lista<P.Nodo>,
+    modulos: &lista<str>) -> CopiadoresGenerados {
     var apuntados: lista<str> = [];
     var vistos: mapa<str, usize> = [];
     for t en cta.copias {
@@ -3158,7 +3189,8 @@ fn generar_copiadores(cta: &F.Cuenta, global: &I.Contexto,
     for t en copiadores {
         if !cuerpo_copiador(vista(t), global, st_indice, st_campos, st_tipos,
             en_indice, en_variantes, en_lleva, lineas) {
-            let _r = rechazo("copiar bloques");
+            let _r = rechazo(sitio_de_nombre(arboles, modulos, t),
+                "no sabe copiar bloques");
             return CopiadoresGenerados { ok: false, lineas: [] };
         }
     }
@@ -3307,7 +3339,8 @@ fn ajustar_contextos(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
     }
     for g en claves(plantillas) {
         if tiene(global.repetidas, g) {
-            let _r = rechazo("una generica repetida entre modulos");
+            let _r = rechazo(sitio_de_nombre(arboles, modulos, g),
+                "no admite una generica repetida entre modulos");
             return false;
         }
     }
@@ -3334,7 +3367,8 @@ fn ajustar_contextos(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
                 jm = jm + 1;
             }
             if jm == modulos.largo() {
-                let _r = rechazo("un modulo que no se cargo");
+                let _r = rechazo($"{modulos[mr]}:{campo_pedido(pedido, 2)}",
+                    "no ha cargado un modulo que hacia falta");
                 return false;
             }
             for d en arboles[jm].hijos {
@@ -3445,7 +3479,8 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                         continue;
                     }
                     if d.texto == "main" && !igual(m, principal) {
-                        let _r = rechazo("un `main` en un modulo");
+                        let _r = rechazo(sitio(m, d.linea),
+                            "no admite un `main` en un modulo");
                         return programa_no_leido();
                     }
                     continue;
@@ -3453,7 +3488,8 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                 Clase.Struct -> {
                     if tiene_tipo_param(d) {
                         if tiene(stp_indice, d.texto) {
-                            let _r = rechazo("un struct generico repetido entre modulos");
+                            let _r = rechazo(sitio(m, d.linea),
+                                "no admite un struct generico repetido entre modulos");
                             return programa_no_leido();
                         }
                         var tps: lista<str> = [];
@@ -3475,7 +3511,8 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                         continue;
                     }
                     if tiene(st_indice, d.texto) {
-                        let _r = rechazo("un struct repetido entre modulos");
+                        let _r = rechazo(sitio(m, d.linea),
+                            "no admite un struct repetido entre modulos");
                         return programa_no_leido();
                     }
                     var campos: lista<str> = [];
@@ -3515,7 +3552,8 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                 }
                 Clase.Enum -> {
                     if tiene(en_indice, d.texto) || tiene(st_indice, d.texto) {
-                        let _r = rechazo("un enum repetido entre modulos");
+                        let _r = rechazo(sitio(m, d.linea),
+                            "no admite un enum repetido entre modulos");
                         return programa_no_leido();
                     }
                     var vs: lista<str> = [];
@@ -3529,7 +3567,8 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                             if x.clase != Clase.Lleva { continue; }
                             let t = T.sin_alias_tipo(x.texto);
                             if T.lleva_bloque_o_arreglo(t) {
-                                let _r = rechazo("bloques o arreglos en un enum");
+                                let _r = rechazo(sitio(m, x.linea),
+                                    "no escribe bloques ni arreglos dentro de un enum");
                                 return programa_no_leido();
                             }
                             if !primero_t { junto.empujar("\t"); }
@@ -3548,7 +3587,8 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                     if clase == Clase.Usar || clase == Clase.Alias { continue; }
                 }
             }
-            let _r = rechazo($"`{nombre_de_clase(clase)}`");
+            let _r = rechazo(sitio(m, d.linea),
+                $"no escribe `{nombre_de_clase(clase)}`");
             return programa_no_leido();
         }
         arboles.anadir(arbol);
@@ -3691,7 +3731,8 @@ fn preparar_instancias(revision: &C.Revision, arboles: &lista<P.Nodo>,
                 vista(modulos[k_desc]), borrador);
             if escritas.largo() == 0 { continue; }
             if !descubrir(borrador.instancias, arboles, contextos, modulos,
-                plantillas, vistas, orden, creados, cierres, global) {
+                plantillas, vistas, orden, creados, cierres, global,
+                sitio(modulos[k_desc], d.linea)) {
                 return InstanciasPreparadas { ok: false, con_partes: [],
                     vistas: [], orden: [], nodos: [], modulos: [], duenos: [],
                     n_concretos: 0 };
@@ -4102,7 +4143,8 @@ fn main() -> usize ! {
                     if h.clase == Clase.CampoDef {
                         let t = F.tipo_pelado(h.texto);
                         if !mirar_tipo(t, reg, global, con_partes) {
-                            return rechazo("mapas, bloques ni arreglos");
+                            return rechazo(sitio(modulos[im], h.linea),
+                                $"no escribe el tipo `{t}` en un campo");
                         }
                     }
                 }
@@ -4116,14 +4158,16 @@ fn main() -> usize ! {
                     for x en v.hijos {
                         if x.clase != Clase.Lleva { continue; }
                         if !mirar_tipo(x.texto, reg, global, con_partes) {
-                            return rechazo("mapas, bloques ni arreglos");
+                            return rechazo(sitio(modulos[im], x.linea),
+                                $"no escribe el tipo `{x.texto}` en una carga");
                         }
                     }
                 }
             }
             if d.clase == Clase.Fn && !F.es_generica(d) {
                 if !mirar_funcion(d, contextos[im], reg, global, con_partes) {
-                    return rechazo("mapas, bloques ni arreglos");
+                    return rechazo(sitio(modulos[im], d.linea),
+                        $"no escribe los tipos de `{d.texto}`");
                 }
             }
         }
@@ -4135,7 +4179,8 @@ fn main() -> usize ! {
         let tipos_ist = copiar(st_tipos[k_ist]);
         for tt en tipos_ist {
             if !mirar_tipo(tt, reg, global, con_partes) {
-                return rechazo("mapas, bloques ni arreglos");
+                return rechazo(sitio_de_nombre(arboles, modulos, vista(st_nombres[k_ist])),
+                    $"no escribe el tipo `{tt}` de `{st_nombres[k_ist]}`");
             }
         }
         k_ist = k_ist + 1;
@@ -4144,7 +4189,9 @@ fn main() -> usize ! {
     while k_mira < instancias.largo() {
         if !mirar_funcion(instancias[k_mira], contextos[modulo_de[k_mira]], reg,
             global, con_partes) {
-            return rechazo("mapas, bloques ni arreglos");
+            return rechazo(sitio_de_nombre(arboles, modulos,
+                    vista(instancias[k_mira].texto)),
+                $"no escribe los tipos de `{instancias[k_mira].texto}`");
         }
         k_mira = k_mira + 1;
     }
@@ -4170,7 +4217,7 @@ fn main() -> usize ! {
     let envoltorios = copiar(usos.envoltorios);
 
     let copias_c = generar_copiadores(cta, global, st_indice, st_campos, st_tipos,
-        en_indice, en_variantes, en_lleva, limpios);
+        en_indice, en_variantes, en_lleva, limpios, arboles, modulos);
     if !copias_c.ok { return 1; }
     let bloque_copias = copiar(copias_c.lineas);
 

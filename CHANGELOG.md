@@ -125,6 +125,24 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   Las llamadas lo conservan: `Q.hecho` dice de qué módulo es la función.
 - `tests/fuzz.py` mira los errores de `cc` y `ld` en inglés (`LC_ALL=C`).
 
+### Corregido
+
+- Los fallos del compilador que dicen que todavia no sabe escribir algo
+  —copiar bloques, arreglos o bloques dentro de un enum, mapas donde no caben,
+  un nombre repetido entre modulos, una clausura o una copia que no salen— ya
+  dicen en que archivo y en que linea del programa se pidieron: `error: p.t:1:
+  tcodec no escribe bloques ni arreglos dentro de un enum`. Antes salian como
+  `tcodec: ...` sin sitio, que es lo que el contrato del fuzzing no admite, y
+  hay un hallazgo guardado de eso mismo (`894fb7b540ee`). Son 19 mensajes: 18
+  ya dicen el sitio —14 llamadas de `rechazo` y 4 de la generacion de copias y
+  clausuras—, y el sitio lo pone el programa: el nodo que lo pidio, el `usar`
+  que traia el modulo, o donde se declaro el nombre. El otro, el del tipo que
+  no se puede registrar, se ha quitado: quien lo pedia ya lo dice con su linea
+  y ademas nombra el tipo.
+- Queda la otra familia, la de las cuentas del propio compilador (`X se usa y
+  el recorrido no la registro`, que es lo que cazo `047b1a5da3f2`): esas
+  tambien piden sitio, y van en el lote siguiente.
+
 ### Añadido
 
 - Cinco palabras reservadas de antemano: `protocolo`, `implementa`,

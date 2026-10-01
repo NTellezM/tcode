@@ -356,6 +356,11 @@ def probar_hueco(sitio, caso, razon, tmp):
                        capture_output=True, text=True, timeout=300,
                        env=ENTORNO_TCODEC)
     if not errores and t.returncode != 0:
+        # Y el rechazo tiene que decir donde, que es el contrato que vigila el
+        # fuzzing: hubo un hallazgo guardado justo por incumplirlo.
+        if not re.search(r"^error: .+:\d+: ", t.stderr, re.M):
+            return (f"`tcodec` lo rechaza sin archivo ni linea: "
+                    f"{_sin_ruta(t.stderr.strip())!r}")
         return None                     # el hueco sigue: Python lo escribe
     if errores and t.returncode == 0:
         return "Python lo rechaza y tcodec lo acepta: no es un hueco suyo"
