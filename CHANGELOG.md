@@ -54,6 +54,13 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   queda son asserts defensivos que nadie dispara, accesores duplicados y las
   internas que el corpus no llama. Las secciones por capas compilan en hijos
   de `fork` y `coverage` no los ve, asi que es un suelo y no el total.
+- `make mutar`: rompe a proposito una regla en los DOS compiladores —un fallo
+  compartido, que la comparacion diferencial no puede ver, y la clase que mas
+  fallos ha dado— y exige que REGLAS, RECHAZO o ACEPTA se quejen: las tres
+  traen oraculo propio, sin comparar con el otro compilador. Tres mutaciones
+  hoy: una lista que vuelve a aceptar prestamos, un campo de struct que vuelve
+  a guardar un `&T`, y una vista de una vista que vuelve a dar
+  `const const T**`. Las tres se cazan.
 
 ### Cambiado
 

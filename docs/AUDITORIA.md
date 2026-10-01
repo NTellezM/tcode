@@ -242,6 +242,8 @@ make ddc              # sólo la compilación doble diversa
 make fuzz FUZZ_SEGUNDOS=3600
 TCODE_PROGRAMAS=1000 make propiedades
 make compiladores COMPILADORES="gcc-12 gcc-13 clang-18"
+make cobertura        # que caminos del oraculo de Python no se pisan
+make mutar            # rompe una regla en los dos compiladores: tiene que notarse
 ./tcodec programa.t --explicar   # lo que el compilador infirió de cada valor
 ./tcodec programa.t --mostrar-c  # el C, con #line apuntando al .t
 ```

@@ -12,6 +12,8 @@
 #   make formato      deja todo el codigo Tcode en el formato canonico
 #   make lint         revisa el codigo Python con ruff y mypy
 #   make cobertura    que caminos del oraculo de Python no se pisan nunca
+#   make mutar        rompe una regla en los dos compiladores, y exige que la
+#                     suite lo note
 #   make compiladores la semilla, el punto fijo y `rapido` con cada compilador de C
 #   make paquete      dist/tcode-VERSION.tar.gz, reproducible (arbol limpio)
 #   make probar-paquete  y desde el, sin Python, tcodec y un programa
@@ -24,7 +26,7 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint cobertura semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar instalar desinstalar ddc paquete probar-paquete version
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint cobertura mutar semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar instalar desinstalar ddc paquete probar-paquete version
 
 all: tcodec
 
@@ -230,3 +232,10 @@ MINIMO ?=
 
 cobertura:
 	@$(PY) tests/cobertura.py $(if $(FALTAN),--faltan $(FALTAN),) $(if $(MINIMO),--minimo $(MINIMO),)
+
+# El mutador: rompe a proposito una regla en los DOS compiladores --un fallo
+# compartido, que la comparacion diferencial no puede ver-- y exige que REGLAS,
+# RECHAZO o ACEPTA se quejen. Trabaja sobre copias del arbol: no toca el
+# repositorio. Tarda minutos, que cada copia construye su tcodec.
+mutar:
+	@$(PY) tests/mutar.py
