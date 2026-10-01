@@ -6,6 +6,11 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
 ### Añadido
 
+- `programas/json.t`: el segundo programa real —valida y reformatea JSON, con
+  un `Valor` recursivo (`lista<Valor>` y `mapa<str, Valor>`), texto y escapes
+  (`\uXXXX` a UTF-8)—, y entra en la suite contra un oraculo de ida y vuelta
+  con el `json` de Python. Es el item 6: mapas, genericas y texto intensivo,
+  lo que las pruebas apenas tocaban.
 - `make fuzz-safestr`: fuzzing del runtime C con libFuzzer (clang). La entrada
   se lee como un guion de operaciones sobre `SafeString` y `SafeView` y
   comprueba los invariantes de `safestr.h` bajo ASan+UBSan, ademas de los

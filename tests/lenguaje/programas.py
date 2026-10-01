@@ -1,5 +1,6 @@
 """PROGRAMAS: programas de uso real, contra un oraculo que no es Tcode."""
 
+import json
 import os
 import random
 import re
@@ -161,11 +162,30 @@ def _cuentas(r):
 
 # ---------- la seccion ----------
 
+def _valor_json(r, hondo=0):
+    """Un JSON al azar, con hondo acotado para que no reviente el arbol."""
+    if hondo > 4:
+        return r.choice([None, True, False, r.randint(-10**6, 10**6)])
+    clase = r.randint(0, 5)
+    if clase == 0:
+        return None
+    if clase == 1:
+        return r.choice([True, False])
+    if clase == 2:
+        return r.randint(-10**6, 10**6)
+    if clase == 3:
+        return r.random() * r.choice([1, 1000, 0.001])
+    if clase == 4:
+        return [_valor_json(r, hondo + 1) for _ in range(r.randint(0, 4))]
+    return {f"k{chr(97 + i)}{r.randint(0, 9)}": _valor_json(r, hondo + 1)
+            for i in range(r.randint(0, 4))}
+
+
 def correr(suite: Resultado) -> None:
     tmp = tempfile.mkdtemp(prefix="tcode-programas-")
     try:
         binarios = {}
-        for nombre in ("wc", "base64", "ordenar", "buscar", "calc", "vida"):
+        for nombre in ("wc", "base64", "ordenar", "buscar", "calc", "vida", "json"):
             suite.total += 1
             fuente = os.path.join(RAIZ, "programas", nombre + ".t")
             r = subprocess.run([tcodec(), fuente, "--mostrar-c"], capture_output=True,
@@ -203,6 +223,7 @@ def correr(suite: Resultado) -> None:
             casos.append(("buscar", k))
             casos.append(("calc", k))
             casos.append(("vida", k))
+            casos.append(("json", k))
 
         def uno(caso):
             nombre, k = caso
@@ -298,6 +319,30 @@ def correr(suite: Resultado) -> None:
                 if para and not re.search(
                         rb"desbordamiento|division por cero", dado.stderr):
                     return f"calc {k}: para sin decir por que: {dado.stderr[:200]!r}"
+                return None
+
+            if nombre == "json":
+                valor = _valor_json(r)
+                texto = json.dumps(valor, ensure_ascii=True)
+                dado = corre([yo, "-c"], texto.encode())
+                if limpio(nombre, dado):
+                    return limpio(nombre, dado)
+                if dado.returncode != 0:
+                    return (f"json {k}: rechaza {texto[:80]!r}: "
+                            f"{dado.stderr[:200]!r}")
+                try:
+                    vuelto = json.loads(dado.stdout)
+                except Exception as e:
+                    return (f"json {k}: no se vuelve a leer: "
+                            f"{dado.stdout[:120]!r} ({e})")
+                if vuelto != valor:
+                    return (f"json {k}: {texto[:80]!r} vuelve {vuelto!r}, "
+                            f"se esperaba {valor!r}")
+                mal = corre([yo, "-c"], texto.encode() + b"x")
+                if limpio(nombre, mal):
+                    return limpio(nombre, mal)
+                if mal.returncode == 0:
+                    return f"json {k}: acepta basura detras de {texto[:80]!r}"
                 return None
 
             ancho, alto = r.randint(1, 12), r.randint(1, 12)
