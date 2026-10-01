@@ -1,0 +1,19 @@
+{
+  "name": "tree-sitter-tcode",
+  "version": "0.1.0",
+  "description": "Gramática de Tcode para tree-sitter",
+  "license": "MIT",
+  "tree-sitter": [
+    {
+      "scope": "source.tcode",
+      "file-types": [
+        "t"
+      ],
+      "injection-regex": "^tcode$",
+      "highlights": "queries/highlights.scm"
+    }
+  ],
+  "devDependencies": {
+    "tree-sitter-cli": "^0.27.0"
+  }
+}

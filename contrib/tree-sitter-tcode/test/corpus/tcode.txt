@@ -1,0 +1,489 @@
+==================
+Declaraciones
+==================
+
+usar "std/texto";
+
+struct Punto {
+    x: f64,
+    y: f64,
+}
+
+enum Forma {
+    Circulo(f64),
+    Rectangulo(f64, f64),
+    Nada,
+}
+
+externo "math.h" {
+    fn sqrt(x: f64) -> f64;
+}
+
+fn distancia(a: &Punto, b: &Punto) -> f64 ! {
+    return 0.0;
+}
+
+---
+
+(programa
+  (usar
+    (cadena))
+  (declaracion
+    (struct
+      (ident)
+      (campo_def
+        (ident)
+        (tipo_primitivo))
+      (campo_def
+        (ident)
+        (tipo_primitivo))))
+  (declaracion
+    (enum
+      (ident)
+      (variante
+        (ident)
+        (tipo_primitivo))
+      (variante
+        (ident)
+        (tipo_primitivo)
+        (tipo_primitivo))
+      (variante
+        (ident))))
+  (declaracion
+    (externo
+      (cadena)
+      (fn_externa
+        (ident)
+        (parametros
+          (param
+            (ident)
+            (tipo_primitivo)))
+        (retorno_tipo
+          (tipo_primitivo)))))
+  (declaracion
+    (fn
+      (ident)
+      (parametros
+        (param
+          (ident)
+          (marca)
+          (tipo_simple
+            (ident)))
+        (param
+          (ident)
+          (marca)
+          (tipo_simple
+            (ident))))
+      (retorno_tipo
+        (tipo_primitivo))
+      (bloque
+        (sentencia
+          (retorno
+            (expresion
+              (primario
+                (decimal)))))))))
+
+==================
+Sentencias
+==================
+
+fn main() -> usize ! {
+    let x = 1 + 2 * 3;
+    var y: usize = 0;
+    if x > 5 {
+        y = x;
+    } else {
+        y = 0;
+    }
+    while y < 10 {
+        y = y + 1;
+    }
+    for k en [1, 2, 3] {
+        imprimir(k);
+    }
+    for i en 0..10 {
+        break;
+    }
+    falla "algo salio mal";
+    return 0;
+}
+
+---
+
+(programa
+  (declaracion
+    (fn
+      (ident)
+      (parametros)
+      (retorno_tipo
+        (tipo_primitivo))
+      (bloque
+        (sentencia
+          (declaracion_local
+            (ident)
+            (expresion
+              (primario
+                (entero))
+              (primario
+                (entero))
+              (primario
+                (entero)))))
+        (sentencia
+          (declaracion_local
+            (ident)
+            (tipo_primitivo)
+            (expresion
+              (primario
+                (entero)))))
+        (sentencia
+          (si
+            (expresion
+              (primario
+                (variable
+                  (ident)))
+              (primario
+                (entero)))
+            (bloque
+              (sentencia
+                (asignacion
+                  (expresion
+                    (primario
+                      (variable
+                        (ident))))
+                  (expresion
+                    (primario
+                      (variable
+                        (ident)))))))
+            (rama_else
+              (bloque
+                (sentencia
+                  (asignacion
+                    (expresion
+                      (primario
+                        (variable
+                          (ident))))
+                    (expresion
+                      (primario
+                        (entero)))))))))
+        (sentencia
+          (mientras
+            (expresion
+              (primario
+                (variable
+                  (ident)))
+              (primario
+                (entero)))
+            (bloque
+              (sentencia
+                (asignacion
+                  (expresion
+                    (primario
+                      (variable
+                        (ident))))
+                  (expresion
+                    (primario
+                      (variable
+                        (ident)))
+                    (primario
+                      (entero))))))))
+        (sentencia
+          (para
+            (ident)
+            (expresion
+              (primario
+                (literal_lista
+                  (expresion
+                    (primario
+                      (entero)))
+                  (expresion
+                    (primario
+                      (entero)))
+                  (expresion
+                    (primario
+                      (entero))))))
+            (bloque
+              (sentencia
+                (expresion_suelta
+                  (expresion
+                    (primario
+                      (llamada
+                        (ident)
+                        (argumentos
+                          (expresion
+                            (primario
+                              (variable
+                                (ident)))))))))))))
+        (sentencia
+          (para
+            (ident)
+            (rango
+              (expresion
+                (primario
+                  (entero)))
+              (expresion
+                (primario
+                  (entero))))
+            (bloque
+              (sentencia
+                (romper)))))
+        (sentencia
+          (falla
+            (cadena)))
+        (sentencia
+          (retorno
+            (expresion
+              (primario
+                (entero)))))))))
+
+==================
+Match y patrones
+==================
+
+fn area(f: Forma) -> f64 {
+    match f {
+        Forma.Circulo(r) -> { return 3.14 * r * r; }
+        Forma.Rectangulo(a, b) | Forma.Nada -> { return a * b; }
+        _ -> { return 0.0; }
+    }
+}
+
+---
+
+(programa
+  (declaracion
+    (fn
+      (ident)
+      (parametros
+        (param
+          (ident)
+          (tipo_simple
+            (ident))))
+      (retorno_tipo
+        (tipo_primitivo))
+      (bloque
+        (sentencia
+          (match
+            (expresion
+              (primario
+                (variable
+                  (ident))))
+            (brazo
+              (patron
+                (ident)
+                (ident)
+                (posicion_patron
+                  (ident)))
+              (bloque
+                (sentencia
+                  (retorno
+                    (expresion
+                      (primario
+                        (decimal))
+                      (primario
+                        (variable
+                          (ident)))
+                      (primario
+                        (variable
+                          (ident))))))))
+            (brazo
+              (patron
+                (ident)
+                (ident)
+                (posicion_patron
+                  (ident))
+                (posicion_patron
+                  (ident)))
+              (patron
+                (ident)
+                (ident))
+              (bloque
+                (sentencia
+                  (retorno
+                    (expresion
+                      (primario
+                        (variable
+                          (ident)))
+                      (primario
+                        (variable
+                          (ident))))))))
+            (brazo
+              (patron)
+              (bloque
+                (sentencia
+                  (retorno
+                    (expresion
+                      (primario
+                        (decimal)))))))))))))
+
+==================
+Expresiones
+==================
+
+fn pruebas() {
+    let s = "hola\nmundo";
+    let t = $"hola {1 + 2} mundo";
+    let lista = [1, 2, 3];
+    let mapa: mapa<str, usize> = [];
+    let v = x como u8;
+    let r = try f(x) sino 0;
+    let b = a && b || c == d && e != f;
+    let c = fn[x](y: usize) -> usize { return x + y; };
+    let d = if c { 1 } else { 2 };
+}
+
+---
+
+(programa
+  (declaracion
+    (fn
+      (ident)
+      (parametros)
+      (bloque
+        (sentencia
+          (declaracion_local
+            (ident)
+            (expresion
+              (primario
+                (cadena)))))
+        (sentencia
+          (declaracion_local
+            (ident)
+            (expresion
+              (primario
+                (interpolada)))))
+        (sentencia
+          (declaracion_local
+            (ident)
+            (expresion
+              (primario
+                (literal_lista
+                  (expresion
+                    (primario
+                      (entero)))
+                  (expresion
+                    (primario
+                      (entero)))
+                  (expresion
+                    (primario
+                      (entero))))))))
+        (sentencia
+          (declaracion_local
+            (ident)
+            (tipo_contenedor
+              (tipo_primitivo)
+              (tipo_primitivo))
+            (expresion
+              (primario
+                (literal_lista)))))
+        (sentencia
+          (declaracion_local
+            (ident)
+            (expresion
+              (primario
+                (variable
+                  (ident)))
+              (tipo_primitivo))))
+        (sentencia
+          (declaracion_local
+            (ident)
+            (expresion
+              (sino
+                (primario
+                  (llamada
+                    (ident)
+                    (argumentos
+                      (expresion
+                        (primario
+                          (variable
+                            (ident)))))))
+                (primario
+                  (entero))))))
+        (sentencia
+          (declaracion_local
+            (ident)
+            (expresion
+              (primario
+                (variable
+                  (ident)))
+              (primario
+                (variable
+                  (ident)))
+              (primario
+                (variable
+                  (ident)))
+              (primario
+                (variable
+                  (ident)))
+              (primario
+                (variable
+                  (ident)))
+              (primario
+                (variable
+                  (ident))))))
+        (sentencia
+          (declaracion_local
+            (ident)
+            (expresion
+              (primario
+                (cierre
+                  (captura
+                    (ident))
+                  (parametros
+                    (param
+                      (ident)
+                      (tipo_primitivo)))
+                  (retorno_tipo
+                    (tipo_primitivo))
+                  (bloque
+                    (sentencia
+                      (retorno
+                        (expresion
+                          (primario
+                            (variable
+                              (ident)))
+                          (primario
+                            (variable
+                              (ident))))))))))))
+        (sentencia
+          (declaracion_local
+            (ident)
+            (expresion
+              (primario
+                (si_expr
+                  (expresion
+                    (primario
+                      (variable
+                        (ident))))
+                  (expresion
+                    (primario
+                      (entero)))
+                  (expresion
+                    (primario
+                      (entero))))))))))))
+
+==================
+Comentarios
+==================
+
+// una linea
+
+/* varias
+   lineas */
+
+fn x() { return 0; }
+
+---
+
+(programa
+  (comentario)
+  (comentario)
+  (declaracion
+    (fn
+      (ident)
+      (parametros)
+      (bloque
+        (sentencia
+          (retorno
+            (expresion
+              (primario
+                (entero)))))))))

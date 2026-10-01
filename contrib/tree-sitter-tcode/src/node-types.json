@@ -1,0 +1,1801 @@
+[
+  {
+    "type": "argumentos",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "asignacion",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "bloque",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "sentencia",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "booleano",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "brazo",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "bloque",
+          "named": true
+        },
+        {
+          "type": "expresion",
+          "named": true
+        },
+        {
+          "type": "guarda",
+          "named": true
+        },
+        {
+          "type": "patron",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "campo",
+    "named": true,
+    "fields": {
+      "campo": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "type": "campo_def",
+    "named": true,
+    "fields": {
+      "nombre": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "campo_inicial",
+    "named": true,
+    "fields": {
+      "nombre": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "captura",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "ident",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "cierre",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "bloque",
+          "named": true
+        },
+        {
+          "type": "captura",
+          "named": true
+        },
+        {
+          "type": "parametros",
+          "named": true
+        },
+        {
+          "type": "retorno_tipo",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "continuar",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "declaracion",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "enum",
+          "named": true
+        },
+        {
+          "type": "externo",
+          "named": true
+        },
+        {
+          "type": "fn",
+          "named": true
+        },
+        {
+          "type": "struct",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "declaracion_local",
+    "named": true,
+    "fields": {
+      "nombre": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "expresion",
+          "named": true
+        },
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "enum",
+    "named": true,
+    "fields": {
+      "nombre": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "variante",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "expresion",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "campo",
+          "named": true
+        },
+        {
+          "type": "indice",
+          "named": true
+        },
+        {
+          "type": "metodo",
+          "named": true
+        },
+        {
+          "type": "primario",
+          "named": true
+        },
+        {
+          "type": "sino",
+          "named": true
+        },
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "expresion_suelta",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "externo",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "cadena",
+          "named": true
+        },
+        {
+          "type": "fn_externa",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "falla",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "cadena",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "fn",
+    "named": true,
+    "fields": {
+      "nombre": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "bloque",
+          "named": true
+        },
+        {
+          "type": "parametros",
+          "named": true
+        },
+        {
+          "type": "retorno_tipo",
+          "named": true
+        },
+        {
+          "type": "tipo_params",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "fn_externa",
+    "named": true,
+    "fields": {
+      "nombre": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "parametros",
+          "named": true
+        },
+        {
+          "type": "retorno_tipo",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "guarda",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "indice",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "literal_lista",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "literal_struct",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "campo_inicial",
+          "named": true
+        },
+        {
+          "type": "ident",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "llamada",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "argumentos",
+          "named": true
+        },
+        {
+          "type": "ident",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "marca",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "match",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "brazo",
+          "named": true
+        },
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "metodo",
+    "named": true,
+    "fields": {
+      "campo": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "argumentos",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "mientras",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "bloque",
+          "named": true
+        },
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "para",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "bloque",
+          "named": true
+        },
+        {
+          "type": "expresion",
+          "named": true
+        },
+        {
+          "type": "ident",
+          "named": true
+        },
+        {
+          "type": "rango",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "param",
+    "named": true,
+    "fields": {
+      "nombre": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "marca",
+          "named": true
+        },
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "parametros",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "param",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "patron",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "ident",
+          "named": true
+        },
+        {
+          "type": "posicion_patron",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "posicion_patron",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "booleano",
+          "named": true
+        },
+        {
+          "type": "cadena",
+          "named": true
+        },
+        {
+          "type": "decimal",
+          "named": true
+        },
+        {
+          "type": "entero",
+          "named": true
+        },
+        {
+          "type": "ident",
+          "named": true
+        },
+        {
+          "type": "patron",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "primario",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "booleano",
+          "named": true
+        },
+        {
+          "type": "cadena",
+          "named": true
+        },
+        {
+          "type": "cierre",
+          "named": true
+        },
+        {
+          "type": "decimal",
+          "named": true
+        },
+        {
+          "type": "entero",
+          "named": true
+        },
+        {
+          "type": "expresion",
+          "named": true
+        },
+        {
+          "type": "interpolada",
+          "named": true
+        },
+        {
+          "type": "literal_lista",
+          "named": true
+        },
+        {
+          "type": "literal_struct",
+          "named": true
+        },
+        {
+          "type": "llamada",
+          "named": true
+        },
+        {
+          "type": "match",
+          "named": true
+        },
+        {
+          "type": "si_expr",
+          "named": true
+        },
+        {
+          "type": "variable",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "programa",
+    "named": true,
+    "root": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "declaracion",
+          "named": true
+        },
+        {
+          "type": "usar",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "rama_else",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "bloque",
+          "named": true
+        },
+        {
+          "type": "si",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "rango",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "restriccion",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "ident",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "retorno",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "retorno_tipo",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "romper",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "sentencia",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "asignacion",
+          "named": true
+        },
+        {
+          "type": "continuar",
+          "named": true
+        },
+        {
+          "type": "declaracion_local",
+          "named": true
+        },
+        {
+          "type": "expresion_suelta",
+          "named": true
+        },
+        {
+          "type": "falla",
+          "named": true
+        },
+        {
+          "type": "match",
+          "named": true
+        },
+        {
+          "type": "mientras",
+          "named": true
+        },
+        {
+          "type": "para",
+          "named": true
+        },
+        {
+          "type": "retorno",
+          "named": true
+        },
+        {
+          "type": "romper",
+          "named": true
+        },
+        {
+          "type": "si",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "si",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "bloque",
+          "named": true
+        },
+        {
+          "type": "expresion",
+          "named": true
+        },
+        {
+          "type": "rama_else",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "si_expr",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "expresion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "sino",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "campo",
+          "named": true
+        },
+        {
+          "type": "indice",
+          "named": true
+        },
+        {
+          "type": "metodo",
+          "named": true
+        },
+        {
+          "type": "primario",
+          "named": true
+        },
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "struct",
+    "named": true,
+    "fields": {
+      "nombre": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "campo_def",
+          "named": true
+        },
+        {
+          "type": "tipo_params",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "tipo_arreglo",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "entero",
+          "named": true
+        },
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "tipo_contenedor",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "tipo_funcion",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "tipo_param",
+    "named": true,
+    "fields": {
+      "nombre": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": false,
+      "types": [
+        {
+          "type": "restriccion",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "tipo_params",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "tipo_param",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "tipo_prestado",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "tipo_primitivo",
+    "named": true,
+    "fields": {}
+  },
+  {
+    "type": "tipo_simple",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": true,
+      "required": true,
+      "types": [
+        {
+          "type": "ident",
+          "named": true
+        },
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "usar",
+    "named": true,
+    "fields": {
+      "alias": {
+        "multiple": false,
+        "required": false,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "cadena",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "variable",
+    "named": true,
+    "fields": {},
+    "children": {
+      "multiple": false,
+      "required": true,
+      "types": [
+        {
+          "type": "ident",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "variante",
+    "named": true,
+    "fields": {
+      "nombre": {
+        "multiple": false,
+        "required": true,
+        "types": [
+          {
+            "type": "ident",
+            "named": true
+          }
+        ]
+      }
+    },
+    "children": {
+      "multiple": true,
+      "required": false,
+      "types": [
+        {
+          "type": "tipo_arreglo",
+          "named": true
+        },
+        {
+          "type": "tipo_contenedor",
+          "named": true
+        },
+        {
+          "type": "tipo_funcion",
+          "named": true
+        },
+        {
+          "type": "tipo_prestado",
+          "named": true
+        },
+        {
+          "type": "tipo_primitivo",
+          "named": true
+        },
+        {
+          "type": "tipo_simple",
+          "named": true
+        }
+      ]
+    }
+  },
+  {
+    "type": "!",
+    "named": false
+  },
+  {
+    "type": "!=",
+    "named": false
+  },
+  {
+    "type": "%",
+    "named": false
+  },
+  {
+    "type": "&",
+    "named": false
+  },
+  {
+    "type": "&&",
+    "named": false
+  },
+  {
+    "type": "(",
+    "named": false
+  },
+  {
+    "type": ")",
+    "named": false
+  },
+  {
+    "type": "*",
+    "named": false
+  },
+  {
+    "type": "*?",
+    "named": false
+  },
+  {
+    "type": "+",
+    "named": false
+  },
+  {
+    "type": "+?",
+    "named": false
+  },
+  {
+    "type": ",",
+    "named": false
+  },
+  {
+    "type": "-",
+    "named": false
+  },
+  {
+    "type": "->",
+    "named": false
+  },
+  {
+    "type": "-?",
+    "named": false
+  },
+  {
+    "type": ".",
+    "named": false
+  },
+  {
+    "type": "..",
+    "named": false
+  },
+  {
+    "type": "/",
+    "named": false
+  },
+  {
+    "type": "/?",
+    "named": false
+  },
+  {
+    "type": ":",
+    "named": false
+  },
+  {
+    "type": ";",
+    "named": false
+  },
+  {
+    "type": "<",
+    "named": false
+  },
+  {
+    "type": "<<",
+    "named": false
+  },
+  {
+    "type": "<=",
+    "named": false
+  },
+  {
+    "type": "=",
+    "named": false
+  },
+  {
+    "type": "==",
+    "named": false
+  },
+  {
+    "type": ">",
+    "named": false
+  },
+  {
+    "type": ">=",
+    "named": false
+  },
+  {
+    "type": ">>",
+    "named": false
+  },
+  {
+    "type": "?",
+    "named": false
+  },
+  {
+    "type": "[",
+    "named": false
+  },
+  {
+    "type": "]",
+    "named": false
+  },
+  {
+    "type": "^",
+    "named": false
+  },
+  {
+    "type": "_",
+    "named": false
+  },
+  {
+    "type": "bool",
+    "named": false
+  },
+  {
+    "type": "break",
+    "named": false
+  },
+  {
+    "type": "cadena",
+    "named": true
+  },
+  {
+    "type": "comentario",
+    "named": true,
+    "extra": true
+  },
+  {
+    "type": "como",
+    "named": false
+  },
+  {
+    "type": "continue",
+    "named": false
+  },
+  {
+    "type": "decimal",
+    "named": true
+  },
+  {
+    "type": "else",
+    "named": false
+  },
+  {
+    "type": "en",
+    "named": false
+  },
+  {
+    "type": "entero",
+    "named": true
+  },
+  {
+    "type": "enum",
+    "named": false
+  },
+  {
+    "type": "externo",
+    "named": false
+  },
+  {
+    "type": "f32",
+    "named": false
+  },
+  {
+    "type": "f64",
+    "named": false
+  },
+  {
+    "type": "falla",
+    "named": false
+  },
+  {
+    "type": "false",
+    "named": false
+  },
+  {
+    "type": "fn",
+    "named": false
+  },
+  {
+    "type": "for",
+    "named": false
+  },
+  {
+    "type": "i16",
+    "named": false
+  },
+  {
+    "type": "i32",
+    "named": false
+  },
+  {
+    "type": "i64",
+    "named": false
+  },
+  {
+    "type": "i8",
+    "named": false
+  },
+  {
+    "type": "ident",
+    "named": true
+  },
+  {
+    "type": "if",
+    "named": false
+  },
+  {
+    "type": "interpolada",
+    "named": true
+  },
+  {
+    "type": "let",
+    "named": false
+  },
+  {
+    "type": "lista",
+    "named": false
+  },
+  {
+    "type": "mapa",
+    "named": false
+  },
+  {
+    "type": "match",
+    "named": false
+  },
+  {
+    "type": "mut",
+    "named": false
+  },
+  {
+    "type": "return",
+    "named": false
+  },
+  {
+    "type": "sino",
+    "named": false
+  },
+  {
+    "type": "str",
+    "named": false
+  },
+  {
+    "type": "struct",
+    "named": false
+  },
+  {
+    "type": "true",
+    "named": false
+  },
+  {
+    "type": "try",
+    "named": false
+  },
+  {
+    "type": "u16",
+    "named": false
+  },
+  {
+    "type": "u32",
+    "named": false
+  },
+  {
+    "type": "u64",
+    "named": false
+  },
+  {
+    "type": "u8",
+    "named": false
+  },
+  {
+    "type": "usar",
+    "named": false
+  },
+  {
+    "type": "usize",
+    "named": false
+  },
+  {
+    "type": "var",
+    "named": false
+  },
+  {
+    "type": "view",
+    "named": false
+  },
+  {
+    "type": "while",
+    "named": false
+  },
+  {
+    "type": "{",
+    "named": false
+  },
+  {
+    "type": "|",
+    "named": false
+  },
+  {
+    "type": "||",
+    "named": false
+  },
+  {
+    "type": "}",
+    "named": false
+  },
+  {
+    "type": "~",
+    "named": false
+  }
+]

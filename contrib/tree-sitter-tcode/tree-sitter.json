@@ -1,0 +1,17 @@
+{
+  "grammars": [
+    {
+      "name": "tcode",
+      "camelcase": "Tcode",
+      "scope": "source.tcode",
+      "file-types": ["t"],
+      "injection-regex": "^tcode$",
+      "highlights": "queries/highlights.scm"
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Gramática de Tcode para tree-sitter"
+  }
+}
