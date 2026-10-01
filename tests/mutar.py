@@ -6,7 +6,9 @@ La comparación diferencial no puede ver un fallo que los dos compiladores
 comparten: escriben el mismo C malo, y comparar dos copias de lo mismo no dice
 nada. Solo lo pueden ver los oráculos independientes —REGLAS (pares mínimos),
 RECHAZO (programas que no deben compilar) y ACEPTA (programas que tienen que
-correr limpios bajo ASan)—. Aquí se rompe una regla a la vez en `comprobar.t`
+correr limpios bajo ASan)—; el replay de `tests/fuzz.py` también guarda
+codegen —el hallazgo del `const const T**` es uno—, pero queda fuera por
+tiempo, que son minutos más por mutación. Aquí se rompe una regla a la vez en `comprobar.t`
 y en `comprobador.py` (o en `generar.t` y `generador.py`), y la suite tiene
 que fallar. Si no falla, ese camino no lo prueba nadie.
 

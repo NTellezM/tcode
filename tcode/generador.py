@@ -787,11 +787,6 @@ class Generador:
                 return ambito[nombre]
         return self.buscar(nombre)
 
-    def fue_movida(self, nombre):
-        """Si el valor se movio a otro sitio, aqui ya no somos duenios."""
-        v = self.buscar(nombre)
-        return bool(v and v[2] is not None and getattr(v[2], "movida", False))
-
     def ref(self, nombre):
         """Como referirse a `nombre` cuando se necesita un SafeString*."""
         return nombre if self.es_puntero(nombre) else f"&{nombre}"

@@ -50,10 +50,10 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   cuatro invalidantes y la llamada con el prestamo sin nombre: 221 pares.
 - `make cobertura`: la cobertura del compilador de Python, que dice que
   caminos del oraculo congelado no se pisan nunca. Compila el corpus de la
-  suite y los rechazos escritos a mano en un solo proceso; hoy el 85%. Lo que
-  queda son asserts defensivos que nadie dispara, accesores duplicados y las
-  internas que el corpus no llama. Las secciones por capas compilan en hijos
-  de `fork` y `coverage` no los ve, asi que es un suelo y no el total.
+  suite y los rechazos escritos a mano en un solo proceso; hoy el 86%. Lo que
+  queda son asserts defensivos que nadie dispara y las internas que el corpus
+  no llama. Las secciones por capas compilan en hijos de `fork` y `coverage`
+  no los ve, asi que es un suelo y no el total.
 - `make mutar`: rompe a proposito una regla en los DOS compiladores —un fallo
   compartido, que la comparacion diferencial no puede ver, y la clase que mas
   fallos ha dado— y exige que REGLAS, RECHAZO o ACEPTA se quejen: las tres
@@ -68,7 +68,11 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   `direccion_de`, `lleva_coma`, `hacer_bloque`, `hacer_mapa`, `ya_esta`,
   `destino_para`, `recoger_structs`, `recoger_enums` y `modulos_usados`— se
   han quitado: 56 lineas menos, y ninguna se menciona en todo el repositorio,
-  ni pasandola como valor.
+  ni pasandola como valor. Y tres del oraculo de Python que salieron de la
+  misma cuenta: `clave_mapa` y `valor_mapa`, los dos accesores de `mapa` que
+  nadie usaba --el codigo llama a `partes_mapa` directo, 19 veces--, y el
+  metodo `fue_movida`. Ninguna esta en la superficie congelada, y el lado Tcode
+  tiene las suyas en uso (`valor_de_mapa`), asi que no se rompe el espejo.
 
 ## 1.0.0-rc2 — 2026-09-30, candidata local
 

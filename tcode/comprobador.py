@@ -133,14 +133,6 @@ def partes_mapa(t):
     raise AssertionError(f"tipo de mapa mal formado: {t}")
 
 
-def clave_mapa(t):
-    return partes_mapa(t)[0]
-
-
-def valor_mapa(t):
-    return partes_mapa(t)[1]
-
-
 def elem_lista(t):
     if not es_lista(t):
         raise AssertionError(f"tipo de lista mal formado: {t}")
