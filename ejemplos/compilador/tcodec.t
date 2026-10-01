@@ -2782,7 +2782,7 @@ fn leer_opciones() -> Opciones {
         } else if a == "--avisos-como-errores" {
             o.avisos_como_errores = true;
         } else if a == "--version" {
-            imprimir("tcodec 1.0.0-rc2\n");
+            imprimir("tcodec 1.0.0-rc3\n");
             o.terminar = true;
             return o;
         } else if empieza_con(a, "-") {

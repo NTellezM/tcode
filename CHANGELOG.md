@@ -2,7 +2,7 @@
 
 Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
-## Sin publicar
+## 1.0.0-rc3 — 2026-10-01, candidata local
 
 ### Corregido
 

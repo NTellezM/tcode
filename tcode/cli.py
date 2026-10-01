@@ -25,7 +25,7 @@ from tcode import nombres_c
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNTIME = os.path.join(RAIZ, "runtime")
 
-VERSION = "1.0.0-rc2"
+VERSION = "1.0.0-rc3"
 MARCA = "/* Generado por el compilador de Tcode. No editar a mano. */"
 
 

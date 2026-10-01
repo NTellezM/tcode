@@ -113526,7 +113526,7 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
                                                 if (((ss_tmp34120 = a, ss_tmp34121 = sv_len("--version", 9), sv_equals(ss_tmp34120, ss_tmp34121))))
                                                 {
 #line 2785 "ejemplos/compilador/tcodec.t"
-                                                    SafeView ss_tmp34122 = sv_len("tcodec 1.0.0-rc2\n", 17);
+                                                    SafeView ss_tmp34122 = sv_len("tcodec 1.0.0-rc3\n", 17);
 #line 2785 "ejemplos/compilador/tcodec.t"
                                                     ss_lang_escribir_(stdout, ss_tmp34122);
 #line 2786 "ejemplos/compilador/tcodec.t"
