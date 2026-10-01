@@ -17,6 +17,11 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   fallos de memoria. Corre tambien en la CI nocturna, junto al fuzzing del
   compilador. Es la respuesta a la pregunta abierta 4 de la auditoria.
 
+### Documentado
+
+- `docs/TIPOS.md`: el plan del modelo de tipos (de `str` a `Tipo`), en tres
+  etapas con la garantia de C identico por etapa. Es posterior al 1.0.
+
 ## 1.0.0-rc3 — 2026-10-01, candidata local
 
 ### Corregido
