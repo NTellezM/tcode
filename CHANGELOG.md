@@ -17,6 +17,12 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   fallos de memoria. Corre tambien en la CI nocturna, junto al fuzzing del
   compilador. Es la respuesta a la pregunta abierta 4 de la auditoria.
 
+### Añadido
+
+- `contrib/tree-sitter-tcode`: la gramatica de tree-sitter —espejo del parser
+  del compilador, con resaltado y el parser C generado—, para que Tcode se
+  resalte y se pliegue en el editor. Es el primer paso del peldaño 2.
+
 ### Documentado
 
 - `docs/TIPOS.md`: el plan del modelo de tipos (de `str` a `Tipo`), en tres
