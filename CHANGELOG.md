@@ -73,6 +73,13 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   nadie usaba --el codigo llama a `partes_mapa` directo, 19 veces--, y el
   metodo `fue_movida`. Ninguna esta en la superficie congelada, y el lado Tcode
   tiene las suyas en uso (`valor_de_mapa`), asi que no se rompe el espejo.
+- `interna`, la funcion que comprueba las internas del lenguaje, pesaba 347
+  lineas: ahora es un despacho plano y diez funciones de una interna cada una
+  —`interna_comparar`, `interna_numeros`, `interna_reservar`,
+  `interna_redimensionar`, `interna_intercambiar`, `interna_copiar`,
+  `interna_largo`, `interna_anadir`, `interna_ordenar`, `interna_texto`—,
+  todas de 15 a 35 lineas, como ya era `interna_mapa`. El C que sale es el
+  mismo, byte a byte.
 
 ## 1.0.0-rc2 — 2026-09-30, candidata local
 

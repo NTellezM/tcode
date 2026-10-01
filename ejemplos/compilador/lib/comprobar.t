@@ -4381,259 +4381,31 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     let fi = firma_interna(nombre);
     let dados = n.hijos.largo();
 
-    if nombre == "igual" || nombre == "menor" {
-        if dados != 2 {
-            error(c, m, n.linea, $"`{nombre}` espera 2 argumentos y recibio {dados}");
-            evaluar_todos(c, m, tipos, n);
-            return nuevo("bool");
-        }
-        let a0 = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-        let ta = sin_prestamo(a0);
-        let a1 = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-        let tb = sin_prestamo(a1);
-        var validos = comparables();
-        if nombre == "igual" { validos = igualables(); }
-        let cuales = con_comas(validos);
-        if ta.largo() > 0 && !igual(ta, literal()) && !esta_entre(validos, ta) {
-            error(c, m, n.linea, $"`{nombre}` compara {cuales}, y recibio `{ta}`");
-            return nuevo("bool");
-        }
-        if tb.largo() > 0 && !igual(tb, literal()) && !esta_entre(validos, tb) {
-            error(c, m, n.linea, $"`{nombre}` compara {cuales}, y recibio `{tb}`");
-            return nuevo("bool");
-        }
-        let texto_a = ta == "str" || ta == "view";
-        let texto_b = tb == "str" || tb == "view";
-        if ta.largo() > 0 && tb.largo() > 0 && !(texto_a && texto_b) {
-            var a = copiar(ta);
-            var b = copiar(tb);
-            if igual(a, literal()) { a = nuevo("usize"); }
-            if igual(b, literal()) { b = nuevo("usize"); }
-            if !igual(a, b) {
-                error(c, m, n.linea, $"`{nombre}` compara dos valores del mismo tipo, y recibio `{ta}` y `{tb}`");
-            }
-        }
-        return nuevo("bool");
-    }
+    if nombre == "igual" || nombre == "menor" { return interna_comparar(c, m, tipos, n, nombre); }
 
     if nombre == "raiz" || nombre == "piso" || nombre == "techo"
-    || nombre == "redondear" || nombre == "absoluto" {
-        if dados != 1 {
-            error(c, m, n.linea, $"`{nombre}` espera 1 argumento y recibio {dados}");
-            evaluar_todos(c, m, tipos, n);
-            return vacio();
-        }
-        let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-        let t = sin_prestamo(crudo);
-        if igual(t, literal_decimal()) { return nuevo("f64"); }
-        if nombre == "absoluto" {
-            if igual(t, literal()) { return nuevo("i64"); }
-            if !es_decimal(t) && !es_con_signo(t) {
-                error(c, m, n.linea, $"`absoluto` necesita un numero con signo, recibio `{t}`");
-                return vacio();
-            }
-            return t;
-        }
-        if igual(t, literal()) { return nuevo("f64"); }
-        if !es_decimal(t) {
-            error(c, m, n.linea, $"`{nombre}` trabaja sobre decimales, recibio `{t}`");
-            return vacio();
-        }
-        return t;
-    }
+    || nombre == "redondear" || nombre == "absoluto" { return interna_numeros(c, m, tipos, n, nombre); }
 
-    if nombre == "reservar" {
-        if dados != 1 {
-            error(c, m, n.linea, $"`reservar` espera 1 argumento (cuantos) y recibio {dados}");
-            evaluar_todos(c, m, tipos, n);
-            return vacio();
-        }
-        let t = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-        if t.largo() > 0 && !encaja("usize", t) {
-            error(c, m, n.linea, $"`reservar` espera cuantos elementos, un `usize`, y recibio `{t}`");
-        }
-        if destino.largo() == 0 || !T.es_bloque(destino) {
-            error(c, m, n.linea, "`reservar(n)` necesita saber de que: escribelo en la declaracion, `var b: bloque<str> = reservar(4);`");
-            return vacio();
-        }
-        return nuevo(destino);
-    }
+    if nombre == "reservar" { return interna_reservar(c, m, tipos, n, destino); }
 
-    if nombre == "redimensionar" {
-        if dados != 2 {
-            error(c, m, n.linea, $"`redimensionar` espera 2 argumentos y recibio {dados}");
-            evaluar_todos(c, m, tipos, n);
-            return nuevo("()");
-        }
-        let base = variable_base(n.hijos[0]);
-        let is = buscar_simbolo(c, base);
-        let sitio = tipo_de_lugar(c, m, tipos, n.hijos[0]);
-        let t_sitio = sin_prestamo(sitio);
-        if base.largo() == 0 || !existe(c, is) || !T.es_bloque(t_sitio) {
-            error(c, m, n.linea, "`redimensionar` cambia el tamaño de un bloque, y necesita un sitio que lo sea: una variable, un campo o un elemento");
-            let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-            return nuevo("()");
-        }
-        let por_ref = T.es_referencia(c.simbolos[is].tipo);
-        mutar(c, m, n.hijos[0], n.hijos[0].linea, is, por_ref);
-        c.simbolos[is].prestamos.anadir(nuevo("redimensionar"));
-        let t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-        soltar_prestamo(c, is, "redimensionar");
-        if t.largo() > 0 && !encaja("usize", t) {
-            error(c, m, n.linea, $"`redimensionar` espera el tamaño nuevo, un `usize`, y recibio `{t}`");
-        }
-        return nuevo("()");
-    }
+    if nombre == "redimensionar" { return interna_redimensionar(c, m, tipos, n); }
 
-    if nombre == "intercambiar" {
-        if dados != 2 {
-            error(c, m, n.linea, $"`intercambiar` espera 2 argumentos y recibio {dados}");
-            evaluar_todos(c, m, tipos, n);
-            return vacio();
-        }
-        let base = variable_base(n.hijos[0]);
-        let is = buscar_simbolo(c, base);
-        if base.largo() == 0 || !existe(c, is) {
-            error(c, m, n.linea, "`intercambiar` necesita un sitio: una variable, un campo o un elemento, no una expresion suelta");
-            let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-            return vacio();
-        }
-        let t = tipo_de_lugar(c, m, tipos, n.hijos[0]);
-        if t.largo() > 0 && presta_tipo(m, t) {
-            error(c, m, n.linea, $"`intercambiar` no cambia prestamos: `{t}` apunta a memoria de otro. Asigna con `=`");
-        }
-        let por_ref = T.es_referencia(c.simbolos[is].tipo);
-        mutar(c, m, n.hijos[0], n.hijos[0].linea, is, por_ref);
-        c.simbolos[is].prestamos.anadir(nuevo("intercambiar"));
-        var mueve = false;
-        if t.largo() > 0 { mueve = posee_memoria(m, t); }
-        let tv = comprobar_expresion(c, m, tipos, n.hijos[1], t, mueve);
-        soltar_prestamo(c, is, "intercambiar");
-        if t.largo() > 0 && tv.largo() > 0 && !encaja(t, tv) {
-            error(c, m, n.linea, $"`intercambiar` pone y saca lo mismo: el sitio es `{t}` y el valor es `{tv}`");
-        }
-        return t;
-    }
+    if nombre == "intercambiar" { return interna_intercambiar(c, m, tipos, n); }
 
-    if nombre == "copiar" {
-        if dados != 1 {
-            error(c, m, n.linea, $"`copiar` espera 1 argumento y recibio {dados}");
-            evaluar_todos(c, m, tipos, n);
-            return vacio();
-        }
-        let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-        if crudo.largo() == 0 { return vacio(); }
-        let t = sin_prestamo(crudo);
-        if t == "view" {
-            error(c, m, n.linea, "una vista no es duenia de nada que copiar: si quieres el texto, `nuevo(v)` te da un `str`");
-            return nuevo("str");
-        }
-        if igual(t, literal()) { return nuevo("usize"); }
-        if !almacenable(m, t) {
-            error(c, m, n.linea, $"`copiar` no sabe copiar un `{t}`");
-            return t;
-        }
-        return t;
-    }
+    if nombre == "copiar" { return interna_copiar(c, m, tipos, n); }
 
-    if nombre == "largo" {
-        if dados != 1 {
-            error(c, m, n.linea, $"`largo` espera 1 argumento y recibio {dados}");
-            evaluar_todos(c, m, tipos, n);
-            return nuevo("usize");
-        }
-        let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-        let t = sin_prestamo(crudo);
-        let x = vista(t);
-        if crudo.largo() > 0 && x != "view" && x != "str" && !T.es_arreglo(x)
-        && !T.es_lista(x) && !T.es_mapa(x) && !T.es_bloque(x) {
-            error(c, m, n.linea, $"`largo` opera sobre texto, arreglos, listas o mapas, recibio `{t}`");
-        }
-        return nuevo("usize");
-    }
+    if nombre == "largo" { return interna_largo(c, m, tipos, n); }
 
-    if nombre == "anadir" {
-        if dados != 2 {
-            error(c, m, n.linea, $"`anadir` espera 2 argumentos y recibio {dados}");
-            evaluar_todos(c, m, tipos, n);
-            return nuevo("()");
-        }
-        let base = variable_base(n.hijos[0]);
-        let is = buscar_simbolo(c, base);
-        var tipo_lista = vacio();
-        let hay = base.largo() > 0 && existe(c, is);
-        if hay { tipo_lista = sin_prestamo(tipo_de_lugar(c, m, tipos, n.hijos[0])); }
-        if !hay {
-            error(c, m, n.linea, "el primer argumento de `anadir` tiene que ser una variable, un campo o un elemento");
-        } else if !T.es_lista(tipo_lista) {
-            let visto = texto_o_none(tipo_lista);
-            error(c, m, n.linea, $"`anadir` opera sobre `lista<T>`, recibio `{visto}`");
-        } else {
-            let elem = T.elemento(tipo_lista);
-            let t = comprobar_expresion(c, m, tipos, n.hijos[1], elem, posee_memoria(m, elem));
-            if t.largo() > 0 && !encaja(elem, t) {
-                error(c, m, n.linea, $"la lista guarda `{elem}` y se intento agregar `{t}`");
-            }
-            // Por un `&mut lista<T>` —de `obtener_mut`, o un parametro— se
-            // modifica; por un `&` no, y el error lo dice.
-            mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
-                T.es_referencia(c.simbolos[is].tipo));
-            return nuevo("()");
-        }
-        let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-        return nuevo("()");
-    }
+    if nombre == "anadir" { return interna_anadir(c, m, tipos, n); }
 
-    if nombre == "ordenar" {
-        if dados != 1 {
-            error(c, m, n.linea, $"`ordenar` espera 1 argumento y recibio {dados}");
-            evaluar_todos(c, m, tipos, n);
-            return nuevo("()");
-        }
-        let base = variable_base(n.hijos[0]);
-        let is = buscar_simbolo(c, base);
-        let hay = base.largo() > 0 && existe(c, is);
-        var t = vacio();
-        if hay { t = sin_prestamo(tipo_de_lugar(c, m, tipos, n.hijos[0])); }
-        if !hay {
-            error(c, m, n.linea, "`ordenar` necesita una variable, un campo o un elemento");
-        } else if !T.es_lista(t) {
-            let visto = texto_o_none(t);
-            error(c, m, n.linea, $"`ordenar` opera sobre `lista<T>`, recibio `{visto}`");
-        } else {
-            let e = T.elemento(t);
-            let ords = ordenables();
-            if !esta_entre(ords, e) {
-                let cuales = con_comas(ords);
-                error(c, m, n.linea, $"`{e}` no tiene un orden natural; `ordenar` funciona sobre {cuales}");
-            } else {
-                mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
-                    T.es_referencia(c.simbolos[is].tipo));
-            }
-        }
-        return nuevo("()");
-    }
+    if nombre == "ordenar" { return interna_ordenar(c, m, tipos, n); }
 
     if nombre == "poner" || nombre == "obtener" || nombre == "obtener_mut"
     || nombre == "tiene" || nombre == "claves" || nombre == "quitar" {
         return interna_mapa(c, m, tipos, n, nombre);
     }
 
-    if nombre == "texto" {
-        if dados != 1 {
-            error(c, m, n.linea, $"`texto` espera 1 argumento y recibio {dados}");
-            evaluar_todos(c, m, tipos, n);
-            return nuevo("str");
-        }
-        let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-        let t = sin_prestamo(crudo);
-        let x = vista(t);
-        if t.largo() > 0 && !es_tipo_entero(x) && !igual(x, literal()) && x != "bool"
-        && x != "view" && x != "str" {
-            error(c, m, n.linea, $"`texto` convierte escalares o texto, recibio `{t}`");
-        }
-        return nuevo("str");
-    }
+    if nombre == "texto" { return interna_texto(c, m, tipos, n); }
 
     if dados != fi.params.largo() {
         let pide = fi.params.largo();
@@ -4722,6 +4494,266 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         mutar(c, m, arg, arg.linea, is, por_ref);
     }
     return copiar(fi.retorno);
+}
+fn interna_comparar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
+    n: &P.Nodo, nombre: view) -> str {
+    let dados = n.hijos.largo();
+    if dados != 2 {
+        error(c, m, n.linea, $"`{nombre}` espera 2 argumentos y recibio {dados}");
+        evaluar_todos(c, m, tipos, n);
+        return nuevo("bool");
+    }
+    let a0 = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
+    let ta = sin_prestamo(a0);
+    let a1 = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
+    let tb = sin_prestamo(a1);
+    var validos = comparables();
+    if nombre == "igual" { validos = igualables(); }
+    let cuales = con_comas(validos);
+    if ta.largo() > 0 && !igual(ta, literal()) && !esta_entre(validos, ta) {
+        error(c, m, n.linea, $"`{nombre}` compara {cuales}, y recibio `{ta}`");
+        return nuevo("bool");
+    }
+    if tb.largo() > 0 && !igual(tb, literal()) && !esta_entre(validos, tb) {
+        error(c, m, n.linea, $"`{nombre}` compara {cuales}, y recibio `{tb}`");
+        return nuevo("bool");
+    }
+    let texto_a = ta == "str" || ta == "view";
+    let texto_b = tb == "str" || tb == "view";
+    if ta.largo() > 0 && tb.largo() > 0 && !(texto_a && texto_b) {
+        var a = copiar(ta);
+        var b = copiar(tb);
+        if igual(a, literal()) { a = nuevo("usize"); }
+        if igual(b, literal()) { b = nuevo("usize"); }
+        if !igual(a, b) {
+            error(c, m, n.linea, $"`{nombre}` compara dos valores del mismo tipo, y recibio `{ta}` y `{tb}`");
+        }
+    }
+    return nuevo("bool");
+}
+
+fn interna_numeros(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
+    n: &P.Nodo, nombre: view) -> str {
+    let dados = n.hijos.largo();
+    if dados != 1 {
+        error(c, m, n.linea, $"`{nombre}` espera 1 argumento y recibio {dados}");
+        evaluar_todos(c, m, tipos, n);
+        return vacio();
+    }
+    let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
+    let t = sin_prestamo(crudo);
+    if igual(t, literal_decimal()) { return nuevo("f64"); }
+    if nombre == "absoluto" {
+        if igual(t, literal()) { return nuevo("i64"); }
+        if !es_decimal(t) && !es_con_signo(t) {
+            error(c, m, n.linea, $"`absoluto` necesita un numero con signo, recibio `{t}`");
+            return vacio();
+        }
+        return t;
+    }
+    if igual(t, literal()) { return nuevo("f64"); }
+    if !es_decimal(t) {
+        error(c, m, n.linea, $"`{nombre}` trabaja sobre decimales, recibio `{t}`");
+        return vacio();
+    }
+    return t;
+}
+
+fn interna_reservar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
+    n: &P.Nodo, destino: view) -> str {
+    let dados = n.hijos.largo();
+    if dados != 1 {
+        error(c, m, n.linea, $"`reservar` espera 1 argumento (cuantos) y recibio {dados}");
+        evaluar_todos(c, m, tipos, n);
+        return vacio();
+    }
+    let t = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
+    if t.largo() > 0 && !encaja("usize", t) {
+        error(c, m, n.linea, $"`reservar` espera cuantos elementos, un `usize`, y recibio `{t}`");
+    }
+    if destino.largo() == 0 || !T.es_bloque(destino) {
+        error(c, m, n.linea, "`reservar(n)` necesita saber de que: escribelo en la declaracion, `var b: bloque<str> = reservar(4);`");
+        return vacio();
+    }
+    return nuevo(destino);
+}
+
+fn interna_redimensionar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+    let dados = n.hijos.largo();
+    if dados != 2 {
+        error(c, m, n.linea, $"`redimensionar` espera 2 argumentos y recibio {dados}");
+        evaluar_todos(c, m, tipos, n);
+        return nuevo("()");
+    }
+    let base = variable_base(n.hijos[0]);
+    let is = buscar_simbolo(c, base);
+    let sitio = tipo_de_lugar(c, m, tipos, n.hijos[0]);
+    let t_sitio = sin_prestamo(sitio);
+    if base.largo() == 0 || !existe(c, is) || !T.es_bloque(t_sitio) {
+        error(c, m, n.linea, "`redimensionar` cambia el tamaño de un bloque, y necesita un sitio que lo sea: una variable, un campo o un elemento");
+        let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
+        return nuevo("()");
+    }
+    let por_ref = T.es_referencia(c.simbolos[is].tipo);
+    mutar(c, m, n.hijos[0], n.hijos[0].linea, is, por_ref);
+    c.simbolos[is].prestamos.anadir(nuevo("redimensionar"));
+    let t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
+    soltar_prestamo(c, is, "redimensionar");
+    if t.largo() > 0 && !encaja("usize", t) {
+        error(c, m, n.linea, $"`redimensionar` espera el tamaño nuevo, un `usize`, y recibio `{t}`");
+    }
+    return nuevo("()");
+}
+
+fn interna_intercambiar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+    let dados = n.hijos.largo();
+    if dados != 2 {
+        error(c, m, n.linea, $"`intercambiar` espera 2 argumentos y recibio {dados}");
+        evaluar_todos(c, m, tipos, n);
+        return vacio();
+    }
+    let base = variable_base(n.hijos[0]);
+    let is = buscar_simbolo(c, base);
+    if base.largo() == 0 || !existe(c, is) {
+        error(c, m, n.linea, "`intercambiar` necesita un sitio: una variable, un campo o un elemento, no una expresion suelta");
+        let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
+        return vacio();
+    }
+    let t = tipo_de_lugar(c, m, tipos, n.hijos[0]);
+    if t.largo() > 0 && presta_tipo(m, t) {
+        error(c, m, n.linea, $"`intercambiar` no cambia prestamos: `{t}` apunta a memoria de otro. Asigna con `=`");
+    }
+    let por_ref = T.es_referencia(c.simbolos[is].tipo);
+    mutar(c, m, n.hijos[0], n.hijos[0].linea, is, por_ref);
+    c.simbolos[is].prestamos.anadir(nuevo("intercambiar"));
+    var mueve = false;
+    if t.largo() > 0 { mueve = posee_memoria(m, t); }
+    let tv = comprobar_expresion(c, m, tipos, n.hijos[1], t, mueve);
+    soltar_prestamo(c, is, "intercambiar");
+    if t.largo() > 0 && tv.largo() > 0 && !encaja(t, tv) {
+        error(c, m, n.linea, $"`intercambiar` pone y saca lo mismo: el sitio es `{t}` y el valor es `{tv}`");
+    }
+    return t;
+}
+
+fn interna_copiar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+    let dados = n.hijos.largo();
+    if dados != 1 {
+        error(c, m, n.linea, $"`copiar` espera 1 argumento y recibio {dados}");
+        evaluar_todos(c, m, tipos, n);
+        return vacio();
+    }
+    let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
+    if crudo.largo() == 0 { return vacio(); }
+    let t = sin_prestamo(crudo);
+    if t == "view" {
+        error(c, m, n.linea, "una vista no es duenia de nada que copiar: si quieres el texto, `nuevo(v)` te da un `str`");
+        return nuevo("str");
+    }
+    if igual(t, literal()) { return nuevo("usize"); }
+    if !almacenable(m, t) {
+        error(c, m, n.linea, $"`copiar` no sabe copiar un `{t}`");
+        return t;
+    }
+    return t;
+}
+
+fn interna_largo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+    let dados = n.hijos.largo();
+    if dados != 1 {
+        error(c, m, n.linea, $"`largo` espera 1 argumento y recibio {dados}");
+        evaluar_todos(c, m, tipos, n);
+        return nuevo("usize");
+    }
+    let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
+    let t = sin_prestamo(crudo);
+    let x = vista(t);
+    if crudo.largo() > 0 && x != "view" && x != "str" && !T.es_arreglo(x)
+    && !T.es_lista(x) && !T.es_mapa(x) && !T.es_bloque(x) {
+        error(c, m, n.linea, $"`largo` opera sobre texto, arreglos, listas o mapas, recibio `{t}`");
+    }
+    return nuevo("usize");
+}
+
+fn interna_anadir(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+    let dados = n.hijos.largo();
+    if dados != 2 {
+        error(c, m, n.linea, $"`anadir` espera 2 argumentos y recibio {dados}");
+        evaluar_todos(c, m, tipos, n);
+        return nuevo("()");
+    }
+    let base = variable_base(n.hijos[0]);
+    let is = buscar_simbolo(c, base);
+    var tipo_lista = vacio();
+    let hay = base.largo() > 0 && existe(c, is);
+    if hay { tipo_lista = sin_prestamo(tipo_de_lugar(c, m, tipos, n.hijos[0])); }
+    if !hay {
+        error(c, m, n.linea, "el primer argumento de `anadir` tiene que ser una variable, un campo o un elemento");
+    } else if !T.es_lista(tipo_lista) {
+        let visto = texto_o_none(tipo_lista);
+        error(c, m, n.linea, $"`anadir` opera sobre `lista<T>`, recibio `{visto}`");
+    } else {
+        let elem = T.elemento(tipo_lista);
+        let t = comprobar_expresion(c, m, tipos, n.hijos[1], elem, posee_memoria(m, elem));
+        if t.largo() > 0 && !encaja(elem, t) {
+            error(c, m, n.linea, $"la lista guarda `{elem}` y se intento agregar `{t}`");
+        }
+        // Por un `&mut lista<T>` —de `obtener_mut`, o un parametro— se
+        // modifica; por un `&` no, y el error lo dice.
+        mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
+            T.es_referencia(c.simbolos[is].tipo));
+        return nuevo("()");
+    }
+    let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
+    return nuevo("()");
+}
+
+fn interna_ordenar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+    let dados = n.hijos.largo();
+    if dados != 1 {
+        error(c, m, n.linea, $"`ordenar` espera 1 argumento y recibio {dados}");
+        evaluar_todos(c, m, tipos, n);
+        return nuevo("()");
+    }
+    let base = variable_base(n.hijos[0]);
+    let is = buscar_simbolo(c, base);
+    let hay = base.largo() > 0 && existe(c, is);
+    var t = vacio();
+    if hay { t = sin_prestamo(tipo_de_lugar(c, m, tipos, n.hijos[0])); }
+    if !hay {
+        error(c, m, n.linea, "`ordenar` necesita una variable, un campo o un elemento");
+    } else if !T.es_lista(t) {
+        let visto = texto_o_none(t);
+        error(c, m, n.linea, $"`ordenar` opera sobre `lista<T>`, recibio `{visto}`");
+    } else {
+        let e = T.elemento(t);
+        let ords = ordenables();
+        if !esta_entre(ords, e) {
+            let cuales = con_comas(ords);
+            error(c, m, n.linea, $"`{e}` no tiene un orden natural; `ordenar` funciona sobre {cuales}");
+        } else {
+            mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
+                T.es_referencia(c.simbolos[is].tipo));
+        }
+    }
+    return nuevo("()");
+}
+
+fn interna_texto(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+    let dados = n.hijos.largo();
+    if dados != 1 {
+        error(c, m, n.linea, $"`texto` espera 1 argumento y recibio {dados}");
+        evaluar_todos(c, m, tipos, n);
+        return nuevo("str");
+    }
+    let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
+    let t = sin_prestamo(crudo);
+    let x = vista(t);
+    if t.largo() > 0 && !es_tipo_entero(x) && !igual(x, literal()) && x != "bool"
+    && x != "view" && x != "str" {
+        error(c, m, n.linea, $"`texto` convierte escalares o texto, recibio `{t}`");
+    }
+    return nuevo("str");
 }
 
 // `poner`, `obtener`, `tiene`, `claves`, `quitar` y `obtener_mut`.
