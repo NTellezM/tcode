@@ -5938,10 +5938,39 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         m.anotados.anadir(vacio_m);
     }
     var c = estado("", 0);
-    // Donde se definio cada struct y enum, para decir donde estaba el primero.
-    var st_donde: mapa<str, str> = [];
-    var en_donde: mapa<str, str> = [];
 
+    registrar_funciones(m, arboles, modulos, contextos);
+    registrar_enums(c, m, arboles, modulos);
+
+    registrar_structs(c, m, arboles, modulos);
+    validar_tipos_de_campos(c, m, arboles, modulos);
+    validar_campos(c, m, arboles, modulos);
+
+    validar_formas(c, m, arboles, modulos);
+
+    validar_tipos_de_funciones(c, m, arboles);
+
+    comprobar_borde_c(c, m);
+
+    comprobar_nombres(c, m);
+
+    comprobar_cada_funcion(c, m, arboles, contextos);
+    comprobar_restricciones(c, m);
+    let principal = vista(modulos[modulos.largo() - 1]);
+    var aplicados: lista<str> = [];
+    for t en m.tipo_de_struct {
+        if contiene(t, "<") { aplicados.anadir(copiar(t)); }
+    }
+    return Revision { errores: copiar(c.errores), avisos: copiar(c.avisos),
+        explicacion: explicacion(m, c.informe, principal),
+        cierres: copiar(m.cierres),
+        cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion),
+        sacados: copiar(c.sacados), anotados: copiar(m.anotados),
+        orden_copias: copiar(m.orden_copias), structs_aplicados: aplicados,
+        orden_structs: copiar(m.orden_structs) };
+}
+fn registrar_funciones(m: mut Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>,
+    contextos: &lista<I.Contexto>) {
     // Primero se registra todo lo que hay.
     var k = 0;
     while k < arboles.largo() {
@@ -5975,8 +6004,12 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         k = k + 1;
     }
+}
+
+fn registrar_enums(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>) {
     // Los enums, antes que los structs: un struct puede llevar uno.
-    k = 0;
+    var en_donde: mapa<str, str> = [];
+    var k = 0;
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
         for d en arboles[k].hijos {
@@ -6001,9 +6034,12 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         k = k + 1;
     }
+}
 
+fn registrar_structs(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>) {
     // Los structs.
-    k = 0;
+    var st_donde: mapa<str, str> = [];
+    var k = 0;
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
         for d en arboles[k].hijos {
@@ -6037,7 +6073,10 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         k = k + 1;
     }
-    k = 0;
+}
+
+fn validar_tipos_de_campos(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>) {
+    var k = 0;
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
         for d en arboles[k].hijos {
@@ -6057,7 +6096,10 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         k = k + 1;
     }
-    k = 0;
+}
+
+fn validar_campos(c: mut Comprobacion, m: &Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>) {
+    var k = 0;
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
         for d en arboles[k].hijos {
@@ -6103,10 +6145,12 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         k = k + 1;
     }
+}
 
+fn validar_formas(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>) {
     // Lo que lleva cada forma. Va despues de los structs: una forma puede
     // llevar uno, y antes no existia.
-    k = 0;
+    var k = 0;
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
         for d en arboles[k].hijos {
@@ -6136,7 +6180,9 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         k = k + 1;
     }
+}
 
+fn validar_tipos_de_funciones(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>) {
     // Los tipos escritos en cada funcion que no es generica.
     var e = 0;
     while e < m.funciones.largo() {
@@ -6154,9 +6200,11 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         e = e + 1;
     }
+}
 
+fn comprobar_borde_c(c: mut Comprobacion, m: &Mundo) {
     // El borde con C.
-    e = 0;
+    var e = 0;
     while e < m.funciones.largo() {
         if m.funciones[e].externa {
             c.archivo = copiar(m.funciones[e].archivo);
@@ -6165,10 +6213,12 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         e = e + 1;
     }
+}
 
+fn comprobar_nombres(c: mut Comprobacion, m: &Mundo) {
     // Nombres: ni de una interna, ni repetidos.
     var vistas: mapa<str, str> = [];
-    e = 0;
+    var e = 0;
     while e < m.funciones.largo() {
         if !m.funciones[e].de_cierre {
             c.archivo = copiar(m.funciones[e].archivo);
@@ -6186,10 +6236,13 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         e = e + 1;
     }
+}
 
+fn comprobar_cada_funcion(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>,
+    contextos: &lista<I.Contexto>) {
     // Y cada funcion, en orden. Las genericas se comprueban en sus copias,
     // que esta capa todavia no mira; las de C no tienen cuerpo.
-    e = 0;
+    var e = 0;
     while e < m.funciones.largo() {
         let f = copiar(m.funciones[e]);
         if !f.de_cierre && !f.externa && !tiene_sueltos(f) {
@@ -6200,17 +6253,4 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         }
         e = e + 1;
     }
-    comprobar_restricciones(c, m);
-    let principal = vista(modulos[modulos.largo() - 1]);
-    var aplicados: lista<str> = [];
-    for t en m.tipo_de_struct {
-        if contiene(t, "<") { aplicados.anadir(copiar(t)); }
-    }
-    return Revision { errores: copiar(c.errores), avisos: copiar(c.avisos),
-        explicacion: explicacion(m, c.informe, principal),
-        cierres: copiar(m.cierres),
-        cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion),
-        sacados: copiar(c.sacados), anotados: copiar(m.anotados),
-        orden_copias: copiar(m.orden_copias), structs_aplicados: aplicados,
-        orden_structs: copiar(m.orden_structs) };
 }

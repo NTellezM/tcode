@@ -98,6 +98,11 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   `sentencia_falla`, `sentencia_expresion`, `sentencia_otra`—. Cada una lleva
   justo lo que usa: el compilador senalo los parametros que sobraban y se
   ajustaron. El C que sale es el mismo, byte a byte.
+- `comprobar_programa` (289 lineas) y `generar_soporte` (239) eran una
+  secuencia de fases sin nombre: ahora cada fase es una funcion —`registrar_*`,
+  `validar_*` y `comprobar_*` en el primero, y `declarar_tipos`,
+  `definir_tipos`, `internas_del_sistema`, `soltar_structs` y `soltar_enums`
+  en el segundo—. El C que sale es el mismo, byte a byte.
 
 ## 1.0.0-rc2 — 2026-09-30, candidata local
 

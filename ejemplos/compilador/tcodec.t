@@ -3834,6 +3834,21 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
     cta.sacados = copiar(cierres.sacados);
 
     var partes: lista<str> = [];
+    let adelantados = declarar_tipos(partes, st_nombres, en_nombres, en_variantes, reg);
+    definir_tipos(partes, en_nombres, en_variantes, en_lleva, st_indice, st_campos, st_tipos, orden, adelantados, global, reg);
+
+    try internas_del_sistema(partes, raiz, usa_sistema, usa_escribir_archivo, usa_leer_archivo, usa_leer_parte_archivo, reg, global, con_partes, cta);
+
+    soltar_structs(partes, orden, st_indice, st_campos, st_tipos, global, cta);
+
+    soltar_enums(partes, en_nombres, en_variantes, en_lleva, global, cta);
+    return SoporteGenerado { partes: partes, cta: cta };
+}
+fn declarar_tipos(partes: mut lista<str>,
+    st_nombres: &lista<str>,
+    en_nombres: &lista<str>,
+    en_variantes: &lista<lista<str>>,
+    reg: &Registro) -> mapa<str, usize> {
     for n en st_nombres { partes.anadir($"typedef struct {n} {n};"); }
     if st_nombres.largo() > 0 { partes.anadir(vacio()); }
     // Cada enum con la etiqueta de cada forma: la 0 es la primera.
@@ -3876,6 +3891,20 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
     var puestos: mapa<str, usize> = [];
     for x en ordenadas { poner_typedef(x, reg, puestos, partes); }
     if ordenadas.largo() > 0 { partes.anadir(vacio()); }
+    return adelantados;
+}
+
+fn definir_tipos(partes: mut lista<str>,
+    en_nombres: &lista<str>,
+    en_variantes: &lista<lista<str>>,
+    en_lleva: &lista<lista<str>>,
+    st_indice: &mapa<str, usize>,
+    st_campos: &lista<lista<str>>,
+    st_tipos: &lista<lista<str>>,
+    orden: &lista<str>,
+    adelantados: &mapa<str, usize>,
+    global: &I.Contexto,
+    reg: &Registro) {
     // Los enums, y detras los structs en orden de dependencia. Cada uno
     // necesita el tamanio de lo que lleva por valor, asi que va despues.
     var definidos: mapa<str, usize> = [];
@@ -3925,7 +3954,18 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
     if sueltos > 0 { partes.anadir(vacio()); }
     for r en reg.resultados { partes.anadir(typedef_resultado(r)); }
     if reg.resultados.largo() > 0 { partes.anadir(vacio()); }
+}
 
+fn internas_del_sistema(partes: mut lista<str>,
+    raiz: view,
+    usa_sistema: &mapa<str, usize>,
+    usa_escribir_archivo: bool,
+    usa_leer_archivo: bool,
+    usa_leer_parte_archivo: bool,
+    reg: &Registro,
+    global: &I.Contexto,
+    con_partes: &mapa<str, usize>,
+    cta: mut F.Cuenta) ! {
     // Las internas que hablan con el sistema, en un orden fijo.
     let res_texto = G.tipo_resultado("str");
     var internas_orden: lista<str> = [];
@@ -3958,7 +3998,15 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
     for x en reg.listas { funcion_push(x, partes); }
     for x en reg.listas { funcion_ordenar(x, partes); }
     for x en reg.mapas { funcion_mapa(x, global, con_partes, cta, partes); }
+}
 
+fn soltar_structs(partes: mut lista<str>,
+    orden: &lista<str>,
+    st_indice: &mapa<str, usize>,
+    st_campos: &lista<lista<str>>,
+    st_tipos: &lista<lista<str>>,
+    global: &I.Contexto,
+    cta: mut F.Cuenta) {
     // Liberadores de structs, antes que las funciones y en la misma cuenta.
     for n en orden {
         if !I.posee_con_formas(global, n) { continue; }
@@ -3983,7 +4031,14 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
         cta.bucle = b.bucle;
         cta.etiquetas = b.etiquetas;
     }
+}
 
+fn soltar_enums(partes: mut lista<str>,
+    en_nombres: &lista<str>,
+    en_variantes: &lista<lista<str>>,
+    en_lleva: &lista<lista<str>>,
+    global: &I.Contexto,
+    cta: mut F.Cuenta) {
     // Liberadores de enums: solo las formas que llevan algo con duenio.
     var ie_d = 0;
     while ie_d < en_nombres.largo() {
@@ -4026,7 +4081,6 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
         }
         ie_d = ie_d + 1;
     }
-    return SoporteGenerado { partes: partes, cta: cta };
 }
 
 fn main() -> usize ! {
