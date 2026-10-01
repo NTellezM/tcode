@@ -139,9 +139,14 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   que traia el modulo, o donde se declaro el nombre. El otro, el del tipo que
   no se puede registrar, se ha quitado: quien lo pedia ya lo dice con su linea
   y ademas nombra el tipo.
-- Queda la otra familia, la de las cuentas del propio compilador (`X se usa y
-  el recorrido no la registro`, que es lo que cazo `047b1a5da3f2`): esas
-  tambien piden sitio, y van en el lote siguiente.
+- Y las cuentas del propio compilador —`X se usa y el recorrido no la
+  registro`, que es lo que cazo `047b1a5da3f2`— dicen ya lo que son: `... Es
+  un fallo del compilador, no de tu programa`. No piden sitio: quien se queja
+  trabaja sobre el C ya generado, y el nodo del programa se perdio al
+  generarlo; inventar una linea seria mentir. El juez del fuzzing los sigue
+  cazando, ahora con una firma que dice lo que pasa en vez de «rechaza sin
+  archivo y linea». Son ocho mensajes, y el de `emitir_funcion` ademas lleva
+  sitio, que ahi el nodo y la ruta estan a mano.
 
 ### Añadido
 

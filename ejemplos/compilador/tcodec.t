@@ -2469,7 +2469,7 @@ fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     for l en lineas {
         let limpia = sin_cadenas(l);
         if necesita_lo_que_falta(limpia) {
-            imprimir_error($"tcodec: `{d.texto}` necesita algo que falta: {l}\n");
+            imprimir_error($"error: {sitio(ruta, d.linea)}: tcodec necesita algo que falta para escribir `{d.texto}`: {l}. Es un fallo del compilador, no de tu programa\n");
             return false;
         }
         apuntar_tras(limpia, "ss_lang_suma_", anchos);
@@ -3048,7 +3048,7 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
     }
     for u en claves(usadas) {
         if !tiene(registradas, u) {
-            imprimir_error($"tcodec: `{u}` se usa y el recorrido no la registro\n");
+            imprimir_error($"tcodec: `{u}` se usa y el recorrido no la registro. Es un fallo del compilador, no de tu programa\n");
             return UsosGenerados { ok: false, limpios: [], envoltorios: [] };
         }
     }
@@ -3061,7 +3061,7 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
     }
     for u en claves(usados_b) {
         if !tiene(registradas, u) {
-            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
+            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro. Es un fallo del compilador, no de tu programa\n");
             return UsosGenerados { ok: false, limpios: [], envoltorios: [] };
         }
     }
@@ -3100,7 +3100,7 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
     }
     for u en claves(usados_a) {
         if !tiene(registradas, u) {
-            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
+            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro. Es un fallo del compilador, no de tu programa\n");
             return UsosGenerados { ok: false, limpios: [], envoltorios: [] };
         }
     }
@@ -3120,13 +3120,13 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
     for u en claves(usados_m) {
         let tipo = tipo_de_nombre_mapa(u);
         if !tiene(registradas, tipo) {
-            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
+            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro. Es un fallo del compilador, no de tu programa\n");
             return UsosGenerados { ok: false, limpios: [], envoltorios: [] };
         }
     }
     for u en claves(usados_r) {
         if !tiene(registradas, u) {
-            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro\n");
+            imprimir_error($"tcodec: `{u}` se usa y el recorrido no lo registro. Es un fallo del compilador, no de tu programa\n");
             return UsosGenerados { ok: false, limpios: [], envoltorios: [] };
         }
     }
@@ -3138,7 +3138,7 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
         while k + 1 < u.largo() {
             if byte(u, k) == 95 && byte(u, k + 1) == 95 && tiene(plantillas, rebanar(u, 0, k))
             && !tiene(vistas_inst, u) {
-                imprimir_error($"tcodec: la copia `{u}` se usa y no se escribio\n");
+                imprimir_error($"tcodec: la copia `{u}` se usa y no se escribio. Es un fallo del compilador, no de tu programa\n");
                 return UsosGenerados { ok: false, limpios: [], envoltorios: [] };
             }
             k = k + 1;
@@ -3198,7 +3198,7 @@ fn generar_copiadores(cta: &F.Cuenta, global: &I.Contexto,
     for l en limpios { apuntar_nombres(l, "ss_copia_", usados); }
     for u en claves(usados) {
         if !tiene(nombres, u) {
-            imprimir_error($"tcodec: `{u}` se usa y no se apunto\n");
+            imprimir_error($"tcodec: `{u}` se usa y no se apunto. Es un fallo del compilador, no de tu programa\n");
             return CopiadoresGenerados { ok: false, lineas: [] };
         }
     }

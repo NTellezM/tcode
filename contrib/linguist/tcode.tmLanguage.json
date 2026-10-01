@@ -1,0 +1,110 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "TCode",
+  "scopeName": "source.tcode",
+  "fileTypes": ["t"],
+  "patterns": [
+    { "include": "#comentario" },
+    { "include": "#cadena" },
+    { "include": "#numero" },
+    { "include": "#literal" },
+    { "include": "#tipo" },
+    { "include": "#palabra_clave" },
+    { "include": "#operador" }
+  ],
+  "repository": {
+    "comentario": {
+      "patterns": [
+        { "name": "comment.line.double-slash.tcode", "match": "//.*$" }
+      ]
+    },
+    "cadena": {
+      "patterns": [
+        {
+          "name": "string.interpolated.tcode",
+          "begin": "\\$\"",
+          "end": "\"",
+          "patterns": [
+            { "include": "#escape" }
+          ]
+        },
+        {
+          "name": "string.quoted.double.tcode",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            { "include": "#escape" }
+          ]
+        }
+      ]
+    },
+    "escape": {
+      "patterns": [
+        {
+          "name": "constant.character.escape.tcode",
+          "match": "\\\\(?:[nt\"0\\\\]|x[0-9a-fA-F]{2})"
+        }
+      ]
+    },
+    "numero": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.tcode",
+          "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9]+)?\\b"
+        },
+        {
+          "name": "constant.numeric.float.tcode",
+          "match": "\\b[0-9][0-9_]*[eE][+-]?[0-9]+\\b"
+        },
+        {
+          "name": "constant.numeric.integer.tcode",
+          "match": "\\b[0-9][0-9_]*\\b"
+        }
+      ]
+    },
+    "literal": {
+      "patterns": [
+        {
+          "name": "constant.language.boolean.tcode",
+          "match": "\\b(?:true|false)\\b"
+        }
+      ]
+    },
+    "tipo": {
+      "patterns": [
+        {
+          "name": "storage.type.tcode",
+          "match": "\\b(?:u8|u16|u32|u64|usize|i8|i16|i32|i64|f32|f64|str|bool|view|lista|mapa)\\b"
+        }
+      ]
+    },
+    "palabra_clave": {
+      "patterns": [
+        {
+          "name": "keyword.control.tcode",
+          "match": "\\b(?:if|else|while|for|en|break|continue|return|match)\\b"
+        },
+        {
+          "name": "keyword.control.exception.tcode",
+          "match": "\\b(?:try|sino|falla)\\b"
+        },
+        {
+          "name": "keyword.declaration.tcode",
+          "match": "\\b(?:fn|let|var|struct|enum|usar|externo)\\b"
+        },
+        {
+          "name": "storage.modifier.tcode",
+          "match": "\\bmut\\b"
+        }
+      ]
+    },
+    "operador": {
+      "patterns": [
+        {
+          "name": "keyword.operator.tcode",
+          "match": "<<|>>|\\+\\?|-\\?|\\*\\?|/\\?|->|==|!=|<=|>=|&&|\\|\\||[+\\-*/%<>&|^~!?]"
+        }
+      ]
+    }
+  }
+}

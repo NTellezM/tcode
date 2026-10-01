@@ -111338,18 +111338,24 @@ SS_LANG_QUIZA_SIN_USAR static bool emitir_funcion(SS_LANG_QUIZA_SIN_USAR const N
         {
 #line 2472 "ejemplos/compilador/tcodec.t"
             SafeString ss_tmp33477 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp33477, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 2472);
+            ss_lang_agregar_texto_(&ss_tmp33477, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 2472);
+            SafeView ss_tmp33479;
+            size_t ss_tmp33480;
+            SafeString ss_tmp33478 = ((ss_tmp33479 = ruta, ss_tmp33480 = (*d).linea, sitio(ss_tmp33479, ss_tmp33480)));
+            ss_lang_agregar_texto_(&ss_tmp33477, ss_view(&ss_tmp33478), "ejemplos/compilador/tcodec.t", 2472);
+            ss_lang_agregar_texto_(&ss_tmp33477, sv_len(": tcodec necesita algo que falta para escribir `", 48), "ejemplos/compilador/tcodec.t", 2472);
             ss_lang_agregar_texto_(&ss_tmp33477, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 2472);
-            ss_lang_agregar_texto_(&ss_tmp33477, sv_len("` necesita algo que falta: ", 27), "ejemplos/compilador/tcodec.t", 2472);
+            ss_lang_agregar_texto_(&ss_tmp33477, sv_len("`: ", 3), "ejemplos/compilador/tcodec.t", 2472);
             ss_lang_agregar_texto_(&ss_tmp33477, ss_view(l), "ejemplos/compilador/tcodec.t", 2472);
-            ss_lang_agregar_texto_(&ss_tmp33477, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2472);
+            ss_lang_agregar_texto_(&ss_tmp33477, sv_len(". Es un fallo del compilador, no de tu programa\n", 48), "ejemplos/compilador/tcodec.t", 2472);
             SafeString ss_tmp33476 = ss_tmp33477;
-            SafeView ss_tmp33478 = ss_view(&ss_tmp33476);
+            SafeView ss_tmp33481 = ss_view(&ss_tmp33476);
 #line 2472 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp33478);
+            ss_lang_escribir_(stderr, ss_tmp33481);
+            ss_free(&ss_tmp33478);
             ss_free(&ss_tmp33476);
 #line 2473 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp33479 = false;
+            bool ss_tmp33482 = false;
             ss_free(&limpia);
             for (size_t ss_i1077 = 0; ss_i1077 < lineas.length; ss_i1077++)
             {
@@ -111359,80 +111365,80 @@ SS_LANG_QUIZA_SIN_USAR static bool emitir_funcion(SS_LANG_QUIZA_SIN_USAR const N
             lineas.e = NULL;
             lineas.length = 0;
             lineas.capacity = 0;
-            return ss_tmp33479;
+            return ss_tmp33482;
         }
 #line 2475 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33480;
-        SafeView ss_tmp33481;
-        ss_mapa_str_usize* ss_tmp33482;
-        ((ss_tmp33480 = ss_view(&limpia), ss_tmp33481 = sv_len("ss_lang_suma_", 13), ss_tmp33482 = anchos, apuntar_tras(ss_tmp33480, ss_tmp33481, ss_tmp33482)));
-#line 2476 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33483;
         SafeView ss_tmp33484;
         ss_mapa_str_usize* ss_tmp33485;
-        ((ss_tmp33483 = ss_view(&limpia), ss_tmp33484 = sv_len("ss_lang_resta_", 14), ss_tmp33485 = anchos, apuntar_tras(ss_tmp33483, ss_tmp33484, ss_tmp33485)));
-#line 2477 "ejemplos/compilador/tcodec.t"
+        ((ss_tmp33483 = ss_view(&limpia), ss_tmp33484 = sv_len("ss_lang_suma_", 13), ss_tmp33485 = anchos, apuntar_tras(ss_tmp33483, ss_tmp33484, ss_tmp33485)));
+#line 2476 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33486;
         SafeView ss_tmp33487;
         ss_mapa_str_usize* ss_tmp33488;
-        ((ss_tmp33486 = ss_view(&limpia), ss_tmp33487 = sv_len("ss_lang_mul_", 12), ss_tmp33488 = anchos, apuntar_tras(ss_tmp33486, ss_tmp33487, ss_tmp33488)));
-#line 2478 "ejemplos/compilador/tcodec.t"
+        ((ss_tmp33486 = ss_view(&limpia), ss_tmp33487 = sv_len("ss_lang_resta_", 14), ss_tmp33488 = anchos, apuntar_tras(ss_tmp33486, ss_tmp33487, ss_tmp33488)));
+#line 2477 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33489;
         SafeView ss_tmp33490;
         ss_mapa_str_usize* ss_tmp33491;
-        ((ss_tmp33489 = ss_view(&limpia), ss_tmp33490 = sv_len("ss_lang_abs_", 12), ss_tmp33491 = anchos, apuntar_tras(ss_tmp33489, ss_tmp33490, ss_tmp33491)));
-#line 2479 "ejemplos/compilador/tcodec.t"
+        ((ss_tmp33489 = ss_view(&limpia), ss_tmp33490 = sv_len("ss_lang_mul_", 12), ss_tmp33491 = anchos, apuntar_tras(ss_tmp33489, ss_tmp33490, ss_tmp33491)));
+#line 2478 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33492;
         SafeView ss_tmp33493;
         ss_mapa_str_usize* ss_tmp33494;
-        ((ss_tmp33492 = ss_view(&limpia), ss_tmp33493 = sv_len("ss_lang_neg_", 12), ss_tmp33494 = anchos, apuntar_tras(ss_tmp33492, ss_tmp33493, ss_tmp33494)));
-#line 2480 "ejemplos/compilador/tcodec.t"
+        ((ss_tmp33492 = ss_view(&limpia), ss_tmp33493 = sv_len("ss_lang_abs_", 12), ss_tmp33494 = anchos, apuntar_tras(ss_tmp33492, ss_tmp33493, ss_tmp33494)));
+#line 2479 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33495;
         SafeView ss_tmp33496;
         ss_mapa_str_usize* ss_tmp33497;
-        ((ss_tmp33495 = ss_view(&limpia), ss_tmp33496 = sv_len("ss_lang_div_", 12), ss_tmp33497 = anchos, apuntar_tras(ss_tmp33495, ss_tmp33496, ss_tmp33497)));
-#line 2481 "ejemplos/compilador/tcodec.t"
+        ((ss_tmp33495 = ss_view(&limpia), ss_tmp33496 = sv_len("ss_lang_neg_", 12), ss_tmp33497 = anchos, apuntar_tras(ss_tmp33495, ss_tmp33496, ss_tmp33497)));
+#line 2480 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33498;
         SafeView ss_tmp33499;
         ss_mapa_str_usize* ss_tmp33500;
-        ((ss_tmp33498 = ss_view(&limpia), ss_tmp33499 = sv_len("ss_lang_mod_", 12), ss_tmp33500 = anchos, apuntar_tras(ss_tmp33498, ss_tmp33499, ss_tmp33500)));
-#line 2482 "ejemplos/compilador/tcodec.t"
+        ((ss_tmp33498 = ss_view(&limpia), ss_tmp33499 = sv_len("ss_lang_div_", 12), ss_tmp33500 = anchos, apuntar_tras(ss_tmp33498, ss_tmp33499, ss_tmp33500)));
+#line 2481 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33501;
         SafeView ss_tmp33502;
         ss_mapa_str_usize* ss_tmp33503;
-        ((ss_tmp33501 = ss_view(&limpia), ss_tmp33502 = sv_len("ss_lang_desp_izq_", 17), ss_tmp33503 = anchos, apuntar_tras(ss_tmp33501, ss_tmp33502, ss_tmp33503)));
-#line 2483 "ejemplos/compilador/tcodec.t"
+        ((ss_tmp33501 = ss_view(&limpia), ss_tmp33502 = sv_len("ss_lang_mod_", 12), ss_tmp33503 = anchos, apuntar_tras(ss_tmp33501, ss_tmp33502, ss_tmp33503)));
+#line 2482 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33504;
         SafeView ss_tmp33505;
         ss_mapa_str_usize* ss_tmp33506;
-        ((ss_tmp33504 = ss_view(&limpia), ss_tmp33505 = sv_len("ss_lang_desp_der_", 17), ss_tmp33506 = anchos, apuntar_tras(ss_tmp33504, ss_tmp33505, ss_tmp33506)));
-#line 2484 "ejemplos/compilador/tcodec.t"
+        ((ss_tmp33504 = ss_view(&limpia), ss_tmp33505 = sv_len("ss_lang_desp_izq_", 17), ss_tmp33506 = anchos, apuntar_tras(ss_tmp33504, ss_tmp33505, ss_tmp33506)));
+#line 2483 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33507;
         SafeView ss_tmp33508;
         ss_mapa_str_usize* ss_tmp33509;
-        ((ss_tmp33507 = ss_view(&limpia), ss_tmp33508 = sv_len("ss_lang_env_", 12), ss_tmp33509 = anchos, apuntar_tras(ss_tmp33507, ss_tmp33508, ss_tmp33509)));
-#line 2485 "ejemplos/compilador/tcodec.t"
+        ((ss_tmp33507 = ss_view(&limpia), ss_tmp33508 = sv_len("ss_lang_desp_der_", 17), ss_tmp33509 = anchos, apuntar_tras(ss_tmp33507, ss_tmp33508, ss_tmp33509)));
+#line 2484 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33510;
         SafeView ss_tmp33511;
         ss_mapa_str_usize* ss_tmp33512;
-        ((ss_tmp33510 = ss_view(&limpia), ss_tmp33511 = sv_len("ss_lang_fin_", 12), ss_tmp33512 = decimales, apuntar_tras(ss_tmp33510, ss_tmp33511, ss_tmp33512)));
-#line 2486 "ejemplos/compilador/tcodec.t"
+        ((ss_tmp33510 = ss_view(&limpia), ss_tmp33511 = sv_len("ss_lang_env_", 12), ss_tmp33512 = anchos, apuntar_tras(ss_tmp33510, ss_tmp33511, ss_tmp33512)));
+#line 2485 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33513;
         SafeView ss_tmp33514;
         ss_mapa_str_usize* ss_tmp33515;
-        ((ss_tmp33513 = ss_view(&limpia), ss_tmp33514 = sv_len("ss_lang_conv_", 13), ss_tmp33515 = conversiones, apuntar_tras(ss_tmp33513, ss_tmp33514, ss_tmp33515)));
+        ((ss_tmp33513 = ss_view(&limpia), ss_tmp33514 = sv_len("ss_lang_fin_", 12), ss_tmp33515 = decimales, apuntar_tras(ss_tmp33513, ss_tmp33514, ss_tmp33515)));
+#line 2486 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp33516;
+        SafeView ss_tmp33517;
+        ss_mapa_str_usize* ss_tmp33518;
+        ((ss_tmp33516 = ss_view(&limpia), ss_tmp33517 = sv_len("ss_lang_conv_", 13), ss_tmp33518 = conversiones, apuntar_tras(ss_tmp33516, ss_tmp33517, ss_tmp33518)));
 #line 2487 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp33516 = cuerpos;
+        ss_lista_str* ss_tmp33519 = cuerpos;
 #line 2487 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp33516, ss_clone(l), "ejemplos/compilador/tcodec.t", 2487);
+        ss_push_lista_str(ss_tmp33519, ss_clone(l), "ejemplos/compilador/tcodec.t", 2487);
         ss_free(&limpia);
     }
 #line 2489 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp33517 = cuerpos;
+    ss_lista_str* ss_tmp33520 = cuerpos;
 #line 2489 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp33517, ss_new(), "ejemplos/compilador/tcodec.t", 2489);
+    ss_push_lista_str(ss_tmp33520, ss_new(), "ejemplos/compilador/tcodec.t", 2489);
 #line 2490 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp33518 = true;
+    bool ss_tmp33521 = true;
     for (size_t ss_i1078 = 0; ss_i1078 < lineas.length; ss_i1078++)
     {
         ss_free(&lineas.e[ss_i1078]);
@@ -111441,7 +111447,7 @@ SS_LANG_QUIZA_SIN_USAR static bool emitir_funcion(SS_LANG_QUIZA_SIN_USAR const N
     lineas.e = NULL;
     lineas.length = 0;
     lineas.capacity = 0;
-    return ss_tmp33518;
+    return ss_tmp33521;
 }
 
 #line 2499 "ejemplos/compilador/tcodec.t"
@@ -111454,48 +111460,48 @@ SS_LANG_QUIZA_SIN_USAR static SafeString para_la_shell(SS_LANG_QUIZA_SIN_USAR Sa
 #line 2502 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp33519;
-        size_t ss_tmp33520;
+        size_t ss_tmp33522;
+        size_t ss_tmp33523;
 #line 2502 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp33519 = i, ss_tmp33520 = sv_len_of(t), (ss_tmp33519 < ss_tmp33520)))))
+        if (!(((ss_tmp33522 = i, ss_tmp33523 = sv_len_of(t), (ss_tmp33522 < ss_tmp33523)))))
         {
             break;
         }
 #line 2503 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33521 = t;
-        size_t ss_tmp33522;
-        size_t ss_tmp33523;
+        SafeView ss_tmp33524 = t;
+        size_t ss_tmp33525;
+        size_t ss_tmp33526;
 #line 2503 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp33522 = ((size_t)(unsigned char)ss_tmp33521.ptr[ss_lang_indice_(i, ss_tmp33521.len, "ejemplos/compilador/tcodec.t", 2503)]), ss_tmp33523 = (size_t)39, (ss_tmp33522 == ss_tmp33523))))
+        if (((ss_tmp33525 = ((size_t)(unsigned char)ss_tmp33524.ptr[ss_lang_indice_(i, ss_tmp33524.len, "ejemplos/compilador/tcodec.t", 2503)]), ss_tmp33526 = (size_t)39, (ss_tmp33525 == ss_tmp33526))))
         {
-            SafeString* ss_tmp33524 = &r;
+            SafeString* ss_tmp33527 = &r;
 #line 2503 "ejemplos/compilador/tcodec.t"
-            ss_append_view(ss_tmp33524, sv_len("'\\''", 4));
+            ss_append_view(ss_tmp33527, sv_len("'\\''", 4));
         }
         else
         {
 #line 2504 "ejemplos/compilador/tcodec.t"
-            SafeString* ss_tmp33525 = &r;
-            size_t ss_tmp33526;
-            size_t ss_tmp33527;
-#line 2504 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp33528;
+            SafeString* ss_tmp33528 = &r;
             size_t ss_tmp33529;
             size_t ss_tmp33530;
 #line 2504 "ejemplos/compilador/tcodec.t"
+            SafeView ss_tmp33531;
+            size_t ss_tmp33532;
+            size_t ss_tmp33533;
 #line 2504 "ejemplos/compilador/tcodec.t"
-            ss_append_view(ss_tmp33525, ((ss_tmp33528 = t, ss_tmp33529 = i, ss_tmp33530 = ((ss_tmp33526 = i, ss_tmp33527 = (size_t)1, ss_lang_suma_usize(ss_tmp33526, ss_tmp33527, "ejemplos/compilador/tcodec.t", 2504))), ss_lang_rebanar_(ss_tmp33528, ss_tmp33529, ss_tmp33530, "ejemplos/compilador/tcodec.t", 2504))));
+#line 2504 "ejemplos/compilador/tcodec.t"
+            ss_append_view(ss_tmp33528, ((ss_tmp33531 = t, ss_tmp33532 = i, ss_tmp33533 = ((ss_tmp33529 = i, ss_tmp33530 = (size_t)1, ss_lang_suma_usize(ss_tmp33529, ss_tmp33530, "ejemplos/compilador/tcodec.t", 2504))), ss_lang_rebanar_(ss_tmp33531, ss_tmp33532, ss_tmp33533, "ejemplos/compilador/tcodec.t", 2504))));
         }
 #line 2505 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33531;
-        size_t ss_tmp33532;
+        size_t ss_tmp33534;
+        size_t ss_tmp33535;
 #line 2505 "ejemplos/compilador/tcodec.t"
-        i = ((ss_tmp33531 = i, ss_tmp33532 = (size_t)1, ss_lang_suma_usize(ss_tmp33531, ss_tmp33532, "ejemplos/compilador/tcodec.t", 2505)));
+        i = ((ss_tmp33534 = i, ss_tmp33535 = (size_t)1, ss_lang_suma_usize(ss_tmp33534, ss_tmp33535, "ejemplos/compilador/tcodec.t", 2505)));
     }
 #line 2507 "ejemplos/compilador/tcodec.t"
-    SafeString* ss_tmp33533 = &r;
+    SafeString* ss_tmp33536 = &r;
 #line 2507 "ejemplos/compilador/tcodec.t"
-    ss_append_view(ss_tmp33533, sv_len("'", 1));
+    ss_append_view(ss_tmp33536, sv_len("'", 1));
 #line 2508 "ejemplos/compilador/tcodec.t"
     return r;
 }
@@ -111510,34 +111516,34 @@ SS_LANG_QUIZA_SIN_USAR static SafeString sin_extension(SS_LANG_QUIZA_SIN_USAR Sa
 #line 2515 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp33534;
-        size_t ss_tmp33535;
+        size_t ss_tmp33537;
+        size_t ss_tmp33538;
 #line 2515 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp33534 = i, ss_tmp33535 = (size_t)0, (ss_tmp33534 > ss_tmp33535)))))
+        if (!(((ss_tmp33537 = i, ss_tmp33538 = (size_t)0, (ss_tmp33537 > ss_tmp33538)))))
         {
             break;
         }
 #line 2516 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33536;
-        size_t ss_tmp33537;
-#line 2516 "ejemplos/compilador/tcodec.t"
-        i = ((ss_tmp33536 = i, ss_tmp33537 = (size_t)1, ss_lang_resta_usize(ss_tmp33536, ss_tmp33537, "ejemplos/compilador/tcodec.t", 2516)));
-#line 2517 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33538 = ruta;
-        SS_LANG_QUIZA_SIN_USAR size_t b = ((size_t)(unsigned char)ss_tmp33538.ptr[ss_lang_indice_(i, ss_tmp33538.len, "ejemplos/compilador/tcodec.t", 2517)]);
-#line 2518 "ejemplos/compilador/tcodec.t"
         size_t ss_tmp33539;
         size_t ss_tmp33540;
+#line 2516 "ejemplos/compilador/tcodec.t"
+        i = ((ss_tmp33539 = i, ss_tmp33540 = (size_t)1, ss_lang_resta_usize(ss_tmp33539, ss_tmp33540, "ejemplos/compilador/tcodec.t", 2516)));
+#line 2517 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp33541 = ruta;
+        SS_LANG_QUIZA_SIN_USAR size_t b = ((size_t)(unsigned char)ss_tmp33541.ptr[ss_lang_indice_(i, ss_tmp33541.len, "ejemplos/compilador/tcodec.t", 2517)]);
 #line 2518 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp33539 = b, ss_tmp33540 = (size_t)47, (ss_tmp33539 == ss_tmp33540))))
+        size_t ss_tmp33542;
+        size_t ss_tmp33543;
+#line 2518 "ejemplos/compilador/tcodec.t"
+        if (((ss_tmp33542 = b, ss_tmp33543 = (size_t)47, (ss_tmp33542 == ss_tmp33543))))
         {
             break;
         }
 #line 2519 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33541;
-        size_t ss_tmp33542;
+        size_t ss_tmp33544;
+        size_t ss_tmp33545;
 #line 2519 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp33541 = b, ss_tmp33542 = (size_t)46, (ss_tmp33541 == ss_tmp33542))))
+        if (((ss_tmp33544 = b, ss_tmp33545 = (size_t)46, (ss_tmp33544 == ss_tmp33545))))
         {
 #line 2520 "ejemplos/compilador/tcodec.t"
             punto = i;
@@ -111546,46 +111552,46 @@ SS_LANG_QUIZA_SIN_USAR static SafeString sin_extension(SS_LANG_QUIZA_SIN_USAR Sa
         }
     }
 #line 2525 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33543;
-    size_t ss_tmp33544;
-#line 2525 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33545;
     size_t ss_tmp33546;
+    size_t ss_tmp33547;
 #line 2525 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp33552 = (((ss_tmp33543 = punto, ss_tmp33544 = sv_len_of(ruta), (ss_tmp33543 < ss_tmp33544))) && ((ss_tmp33545 = punto, ss_tmp33546 = (size_t)0, (ss_tmp33545 > ss_tmp33546))));
-    if (ss_tmp33552)
+    size_t ss_tmp33548;
+    size_t ss_tmp33549;
+#line 2525 "ejemplos/compilador/tcodec.t"
+    bool ss_tmp33555 = (((ss_tmp33546 = punto, ss_tmp33547 = sv_len_of(ruta), (ss_tmp33546 < ss_tmp33547))) && ((ss_tmp33548 = punto, ss_tmp33549 = (size_t)0, (ss_tmp33548 > ss_tmp33549))));
+    if (ss_tmp33555)
     {
-        size_t ss_tmp33547;
-        size_t ss_tmp33548;
-#line 2525 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33549 = ruta;
         size_t ss_tmp33550;
         size_t ss_tmp33551;
 #line 2525 "ejemplos/compilador/tcodec.t"
-        ss_tmp33552 = ((ss_tmp33550 = ((size_t)(unsigned char)ss_tmp33549.ptr[ss_lang_indice_(((ss_tmp33547 = punto, ss_tmp33548 = (size_t)1, ss_lang_resta_usize(ss_tmp33547, ss_tmp33548, "ejemplos/compilador/tcodec.t", 2525))), ss_tmp33549.len, "ejemplos/compilador/tcodec.t", 2525)]), ss_tmp33551 = (size_t)47, (ss_tmp33550 == ss_tmp33551)));
+        SafeView ss_tmp33552 = ruta;
+        size_t ss_tmp33553;
+        size_t ss_tmp33554;
+#line 2525 "ejemplos/compilador/tcodec.t"
+        ss_tmp33555 = ((ss_tmp33553 = ((size_t)(unsigned char)ss_tmp33552.ptr[ss_lang_indice_(((ss_tmp33550 = punto, ss_tmp33551 = (size_t)1, ss_lang_resta_usize(ss_tmp33550, ss_tmp33551, "ejemplos/compilador/tcodec.t", 2525))), ss_tmp33552.len, "ejemplos/compilador/tcodec.t", 2525)]), ss_tmp33554 = (size_t)47, (ss_tmp33553 == ss_tmp33554)));
     }
-    if (ss_tmp33552)
+    if (ss_tmp33555)
     {
 #line 2526 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33553 = ss_from_view(ruta);
-        return ss_tmp33553;
-    }
-#line 2528 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33554;
-    size_t ss_tmp33555;
-#line 2528 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33554 = punto, ss_tmp33555 = (size_t)0, (ss_tmp33554 == ss_tmp33555))))
-    {
         SafeString ss_tmp33556 = ss_from_view(ruta);
         return ss_tmp33556;
     }
-#line 2529 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp33557;
+#line 2528 "ejemplos/compilador/tcodec.t"
+    size_t ss_tmp33557;
     size_t ss_tmp33558;
-    size_t ss_tmp33559;
+#line 2528 "ejemplos/compilador/tcodec.t"
+    if (((ss_tmp33557 = punto, ss_tmp33558 = (size_t)0, (ss_tmp33557 == ss_tmp33558))))
+    {
+        SafeString ss_tmp33559 = ss_from_view(ruta);
+        return ss_tmp33559;
+    }
 #line 2529 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33560 = ss_from_view(((ss_tmp33557 = ruta, ss_tmp33558 = (size_t)0, ss_tmp33559 = punto, ss_lang_rebanar_(ss_tmp33557, ss_tmp33558, ss_tmp33559, "ejemplos/compilador/tcodec.t", 2529))));
-    return ss_tmp33560;
+    SafeView ss_tmp33560;
+    size_t ss_tmp33561;
+    size_t ss_tmp33562;
+#line 2529 "ejemplos/compilador/tcodec.t"
+    SafeString ss_tmp33563 = ss_from_view(((ss_tmp33560 = ruta, ss_tmp33561 = (size_t)0, ss_tmp33562 = punto, ss_lang_rebanar_(ss_tmp33560, ss_tmp33561, ss_tmp33562, "ejemplos/compilador/tcodec.t", 2529))));
+    return ss_tmp33563;
 }
 
 #line 2532 "ejemplos/compilador/tcodec.t"
@@ -111594,13 +111600,13 @@ SS_LANG_QUIZA_SIN_USAR static SafeString extension(SS_LANG_QUIZA_SIN_USAR SafeVi
 #line 2533 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString ss_id_sin = sin_extension(ruta);
 #line 2534 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp33561;
-    size_t ss_tmp33562;
-    size_t ss_tmp33563;
+    SafeView ss_tmp33564;
+    size_t ss_tmp33565;
+    size_t ss_tmp33566;
 #line 2534 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33564 = ss_from_view(((ss_tmp33561 = ruta, ss_tmp33562 = sv_len_of(ss_view(&ss_id_sin)), ss_tmp33563 = sv_len_of(ruta), ss_lang_rebanar_(ss_tmp33561, ss_tmp33562, ss_tmp33563, "ejemplos/compilador/tcodec.t", 2534))));
+    SafeString ss_tmp33567 = ss_from_view(((ss_tmp33564 = ruta, ss_tmp33565 = sv_len_of(ss_view(&ss_id_sin)), ss_tmp33566 = sv_len_of(ruta), ss_lang_rebanar_(ss_tmp33564, ss_tmp33565, ss_tmp33566, "ejemplos/compilador/tcodec.t", 2534))));
     ss_free(&ss_id_sin);
-    return ss_tmp33564;
+    return ss_tmp33567;
 }
 
 #line 2537 "ejemplos/compilador/tcodec.t"
@@ -111611,38 +111617,38 @@ SS_LANG_QUIZA_SIN_USAR static SafeString nombre_suelto(SS_LANG_QUIZA_SIN_USAR Sa
 #line 2539 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp33565;
-        size_t ss_tmp33566;
+        size_t ss_tmp33568;
+        size_t ss_tmp33569;
 #line 2539 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp33565 = i, ss_tmp33566 = (size_t)0, (ss_tmp33565 > ss_tmp33566)))))
+        if (!(((ss_tmp33568 = i, ss_tmp33569 = (size_t)0, (ss_tmp33568 > ss_tmp33569)))))
         {
             break;
         }
 #line 2540 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33567;
-        size_t ss_tmp33568;
-#line 2540 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33569 = ruta;
         size_t ss_tmp33570;
         size_t ss_tmp33571;
 #line 2540 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp33570 = ((size_t)(unsigned char)ss_tmp33569.ptr[ss_lang_indice_(((ss_tmp33567 = i, ss_tmp33568 = (size_t)1, ss_lang_resta_usize(ss_tmp33567, ss_tmp33568, "ejemplos/compilador/tcodec.t", 2540))), ss_tmp33569.len, "ejemplos/compilador/tcodec.t", 2540)]), ss_tmp33571 = (size_t)47, (ss_tmp33570 == ss_tmp33571))))
+        SafeView ss_tmp33572 = ruta;
+        size_t ss_tmp33573;
+        size_t ss_tmp33574;
+#line 2540 "ejemplos/compilador/tcodec.t"
+        if (((ss_tmp33573 = ((size_t)(unsigned char)ss_tmp33572.ptr[ss_lang_indice_(((ss_tmp33570 = i, ss_tmp33571 = (size_t)1, ss_lang_resta_usize(ss_tmp33570, ss_tmp33571, "ejemplos/compilador/tcodec.t", 2540))), ss_tmp33572.len, "ejemplos/compilador/tcodec.t", 2540)]), ss_tmp33574 = (size_t)47, (ss_tmp33573 == ss_tmp33574))))
         {
             break;
         }
 #line 2541 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33572;
-        size_t ss_tmp33573;
+        size_t ss_tmp33575;
+        size_t ss_tmp33576;
 #line 2541 "ejemplos/compilador/tcodec.t"
-        i = ((ss_tmp33572 = i, ss_tmp33573 = (size_t)1, ss_lang_resta_usize(ss_tmp33572, ss_tmp33573, "ejemplos/compilador/tcodec.t", 2541)));
+        i = ((ss_tmp33575 = i, ss_tmp33576 = (size_t)1, ss_lang_resta_usize(ss_tmp33575, ss_tmp33576, "ejemplos/compilador/tcodec.t", 2541)));
     }
 #line 2543 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp33574;
-    size_t ss_tmp33575;
-    size_t ss_tmp33576;
+    SafeView ss_tmp33577;
+    size_t ss_tmp33578;
+    size_t ss_tmp33579;
 #line 2543 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33577 = ss_from_view(((ss_tmp33574 = ruta, ss_tmp33575 = i, ss_tmp33576 = sv_len_of(ruta), ss_lang_rebanar_(ss_tmp33574, ss_tmp33575, ss_tmp33576, "ejemplos/compilador/tcodec.t", 2543))));
-    return ss_tmp33577;
+    SafeString ss_tmp33580 = ss_from_view(((ss_tmp33577 = ruta, ss_tmp33578 = i, ss_tmp33579 = sv_len_of(ruta), ss_lang_rebanar_(ss_tmp33577, ss_tmp33578, ss_tmp33579, "ejemplos/compilador/tcodec.t", 2543))));
+    return ss_tmp33580;
 }
 
 #line 2546 "ejemplos/compilador/tcodec.t"
@@ -111653,121 +111659,121 @@ SS_LANG_QUIZA_SIN_USAR static SafeString directorio_de(SS_LANG_QUIZA_SIN_USAR Sa
 #line 2548 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp33578;
-        size_t ss_tmp33579;
+        size_t ss_tmp33581;
+        size_t ss_tmp33582;
 #line 2548 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp33578 = i, ss_tmp33579 = (size_t)0, (ss_tmp33578 > ss_tmp33579)))))
+        if (!(((ss_tmp33581 = i, ss_tmp33582 = (size_t)0, (ss_tmp33581 > ss_tmp33582)))))
         {
             break;
         }
 #line 2549 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33580;
-        size_t ss_tmp33581;
-#line 2549 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33582 = ruta;
         size_t ss_tmp33583;
         size_t ss_tmp33584;
 #line 2549 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp33583 = ((size_t)(unsigned char)ss_tmp33582.ptr[ss_lang_indice_(((ss_tmp33580 = i, ss_tmp33581 = (size_t)1, ss_lang_resta_usize(ss_tmp33580, ss_tmp33581, "ejemplos/compilador/tcodec.t", 2549))), ss_tmp33582.len, "ejemplos/compilador/tcodec.t", 2549)]), ss_tmp33584 = (size_t)47, (ss_tmp33583 == ss_tmp33584))))
-        {
-            size_t ss_tmp33585;
-            size_t ss_tmp33586;
+        SafeView ss_tmp33585 = ruta;
+        size_t ss_tmp33586;
+        size_t ss_tmp33587;
 #line 2549 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp33587;
+        if (((ss_tmp33586 = ((size_t)(unsigned char)ss_tmp33585.ptr[ss_lang_indice_(((ss_tmp33583 = i, ss_tmp33584 = (size_t)1, ss_lang_resta_usize(ss_tmp33583, ss_tmp33584, "ejemplos/compilador/tcodec.t", 2549))), ss_tmp33585.len, "ejemplos/compilador/tcodec.t", 2549)]), ss_tmp33587 = (size_t)47, (ss_tmp33586 == ss_tmp33587))))
+        {
             size_t ss_tmp33588;
             size_t ss_tmp33589;
 #line 2549 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp33590 = ss_from_view(((ss_tmp33587 = ruta, ss_tmp33588 = (size_t)0, ss_tmp33589 = ((ss_tmp33585 = i, ss_tmp33586 = (size_t)1, ss_lang_resta_usize(ss_tmp33585, ss_tmp33586, "ejemplos/compilador/tcodec.t", 2549))), ss_lang_rebanar_(ss_tmp33587, ss_tmp33588, ss_tmp33589, "ejemplos/compilador/tcodec.t", 2549))));
-            return ss_tmp33590;
+            SafeView ss_tmp33590;
+            size_t ss_tmp33591;
+            size_t ss_tmp33592;
+#line 2549 "ejemplos/compilador/tcodec.t"
+            SafeString ss_tmp33593 = ss_from_view(((ss_tmp33590 = ruta, ss_tmp33591 = (size_t)0, ss_tmp33592 = ((ss_tmp33588 = i, ss_tmp33589 = (size_t)1, ss_lang_resta_usize(ss_tmp33588, ss_tmp33589, "ejemplos/compilador/tcodec.t", 2549))), ss_lang_rebanar_(ss_tmp33590, ss_tmp33591, ss_tmp33592, "ejemplos/compilador/tcodec.t", 2549))));
+            return ss_tmp33593;
         }
 #line 2550 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33591;
-        size_t ss_tmp33592;
+        size_t ss_tmp33594;
+        size_t ss_tmp33595;
 #line 2550 "ejemplos/compilador/tcodec.t"
-        i = ((ss_tmp33591 = i, ss_tmp33592 = (size_t)1, ss_lang_resta_usize(ss_tmp33591, ss_tmp33592, "ejemplos/compilador/tcodec.t", 2550)));
+        i = ((ss_tmp33594 = i, ss_tmp33595 = (size_t)1, ss_lang_resta_usize(ss_tmp33594, ss_tmp33595, "ejemplos/compilador/tcodec.t", 2550)));
     }
 #line 2552 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33593 = ss_new();
-    return ss_tmp33593;
+    SafeString ss_tmp33596 = ss_new();
+    return ss_tmp33596;
 }
 
 #line 2557 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static ss_res_bool escribir(SS_LANG_QUIZA_SIN_USAR SafeView ruta, SS_LANG_QUIZA_SIN_USAR SafeView contenido)
 {
 #line 2558 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp33595;
-    SafeView ss_tmp33596;
+    SafeView ss_tmp33598;
+    SafeView ss_tmp33599;
 #line 2558 "ejemplos/compilador/tcodec.t"
-    ss_res_unidad ss_tmp33594 = ((ss_tmp33595 = ruta, ss_tmp33596 = contenido, ss_lang_escribir_archivo_(ss_tmp33595, ss_tmp33596)));
-    if (ss_tmp33594.motivo != NULL)
+    ss_res_unidad ss_tmp33597 = ((ss_tmp33598 = ruta, ss_tmp33599 = contenido, ss_lang_escribir_archivo_(ss_tmp33598, ss_tmp33599)));
+    if (ss_tmp33597.motivo != NULL)
     {
-        return (ss_res_bool){ .motivo = ss_tmp33594.motivo };
+        return (ss_res_bool){ .motivo = ss_tmp33597.motivo };
     }
 #line 2559 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp33597 = true;
-    return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp33597 };
+    bool ss_tmp33600 = true;
+    return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp33600 };
 }
 
 #line 2564 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static bool escribir_de_una_vez(SS_LANG_QUIZA_SIN_USAR SafeView ruta, SS_LANG_QUIZA_SIN_USAR SafeView contenido, SS_LANG_QUIZA_SIN_USAR bool ejecutable)
 {
 #line 2565 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33598 = ss_from_view(ruta);
-    SafeString ss_tmp33599 = ss_from(tcodec_ruta_real(ss_lang_cstr_(&ss_tmp33598, "ejemplos/compilador/tcodec.t", 2565)));
-    SS_LANG_QUIZA_SIN_USAR SafeString destino = ss_tmp33599;
-    ss_free(&ss_tmp33598);
+    SafeString ss_tmp33601 = ss_from_view(ruta);
+    SafeString ss_tmp33602 = ss_from(tcodec_ruta_real(ss_lang_cstr_(&ss_tmp33601, "ejemplos/compilador/tcodec.t", 2565)));
+    SS_LANG_QUIZA_SIN_USAR SafeString destino = ss_tmp33602;
+    ss_free(&ss_tmp33601);
 #line 2566 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33600;
-    size_t ss_tmp33601;
+    size_t ss_tmp33603;
+    size_t ss_tmp33604;
 #line 2566 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33600 = sv_len_of(ss_view(&destino)), ss_tmp33601 = (size_t)0, (ss_tmp33600 == ss_tmp33601))))
+    if (((ss_tmp33603 = sv_len_of(ss_view(&destino)), ss_tmp33604 = (size_t)0, (ss_tmp33603 == ss_tmp33604))))
     {
-        bool ss_tmp33602 = false;
+        bool ss_tmp33605 = false;
         ss_free(&destino);
-        return ss_tmp33602;
+        return ss_tmp33605;
     }
 #line 2567 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33603 = ss_clone(&destino);
-    SafeString ss_tmp33604 = ss_from(tcodec_temporal_junto(ss_lang_cstr_(&ss_tmp33603, "ejemplos/compilador/tcodec.t", 2567)));
-    SS_LANG_QUIZA_SIN_USAR SafeString temporal = ss_tmp33604;
-    ss_free(&ss_tmp33603);
+    SafeString ss_tmp33606 = ss_clone(&destino);
+    SafeString ss_tmp33607 = ss_from(tcodec_temporal_junto(ss_lang_cstr_(&ss_tmp33606, "ejemplos/compilador/tcodec.t", 2567)));
+    SS_LANG_QUIZA_SIN_USAR SafeString temporal = ss_tmp33607;
+    ss_free(&ss_tmp33606);
 #line 2568 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33605;
-    size_t ss_tmp33606;
+    size_t ss_tmp33608;
+    size_t ss_tmp33609;
 #line 2568 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33605 = sv_len_of(ss_view(&temporal)), ss_tmp33606 = (size_t)0, (ss_tmp33605 == ss_tmp33606))))
+    if (((ss_tmp33608 = sv_len_of(ss_view(&temporal)), ss_tmp33609 = (size_t)0, (ss_tmp33608 == ss_tmp33609))))
     {
-        bool ss_tmp33607 = false;
+        bool ss_tmp33610 = false;
         ss_free(&temporal);
         ss_free(&destino);
-        return ss_tmp33607;
+        return ss_tmp33610;
     }
 #line 2569 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp33609;
-    SafeView ss_tmp33610;
-    ss_res_bool ss_tmp33608 = ((ss_tmp33609 = ss_view(&temporal), ss_tmp33610 = contenido, escribir(ss_tmp33609, ss_tmp33610)));
-    bool ss_tmp33611;
-    if (ss_tmp33608.motivo != NULL)
+    SafeView ss_tmp33612;
+    SafeView ss_tmp33613;
+    ss_res_bool ss_tmp33611 = ((ss_tmp33612 = ss_view(&temporal), ss_tmp33613 = contenido, escribir(ss_tmp33612, ss_tmp33613)));
+    bool ss_tmp33614;
+    if (ss_tmp33611.motivo != NULL)
     {
-        ss_tmp33611 = false;
+        ss_tmp33614 = false;
     }
     else
     {
-        ss_tmp33611 = ss_tmp33608.valor;
+        ss_tmp33614 = ss_tmp33611.valor;
     }
-    SS_LANG_QUIZA_SIN_USAR bool bien = ss_tmp33611;
+    SS_LANG_QUIZA_SIN_USAR bool bien = ss_tmp33614;
 #line 2570 "ejemplos/compilador/tcodec.t"
     if ((!bien))
     {
 #line 2571 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33612 = ss_clone(&temporal);
-        tcodec_borrar(ss_lang_cstr_(&ss_tmp33612, "ejemplos/compilador/tcodec.t", 2571));
-        ss_free(&ss_tmp33612);
+        SafeString ss_tmp33615 = ss_clone(&temporal);
+        tcodec_borrar(ss_lang_cstr_(&ss_tmp33615, "ejemplos/compilador/tcodec.t", 2571));
+        ss_free(&ss_tmp33615);
 #line 2572 "ejemplos/compilador/tcodec.t"
-        bool ss_tmp33613 = false;
+        bool ss_tmp33616 = false;
         ss_free(&temporal);
         ss_free(&destino);
-        return ss_tmp33613;
+        return ss_tmp33616;
     }
 #line 2574 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR int32_t bandera = (int32_t)0;
@@ -111777,35 +111783,35 @@ SS_LANG_QUIZA_SIN_USAR static bool escribir_de_una_vez(SS_LANG_QUIZA_SIN_USAR Sa
         bandera = (int32_t)1;
     }
 #line 2576 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33614 = ss_clone(&temporal);
-    const char* ss_tmp33615;
-    SafeString ss_tmp33616 = ss_clone(&destino);
-    const char* ss_tmp33617;
-    int32_t ss_tmp33618;
-    int32_t ss_tmp33619;
-    int32_t ss_tmp33620;
+    SafeString ss_tmp33617 = ss_clone(&temporal);
+    const char* ss_tmp33618;
+    SafeString ss_tmp33619 = ss_clone(&destino);
+    const char* ss_tmp33620;
+    int32_t ss_tmp33621;
+    int32_t ss_tmp33622;
+    int32_t ss_tmp33623;
 #line 2576 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33619 = ((ss_tmp33615 = ss_lang_cstr_(&ss_tmp33614, "ejemplos/compilador/tcodec.t", 2576), ss_tmp33617 = ss_lang_cstr_(&ss_tmp33616, "ejemplos/compilador/tcodec.t", 2576), ss_tmp33618 = bandera, tcodec_instalar(ss_tmp33615, ss_tmp33617, ss_tmp33618))), ss_tmp33620 = (int32_t)0, (ss_tmp33619 != ss_tmp33620))))
+    if (((ss_tmp33622 = ((ss_tmp33618 = ss_lang_cstr_(&ss_tmp33617, "ejemplos/compilador/tcodec.t", 2576), ss_tmp33620 = ss_lang_cstr_(&ss_tmp33619, "ejemplos/compilador/tcodec.t", 2576), ss_tmp33621 = bandera, tcodec_instalar(ss_tmp33618, ss_tmp33620, ss_tmp33621))), ss_tmp33623 = (int32_t)0, (ss_tmp33622 != ss_tmp33623))))
     {
 #line 2577 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33621 = ss_clone(&temporal);
-        tcodec_borrar(ss_lang_cstr_(&ss_tmp33621, "ejemplos/compilador/tcodec.t", 2577));
-        ss_free(&ss_tmp33621);
+        SafeString ss_tmp33624 = ss_clone(&temporal);
+        tcodec_borrar(ss_lang_cstr_(&ss_tmp33624, "ejemplos/compilador/tcodec.t", 2577));
+        ss_free(&ss_tmp33624);
 #line 2578 "ejemplos/compilador/tcodec.t"
-        bool ss_tmp33622 = false;
-        ss_free(&ss_tmp33614);
-        ss_free(&ss_tmp33616);
+        bool ss_tmp33625 = false;
+        ss_free(&ss_tmp33617);
+        ss_free(&ss_tmp33619);
         ss_free(&temporal);
         ss_free(&destino);
-        return ss_tmp33622;
+        return ss_tmp33625;
     }
-    ss_free(&ss_tmp33614);
-    ss_free(&ss_tmp33616);
+    ss_free(&ss_tmp33617);
+    ss_free(&ss_tmp33619);
 #line 2580 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp33623 = true;
+    bool ss_tmp33626 = true;
     ss_free(&temporal);
     ss_free(&destino);
-    return ss_tmp33623;
+    return ss_tmp33626;
 }
 
 #line 2583 "ejemplos/compilador/tcodec.t"
@@ -111814,274 +111820,274 @@ SS_LANG_QUIZA_SIN_USAR static size_t construir(SS_LANG_QUIZA_SIN_USAR SafeView t
 #line 2585 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString base = ss_from_view(salida);
 #line 2586 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33624;
-    size_t ss_tmp33625;
+    size_t ss_tmp33627;
+    size_t ss_tmp33628;
 #line 2586 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33624 = sv_len_of(ss_view(&base)), ss_tmp33625 = (size_t)0, (ss_tmp33624 == ss_tmp33625))))
+    if (((ss_tmp33627 = sv_len_of(ss_view(&base)), ss_tmp33628 = (size_t)0, (ss_tmp33627 == ss_tmp33628))))
     {
-        SafeString ss_tmp33626 = sin_extension(fuente);
+        SafeString ss_tmp33629 = sin_extension(fuente);
         ss_free(&base);
-        base = ss_tmp33626;
+        base = ss_tmp33629;
     }
 #line 2590 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp33627;
-    SafeView ss_tmp33628;
-    if (((ss_tmp33627 = modo, ss_tmp33628 = sv_len("emitir", 6), sv_equals(ss_tmp33627, ss_tmp33628))))
+    SafeView ss_tmp33630;
+    SafeView ss_tmp33631;
+    if (((ss_tmp33630 = modo, ss_tmp33631 = sv_len("emitir", 6), sv_equals(ss_tmp33630, ss_tmp33631))))
     {
 #line 2591 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33629 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33629, ss_view(&base), "ejemplos/compilador/tcodec.t", 2591);
-        ss_lang_agregar_texto_(&ss_tmp33629, sv_len(".c", 2), "ejemplos/compilador/tcodec.t", 2591);
-        SS_LANG_QUIZA_SIN_USAR SafeString ruta_c = ss_tmp33629;
+        SafeString ss_tmp33632 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33632, ss_view(&base), "ejemplos/compilador/tcodec.t", 2591);
+        ss_lang_agregar_texto_(&ss_tmp33632, sv_len(".c", 2), "ejemplos/compilador/tcodec.t", 2591);
+        SS_LANG_QUIZA_SIN_USAR SafeString ruta_c = ss_tmp33632;
 #line 2592 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33630 = ss_clone(&ruta_c);
-        int32_t ss_tmp33631;
-        int32_t ss_tmp33632;
+        SafeString ss_tmp33633 = ss_clone(&ruta_c);
+        int32_t ss_tmp33634;
+        int32_t ss_tmp33635;
 #line 2592 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp33631 = tcodec_es_archivo(ss_lang_cstr_(&ss_tmp33630, "ejemplos/compilador/tcodec.t", 2592)), ss_tmp33632 = (int32_t)1, (ss_tmp33631 == ss_tmp33632))))
+        if (((ss_tmp33634 = tcodec_es_archivo(ss_lang_cstr_(&ss_tmp33633, "ejemplos/compilador/tcodec.t", 2592)), ss_tmp33635 = (int32_t)1, (ss_tmp33634 == ss_tmp33635))))
         {
 #line 2593 "ejemplos/compilador/tcodec.t"
-            ss_res_str ss_tmp33633 = ss_lang_leer_archivo_(ss_view(&ruta_c));
-            SafeString ss_tmp33634;
-            if (ss_tmp33633.motivo != NULL)
+            ss_res_str ss_tmp33636 = ss_lang_leer_archivo_(ss_view(&ruta_c));
+            SafeString ss_tmp33637;
+            if (ss_tmp33636.motivo != NULL)
             {
-                ss_tmp33634 = ss_new();
+                ss_tmp33637 = ss_new();
             }
             else
             {
-                ss_tmp33634 = ss_tmp33633.valor;
+                ss_tmp33637 = ss_tmp33636.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR SafeString previo = ss_tmp33634;
+            SS_LANG_QUIZA_SIN_USAR SafeString previo = ss_tmp33637;
 #line 2594 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR SafeView marca = sv_len("/* Generado por el compilador de Tcode. No editar a mano. */", 60);
 #line 2595 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR SafeView principio = ss_view(&previo);
 #line 2596 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp33635;
-            size_t ss_tmp33636;
+            size_t ss_tmp33638;
+            size_t ss_tmp33639;
 #line 2596 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp33635 = sv_len_of(principio), ss_tmp33636 = (size_t)200, (ss_tmp33635 > ss_tmp33636))))
+            if (((ss_tmp33638 = sv_len_of(principio), ss_tmp33639 = (size_t)200, (ss_tmp33638 > ss_tmp33639))))
             {
-                SafeView ss_tmp33637;
-                size_t ss_tmp33638;
-                size_t ss_tmp33639;
+                SafeView ss_tmp33640;
+                size_t ss_tmp33641;
+                size_t ss_tmp33642;
 #line 2596 "ejemplos/compilador/tcodec.t"
-                principio = ((ss_tmp33637 = principio, ss_tmp33638 = (size_t)0, ss_tmp33639 = (size_t)200, ss_lang_rebanar_(ss_tmp33637, ss_tmp33638, ss_tmp33639, "ejemplos/compilador/tcodec.t", 2596)));
+                principio = ((ss_tmp33640 = principio, ss_tmp33641 = (size_t)0, ss_tmp33642 = (size_t)200, ss_lang_rebanar_(ss_tmp33640, ss_tmp33641, ss_tmp33642, "ejemplos/compilador/tcodec.t", 2596)));
             }
 #line 2597 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp33640;
-            SafeView ss_tmp33641;
-            if ((!((ss_tmp33640 = principio, ss_tmp33641 = marca, contiene(ss_tmp33640, ss_tmp33641)))))
+            SafeView ss_tmp33643;
+            SafeView ss_tmp33644;
+            if ((!((ss_tmp33643 = principio, ss_tmp33644 = marca, contiene(ss_tmp33643, ss_tmp33644)))))
             {
 #line 2598 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp33643 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp33643, sv_len("tcodec: ", 8), "ejemplos/compilador/tcodec.t", 2598);
-                ss_lang_agregar_texto_(&ss_tmp33643, ss_view(&ruta_c), "ejemplos/compilador/tcodec.t", 2598);
-                ss_lang_agregar_texto_(&ss_tmp33643, sv_len(" ya existe y no lo genero tcode, asi que no lo piso. Usa -o para elegir otro nombre.\n", 85), "ejemplos/compilador/tcodec.t", 2598);
-                SafeString ss_tmp33642 = ss_tmp33643;
-                SafeView ss_tmp33644 = ss_view(&ss_tmp33642);
+                SafeString ss_tmp33646 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp33646, sv_len("tcodec: ", 8), "ejemplos/compilador/tcodec.t", 2598);
+                ss_lang_agregar_texto_(&ss_tmp33646, ss_view(&ruta_c), "ejemplos/compilador/tcodec.t", 2598);
+                ss_lang_agregar_texto_(&ss_tmp33646, sv_len(" ya existe y no lo genero tcode, asi que no lo piso. Usa -o para elegir otro nombre.\n", 85), "ejemplos/compilador/tcodec.t", 2598);
+                SafeString ss_tmp33645 = ss_tmp33646;
+                SafeView ss_tmp33647 = ss_view(&ss_tmp33645);
 #line 2598 "ejemplos/compilador/tcodec.t"
-                ss_lang_escribir_(stderr, ss_tmp33644);
-                ss_free(&ss_tmp33642);
+                ss_lang_escribir_(stderr, ss_tmp33647);
+                ss_free(&ss_tmp33645);
 #line 2599 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp33645 = (size_t)2;
-                ss_free(&ss_tmp33630);
+                size_t ss_tmp33648 = (size_t)2;
+                ss_free(&ss_tmp33633);
                 ss_free(&previo);
                 ss_free(&ruta_c);
                 ss_free(&base);
-                return ss_tmp33645;
+                return ss_tmp33648;
             }
             ss_free(&previo);
         }
-        ss_free(&ss_tmp33630);
+        ss_free(&ss_tmp33633);
 #line 2602 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33646;
-        SafeView ss_tmp33647;
-        bool ss_tmp33648;
-        if ((!((ss_tmp33646 = ss_view(&ruta_c), ss_tmp33647 = todo, ss_tmp33648 = false, escribir_de_una_vez(ss_tmp33646, ss_tmp33647, ss_tmp33648)))))
+        SafeView ss_tmp33649;
+        SafeView ss_tmp33650;
+        bool ss_tmp33651;
+        if ((!((ss_tmp33649 = ss_view(&ruta_c), ss_tmp33650 = todo, ss_tmp33651 = false, escribir_de_una_vez(ss_tmp33649, ss_tmp33650, ss_tmp33651)))))
         {
 #line 2603 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp33650 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp33650, sv_len("tcodec: no se pudo escribir `", 29), "ejemplos/compilador/tcodec.t", 2603);
-            ss_lang_agregar_texto_(&ss_tmp33650, ss_view(&ruta_c), "ejemplos/compilador/tcodec.t", 2603);
-            ss_lang_agregar_texto_(&ss_tmp33650, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2603);
-            SafeString ss_tmp33649 = ss_tmp33650;
-            SafeView ss_tmp33651 = ss_view(&ss_tmp33649);
+            SafeString ss_tmp33653 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp33653, sv_len("tcodec: no se pudo escribir `", 29), "ejemplos/compilador/tcodec.t", 2603);
+            ss_lang_agregar_texto_(&ss_tmp33653, ss_view(&ruta_c), "ejemplos/compilador/tcodec.t", 2603);
+            ss_lang_agregar_texto_(&ss_tmp33653, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2603);
+            SafeString ss_tmp33652 = ss_tmp33653;
+            SafeView ss_tmp33654 = ss_view(&ss_tmp33652);
 #line 2603 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp33651);
-            ss_free(&ss_tmp33649);
+            ss_lang_escribir_(stderr, ss_tmp33654);
+            ss_free(&ss_tmp33652);
 #line 2604 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp33652 = (size_t)2;
+            size_t ss_tmp33655 = (size_t)2;
             ss_free(&ruta_c);
             ss_free(&base);
-            return ss_tmp33652;
+            return ss_tmp33655;
         }
 #line 2606 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33654 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33654, ss_view(&ruta_c), "ejemplos/compilador/tcodec.t", 2606);
-        ss_lang_agregar_texto_(&ss_tmp33654, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2606);
-        SafeString ss_tmp33653 = ss_tmp33654;
-        SafeView ss_tmp33655 = ss_view(&ss_tmp33653);
+        SafeString ss_tmp33657 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33657, ss_view(&ruta_c), "ejemplos/compilador/tcodec.t", 2606);
+        ss_lang_agregar_texto_(&ss_tmp33657, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2606);
+        SafeString ss_tmp33656 = ss_tmp33657;
+        SafeView ss_tmp33658 = ss_view(&ss_tmp33656);
 #line 2606 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stdout, ss_tmp33655);
-        ss_free(&ss_tmp33653);
+        ss_lang_escribir_(stdout, ss_tmp33658);
+        ss_free(&ss_tmp33656);
 #line 2607 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33656 = (size_t)0;
+        size_t ss_tmp33659 = (size_t)0;
         ss_free(&ruta_c);
         ss_free(&base);
-        return ss_tmp33656;
+        return ss_tmp33659;
     }
 #line 2612 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33657 = ss_clone(&base);
-    const char* ss_tmp33658;
-    SafeString ss_tmp33659 = ss_from_view(fuente);
-    const char* ss_tmp33660;
-    int32_t ss_tmp33661;
-    int32_t ss_tmp33662;
+    SafeString ss_tmp33660 = ss_clone(&base);
+    const char* ss_tmp33661;
+    SafeString ss_tmp33662 = ss_from_view(fuente);
+    const char* ss_tmp33663;
+    int32_t ss_tmp33664;
+    int32_t ss_tmp33665;
 #line 2612 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33661 = ((ss_tmp33658 = ss_lang_cstr_(&ss_tmp33657, "ejemplos/compilador/tcodec.t", 2612), ss_tmp33660 = ss_lang_cstr_(&ss_tmp33659, "ejemplos/compilador/tcodec.t", 2612), tcodec_misma_ruta(ss_tmp33658, ss_tmp33660))), ss_tmp33662 = (int32_t)1, (ss_tmp33661 == ss_tmp33662))))
+    if (((ss_tmp33664 = ((ss_tmp33661 = ss_lang_cstr_(&ss_tmp33660, "ejemplos/compilador/tcodec.t", 2612), ss_tmp33663 = ss_lang_cstr_(&ss_tmp33662, "ejemplos/compilador/tcodec.t", 2612), tcodec_misma_ruta(ss_tmp33661, ss_tmp33663))), ss_tmp33665 = (int32_t)1, (ss_tmp33664 == ss_tmp33665))))
     {
 #line 2613 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33664 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33664, sv_len("tcodec: la salida `", 19), "ejemplos/compilador/tcodec.t", 2613);
-        ss_lang_agregar_texto_(&ss_tmp33664, ss_view(&base), "ejemplos/compilador/tcodec.t", 2613);
-        ss_lang_agregar_texto_(&ss_tmp33664, sv_len("` es el propio archivo fuente; elige otro nombre con `-o`.\n", 59), "ejemplos/compilador/tcodec.t", 2613);
-        SafeString ss_tmp33663 = ss_tmp33664;
-        SafeView ss_tmp33665 = ss_view(&ss_tmp33663);
+        SafeString ss_tmp33667 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33667, sv_len("tcodec: la salida `", 19), "ejemplos/compilador/tcodec.t", 2613);
+        ss_lang_agregar_texto_(&ss_tmp33667, ss_view(&base), "ejemplos/compilador/tcodec.t", 2613);
+        ss_lang_agregar_texto_(&ss_tmp33667, sv_len("` es el propio archivo fuente; elige otro nombre con `-o`.\n", 59), "ejemplos/compilador/tcodec.t", 2613);
+        SafeString ss_tmp33666 = ss_tmp33667;
+        SafeView ss_tmp33668 = ss_view(&ss_tmp33666);
 #line 2613 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp33665);
-        ss_free(&ss_tmp33663);
+        ss_lang_escribir_(stderr, ss_tmp33668);
+        ss_free(&ss_tmp33666);
 #line 2614 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33666 = (size_t)2;
-        ss_free(&ss_tmp33657);
-        ss_free(&ss_tmp33659);
+        size_t ss_tmp33669 = (size_t)2;
+        ss_free(&ss_tmp33660);
+        ss_free(&ss_tmp33662);
         ss_free(&base);
-        return ss_tmp33666;
+        return ss_tmp33669;
     }
-    ss_free(&ss_tmp33657);
-    ss_free(&ss_tmp33659);
+    ss_free(&ss_tmp33660);
+    ss_free(&ss_tmp33662);
 #line 2616 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString ext = extension(ss_view(&base));
 #line 2617 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp33667;
-    SafeView ss_tmp33668;
-    if (((ss_tmp33667 = ss_view(&ext), ss_tmp33668 = sv_len(".t", 2), sv_equals(ss_tmp33667, ss_tmp33668))))
+    SafeView ss_tmp33670;
+    SafeView ss_tmp33671;
+    if (((ss_tmp33670 = ss_view(&ext), ss_tmp33671 = sv_len(".t", 2), sv_equals(ss_tmp33670, ss_tmp33671))))
     {
 #line 2618 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33670 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33670, sv_len("tcodec: la salida `", 19), "ejemplos/compilador/tcodec.t", 2618);
-        ss_lang_agregar_texto_(&ss_tmp33670, ss_view(&base), "ejemplos/compilador/tcodec.t", 2618);
-        ss_lang_agregar_texto_(&ss_tmp33670, sv_len("` parece un fuente `.t`; elige otro nombre para no sobrescribir codigo.\n", 72), "ejemplos/compilador/tcodec.t", 2618);
-        SafeString ss_tmp33669 = ss_tmp33670;
-        SafeView ss_tmp33671 = ss_view(&ss_tmp33669);
+        SafeString ss_tmp33673 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33673, sv_len("tcodec: la salida `", 19), "ejemplos/compilador/tcodec.t", 2618);
+        ss_lang_agregar_texto_(&ss_tmp33673, ss_view(&base), "ejemplos/compilador/tcodec.t", 2618);
+        ss_lang_agregar_texto_(&ss_tmp33673, sv_len("` parece un fuente `.t`; elige otro nombre para no sobrescribir codigo.\n", 72), "ejemplos/compilador/tcodec.t", 2618);
+        SafeString ss_tmp33672 = ss_tmp33673;
+        SafeView ss_tmp33674 = ss_view(&ss_tmp33672);
 #line 2618 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp33671);
-        ss_free(&ss_tmp33669);
+        ss_lang_escribir_(stderr, ss_tmp33674);
+        ss_free(&ss_tmp33672);
 #line 2619 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33672 = (size_t)2;
+        size_t ss_tmp33675 = (size_t)2;
         ss_free(&ext);
         ss_free(&base);
-        return ss_tmp33672;
+        return ss_tmp33675;
     }
 #line 2621 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp33673;
-    SafeView ss_tmp33674;
-    if ((!((ss_tmp33673 = todo, ss_tmp33674 = sv_len("int main(", 9), contiene(ss_tmp33673, ss_tmp33674)))))
+    SafeView ss_tmp33676;
+    SafeView ss_tmp33677;
+    if ((!((ss_tmp33676 = todo, ss_tmp33677 = sv_len("int main(", 9), contiene(ss_tmp33676, ss_tmp33677)))))
     {
 #line 2622 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33676 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33676, sv_len("tcodec: ", 8), "ejemplos/compilador/tcodec.t", 2622);
-        ss_lang_agregar_texto_(&ss_tmp33676, fuente, "ejemplos/compilador/tcodec.t", 2622);
-        ss_lang_agregar_texto_(&ss_tmp33676, sv_len(" no tiene `fn main`, asi que no es un programa. Si es un modulo, compila el archivo que lo usa; si no, anade `fn main() -> usize { ... }`.\n", 139), "ejemplos/compilador/tcodec.t", 2622);
-        SafeString ss_tmp33675 = ss_tmp33676;
-        SafeView ss_tmp33677 = ss_view(&ss_tmp33675);
+        SafeString ss_tmp33679 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33679, sv_len("tcodec: ", 8), "ejemplos/compilador/tcodec.t", 2622);
+        ss_lang_agregar_texto_(&ss_tmp33679, fuente, "ejemplos/compilador/tcodec.t", 2622);
+        ss_lang_agregar_texto_(&ss_tmp33679, sv_len(" no tiene `fn main`, asi que no es un programa. Si es un modulo, compila el archivo que lo usa; si no, anade `fn main() -> usize { ... }`.\n", 139), "ejemplos/compilador/tcodec.t", 2622);
+        SafeString ss_tmp33678 = ss_tmp33679;
+        SafeView ss_tmp33680 = ss_view(&ss_tmp33678);
 #line 2622 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp33677);
-        ss_free(&ss_tmp33675);
+        ss_lang_escribir_(stderr, ss_tmp33680);
+        ss_free(&ss_tmp33678);
 #line 2623 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33678 = (size_t)1;
+        size_t ss_tmp33681 = (size_t)1;
         ss_free(&ext);
         ss_free(&base);
-        return ss_tmp33678;
+        return ss_tmp33681;
     }
 #line 2628 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp33679 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str acompanan = ss_tmp33679;
+    ss_lista_str ss_tmp33682 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str acompanan = ss_tmp33682;
 #line 2629 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp33680 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str faltan = ss_tmp33680;
+    ss_lista_str ss_tmp33683 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str faltan = ss_tmp33683;
 #line 2630 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k = (size_t)0;
 #line 2631 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp33681;
-        size_t ss_tmp33682;
+        size_t ss_tmp33684;
+        size_t ss_tmp33685;
 #line 2631 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp33681 = k, ss_tmp33682 = ((*ext_cabeceras).length), (ss_tmp33681 < ss_tmp33682)))))
+        if (!(((ss_tmp33684 = k, ss_tmp33685 = ((*ext_cabeceras).length), (ss_tmp33684 < ss_tmp33685)))))
         {
             break;
         }
 #line 2632 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp33683;
-        SS_LANG_QUIZA_SIN_USAR SafeView cab = ss_view(&((ss_tmp33683 = &((*ext_cabeceras)), &ss_tmp33683->e[ss_lang_indice_(k, ss_tmp33683->length, "ejemplos/compilador/tcodec.t", 2632)])[0]));
+        const ss_lista_str* ss_tmp33686;
+        SS_LANG_QUIZA_SIN_USAR SafeView cab = ss_view(&((ss_tmp33686 = &((*ext_cabeceras)), &ss_tmp33686->e[ss_lang_indice_(k, ss_tmp33686->length, "ejemplos/compilador/tcodec.t", 2632)])[0]));
 #line 2633 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33684;
-        SafeView ss_tmp33685;
-        if (((ss_tmp33684 = cab, ss_tmp33685 = sv_len(".c", 2), termina_con(ss_tmp33684, ss_tmp33685))))
+        SafeView ss_tmp33687;
+        SafeView ss_tmp33688;
+        if (((ss_tmp33687 = cab, ss_tmp33688 = sv_len(".c", 2), termina_con(ss_tmp33687, ss_tmp33688))))
         {
 #line 2634 "ejemplos/compilador/tcodec.t"
-            const ss_lista_str* ss_tmp33686;
-            SS_LANG_QUIZA_SIN_USAR SafeString dir = directorio_de(ss_view(&((ss_tmp33686 = &((*ext_modulos)), &ss_tmp33686->e[ss_lang_indice_(k, ss_tmp33686->length, "ejemplos/compilador/tcodec.t", 2634)])[0])));
+            const ss_lista_str* ss_tmp33689;
+            SS_LANG_QUIZA_SIN_USAR SafeString dir = directorio_de(ss_view(&((ss_tmp33689 = &((*ext_modulos)), &ss_tmp33689->e[ss_lang_indice_(k, ss_tmp33689->length, "ejemplos/compilador/tcodec.t", 2634)])[0])));
 #line 2635 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR SafeString junto = ss_from_view(cab);
             bool ss_vivo_junto = true;
 #line 2636 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp33687;
-            size_t ss_tmp33688;
+            size_t ss_tmp33690;
+            size_t ss_tmp33691;
 #line 2636 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp33687 = sv_len_of(ss_view(&dir)), ss_tmp33688 = (size_t)0, (ss_tmp33687 > ss_tmp33688))))
+            if (((ss_tmp33690 = sv_len_of(ss_view(&dir)), ss_tmp33691 = (size_t)0, (ss_tmp33690 > ss_tmp33691))))
             {
-                SafeString ss_tmp33689 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp33689, ss_view(&dir), "ejemplos/compilador/tcodec.t", 2636);
-                ss_lang_agregar_texto_(&ss_tmp33689, sv_len("/", 1), "ejemplos/compilador/tcodec.t", 2636);
-                ss_lang_agregar_texto_(&ss_tmp33689, cab, "ejemplos/compilador/tcodec.t", 2636);
-                SafeString ss_tmp33690 = ss_tmp33689;
+                SafeString ss_tmp33692 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp33692, ss_view(&dir), "ejemplos/compilador/tcodec.t", 2636);
+                ss_lang_agregar_texto_(&ss_tmp33692, sv_len("/", 1), "ejemplos/compilador/tcodec.t", 2636);
+                ss_lang_agregar_texto_(&ss_tmp33692, cab, "ejemplos/compilador/tcodec.t", 2636);
+                SafeString ss_tmp33693 = ss_tmp33692;
                 if (ss_vivo_junto)
                 {
                     ss_free(&junto);
                 }
-                junto = ss_tmp33690;
+                junto = ss_tmp33693;
                 ss_vivo_junto = true;
             }
 #line 2637 "ejemplos/compilador/tcodec.t"
-            const ss_lista_str* ss_tmp33691;
-            SafeView ss_tmp33692;
-            const ss_lista_str* ss_tmp33693;
-            SafeView ss_tmp33694;
-            if (((!((ss_tmp33691 = &acompanan, ss_tmp33692 = ss_view(&junto), esta_en(ss_tmp33691, ss_tmp33692)))) && (!((ss_tmp33693 = &faltan, ss_tmp33694 = ss_view(&junto), esta_en(ss_tmp33693, ss_tmp33694))))))
+            const ss_lista_str* ss_tmp33694;
+            SafeView ss_tmp33695;
+            const ss_lista_str* ss_tmp33696;
+            SafeView ss_tmp33697;
+            if (((!((ss_tmp33694 = &acompanan, ss_tmp33695 = ss_view(&junto), esta_en(ss_tmp33694, ss_tmp33695)))) && (!((ss_tmp33696 = &faltan, ss_tmp33697 = ss_view(&junto), esta_en(ss_tmp33696, ss_tmp33697))))))
             {
 #line 2638 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp33695 = ss_clone(&junto);
-                int32_t ss_tmp33696;
-                int32_t ss_tmp33697;
+                SafeString ss_tmp33698 = ss_clone(&junto);
+                int32_t ss_tmp33699;
+                int32_t ss_tmp33700;
 #line 2638 "ejemplos/compilador/tcodec.t"
-                if (((ss_tmp33696 = tcodec_es_archivo(ss_lang_cstr_(&ss_tmp33695, "ejemplos/compilador/tcodec.t", 2638)), ss_tmp33697 = (int32_t)1, (ss_tmp33696 == ss_tmp33697))))
+                if (((ss_tmp33699 = tcodec_es_archivo(ss_lang_cstr_(&ss_tmp33698, "ejemplos/compilador/tcodec.t", 2638)), ss_tmp33700 = (int32_t)1, (ss_tmp33699 == ss_tmp33700))))
                 {
-                    ss_lista_str* ss_tmp33698 = &acompanan;
+                    ss_lista_str* ss_tmp33701 = &acompanan;
 #line 2638 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp33698, junto, "ejemplos/compilador/tcodec.t", 2638);
+                    ss_push_lista_str(ss_tmp33701, junto, "ejemplos/compilador/tcodec.t", 2638);
                     ss_vivo_junto = false;
                 }
                 else
                 {
 #line 2639 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp33699 = &faltan;
+                    ss_lista_str* ss_tmp33702 = &faltan;
 #line 2639 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp33699, junto, "ejemplos/compilador/tcodec.t", 2639);
+                    ss_push_lista_str(ss_tmp33702, junto, "ejemplos/compilador/tcodec.t", 2639);
                     ss_vivo_junto = false;
                 }
-                ss_free(&ss_tmp33695);
+                ss_free(&ss_tmp33698);
             }
             if (ss_vivo_junto)
             {
@@ -112090,34 +112096,34 @@ SS_LANG_QUIZA_SIN_USAR static size_t construir(SS_LANG_QUIZA_SIN_USAR SafeView t
             ss_free(&dir);
         }
 #line 2642 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33700;
-        size_t ss_tmp33701;
+        size_t ss_tmp33703;
+        size_t ss_tmp33704;
 #line 2642 "ejemplos/compilador/tcodec.t"
-        k = ((ss_tmp33700 = k, ss_tmp33701 = (size_t)1, ss_lang_suma_usize(ss_tmp33700, ss_tmp33701, "ejemplos/compilador/tcodec.t", 2642)));
+        k = ((ss_tmp33703 = k, ss_tmp33704 = (size_t)1, ss_lang_suma_usize(ss_tmp33703, ss_tmp33704, "ejemplos/compilador/tcodec.t", 2642)));
     }
 #line 2644 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33702;
-    size_t ss_tmp33703;
+    size_t ss_tmp33705;
+    size_t ss_tmp33706;
 #line 2644 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33702 = (faltan.length), ss_tmp33703 = (size_t)0, (ss_tmp33702 > ss_tmp33703))))
+    if (((ss_tmp33705 = (faltan.length), ss_tmp33706 = (size_t)0, (ss_tmp33705 > ss_tmp33706))))
     {
 #line 2645 "ejemplos/compilador/tcodec.t"
         for (size_t ss_k1079 = 0; ss_k1079 < faltan.length; ss_k1079++)
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* x = &faltan.e[ss_k1079];
 #line 2646 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp33705 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp33705, sv_len("tcodec: `externo` pide `", 24), "ejemplos/compilador/tcodec.t", 2646);
-            ss_lang_agregar_texto_(&ss_tmp33705, ss_view(x), "ejemplos/compilador/tcodec.t", 2646);
-            ss_lang_agregar_texto_(&ss_tmp33705, sv_len("` y ese archivo no esta.\n", 25), "ejemplos/compilador/tcodec.t", 2646);
-            SafeString ss_tmp33704 = ss_tmp33705;
-            SafeView ss_tmp33706 = ss_view(&ss_tmp33704);
+            SafeString ss_tmp33708 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp33708, sv_len("tcodec: `externo` pide `", 24), "ejemplos/compilador/tcodec.t", 2646);
+            ss_lang_agregar_texto_(&ss_tmp33708, ss_view(x), "ejemplos/compilador/tcodec.t", 2646);
+            ss_lang_agregar_texto_(&ss_tmp33708, sv_len("` y ese archivo no esta.\n", 25), "ejemplos/compilador/tcodec.t", 2646);
+            SafeString ss_tmp33707 = ss_tmp33708;
+            SafeView ss_tmp33709 = ss_view(&ss_tmp33707);
 #line 2646 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp33706);
-            ss_free(&ss_tmp33704);
+            ss_lang_escribir_(stderr, ss_tmp33709);
+            ss_free(&ss_tmp33707);
         }
 #line 2648 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33707 = (size_t)2;
+        size_t ss_tmp33710 = (size_t)2;
         for (size_t ss_i1080 = 0; ss_i1080 < faltan.length; ss_i1080++)
         {
             ss_free(&faltan.e[ss_i1080]);
@@ -112136,23 +112142,23 @@ SS_LANG_QUIZA_SIN_USAR static size_t construir(SS_LANG_QUIZA_SIN_USAR SafeView t
         acompanan.capacity = 0;
         ss_free(&ext);
         ss_free(&base);
-        return ss_tmp33707;
+        return ss_tmp33710;
     }
 #line 2651 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33708 = ss_from(tcodec_directorio_temporal());
-    SS_LANG_QUIZA_SIN_USAR SafeString tmp = ss_tmp33708;
+    SafeString ss_tmp33711 = ss_from(tcodec_directorio_temporal());
+    SS_LANG_QUIZA_SIN_USAR SafeString tmp = ss_tmp33711;
 #line 2652 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33709;
-    size_t ss_tmp33710;
+    size_t ss_tmp33712;
+    size_t ss_tmp33713;
 #line 2652 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33709 = sv_len_of(ss_view(&tmp)), ss_tmp33710 = (size_t)0, (ss_tmp33709 == ss_tmp33710))))
+    if (((ss_tmp33712 = sv_len_of(ss_view(&tmp)), ss_tmp33713 = (size_t)0, (ss_tmp33712 == ss_tmp33713))))
     {
 #line 2653 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33711 = sv_len("tcodec: no se pudo crear un directorio temporal\n", 48);
+        SafeView ss_tmp33714 = sv_len("tcodec: no se pudo crear un directorio temporal\n", 48);
 #line 2653 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp33711);
+        ss_lang_escribir_(stderr, ss_tmp33714);
 #line 2654 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33712 = (size_t)2;
+        size_t ss_tmp33715 = (size_t)2;
         ss_free(&tmp);
         for (size_t ss_i1082 = 0; ss_i1082 < faltan.length; ss_i1082++)
         {
@@ -112172,55 +112178,55 @@ SS_LANG_QUIZA_SIN_USAR static size_t construir(SS_LANG_QUIZA_SIN_USAR SafeView t
         acompanan.capacity = 0;
         ss_free(&ext);
         ss_free(&base);
-        return ss_tmp33712;
+        return ss_tmp33715;
     }
 #line 2656 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString nombre_c = nombre_suelto(ss_view(&base));
 #line 2657 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33713 = ss_new();
-    ss_lang_agregar_texto_(&ss_tmp33713, ss_view(&tmp), "ejemplos/compilador/tcodec.t", 2657);
-    ss_lang_agregar_texto_(&ss_tmp33713, sv_len("/", 1), "ejemplos/compilador/tcodec.t", 2657);
-    ss_lang_agregar_texto_(&ss_tmp33713, ss_view(&nombre_c), "ejemplos/compilador/tcodec.t", 2657);
-    ss_lang_agregar_texto_(&ss_tmp33713, sv_len(".c", 2), "ejemplos/compilador/tcodec.t", 2657);
-    SS_LANG_QUIZA_SIN_USAR SafeString ruta_c = ss_tmp33713;
+    SafeString ss_tmp33716 = ss_new();
+    ss_lang_agregar_texto_(&ss_tmp33716, ss_view(&tmp), "ejemplos/compilador/tcodec.t", 2657);
+    ss_lang_agregar_texto_(&ss_tmp33716, sv_len("/", 1), "ejemplos/compilador/tcodec.t", 2657);
+    ss_lang_agregar_texto_(&ss_tmp33716, ss_view(&nombre_c), "ejemplos/compilador/tcodec.t", 2657);
+    ss_lang_agregar_texto_(&ss_tmp33716, sv_len(".c", 2), "ejemplos/compilador/tcodec.t", 2657);
+    SS_LANG_QUIZA_SIN_USAR SafeString ruta_c = ss_tmp33716;
 #line 2658 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33714 = ss_new();
-    ss_lang_agregar_texto_(&ss_tmp33714, ss_view(&tmp), "ejemplos/compilador/tcodec.t", 2658);
-    ss_lang_agregar_texto_(&ss_tmp33714, sv_len("/cc.err", 7), "ejemplos/compilador/tcodec.t", 2658);
-    SS_LANG_QUIZA_SIN_USAR SafeString ruta_err = ss_tmp33714;
+    SafeString ss_tmp33717 = ss_new();
+    ss_lang_agregar_texto_(&ss_tmp33717, ss_view(&tmp), "ejemplos/compilador/tcodec.t", 2658);
+    ss_lang_agregar_texto_(&ss_tmp33717, sv_len("/cc.err", 7), "ejemplos/compilador/tcodec.t", 2658);
+    SS_LANG_QUIZA_SIN_USAR SafeString ruta_err = ss_tmp33717;
 #line 2659 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp33716;
-    SafeView ss_tmp33717;
-    ss_res_bool ss_tmp33715 = ((ss_tmp33716 = ss_view(&ruta_c), ss_tmp33717 = todo, escribir(ss_tmp33716, ss_tmp33717)));
-    bool ss_tmp33718;
-    if (ss_tmp33715.motivo != NULL)
+    SafeView ss_tmp33719;
+    SafeView ss_tmp33720;
+    ss_res_bool ss_tmp33718 = ((ss_tmp33719 = ss_view(&ruta_c), ss_tmp33720 = todo, escribir(ss_tmp33719, ss_tmp33720)));
+    bool ss_tmp33721;
+    if (ss_tmp33718.motivo != NULL)
     {
-        ss_tmp33718 = false;
+        ss_tmp33721 = false;
     }
     else
     {
-        ss_tmp33718 = ss_tmp33715.valor;
+        ss_tmp33721 = ss_tmp33718.valor;
     }
-    SS_LANG_QUIZA_SIN_USAR bool bien = ss_tmp33718;
+    SS_LANG_QUIZA_SIN_USAR bool bien = ss_tmp33721;
 #line 2660 "ejemplos/compilador/tcodec.t"
     if ((!bien))
     {
 #line 2661 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33720 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33720, sv_len("tcodec: no se pudo escribir `", 29), "ejemplos/compilador/tcodec.t", 2661);
-        ss_lang_agregar_texto_(&ss_tmp33720, ss_view(&ruta_c), "ejemplos/compilador/tcodec.t", 2661);
-        ss_lang_agregar_texto_(&ss_tmp33720, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2661);
-        SafeString ss_tmp33719 = ss_tmp33720;
-        SafeView ss_tmp33721 = ss_view(&ss_tmp33719);
+        SafeString ss_tmp33723 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33723, sv_len("tcodec: no se pudo escribir `", 29), "ejemplos/compilador/tcodec.t", 2661);
+        ss_lang_agregar_texto_(&ss_tmp33723, ss_view(&ruta_c), "ejemplos/compilador/tcodec.t", 2661);
+        ss_lang_agregar_texto_(&ss_tmp33723, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2661);
+        SafeString ss_tmp33722 = ss_tmp33723;
+        SafeView ss_tmp33724 = ss_view(&ss_tmp33722);
 #line 2661 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp33721);
-        ss_free(&ss_tmp33719);
-#line 2662 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33722 = ss_clone(&tmp);
-        tcodec_borrar(ss_lang_cstr_(&ss_tmp33722, "ejemplos/compilador/tcodec.t", 2662));
+        ss_lang_escribir_(stderr, ss_tmp33724);
         ss_free(&ss_tmp33722);
+#line 2662 "ejemplos/compilador/tcodec.t"
+        SafeString ss_tmp33725 = ss_clone(&tmp);
+        tcodec_borrar(ss_lang_cstr_(&ss_tmp33725, "ejemplos/compilador/tcodec.t", 2662));
+        ss_free(&ss_tmp33725);
 #line 2663 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33723 = (size_t)2;
+        size_t ss_tmp33726 = (size_t)2;
         ss_free(&ruta_err);
         ss_free(&ruta_c);
         ss_free(&nombre_c);
@@ -112243,54 +112249,54 @@ SS_LANG_QUIZA_SIN_USAR static size_t construir(SS_LANG_QUIZA_SIN_USAR SafeView t
         acompanan.capacity = 0;
         ss_free(&ext);
         ss_free(&base);
-        return ss_tmp33723;
+        return ss_tmp33726;
     }
 #line 2668 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33724 = ss_clone(&base);
-    SafeString ss_tmp33725 = ss_from(tcodec_ruta_real(ss_lang_cstr_(&ss_tmp33724, "ejemplos/compilador/tcodec.t", 2668)));
-    SS_LANG_QUIZA_SIN_USAR SafeString destino_bin = ss_tmp33725;
-    ss_free(&ss_tmp33724);
+    SafeString ss_tmp33727 = ss_clone(&base);
+    SafeString ss_tmp33728 = ss_from(tcodec_ruta_real(ss_lang_cstr_(&ss_tmp33727, "ejemplos/compilador/tcodec.t", 2668)));
+    SS_LANG_QUIZA_SIN_USAR SafeString destino_bin = ss_tmp33728;
+    ss_free(&ss_tmp33727);
 #line 2669 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString salida_tmp = ss_new();
 #line 2670 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33726;
-    size_t ss_tmp33727;
+    size_t ss_tmp33729;
+    size_t ss_tmp33730;
 #line 2670 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33726 = sv_len_of(ss_view(&destino_bin)), ss_tmp33727 = (size_t)0, (ss_tmp33726 > ss_tmp33727))))
+    if (((ss_tmp33729 = sv_len_of(ss_view(&destino_bin)), ss_tmp33730 = (size_t)0, (ss_tmp33729 > ss_tmp33730))))
     {
-        SafeString ss_tmp33728 = ss_clone(&destino_bin);
-        SafeString ss_tmp33729 = ss_from(tcodec_temporal_junto(ss_lang_cstr_(&ss_tmp33728, "ejemplos/compilador/tcodec.t", 2670)));
-        SafeString ss_tmp33730 = ss_tmp33729;
+        SafeString ss_tmp33731 = ss_clone(&destino_bin);
+        SafeString ss_tmp33732 = ss_from(tcodec_temporal_junto(ss_lang_cstr_(&ss_tmp33731, "ejemplos/compilador/tcodec.t", 2670)));
+        SafeString ss_tmp33733 = ss_tmp33732;
         ss_free(&salida_tmp);
-        salida_tmp = ss_tmp33730;
-        ss_free(&ss_tmp33728);
+        salida_tmp = ss_tmp33733;
+        ss_free(&ss_tmp33731);
     }
 #line 2671 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33731;
-    size_t ss_tmp33732;
+    size_t ss_tmp33734;
+    size_t ss_tmp33735;
 #line 2671 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33731 = sv_len_of(ss_view(&salida_tmp)), ss_tmp33732 = (size_t)0, (ss_tmp33731 == ss_tmp33732))))
+    if (((ss_tmp33734 = sv_len_of(ss_view(&salida_tmp)), ss_tmp33735 = (size_t)0, (ss_tmp33734 == ss_tmp33735))))
     {
 #line 2672 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33734 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33734, sv_len("tcodec: no se pudo preparar la salida `", 39), "ejemplos/compilador/tcodec.t", 2672);
-        ss_lang_agregar_texto_(&ss_tmp33734, ss_view(&base), "ejemplos/compilador/tcodec.t", 2672);
-        ss_lang_agregar_texto_(&ss_tmp33734, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2672);
-        SafeString ss_tmp33733 = ss_tmp33734;
-        SafeView ss_tmp33735 = ss_view(&ss_tmp33733);
+        SafeString ss_tmp33737 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33737, sv_len("tcodec: no se pudo preparar la salida `", 39), "ejemplos/compilador/tcodec.t", 2672);
+        ss_lang_agregar_texto_(&ss_tmp33737, ss_view(&base), "ejemplos/compilador/tcodec.t", 2672);
+        ss_lang_agregar_texto_(&ss_tmp33737, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2672);
+        SafeString ss_tmp33736 = ss_tmp33737;
+        SafeView ss_tmp33738 = ss_view(&ss_tmp33736);
 #line 2672 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp33735);
-        ss_free(&ss_tmp33733);
-#line 2673 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33736 = ss_clone(&ruta_c);
-        tcodec_borrar(ss_lang_cstr_(&ss_tmp33736, "ejemplos/compilador/tcodec.t", 2673));
+        ss_lang_escribir_(stderr, ss_tmp33738);
         ss_free(&ss_tmp33736);
+#line 2673 "ejemplos/compilador/tcodec.t"
+        SafeString ss_tmp33739 = ss_clone(&ruta_c);
+        tcodec_borrar(ss_lang_cstr_(&ss_tmp33739, "ejemplos/compilador/tcodec.t", 2673));
+        ss_free(&ss_tmp33739);
 #line 2674 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33737 = ss_clone(&tmp);
-        tcodec_borrar(ss_lang_cstr_(&ss_tmp33737, "ejemplos/compilador/tcodec.t", 2674));
-        ss_free(&ss_tmp33737);
+        SafeString ss_tmp33740 = ss_clone(&tmp);
+        tcodec_borrar(ss_lang_cstr_(&ss_tmp33740, "ejemplos/compilador/tcodec.t", 2674));
+        ss_free(&ss_tmp33740);
 #line 2675 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33738 = (size_t)2;
+        size_t ss_tmp33741 = (size_t)2;
         ss_free(&salida_tmp);
         ss_free(&destino_bin);
         ss_free(&ruta_err);
@@ -112315,157 +112321,157 @@ SS_LANG_QUIZA_SIN_USAR static size_t construir(SS_LANG_QUIZA_SIN_USAR SafeView t
         acompanan.capacity = 0;
         ss_free(&ext);
         ss_free(&base);
-        return ss_tmp33738;
+        return ss_tmp33741;
     }
 #line 2678 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString orden = para_la_shell(cc);
 #line 2679 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33739 = ss_new();
-    ss_lang_agregar_texto_(&ss_tmp33739, sv_len(" -std=c17 -O", 12), "ejemplos/compilador/tcodec.t", 2679);
-    ss_lang_agregar_texto_(&ss_tmp33739, nivel, "ejemplos/compilador/tcodec.t", 2679);
-    ss_lang_agregar_texto_(&ss_tmp33739, sv_len(" -Wall -Wextra ", 15), "ejemplos/compilador/tcodec.t", 2679);
-    SS_LANG_QUIZA_SIN_USAR SafeString piezas_fijas = ss_tmp33739;
+    SafeString ss_tmp33742 = ss_new();
+    ss_lang_agregar_texto_(&ss_tmp33742, sv_len(" -std=c17 -O", 12), "ejemplos/compilador/tcodec.t", 2679);
+    ss_lang_agregar_texto_(&ss_tmp33742, nivel, "ejemplos/compilador/tcodec.t", 2679);
+    ss_lang_agregar_texto_(&ss_tmp33742, sv_len(" -Wall -Wextra ", 15), "ejemplos/compilador/tcodec.t", 2679);
+    SS_LANG_QUIZA_SIN_USAR SafeString piezas_fijas = ss_tmp33742;
 #line 2680 "ejemplos/compilador/tcodec.t"
-    SafeString* ss_tmp33740 = &orden;
+    SafeString* ss_tmp33743 = &orden;
 #line 2680 "ejemplos/compilador/tcodec.t"
-    ss_append_view(ss_tmp33740, ss_view(&piezas_fijas));
+    ss_append_view(ss_tmp33743, ss_view(&piezas_fijas));
 #line 2681 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33741 = ss_new();
-    ss_lang_agregar_texto_(&ss_tmp33741, sv_len("-I", 2), "ejemplos/compilador/tcodec.t", 2681);
-    ss_lang_agregar_texto_(&ss_tmp33741, raiz, "ejemplos/compilador/tcodec.t", 2681);
-    ss_lang_agregar_texto_(&ss_tmp33741, sv_len("/runtime", 8), "ejemplos/compilador/tcodec.t", 2681);
-    SS_LANG_QUIZA_SIN_USAR SafeString incluir = ss_tmp33741;
+    SafeString ss_tmp33744 = ss_new();
+    ss_lang_agregar_texto_(&ss_tmp33744, sv_len("-I", 2), "ejemplos/compilador/tcodec.t", 2681);
+    ss_lang_agregar_texto_(&ss_tmp33744, raiz, "ejemplos/compilador/tcodec.t", 2681);
+    ss_lang_agregar_texto_(&ss_tmp33744, sv_len("/runtime", 8), "ejemplos/compilador/tcodec.t", 2681);
+    SS_LANG_QUIZA_SIN_USAR SafeString incluir = ss_tmp33744;
 #line 2682 "ejemplos/compilador/tcodec.t"
-    SafeString* ss_tmp33742 = &orden;
-    SafeString ss_tmp33743 = para_la_shell(ss_view(&incluir));
-#line 2682 "ejemplos/compilador/tcodec.t"
-    ss_append_view(ss_tmp33742, ss_view(&ss_tmp33743));
-    ss_free(&ss_tmp33743);
-#line 2683 "ejemplos/compilador/tcodec.t"
-    SafeString* ss_tmp33744 = &orden;
-#line 2683 "ejemplos/compilador/tcodec.t"
-    ss_append_view(ss_tmp33744, sv_len(" ", 1));
-#line 2684 "ejemplos/compilador/tcodec.t"
     SafeString* ss_tmp33745 = &orden;
-    SafeString ss_tmp33746 = para_la_shell(ss_view(&ruta_c));
-#line 2684 "ejemplos/compilador/tcodec.t"
+    SafeString ss_tmp33746 = para_la_shell(ss_view(&incluir));
+#line 2682 "ejemplos/compilador/tcodec.t"
     ss_append_view(ss_tmp33745, ss_view(&ss_tmp33746));
     ss_free(&ss_tmp33746);
-#line 2685 "ejemplos/compilador/tcodec.t"
+#line 2683 "ejemplos/compilador/tcodec.t"
     SafeString* ss_tmp33747 = &orden;
-#line 2685 "ejemplos/compilador/tcodec.t"
+#line 2683 "ejemplos/compilador/tcodec.t"
     ss_append_view(ss_tmp33747, sv_len(" ", 1));
+#line 2684 "ejemplos/compilador/tcodec.t"
+    SafeString* ss_tmp33748 = &orden;
+    SafeString ss_tmp33749 = para_la_shell(ss_view(&ruta_c));
+#line 2684 "ejemplos/compilador/tcodec.t"
+    ss_append_view(ss_tmp33748, ss_view(&ss_tmp33749));
+    ss_free(&ss_tmp33749);
+#line 2685 "ejemplos/compilador/tcodec.t"
+    SafeString* ss_tmp33750 = &orden;
+#line 2685 "ejemplos/compilador/tcodec.t"
+    ss_append_view(ss_tmp33750, sv_len(" ", 1));
 #line 2686 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33748 = ss_new();
-    ss_lang_agregar_texto_(&ss_tmp33748, raiz, "ejemplos/compilador/tcodec.t", 2686);
-    ss_lang_agregar_texto_(&ss_tmp33748, sv_len("/runtime/safestr.c", 18), "ejemplos/compilador/tcodec.t", 2686);
-    SS_LANG_QUIZA_SIN_USAR SafeString safestr = ss_tmp33748;
+    SafeString ss_tmp33751 = ss_new();
+    ss_lang_agregar_texto_(&ss_tmp33751, raiz, "ejemplos/compilador/tcodec.t", 2686);
+    ss_lang_agregar_texto_(&ss_tmp33751, sv_len("/runtime/safestr.c", 18), "ejemplos/compilador/tcodec.t", 2686);
+    SS_LANG_QUIZA_SIN_USAR SafeString safestr = ss_tmp33751;
 #line 2687 "ejemplos/compilador/tcodec.t"
-    SafeString* ss_tmp33749 = &orden;
-    SafeString ss_tmp33750 = para_la_shell(ss_view(&safestr));
+    SafeString* ss_tmp33752 = &orden;
+    SafeString ss_tmp33753 = para_la_shell(ss_view(&safestr));
 #line 2687 "ejemplos/compilador/tcodec.t"
-    ss_append_view(ss_tmp33749, ss_view(&ss_tmp33750));
-    ss_free(&ss_tmp33750);
+    ss_append_view(ss_tmp33752, ss_view(&ss_tmp33753));
+    ss_free(&ss_tmp33753);
 #line 2688 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1088 = 0; ss_k1088 < acompanan.length; ss_k1088++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &acompanan.e[ss_k1088];
 #line 2689 "ejemplos/compilador/tcodec.t"
-        SafeString* ss_tmp33751 = &orden;
+        SafeString* ss_tmp33754 = &orden;
 #line 2689 "ejemplos/compilador/tcodec.t"
-        ss_append_view(ss_tmp33751, sv_len(" ", 1));
+        ss_append_view(ss_tmp33754, sv_len(" ", 1));
 #line 2690 "ejemplos/compilador/tcodec.t"
-        SafeString* ss_tmp33752 = &orden;
-        SafeString ss_tmp33753 = para_la_shell(ss_view(x));
+        SafeString* ss_tmp33755 = &orden;
+        SafeString ss_tmp33756 = para_la_shell(ss_view(x));
 #line 2690 "ejemplos/compilador/tcodec.t"
-        ss_append_view(ss_tmp33752, ss_view(&ss_tmp33753));
-        ss_free(&ss_tmp33753);
+        ss_append_view(ss_tmp33755, ss_view(&ss_tmp33756));
+        ss_free(&ss_tmp33756);
     }
 #line 2692 "ejemplos/compilador/tcodec.t"
-    SafeString* ss_tmp33754 = &orden;
-#line 2692 "ejemplos/compilador/tcodec.t"
-    ss_append_view(ss_tmp33754, sv_len(" -o ", 4));
-#line 2693 "ejemplos/compilador/tcodec.t"
-    SafeString* ss_tmp33755 = &orden;
-    SafeString ss_tmp33756 = para_la_shell(ss_view(&salida_tmp));
-#line 2693 "ejemplos/compilador/tcodec.t"
-    ss_append_view(ss_tmp33755, ss_view(&ss_tmp33756));
-    ss_free(&ss_tmp33756);
-#line 2695 "ejemplos/compilador/tcodec.t"
     SafeString* ss_tmp33757 = &orden;
-#line 2695 "ejemplos/compilador/tcodec.t"
-    ss_append_view(ss_tmp33757, sv_len(" -lm 2> ", 8));
-#line 2696 "ejemplos/compilador/tcodec.t"
+#line 2692 "ejemplos/compilador/tcodec.t"
+    ss_append_view(ss_tmp33757, sv_len(" -o ", 4));
+#line 2693 "ejemplos/compilador/tcodec.t"
     SafeString* ss_tmp33758 = &orden;
-    SafeString ss_tmp33759 = para_la_shell(ss_view(&ruta_err));
-#line 2696 "ejemplos/compilador/tcodec.t"
+    SafeString ss_tmp33759 = para_la_shell(ss_view(&salida_tmp));
+#line 2693 "ejemplos/compilador/tcodec.t"
     ss_append_view(ss_tmp33758, ss_view(&ss_tmp33759));
     ss_free(&ss_tmp33759);
+#line 2695 "ejemplos/compilador/tcodec.t"
+    SafeString* ss_tmp33760 = &orden;
+#line 2695 "ejemplos/compilador/tcodec.t"
+    ss_append_view(ss_tmp33760, sv_len(" -lm 2> ", 8));
+#line 2696 "ejemplos/compilador/tcodec.t"
+    SafeString* ss_tmp33761 = &orden;
+    SafeString ss_tmp33762 = para_la_shell(ss_view(&ruta_err));
+#line 2696 "ejemplos/compilador/tcodec.t"
+    ss_append_view(ss_tmp33761, ss_view(&ss_tmp33762));
+    ss_free(&ss_tmp33762);
 #line 2698 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR int32_t rc = tcodec_ejecutar(ss_lang_cstr_(&orden, "ejemplos/compilador/tcodec.t", 2698));
 #line 2699 "ejemplos/compilador/tcodec.t"
-    ss_res_str ss_tmp33760 = ss_lang_leer_archivo_(ss_view(&ruta_err));
-    SafeString ss_tmp33761;
-    if (ss_tmp33760.motivo != NULL)
+    ss_res_str ss_tmp33763 = ss_lang_leer_archivo_(ss_view(&ruta_err));
+    SafeString ss_tmp33764;
+    if (ss_tmp33763.motivo != NULL)
     {
-        ss_tmp33761 = ss_new();
+        ss_tmp33764 = ss_new();
     }
     else
     {
-        ss_tmp33761 = ss_tmp33760.valor;
+        ss_tmp33764 = ss_tmp33763.valor;
     }
-    SS_LANG_QUIZA_SIN_USAR SafeString dijo = ss_tmp33761;
+    SS_LANG_QUIZA_SIN_USAR SafeString dijo = ss_tmp33764;
 #line 2700 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33762 = ss_clone(&ruta_c);
-    tcodec_borrar(ss_lang_cstr_(&ss_tmp33762, "ejemplos/compilador/tcodec.t", 2700));
-    ss_free(&ss_tmp33762);
+    SafeString ss_tmp33765 = ss_clone(&ruta_c);
+    tcodec_borrar(ss_lang_cstr_(&ss_tmp33765, "ejemplos/compilador/tcodec.t", 2700));
+    ss_free(&ss_tmp33765);
 #line 2701 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33763 = ss_clone(&ruta_err);
-    tcodec_borrar(ss_lang_cstr_(&ss_tmp33763, "ejemplos/compilador/tcodec.t", 2701));
-    ss_free(&ss_tmp33763);
+    SafeString ss_tmp33766 = ss_clone(&ruta_err);
+    tcodec_borrar(ss_lang_cstr_(&ss_tmp33766, "ejemplos/compilador/tcodec.t", 2701));
+    ss_free(&ss_tmp33766);
 #line 2702 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33764 = ss_clone(&tmp);
-    tcodec_borrar(ss_lang_cstr_(&ss_tmp33764, "ejemplos/compilador/tcodec.t", 2702));
-    ss_free(&ss_tmp33764);
+    SafeString ss_tmp33767 = ss_clone(&tmp);
+    tcodec_borrar(ss_lang_cstr_(&ss_tmp33767, "ejemplos/compilador/tcodec.t", 2702));
+    ss_free(&ss_tmp33767);
 #line 2703 "ejemplos/compilador/tcodec.t"
-    int32_t ss_tmp33765;
-    int32_t ss_tmp33766;
+    int32_t ss_tmp33768;
+    int32_t ss_tmp33769;
 #line 2703 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33765 = rc, ss_tmp33766 = (int32_t)0, (ss_tmp33765 != ss_tmp33766))))
+    if (((ss_tmp33768 = rc, ss_tmp33769 = (int32_t)0, (ss_tmp33768 != ss_tmp33769))))
     {
 #line 2704 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33767 = ss_clone(&salida_tmp);
-        tcodec_borrar(ss_lang_cstr_(&ss_tmp33767, "ejemplos/compilador/tcodec.t", 2704));
-        ss_free(&ss_tmp33767);
+        SafeString ss_tmp33770 = ss_clone(&salida_tmp);
+        tcodec_borrar(ss_lang_cstr_(&ss_tmp33770, "ejemplos/compilador/tcodec.t", 2704));
+        ss_free(&ss_tmp33770);
 #line 2705 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33768;
-        size_t ss_tmp33769;
+        size_t ss_tmp33771;
+        size_t ss_tmp33772;
 #line 2705 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp33768 = ((*ext_cabeceras).length), ss_tmp33769 = (size_t)0, (ss_tmp33768 > ss_tmp33769))))
+        if (((ss_tmp33771 = ((*ext_cabeceras).length), ss_tmp33772 = (size_t)0, (ss_tmp33771 > ss_tmp33772))))
         {
 #line 2706 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp33770 = sv_len("tcodec: el C generado no compilo. Con bloques `externo` de por medio, lo mas probable es que una firma no coincida con la de C.\n", 128);
+            SafeView ss_tmp33773 = sv_len("tcodec: el C generado no compilo. Con bloques `externo` de por medio, lo mas probable es que una firma no coincida con la de C.\n", 128);
 #line 2706 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp33770);
+            ss_lang_escribir_(stderr, ss_tmp33773);
         }
         else
         {
 #line 2708 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp33771 = sv_len("tcodec: el C generado no compilo. Es un fallo del compilador, no de tu programa.\n", 81);
+            SafeView ss_tmp33774 = sv_len("tcodec: el C generado no compilo. Es un fallo del compilador, no de tu programa.\n", 81);
 #line 2708 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp33771);
+            ss_lang_escribir_(stderr, ss_tmp33774);
         }
 #line 2710 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33773 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33773, ss_view(&dijo), "ejemplos/compilador/tcodec.t", 2710);
-        ss_lang_agregar_texto_(&ss_tmp33773, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2710);
-        SafeString ss_tmp33772 = ss_tmp33773;
-        SafeView ss_tmp33774 = ss_view(&ss_tmp33772);
+        SafeString ss_tmp33776 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33776, ss_view(&dijo), "ejemplos/compilador/tcodec.t", 2710);
+        ss_lang_agregar_texto_(&ss_tmp33776, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2710);
+        SafeString ss_tmp33775 = ss_tmp33776;
+        SafeView ss_tmp33777 = ss_view(&ss_tmp33775);
 #line 2710 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp33774);
-        ss_free(&ss_tmp33772);
+        ss_lang_escribir_(stderr, ss_tmp33777);
+        ss_free(&ss_tmp33775);
 #line 2711 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33775 = (size_t)1;
+        size_t ss_tmp33778 = (size_t)1;
         ss_free(&dijo);
         ss_free(&safestr);
         ss_free(&incluir);
@@ -112495,52 +112501,52 @@ SS_LANG_QUIZA_SIN_USAR static size_t construir(SS_LANG_QUIZA_SIN_USAR SafeView t
         acompanan.capacity = 0;
         ss_free(&ext);
         ss_free(&base);
-        return ss_tmp33775;
+        return ss_tmp33778;
     }
 #line 2713 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33776;
-    size_t ss_tmp33777;
+    size_t ss_tmp33779;
+    size_t ss_tmp33780;
 #line 2713 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33776 = sv_len_of(recortar(ss_view(&dijo))), ss_tmp33777 = (size_t)0, (ss_tmp33776 > ss_tmp33777))))
+    if (((ss_tmp33779 = sv_len_of(recortar(ss_view(&dijo))), ss_tmp33780 = (size_t)0, (ss_tmp33779 > ss_tmp33780))))
     {
-        SafeString ss_tmp33779 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33779, ss_view(&dijo), "ejemplos/compilador/tcodec.t", 2713);
-        ss_lang_agregar_texto_(&ss_tmp33779, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2713);
-        SafeString ss_tmp33778 = ss_tmp33779;
-        SafeView ss_tmp33780 = ss_view(&ss_tmp33778);
+        SafeString ss_tmp33782 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33782, ss_view(&dijo), "ejemplos/compilador/tcodec.t", 2713);
+        ss_lang_agregar_texto_(&ss_tmp33782, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2713);
+        SafeString ss_tmp33781 = ss_tmp33782;
+        SafeView ss_tmp33783 = ss_view(&ss_tmp33781);
 #line 2713 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp33780);
-        ss_free(&ss_tmp33778);
+        ss_lang_escribir_(stderr, ss_tmp33783);
+        ss_free(&ss_tmp33781);
     }
 #line 2714 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33781 = ss_clone(&salida_tmp);
-    const char* ss_tmp33782;
-    SafeString ss_tmp33783 = ss_clone(&destino_bin);
-    const char* ss_tmp33784;
-    int32_t ss_tmp33785;
-    int32_t ss_tmp33786;
-    int32_t ss_tmp33787;
+    SafeString ss_tmp33784 = ss_clone(&salida_tmp);
+    const char* ss_tmp33785;
+    SafeString ss_tmp33786 = ss_clone(&destino_bin);
+    const char* ss_tmp33787;
+    int32_t ss_tmp33788;
+    int32_t ss_tmp33789;
+    int32_t ss_tmp33790;
 #line 2714 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33786 = ((ss_tmp33782 = ss_lang_cstr_(&ss_tmp33781, "ejemplos/compilador/tcodec.t", 2714), ss_tmp33784 = ss_lang_cstr_(&ss_tmp33783, "ejemplos/compilador/tcodec.t", 2714), ss_tmp33785 = (int32_t)1, tcodec_instalar(ss_tmp33782, ss_tmp33784, ss_tmp33785))), ss_tmp33787 = (int32_t)0, (ss_tmp33786 != ss_tmp33787))))
+    if (((ss_tmp33789 = ((ss_tmp33785 = ss_lang_cstr_(&ss_tmp33784, "ejemplos/compilador/tcodec.t", 2714), ss_tmp33787 = ss_lang_cstr_(&ss_tmp33786, "ejemplos/compilador/tcodec.t", 2714), ss_tmp33788 = (int32_t)1, tcodec_instalar(ss_tmp33785, ss_tmp33787, ss_tmp33788))), ss_tmp33790 = (int32_t)0, (ss_tmp33789 != ss_tmp33790))))
     {
 #line 2715 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33788 = ss_clone(&salida_tmp);
-        tcodec_borrar(ss_lang_cstr_(&ss_tmp33788, "ejemplos/compilador/tcodec.t", 2715));
-        ss_free(&ss_tmp33788);
+        SafeString ss_tmp33791 = ss_clone(&salida_tmp);
+        tcodec_borrar(ss_lang_cstr_(&ss_tmp33791, "ejemplos/compilador/tcodec.t", 2715));
+        ss_free(&ss_tmp33791);
 #line 2716 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33790 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33790, sv_len("tcodec: no se pudo instalar la salida `", 39), "ejemplos/compilador/tcodec.t", 2716);
-        ss_lang_agregar_texto_(&ss_tmp33790, ss_view(&base), "ejemplos/compilador/tcodec.t", 2716);
-        ss_lang_agregar_texto_(&ss_tmp33790, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2716);
-        SafeString ss_tmp33789 = ss_tmp33790;
-        SafeView ss_tmp33791 = ss_view(&ss_tmp33789);
+        SafeString ss_tmp33793 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33793, sv_len("tcodec: no se pudo instalar la salida `", 39), "ejemplos/compilador/tcodec.t", 2716);
+        ss_lang_agregar_texto_(&ss_tmp33793, ss_view(&base), "ejemplos/compilador/tcodec.t", 2716);
+        ss_lang_agregar_texto_(&ss_tmp33793, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2716);
+        SafeString ss_tmp33792 = ss_tmp33793;
+        SafeView ss_tmp33794 = ss_view(&ss_tmp33792);
 #line 2716 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp33791);
-        ss_free(&ss_tmp33789);
+        ss_lang_escribir_(stderr, ss_tmp33794);
+        ss_free(&ss_tmp33792);
 #line 2717 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33792 = (size_t)2;
-        ss_free(&ss_tmp33781);
-        ss_free(&ss_tmp33783);
+        size_t ss_tmp33795 = (size_t)2;
+        ss_free(&ss_tmp33784);
+        ss_free(&ss_tmp33786);
         ss_free(&dijo);
         ss_free(&safestr);
         ss_free(&incluir);
@@ -112570,21 +112576,21 @@ SS_LANG_QUIZA_SIN_USAR static size_t construir(SS_LANG_QUIZA_SIN_USAR SafeView t
         acompanan.capacity = 0;
         ss_free(&ext);
         ss_free(&base);
-        return ss_tmp33792;
+        return ss_tmp33795;
     }
-    ss_free(&ss_tmp33781);
-    ss_free(&ss_tmp33783);
+    ss_free(&ss_tmp33784);
+    ss_free(&ss_tmp33786);
 #line 2719 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33794 = ss_new();
-    ss_lang_agregar_texto_(&ss_tmp33794, ss_view(&base), "ejemplos/compilador/tcodec.t", 2719);
-    ss_lang_agregar_texto_(&ss_tmp33794, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2719);
-    SafeString ss_tmp33793 = ss_tmp33794;
-    SafeView ss_tmp33795 = ss_view(&ss_tmp33793);
+    SafeString ss_tmp33797 = ss_new();
+    ss_lang_agregar_texto_(&ss_tmp33797, ss_view(&base), "ejemplos/compilador/tcodec.t", 2719);
+    ss_lang_agregar_texto_(&ss_tmp33797, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2719);
+    SafeString ss_tmp33796 = ss_tmp33797;
+    SafeView ss_tmp33798 = ss_view(&ss_tmp33796);
 #line 2719 "ejemplos/compilador/tcodec.t"
-    ss_lang_escribir_(stdout, ss_tmp33795);
-    ss_free(&ss_tmp33793);
+    ss_lang_escribir_(stdout, ss_tmp33798);
+    ss_free(&ss_tmp33796);
 #line 2720 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33796 = (size_t)0;
+    size_t ss_tmp33799 = (size_t)0;
     ss_free(&dijo);
     ss_free(&safestr);
     ss_free(&incluir);
@@ -112614,80 +112620,80 @@ SS_LANG_QUIZA_SIN_USAR static size_t construir(SS_LANG_QUIZA_SIN_USAR SafeView t
     acompanan.capacity = 0;
     ss_free(&ext);
     ss_free(&base);
-    return ss_tmp33796;
+    return ss_tmp33799;
 }
 
 #line 2736 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
 {
 #line 2737 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp33797;
-    SafeString ss_tmp33798;
-    SafeString ss_tmp33799;
-    SafeString ss_tmp33801 = ss_new();
-    SafeString ss_tmp33802 = ss_new();
-    SafeString ss_tmp33803 = ss_from_view(sv_len("2", 1));
-    ss_res_str ss_tmp33800 = ss_lang_variable_entorno_(sv_len("CC", 2));
-    SafeString ss_tmp33804;
-    if (ss_tmp33800.motivo != NULL)
+    SafeString ss_tmp33800;
+    SafeString ss_tmp33801;
+    SafeString ss_tmp33802;
+    SafeString ss_tmp33804 = ss_new();
+    SafeString ss_tmp33805 = ss_new();
+    SafeString ss_tmp33806 = ss_from_view(sv_len("2", 1));
+    ss_res_str ss_tmp33803 = ss_lang_variable_entorno_(sv_len("CC", 2));
+    SafeString ss_tmp33807;
+    if (ss_tmp33803.motivo != NULL)
     {
-        ss_tmp33804 = ss_from_view(sv_len("cc", 2));
+        ss_tmp33807 = ss_from_view(sv_len("cc", 2));
     }
     else
     {
-        ss_tmp33804 = ss_tmp33800.valor;
+        ss_tmp33807 = ss_tmp33803.valor;
     }
-    SafeString ss_tmp33805;
-    SafeString ss_tmp33806;
-    bool ss_tmp33807;
-    bool ss_tmp33808;
-    bool ss_tmp33809;
+    SafeString ss_tmp33808;
+    SafeString ss_tmp33809;
     bool ss_tmp33810;
-    size_t ss_tmp33811;
+    bool ss_tmp33811;
+    bool ss_tmp33812;
+    bool ss_tmp33813;
+    size_t ss_tmp33814;
 #line 2737 "ejemplos/compilador/tcodec.t"
-    SS_LANG_QUIZA_SIN_USAR Opciones o = ((ss_tmp33797 = ss_tmp33801, ss_tmp33798 = ss_tmp33802, ss_tmp33799 = ss_tmp33803, ss_tmp33805 = ss_tmp33804, ss_tmp33806 = ss_from_view(sv_len("binario", 7)), ss_tmp33807 = false, ss_tmp33808 = false, ss_tmp33809 = false, ss_tmp33810 = false, ss_tmp33811 = (size_t)0, (Opciones){ .fuente = ss_tmp33797, .salida = ss_tmp33798, .nivel = ss_tmp33799, .cc = ss_tmp33805, .modo = ss_tmp33806, .sin_avisos = ss_tmp33807, .escribir = ss_tmp33808, .avisos_como_errores = ss_tmp33809, .terminar = ss_tmp33810, .codigo = ss_tmp33811 }));
+    SS_LANG_QUIZA_SIN_USAR Opciones o = ((ss_tmp33800 = ss_tmp33804, ss_tmp33801 = ss_tmp33805, ss_tmp33802 = ss_tmp33806, ss_tmp33808 = ss_tmp33807, ss_tmp33809 = ss_from_view(sv_len("binario", 7)), ss_tmp33810 = false, ss_tmp33811 = false, ss_tmp33812 = false, ss_tmp33813 = false, ss_tmp33814 = (size_t)0, (Opciones){ .fuente = ss_tmp33800, .salida = ss_tmp33801, .nivel = ss_tmp33802, .cc = ss_tmp33808, .modo = ss_tmp33809, .sin_avisos = ss_tmp33810, .escribir = ss_tmp33811, .avisos_como_errores = ss_tmp33812, .terminar = ss_tmp33813, .codigo = ss_tmp33814 }));
 #line 2741 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t ia = (size_t)1;
 #line 2742 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp33812;
-        size_t ss_tmp33813;
+        size_t ss_tmp33815;
+        size_t ss_tmp33816;
 #line 2742 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp33812 = ia, ss_tmp33813 = ss_lang_n_argumentos_(), (ss_tmp33812 < ss_tmp33813)))))
+        if (!(((ss_tmp33815 = ia, ss_tmp33816 = ss_lang_n_argumentos_(), (ss_tmp33815 < ss_tmp33816)))))
         {
             break;
         }
 #line 2743 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeView a = ss_lang_argumento_(ia, "ejemplos/compilador/tcodec.t", 2743);
 #line 2744 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33814;
-        size_t ss_tmp33815;
+        size_t ss_tmp33817;
+        size_t ss_tmp33818;
 #line 2744 "ejemplos/compilador/tcodec.t"
-        ia = ((ss_tmp33814 = ia, ss_tmp33815 = (size_t)1, ss_lang_suma_usize(ss_tmp33814, ss_tmp33815, "ejemplos/compilador/tcodec.t", 2744)));
+        ia = ((ss_tmp33817 = ia, ss_tmp33818 = (size_t)1, ss_lang_suma_usize(ss_tmp33817, ss_tmp33818, "ejemplos/compilador/tcodec.t", 2744)));
 #line 2745 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33816;
-        SafeView ss_tmp33817;
-        SafeView ss_tmp33818;
         SafeView ss_tmp33819;
-        if ((((ss_tmp33816 = a, ss_tmp33817 = sv_len("-o", 2), sv_equals(ss_tmp33816, ss_tmp33817))) || ((ss_tmp33818 = a, ss_tmp33819 = sv_len("--cc", 4), sv_equals(ss_tmp33818, ss_tmp33819)))))
+        SafeView ss_tmp33820;
+        SafeView ss_tmp33821;
+        SafeView ss_tmp33822;
+        if ((((ss_tmp33819 = a, ss_tmp33820 = sv_len("-o", 2), sv_equals(ss_tmp33819, ss_tmp33820))) || ((ss_tmp33821 = a, ss_tmp33822 = sv_len("--cc", 4), sv_equals(ss_tmp33821, ss_tmp33822)))))
         {
 #line 2746 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp33820;
-            size_t ss_tmp33821;
+            size_t ss_tmp33823;
+            size_t ss_tmp33824;
 #line 2746 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp33820 = ia, ss_tmp33821 = ss_lang_n_argumentos_(), (ss_tmp33820 >= ss_tmp33821))))
+            if (((ss_tmp33823 = ia, ss_tmp33824 = ss_lang_n_argumentos_(), (ss_tmp33823 >= ss_tmp33824))))
             {
 #line 2747 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp33823 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp33823, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 2747);
-                ss_lang_agregar_texto_(&ss_tmp33823, a, "ejemplos/compilador/tcodec.t", 2747);
-                ss_lang_agregar_texto_(&ss_tmp33823, sv_len("` necesita un valor detras\n", 27), "ejemplos/compilador/tcodec.t", 2747);
-                SafeString ss_tmp33822 = ss_tmp33823;
-                SafeView ss_tmp33824 = ss_view(&ss_tmp33822);
+                SafeString ss_tmp33826 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp33826, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 2747);
+                ss_lang_agregar_texto_(&ss_tmp33826, a, "ejemplos/compilador/tcodec.t", 2747);
+                ss_lang_agregar_texto_(&ss_tmp33826, sv_len("` necesita un valor detras\n", 27), "ejemplos/compilador/tcodec.t", 2747);
+                SafeString ss_tmp33825 = ss_tmp33826;
+                SafeView ss_tmp33827 = ss_view(&ss_tmp33825);
 #line 2747 "ejemplos/compilador/tcodec.t"
-                ss_lang_escribir_(stderr, ss_tmp33824);
-                ss_free(&ss_tmp33822);
+                ss_lang_escribir_(stderr, ss_tmp33827);
+                ss_free(&ss_tmp33825);
 #line 2748 "ejemplos/compilador/tcodec.t"
                 o.terminar = true;
 #line 2749 "ejemplos/compilador/tcodec.t"
@@ -112696,67 +112702,64 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
                 return o;
             }
 #line 2752 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp33825;
-            SafeView ss_tmp33826;
-            if (((ss_tmp33825 = a, ss_tmp33826 = sv_len("-o", 2), sv_equals(ss_tmp33825, ss_tmp33826))))
+            SafeView ss_tmp33828;
+            SafeView ss_tmp33829;
+            if (((ss_tmp33828 = a, ss_tmp33829 = sv_len("-o", 2), sv_equals(ss_tmp33828, ss_tmp33829))))
             {
-                SafeString ss_tmp33827 = ss_from_view(ss_lang_argumento_(ia, "ejemplos/compilador/tcodec.t", 2752));
+                SafeString ss_tmp33830 = ss_from_view(ss_lang_argumento_(ia, "ejemplos/compilador/tcodec.t", 2752));
                 ss_free(&o.salida);
-                o.salida = ss_tmp33827;
+                o.salida = ss_tmp33830;
             }
             else
             {
 #line 2753 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp33828 = ss_from_view(ss_lang_argumento_(ia, "ejemplos/compilador/tcodec.t", 2753));
+                SafeString ss_tmp33831 = ss_from_view(ss_lang_argumento_(ia, "ejemplos/compilador/tcodec.t", 2753));
                 ss_free(&o.cc);
-                o.cc = ss_tmp33828;
+                o.cc = ss_tmp33831;
             }
 #line 2754 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp33829;
-            size_t ss_tmp33830;
+            size_t ss_tmp33832;
+            size_t ss_tmp33833;
 #line 2754 "ejemplos/compilador/tcodec.t"
-            ia = ((ss_tmp33829 = ia, ss_tmp33830 = (size_t)1, ss_lang_suma_usize(ss_tmp33829, ss_tmp33830, "ejemplos/compilador/tcodec.t", 2754)));
+            ia = ((ss_tmp33832 = ia, ss_tmp33833 = (size_t)1, ss_lang_suma_usize(ss_tmp33832, ss_tmp33833, "ejemplos/compilador/tcodec.t", 2754)));
         }
         else
         {
 #line 2755 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp33831;
-            SafeView ss_tmp33832;
-            if (((ss_tmp33831 = a, ss_tmp33832 = sv_len("-O", 2), empieza_con(ss_tmp33831, ss_tmp33832))))
+            SafeView ss_tmp33834;
+            SafeView ss_tmp33835;
+            if (((ss_tmp33834 = a, ss_tmp33835 = sv_len("-O", 2), empieza_con(ss_tmp33834, ss_tmp33835))))
             {
 #line 2756 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp33833;
-                size_t ss_tmp33834;
-                size_t ss_tmp33835;
-#line 2756 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp33836 = ss_from_view(((ss_tmp33833 = a, ss_tmp33834 = (size_t)2, ss_tmp33835 = sv_len_of(a), ss_lang_rebanar_(ss_tmp33833, ss_tmp33834, ss_tmp33835, "ejemplos/compilador/tcodec.t", 2756))));
-                ss_free(&o.nivel);
-                o.nivel = ss_tmp33836;
-#line 2757 "ejemplos/compilador/tcodec.t"
+                SafeView ss_tmp33836;
                 size_t ss_tmp33837;
                 size_t ss_tmp33838;
+#line 2756 "ejemplos/compilador/tcodec.t"
+                SafeString ss_tmp33839 = ss_from_view(((ss_tmp33836 = a, ss_tmp33837 = (size_t)2, ss_tmp33838 = sv_len_of(a), ss_lang_rebanar_(ss_tmp33836, ss_tmp33837, ss_tmp33838, "ejemplos/compilador/tcodec.t", 2756))));
+                ss_free(&o.nivel);
+                o.nivel = ss_tmp33839;
 #line 2757 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp33839;
                 size_t ss_tmp33840;
+                size_t ss_tmp33841;
 #line 2757 "ejemplos/compilador/tcodec.t"
-                if ((((ss_tmp33837 = sv_len_of(ss_view(&o.nivel)), ss_tmp33838 = (size_t)0, (ss_tmp33837 == ss_tmp33838))) && ((ss_tmp33839 = ia, ss_tmp33840 = ss_lang_n_argumentos_(), (ss_tmp33839 < ss_tmp33840)))))
+                size_t ss_tmp33842;
+                size_t ss_tmp33843;
+#line 2757 "ejemplos/compilador/tcodec.t"
+                if ((((ss_tmp33840 = sv_len_of(ss_view(&o.nivel)), ss_tmp33841 = (size_t)0, (ss_tmp33840 == ss_tmp33841))) && ((ss_tmp33842 = ia, ss_tmp33843 = ss_lang_n_argumentos_(), (ss_tmp33842 < ss_tmp33843)))))
                 {
 #line 2758 "ejemplos/compilador/tcodec.t"
-                    SafeString ss_tmp33841 = ss_from_view(ss_lang_argumento_(ia, "ejemplos/compilador/tcodec.t", 2758));
+                    SafeString ss_tmp33844 = ss_from_view(ss_lang_argumento_(ia, "ejemplos/compilador/tcodec.t", 2758));
                     ss_free(&o.nivel);
-                    o.nivel = ss_tmp33841;
+                    o.nivel = ss_tmp33844;
 #line 2759 "ejemplos/compilador/tcodec.t"
-                    size_t ss_tmp33842;
-                    size_t ss_tmp33843;
+                    size_t ss_tmp33845;
+                    size_t ss_tmp33846;
 #line 2759 "ejemplos/compilador/tcodec.t"
-                    ia = ((ss_tmp33842 = ia, ss_tmp33843 = (size_t)1, ss_lang_suma_usize(ss_tmp33842, ss_tmp33843, "ejemplos/compilador/tcodec.t", 2759)));
+                    ia = ((ss_tmp33845 = ia, ss_tmp33846 = (size_t)1, ss_lang_suma_usize(ss_tmp33845, ss_tmp33846, "ejemplos/compilador/tcodec.t", 2759)));
                 }
 #line 2761 "ejemplos/compilador/tcodec.t"
                 SS_LANG_QUIZA_SIN_USAR SafeView nv = ss_view(&o.nivel);
 #line 2762 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp33844;
-                SafeView ss_tmp33845;
-                SafeView ss_tmp33846;
                 SafeView ss_tmp33847;
                 SafeView ss_tmp33848;
                 SafeView ss_tmp33849;
@@ -112764,12 +112767,15 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
                 SafeView ss_tmp33851;
                 SafeView ss_tmp33852;
                 SafeView ss_tmp33853;
-                if ((((((!((ss_tmp33844 = nv, ss_tmp33845 = sv_len("0", 1), sv_equals(ss_tmp33844, ss_tmp33845)))) && (!((ss_tmp33846 = nv, ss_tmp33847 = sv_len("1", 1), sv_equals(ss_tmp33846, ss_tmp33847))))) && (!((ss_tmp33848 = nv, ss_tmp33849 = sv_len("2", 1), sv_equals(ss_tmp33848, ss_tmp33849))))) && (!((ss_tmp33850 = nv, ss_tmp33851 = sv_len("3", 1), sv_equals(ss_tmp33850, ss_tmp33851))))) && (!((ss_tmp33852 = nv, ss_tmp33853 = sv_len("s", 1), sv_equals(ss_tmp33852, ss_tmp33853))))))
+                SafeView ss_tmp33854;
+                SafeView ss_tmp33855;
+                SafeView ss_tmp33856;
+                if ((((((!((ss_tmp33847 = nv, ss_tmp33848 = sv_len("0", 1), sv_equals(ss_tmp33847, ss_tmp33848)))) && (!((ss_tmp33849 = nv, ss_tmp33850 = sv_len("1", 1), sv_equals(ss_tmp33849, ss_tmp33850))))) && (!((ss_tmp33851 = nv, ss_tmp33852 = sv_len("2", 1), sv_equals(ss_tmp33851, ss_tmp33852))))) && (!((ss_tmp33853 = nv, ss_tmp33854 = sv_len("3", 1), sv_equals(ss_tmp33853, ss_tmp33854))))) && (!((ss_tmp33855 = nv, ss_tmp33856 = sv_len("s", 1), sv_equals(ss_tmp33855, ss_tmp33856))))))
                 {
 #line 2763 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp33854 = sv_len("tcodec: -O acepta 0, 1, 2, 3 o s\n", 33);
+                    SafeView ss_tmp33857 = sv_len("tcodec: -O acepta 0, 1, 2, 3 o s\n", 33);
 #line 2763 "ejemplos/compilador/tcodec.t"
-                    ss_lang_escribir_(stderr, ss_tmp33854);
+                    ss_lang_escribir_(stderr, ss_tmp33857);
 #line 2764 "ejemplos/compilador/tcodec.t"
                     o.terminar = true;
 #line 2765 "ejemplos/compilador/tcodec.t"
@@ -112781,69 +112787,69 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
             else
             {
 #line 2768 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp33855;
-                SafeView ss_tmp33856;
-                if (((ss_tmp33855 = a, ss_tmp33856 = sv_len("--emitir-c", 10), sv_equals(ss_tmp33855, ss_tmp33856))))
+                SafeView ss_tmp33858;
+                SafeView ss_tmp33859;
+                if (((ss_tmp33858 = a, ss_tmp33859 = sv_len("--emitir-c", 10), sv_equals(ss_tmp33858, ss_tmp33859))))
                 {
 #line 2769 "ejemplos/compilador/tcodec.t"
-                    SafeString ss_tmp33857 = ss_from_view(sv_len("emitir", 6));
+                    SafeString ss_tmp33860 = ss_from_view(sv_len("emitir", 6));
                     ss_free(&o.modo);
-                    o.modo = ss_tmp33857;
+                    o.modo = ss_tmp33860;
                 }
                 else
                 {
 #line 2770 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp33858;
-                    SafeView ss_tmp33859;
-                    if (((ss_tmp33858 = a, ss_tmp33859 = sv_len("--mostrar-c", 11), sv_equals(ss_tmp33858, ss_tmp33859))))
+                    SafeView ss_tmp33861;
+                    SafeView ss_tmp33862;
+                    if (((ss_tmp33861 = a, ss_tmp33862 = sv_len("--mostrar-c", 11), sv_equals(ss_tmp33861, ss_tmp33862))))
                     {
 #line 2771 "ejemplos/compilador/tcodec.t"
-                        SafeString ss_tmp33860 = ss_from_view(sv_len("mostrar", 7));
+                        SafeString ss_tmp33863 = ss_from_view(sv_len("mostrar", 7));
                         ss_free(&o.modo);
-                        o.modo = ss_tmp33860;
+                        o.modo = ss_tmp33863;
                     }
                     else
                     {
 #line 2772 "ejemplos/compilador/tcodec.t"
-                        SafeView ss_tmp33861;
-                        SafeView ss_tmp33862;
-                        if (((ss_tmp33861 = a, ss_tmp33862 = sv_len("--solo-comprobar", 16), sv_equals(ss_tmp33861, ss_tmp33862))))
+                        SafeView ss_tmp33864;
+                        SafeView ss_tmp33865;
+                        if (((ss_tmp33864 = a, ss_tmp33865 = sv_len("--solo-comprobar", 16), sv_equals(ss_tmp33864, ss_tmp33865))))
                         {
 #line 2773 "ejemplos/compilador/tcodec.t"
-                            SafeString ss_tmp33863 = ss_from_view(sv_len("comprobar", 9));
+                            SafeString ss_tmp33866 = ss_from_view(sv_len("comprobar", 9));
                             ss_free(&o.modo);
-                            o.modo = ss_tmp33863;
+                            o.modo = ss_tmp33866;
                         }
                         else
                         {
 #line 2774 "ejemplos/compilador/tcodec.t"
-                            SafeView ss_tmp33864;
-                            SafeView ss_tmp33865;
-                            if (((ss_tmp33864 = a, ss_tmp33865 = sv_len("--explicar", 10), sv_equals(ss_tmp33864, ss_tmp33865))))
+                            SafeView ss_tmp33867;
+                            SafeView ss_tmp33868;
+                            if (((ss_tmp33867 = a, ss_tmp33868 = sv_len("--explicar", 10), sv_equals(ss_tmp33867, ss_tmp33868))))
                             {
 #line 2775 "ejemplos/compilador/tcodec.t"
-                                SafeString ss_tmp33866 = ss_from_view(sv_len("explicar", 8));
+                                SafeString ss_tmp33869 = ss_from_view(sv_len("explicar", 8));
                                 ss_free(&o.modo);
-                                o.modo = ss_tmp33866;
+                                o.modo = ss_tmp33869;
                             }
                             else
                             {
 #line 2776 "ejemplos/compilador/tcodec.t"
-                                SafeView ss_tmp33867;
-                                SafeView ss_tmp33868;
-                                if (((ss_tmp33867 = a, ss_tmp33868 = sv_len("--formatear", 11), sv_equals(ss_tmp33867, ss_tmp33868))))
+                                SafeView ss_tmp33870;
+                                SafeView ss_tmp33871;
+                                if (((ss_tmp33870 = a, ss_tmp33871 = sv_len("--formatear", 11), sv_equals(ss_tmp33870, ss_tmp33871))))
                                 {
 #line 2777 "ejemplos/compilador/tcodec.t"
-                                    SafeString ss_tmp33869 = ss_from_view(sv_len("formatear", 9));
+                                    SafeString ss_tmp33872 = ss_from_view(sv_len("formatear", 9));
                                     ss_free(&o.modo);
-                                    o.modo = ss_tmp33869;
+                                    o.modo = ss_tmp33872;
                                 }
                                 else
                                 {
 #line 2778 "ejemplos/compilador/tcodec.t"
-                                    SafeView ss_tmp33870;
-                                    SafeView ss_tmp33871;
-                                    if (((ss_tmp33870 = a, ss_tmp33871 = sv_len("--escribir", 10), sv_equals(ss_tmp33870, ss_tmp33871))))
+                                    SafeView ss_tmp33873;
+                                    SafeView ss_tmp33874;
+                                    if (((ss_tmp33873 = a, ss_tmp33874 = sv_len("--escribir", 10), sv_equals(ss_tmp33873, ss_tmp33874))))
                                     {
 #line 2779 "ejemplos/compilador/tcodec.t"
                                         o.escribir = true;
@@ -112851,9 +112857,9 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
                                     else
                                     {
 #line 2780 "ejemplos/compilador/tcodec.t"
-                                        SafeView ss_tmp33872;
-                                        SafeView ss_tmp33873;
-                                        if (((ss_tmp33872 = a, ss_tmp33873 = sv_len("--sin-avisos", 12), sv_equals(ss_tmp33872, ss_tmp33873))))
+                                        SafeView ss_tmp33875;
+                                        SafeView ss_tmp33876;
+                                        if (((ss_tmp33875 = a, ss_tmp33876 = sv_len("--sin-avisos", 12), sv_equals(ss_tmp33875, ss_tmp33876))))
                                         {
 #line 2781 "ejemplos/compilador/tcodec.t"
                                             o.sin_avisos = true;
@@ -112861,9 +112867,9 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
                                         else
                                         {
 #line 2782 "ejemplos/compilador/tcodec.t"
-                                            SafeView ss_tmp33874;
-                                            SafeView ss_tmp33875;
-                                            if (((ss_tmp33874 = a, ss_tmp33875 = sv_len("--avisos-como-errores", 21), sv_equals(ss_tmp33874, ss_tmp33875))))
+                                            SafeView ss_tmp33877;
+                                            SafeView ss_tmp33878;
+                                            if (((ss_tmp33877 = a, ss_tmp33878 = sv_len("--avisos-como-errores", 21), sv_equals(ss_tmp33877, ss_tmp33878))))
                                             {
 #line 2783 "ejemplos/compilador/tcodec.t"
                                                 o.avisos_como_errores = true;
@@ -112871,14 +112877,14 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
                                             else
                                             {
 #line 2784 "ejemplos/compilador/tcodec.t"
-                                                SafeView ss_tmp33876;
-                                                SafeView ss_tmp33877;
-                                                if (((ss_tmp33876 = a, ss_tmp33877 = sv_len("--version", 9), sv_equals(ss_tmp33876, ss_tmp33877))))
+                                                SafeView ss_tmp33879;
+                                                SafeView ss_tmp33880;
+                                                if (((ss_tmp33879 = a, ss_tmp33880 = sv_len("--version", 9), sv_equals(ss_tmp33879, ss_tmp33880))))
                                                 {
 #line 2785 "ejemplos/compilador/tcodec.t"
-                                                    SafeView ss_tmp33878 = sv_len("tcodec 1.0.0-rc2\n", 17);
+                                                    SafeView ss_tmp33881 = sv_len("tcodec 1.0.0-rc2\n", 17);
 #line 2785 "ejemplos/compilador/tcodec.t"
-                                                    ss_lang_escribir_(stdout, ss_tmp33878);
+                                                    ss_lang_escribir_(stdout, ss_tmp33881);
 #line 2786 "ejemplos/compilador/tcodec.t"
                                                     o.terminar = true;
 #line 2787 "ejemplos/compilador/tcodec.t"
@@ -112887,20 +112893,20 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
                                                 else
                                                 {
 #line 2788 "ejemplos/compilador/tcodec.t"
-                                                    SafeView ss_tmp33879;
-                                                    SafeView ss_tmp33880;
-                                                    if (((ss_tmp33879 = a, ss_tmp33880 = sv_len("-", 1), empieza_con(ss_tmp33879, ss_tmp33880))))
+                                                    SafeView ss_tmp33882;
+                                                    SafeView ss_tmp33883;
+                                                    if (((ss_tmp33882 = a, ss_tmp33883 = sv_len("-", 1), empieza_con(ss_tmp33882, ss_tmp33883))))
                                                     {
 #line 2789 "ejemplos/compilador/tcodec.t"
-                                                        SafeString ss_tmp33882 = ss_new();
-                                                        ss_lang_agregar_texto_(&ss_tmp33882, sv_len("tcodec: no conozco la opcion `", 30), "ejemplos/compilador/tcodec.t", 2789);
-                                                        ss_lang_agregar_texto_(&ss_tmp33882, a, "ejemplos/compilador/tcodec.t", 2789);
-                                                        ss_lang_agregar_texto_(&ss_tmp33882, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2789);
-                                                        SafeString ss_tmp33881 = ss_tmp33882;
-                                                        SafeView ss_tmp33883 = ss_view(&ss_tmp33881);
+                                                        SafeString ss_tmp33885 = ss_new();
+                                                        ss_lang_agregar_texto_(&ss_tmp33885, sv_len("tcodec: no conozco la opcion `", 30), "ejemplos/compilador/tcodec.t", 2789);
+                                                        ss_lang_agregar_texto_(&ss_tmp33885, a, "ejemplos/compilador/tcodec.t", 2789);
+                                                        ss_lang_agregar_texto_(&ss_tmp33885, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2789);
+                                                        SafeString ss_tmp33884 = ss_tmp33885;
+                                                        SafeView ss_tmp33886 = ss_view(&ss_tmp33884);
 #line 2789 "ejemplos/compilador/tcodec.t"
-                                                        ss_lang_escribir_(stderr, ss_tmp33883);
-                                                        ss_free(&ss_tmp33881);
+                                                        ss_lang_escribir_(stderr, ss_tmp33886);
+                                                        ss_free(&ss_tmp33884);
 #line 2790 "ejemplos/compilador/tcodec.t"
                                                         o.terminar = true;
 #line 2791 "ejemplos/compilador/tcodec.t"
@@ -112911,15 +112917,15 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
                                                     else
                                                     {
 #line 2793 "ejemplos/compilador/tcodec.t"
-                                                        size_t ss_tmp33884;
-                                                        size_t ss_tmp33885;
+                                                        size_t ss_tmp33887;
+                                                        size_t ss_tmp33888;
 #line 2793 "ejemplos/compilador/tcodec.t"
-                                                        if (((ss_tmp33884 = sv_len_of(ss_view(&o.fuente)), ss_tmp33885 = (size_t)0, (ss_tmp33884 > ss_tmp33885))))
+                                                        if (((ss_tmp33887 = sv_len_of(ss_view(&o.fuente)), ss_tmp33888 = (size_t)0, (ss_tmp33887 > ss_tmp33888))))
                                                         {
 #line 2794 "ejemplos/compilador/tcodec.t"
-                                                            SafeView ss_tmp33886 = sv_len("tcodec: un archivo cada vez\n", 28);
+                                                            SafeView ss_tmp33889 = sv_len("tcodec: un archivo cada vez\n", 28);
 #line 2794 "ejemplos/compilador/tcodec.t"
-                                                            ss_lang_escribir_(stderr, ss_tmp33886);
+                                                            ss_lang_escribir_(stderr, ss_tmp33889);
 #line 2795 "ejemplos/compilador/tcodec.t"
                                                             o.terminar = true;
 #line 2796 "ejemplos/compilador/tcodec.t"
@@ -112930,9 +112936,9 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
                                                         else
                                                         {
 #line 2799 "ejemplos/compilador/tcodec.t"
-                                                            SafeString ss_tmp33887 = ss_from_view(a);
+                                                            SafeString ss_tmp33890 = ss_from_view(a);
                                                             ss_free(&o.fuente);
-                                                            o.fuente = ss_tmp33887;
+                                                            o.fuente = ss_tmp33890;
                                                         }
                                                     }
                                                 }
@@ -112948,21 +112954,21 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
         }
     }
 #line 2802 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33888;
-    size_t ss_tmp33889;
+    size_t ss_tmp33891;
+    size_t ss_tmp33892;
 #line 2802 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33888 = sv_len_of(ss_view(&o.fuente)), ss_tmp33889 = (size_t)0, (ss_tmp33888 == ss_tmp33889))))
+    if (((ss_tmp33891 = sv_len_of(ss_view(&o.fuente)), ss_tmp33892 = (size_t)0, (ss_tmp33891 == ss_tmp33892))))
     {
 #line 2803 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33891 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33891, sv_len("uso: ", 5), "ejemplos/compilador/tcodec.t", 2803);
-        ss_lang_agregar_texto_(&ss_tmp33891, ss_lang_argumento_((size_t)0, "ejemplos/compilador/tcodec.t", 2803), "ejemplos/compilador/tcodec.t", 2803);
-        ss_lang_agregar_texto_(&ss_tmp33891, sv_len(" <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--sin-avisos] [--avisos-como-errores] [--formatear [--escribir]] [--explicar]\n", 169), "ejemplos/compilador/tcodec.t", 2803);
-        SafeString ss_tmp33890 = ss_tmp33891;
-        SafeView ss_tmp33892 = ss_view(&ss_tmp33890);
+        SafeString ss_tmp33894 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33894, sv_len("uso: ", 5), "ejemplos/compilador/tcodec.t", 2803);
+        ss_lang_agregar_texto_(&ss_tmp33894, ss_lang_argumento_((size_t)0, "ejemplos/compilador/tcodec.t", 2803), "ejemplos/compilador/tcodec.t", 2803);
+        ss_lang_agregar_texto_(&ss_tmp33894, sv_len(" <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--sin-avisos] [--avisos-como-errores] [--formatear [--escribir]] [--explicar]\n", 169), "ejemplos/compilador/tcodec.t", 2803);
+        SafeString ss_tmp33893 = ss_tmp33894;
+        SafeView ss_tmp33895 = ss_view(&ss_tmp33893);
 #line 2803 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp33892);
-        ss_free(&ss_tmp33890);
+        ss_lang_escribir_(stderr, ss_tmp33895);
+        ss_free(&ss_tmp33893);
 #line 2804 "ejemplos/compilador/tcodec.t"
         o.terminar = true;
 #line 2805 "ejemplos/compilador/tcodec.t"
@@ -112971,28 +112977,28 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
     else
     {
 #line 2806 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33893 = ss_clone(&o.fuente);
-        int32_t ss_tmp33894;
-        int32_t ss_tmp33895;
+        SafeString ss_tmp33896 = ss_clone(&o.fuente);
+        int32_t ss_tmp33897;
+        int32_t ss_tmp33898;
 #line 2806 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp33894 = tcodec_es_archivo(ss_lang_cstr_(&ss_tmp33893, "ejemplos/compilador/tcodec.t", 2806)), ss_tmp33895 = (int32_t)0, (ss_tmp33894 == ss_tmp33895))))
+        if (((ss_tmp33897 = tcodec_es_archivo(ss_lang_cstr_(&ss_tmp33896, "ejemplos/compilador/tcodec.t", 2806)), ss_tmp33898 = (int32_t)0, (ss_tmp33897 == ss_tmp33898))))
         {
 #line 2807 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp33897 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp33897, sv_len("tcodec: no encuentro ", 21), "ejemplos/compilador/tcodec.t", 2807);
-            ss_lang_agregar_texto_(&ss_tmp33897, ss_view(&o.fuente), "ejemplos/compilador/tcodec.t", 2807);
-            ss_lang_agregar_texto_(&ss_tmp33897, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2807);
-            SafeString ss_tmp33896 = ss_tmp33897;
-            SafeView ss_tmp33898 = ss_view(&ss_tmp33896);
+            SafeString ss_tmp33900 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp33900, sv_len("tcodec: no encuentro ", 21), "ejemplos/compilador/tcodec.t", 2807);
+            ss_lang_agregar_texto_(&ss_tmp33900, ss_view(&o.fuente), "ejemplos/compilador/tcodec.t", 2807);
+            ss_lang_agregar_texto_(&ss_tmp33900, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2807);
+            SafeString ss_tmp33899 = ss_tmp33900;
+            SafeView ss_tmp33901 = ss_view(&ss_tmp33899);
 #line 2807 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp33898);
-            ss_free(&ss_tmp33896);
+            ss_lang_escribir_(stderr, ss_tmp33901);
+            ss_free(&ss_tmp33899);
 #line 2808 "ejemplos/compilador/tcodec.t"
             o.terminar = true;
 #line 2809 "ejemplos/compilador/tcodec.t"
             o.codigo = (size_t)2;
         }
-        ss_free(&ss_tmp33893);
+        ss_free(&ss_tmp33896);
     }
 #line 2811 "ejemplos/compilador/tcodec.t"
     return o;
@@ -113002,56 +113008,56 @@ SS_LANG_QUIZA_SIN_USAR static Opciones leer_opciones(void)
 SS_LANG_QUIZA_SIN_USAR static size_t formatear_archivo(SS_LANG_QUIZA_SIN_USAR SafeView fuente, SS_LANG_QUIZA_SIN_USAR bool escribir_en_su_sitio)
 {
 #line 2815 "ejemplos/compilador/tcodec.t"
-    ss_res_str ss_tmp33899 = ss_lang_leer_archivo_(fuente);
-    SafeString ss_tmp33900;
-    if (ss_tmp33899.motivo != NULL)
+    ss_res_str ss_tmp33902 = ss_lang_leer_archivo_(fuente);
+    SafeString ss_tmp33903;
+    if (ss_tmp33902.motivo != NULL)
     {
-        ss_tmp33900 = ss_new();
+        ss_tmp33903 = ss_new();
     }
     else
     {
-        ss_tmp33900 = ss_tmp33899.valor;
+        ss_tmp33903 = ss_tmp33902.valor;
     }
-    SS_LANG_QUIZA_SIN_USAR SafeString original = ss_tmp33900;
+    SS_LANG_QUIZA_SIN_USAR SafeString original = ss_tmp33903;
 #line 2816 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString error_f = ss_new();
 #line 2817 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp33902;
-    SafeView ss_tmp33903;
-    SafeString* ss_tmp33904;
-    ss_res_str ss_tmp33901 = ((ss_tmp33902 = ss_view(&original), ss_tmp33903 = fuente, ss_tmp33904 = &error_f, formatear(ss_tmp33902, ss_tmp33903, ss_tmp33904)));
-    SafeString ss_tmp33905;
-    if (ss_tmp33901.motivo != NULL)
+    SafeView ss_tmp33905;
+    SafeView ss_tmp33906;
+    SafeString* ss_tmp33907;
+    ss_res_str ss_tmp33904 = ((ss_tmp33905 = ss_view(&original), ss_tmp33906 = fuente, ss_tmp33907 = &error_f, formatear(ss_tmp33905, ss_tmp33906, ss_tmp33907)));
+    SafeString ss_tmp33908;
+    if (ss_tmp33904.motivo != NULL)
     {
-        ss_tmp33905 = ss_new();
+        ss_tmp33908 = ss_new();
     }
     else
     {
-        ss_tmp33905 = ss_tmp33901.valor;
+        ss_tmp33908 = ss_tmp33904.valor;
     }
-    SS_LANG_QUIZA_SIN_USAR SafeString salida_f = ss_tmp33905;
+    SS_LANG_QUIZA_SIN_USAR SafeString salida_f = ss_tmp33908;
 #line 2818 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33906;
-    size_t ss_tmp33907;
+    size_t ss_tmp33909;
+    size_t ss_tmp33910;
 #line 2818 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp33906 = sv_len_of(ss_view(&error_f)), ss_tmp33907 = (size_t)0, (ss_tmp33906 > ss_tmp33907))))
+    if (((ss_tmp33909 = sv_len_of(ss_view(&error_f)), ss_tmp33910 = (size_t)0, (ss_tmp33909 > ss_tmp33910))))
     {
 #line 2819 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33909 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33909, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 2819);
-        ss_lang_agregar_texto_(&ss_tmp33909, ss_view(&error_f), "ejemplos/compilador/tcodec.t", 2819);
-        ss_lang_agregar_texto_(&ss_tmp33909, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2819);
-        SafeString ss_tmp33908 = ss_tmp33909;
-        SafeView ss_tmp33910 = ss_view(&ss_tmp33908);
+        SafeString ss_tmp33912 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33912, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 2819);
+        ss_lang_agregar_texto_(&ss_tmp33912, ss_view(&error_f), "ejemplos/compilador/tcodec.t", 2819);
+        ss_lang_agregar_texto_(&ss_tmp33912, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2819);
+        SafeString ss_tmp33911 = ss_tmp33912;
+        SafeView ss_tmp33913 = ss_view(&ss_tmp33911);
 #line 2819 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp33910);
-        ss_free(&ss_tmp33908);
+        ss_lang_escribir_(stderr, ss_tmp33913);
+        ss_free(&ss_tmp33911);
 #line 2820 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33911 = (size_t)1;
+        size_t ss_tmp33914 = (size_t)1;
         ss_free(&salida_f);
         ss_free(&error_f);
         ss_free(&original);
-        return ss_tmp33911;
+        return ss_tmp33914;
     }
 #line 2822 "ejemplos/compilador/tcodec.t"
     if ((!escribir_en_su_sitio))
@@ -113059,65 +113065,65 @@ SS_LANG_QUIZA_SIN_USAR static size_t formatear_archivo(SS_LANG_QUIZA_SIN_USAR Sa
 #line 2823 "ejemplos/compilador/tcodec.t"
         ss_lang_escribir_(stdout, ss_view(&salida_f));
 #line 2824 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33912 = (size_t)0;
+        size_t ss_tmp33915 = (size_t)0;
         ss_free(&salida_f);
         ss_free(&error_f);
         ss_free(&original);
-        return ss_tmp33912;
+        return ss_tmp33915;
     }
 #line 2826 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp33913;
-    SafeView ss_tmp33914;
-    if ((!((ss_tmp33913 = ss_view(&salida_f), ss_tmp33914 = ss_view(&original), sv_equals(ss_tmp33913, ss_tmp33914)))))
+    SafeView ss_tmp33916;
+    SafeView ss_tmp33917;
+    if ((!((ss_tmp33916 = ss_view(&salida_f), ss_tmp33917 = ss_view(&original), sv_equals(ss_tmp33916, ss_tmp33917)))))
     {
 #line 2827 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33915;
-        SafeView ss_tmp33916;
-        bool ss_tmp33917;
-        if ((!((ss_tmp33915 = fuente, ss_tmp33916 = ss_view(&salida_f), ss_tmp33917 = false, escribir_de_una_vez(ss_tmp33915, ss_tmp33916, ss_tmp33917)))))
+        SafeView ss_tmp33918;
+        SafeView ss_tmp33919;
+        bool ss_tmp33920;
+        if ((!((ss_tmp33918 = fuente, ss_tmp33919 = ss_view(&salida_f), ss_tmp33920 = false, escribir_de_una_vez(ss_tmp33918, ss_tmp33919, ss_tmp33920)))))
         {
 #line 2828 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp33919 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp33919, sv_len("tcodec: no se pudo escribir `", 29), "ejemplos/compilador/tcodec.t", 2828);
-            ss_lang_agregar_texto_(&ss_tmp33919, fuente, "ejemplos/compilador/tcodec.t", 2828);
-            ss_lang_agregar_texto_(&ss_tmp33919, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2828);
-            SafeString ss_tmp33918 = ss_tmp33919;
-            SafeView ss_tmp33920 = ss_view(&ss_tmp33918);
+            SafeString ss_tmp33922 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp33922, sv_len("tcodec: no se pudo escribir `", 29), "ejemplos/compilador/tcodec.t", 2828);
+            ss_lang_agregar_texto_(&ss_tmp33922, fuente, "ejemplos/compilador/tcodec.t", 2828);
+            ss_lang_agregar_texto_(&ss_tmp33922, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 2828);
+            SafeString ss_tmp33921 = ss_tmp33922;
+            SafeView ss_tmp33923 = ss_view(&ss_tmp33921);
 #line 2828 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp33920);
-            ss_free(&ss_tmp33918);
+            ss_lang_escribir_(stderr, ss_tmp33923);
+            ss_free(&ss_tmp33921);
 #line 2829 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp33921 = (size_t)2;
+            size_t ss_tmp33924 = (size_t)2;
             ss_free(&salida_f);
             ss_free(&error_f);
             ss_free(&original);
-            return ss_tmp33921;
+            return ss_tmp33924;
         }
 #line 2831 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp33923 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33923, sv_len("formateado ", 11), "ejemplos/compilador/tcodec.t", 2831);
-        ss_lang_agregar_texto_(&ss_tmp33923, fuente, "ejemplos/compilador/tcodec.t", 2831);
-        ss_lang_agregar_texto_(&ss_tmp33923, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2831);
-        SafeString ss_tmp33922 = ss_tmp33923;
-        SafeView ss_tmp33924 = ss_view(&ss_tmp33922);
+        SafeString ss_tmp33926 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33926, sv_len("formateado ", 11), "ejemplos/compilador/tcodec.t", 2831);
+        ss_lang_agregar_texto_(&ss_tmp33926, fuente, "ejemplos/compilador/tcodec.t", 2831);
+        ss_lang_agregar_texto_(&ss_tmp33926, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 2831);
+        SafeString ss_tmp33925 = ss_tmp33926;
+        SafeView ss_tmp33927 = ss_view(&ss_tmp33925);
 #line 2831 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stdout, ss_tmp33924);
-        ss_free(&ss_tmp33922);
+        ss_lang_escribir_(stdout, ss_tmp33927);
+        ss_free(&ss_tmp33925);
     }
 #line 2833 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp33925 = (size_t)0;
+    size_t ss_tmp33928 = (size_t)0;
     ss_free(&salida_f);
     ss_free(&error_f);
     ss_free(&original);
-    return ss_tmp33925;
+    return ss_tmp33928;
 }
 
 #line 2839 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static ss_lista_str aritmetica_usada(SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* anchos, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* decimales, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* conversiones)
 {
 #line 2841 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp33926 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str arit = ss_tmp33926;
+    ss_lista_str ss_tmp33929 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str arit = ss_tmp33929;
 #line 2842 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str ws = ss_mapa_claves_mapa_str_usize(anchos, "ejemplos/compilador/tcodec.t", 2842);
 #line 2843 "ejemplos/compilador/tcodec.t"
@@ -113126,9 +113132,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_lista_str aritmetica_usada(SS_LANG_QUIZA_SIN_US
     for (size_t ss_k1095 = 0; ss_k1095 < ws.length; ss_k1095++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* w = &ws.e[ss_k1095];
-        ss_lista_str* ss_tmp33927 = &arit;
+        ss_lista_str* ss_tmp33930 = &arit;
 #line 2844 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp33927, fila_aritmetica(ss_view(w)), "ejemplos/compilador/tcodec.t", 2844);
+        ss_push_lista_str(ss_tmp33930, fila_aritmetica(ss_view(w)), "ejemplos/compilador/tcodec.t", 2844);
     }
 #line 2845 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str fs = ss_mapa_claves_mapa_str_usize(decimales, "ejemplos/compilador/tcodec.t", 2845);
@@ -113141,69 +113147,69 @@ SS_LANG_QUIZA_SIN_USAR static ss_lista_str aritmetica_usada(SS_LANG_QUIZA_SIN_US
 #line 2848 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString tc = tipo_c(ss_view(f));
 #line 2849 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp33928 = &arit;
-        SafeString ss_tmp33929 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp33929, sv_len("SS_LANG_ARIT_F(", 15), "ejemplos/compilador/tcodec.t", 2849);
-        ss_lang_agregar_texto_(&ss_tmp33929, ss_view(f), "ejemplos/compilador/tcodec.t", 2849);
-        ss_lang_agregar_texto_(&ss_tmp33929, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2849);
-        ss_lang_agregar_texto_(&ss_tmp33929, ss_view(&tc), "ejemplos/compilador/tcodec.t", 2849);
-        ss_lang_agregar_texto_(&ss_tmp33929, sv_len(")", 1), "ejemplos/compilador/tcodec.t", 2849);
+        ss_lista_str* ss_tmp33931 = &arit;
+        SafeString ss_tmp33932 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp33932, sv_len("SS_LANG_ARIT_F(", 15), "ejemplos/compilador/tcodec.t", 2849);
+        ss_lang_agregar_texto_(&ss_tmp33932, ss_view(f), "ejemplos/compilador/tcodec.t", 2849);
+        ss_lang_agregar_texto_(&ss_tmp33932, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2849);
+        ss_lang_agregar_texto_(&ss_tmp33932, ss_view(&tc), "ejemplos/compilador/tcodec.t", 2849);
+        ss_lang_agregar_texto_(&ss_tmp33932, sv_len(")", 1), "ejemplos/compilador/tcodec.t", 2849);
 #line 2849 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp33928, ss_tmp33929, "ejemplos/compilador/tcodec.t", 2849);
+        ss_push_lista_str(ss_tmp33931, ss_tmp33932, "ejemplos/compilador/tcodec.t", 2849);
         ss_free(&tc);
     }
 #line 2851 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp33930 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str cs = ss_tmp33930;
+    ss_lista_str ss_tmp33933 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str cs = ss_tmp33933;
 #line 2852 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp33931 = ss_mapa_claves_mapa_str_usize(conversiones, "ejemplos/compilador/tcodec.t", 2852);
-    for (size_t ss_k1097 = 0; ss_k1097 < ss_tmp33931.length; ss_k1097++)
+    ss_lista_str ss_tmp33934 = ss_mapa_claves_mapa_str_usize(conversiones, "ejemplos/compilador/tcodec.t", 2852);
+    for (size_t ss_k1097 = 0; ss_k1097 < ss_tmp33934.length; ss_k1097++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* cv = &ss_tmp33931.e[ss_k1097];
+        SS_LANG_QUIZA_SIN_USAR const SafeString* cv = &ss_tmp33934.e[ss_k1097];
 #line 2853 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33932;
-        SafeView ss_tmp33933;
-        size_t ss_tmp33934;
-        SS_LANG_QUIZA_SIN_USAR size_t corte = ((ss_tmp33932 = ss_view(cv), ss_tmp33933 = sv_len("_de_", 4), ss_tmp33934 = (size_t)0, buscar_desde(ss_tmp33932, ss_tmp33933, ss_tmp33934)));
+        SafeView ss_tmp33935;
+        SafeView ss_tmp33936;
+        size_t ss_tmp33937;
+        SS_LANG_QUIZA_SIN_USAR size_t corte = ((ss_tmp33935 = ss_view(cv), ss_tmp33936 = sv_len("_de_", 4), ss_tmp33937 = (size_t)0, buscar_desde(ss_tmp33935, ss_tmp33936, ss_tmp33937)));
 #line 2854 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33935;
-        size_t ss_tmp33936;
+        size_t ss_tmp33938;
+        size_t ss_tmp33939;
 #line 2854 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp33935 = corte, ss_tmp33936 = sv_len_of(ss_view(cv)), (ss_tmp33935 < ss_tmp33936))))
+        if (((ss_tmp33938 = corte, ss_tmp33939 = sv_len_of(ss_view(cv)), (ss_tmp33938 < ss_tmp33939))))
         {
 #line 2855 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp33937;
-            size_t ss_tmp33938;
-            size_t ss_tmp33939;
-#line 2855 "ejemplos/compilador/tcodec.t"
-            SS_LANG_QUIZA_SIN_USAR SafeView destino = ((ss_tmp33937 = ss_view(cv), ss_tmp33938 = (size_t)0, ss_tmp33939 = corte, ss_lang_rebanar_(ss_tmp33937, ss_tmp33938, ss_tmp33939, "ejemplos/compilador/tcodec.t", 2855)));
-#line 2856 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp33940;
+            SafeView ss_tmp33940;
             size_t ss_tmp33941;
+            size_t ss_tmp33942;
+#line 2855 "ejemplos/compilador/tcodec.t"
+            SS_LANG_QUIZA_SIN_USAR SafeView destino = ((ss_tmp33940 = ss_view(cv), ss_tmp33941 = (size_t)0, ss_tmp33942 = corte, ss_lang_rebanar_(ss_tmp33940, ss_tmp33941, ss_tmp33942, "ejemplos/compilador/tcodec.t", 2855)));
 #line 2856 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp33942;
             size_t ss_tmp33943;
             size_t ss_tmp33944;
 #line 2856 "ejemplos/compilador/tcodec.t"
-            SS_LANG_QUIZA_SIN_USAR SafeView origen = ((ss_tmp33942 = ss_view(cv), ss_tmp33943 = ((ss_tmp33940 = corte, ss_tmp33941 = (size_t)4, ss_lang_suma_usize(ss_tmp33940, ss_tmp33941, "ejemplos/compilador/tcodec.t", 2856))), ss_tmp33944 = sv_len_of(ss_view(cv)), ss_lang_rebanar_(ss_tmp33942, ss_tmp33943, ss_tmp33944, "ejemplos/compilador/tcodec.t", 2856)));
+            SafeView ss_tmp33945;
+            size_t ss_tmp33946;
+            size_t ss_tmp33947;
+#line 2856 "ejemplos/compilador/tcodec.t"
+            SS_LANG_QUIZA_SIN_USAR SafeView origen = ((ss_tmp33945 = ss_view(cv), ss_tmp33946 = ((ss_tmp33943 = corte, ss_tmp33944 = (size_t)4, ss_lang_suma_usize(ss_tmp33943, ss_tmp33944, "ejemplos/compilador/tcodec.t", 2856))), ss_tmp33947 = sv_len_of(ss_view(cv)), ss_lang_rebanar_(ss_tmp33945, ss_tmp33946, ss_tmp33947, "ejemplos/compilador/tcodec.t", 2856)));
 #line 2857 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp33945 = &cs;
-            SafeString ss_tmp33946 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp33946, destino, "ejemplos/compilador/tcodec.t", 2857);
-            ss_lang_agregar_texto_(&ss_tmp33946, sv_len("\t", 1), "ejemplos/compilador/tcodec.t", 2857);
-            ss_lang_agregar_texto_(&ss_tmp33946, origen, "ejemplos/compilador/tcodec.t", 2857);
+            ss_lista_str* ss_tmp33948 = &cs;
+            SafeString ss_tmp33949 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp33949, destino, "ejemplos/compilador/tcodec.t", 2857);
+            ss_lang_agregar_texto_(&ss_tmp33949, sv_len("\t", 1), "ejemplos/compilador/tcodec.t", 2857);
+            ss_lang_agregar_texto_(&ss_tmp33949, origen, "ejemplos/compilador/tcodec.t", 2857);
 #line 2857 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp33945, ss_tmp33946, "ejemplos/compilador/tcodec.t", 2857);
+            ss_push_lista_str(ss_tmp33948, ss_tmp33949, "ejemplos/compilador/tcodec.t", 2857);
         }
     }
-    for (size_t ss_i1098 = 0; ss_i1098 < ss_tmp33931.length; ss_i1098++)
+    for (size_t ss_i1098 = 0; ss_i1098 < ss_tmp33934.length; ss_i1098++)
     {
-        ss_free(&ss_tmp33931.e[ss_i1098]);
+        ss_free(&ss_tmp33934.e[ss_i1098]);
     }
-    free(ss_tmp33931.e);
-    ss_tmp33931.e = NULL;
-    ss_tmp33931.length = 0;
-    ss_tmp33931.capacity = 0;
+    free(ss_tmp33934.e);
+    ss_tmp33934.e = NULL;
+    ss_tmp33934.length = 0;
+    ss_tmp33934.capacity = 0;
 #line 2860 "ejemplos/compilador/tcodec.t"
     ss_ordenar_lista_str(&cs);
 #line 2861 "ejemplos/compilador/tcodec.t"
@@ -113211,25 +113217,25 @@ SS_LANG_QUIZA_SIN_USAR static ss_lista_str aritmetica_usada(SS_LANG_QUIZA_SIN_US
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* par = &cs.e[ss_k1099];
 #line 2862 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33947;
-        SafeView ss_tmp33948;
-        size_t ss_tmp33949;
-        SS_LANG_QUIZA_SIN_USAR size_t corte = ((ss_tmp33947 = ss_view(par), ss_tmp33948 = sv_len("\t", 1), ss_tmp33949 = (size_t)0, buscar_desde(ss_tmp33947, ss_tmp33948, ss_tmp33949)));
-#line 2863 "ejemplos/compilador/tcodec.t"
         SafeView ss_tmp33950;
-        size_t ss_tmp33951;
+        SafeView ss_tmp33951;
         size_t ss_tmp33952;
+        SS_LANG_QUIZA_SIN_USAR size_t corte = ((ss_tmp33950 = ss_view(par), ss_tmp33951 = sv_len("\t", 1), ss_tmp33952 = (size_t)0, buscar_desde(ss_tmp33950, ss_tmp33951, ss_tmp33952)));
 #line 2863 "ejemplos/compilador/tcodec.t"
-        SS_LANG_QUIZA_SIN_USAR SafeView destino = ((ss_tmp33950 = ss_view(par), ss_tmp33951 = (size_t)0, ss_tmp33952 = corte, ss_lang_rebanar_(ss_tmp33950, ss_tmp33951, ss_tmp33952, "ejemplos/compilador/tcodec.t", 2863)));
-#line 2864 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp33953;
+        SafeView ss_tmp33953;
         size_t ss_tmp33954;
+        size_t ss_tmp33955;
+#line 2863 "ejemplos/compilador/tcodec.t"
+        SS_LANG_QUIZA_SIN_USAR SafeView destino = ((ss_tmp33953 = ss_view(par), ss_tmp33954 = (size_t)0, ss_tmp33955 = corte, ss_lang_rebanar_(ss_tmp33953, ss_tmp33954, ss_tmp33955, "ejemplos/compilador/tcodec.t", 2863)));
 #line 2864 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33955;
         size_t ss_tmp33956;
         size_t ss_tmp33957;
 #line 2864 "ejemplos/compilador/tcodec.t"
-        SS_LANG_QUIZA_SIN_USAR SafeView origen = ((ss_tmp33955 = ss_view(par), ss_tmp33956 = ((ss_tmp33953 = corte, ss_tmp33954 = (size_t)1, ss_lang_suma_usize(ss_tmp33953, ss_tmp33954, "ejemplos/compilador/tcodec.t", 2864))), ss_tmp33957 = sv_len_of(ss_view(par)), ss_lang_rebanar_(ss_tmp33955, ss_tmp33956, ss_tmp33957, "ejemplos/compilador/tcodec.t", 2864)));
+        SafeView ss_tmp33958;
+        size_t ss_tmp33959;
+        size_t ss_tmp33960;
+#line 2864 "ejemplos/compilador/tcodec.t"
+        SS_LANG_QUIZA_SIN_USAR SafeView origen = ((ss_tmp33958 = ss_view(par), ss_tmp33959 = ((ss_tmp33956 = corte, ss_tmp33957 = (size_t)1, ss_lang_suma_usize(ss_tmp33956, ss_tmp33957, "ejemplos/compilador/tcodec.t", 2864))), ss_tmp33960 = sv_len_of(ss_view(par)), ss_lang_rebanar_(ss_tmp33958, ss_tmp33959, ss_tmp33960, "ejemplos/compilador/tcodec.t", 2864)));
 #line 2865 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString td = tipo_c(destino);
 #line 2866 "ejemplos/compilador/tcodec.t"
@@ -113239,172 +113245,172 @@ SS_LANG_QUIZA_SIN_USAR static ss_lista_str aritmetica_usada(SS_LANG_QUIZA_SIN_US
 #line 2868 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString extra = ss_new();
 #line 2869 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp33958;
-        SafeView ss_tmp33959;
-        if (((ss_tmp33958 = origen, ss_tmp33959 = sv_len("f", 1), empieza_con(ss_tmp33958, ss_tmp33959))))
+        SafeView ss_tmp33961;
+        SafeView ss_tmp33962;
+        if (((ss_tmp33961 = origen, ss_tmp33962 = sv_len("f", 1), empieza_con(ss_tmp33961, ss_tmp33962))))
         {
 #line 2870 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp33960;
-            SafeView ss_tmp33961;
-            SafeView ss_tmp33962;
             SafeView ss_tmp33963;
-            if ((((ss_tmp33960 = destino, ss_tmp33961 = sv_len("usize", 5), sv_equals(ss_tmp33960, ss_tmp33961))) || ((ss_tmp33962 = destino, ss_tmp33963 = sv_len("u", 1), empieza_con(ss_tmp33962, ss_tmp33963)))))
+            SafeView ss_tmp33964;
+            SafeView ss_tmp33965;
+            SafeView ss_tmp33966;
+            if ((((ss_tmp33963 = destino, ss_tmp33964 = sv_len("usize", 5), sv_equals(ss_tmp33963, ss_tmp33964))) || ((ss_tmp33965 = destino, ss_tmp33966 = sv_len("u", 1), empieza_con(ss_tmp33965, ss_tmp33966)))))
             {
 #line 2871 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp33964 = ss_from_view(sv_len("SS_LANG_CONV_F_U", 16));
+                SafeString ss_tmp33967 = ss_from_view(sv_len("SS_LANG_CONV_F_U", 16));
                 ss_free(&macro);
-                macro = ss_tmp33964;
+                macro = ss_tmp33967;
             }
             else
             {
 #line 2873 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp33965;
-                SafeView ss_tmp33966;
-                if (((ss_tmp33965 = destino, ss_tmp33966 = sv_len("i", 1), empieza_con(ss_tmp33965, ss_tmp33966))))
+                SafeView ss_tmp33968;
+                SafeView ss_tmp33969;
+                if (((ss_tmp33968 = destino, ss_tmp33969 = sv_len("i", 1), empieza_con(ss_tmp33968, ss_tmp33969))))
                 {
-                    SafeString ss_tmp33967 = ss_from_view(sv_len("SS_LANG_CONV_F_I", 16));
+                    SafeString ss_tmp33970 = ss_from_view(sv_len("SS_LANG_CONV_F_I", 16));
                     ss_free(&macro);
-                    macro = ss_tmp33967;
+                    macro = ss_tmp33970;
                 }
             }
         }
         else
         {
 #line 2876 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp33968;
-            SafeView ss_tmp33969;
-            SafeView ss_tmp33970;
             SafeView ss_tmp33971;
-            if ((((ss_tmp33968 = destino, ss_tmp33969 = sv_len("f32", 3), sv_equals(ss_tmp33968, ss_tmp33969))) || ((ss_tmp33970 = destino, ss_tmp33971 = sv_len("f64", 3), sv_equals(ss_tmp33970, ss_tmp33971)))))
+            SafeView ss_tmp33972;
+            SafeView ss_tmp33973;
+            SafeView ss_tmp33974;
+            if ((((ss_tmp33971 = destino, ss_tmp33972 = sv_len("f32", 3), sv_equals(ss_tmp33971, ss_tmp33972))) || ((ss_tmp33973 = destino, ss_tmp33974 = sv_len("f64", 3), sv_equals(ss_tmp33973, ss_tmp33974)))))
             {
 #line 2877 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp33972;
-                SafeView ss_tmp33973;
-                SafeView ss_tmp33974;
                 SafeView ss_tmp33975;
-                if ((((ss_tmp33972 = origen, ss_tmp33973 = sv_len("usize", 5), sv_equals(ss_tmp33972, ss_tmp33973))) || ((ss_tmp33974 = origen, ss_tmp33975 = sv_len("u", 1), empieza_con(ss_tmp33974, ss_tmp33975)))))
+                SafeView ss_tmp33976;
+                SafeView ss_tmp33977;
+                SafeView ss_tmp33978;
+                if ((((ss_tmp33975 = origen, ss_tmp33976 = sv_len("usize", 5), sv_equals(ss_tmp33975, ss_tmp33976))) || ((ss_tmp33977 = origen, ss_tmp33978 = sv_len("u", 1), empieza_con(ss_tmp33977, ss_tmp33978)))))
                 {
 #line 2878 "ejemplos/compilador/tcodec.t"
-                    SafeString ss_tmp33976 = ss_from_view(sv_len("SS_LANG_CONV_U_F", 16));
+                    SafeString ss_tmp33979 = ss_from_view(sv_len("SS_LANG_CONV_U_F", 16));
                     ss_free(&macro);
-                    macro = ss_tmp33976;
+                    macro = ss_tmp33979;
                 }
                 else
                 {
 #line 2880 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp33977;
-                    SafeView ss_tmp33978;
-                    if (((ss_tmp33977 = origen, ss_tmp33978 = sv_len("i", 1), empieza_con(ss_tmp33977, ss_tmp33978))))
+                    SafeView ss_tmp33980;
+                    SafeView ss_tmp33981;
+                    if (((ss_tmp33980 = origen, ss_tmp33981 = sv_len("i", 1), empieza_con(ss_tmp33980, ss_tmp33981))))
                     {
-                        SafeString ss_tmp33979 = ss_from_view(sv_len("SS_LANG_CONV_I_F", 16));
+                        SafeString ss_tmp33982 = ss_from_view(sv_len("SS_LANG_CONV_I_F", 16));
                         ss_free(&macro);
-                        macro = ss_tmp33979;
+                        macro = ss_tmp33982;
                     }
                 }
 #line 2882 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp33980;
-                SafeView ss_tmp33981;
-                if (((ss_tmp33980 = destino, ss_tmp33981 = sv_len("f32", 3), sv_equals(ss_tmp33980, ss_tmp33981))))
+                SafeView ss_tmp33983;
+                SafeView ss_tmp33984;
+                if (((ss_tmp33983 = destino, ss_tmp33984 = sv_len("f32", 3), sv_equals(ss_tmp33983, ss_tmp33984))))
                 {
-                    SafeString ss_tmp33982 = ss_from_view(sv_len("FLT_MANT_DIG, ", 14));
+                    SafeString ss_tmp33985 = ss_from_view(sv_len("FLT_MANT_DIG, ", 14));
                     ss_free(&extra);
-                    extra = ss_tmp33982;
+                    extra = ss_tmp33985;
                 }
                 else
                 {
 #line 2883 "ejemplos/compilador/tcodec.t"
-                    SafeString ss_tmp33983 = ss_from_view(sv_len("DBL_MANT_DIG, ", 14));
+                    SafeString ss_tmp33986 = ss_from_view(sv_len("DBL_MANT_DIG, ", 14));
                     ss_free(&extra);
-                    extra = ss_tmp33983;
+                    extra = ss_tmp33986;
                 }
             }
             else
             {
 #line 2885 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp33984;
-                SafeView ss_tmp33985;
-                SafeView ss_tmp33986;
                 SafeView ss_tmp33987;
                 SafeView ss_tmp33988;
                 SafeView ss_tmp33989;
-                SS_LANG_QUIZA_SIN_USAR bool origen_entero = ((((ss_tmp33984 = origen, ss_tmp33985 = sv_len("usize", 5), sv_equals(ss_tmp33984, ss_tmp33985))) || ((ss_tmp33986 = origen, ss_tmp33987 = sv_len("u", 1), empieza_con(ss_tmp33986, ss_tmp33987)))) || ((ss_tmp33988 = origen, ss_tmp33989 = sv_len("i", 1), empieza_con(ss_tmp33988, ss_tmp33989))));
-#line 2887 "ejemplos/compilador/tcodec.t"
                 SafeView ss_tmp33990;
                 SafeView ss_tmp33991;
                 SafeView ss_tmp33992;
+                SS_LANG_QUIZA_SIN_USAR bool origen_entero = ((((ss_tmp33987 = origen, ss_tmp33988 = sv_len("usize", 5), sv_equals(ss_tmp33987, ss_tmp33988))) || ((ss_tmp33989 = origen, ss_tmp33990 = sv_len("u", 1), empieza_con(ss_tmp33989, ss_tmp33990)))) || ((ss_tmp33991 = origen, ss_tmp33992 = sv_len("i", 1), empieza_con(ss_tmp33991, ss_tmp33992))));
+#line 2887 "ejemplos/compilador/tcodec.t"
                 SafeView ss_tmp33993;
                 SafeView ss_tmp33994;
                 SafeView ss_tmp33995;
-                SS_LANG_QUIZA_SIN_USAR bool destino_entero = ((((ss_tmp33990 = destino, ss_tmp33991 = sv_len("usize", 5), sv_equals(ss_tmp33990, ss_tmp33991))) || ((ss_tmp33992 = destino, ss_tmp33993 = sv_len("u", 1), empieza_con(ss_tmp33992, ss_tmp33993)))) || ((ss_tmp33994 = destino, ss_tmp33995 = sv_len("i", 1), empieza_con(ss_tmp33994, ss_tmp33995))));
+                SafeView ss_tmp33996;
+                SafeView ss_tmp33997;
+                SafeView ss_tmp33998;
+                SS_LANG_QUIZA_SIN_USAR bool destino_entero = ((((ss_tmp33993 = destino, ss_tmp33994 = sv_len("usize", 5), sv_equals(ss_tmp33993, ss_tmp33994))) || ((ss_tmp33995 = destino, ss_tmp33996 = sv_len("u", 1), empieza_con(ss_tmp33995, ss_tmp33996)))) || ((ss_tmp33997 = destino, ss_tmp33998 = sv_len("i", 1), empieza_con(ss_tmp33997, ss_tmp33998))));
 #line 2889 "ejemplos/compilador/tcodec.t"
                 if ((origen_entero && destino_entero))
                 {
 #line 2890 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp33996;
-                    SafeView ss_tmp33997;
-                    SafeView ss_tmp33998;
                     SafeView ss_tmp33999;
-                    SS_LANG_QUIZA_SIN_USAR bool ou = (((ss_tmp33996 = origen, ss_tmp33997 = sv_len("usize", 5), sv_equals(ss_tmp33996, ss_tmp33997))) || ((ss_tmp33998 = origen, ss_tmp33999 = sv_len("u", 1), empieza_con(ss_tmp33998, ss_tmp33999))));
-#line 2891 "ejemplos/compilador/tcodec.t"
                     SafeView ss_tmp34000;
                     SafeView ss_tmp34001;
                     SafeView ss_tmp34002;
+                    SS_LANG_QUIZA_SIN_USAR bool ou = (((ss_tmp33999 = origen, ss_tmp34000 = sv_len("usize", 5), sv_equals(ss_tmp33999, ss_tmp34000))) || ((ss_tmp34001 = origen, ss_tmp34002 = sv_len("u", 1), empieza_con(ss_tmp34001, ss_tmp34002))));
+#line 2891 "ejemplos/compilador/tcodec.t"
                     SafeView ss_tmp34003;
-                    SS_LANG_QUIZA_SIN_USAR bool du = (((ss_tmp34000 = destino, ss_tmp34001 = sv_len("usize", 5), sv_equals(ss_tmp34000, ss_tmp34001))) || ((ss_tmp34002 = destino, ss_tmp34003 = sv_len("u", 1), empieza_con(ss_tmp34002, ss_tmp34003))));
+                    SafeView ss_tmp34004;
+                    SafeView ss_tmp34005;
+                    SafeView ss_tmp34006;
+                    SS_LANG_QUIZA_SIN_USAR bool du = (((ss_tmp34003 = destino, ss_tmp34004 = sv_len("usize", 5), sv_equals(ss_tmp34003, ss_tmp34004))) || ((ss_tmp34005 = destino, ss_tmp34006 = sv_len("u", 1), empieza_con(ss_tmp34005, ss_tmp34006))));
 #line 2892 "ejemplos/compilador/tcodec.t"
                     SS_LANG_QUIZA_SIN_USAR SafeString os = ss_from_view(sv_len("I", 1));
 #line 2893 "ejemplos/compilador/tcodec.t"
                     if (ou)
                     {
-                        SafeString ss_tmp34004 = ss_from_view(sv_len("U", 1));
+                        SafeString ss_tmp34007 = ss_from_view(sv_len("U", 1));
                         ss_free(&os);
-                        os = ss_tmp34004;
+                        os = ss_tmp34007;
                     }
 #line 2894 "ejemplos/compilador/tcodec.t"
                     SS_LANG_QUIZA_SIN_USAR SafeString ds = ss_from_view(sv_len("I", 1));
 #line 2895 "ejemplos/compilador/tcodec.t"
                     if (du)
                     {
-                        SafeString ss_tmp34005 = ss_from_view(sv_len("U", 1));
+                        SafeString ss_tmp34008 = ss_from_view(sv_len("U", 1));
                         ss_free(&ds);
-                        ds = ss_tmp34005;
+                        ds = ss_tmp34008;
                     }
 #line 2896 "ejemplos/compilador/tcodec.t"
-                    SafeString ss_tmp34006 = ss_new();
-                    ss_lang_agregar_texto_(&ss_tmp34006, sv_len("SS_LANG_CONV_", 13), "ejemplos/compilador/tcodec.t", 2896);
-                    ss_lang_agregar_texto_(&ss_tmp34006, ss_view(&os), "ejemplos/compilador/tcodec.t", 2896);
-                    ss_lang_agregar_texto_(&ss_tmp34006, sv_len("_", 1), "ejemplos/compilador/tcodec.t", 2896);
-                    ss_lang_agregar_texto_(&ss_tmp34006, ss_view(&ds), "ejemplos/compilador/tcodec.t", 2896);
-                    SafeString ss_tmp34007 = ss_tmp34006;
+                    SafeString ss_tmp34009 = ss_new();
+                    ss_lang_agregar_texto_(&ss_tmp34009, sv_len("SS_LANG_CONV_", 13), "ejemplos/compilador/tcodec.t", 2896);
+                    ss_lang_agregar_texto_(&ss_tmp34009, ss_view(&os), "ejemplos/compilador/tcodec.t", 2896);
+                    ss_lang_agregar_texto_(&ss_tmp34009, sv_len("_", 1), "ejemplos/compilador/tcodec.t", 2896);
+                    ss_lang_agregar_texto_(&ss_tmp34009, ss_view(&ds), "ejemplos/compilador/tcodec.t", 2896);
+                    SafeString ss_tmp34010 = ss_tmp34009;
                     ss_free(&macro);
-                    macro = ss_tmp34007;
+                    macro = ss_tmp34010;
 #line 2897 "ejemplos/compilador/tcodec.t"
                     if ((du || ou))
                     {
-                        SafeString ss_tmp34008 = ss_new();
-                        SafeString ss_tmp34009 = maximo_entero(destino);
-                        ss_lang_agregar_texto_(&ss_tmp34008, ss_view(&ss_tmp34009), "ejemplos/compilador/tcodec.t", 2897);
-                        ss_lang_agregar_texto_(&ss_tmp34008, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2897);
-                        SafeString ss_tmp34010 = ss_tmp34008;
+                        SafeString ss_tmp34011 = ss_new();
+                        SafeString ss_tmp34012 = maximo_entero(destino);
+                        ss_lang_agregar_texto_(&ss_tmp34011, ss_view(&ss_tmp34012), "ejemplos/compilador/tcodec.t", 2897);
+                        ss_lang_agregar_texto_(&ss_tmp34011, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2897);
+                        SafeString ss_tmp34013 = ss_tmp34011;
                         ss_free(&extra);
-                        extra = ss_tmp34010;
-                        ss_free(&ss_tmp34009);
+                        extra = ss_tmp34013;
+                        ss_free(&ss_tmp34012);
                     }
                     else
                     {
 #line 2899 "ejemplos/compilador/tcodec.t"
-                        SafeString ss_tmp34011 = ss_new();
-                        SafeString ss_tmp34012 = minimo_entero(destino);
-                        ss_lang_agregar_texto_(&ss_tmp34011, ss_view(&ss_tmp34012), "ejemplos/compilador/tcodec.t", 2899);
-                        ss_lang_agregar_texto_(&ss_tmp34011, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2899);
-                        SafeString ss_tmp34013 = maximo_entero(destino);
-                        ss_lang_agregar_texto_(&ss_tmp34011, ss_view(&ss_tmp34013), "ejemplos/compilador/tcodec.t", 2899);
-                        ss_lang_agregar_texto_(&ss_tmp34011, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2899);
-                        SafeString ss_tmp34014 = ss_tmp34011;
+                        SafeString ss_tmp34014 = ss_new();
+                        SafeString ss_tmp34015 = minimo_entero(destino);
+                        ss_lang_agregar_texto_(&ss_tmp34014, ss_view(&ss_tmp34015), "ejemplos/compilador/tcodec.t", 2899);
+                        ss_lang_agregar_texto_(&ss_tmp34014, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2899);
+                        SafeString ss_tmp34016 = maximo_entero(destino);
+                        ss_lang_agregar_texto_(&ss_tmp34014, ss_view(&ss_tmp34016), "ejemplos/compilador/tcodec.t", 2899);
+                        ss_lang_agregar_texto_(&ss_tmp34014, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2899);
+                        SafeString ss_tmp34017 = ss_tmp34014;
                         ss_free(&extra);
-                        extra = ss_tmp34014;
-                        ss_free(&ss_tmp34012);
-                        ss_free(&ss_tmp34013);
+                        extra = ss_tmp34017;
+                        ss_free(&ss_tmp34015);
+                        ss_free(&ss_tmp34016);
                     }
                     ss_free(&ds);
                     ss_free(&os);
@@ -113412,51 +113418,51 @@ SS_LANG_QUIZA_SIN_USAR static ss_lista_str aritmetica_usada(SS_LANG_QUIZA_SIN_US
             }
         }
 #line 2904 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp34015;
-        SafeView ss_tmp34016;
-        SafeView ss_tmp34017;
         SafeView ss_tmp34018;
-        if ((((ss_tmp34015 = origen, ss_tmp34016 = sv_len("f64", 3), sv_equals(ss_tmp34015, ss_tmp34016))) && ((ss_tmp34017 = destino, ss_tmp34018 = sv_len("f32", 3), sv_equals(ss_tmp34017, ss_tmp34018)))))
+        SafeView ss_tmp34019;
+        SafeView ss_tmp34020;
+        SafeView ss_tmp34021;
+        if ((((ss_tmp34018 = origen, ss_tmp34019 = sv_len("f64", 3), sv_equals(ss_tmp34018, ss_tmp34019))) && ((ss_tmp34020 = destino, ss_tmp34021 = sv_len("f32", 3), sv_equals(ss_tmp34020, ss_tmp34021)))))
         {
 #line 2905 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp34019 = ss_from_view(sv_len("SS_LANG_CONV_F_F", 16));
+            SafeString ss_tmp34022 = ss_from_view(sv_len("SS_LANG_CONV_F_F", 16));
             ss_free(&macro);
-            macro = ss_tmp34019;
+            macro = ss_tmp34022;
 #line 2906 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp34020 = ss_from_view(sv_len("FLT_MAX, ", 9));
+            SafeString ss_tmp34023 = ss_from_view(sv_len("FLT_MAX, ", 9));
             ss_free(&extra);
-            extra = ss_tmp34020;
+            extra = ss_tmp34023;
         }
 #line 2908 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp34021 = &arit;
-        SafeString ss_tmp34022 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp34022, ss_view(&macro), "ejemplos/compilador/tcodec.t", 2908);
-        ss_lang_agregar_texto_(&ss_tmp34022, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 2908);
-        ss_lang_agregar_texto_(&ss_tmp34022, destino, "ejemplos/compilador/tcodec.t", 2908);
-        ss_lang_agregar_texto_(&ss_tmp34022, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2908);
-        ss_lang_agregar_texto_(&ss_tmp34022, ss_view(&td), "ejemplos/compilador/tcodec.t", 2908);
-        ss_lang_agregar_texto_(&ss_tmp34022, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2908);
-        ss_lang_agregar_texto_(&ss_tmp34022, ss_view(&extra), "ejemplos/compilador/tcodec.t", 2908);
-        ss_lang_agregar_texto_(&ss_tmp34022, origen, "ejemplos/compilador/tcodec.t", 2908);
-        ss_lang_agregar_texto_(&ss_tmp34022, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2908);
-        ss_lang_agregar_texto_(&ss_tmp34022, ss_view(&to), "ejemplos/compilador/tcodec.t", 2908);
-        ss_lang_agregar_texto_(&ss_tmp34022, sv_len(")", 1), "ejemplos/compilador/tcodec.t", 2908);
+        ss_lista_str* ss_tmp34024 = &arit;
+        SafeString ss_tmp34025 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp34025, ss_view(&macro), "ejemplos/compilador/tcodec.t", 2908);
+        ss_lang_agregar_texto_(&ss_tmp34025, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 2908);
+        ss_lang_agregar_texto_(&ss_tmp34025, destino, "ejemplos/compilador/tcodec.t", 2908);
+        ss_lang_agregar_texto_(&ss_tmp34025, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2908);
+        ss_lang_agregar_texto_(&ss_tmp34025, ss_view(&td), "ejemplos/compilador/tcodec.t", 2908);
+        ss_lang_agregar_texto_(&ss_tmp34025, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2908);
+        ss_lang_agregar_texto_(&ss_tmp34025, ss_view(&extra), "ejemplos/compilador/tcodec.t", 2908);
+        ss_lang_agregar_texto_(&ss_tmp34025, origen, "ejemplos/compilador/tcodec.t", 2908);
+        ss_lang_agregar_texto_(&ss_tmp34025, sv_len(", ", 2), "ejemplos/compilador/tcodec.t", 2908);
+        ss_lang_agregar_texto_(&ss_tmp34025, ss_view(&to), "ejemplos/compilador/tcodec.t", 2908);
+        ss_lang_agregar_texto_(&ss_tmp34025, sv_len(")", 1), "ejemplos/compilador/tcodec.t", 2908);
 #line 2908 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34021, ss_tmp34022, "ejemplos/compilador/tcodec.t", 2908);
+        ss_push_lista_str(ss_tmp34024, ss_tmp34025, "ejemplos/compilador/tcodec.t", 2908);
         ss_free(&extra);
         ss_free(&macro);
         ss_free(&to);
         ss_free(&td);
     }
 #line 2910 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp34023;
-    size_t ss_tmp34024;
+    size_t ss_tmp34026;
+    size_t ss_tmp34027;
 #line 2910 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp34023 = (arit.length), ss_tmp34024 = (size_t)0, (ss_tmp34023 > ss_tmp34024))))
+    if (((ss_tmp34026 = (arit.length), ss_tmp34027 = (size_t)0, (ss_tmp34026 > ss_tmp34027))))
     {
-        ss_lista_str* ss_tmp34025 = &arit;
+        ss_lista_str* ss_tmp34028 = &arit;
 #line 2910 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34025, ss_new(), "ejemplos/compilador/tcodec.t", 2910);
+        ss_push_lista_str(ss_tmp34028, ss_new(), "ejemplos/compilador/tcodec.t", 2910);
     }
 #line 2911 "ejemplos/compilador/tcodec.t"
     for (size_t ss_i1100 = 0; ss_i1100 < cs.length; ss_i1100++)
@@ -113490,117 +113496,117 @@ SS_LANG_QUIZA_SIN_USAR static ss_lista_str aritmetica_usada(SS_LANG_QUIZA_SIN_US
 SS_LANG_QUIZA_SIN_USAR static ss_lista_str tipos_funcion_usados(SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* instancias, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* protos, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* limpios)
 {
 #line 2918 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34026 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str candidatos = ss_tmp34026;
+    ss_lista_str ss_tmp34029 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str candidatos = ss_tmp34029;
 #line 2919 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34027 = ss_mapa_claves_mapa_str_str(&(*global).retornos, "ejemplos/compilador/tcodec.t", 2919);
-    for (size_t ss_k1103 = 0; ss_k1103 < ss_tmp34027.length; ss_k1103++)
+    ss_lista_str ss_tmp34030 = ss_mapa_claves_mapa_str_str(&(*global).retornos, "ejemplos/compilador/tcodec.t", 2919);
+    for (size_t ss_k1103 = 0; ss_k1103 < ss_tmp34030.length; ss_k1103++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* fk = &ss_tmp34027.e[ss_k1103];
+        SS_LANG_QUIZA_SIN_USAR const SafeString* fk = &ss_tmp34030.e[ss_k1103];
 #line 2920 "ejemplos/compilador/tcodec.t"
-        const Contexto* ss_tmp34028;
-        SafeView ss_tmp34029;
-        SS_LANG_QUIZA_SIN_USAR SafeString firma = ((ss_tmp34028 = global, ss_tmp34029 = ss_view(fk), firma_de_funcion(ss_tmp34028, ss_tmp34029)));
+        const Contexto* ss_tmp34031;
+        SafeView ss_tmp34032;
+        SS_LANG_QUIZA_SIN_USAR SafeString firma = ((ss_tmp34031 = global, ss_tmp34032 = ss_view(fk), firma_de_funcion(ss_tmp34031, ss_tmp34032)));
 #line 2921 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp34030;
-        ss_lista_str* ss_tmp34031;
-        ((ss_tmp34030 = ss_view(&firma), ss_tmp34031 = &candidatos, apuntar_tipo_funcion(ss_tmp34030, ss_tmp34031)));
+        SafeView ss_tmp34033;
+        ss_lista_str* ss_tmp34034;
+        ((ss_tmp34033 = ss_view(&firma), ss_tmp34034 = &candidatos, apuntar_tipo_funcion(ss_tmp34033, ss_tmp34034)));
         ss_free(&firma);
     }
-    for (size_t ss_i1104 = 0; ss_i1104 < ss_tmp34027.length; ss_i1104++)
+    for (size_t ss_i1104 = 0; ss_i1104 < ss_tmp34030.length; ss_i1104++)
     {
-        ss_free(&ss_tmp34027.e[ss_i1104]);
+        ss_free(&ss_tmp34030.e[ss_i1104]);
     }
-    free(ss_tmp34027.e);
-    ss_tmp34027.e = NULL;
-    ss_tmp34027.length = 0;
-    ss_tmp34027.capacity = 0;
+    free(ss_tmp34030.e);
+    ss_tmp34030.e = NULL;
+    ss_tmp34030.length = 0;
+    ss_tmp34030.capacity = 0;
 #line 2923 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_tf = (size_t)0;
 #line 2924 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34032;
-        size_t ss_tmp34033;
+        size_t ss_tmp34035;
+        size_t ss_tmp34036;
 #line 2924 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34032 = k_tf, ss_tmp34033 = ((*arboles).length), (ss_tmp34032 < ss_tmp34033)))))
+        if (!(((ss_tmp34035 = k_tf, ss_tmp34036 = ((*arboles).length), (ss_tmp34035 < ss_tmp34036)))))
         {
             break;
         }
 #line 2925 "ejemplos/compilador/tcodec.t"
-        const ss_lista_Nodo* ss_tmp34034;
-        for (size_t ss_k1105 = 0; ss_k1105 < ((ss_tmp34034 = &((*arboles)), &ss_tmp34034->e[ss_lang_indice_(k_tf, ss_tmp34034->length, "ejemplos/compilador/tcodec.t", 2925)])[0]).hijos.length; ss_k1105++)
+        const ss_lista_Nodo* ss_tmp34037;
+        for (size_t ss_k1105 = 0; ss_k1105 < ((ss_tmp34037 = &((*arboles)), &ss_tmp34037->e[ss_lang_indice_(k_tf, ss_tmp34037->length, "ejemplos/compilador/tcodec.t", 2925)])[0]).hijos.length; ss_k1105++)
         {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34034 = &((*arboles)), &ss_tmp34034->e[ss_lang_indice_(k_tf, ss_tmp34034->length, "ejemplos/compilador/tcodec.t", 2925)])[0]).hijos.e[ss_k1105];
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34037 = &((*arboles)), &ss_tmp34037->e[ss_lang_indice_(k_tf, ss_tmp34037->length, "ejemplos/compilador/tcodec.t", 2925)])[0]).hijos.e[ss_k1105];
 #line 2926 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp34035;
-            Clase ss_tmp34036;
+            Clase ss_tmp34038;
+            Clase ss_tmp34039;
 #line 2926 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp34035 = (*d).clase, ss_tmp34036 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34035.etiqueta == ss_tmp34036.etiqueta))) && (!es_generica(d))))
+            if ((((ss_tmp34038 = (*d).clase, ss_tmp34039 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34038.etiqueta == ss_tmp34039.etiqueta))) && (!es_generica(d))))
             {
 #line 2927 "ejemplos/compilador/tcodec.t"
-                const Nodo* ss_tmp34037;
-                ss_lista_str* ss_tmp34038;
-                ((ss_tmp34037 = d, ss_tmp34038 = &candidatos, tipos_funcion_de(ss_tmp34037, ss_tmp34038)));
+                const Nodo* ss_tmp34040;
+                ss_lista_str* ss_tmp34041;
+                ((ss_tmp34040 = d, ss_tmp34041 = &candidatos, tipos_funcion_de(ss_tmp34040, ss_tmp34041)));
             }
         }
 #line 2930 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34039;
-        size_t ss_tmp34040;
+        size_t ss_tmp34042;
+        size_t ss_tmp34043;
 #line 2930 "ejemplos/compilador/tcodec.t"
-        k_tf = ((ss_tmp34039 = k_tf, ss_tmp34040 = (size_t)1, ss_lang_suma_usize(ss_tmp34039, ss_tmp34040, "ejemplos/compilador/tcodec.t", 2930)));
+        k_tf = ((ss_tmp34042 = k_tf, ss_tmp34043 = (size_t)1, ss_lang_suma_usize(ss_tmp34042, ss_tmp34043, "ejemplos/compilador/tcodec.t", 2930)));
     }
 #line 2932 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1106 = 0; ss_k1106 < (*instancias).length; ss_k1106++)
     {
         SS_LANG_QUIZA_SIN_USAR const Nodo* d = &(*instancias).e[ss_k1106];
-        const Nodo* ss_tmp34041;
-        ss_lista_str* ss_tmp34042;
-        ((ss_tmp34041 = d, ss_tmp34042 = &candidatos, tipos_funcion_de(ss_tmp34041, ss_tmp34042)));
+        const Nodo* ss_tmp34044;
+        ss_lista_str* ss_tmp34045;
+        ((ss_tmp34044 = d, ss_tmp34045 = &candidatos, tipos_funcion_de(ss_tmp34044, ss_tmp34045)));
     }
 #line 2933 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34043 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str nombres_fn = ss_tmp34043;
+    ss_lista_str ss_tmp34046 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str nombres_fn = ss_tmp34046;
 #line 2934 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1107 = 0; ss_k1107 < candidatos.length; ss_k1107++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* t = &candidatos.e[ss_k1107];
-        ss_lista_str* ss_tmp34044 = &nombres_fn;
+        ss_lista_str* ss_tmp34047 = &nombres_fn;
 #line 2934 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34044, tipo_c(ss_view(t)), "ejemplos/compilador/tcodec.t", 2934);
+        ss_push_lista_str(ss_tmp34047, tipo_c(ss_view(t)), "ejemplos/compilador/tcodec.t", 2934);
     }
 #line 2935 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34045 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_fn = ss_tmp34045;
+    ss_lista_str ss_tmp34048 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_fn = ss_tmp34048;
 #line 2936 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize puestos_fn = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
 #line 2937 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34046 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str mirar_fn = ss_tmp34046;
+    ss_lista_str ss_tmp34049 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str mirar_fn = ss_tmp34049;
 #line 2938 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1108 = 0; ss_k1108 < (*protos).length; ss_k1108++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* l = &(*protos).e[ss_k1108];
-        ss_lista_str* ss_tmp34047 = &mirar_fn;
+        ss_lista_str* ss_tmp34050 = &mirar_fn;
 #line 2938 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34047, sin_cadenas(ss_view(l)), "ejemplos/compilador/tcodec.t", 2938);
+        ss_push_lista_str(ss_tmp34050, sin_cadenas(ss_view(l)), "ejemplos/compilador/tcodec.t", 2938);
     }
 #line 2939 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1109 = 0; ss_k1109 < (*limpios).length; ss_k1109++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* l = &(*limpios).e[ss_k1109];
-        ss_lista_str* ss_tmp34048 = &mirar_fn;
+        ss_lista_str* ss_tmp34051 = &mirar_fn;
 #line 2939 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34048, ss_clone(l), "ejemplos/compilador/tcodec.t", 2939);
+        ss_push_lista_str(ss_tmp34051, ss_clone(l), "ejemplos/compilador/tcodec.t", 2939);
     }
 #line 2940 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1110 = 0; ss_k1110 < mirar_fn.length; ss_k1110++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* l = &mirar_fn.e[ss_k1110];
 #line 2941 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp34049;
-        SafeView ss_tmp34050;
-        if ((!((ss_tmp34049 = ss_view(l), ss_tmp34050 = sv_len("ss_fn_", 6), contiene(ss_tmp34049, ss_tmp34050)))))
+        SafeView ss_tmp34052;
+        SafeView ss_tmp34053;
+        if ((!((ss_tmp34052 = ss_view(l), ss_tmp34053 = sv_len("ss_fn_", 6), contiene(ss_tmp34052, ss_tmp34053)))))
         {
             continue;
         }
@@ -113609,31 +113615,31 @@ SS_LANG_QUIZA_SIN_USAR static ss_lista_str tipos_funcion_usados(SS_LANG_QUIZA_SI
 #line 2943 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            size_t ss_tmp34051;
-            size_t ss_tmp34052;
+            size_t ss_tmp34054;
+            size_t ss_tmp34055;
 #line 2943 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp34051 = k_c, ss_tmp34052 = (candidatos.length), (ss_tmp34051 < ss_tmp34052)))))
+            if (!(((ss_tmp34054 = k_c, ss_tmp34055 = (candidatos.length), (ss_tmp34054 < ss_tmp34055)))))
             {
                 break;
             }
 #line 2944 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp34053;
-            SS_LANG_QUIZA_SIN_USAR SafeView nc = ss_view(&((ss_tmp34053 = &(nombres_fn), &ss_tmp34053->e[ss_lang_indice_(k_c, ss_tmp34053->length, "ejemplos/compilador/tcodec.t", 2944)])[0]));
+            ss_lista_str* ss_tmp34056;
+            SS_LANG_QUIZA_SIN_USAR SafeView nc = ss_view(&((ss_tmp34056 = &(nombres_fn), &ss_tmp34056->e[ss_lang_indice_(k_c, ss_tmp34056->length, "ejemplos/compilador/tcodec.t", 2944)])[0]));
 #line 2945 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_usize* ss_tmp34054;
-            SafeView ss_tmp34055;
+            const ss_mapa_str_usize* ss_tmp34057;
+            SafeView ss_tmp34058;
 #line 2945 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp34056;
-            SafeView ss_tmp34057;
-            if (((!((ss_tmp34054 = &puestos_fn, ss_tmp34055 = nc, ss_mapa_tiene_mapa_str_usize(ss_tmp34054, ss_tmp34055)))) && ((ss_tmp34056 = ss_view(l), ss_tmp34057 = nc, contiene_nombre(ss_tmp34056, ss_tmp34057)))))
+            SafeView ss_tmp34059;
+            SafeView ss_tmp34060;
+            if (((!((ss_tmp34057 = &puestos_fn, ss_tmp34058 = nc, ss_mapa_tiene_mapa_str_usize(ss_tmp34057, ss_tmp34058)))) && ((ss_tmp34059 = ss_view(l), ss_tmp34060 = nc, contiene_nombre(ss_tmp34059, ss_tmp34060)))))
             {
 #line 2946 "ejemplos/compilador/tcodec.t"
-                ss_mapa_str_usize* ss_tmp34058 = &puestos_fn;
+                ss_mapa_str_usize* ss_tmp34061 = &puestos_fn;
 #line 2946 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_usize(ss_tmp34058, nc, (size_t)1, "ejemplos/compilador/tcodec.t", 2946);
+                ss_mapa_poner_mapa_str_usize(ss_tmp34061, nc, (size_t)1, "ejemplos/compilador/tcodec.t", 2946);
 #line 2947 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp34059;
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str partes_f = partes_de_funcion(ss_view(&((ss_tmp34059 = &(candidatos), &ss_tmp34059->e[ss_lang_indice_(k_c, ss_tmp34059->length, "ejemplos/compilador/tcodec.t", 2947)])[0])));
+                ss_lista_str* ss_tmp34062;
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str partes_f = partes_de_funcion(ss_view(&((ss_tmp34062 = &(candidatos), &ss_tmp34062->e[ss_lang_indice_(k_c, ss_tmp34062->length, "ejemplos/compilador/tcodec.t", 2947)])[0])));
 #line 2948 "ejemplos/compilador/tcodec.t"
                 SS_LANG_QUIZA_SIN_USAR SafeString firma_c = ss_new();
 #line 2949 "ejemplos/compilador/tcodec.t"
@@ -113641,68 +113647,68 @@ SS_LANG_QUIZA_SIN_USAR static ss_lista_str tipos_funcion_usados(SS_LANG_QUIZA_SI
 #line 2950 "ejemplos/compilador/tcodec.t"
                 while (true)
                 {
-                    size_t ss_tmp34060;
-                    size_t ss_tmp34061;
-#line 2950 "ejemplos/compilador/tcodec.t"
-                    size_t ss_tmp34062;
                     size_t ss_tmp34063;
+                    size_t ss_tmp34064;
 #line 2950 "ejemplos/compilador/tcodec.t"
-                    if (!(((ss_tmp34062 = ((ss_tmp34060 = q, ss_tmp34061 = (size_t)1, ss_lang_suma_usize(ss_tmp34060, ss_tmp34061, "ejemplos/compilador/tcodec.t", 2950))), ss_tmp34063 = (partes_f.length), (ss_tmp34062 < ss_tmp34063)))))
+                    size_t ss_tmp34065;
+                    size_t ss_tmp34066;
+#line 2950 "ejemplos/compilador/tcodec.t"
+                    if (!(((ss_tmp34065 = ((ss_tmp34063 = q, ss_tmp34064 = (size_t)1, ss_lang_suma_usize(ss_tmp34063, ss_tmp34064, "ejemplos/compilador/tcodec.t", 2950))), ss_tmp34066 = (partes_f.length), (ss_tmp34065 < ss_tmp34066)))))
                     {
                         break;
                     }
 #line 2951 "ejemplos/compilador/tcodec.t"
-                    size_t ss_tmp34064;
-                    size_t ss_tmp34065;
+                    size_t ss_tmp34067;
+                    size_t ss_tmp34068;
 #line 2951 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp34064 = q, ss_tmp34065 = (size_t)0, (ss_tmp34064 > ss_tmp34065))))
+                    if (((ss_tmp34067 = q, ss_tmp34068 = (size_t)0, (ss_tmp34067 > ss_tmp34068))))
                     {
-                        SafeString* ss_tmp34066 = &firma_c;
+                        SafeString* ss_tmp34069 = &firma_c;
 #line 2951 "ejemplos/compilador/tcodec.t"
-                        ss_append_view(ss_tmp34066, sv_len(", ", 2));
+                        ss_append_view(ss_tmp34069, sv_len(", ", 2));
                     }
 #line 2952 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp34067;
-                    SS_LANG_QUIZA_SIN_USAR SafeString pc = tipo_c(ss_view(&((ss_tmp34067 = &(partes_f), &ss_tmp34067->e[ss_lang_indice_(q, ss_tmp34067->length, "ejemplos/compilador/tcodec.t", 2952)])[0])));
+                    ss_lista_str* ss_tmp34070;
+                    SS_LANG_QUIZA_SIN_USAR SafeString pc = tipo_c(ss_view(&((ss_tmp34070 = &(partes_f), &ss_tmp34070->e[ss_lang_indice_(q, ss_tmp34070->length, "ejemplos/compilador/tcodec.t", 2952)])[0])));
 #line 2953 "ejemplos/compilador/tcodec.t"
-                    SafeString* ss_tmp34068 = &firma_c;
+                    SafeString* ss_tmp34071 = &firma_c;
 #line 2953 "ejemplos/compilador/tcodec.t"
-                    ss_append_view(ss_tmp34068, ss_view(&pc));
+                    ss_append_view(ss_tmp34071, ss_view(&pc));
 #line 2954 "ejemplos/compilador/tcodec.t"
-                    size_t ss_tmp34069;
-                    size_t ss_tmp34070;
+                    size_t ss_tmp34072;
+                    size_t ss_tmp34073;
 #line 2954 "ejemplos/compilador/tcodec.t"
-                    q = ((ss_tmp34069 = q, ss_tmp34070 = (size_t)1, ss_lang_suma_usize(ss_tmp34069, ss_tmp34070, "ejemplos/compilador/tcodec.t", 2954)));
+                    q = ((ss_tmp34072 = q, ss_tmp34073 = (size_t)1, ss_lang_suma_usize(ss_tmp34072, ss_tmp34073, "ejemplos/compilador/tcodec.t", 2954)));
                     ss_free(&pc);
                 }
 #line 2956 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp34071;
-                size_t ss_tmp34072;
-#line 2956 "ejemplos/compilador/tcodec.t"
-                if (((ss_tmp34071 = sv_len_of(ss_view(&firma_c)), ss_tmp34072 = (size_t)0, (ss_tmp34071 == ss_tmp34072))))
-                {
-                    SafeString ss_tmp34073 = ss_from_view(sv_len("void", 4));
-                    ss_free(&firma_c);
-                    firma_c = ss_tmp34073;
-                }
-#line 2957 "ejemplos/compilador/tcodec.t"
                 size_t ss_tmp34074;
                 size_t ss_tmp34075;
+#line 2956 "ejemplos/compilador/tcodec.t"
+                if (((ss_tmp34074 = sv_len_of(ss_view(&firma_c)), ss_tmp34075 = (size_t)0, (ss_tmp34074 == ss_tmp34075))))
+                {
+                    SafeString ss_tmp34076 = ss_from_view(sv_len("void", 4));
+                    ss_free(&firma_c);
+                    firma_c = ss_tmp34076;
+                }
 #line 2957 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp34076;
-                SS_LANG_QUIZA_SIN_USAR SafeString rc = tipo_c(ss_view(&((ss_tmp34076 = &(partes_f), &ss_tmp34076->e[ss_lang_indice_(((ss_tmp34074 = (partes_f.length), ss_tmp34075 = (size_t)1, ss_lang_resta_usize(ss_tmp34074, ss_tmp34075, "ejemplos/compilador/tcodec.t", 2957))), ss_tmp34076->length, "ejemplos/compilador/tcodec.t", 2957)])[0])));
+                size_t ss_tmp34077;
+                size_t ss_tmp34078;
+#line 2957 "ejemplos/compilador/tcodec.t"
+                ss_lista_str* ss_tmp34079;
+                SS_LANG_QUIZA_SIN_USAR SafeString rc = tipo_c(ss_view(&((ss_tmp34079 = &(partes_f), &ss_tmp34079->e[ss_lang_indice_(((ss_tmp34077 = (partes_f.length), ss_tmp34078 = (size_t)1, ss_lang_resta_usize(ss_tmp34077, ss_tmp34078, "ejemplos/compilador/tcodec.t", 2957))), ss_tmp34079->length, "ejemplos/compilador/tcodec.t", 2957)])[0])));
 #line 2958 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp34077 = &tipos_fn;
-                SafeString ss_tmp34078 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp34078, sv_len("typedef ", 8), "ejemplos/compilador/tcodec.t", 2958);
-                ss_lang_agregar_texto_(&ss_tmp34078, ss_view(&rc), "ejemplos/compilador/tcodec.t", 2958);
-                ss_lang_agregar_texto_(&ss_tmp34078, sv_len(" (*", 3), "ejemplos/compilador/tcodec.t", 2958);
-                ss_lang_agregar_texto_(&ss_tmp34078, nc, "ejemplos/compilador/tcodec.t", 2958);
-                ss_lang_agregar_texto_(&ss_tmp34078, sv_len(")(", 2), "ejemplos/compilador/tcodec.t", 2958);
-                ss_lang_agregar_texto_(&ss_tmp34078, ss_view(&firma_c), "ejemplos/compilador/tcodec.t", 2958);
-                ss_lang_agregar_texto_(&ss_tmp34078, sv_len(");", 2), "ejemplos/compilador/tcodec.t", 2958);
+                ss_lista_str* ss_tmp34080 = &tipos_fn;
+                SafeString ss_tmp34081 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp34081, sv_len("typedef ", 8), "ejemplos/compilador/tcodec.t", 2958);
+                ss_lang_agregar_texto_(&ss_tmp34081, ss_view(&rc), "ejemplos/compilador/tcodec.t", 2958);
+                ss_lang_agregar_texto_(&ss_tmp34081, sv_len(" (*", 3), "ejemplos/compilador/tcodec.t", 2958);
+                ss_lang_agregar_texto_(&ss_tmp34081, nc, "ejemplos/compilador/tcodec.t", 2958);
+                ss_lang_agregar_texto_(&ss_tmp34081, sv_len(")(", 2), "ejemplos/compilador/tcodec.t", 2958);
+                ss_lang_agregar_texto_(&ss_tmp34081, ss_view(&firma_c), "ejemplos/compilador/tcodec.t", 2958);
+                ss_lang_agregar_texto_(&ss_tmp34081, sv_len(");", 2), "ejemplos/compilador/tcodec.t", 2958);
 #line 2958 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp34077, ss_tmp34078, "ejemplos/compilador/tcodec.t", 2958);
+                ss_push_lista_str(ss_tmp34080, ss_tmp34081, "ejemplos/compilador/tcodec.t", 2958);
                 ss_free(&rc);
                 ss_free(&firma_c);
                 for (size_t ss_i1111 = 0; ss_i1111 < partes_f.length; ss_i1111++)
@@ -113715,21 +113721,21 @@ SS_LANG_QUIZA_SIN_USAR static ss_lista_str tipos_funcion_usados(SS_LANG_QUIZA_SI
                 partes_f.capacity = 0;
             }
 #line 2960 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp34079;
-            size_t ss_tmp34080;
+            size_t ss_tmp34082;
+            size_t ss_tmp34083;
 #line 2960 "ejemplos/compilador/tcodec.t"
-            k_c = ((ss_tmp34079 = k_c, ss_tmp34080 = (size_t)1, ss_lang_suma_usize(ss_tmp34079, ss_tmp34080, "ejemplos/compilador/tcodec.t", 2960)));
+            k_c = ((ss_tmp34082 = k_c, ss_tmp34083 = (size_t)1, ss_lang_suma_usize(ss_tmp34082, ss_tmp34083, "ejemplos/compilador/tcodec.t", 2960)));
         }
     }
 #line 2963 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp34081;
-    size_t ss_tmp34082;
+    size_t ss_tmp34084;
+    size_t ss_tmp34085;
 #line 2963 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp34081 = (tipos_fn.length), ss_tmp34082 = (size_t)0, (ss_tmp34081 > ss_tmp34082))))
+    if (((ss_tmp34084 = (tipos_fn.length), ss_tmp34085 = (size_t)0, (ss_tmp34084 > ss_tmp34085))))
     {
-        ss_lista_str* ss_tmp34083 = &tipos_fn;
+        ss_lista_str* ss_tmp34086 = &tipos_fn;
 #line 2963 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34083, ss_new(), "ejemplos/compilador/tcodec.t", 2963);
+        ss_push_lista_str(ss_tmp34086, ss_new(), "ejemplos/compilador/tcodec.t", 2963);
     }
 #line 2964 "ejemplos/compilador/tcodec.t"
     for (size_t ss_i1112 = 0; ss_i1112 < mirar_fn.length; ss_i1112++)
@@ -113764,110 +113770,110 @@ SS_LANG_QUIZA_SIN_USAR static ss_lista_str tipos_funcion_usados(SS_LANG_QUIZA_SI
 SS_LANG_QUIZA_SIN_USAR static ss_res_str ensamblar_c(SS_LANG_QUIZA_SIN_USAR SafeView raiz, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* ext_cabeceras, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* ext_protos, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* partes, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* envoltorios, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* tipos_fn, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* arit, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* bloque_copias, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* protos, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* cuerpos)
 {
 #line 2973 "ejemplos/compilador/tcodec.t"
-    SafeString ss_tmp34086 = ss_new();
-    ss_lang_agregar_texto_(&ss_tmp34086, raiz, "ejemplos/compilador/tcodec.t", 2973);
-    ss_lang_agregar_texto_(&ss_tmp34086, sv_len("/runtime/cabecera.inc", 21), "ejemplos/compilador/tcodec.t", 2973);
-    SafeString ss_tmp34085 = ss_tmp34086;
-    ss_res_str ss_tmp34084 = ss_lang_leer_archivo_(ss_view(&ss_tmp34085));
-    if (ss_tmp34084.motivo != NULL)
+    SafeString ss_tmp34089 = ss_new();
+    ss_lang_agregar_texto_(&ss_tmp34089, raiz, "ejemplos/compilador/tcodec.t", 2973);
+    ss_lang_agregar_texto_(&ss_tmp34089, sv_len("/runtime/cabecera.inc", 21), "ejemplos/compilador/tcodec.t", 2973);
+    SafeString ss_tmp34088 = ss_tmp34089;
+    ss_res_str ss_tmp34087 = ss_lang_leer_archivo_(ss_view(&ss_tmp34088));
+    if (ss_tmp34087.motivo != NULL)
     {
-        ss_free(&ss_tmp34085);
-        return (ss_res_str){ .motivo = ss_tmp34084.motivo };
+        ss_free(&ss_tmp34088);
+        return (ss_res_str){ .motivo = ss_tmp34087.motivo };
     }
-    SS_LANG_QUIZA_SIN_USAR SafeString cabecera = ss_tmp34084.valor;
+    SS_LANG_QUIZA_SIN_USAR SafeString cabecera = ss_tmp34087.valor;
     bool ss_vivo_cabecera = true;
-    ss_free(&ss_tmp34085);
+    ss_free(&ss_tmp34088);
 #line 2974 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34087 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str todas = ss_tmp34087;
+    ss_lista_str ss_tmp34090 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str todas = ss_tmp34090;
 #line 2975 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp34088 = &todas;
+    ss_lista_str* ss_tmp34091 = &todas;
 #line 2975 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp34088, cabecera, "ejemplos/compilador/tcodec.t", 2975);
+    ss_push_lista_str(ss_tmp34091, cabecera, "ejemplos/compilador/tcodec.t", 2975);
     ss_vivo_cabecera = false;
 #line 2976 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34089 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str incluidas = ss_tmp34089;
+    ss_lista_str ss_tmp34092 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str incluidas = ss_tmp34092;
 #line 2977 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1115 = 0; ss_k1115 < (*ext_cabeceras).length; ss_k1115++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* h = &(*ext_cabeceras).e[ss_k1115];
 #line 2978 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp34090;
-        SafeView ss_tmp34091;
-        const ss_lista_str* ss_tmp34092;
         SafeView ss_tmp34093;
-        if ((((ss_tmp34090 = ss_view(h), ss_tmp34091 = sv_len(".c", 2), termina_con(ss_tmp34090, ss_tmp34091))) || ((ss_tmp34092 = &incluidas, ss_tmp34093 = ss_view(h), esta_en(ss_tmp34092, ss_tmp34093)))))
+        SafeView ss_tmp34094;
+        const ss_lista_str* ss_tmp34095;
+        SafeView ss_tmp34096;
+        if ((((ss_tmp34093 = ss_view(h), ss_tmp34094 = sv_len(".c", 2), termina_con(ss_tmp34093, ss_tmp34094))) || ((ss_tmp34095 = &incluidas, ss_tmp34096 = ss_view(h), esta_en(ss_tmp34095, ss_tmp34096)))))
         {
             continue;
         }
 #line 2979 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp34094 = &incluidas;
+        ss_lista_str* ss_tmp34097 = &incluidas;
 #line 2979 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34094, ss_clone(h), "ejemplos/compilador/tcodec.t", 2979);
+        ss_push_lista_str(ss_tmp34097, ss_clone(h), "ejemplos/compilador/tcodec.t", 2979);
     }
 #line 2981 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp34095;
-    size_t ss_tmp34096;
+    size_t ss_tmp34098;
+    size_t ss_tmp34099;
 #line 2981 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp34095 = (incluidas.length), ss_tmp34096 = (size_t)0, (ss_tmp34095 > ss_tmp34096))))
+    if (((ss_tmp34098 = (incluidas.length), ss_tmp34099 = (size_t)0, (ss_tmp34098 > ss_tmp34099))))
     {
 #line 2982 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp34097 = &todas;
+        ss_lista_str* ss_tmp34100 = &todas;
 #line 2982 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34097, ss_from_view(sv_len("/* de los bloques `externo` */", 30)), "ejemplos/compilador/tcodec.t", 2982);
+        ss_push_lista_str(ss_tmp34100, ss_from_view(sv_len("/* de los bloques `externo` */", 30)), "ejemplos/compilador/tcodec.t", 2982);
 #line 2983 "ejemplos/compilador/tcodec.t"
         for (size_t ss_k1116 = 0; ss_k1116 < incluidas.length; ss_k1116++)
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* h = &incluidas.e[ss_k1116];
 #line 2984 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp34098;
-            SafeView ss_tmp34099;
-            SafeView ss_tmp34100;
             SafeView ss_tmp34101;
-            if ((((ss_tmp34098 = ss_view(h), ss_tmp34099 = sv_len("/", 1), contiene(ss_tmp34098, ss_tmp34099))) || ((ss_tmp34100 = ss_view(h), ss_tmp34101 = sv_len(".", 1), empieza_con(ss_tmp34100, ss_tmp34101)))))
+            SafeView ss_tmp34102;
+            SafeView ss_tmp34103;
+            SafeView ss_tmp34104;
+            if ((((ss_tmp34101 = ss_view(h), ss_tmp34102 = sv_len("/", 1), contiene(ss_tmp34101, ss_tmp34102))) || ((ss_tmp34103 = ss_view(h), ss_tmp34104 = sv_len(".", 1), empieza_con(ss_tmp34103, ss_tmp34104)))))
             {
 #line 2985 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp34102 = &todas;
-                SafeString ss_tmp34103 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp34103, sv_len("#include \"", 10), "ejemplos/compilador/tcodec.t", 2985);
-                ss_lang_agregar_texto_(&ss_tmp34103, ss_view(h), "ejemplos/compilador/tcodec.t", 2985);
-                ss_lang_agregar_texto_(&ss_tmp34103, sv_len("\"", 1), "ejemplos/compilador/tcodec.t", 2985);
+                ss_lista_str* ss_tmp34105 = &todas;
+                SafeString ss_tmp34106 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp34106, sv_len("#include \"", 10), "ejemplos/compilador/tcodec.t", 2985);
+                ss_lang_agregar_texto_(&ss_tmp34106, ss_view(h), "ejemplos/compilador/tcodec.t", 2985);
+                ss_lang_agregar_texto_(&ss_tmp34106, sv_len("\"", 1), "ejemplos/compilador/tcodec.t", 2985);
 #line 2985 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp34102, ss_tmp34103, "ejemplos/compilador/tcodec.t", 2985);
+                ss_push_lista_str(ss_tmp34105, ss_tmp34106, "ejemplos/compilador/tcodec.t", 2985);
             }
             else
             {
 #line 2987 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp34104 = &todas;
-                SafeString ss_tmp34105 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp34105, sv_len("#include <", 10), "ejemplos/compilador/tcodec.t", 2987);
-                ss_lang_agregar_texto_(&ss_tmp34105, ss_view(h), "ejemplos/compilador/tcodec.t", 2987);
-                ss_lang_agregar_texto_(&ss_tmp34105, sv_len(">", 1), "ejemplos/compilador/tcodec.t", 2987);
+                ss_lista_str* ss_tmp34107 = &todas;
+                SafeString ss_tmp34108 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp34108, sv_len("#include <", 10), "ejemplos/compilador/tcodec.t", 2987);
+                ss_lang_agregar_texto_(&ss_tmp34108, ss_view(h), "ejemplos/compilador/tcodec.t", 2987);
+                ss_lang_agregar_texto_(&ss_tmp34108, sv_len(">", 1), "ejemplos/compilador/tcodec.t", 2987);
 #line 2987 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp34104, ss_tmp34105, "ejemplos/compilador/tcodec.t", 2987);
+                ss_push_lista_str(ss_tmp34107, ss_tmp34108, "ejemplos/compilador/tcodec.t", 2987);
             }
         }
 #line 2990 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp34106 = &todas;
+        ss_lista_str* ss_tmp34109 = &todas;
 #line 2990 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34106, ss_new(), "ejemplos/compilador/tcodec.t", 2990);
+        ss_push_lista_str(ss_tmp34109, ss_new(), "ejemplos/compilador/tcodec.t", 2990);
     }
 #line 2992 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp34107;
-    size_t ss_tmp34108;
+    size_t ss_tmp34110;
+    size_t ss_tmp34111;
 #line 2992 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp34107 = ((*ext_protos).length), ss_tmp34108 = (size_t)0, (ss_tmp34107 > ss_tmp34108))))
+    if (((ss_tmp34110 = ((*ext_protos).length), ss_tmp34111 = (size_t)0, (ss_tmp34110 > ss_tmp34111))))
     {
 #line 2993 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp34111 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp34111, raiz, "ejemplos/compilador/tcodec.t", 2993);
-        ss_lang_agregar_texto_(&ss_tmp34111, sv_len("/runtime/cstr.inc", 17), "ejemplos/compilador/tcodec.t", 2993);
-        SafeString ss_tmp34110 = ss_tmp34111;
-        ss_res_str ss_tmp34109 = ss_lang_leer_archivo_(ss_view(&ss_tmp34110));
-        if (ss_tmp34109.motivo != NULL)
+        SafeString ss_tmp34114 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp34114, raiz, "ejemplos/compilador/tcodec.t", 2993);
+        ss_lang_agregar_texto_(&ss_tmp34114, sv_len("/runtime/cstr.inc", 17), "ejemplos/compilador/tcodec.t", 2993);
+        SafeString ss_tmp34113 = ss_tmp34114;
+        ss_res_str ss_tmp34112 = ss_lang_leer_archivo_(ss_view(&ss_tmp34113));
+        if (ss_tmp34112.motivo != NULL)
         {
-            ss_free(&ss_tmp34110);
+            ss_free(&ss_tmp34113);
             for (size_t ss_i1117 = 0; ss_i1117 < incluidas.length; ss_i1117++)
             {
                 ss_free(&incluidas.e[ss_i1117]);
@@ -113888,112 +113894,112 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_str ensamblar_c(SS_LANG_QUIZA_SIN_USAR Safe
             {
                 ss_free(&cabecera);
             }
-            return (ss_res_str){ .motivo = ss_tmp34109.motivo };
+            return (ss_res_str){ .motivo = ss_tmp34112.motivo };
         }
-        SS_LANG_QUIZA_SIN_USAR SafeString cstr = ss_tmp34109.valor;
-        ss_free(&ss_tmp34110);
+        SS_LANG_QUIZA_SIN_USAR SafeString cstr = ss_tmp34112.valor;
+        ss_free(&ss_tmp34113);
 #line 2994 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp34112;
-        ss_lista_str* ss_tmp34113;
-        ((ss_tmp34112 = ss_view(&cstr), ss_tmp34113 = &todas, anadir_lineas(ss_tmp34112, ss_tmp34113)));
+        SafeView ss_tmp34115;
+        ss_lista_str* ss_tmp34116;
+        ((ss_tmp34115 = ss_view(&cstr), ss_tmp34116 = &todas, anadir_lineas(ss_tmp34115, ss_tmp34116)));
 #line 2995 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp34114 = &todas;
+        ss_lista_str* ss_tmp34117 = &todas;
 #line 2995 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34114, ss_new(), "ejemplos/compilador/tcodec.t", 2995);
+        ss_push_lista_str(ss_tmp34117, ss_new(), "ejemplos/compilador/tcodec.t", 2995);
         ss_free(&cstr);
     }
 #line 2997 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1119 = 0; ss_k1119 < (*partes).length; ss_k1119++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*partes).e[ss_k1119];
-        ss_lista_str* ss_tmp34115 = &todas;
+        ss_lista_str* ss_tmp34118 = &todas;
 #line 2997 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34115, ss_clone(x), "ejemplos/compilador/tcodec.t", 2997);
+        ss_push_lista_str(ss_tmp34118, ss_clone(x), "ejemplos/compilador/tcodec.t", 2997);
     }
 #line 2998 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1120 = 0; ss_k1120 < (*envoltorios).length; ss_k1120++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*envoltorios).e[ss_k1120];
-        ss_lista_str* ss_tmp34116 = &todas;
+        ss_lista_str* ss_tmp34119 = &todas;
 #line 2998 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34116, ss_clone(x), "ejemplos/compilador/tcodec.t", 2998);
+        ss_push_lista_str(ss_tmp34119, ss_clone(x), "ejemplos/compilador/tcodec.t", 2998);
     }
 #line 2999 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1121 = 0; ss_k1121 < (*tipos_fn).length; ss_k1121++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*tipos_fn).e[ss_k1121];
-        ss_lista_str* ss_tmp34117 = &todas;
+        ss_lista_str* ss_tmp34120 = &todas;
 #line 2999 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34117, ss_clone(x), "ejemplos/compilador/tcodec.t", 2999);
+        ss_push_lista_str(ss_tmp34120, ss_clone(x), "ejemplos/compilador/tcodec.t", 2999);
     }
 #line 3000 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1122 = 0; ss_k1122 < (*arit).length; ss_k1122++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* a = &(*arit).e[ss_k1122];
-        ss_lista_str* ss_tmp34118 = &todas;
+        ss_lista_str* ss_tmp34121 = &todas;
 #line 3000 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34118, ss_clone(a), "ejemplos/compilador/tcodec.t", 3000);
+        ss_push_lista_str(ss_tmp34121, ss_clone(a), "ejemplos/compilador/tcodec.t", 3000);
     }
 #line 3001 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1123 = 0; ss_k1123 < (*bloque_copias).length; ss_k1123++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*bloque_copias).e[ss_k1123];
-        ss_lista_str* ss_tmp34119 = &todas;
+        ss_lista_str* ss_tmp34122 = &todas;
 #line 3001 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34119, ss_clone(x), "ejemplos/compilador/tcodec.t", 3001);
+        ss_push_lista_str(ss_tmp34122, ss_clone(x), "ejemplos/compilador/tcodec.t", 3001);
     }
 #line 3002 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1124 = 0; ss_k1124 < (*protos).length; ss_k1124++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* p = &(*protos).e[ss_k1124];
-        ss_lista_str* ss_tmp34120 = &todas;
+        ss_lista_str* ss_tmp34123 = &todas;
 #line 3002 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34120, ss_clone(p), "ejemplos/compilador/tcodec.t", 3002);
+        ss_push_lista_str(ss_tmp34123, ss_clone(p), "ejemplos/compilador/tcodec.t", 3002);
     }
 #line 3003 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_ext = (size_t)0;
 #line 3004 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34121;
-        size_t ss_tmp34122;
+        size_t ss_tmp34124;
+        size_t ss_tmp34125;
 #line 3004 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34121 = k_ext, ss_tmp34122 = ((*ext_protos).length), (ss_tmp34121 < ss_tmp34122)))))
+        if (!(((ss_tmp34124 = k_ext, ss_tmp34125 = ((*ext_protos).length), (ss_tmp34124 < ss_tmp34125)))))
         {
             break;
         }
 #line 3005 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp34123;
-        SafeView ss_tmp34124;
-        SafeView ss_tmp34125;
-        if (((ss_tmp34124 = ss_view(&((ss_tmp34123 = &((*ext_cabeceras)), &ss_tmp34123->e[ss_lang_indice_(k_ext, ss_tmp34123->length, "ejemplos/compilador/tcodec.t", 3005)])[0])), ss_tmp34125 = sv_len(".c", 2), termina_con(ss_tmp34124, ss_tmp34125))))
+        const ss_lista_str* ss_tmp34126;
+        SafeView ss_tmp34127;
+        SafeView ss_tmp34128;
+        if (((ss_tmp34127 = ss_view(&((ss_tmp34126 = &((*ext_cabeceras)), &ss_tmp34126->e[ss_lang_indice_(k_ext, ss_tmp34126->length, "ejemplos/compilador/tcodec.t", 3005)])[0])), ss_tmp34128 = sv_len(".c", 2), termina_con(ss_tmp34127, ss_tmp34128))))
         {
 #line 3006 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp34126 = &todas;
-            SafeString ss_tmp34127 = ss_new();
-            const ss_lista_str* ss_tmp34128;
-            ss_lang_agregar_texto_(&ss_tmp34127, ss_view(&((ss_tmp34128 = &((*ext_protos)), &ss_tmp34128->e[ss_lang_indice_(k_ext, ss_tmp34128->length, "ejemplos/compilador/tcodec.t", 3006)])[0])), "ejemplos/compilador/tcodec.t", 3006);
-            ss_lang_agregar_texto_(&ss_tmp34127, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3006);
+            ss_lista_str* ss_tmp34129 = &todas;
+            SafeString ss_tmp34130 = ss_new();
+            const ss_lista_str* ss_tmp34131;
+            ss_lang_agregar_texto_(&ss_tmp34130, ss_view(&((ss_tmp34131 = &((*ext_protos)), &ss_tmp34131->e[ss_lang_indice_(k_ext, ss_tmp34131->length, "ejemplos/compilador/tcodec.t", 3006)])[0])), "ejemplos/compilador/tcodec.t", 3006);
+            ss_lang_agregar_texto_(&ss_tmp34130, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3006);
 #line 3006 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp34126, ss_tmp34127, "ejemplos/compilador/tcodec.t", 3006);
+            ss_push_lista_str(ss_tmp34129, ss_tmp34130, "ejemplos/compilador/tcodec.t", 3006);
         }
 #line 3008 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34129;
-        size_t ss_tmp34130;
+        size_t ss_tmp34132;
+        size_t ss_tmp34133;
 #line 3008 "ejemplos/compilador/tcodec.t"
-        k_ext = ((ss_tmp34129 = k_ext, ss_tmp34130 = (size_t)1, ss_lang_suma_usize(ss_tmp34129, ss_tmp34130, "ejemplos/compilador/tcodec.t", 3008)));
+        k_ext = ((ss_tmp34132 = k_ext, ss_tmp34133 = (size_t)1, ss_lang_suma_usize(ss_tmp34132, ss_tmp34133, "ejemplos/compilador/tcodec.t", 3008)));
     }
 #line 3010 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp34131 = &todas;
+    ss_lista_str* ss_tmp34134 = &todas;
 #line 3010 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp34131, ss_new(), "ejemplos/compilador/tcodec.t", 3010);
+    ss_push_lista_str(ss_tmp34134, ss_new(), "ejemplos/compilador/tcodec.t", 3010);
 #line 3011 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1125 = 0; ss_k1125 < (*cuerpos).length; ss_k1125++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* l = &(*cuerpos).e[ss_k1125];
-        ss_lista_str* ss_tmp34132 = &todas;
+        ss_lista_str* ss_tmp34135 = &todas;
 #line 3011 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34132, ss_clone(l), "ejemplos/compilador/tcodec.t", 3011);
+        ss_push_lista_str(ss_tmp34135, ss_clone(l), "ejemplos/compilador/tcodec.t", 3011);
     }
 #line 3013 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString todo = ss_new();
@@ -114006,16 +114012,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_str ensamblar_c(SS_LANG_QUIZA_SIN_USAR Safe
 #line 3016 "ejemplos/compilador/tcodec.t"
         if ((!primero))
         {
-            SafeString* ss_tmp34133 = &todo;
+            SafeString* ss_tmp34136 = &todo;
 #line 3016 "ejemplos/compilador/tcodec.t"
-            ss_append_view(ss_tmp34133, sv_len("\n", 1));
+            ss_append_view(ss_tmp34136, sv_len("\n", 1));
         }
 #line 3017 "ejemplos/compilador/tcodec.t"
         primero = false;
 #line 3018 "ejemplos/compilador/tcodec.t"
-        SafeString* ss_tmp34134 = &todo;
+        SafeString* ss_tmp34137 = &todo;
 #line 3018 "ejemplos/compilador/tcodec.t"
-        ss_append_view(ss_tmp34134, ss_view(x));
+        ss_append_view(ss_tmp34137, ss_view(x));
     }
 #line 3020 "ejemplos/compilador/tcodec.t"
     for (size_t ss_i1127 = 0; ss_i1127 < incluidas.length; ss_i1127++)
@@ -114045,16 +114051,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_str ensamblar_c(SS_LANG_QUIZA_SIN_USAR Safe
 SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA_SIN_USAR const ss_lista_str* cuerpos, SS_LANG_QUIZA_SIN_USAR const Registro* reg, SS_LANG_QUIZA_SIN_USAR const Cuenta* cta, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* plantillas, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* vistas_inst)
 {
 #line 3035 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34135 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str limpios = ss_tmp34135;
+    ss_lista_str ss_tmp34138 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str limpios = ss_tmp34138;
     bool ss_vivo_limpios = true;
 #line 3036 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1129 = 0; ss_k1129 < (*cuerpos).length; ss_k1129++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* l = &(*cuerpos).e[ss_k1129];
-        ss_lista_str* ss_tmp34136 = &limpios;
+        ss_lista_str* ss_tmp34139 = &limpios;
 #line 3036 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34136, sin_cadenas(ss_view(l)), "ejemplos/compilador/tcodec.t", 3036);
+        ss_push_lista_str(ss_tmp34139, sin_cadenas(ss_view(l)), "ejemplos/compilador/tcodec.t", 3036);
     }
 #line 3040 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str nombres = nombres_con_raya(&limpios);
@@ -114063,10 +114069,10 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
 #line 3043 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize usadas = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
 #line 3044 "ejemplos/compilador/tcodec.t"
-    const ss_lista_str* ss_tmp34137;
-    SafeView ss_tmp34138;
-    ss_mapa_str_usize* ss_tmp34139;
-    ((ss_tmp34137 = &nombres, ss_tmp34138 = sv_len("ss_lista_", 9), ss_tmp34139 = &usadas, con_prefijo(ss_tmp34137, ss_tmp34138, ss_tmp34139)));
+    const ss_lista_str* ss_tmp34140;
+    SafeView ss_tmp34141;
+    ss_mapa_str_usize* ss_tmp34142;
+    ((ss_tmp34140 = &nombres, ss_tmp34141 = sv_len("ss_lista_", 9), ss_tmp34142 = &usadas, con_prefijo(ss_tmp34140, ss_tmp34141, ss_tmp34142)));
 #line 3045 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1130 = 0; ss_k1130 < (*reg).listas.length; ss_k1130++)
     {
@@ -114074,48 +114080,48 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
 #line 3046 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString nombre_c = tipo_c(ss_view(x));
 #line 3047 "ejemplos/compilador/tcodec.t"
-        ss_mapa_str_usize* ss_tmp34140 = &registradas;
+        ss_mapa_str_usize* ss_tmp34143 = &registradas;
 #line 3047 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp34140, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3047);
+        ss_mapa_poner_mapa_str_usize(ss_tmp34143, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3047);
         ss_free(&nombre_c);
     }
 #line 3049 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34141 = ss_mapa_claves_mapa_str_usize(&usadas, "ejemplos/compilador/tcodec.t", 3049);
-    for (size_t ss_k1131 = 0; ss_k1131 < ss_tmp34141.length; ss_k1131++)
+    ss_lista_str ss_tmp34144 = ss_mapa_claves_mapa_str_usize(&usadas, "ejemplos/compilador/tcodec.t", 3049);
+    for (size_t ss_k1131 = 0; ss_k1131 < ss_tmp34144.length; ss_k1131++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34141.e[ss_k1131];
+        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34144.e[ss_k1131];
 #line 3050 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp34142;
-        SafeView ss_tmp34143;
+        const ss_mapa_str_usize* ss_tmp34145;
+        SafeView ss_tmp34146;
 #line 3050 "ejemplos/compilador/tcodec.t"
-        if ((!((ss_tmp34142 = &registradas, ss_tmp34143 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34142, ss_tmp34143)))))
+        if ((!((ss_tmp34145 = &registradas, ss_tmp34146 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34145, ss_tmp34146)))))
         {
 #line 3051 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp34145 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp34145, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3051);
-            ss_lang_agregar_texto_(&ss_tmp34145, ss_view(u), "ejemplos/compilador/tcodec.t", 3051);
-            ss_lang_agregar_texto_(&ss_tmp34145, sv_len("` se usa y el recorrido no la registro\n", 39), "ejemplos/compilador/tcodec.t", 3051);
-            SafeString ss_tmp34144 = ss_tmp34145;
-            SafeView ss_tmp34146 = ss_view(&ss_tmp34144);
+            SafeString ss_tmp34148 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp34148, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3051);
+            ss_lang_agregar_texto_(&ss_tmp34148, ss_view(u), "ejemplos/compilador/tcodec.t", 3051);
+            ss_lang_agregar_texto_(&ss_tmp34148, sv_len("` se usa y el recorrido no la registro. Es un fallo del compilador, no de tu programa\n", 86), "ejemplos/compilador/tcodec.t", 3051);
+            SafeString ss_tmp34147 = ss_tmp34148;
+            SafeView ss_tmp34149 = ss_view(&ss_tmp34147);
 #line 3051 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp34146);
-            ss_free(&ss_tmp34144);
+            ss_lang_escribir_(stderr, ss_tmp34149);
+            ss_free(&ss_tmp34147);
 #line 3052 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp34147;
-            ss_lista_str ss_tmp34148 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34149;
-            ss_lista_str ss_tmp34150 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34151;
+            bool ss_tmp34150;
+            ss_lista_str ss_tmp34151 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34152;
+            ss_lista_str ss_tmp34153 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34154;
 #line 3052 "ejemplos/compilador/tcodec.t"
-            UsosGenerados ss_tmp34152 = ((ss_tmp34147 = false, ss_tmp34149 = ss_tmp34148, ss_tmp34151 = ss_tmp34150, (UsosGenerados){ .ok = ss_tmp34147, .limpios = ss_tmp34149, .envoltorios = ss_tmp34151 }));
-            for (size_t ss_i1132 = 0; ss_i1132 < ss_tmp34141.length; ss_i1132++)
+            UsosGenerados ss_tmp34155 = ((ss_tmp34150 = false, ss_tmp34152 = ss_tmp34151, ss_tmp34154 = ss_tmp34153, (UsosGenerados){ .ok = ss_tmp34150, .limpios = ss_tmp34152, .envoltorios = ss_tmp34154 }));
+            for (size_t ss_i1132 = 0; ss_i1132 < ss_tmp34144.length; ss_i1132++)
             {
-                ss_free(&ss_tmp34141.e[ss_i1132]);
+                ss_free(&ss_tmp34144.e[ss_i1132]);
             }
-            free(ss_tmp34141.e);
-            ss_tmp34141.e = NULL;
-            ss_tmp34141.length = 0;
-            ss_tmp34141.capacity = 0;
+            free(ss_tmp34144.e);
+            ss_tmp34144.e = NULL;
+            ss_tmp34144.length = 0;
+            ss_tmp34144.capacity = 0;
             ss_mapa_libre_mapa_str_usize(&usadas);
             ss_mapa_libre_mapa_str_usize(&registradas);
             for (size_t ss_i1133 = 0; ss_i1133 < nombres.length; ss_i1133++)
@@ -114137,24 +114143,24 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
                 limpios.length = 0;
                 limpios.capacity = 0;
             }
-            return ss_tmp34152;
+            return ss_tmp34155;
         }
     }
-    for (size_t ss_i1135 = 0; ss_i1135 < ss_tmp34141.length; ss_i1135++)
+    for (size_t ss_i1135 = 0; ss_i1135 < ss_tmp34144.length; ss_i1135++)
     {
-        ss_free(&ss_tmp34141.e[ss_i1135]);
+        ss_free(&ss_tmp34144.e[ss_i1135]);
     }
-    free(ss_tmp34141.e);
-    ss_tmp34141.e = NULL;
-    ss_tmp34141.length = 0;
-    ss_tmp34141.capacity = 0;
+    free(ss_tmp34144.e);
+    ss_tmp34144.e = NULL;
+    ss_tmp34144.length = 0;
+    ss_tmp34144.capacity = 0;
 #line 3056 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize usados_b = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
 #line 3057 "ejemplos/compilador/tcodec.t"
-    const ss_lista_str* ss_tmp34153;
-    SafeView ss_tmp34154;
-    ss_mapa_str_usize* ss_tmp34155;
-    ((ss_tmp34153 = &nombres, ss_tmp34154 = sv_len("ss_bloque_", 10), ss_tmp34155 = &usados_b, con_prefijo(ss_tmp34153, ss_tmp34154, ss_tmp34155)));
+    const ss_lista_str* ss_tmp34156;
+    SafeView ss_tmp34157;
+    ss_mapa_str_usize* ss_tmp34158;
+    ((ss_tmp34156 = &nombres, ss_tmp34157 = sv_len("ss_bloque_", 10), ss_tmp34158 = &usados_b, con_prefijo(ss_tmp34156, ss_tmp34157, ss_tmp34158)));
 #line 3058 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1136 = 0; ss_k1136 < (*reg).bloques.length; ss_k1136++)
     {
@@ -114162,48 +114168,48 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
 #line 3059 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString nombre_c = tipo_c(ss_view(x));
 #line 3060 "ejemplos/compilador/tcodec.t"
-        ss_mapa_str_usize* ss_tmp34156 = &registradas;
+        ss_mapa_str_usize* ss_tmp34159 = &registradas;
 #line 3060 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp34156, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3060);
+        ss_mapa_poner_mapa_str_usize(ss_tmp34159, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3060);
         ss_free(&nombre_c);
     }
 #line 3062 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34157 = ss_mapa_claves_mapa_str_usize(&usados_b, "ejemplos/compilador/tcodec.t", 3062);
-    for (size_t ss_k1137 = 0; ss_k1137 < ss_tmp34157.length; ss_k1137++)
+    ss_lista_str ss_tmp34160 = ss_mapa_claves_mapa_str_usize(&usados_b, "ejemplos/compilador/tcodec.t", 3062);
+    for (size_t ss_k1137 = 0; ss_k1137 < ss_tmp34160.length; ss_k1137++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34157.e[ss_k1137];
+        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34160.e[ss_k1137];
 #line 3063 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp34158;
-        SafeView ss_tmp34159;
+        const ss_mapa_str_usize* ss_tmp34161;
+        SafeView ss_tmp34162;
 #line 3063 "ejemplos/compilador/tcodec.t"
-        if ((!((ss_tmp34158 = &registradas, ss_tmp34159 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34158, ss_tmp34159)))))
+        if ((!((ss_tmp34161 = &registradas, ss_tmp34162 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34161, ss_tmp34162)))))
         {
 #line 3064 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp34161 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp34161, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3064);
-            ss_lang_agregar_texto_(&ss_tmp34161, ss_view(u), "ejemplos/compilador/tcodec.t", 3064);
-            ss_lang_agregar_texto_(&ss_tmp34161, sv_len("` se usa y el recorrido no lo registro\n", 39), "ejemplos/compilador/tcodec.t", 3064);
-            SafeString ss_tmp34160 = ss_tmp34161;
-            SafeView ss_tmp34162 = ss_view(&ss_tmp34160);
+            SafeString ss_tmp34164 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp34164, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3064);
+            ss_lang_agregar_texto_(&ss_tmp34164, ss_view(u), "ejemplos/compilador/tcodec.t", 3064);
+            ss_lang_agregar_texto_(&ss_tmp34164, sv_len("` se usa y el recorrido no lo registro. Es un fallo del compilador, no de tu programa\n", 86), "ejemplos/compilador/tcodec.t", 3064);
+            SafeString ss_tmp34163 = ss_tmp34164;
+            SafeView ss_tmp34165 = ss_view(&ss_tmp34163);
 #line 3064 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp34162);
-            ss_free(&ss_tmp34160);
+            ss_lang_escribir_(stderr, ss_tmp34165);
+            ss_free(&ss_tmp34163);
 #line 3065 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp34163;
-            ss_lista_str ss_tmp34164 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34165;
-            ss_lista_str ss_tmp34166 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34167;
+            bool ss_tmp34166;
+            ss_lista_str ss_tmp34167 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34168;
+            ss_lista_str ss_tmp34169 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34170;
 #line 3065 "ejemplos/compilador/tcodec.t"
-            UsosGenerados ss_tmp34168 = ((ss_tmp34163 = false, ss_tmp34165 = ss_tmp34164, ss_tmp34167 = ss_tmp34166, (UsosGenerados){ .ok = ss_tmp34163, .limpios = ss_tmp34165, .envoltorios = ss_tmp34167 }));
-            for (size_t ss_i1138 = 0; ss_i1138 < ss_tmp34157.length; ss_i1138++)
+            UsosGenerados ss_tmp34171 = ((ss_tmp34166 = false, ss_tmp34168 = ss_tmp34167, ss_tmp34170 = ss_tmp34169, (UsosGenerados){ .ok = ss_tmp34166, .limpios = ss_tmp34168, .envoltorios = ss_tmp34170 }));
+            for (size_t ss_i1138 = 0; ss_i1138 < ss_tmp34160.length; ss_i1138++)
             {
-                ss_free(&ss_tmp34157.e[ss_i1138]);
+                ss_free(&ss_tmp34160.e[ss_i1138]);
             }
-            free(ss_tmp34157.e);
-            ss_tmp34157.e = NULL;
-            ss_tmp34157.length = 0;
-            ss_tmp34157.capacity = 0;
+            free(ss_tmp34160.e);
+            ss_tmp34160.e = NULL;
+            ss_tmp34160.length = 0;
+            ss_tmp34160.capacity = 0;
             ss_mapa_libre_mapa_str_usize(&usados_b);
             ss_mapa_libre_mapa_str_usize(&usadas);
             ss_mapa_libre_mapa_str_usize(&registradas);
@@ -114226,41 +114232,41 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
                 limpios.length = 0;
                 limpios.capacity = 0;
             }
-            return ss_tmp34168;
+            return ss_tmp34171;
         }
     }
-    for (size_t ss_i1141 = 0; ss_i1141 < ss_tmp34157.length; ss_i1141++)
+    for (size_t ss_i1141 = 0; ss_i1141 < ss_tmp34160.length; ss_i1141++)
     {
-        ss_free(&ss_tmp34157.e[ss_i1141]);
+        ss_free(&ss_tmp34160.e[ss_i1141]);
     }
-    free(ss_tmp34157.e);
-    ss_tmp34157.e = NULL;
-    ss_tmp34157.length = 0;
-    ss_tmp34157.capacity = 0;
+    free(ss_tmp34160.e);
+    ss_tmp34160.e = NULL;
+    ss_tmp34160.length = 0;
+    ss_tmp34160.capacity = 0;
 #line 3069 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34169 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str tardios = ss_tmp34169;
+    ss_lista_str ss_tmp34172 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str tardios = ss_tmp34172;
 #line 3070 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1142 = 0; ss_k1142 < (*cta).arreglos.length; ss_k1142++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* t = &(*cta).arreglos.e[ss_k1142];
 #line 3071 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp34170;
-        SafeView ss_tmp34171;
+        const ss_mapa_str_usize* ss_tmp34173;
+        SafeView ss_tmp34174;
 #line 3071 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp34172;
-        SafeView ss_tmp34173;
-        if (((!((ss_tmp34170 = &(*reg).arr_vistos, ss_tmp34171 = ss_view(t), ss_mapa_tiene_mapa_str_usize(ss_tmp34170, ss_tmp34171)))) && (!((ss_tmp34172 = &tardios, ss_tmp34173 = ss_view(t), esta_en(ss_tmp34172, ss_tmp34173))))))
+        const ss_lista_str* ss_tmp34175;
+        SafeView ss_tmp34176;
+        if (((!((ss_tmp34173 = &(*reg).arr_vistos, ss_tmp34174 = ss_view(t), ss_mapa_tiene_mapa_str_usize(ss_tmp34173, ss_tmp34174)))) && (!((ss_tmp34175 = &tardios, ss_tmp34176 = ss_view(t), esta_en(ss_tmp34175, ss_tmp34176))))))
         {
 #line 3072 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp34174 = &tardios;
+            ss_lista_str* ss_tmp34177 = &tardios;
 #line 3072 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp34174, ss_clone(t), "ejemplos/compilador/tcodec.t", 3072);
+            ss_push_lista_str(ss_tmp34177, ss_clone(t), "ejemplos/compilador/tcodec.t", 3072);
         }
     }
 #line 3075 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34175 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str envoltorios = ss_tmp34175;
+    ss_lista_str ss_tmp34178 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str envoltorios = ss_tmp34178;
     bool ss_vivo_envoltorios = true;
 #line 3076 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t hondo = (size_t)0;
@@ -114269,10 +114275,10 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
 #line 3078 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34176;
-        size_t ss_tmp34177;
+        size_t ss_tmp34179;
+        size_t ss_tmp34180;
 #line 3078 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34176 = quedan, ss_tmp34177 = (size_t)0, (ss_tmp34176 > ss_tmp34177)))))
+        if (!(((ss_tmp34179 = quedan, ss_tmp34180 = (size_t)0, (ss_tmp34179 > ss_tmp34180)))))
         {
             break;
         }
@@ -114281,36 +114287,36 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* t = &tardios.e[ss_k1143];
 #line 3080 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp34178;
-            size_t ss_tmp34179;
+            size_t ss_tmp34181;
+            size_t ss_tmp34182;
 #line 3080 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp34178 = arreglos_dentro(ss_view(t)), ss_tmp34179 = hondo, (ss_tmp34178 == ss_tmp34179))))
+            if (((ss_tmp34181 = arreglos_dentro(ss_view(t)), ss_tmp34182 = hondo, (ss_tmp34181 == ss_tmp34182))))
             {
 #line 3081 "ejemplos/compilador/tcodec.t"
                 SS_LANG_QUIZA_SIN_USAR ss_lista_str pa = partes_de_arreglo(ss_view(t));
 #line 3082 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp34180;
-                SS_LANG_QUIZA_SIN_USAR SafeString te = tipo_c(ss_view(&((ss_tmp34180 = &(pa), &ss_tmp34180->e[ss_lang_indice_((size_t)0, ss_tmp34180->length, "ejemplos/compilador/tcodec.t", 3082)])[0])));
+                ss_lista_str* ss_tmp34183;
+                SS_LANG_QUIZA_SIN_USAR SafeString te = tipo_c(ss_view(&((ss_tmp34183 = &(pa), &ss_tmp34183->e[ss_lang_indice_((size_t)0, ss_tmp34183->length, "ejemplos/compilador/tcodec.t", 3082)])[0])));
 #line 3083 "ejemplos/compilador/tcodec.t"
                 SS_LANG_QUIZA_SIN_USAR SafeString tc = tipo_c(ss_view(t));
 #line 3084 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp34181 = &envoltorios;
-                SafeString ss_tmp34182 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp34182, sv_len("typedef struct { ", 17), "ejemplos/compilador/tcodec.t", 3084);
-                ss_lang_agregar_texto_(&ss_tmp34182, ss_view(&te), "ejemplos/compilador/tcodec.t", 3084);
-                ss_lang_agregar_texto_(&ss_tmp34182, sv_len(" e[", 3), "ejemplos/compilador/tcodec.t", 3084);
-                ss_lista_str* ss_tmp34183;
-                ss_lang_agregar_texto_(&ss_tmp34182, ss_view(&((ss_tmp34183 = &(pa), &ss_tmp34183->e[ss_lang_indice_((size_t)1, ss_tmp34183->length, "ejemplos/compilador/tcodec.t", 3084)])[0])), "ejemplos/compilador/tcodec.t", 3084);
-                ss_lang_agregar_texto_(&ss_tmp34182, sv_len("]; } ", 5), "ejemplos/compilador/tcodec.t", 3084);
-                ss_lang_agregar_texto_(&ss_tmp34182, ss_view(&tc), "ejemplos/compilador/tcodec.t", 3084);
-                ss_lang_agregar_texto_(&ss_tmp34182, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3084);
+                ss_lista_str* ss_tmp34184 = &envoltorios;
+                SafeString ss_tmp34185 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp34185, sv_len("typedef struct { ", 17), "ejemplos/compilador/tcodec.t", 3084);
+                ss_lang_agregar_texto_(&ss_tmp34185, ss_view(&te), "ejemplos/compilador/tcodec.t", 3084);
+                ss_lang_agregar_texto_(&ss_tmp34185, sv_len(" e[", 3), "ejemplos/compilador/tcodec.t", 3084);
+                ss_lista_str* ss_tmp34186;
+                ss_lang_agregar_texto_(&ss_tmp34185, ss_view(&((ss_tmp34186 = &(pa), &ss_tmp34186->e[ss_lang_indice_((size_t)1, ss_tmp34186->length, "ejemplos/compilador/tcodec.t", 3084)])[0])), "ejemplos/compilador/tcodec.t", 3084);
+                ss_lang_agregar_texto_(&ss_tmp34185, sv_len("]; } ", 5), "ejemplos/compilador/tcodec.t", 3084);
+                ss_lang_agregar_texto_(&ss_tmp34185, ss_view(&tc), "ejemplos/compilador/tcodec.t", 3084);
+                ss_lang_agregar_texto_(&ss_tmp34185, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3084);
 #line 3084 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp34181, ss_tmp34182, "ejemplos/compilador/tcodec.t", 3084);
+                ss_push_lista_str(ss_tmp34184, ss_tmp34185, "ejemplos/compilador/tcodec.t", 3084);
 #line 3085 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp34184;
-                size_t ss_tmp34185;
+                size_t ss_tmp34187;
+                size_t ss_tmp34188;
 #line 3085 "ejemplos/compilador/tcodec.t"
-                quedan = ((ss_tmp34184 = quedan, ss_tmp34185 = (size_t)1, ss_lang_resta_usize(ss_tmp34184, ss_tmp34185, "ejemplos/compilador/tcodec.t", 3085)));
+                quedan = ((ss_tmp34187 = quedan, ss_tmp34188 = (size_t)1, ss_lang_resta_usize(ss_tmp34187, ss_tmp34188, "ejemplos/compilador/tcodec.t", 3085)));
                 ss_free(&tc);
                 ss_free(&te);
                 for (size_t ss_i1144 = 0; ss_i1144 < pa.length; ss_i1144++)
@@ -114324,28 +114330,28 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
             }
         }
 #line 3088 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34186;
-        size_t ss_tmp34187;
+        size_t ss_tmp34189;
+        size_t ss_tmp34190;
 #line 3088 "ejemplos/compilador/tcodec.t"
-        hondo = ((ss_tmp34186 = hondo, ss_tmp34187 = (size_t)1, ss_lang_suma_usize(ss_tmp34186, ss_tmp34187, "ejemplos/compilador/tcodec.t", 3088)));
+        hondo = ((ss_tmp34189 = hondo, ss_tmp34190 = (size_t)1, ss_lang_suma_usize(ss_tmp34189, ss_tmp34190, "ejemplos/compilador/tcodec.t", 3088)));
     }
 #line 3090 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp34188;
-    size_t ss_tmp34189;
+    size_t ss_tmp34191;
+    size_t ss_tmp34192;
 #line 3090 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp34188 = (envoltorios.length), ss_tmp34189 = (size_t)0, (ss_tmp34188 > ss_tmp34189))))
+    if (((ss_tmp34191 = (envoltorios.length), ss_tmp34192 = (size_t)0, (ss_tmp34191 > ss_tmp34192))))
     {
-        ss_lista_str* ss_tmp34190 = &envoltorios;
+        ss_lista_str* ss_tmp34193 = &envoltorios;
 #line 3090 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34190, ss_new(), "ejemplos/compilador/tcodec.t", 3090);
+        ss_push_lista_str(ss_tmp34193, ss_new(), "ejemplos/compilador/tcodec.t", 3090);
     }
 #line 3091 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize usados_a = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
 #line 3092 "ejemplos/compilador/tcodec.t"
-    const ss_lista_str* ss_tmp34191;
-    SafeView ss_tmp34192;
-    ss_mapa_str_usize* ss_tmp34193;
-    ((ss_tmp34191 = &nombres, ss_tmp34192 = sv_len("ss_arr_", 7), ss_tmp34193 = &usados_a, con_prefijo(ss_tmp34191, ss_tmp34192, ss_tmp34193)));
+    const ss_lista_str* ss_tmp34194;
+    SafeView ss_tmp34195;
+    ss_mapa_str_usize* ss_tmp34196;
+    ((ss_tmp34194 = &nombres, ss_tmp34195 = sv_len("ss_arr_", 7), ss_tmp34196 = &usados_a, con_prefijo(ss_tmp34194, ss_tmp34195, ss_tmp34196)));
 #line 3093 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1145 = 0; ss_k1145 < (*reg).arreglos.length; ss_k1145++)
     {
@@ -114353,9 +114359,9 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
 #line 3094 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString nombre_c = tipo_c(ss_view(x));
 #line 3095 "ejemplos/compilador/tcodec.t"
-        ss_mapa_str_usize* ss_tmp34194 = &registradas;
+        ss_mapa_str_usize* ss_tmp34197 = &registradas;
 #line 3095 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp34194, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3095);
+        ss_mapa_poner_mapa_str_usize(ss_tmp34197, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3095);
         ss_free(&nombre_c);
     }
 #line 3097 "ejemplos/compilador/tcodec.t"
@@ -114365,48 +114371,48 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
 #line 3098 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString nombre_c = tipo_c(ss_view(x));
 #line 3099 "ejemplos/compilador/tcodec.t"
-        ss_mapa_str_usize* ss_tmp34195 = &registradas;
+        ss_mapa_str_usize* ss_tmp34198 = &registradas;
 #line 3099 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp34195, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3099);
+        ss_mapa_poner_mapa_str_usize(ss_tmp34198, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3099);
         ss_free(&nombre_c);
     }
 #line 3101 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34196 = ss_mapa_claves_mapa_str_usize(&usados_a, "ejemplos/compilador/tcodec.t", 3101);
-    for (size_t ss_k1147 = 0; ss_k1147 < ss_tmp34196.length; ss_k1147++)
+    ss_lista_str ss_tmp34199 = ss_mapa_claves_mapa_str_usize(&usados_a, "ejemplos/compilador/tcodec.t", 3101);
+    for (size_t ss_k1147 = 0; ss_k1147 < ss_tmp34199.length; ss_k1147++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34196.e[ss_k1147];
+        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34199.e[ss_k1147];
 #line 3102 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp34197;
-        SafeView ss_tmp34198;
+        const ss_mapa_str_usize* ss_tmp34200;
+        SafeView ss_tmp34201;
 #line 3102 "ejemplos/compilador/tcodec.t"
-        if ((!((ss_tmp34197 = &registradas, ss_tmp34198 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34197, ss_tmp34198)))))
+        if ((!((ss_tmp34200 = &registradas, ss_tmp34201 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34200, ss_tmp34201)))))
         {
 #line 3103 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp34200 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp34200, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3103);
-            ss_lang_agregar_texto_(&ss_tmp34200, ss_view(u), "ejemplos/compilador/tcodec.t", 3103);
-            ss_lang_agregar_texto_(&ss_tmp34200, sv_len("` se usa y el recorrido no lo registro\n", 39), "ejemplos/compilador/tcodec.t", 3103);
-            SafeString ss_tmp34199 = ss_tmp34200;
-            SafeView ss_tmp34201 = ss_view(&ss_tmp34199);
+            SafeString ss_tmp34203 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp34203, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3103);
+            ss_lang_agregar_texto_(&ss_tmp34203, ss_view(u), "ejemplos/compilador/tcodec.t", 3103);
+            ss_lang_agregar_texto_(&ss_tmp34203, sv_len("` se usa y el recorrido no lo registro. Es un fallo del compilador, no de tu programa\n", 86), "ejemplos/compilador/tcodec.t", 3103);
+            SafeString ss_tmp34202 = ss_tmp34203;
+            SafeView ss_tmp34204 = ss_view(&ss_tmp34202);
 #line 3103 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp34201);
-            ss_free(&ss_tmp34199);
+            ss_lang_escribir_(stderr, ss_tmp34204);
+            ss_free(&ss_tmp34202);
 #line 3104 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp34202;
-            ss_lista_str ss_tmp34203 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34204;
-            ss_lista_str ss_tmp34205 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34206;
+            bool ss_tmp34205;
+            ss_lista_str ss_tmp34206 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34207;
+            ss_lista_str ss_tmp34208 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34209;
 #line 3104 "ejemplos/compilador/tcodec.t"
-            UsosGenerados ss_tmp34207 = ((ss_tmp34202 = false, ss_tmp34204 = ss_tmp34203, ss_tmp34206 = ss_tmp34205, (UsosGenerados){ .ok = ss_tmp34202, .limpios = ss_tmp34204, .envoltorios = ss_tmp34206 }));
-            for (size_t ss_i1148 = 0; ss_i1148 < ss_tmp34196.length; ss_i1148++)
+            UsosGenerados ss_tmp34210 = ((ss_tmp34205 = false, ss_tmp34207 = ss_tmp34206, ss_tmp34209 = ss_tmp34208, (UsosGenerados){ .ok = ss_tmp34205, .limpios = ss_tmp34207, .envoltorios = ss_tmp34209 }));
+            for (size_t ss_i1148 = 0; ss_i1148 < ss_tmp34199.length; ss_i1148++)
             {
-                ss_free(&ss_tmp34196.e[ss_i1148]);
+                ss_free(&ss_tmp34199.e[ss_i1148]);
             }
-            free(ss_tmp34196.e);
-            ss_tmp34196.e = NULL;
-            ss_tmp34196.length = 0;
-            ss_tmp34196.capacity = 0;
+            free(ss_tmp34199.e);
+            ss_tmp34199.e = NULL;
+            ss_tmp34199.length = 0;
+            ss_tmp34199.capacity = 0;
             ss_mapa_libre_mapa_str_usize(&usados_a);
             if (ss_vivo_envoltorios)
             {
@@ -114449,31 +114455,31 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
                 limpios.length = 0;
                 limpios.capacity = 0;
             }
-            return ss_tmp34207;
+            return ss_tmp34210;
         }
     }
-    for (size_t ss_i1153 = 0; ss_i1153 < ss_tmp34196.length; ss_i1153++)
+    for (size_t ss_i1153 = 0; ss_i1153 < ss_tmp34199.length; ss_i1153++)
     {
-        ss_free(&ss_tmp34196.e[ss_i1153]);
+        ss_free(&ss_tmp34199.e[ss_i1153]);
     }
-    free(ss_tmp34196.e);
-    ss_tmp34196.e = NULL;
-    ss_tmp34196.length = 0;
-    ss_tmp34196.capacity = 0;
+    free(ss_tmp34199.e);
+    ss_tmp34199.e = NULL;
+    ss_tmp34199.length = 0;
+    ss_tmp34199.capacity = 0;
 #line 3108 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize usados_m = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
 #line 3109 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize usados_r = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
 #line 3110 "ejemplos/compilador/tcodec.t"
-    const ss_lista_str* ss_tmp34208;
-    SafeView ss_tmp34209;
-    ss_mapa_str_usize* ss_tmp34210;
-    ((ss_tmp34208 = &nombres, ss_tmp34209 = sv_len("ss_mapa_", 8), ss_tmp34210 = &usados_m, con_prefijo(ss_tmp34208, ss_tmp34209, ss_tmp34210)));
-#line 3111 "ejemplos/compilador/tcodec.t"
     const ss_lista_str* ss_tmp34211;
     SafeView ss_tmp34212;
     ss_mapa_str_usize* ss_tmp34213;
-    ((ss_tmp34211 = &nombres, ss_tmp34212 = sv_len("ss_res_", 7), ss_tmp34213 = &usados_r, con_prefijo(ss_tmp34211, ss_tmp34212, ss_tmp34213)));
+    ((ss_tmp34211 = &nombres, ss_tmp34212 = sv_len("ss_mapa_", 8), ss_tmp34213 = &usados_m, con_prefijo(ss_tmp34211, ss_tmp34212, ss_tmp34213)));
+#line 3111 "ejemplos/compilador/tcodec.t"
+    const ss_lista_str* ss_tmp34214;
+    SafeView ss_tmp34215;
+    ss_mapa_str_usize* ss_tmp34216;
+    ((ss_tmp34214 = &nombres, ss_tmp34215 = sv_len("ss_res_", 7), ss_tmp34216 = &usados_r, con_prefijo(ss_tmp34214, ss_tmp34215, ss_tmp34216)));
 #line 3112 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1154 = 0; ss_k1154 < (*reg).mapas.length; ss_k1154++)
     {
@@ -114481,9 +114487,9 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
 #line 3113 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString nombre_c = tipo_c(ss_view(x));
 #line 3114 "ejemplos/compilador/tcodec.t"
-        ss_mapa_str_usize* ss_tmp34214 = &registradas;
+        ss_mapa_str_usize* ss_tmp34217 = &registradas;
 #line 3114 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp34214, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3114);
+        ss_mapa_poner_mapa_str_usize(ss_tmp34217, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3114);
         ss_free(&nombre_c);
     }
 #line 3116 "ejemplos/compilador/tcodec.t"
@@ -114493,50 +114499,50 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
 #line 3117 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString nombre_c = tipo_resultado(ss_view(x));
 #line 3118 "ejemplos/compilador/tcodec.t"
-        ss_mapa_str_usize* ss_tmp34215 = &registradas;
+        ss_mapa_str_usize* ss_tmp34218 = &registradas;
 #line 3118 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp34215, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3118);
+        ss_mapa_poner_mapa_str_usize(ss_tmp34218, ss_view(&nombre_c), (size_t)1, "ejemplos/compilador/tcodec.t", 3118);
         ss_free(&nombre_c);
     }
 #line 3120 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34216 = ss_mapa_claves_mapa_str_usize(&usados_m, "ejemplos/compilador/tcodec.t", 3120);
-    for (size_t ss_k1156 = 0; ss_k1156 < ss_tmp34216.length; ss_k1156++)
+    ss_lista_str ss_tmp34219 = ss_mapa_claves_mapa_str_usize(&usados_m, "ejemplos/compilador/tcodec.t", 3120);
+    for (size_t ss_k1156 = 0; ss_k1156 < ss_tmp34219.length; ss_k1156++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34216.e[ss_k1156];
+        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34219.e[ss_k1156];
 #line 3121 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString tipo = tipo_de_nombre_mapa(ss_view(u));
 #line 3122 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp34217;
-        SafeView ss_tmp34218;
+        const ss_mapa_str_usize* ss_tmp34220;
+        SafeView ss_tmp34221;
 #line 3122 "ejemplos/compilador/tcodec.t"
-        if ((!((ss_tmp34217 = &registradas, ss_tmp34218 = ss_view(&tipo), ss_mapa_tiene_mapa_str_usize(ss_tmp34217, ss_tmp34218)))))
+        if ((!((ss_tmp34220 = &registradas, ss_tmp34221 = ss_view(&tipo), ss_mapa_tiene_mapa_str_usize(ss_tmp34220, ss_tmp34221)))))
         {
 #line 3123 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp34220 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp34220, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3123);
-            ss_lang_agregar_texto_(&ss_tmp34220, ss_view(u), "ejemplos/compilador/tcodec.t", 3123);
-            ss_lang_agregar_texto_(&ss_tmp34220, sv_len("` se usa y el recorrido no lo registro\n", 39), "ejemplos/compilador/tcodec.t", 3123);
-            SafeString ss_tmp34219 = ss_tmp34220;
-            SafeView ss_tmp34221 = ss_view(&ss_tmp34219);
+            SafeString ss_tmp34223 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp34223, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3123);
+            ss_lang_agregar_texto_(&ss_tmp34223, ss_view(u), "ejemplos/compilador/tcodec.t", 3123);
+            ss_lang_agregar_texto_(&ss_tmp34223, sv_len("` se usa y el recorrido no lo registro. Es un fallo del compilador, no de tu programa\n", 86), "ejemplos/compilador/tcodec.t", 3123);
+            SafeString ss_tmp34222 = ss_tmp34223;
+            SafeView ss_tmp34224 = ss_view(&ss_tmp34222);
 #line 3123 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp34221);
-            ss_free(&ss_tmp34219);
+            ss_lang_escribir_(stderr, ss_tmp34224);
+            ss_free(&ss_tmp34222);
 #line 3124 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp34222;
-            ss_lista_str ss_tmp34223 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34224;
-            ss_lista_str ss_tmp34225 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34226;
+            bool ss_tmp34225;
+            ss_lista_str ss_tmp34226 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34227;
+            ss_lista_str ss_tmp34228 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34229;
 #line 3124 "ejemplos/compilador/tcodec.t"
-            UsosGenerados ss_tmp34227 = ((ss_tmp34222 = false, ss_tmp34224 = ss_tmp34223, ss_tmp34226 = ss_tmp34225, (UsosGenerados){ .ok = ss_tmp34222, .limpios = ss_tmp34224, .envoltorios = ss_tmp34226 }));
-            for (size_t ss_i1157 = 0; ss_i1157 < ss_tmp34216.length; ss_i1157++)
+            UsosGenerados ss_tmp34230 = ((ss_tmp34225 = false, ss_tmp34227 = ss_tmp34226, ss_tmp34229 = ss_tmp34228, (UsosGenerados){ .ok = ss_tmp34225, .limpios = ss_tmp34227, .envoltorios = ss_tmp34229 }));
+            for (size_t ss_i1157 = 0; ss_i1157 < ss_tmp34219.length; ss_i1157++)
             {
-                ss_free(&ss_tmp34216.e[ss_i1157]);
+                ss_free(&ss_tmp34219.e[ss_i1157]);
             }
-            free(ss_tmp34216.e);
-            ss_tmp34216.e = NULL;
-            ss_tmp34216.length = 0;
-            ss_tmp34216.capacity = 0;
+            free(ss_tmp34219.e);
+            ss_tmp34219.e = NULL;
+            ss_tmp34219.length = 0;
+            ss_tmp34219.capacity = 0;
             ss_free(&tipo);
             ss_mapa_libre_mapa_str_usize(&usados_r);
             ss_mapa_libre_mapa_str_usize(&usados_m);
@@ -114582,55 +114588,55 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
                 limpios.length = 0;
                 limpios.capacity = 0;
             }
-            return ss_tmp34227;
+            return ss_tmp34230;
         }
         ss_free(&tipo);
     }
-    for (size_t ss_i1162 = 0; ss_i1162 < ss_tmp34216.length; ss_i1162++)
+    for (size_t ss_i1162 = 0; ss_i1162 < ss_tmp34219.length; ss_i1162++)
     {
-        ss_free(&ss_tmp34216.e[ss_i1162]);
+        ss_free(&ss_tmp34219.e[ss_i1162]);
     }
-    free(ss_tmp34216.e);
-    ss_tmp34216.e = NULL;
-    ss_tmp34216.length = 0;
-    ss_tmp34216.capacity = 0;
+    free(ss_tmp34219.e);
+    ss_tmp34219.e = NULL;
+    ss_tmp34219.length = 0;
+    ss_tmp34219.capacity = 0;
 #line 3127 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34228 = ss_mapa_claves_mapa_str_usize(&usados_r, "ejemplos/compilador/tcodec.t", 3127);
-    for (size_t ss_k1163 = 0; ss_k1163 < ss_tmp34228.length; ss_k1163++)
+    ss_lista_str ss_tmp34231 = ss_mapa_claves_mapa_str_usize(&usados_r, "ejemplos/compilador/tcodec.t", 3127);
+    for (size_t ss_k1163 = 0; ss_k1163 < ss_tmp34231.length; ss_k1163++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34228.e[ss_k1163];
+        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34231.e[ss_k1163];
 #line 3128 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp34229;
-        SafeView ss_tmp34230;
+        const ss_mapa_str_usize* ss_tmp34232;
+        SafeView ss_tmp34233;
 #line 3128 "ejemplos/compilador/tcodec.t"
-        if ((!((ss_tmp34229 = &registradas, ss_tmp34230 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34229, ss_tmp34230)))))
+        if ((!((ss_tmp34232 = &registradas, ss_tmp34233 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34232, ss_tmp34233)))))
         {
 #line 3129 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp34232 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp34232, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3129);
-            ss_lang_agregar_texto_(&ss_tmp34232, ss_view(u), "ejemplos/compilador/tcodec.t", 3129);
-            ss_lang_agregar_texto_(&ss_tmp34232, sv_len("` se usa y el recorrido no lo registro\n", 39), "ejemplos/compilador/tcodec.t", 3129);
-            SafeString ss_tmp34231 = ss_tmp34232;
-            SafeView ss_tmp34233 = ss_view(&ss_tmp34231);
+            SafeString ss_tmp34235 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp34235, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3129);
+            ss_lang_agregar_texto_(&ss_tmp34235, ss_view(u), "ejemplos/compilador/tcodec.t", 3129);
+            ss_lang_agregar_texto_(&ss_tmp34235, sv_len("` se usa y el recorrido no lo registro. Es un fallo del compilador, no de tu programa\n", 86), "ejemplos/compilador/tcodec.t", 3129);
+            SafeString ss_tmp34234 = ss_tmp34235;
+            SafeView ss_tmp34236 = ss_view(&ss_tmp34234);
 #line 3129 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp34233);
-            ss_free(&ss_tmp34231);
+            ss_lang_escribir_(stderr, ss_tmp34236);
+            ss_free(&ss_tmp34234);
 #line 3130 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp34234;
-            ss_lista_str ss_tmp34235 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34236;
-            ss_lista_str ss_tmp34237 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34238;
+            bool ss_tmp34237;
+            ss_lista_str ss_tmp34238 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34239;
+            ss_lista_str ss_tmp34240 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34241;
 #line 3130 "ejemplos/compilador/tcodec.t"
-            UsosGenerados ss_tmp34239 = ((ss_tmp34234 = false, ss_tmp34236 = ss_tmp34235, ss_tmp34238 = ss_tmp34237, (UsosGenerados){ .ok = ss_tmp34234, .limpios = ss_tmp34236, .envoltorios = ss_tmp34238 }));
-            for (size_t ss_i1164 = 0; ss_i1164 < ss_tmp34228.length; ss_i1164++)
+            UsosGenerados ss_tmp34242 = ((ss_tmp34237 = false, ss_tmp34239 = ss_tmp34238, ss_tmp34241 = ss_tmp34240, (UsosGenerados){ .ok = ss_tmp34237, .limpios = ss_tmp34239, .envoltorios = ss_tmp34241 }));
+            for (size_t ss_i1164 = 0; ss_i1164 < ss_tmp34231.length; ss_i1164++)
             {
-                ss_free(&ss_tmp34228.e[ss_i1164]);
+                ss_free(&ss_tmp34231.e[ss_i1164]);
             }
-            free(ss_tmp34228.e);
-            ss_tmp34228.e = NULL;
-            ss_tmp34228.length = 0;
-            ss_tmp34228.capacity = 0;
+            free(ss_tmp34231.e);
+            ss_tmp34231.e = NULL;
+            ss_tmp34231.length = 0;
+            ss_tmp34231.capacity = 0;
             ss_mapa_libre_mapa_str_usize(&usados_r);
             ss_mapa_libre_mapa_str_usize(&usados_m);
             ss_mapa_libre_mapa_str_usize(&usados_a);
@@ -114675,17 +114681,17 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
                 limpios.length = 0;
                 limpios.capacity = 0;
             }
-            return ss_tmp34239;
+            return ss_tmp34242;
         }
     }
-    for (size_t ss_i1169 = 0; ss_i1169 < ss_tmp34228.length; ss_i1169++)
+    for (size_t ss_i1169 = 0; ss_i1169 < ss_tmp34231.length; ss_i1169++)
     {
-        ss_free(&ss_tmp34228.e[ss_i1169]);
+        ss_free(&ss_tmp34231.e[ss_i1169]);
     }
-    free(ss_tmp34228.e);
-    ss_tmp34228.e = NULL;
-    ss_tmp34228.length = 0;
-    ss_tmp34228.capacity = 0;
+    free(ss_tmp34231.e);
+    ss_tmp34231.e = NULL;
+    ss_tmp34231.length = 0;
+    ss_tmp34231.capacity = 0;
 #line 3136 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1170 = 0; ss_k1170 < nombres.length; ss_k1170++)
     {
@@ -114695,63 +114701,63 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
 #line 3138 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            size_t ss_tmp34240;
-            size_t ss_tmp34241;
-#line 3138 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp34242;
             size_t ss_tmp34243;
+            size_t ss_tmp34244;
 #line 3138 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp34242 = ((ss_tmp34240 = k, ss_tmp34241 = (size_t)1, ss_lang_suma_usize(ss_tmp34240, ss_tmp34241, "ejemplos/compilador/tcodec.t", 3138))), ss_tmp34243 = sv_len_of(ss_view(u)), (ss_tmp34242 < ss_tmp34243)))))
+            size_t ss_tmp34245;
+            size_t ss_tmp34246;
+#line 3138 "ejemplos/compilador/tcodec.t"
+            if (!(((ss_tmp34245 = ((ss_tmp34243 = k, ss_tmp34244 = (size_t)1, ss_lang_suma_usize(ss_tmp34243, ss_tmp34244, "ejemplos/compilador/tcodec.t", 3138))), ss_tmp34246 = sv_len_of(ss_view(u)), (ss_tmp34245 < ss_tmp34246)))))
             {
                 break;
             }
 #line 3139 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp34244 = ss_view(u);
-            size_t ss_tmp34245;
-            size_t ss_tmp34246;
+            SafeView ss_tmp34247 = ss_view(u);
+            size_t ss_tmp34248;
+            size_t ss_tmp34249;
 #line 3139 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp34252 = ((ss_tmp34245 = ((size_t)(unsigned char)ss_tmp34244.ptr[ss_lang_indice_(k, ss_tmp34244.len, "ejemplos/compilador/tcodec.t", 3139)]), ss_tmp34246 = (size_t)95, (ss_tmp34245 == ss_tmp34246)));
-            if (ss_tmp34252)
+            bool ss_tmp34255 = ((ss_tmp34248 = ((size_t)(unsigned char)ss_tmp34247.ptr[ss_lang_indice_(k, ss_tmp34247.len, "ejemplos/compilador/tcodec.t", 3139)]), ss_tmp34249 = (size_t)95, (ss_tmp34248 == ss_tmp34249)));
+            if (ss_tmp34255)
             {
-                size_t ss_tmp34247;
-                size_t ss_tmp34248;
-#line 3139 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp34249 = ss_view(u);
                 size_t ss_tmp34250;
                 size_t ss_tmp34251;
 #line 3139 "ejemplos/compilador/tcodec.t"
-                ss_tmp34252 = ((ss_tmp34250 = ((size_t)(unsigned char)ss_tmp34249.ptr[ss_lang_indice_(((ss_tmp34247 = k, ss_tmp34248 = (size_t)1, ss_lang_suma_usize(ss_tmp34247, ss_tmp34248, "ejemplos/compilador/tcodec.t", 3139))), ss_tmp34249.len, "ejemplos/compilador/tcodec.t", 3139)]), ss_tmp34251 = (size_t)95, (ss_tmp34250 == ss_tmp34251)));
+                SafeView ss_tmp34252 = ss_view(u);
+                size_t ss_tmp34253;
+                size_t ss_tmp34254;
+#line 3139 "ejemplos/compilador/tcodec.t"
+                ss_tmp34255 = ((ss_tmp34253 = ((size_t)(unsigned char)ss_tmp34252.ptr[ss_lang_indice_(((ss_tmp34250 = k, ss_tmp34251 = (size_t)1, ss_lang_suma_usize(ss_tmp34250, ss_tmp34251, "ejemplos/compilador/tcodec.t", 3139))), ss_tmp34252.len, "ejemplos/compilador/tcodec.t", 3139)]), ss_tmp34254 = (size_t)95, (ss_tmp34253 == ss_tmp34254)));
             }
-            SafeView ss_tmp34253;
-            size_t ss_tmp34254;
-            size_t ss_tmp34255;
+            SafeView ss_tmp34256;
+            size_t ss_tmp34257;
+            size_t ss_tmp34258;
 #line 3139 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_usize* ss_tmp34256;
-            SafeView ss_tmp34257;
+            const ss_mapa_str_usize* ss_tmp34259;
+            SafeView ss_tmp34260;
 #line 3139 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_usize* ss_tmp34258;
-            SafeView ss_tmp34259;
+            const ss_mapa_str_usize* ss_tmp34261;
+            SafeView ss_tmp34262;
 #line 3140 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp34252 && ((ss_tmp34256 = plantillas, ss_tmp34257 = ((ss_tmp34253 = ss_view(u), ss_tmp34254 = (size_t)0, ss_tmp34255 = k, ss_lang_rebanar_(ss_tmp34253, ss_tmp34254, ss_tmp34255, "ejemplos/compilador/tcodec.t", 3139))), ss_mapa_tiene_mapa_str_usize(ss_tmp34256, ss_tmp34257)))) && (!((ss_tmp34258 = vistas_inst, ss_tmp34259 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34258, ss_tmp34259))))))
+            if (((ss_tmp34255 && ((ss_tmp34259 = plantillas, ss_tmp34260 = ((ss_tmp34256 = ss_view(u), ss_tmp34257 = (size_t)0, ss_tmp34258 = k, ss_lang_rebanar_(ss_tmp34256, ss_tmp34257, ss_tmp34258, "ejemplos/compilador/tcodec.t", 3139))), ss_mapa_tiene_mapa_str_usize(ss_tmp34259, ss_tmp34260)))) && (!((ss_tmp34261 = vistas_inst, ss_tmp34262 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34261, ss_tmp34262))))))
             {
 #line 3141 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp34261 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp34261, sv_len("tcodec: la copia `", 18), "ejemplos/compilador/tcodec.t", 3141);
-                ss_lang_agregar_texto_(&ss_tmp34261, ss_view(u), "ejemplos/compilador/tcodec.t", 3141);
-                ss_lang_agregar_texto_(&ss_tmp34261, sv_len("` se usa y no se escribio\n", 26), "ejemplos/compilador/tcodec.t", 3141);
-                SafeString ss_tmp34260 = ss_tmp34261;
-                SafeView ss_tmp34262 = ss_view(&ss_tmp34260);
+                SafeString ss_tmp34264 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp34264, sv_len("tcodec: la copia `", 18), "ejemplos/compilador/tcodec.t", 3141);
+                ss_lang_agregar_texto_(&ss_tmp34264, ss_view(u), "ejemplos/compilador/tcodec.t", 3141);
+                ss_lang_agregar_texto_(&ss_tmp34264, sv_len("` se usa y no se escribio. Es un fallo del compilador, no de tu programa\n", 73), "ejemplos/compilador/tcodec.t", 3141);
+                SafeString ss_tmp34263 = ss_tmp34264;
+                SafeView ss_tmp34265 = ss_view(&ss_tmp34263);
 #line 3141 "ejemplos/compilador/tcodec.t"
-                ss_lang_escribir_(stderr, ss_tmp34262);
-                ss_free(&ss_tmp34260);
+                ss_lang_escribir_(stderr, ss_tmp34265);
+                ss_free(&ss_tmp34263);
 #line 3142 "ejemplos/compilador/tcodec.t"
-                bool ss_tmp34263;
-                ss_lista_str ss_tmp34264 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_str ss_tmp34265;
-                ss_lista_str ss_tmp34266 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_str ss_tmp34267;
+                bool ss_tmp34266;
+                ss_lista_str ss_tmp34267 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_str ss_tmp34268;
+                ss_lista_str ss_tmp34269 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_str ss_tmp34270;
 #line 3142 "ejemplos/compilador/tcodec.t"
-                UsosGenerados ss_tmp34268 = ((ss_tmp34263 = false, ss_tmp34265 = ss_tmp34264, ss_tmp34267 = ss_tmp34266, (UsosGenerados){ .ok = ss_tmp34263, .limpios = ss_tmp34265, .envoltorios = ss_tmp34267 }));
+                UsosGenerados ss_tmp34271 = ((ss_tmp34266 = false, ss_tmp34268 = ss_tmp34267, ss_tmp34270 = ss_tmp34269, (UsosGenerados){ .ok = ss_tmp34266, .limpios = ss_tmp34268, .envoltorios = ss_tmp34270 }));
                 ss_mapa_libre_mapa_str_usize(&usados_r);
                 ss_mapa_libre_mapa_str_usize(&usados_m);
                 ss_mapa_libre_mapa_str_usize(&usados_a);
@@ -114796,21 +114802,21 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
                     limpios.length = 0;
                     limpios.capacity = 0;
                 }
-                return ss_tmp34268;
+                return ss_tmp34271;
             }
 #line 3144 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp34269;
-            size_t ss_tmp34270;
+            size_t ss_tmp34272;
+            size_t ss_tmp34273;
 #line 3144 "ejemplos/compilador/tcodec.t"
-            k = ((ss_tmp34269 = k, ss_tmp34270 = (size_t)1, ss_lang_suma_usize(ss_tmp34269, ss_tmp34270, "ejemplos/compilador/tcodec.t", 3144)));
+            k = ((ss_tmp34272 = k, ss_tmp34273 = (size_t)1, ss_lang_suma_usize(ss_tmp34272, ss_tmp34273, "ejemplos/compilador/tcodec.t", 3144)));
         }
     }
 #line 3147 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp34271;
-    ss_lista_str ss_tmp34272;
-    ss_lista_str ss_tmp34273;
+    bool ss_tmp34274;
+    ss_lista_str ss_tmp34275;
+    ss_lista_str ss_tmp34276;
 #line 3147 "ejemplos/compilador/tcodec.t"
-    UsosGenerados ss_tmp34274 = ((ss_tmp34271 = true, ss_tmp34272 = limpios, ss_tmp34273 = envoltorios, (UsosGenerados){ .ok = ss_tmp34271, .limpios = ss_tmp34272, .envoltorios = ss_tmp34273 }));
+    UsosGenerados ss_tmp34277 = ((ss_tmp34274 = true, ss_tmp34275 = limpios, ss_tmp34276 = envoltorios, (UsosGenerados){ .ok = ss_tmp34274, .limpios = ss_tmp34275, .envoltorios = ss_tmp34276 }));
     ss_vivo_limpios = false;
     ss_vivo_envoltorios = false;
     ss_mapa_libre_mapa_str_usize(&usados_r);
@@ -114857,15 +114863,15 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
         limpios.length = 0;
         limpios.capacity = 0;
     }
-    return ss_tmp34274;
+    return ss_tmp34277;
 }
 
 #line 3155 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static CopiadoresGenerados generar_copiadores(SS_LANG_QUIZA_SIN_USAR const Cuenta* cta, SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* st_indice, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* st_campos, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* st_tipos, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* en_indice, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* en_variantes, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* en_lleva, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* limpios, SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* modulos)
 {
 #line 3161 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34275 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str apuntados = ss_tmp34275;
+    ss_lista_str ss_tmp34278 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str apuntados = ss_tmp34278;
 #line 3162 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize vistos = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
 #line 3163 "ejemplos/compilador/tcodec.t"
@@ -114875,18 +114881,18 @@ SS_LANG_QUIZA_SIN_USAR static CopiadoresGenerados generar_copiadores(SS_LANG_QUI
 #line 3164 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString tr = nombre_resuelto(ss_view(t));
 #line 3165 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp34276;
-        const Contexto* ss_tmp34277;
-        const ss_mapa_str_usize* ss_tmp34278;
-        const ss_lista_lista_str* ss_tmp34279;
-        ss_mapa_str_usize* ss_tmp34280;
-        ss_lista_str* ss_tmp34281;
-        ((ss_tmp34276 = ss_view(&tr), ss_tmp34277 = global, ss_tmp34278 = st_indice, ss_tmp34279 = st_tipos, ss_tmp34280 = &vistos, ss_tmp34281 = &apuntados, necesita_copiador(ss_tmp34276, ss_tmp34277, ss_tmp34278, ss_tmp34279, ss_tmp34280, ss_tmp34281)));
+        SafeView ss_tmp34279;
+        const Contexto* ss_tmp34280;
+        const ss_mapa_str_usize* ss_tmp34281;
+        const ss_lista_lista_str* ss_tmp34282;
+        ss_mapa_str_usize* ss_tmp34283;
+        ss_lista_str* ss_tmp34284;
+        ((ss_tmp34279 = ss_view(&tr), ss_tmp34280 = global, ss_tmp34281 = st_indice, ss_tmp34282 = st_tipos, ss_tmp34283 = &vistos, ss_tmp34284 = &apuntados, necesita_copiador(ss_tmp34279, ss_tmp34280, ss_tmp34281, ss_tmp34282, ss_tmp34283, ss_tmp34284)));
         ss_free(&tr);
     }
 #line 3167 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34282 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str copiadores = ss_tmp34282;
+    ss_lista_str ss_tmp34285 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str copiadores = ss_tmp34285;
 #line 3168 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t hondo = (size_t)0;
 #line 3169 "ejemplos/compilador/tcodec.t"
@@ -114894,10 +114900,10 @@ SS_LANG_QUIZA_SIN_USAR static CopiadoresGenerados generar_copiadores(SS_LANG_QUI
 #line 3170 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34283;
-        size_t ss_tmp34284;
+        size_t ss_tmp34286;
+        size_t ss_tmp34287;
 #line 3170 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34283 = quedan, ss_tmp34284 = (size_t)0, (ss_tmp34283 > ss_tmp34284)))))
+        if (!(((ss_tmp34286 = quedan, ss_tmp34287 = (size_t)0, (ss_tmp34286 > ss_tmp34287)))))
         {
             break;
         }
@@ -114906,31 +114912,31 @@ SS_LANG_QUIZA_SIN_USAR static CopiadoresGenerados generar_copiadores(SS_LANG_QUI
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* t = &apuntados.e[ss_k1180];
 #line 3172 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp34285;
-            size_t ss_tmp34286;
+            size_t ss_tmp34288;
+            size_t ss_tmp34289;
 #line 3172 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp34285 = hondura_tipo(ss_view(t)), ss_tmp34286 = hondo, (ss_tmp34285 == ss_tmp34286))))
+            if (((ss_tmp34288 = hondura_tipo(ss_view(t)), ss_tmp34289 = hondo, (ss_tmp34288 == ss_tmp34289))))
             {
 #line 3173 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp34287 = &copiadores;
+                ss_lista_str* ss_tmp34290 = &copiadores;
 #line 3173 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp34287, ss_clone(t), "ejemplos/compilador/tcodec.t", 3173);
+                ss_push_lista_str(ss_tmp34290, ss_clone(t), "ejemplos/compilador/tcodec.t", 3173);
 #line 3174 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp34288;
-                size_t ss_tmp34289;
+                size_t ss_tmp34291;
+                size_t ss_tmp34292;
 #line 3174 "ejemplos/compilador/tcodec.t"
-                quedan = ((ss_tmp34288 = quedan, ss_tmp34289 = (size_t)1, ss_lang_resta_usize(ss_tmp34288, ss_tmp34289, "ejemplos/compilador/tcodec.t", 3174)));
+                quedan = ((ss_tmp34291 = quedan, ss_tmp34292 = (size_t)1, ss_lang_resta_usize(ss_tmp34291, ss_tmp34292, "ejemplos/compilador/tcodec.t", 3174)));
             }
         }
 #line 3177 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34290;
-        size_t ss_tmp34291;
+        size_t ss_tmp34293;
+        size_t ss_tmp34294;
 #line 3177 "ejemplos/compilador/tcodec.t"
-        hondo = ((ss_tmp34290 = hondo, ss_tmp34291 = (size_t)1, ss_lang_suma_usize(ss_tmp34290, ss_tmp34291, "ejemplos/compilador/tcodec.t", 3177)));
+        hondo = ((ss_tmp34293 = hondo, ss_tmp34294 = (size_t)1, ss_lang_suma_usize(ss_tmp34293, ss_tmp34294, "ejemplos/compilador/tcodec.t", 3177)));
     }
 #line 3179 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34292 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str lineas = ss_tmp34292;
+    ss_lista_str ss_tmp34295 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str lineas = ss_tmp34295;
     bool ss_vivo_lineas = true;
 #line 3180 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize nombres = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
@@ -114943,65 +114949,65 @@ SS_LANG_QUIZA_SIN_USAR static CopiadoresGenerados generar_copiadores(SS_LANG_QUI
 #line 3183 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString m = mangle(ss_view(t));
 #line 3184 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp34293 = &lineas;
-        SafeString ss_tmp34294 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp34294, sv_len("static ", 7), "ejemplos/compilador/tcodec.t", 3184);
-        ss_lang_agregar_texto_(&ss_tmp34294, ss_view(&tc), "ejemplos/compilador/tcodec.t", 3184);
-        ss_lang_agregar_texto_(&ss_tmp34294, sv_len(" ss_copia_", 10), "ejemplos/compilador/tcodec.t", 3184);
-        ss_lang_agregar_texto_(&ss_tmp34294, ss_view(&m), "ejemplos/compilador/tcodec.t", 3184);
-        ss_lang_agregar_texto_(&ss_tmp34294, sv_len("(const ", 7), "ejemplos/compilador/tcodec.t", 3184);
-        ss_lang_agregar_texto_(&ss_tmp34294, ss_view(&tc), "ejemplos/compilador/tcodec.t", 3184);
-        ss_lang_agregar_texto_(&ss_tmp34294, sv_len("* p);", 5), "ejemplos/compilador/tcodec.t", 3184);
+        ss_lista_str* ss_tmp34296 = &lineas;
+        SafeString ss_tmp34297 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp34297, sv_len("static ", 7), "ejemplos/compilador/tcodec.t", 3184);
+        ss_lang_agregar_texto_(&ss_tmp34297, ss_view(&tc), "ejemplos/compilador/tcodec.t", 3184);
+        ss_lang_agregar_texto_(&ss_tmp34297, sv_len(" ss_copia_", 10), "ejemplos/compilador/tcodec.t", 3184);
+        ss_lang_agregar_texto_(&ss_tmp34297, ss_view(&m), "ejemplos/compilador/tcodec.t", 3184);
+        ss_lang_agregar_texto_(&ss_tmp34297, sv_len("(const ", 7), "ejemplos/compilador/tcodec.t", 3184);
+        ss_lang_agregar_texto_(&ss_tmp34297, ss_view(&tc), "ejemplos/compilador/tcodec.t", 3184);
+        ss_lang_agregar_texto_(&ss_tmp34297, sv_len("* p);", 5), "ejemplos/compilador/tcodec.t", 3184);
 #line 3184 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp34293, ss_tmp34294, "ejemplos/compilador/tcodec.t", 3184);
+        ss_push_lista_str(ss_tmp34296, ss_tmp34297, "ejemplos/compilador/tcodec.t", 3184);
 #line 3185 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp34295 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp34295, sv_len("ss_copia_", 9), "ejemplos/compilador/tcodec.t", 3185);
-        ss_lang_agregar_texto_(&ss_tmp34295, ss_view(&m), "ejemplos/compilador/tcodec.t", 3185);
-        SS_LANG_QUIZA_SIN_USAR SafeString nc = ss_tmp34295;
+        SafeString ss_tmp34298 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp34298, sv_len("ss_copia_", 9), "ejemplos/compilador/tcodec.t", 3185);
+        ss_lang_agregar_texto_(&ss_tmp34298, ss_view(&m), "ejemplos/compilador/tcodec.t", 3185);
+        SS_LANG_QUIZA_SIN_USAR SafeString nc = ss_tmp34298;
 #line 3186 "ejemplos/compilador/tcodec.t"
-        ss_mapa_str_usize* ss_tmp34296 = &nombres;
+        ss_mapa_str_usize* ss_tmp34299 = &nombres;
 #line 3186 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp34296, ss_view(&nc), (size_t)1, "ejemplos/compilador/tcodec.t", 3186);
+        ss_mapa_poner_mapa_str_usize(ss_tmp34299, ss_view(&nc), (size_t)1, "ejemplos/compilador/tcodec.t", 3186);
         ss_free(&nc);
         ss_free(&m);
         ss_free(&tc);
     }
 #line 3188 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp34297 = &lineas;
+    ss_lista_str* ss_tmp34300 = &lineas;
 #line 3188 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp34297, ss_new(), "ejemplos/compilador/tcodec.t", 3188);
+    ss_push_lista_str(ss_tmp34300, ss_new(), "ejemplos/compilador/tcodec.t", 3188);
 #line 3189 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1182 = 0; ss_k1182 < copiadores.length; ss_k1182++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* t = &copiadores.e[ss_k1182];
 #line 3190 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp34298;
-        const Contexto* ss_tmp34299;
-        const ss_mapa_str_usize* ss_tmp34300;
-        const ss_lista_lista_str* ss_tmp34301;
-        const ss_lista_lista_str* ss_tmp34302;
+        SafeView ss_tmp34301;
+        const Contexto* ss_tmp34302;
         const ss_mapa_str_usize* ss_tmp34303;
         const ss_lista_lista_str* ss_tmp34304;
         const ss_lista_lista_str* ss_tmp34305;
-        ss_lista_str* ss_tmp34306;
-        if ((!((ss_tmp34298 = ss_view(t), ss_tmp34299 = global, ss_tmp34300 = st_indice, ss_tmp34301 = st_campos, ss_tmp34302 = st_tipos, ss_tmp34303 = en_indice, ss_tmp34304 = en_variantes, ss_tmp34305 = en_lleva, ss_tmp34306 = &lineas, cuerpo_copiador(ss_tmp34298, ss_tmp34299, ss_tmp34300, ss_tmp34301, ss_tmp34302, ss_tmp34303, ss_tmp34304, ss_tmp34305, ss_tmp34306)))))
+        const ss_mapa_str_usize* ss_tmp34306;
+        const ss_lista_lista_str* ss_tmp34307;
+        const ss_lista_lista_str* ss_tmp34308;
+        ss_lista_str* ss_tmp34309;
+        if ((!((ss_tmp34301 = ss_view(t), ss_tmp34302 = global, ss_tmp34303 = st_indice, ss_tmp34304 = st_campos, ss_tmp34305 = st_tipos, ss_tmp34306 = en_indice, ss_tmp34307 = en_variantes, ss_tmp34308 = en_lleva, ss_tmp34309 = &lineas, cuerpo_copiador(ss_tmp34301, ss_tmp34302, ss_tmp34303, ss_tmp34304, ss_tmp34305, ss_tmp34306, ss_tmp34307, ss_tmp34308, ss_tmp34309)))))
         {
 #line 3192 "ejemplos/compilador/tcodec.t"
-            const ss_lista_Nodo* ss_tmp34308;
-            const ss_lista_str* ss_tmp34309;
-            SafeView ss_tmp34310;
-            SafeString ss_tmp34307 = ((ss_tmp34308 = arboles, ss_tmp34309 = modulos, ss_tmp34310 = ss_view(t), sitio_de_nombre(ss_tmp34308, ss_tmp34309, ss_tmp34310)));
-            SafeView ss_tmp34311;
-            SafeView ss_tmp34312;
-            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34311 = ss_view(&ss_tmp34307), ss_tmp34312 = sv_len("no sabe copiar bloques", 22), rechazo(ss_tmp34311, ss_tmp34312)));
-            ss_free(&ss_tmp34307);
+            const ss_lista_Nodo* ss_tmp34311;
+            const ss_lista_str* ss_tmp34312;
+            SafeView ss_tmp34313;
+            SafeString ss_tmp34310 = ((ss_tmp34311 = arboles, ss_tmp34312 = modulos, ss_tmp34313 = ss_view(t), sitio_de_nombre(ss_tmp34311, ss_tmp34312, ss_tmp34313)));
+            SafeView ss_tmp34314;
+            SafeView ss_tmp34315;
+            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34314 = ss_view(&ss_tmp34310), ss_tmp34315 = sv_len("no sabe copiar bloques", 22), rechazo(ss_tmp34314, ss_tmp34315)));
+            ss_free(&ss_tmp34310);
 #line 3194 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp34313;
-            ss_lista_str ss_tmp34314 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34315;
+            bool ss_tmp34316;
+            ss_lista_str ss_tmp34317 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34318;
 #line 3194 "ejemplos/compilador/tcodec.t"
-            CopiadoresGenerados ss_tmp34316 = ((ss_tmp34313 = false, ss_tmp34315 = ss_tmp34314, (CopiadoresGenerados){ .ok = ss_tmp34313, .lineas = ss_tmp34315 }));
+            CopiadoresGenerados ss_tmp34319 = ((ss_tmp34316 = false, ss_tmp34318 = ss_tmp34317, (CopiadoresGenerados){ .ok = ss_tmp34316, .lineas = ss_tmp34318 }));
             ss_mapa_libre_mapa_str_usize(&nombres);
             if (ss_vivo_lineas)
             {
@@ -115031,7 +115037,7 @@ SS_LANG_QUIZA_SIN_USAR static CopiadoresGenerados generar_copiadores(SS_LANG_QUI
             apuntados.e = NULL;
             apuntados.length = 0;
             apuntados.capacity = 0;
-            return ss_tmp34316;
+            return ss_tmp34319;
         }
     }
 #line 3197 "ejemplos/compilador/tcodec.t"
@@ -115040,46 +115046,46 @@ SS_LANG_QUIZA_SIN_USAR static CopiadoresGenerados generar_copiadores(SS_LANG_QUI
     for (size_t ss_k1186 = 0; ss_k1186 < (*limpios).length; ss_k1186++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* l = &(*limpios).e[ss_k1186];
-        SafeView ss_tmp34317;
-        SafeView ss_tmp34318;
-        ss_mapa_str_usize* ss_tmp34319;
-        ((ss_tmp34317 = ss_view(l), ss_tmp34318 = sv_len("ss_copia_", 9), ss_tmp34319 = &usados, apuntar_nombres(ss_tmp34317, ss_tmp34318, ss_tmp34319)));
+        SafeView ss_tmp34320;
+        SafeView ss_tmp34321;
+        ss_mapa_str_usize* ss_tmp34322;
+        ((ss_tmp34320 = ss_view(l), ss_tmp34321 = sv_len("ss_copia_", 9), ss_tmp34322 = &usados, apuntar_nombres(ss_tmp34320, ss_tmp34321, ss_tmp34322)));
     }
 #line 3199 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34320 = ss_mapa_claves_mapa_str_usize(&usados, "ejemplos/compilador/tcodec.t", 3199);
-    for (size_t ss_k1187 = 0; ss_k1187 < ss_tmp34320.length; ss_k1187++)
+    ss_lista_str ss_tmp34323 = ss_mapa_claves_mapa_str_usize(&usados, "ejemplos/compilador/tcodec.t", 3199);
+    for (size_t ss_k1187 = 0; ss_k1187 < ss_tmp34323.length; ss_k1187++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34320.e[ss_k1187];
+        SS_LANG_QUIZA_SIN_USAR const SafeString* u = &ss_tmp34323.e[ss_k1187];
 #line 3200 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp34321;
-        SafeView ss_tmp34322;
+        const ss_mapa_str_usize* ss_tmp34324;
+        SafeView ss_tmp34325;
 #line 3200 "ejemplos/compilador/tcodec.t"
-        if ((!((ss_tmp34321 = &nombres, ss_tmp34322 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34321, ss_tmp34322)))))
+        if ((!((ss_tmp34324 = &nombres, ss_tmp34325 = ss_view(u), ss_mapa_tiene_mapa_str_usize(ss_tmp34324, ss_tmp34325)))))
         {
 #line 3201 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp34324 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp34324, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3201);
-            ss_lang_agregar_texto_(&ss_tmp34324, ss_view(u), "ejemplos/compilador/tcodec.t", 3201);
-            ss_lang_agregar_texto_(&ss_tmp34324, sv_len("` se usa y no se apunto\n", 24), "ejemplos/compilador/tcodec.t", 3201);
-            SafeString ss_tmp34323 = ss_tmp34324;
-            SafeView ss_tmp34325 = ss_view(&ss_tmp34323);
+            SafeString ss_tmp34327 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp34327, sv_len("tcodec: `", 9), "ejemplos/compilador/tcodec.t", 3201);
+            ss_lang_agregar_texto_(&ss_tmp34327, ss_view(u), "ejemplos/compilador/tcodec.t", 3201);
+            ss_lang_agregar_texto_(&ss_tmp34327, sv_len("` se usa y no se apunto. Es un fallo del compilador, no de tu programa\n", 71), "ejemplos/compilador/tcodec.t", 3201);
+            SafeString ss_tmp34326 = ss_tmp34327;
+            SafeView ss_tmp34328 = ss_view(&ss_tmp34326);
 #line 3201 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp34325);
-            ss_free(&ss_tmp34323);
+            ss_lang_escribir_(stderr, ss_tmp34328);
+            ss_free(&ss_tmp34326);
 #line 3202 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp34326;
-            ss_lista_str ss_tmp34327 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34328;
+            bool ss_tmp34329;
+            ss_lista_str ss_tmp34330 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34331;
 #line 3202 "ejemplos/compilador/tcodec.t"
-            CopiadoresGenerados ss_tmp34329 = ((ss_tmp34326 = false, ss_tmp34328 = ss_tmp34327, (CopiadoresGenerados){ .ok = ss_tmp34326, .lineas = ss_tmp34328 }));
-            for (size_t ss_i1188 = 0; ss_i1188 < ss_tmp34320.length; ss_i1188++)
+            CopiadoresGenerados ss_tmp34332 = ((ss_tmp34329 = false, ss_tmp34331 = ss_tmp34330, (CopiadoresGenerados){ .ok = ss_tmp34329, .lineas = ss_tmp34331 }));
+            for (size_t ss_i1188 = 0; ss_i1188 < ss_tmp34323.length; ss_i1188++)
             {
-                ss_free(&ss_tmp34320.e[ss_i1188]);
+                ss_free(&ss_tmp34323.e[ss_i1188]);
             }
-            free(ss_tmp34320.e);
-            ss_tmp34320.e = NULL;
-            ss_tmp34320.length = 0;
-            ss_tmp34320.capacity = 0;
+            free(ss_tmp34323.e);
+            ss_tmp34323.e = NULL;
+            ss_tmp34323.length = 0;
+            ss_tmp34323.capacity = 0;
             ss_mapa_libre_mapa_str_usize(&usados);
             ss_mapa_libre_mapa_str_usize(&nombres);
             if (ss_vivo_lineas)
@@ -115110,22 +115116,22 @@ SS_LANG_QUIZA_SIN_USAR static CopiadoresGenerados generar_copiadores(SS_LANG_QUI
             apuntados.e = NULL;
             apuntados.length = 0;
             apuntados.capacity = 0;
-            return ss_tmp34329;
+            return ss_tmp34332;
         }
     }
-    for (size_t ss_i1192 = 0; ss_i1192 < ss_tmp34320.length; ss_i1192++)
+    for (size_t ss_i1192 = 0; ss_i1192 < ss_tmp34323.length; ss_i1192++)
     {
-        ss_free(&ss_tmp34320.e[ss_i1192]);
+        ss_free(&ss_tmp34323.e[ss_i1192]);
     }
-    free(ss_tmp34320.e);
-    ss_tmp34320.e = NULL;
-    ss_tmp34320.length = 0;
-    ss_tmp34320.capacity = 0;
+    free(ss_tmp34323.e);
+    ss_tmp34323.e = NULL;
+    ss_tmp34323.length = 0;
+    ss_tmp34323.capacity = 0;
 #line 3205 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp34330;
-    ss_lista_str ss_tmp34331;
+    bool ss_tmp34333;
+    ss_lista_str ss_tmp34334;
 #line 3205 "ejemplos/compilador/tcodec.t"
-    CopiadoresGenerados ss_tmp34332 = ((ss_tmp34330 = true, ss_tmp34331 = lineas, (CopiadoresGenerados){ .ok = ss_tmp34330, .lineas = ss_tmp34331 }));
+    CopiadoresGenerados ss_tmp34335 = ((ss_tmp34333 = true, ss_tmp34334 = lineas, (CopiadoresGenerados){ .ok = ss_tmp34333, .lineas = ss_tmp34334 }));
     ss_vivo_lineas = false;
     ss_mapa_libre_mapa_str_usize(&usados);
     ss_mapa_libre_mapa_str_usize(&nombres);
@@ -115157,19 +115163,19 @@ SS_LANG_QUIZA_SIN_USAR static CopiadoresGenerados generar_copiadores(SS_LANG_QUI
     apuntados.e = NULL;
     apuntados.length = 0;
     apuntados.capacity = 0;
-    return ss_tmp34332;
+    return ss_tmp34335;
 }
 
 #line 3217 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static FuncionesGeneradas generar_funciones(SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto* contextos, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* modulos, SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* instancias, SS_LANG_QUIZA_SIN_USAR const ss_lista_usize* modulo_de, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* duenos_inst, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* orden_inst, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* orden_copias_revision, SS_LANG_QUIZA_SIN_USAR Cuenta* cta)
 {
 #line 3222 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34333 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str protos = ss_tmp34333;
+    ss_lista_str ss_tmp34336 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str protos = ss_tmp34336;
     bool ss_vivo_protos = true;
 #line 3223 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34334 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str cuerpos = ss_tmp34334;
+    ss_lista_str ss_tmp34337 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str cuerpos = ss_tmp34337;
     bool ss_vivo_cuerpos = true;
 #line 3224 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize anchos = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
@@ -115185,60 +115191,60 @@ SS_LANG_QUIZA_SIN_USAR static FuncionesGeneradas generar_funciones(SS_LANG_QUIZA
 #line 3228 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34335;
-        size_t ss_tmp34336;
+        size_t ss_tmp34338;
+        size_t ss_tmp34339;
 #line 3228 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34335 = i, ss_tmp34336 = ((*arboles).length), (ss_tmp34335 < ss_tmp34336)))))
+        if (!(((ss_tmp34338 = i, ss_tmp34339 = ((*arboles).length), (ss_tmp34338 < ss_tmp34339)))))
         {
             break;
         }
 #line 3231 "ejemplos/compilador/tcodec.t"
         (*cta).ultima_linea = (size_t)0;
 #line 3232 "ejemplos/compilador/tcodec.t"
-        const ss_lista_Nodo* ss_tmp34337;
-        for (size_t ss_k1196 = 0; ss_k1196 < ((ss_tmp34337 = &((*arboles)), &ss_tmp34337->e[ss_lang_indice_(i, ss_tmp34337->length, "ejemplos/compilador/tcodec.t", 3232)])[0]).hijos.length; ss_k1196++)
+        const ss_lista_Nodo* ss_tmp34340;
+        for (size_t ss_k1196 = 0; ss_k1196 < ((ss_tmp34340 = &((*arboles)), &ss_tmp34340->e[ss_lang_indice_(i, ss_tmp34340->length, "ejemplos/compilador/tcodec.t", 3232)])[0]).hijos.length; ss_k1196++)
         {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34337 = &((*arboles)), &ss_tmp34337->e[ss_lang_indice_(i, ss_tmp34337->length, "ejemplos/compilador/tcodec.t", 3232)])[0]).hijos.e[ss_k1196];
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34340 = &((*arboles)), &ss_tmp34340->e[ss_lang_indice_(i, ss_tmp34340->length, "ejemplos/compilador/tcodec.t", 3232)])[0]).hijos.e[ss_k1196];
 #line 3233 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp34338;
-            Clase ss_tmp34339;
+            Clase ss_tmp34341;
+            Clase ss_tmp34342;
 #line 3233 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp34338 = (*d).clase, ss_tmp34339 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34338.etiqueta != ss_tmp34339.etiqueta))) || es_generica(d)))
+            if ((((ss_tmp34341 = (*d).clase, ss_tmp34342 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34341.etiqueta != ss_tmp34342.etiqueta))) || es_generica(d)))
             {
                 continue;
             }
 #line 3234 "ejemplos/compilador/tcodec.t"
-            const Nodo* ss_tmp34340;
-            ss_lista_Contexto* ss_tmp34341;
-            const Contexto* ss_tmp34342;
-            SafeString ss_tmp34343 = ((ss_tmp34340 = d, ss_tmp34342 = &((ss_tmp34341 = &((*contextos)), &ss_tmp34341->e[ss_lang_indice_(i, ss_tmp34341->length, "ejemplos/compilador/tcodec.t", 3234)])[0]), dueno_de_funcion(ss_tmp34340, ss_tmp34342)));
+            const Nodo* ss_tmp34343;
+            ss_lista_Contexto* ss_tmp34344;
+            const Contexto* ss_tmp34345;
+            SafeString ss_tmp34346 = ((ss_tmp34343 = d, ss_tmp34345 = &((ss_tmp34344 = &((*contextos)), &ss_tmp34344->e[ss_lang_indice_(i, ss_tmp34344->length, "ejemplos/compilador/tcodec.t", 3234)])[0]), dueno_de_funcion(ss_tmp34343, ss_tmp34345)));
             ss_free(&(*cta).dueno);
-            (*cta).dueno = ss_tmp34343;
+            (*cta).dueno = ss_tmp34346;
 #line 3235 "ejemplos/compilador/tcodec.t"
-            const Nodo* ss_tmp34344;
-            ss_lista_Contexto* ss_tmp34345;
-            Contexto* ss_tmp34346;
-            const ss_lista_str* ss_tmp34347;
-            SafeView ss_tmp34348;
-            Cuenta* ss_tmp34349;
-            ss_lista_str* ss_tmp34350;
-            ss_lista_str* ss_tmp34351;
-            ss_mapa_str_usize* ss_tmp34352;
-            ss_mapa_str_usize* ss_tmp34353;
-            ss_mapa_str_usize* ss_tmp34354;
-            if ((!((ss_tmp34344 = d, ss_tmp34346 = &((ss_tmp34345 = &((*contextos)), &ss_tmp34345->e[ss_lang_indice_(i, ss_tmp34345->length, "ejemplos/compilador/tcodec.t", 3235)])[0]), ss_tmp34348 = ss_view(&((ss_tmp34347 = &((*modulos)), &ss_tmp34347->e[ss_lang_indice_(i, ss_tmp34347->length, "ejemplos/compilador/tcodec.t", 3235)])[0])), ss_tmp34349 = cta, ss_tmp34350 = &protos, ss_tmp34351 = &cuerpos, ss_tmp34352 = &anchos, ss_tmp34353 = &decimales, ss_tmp34354 = &conversiones, emitir_funcion(ss_tmp34344, ss_tmp34346, ss_tmp34348, ss_tmp34349, ss_tmp34350, ss_tmp34351, ss_tmp34352, ss_tmp34353, ss_tmp34354)))))
+            const Nodo* ss_tmp34347;
+            ss_lista_Contexto* ss_tmp34348;
+            Contexto* ss_tmp34349;
+            const ss_lista_str* ss_tmp34350;
+            SafeView ss_tmp34351;
+            Cuenta* ss_tmp34352;
+            ss_lista_str* ss_tmp34353;
+            ss_lista_str* ss_tmp34354;
+            ss_mapa_str_usize* ss_tmp34355;
+            ss_mapa_str_usize* ss_tmp34356;
+            ss_mapa_str_usize* ss_tmp34357;
+            if ((!((ss_tmp34347 = d, ss_tmp34349 = &((ss_tmp34348 = &((*contextos)), &ss_tmp34348->e[ss_lang_indice_(i, ss_tmp34348->length, "ejemplos/compilador/tcodec.t", 3235)])[0]), ss_tmp34351 = ss_view(&((ss_tmp34350 = &((*modulos)), &ss_tmp34350->e[ss_lang_indice_(i, ss_tmp34350->length, "ejemplos/compilador/tcodec.t", 3235)])[0])), ss_tmp34352 = cta, ss_tmp34353 = &protos, ss_tmp34354 = &cuerpos, ss_tmp34355 = &anchos, ss_tmp34356 = &decimales, ss_tmp34357 = &conversiones, emitir_funcion(ss_tmp34347, ss_tmp34349, ss_tmp34351, ss_tmp34352, ss_tmp34353, ss_tmp34354, ss_tmp34355, ss_tmp34356, ss_tmp34357)))))
             {
 #line 3237 "ejemplos/compilador/tcodec.t"
-                bool ss_tmp34355;
-                ss_lista_str ss_tmp34356 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_str ss_tmp34357;
-                ss_lista_str ss_tmp34358 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_str ss_tmp34359;
-                ss_mapa_str_usize ss_tmp34360;
-                ss_mapa_str_usize ss_tmp34361;
-                ss_mapa_str_usize ss_tmp34362;
+                bool ss_tmp34358;
+                ss_lista_str ss_tmp34359 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_str ss_tmp34360;
+                ss_lista_str ss_tmp34361 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_str ss_tmp34362;
+                ss_mapa_str_usize ss_tmp34363;
+                ss_mapa_str_usize ss_tmp34364;
+                ss_mapa_str_usize ss_tmp34365;
 #line 3237 "ejemplos/compilador/tcodec.t"
-                FuncionesGeneradas ss_tmp34363 = ((ss_tmp34355 = false, ss_tmp34357 = ss_tmp34356, ss_tmp34359 = ss_tmp34358, ss_tmp34360 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34361 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34362 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, (FuncionesGeneradas){ .ok = ss_tmp34355, .protos = ss_tmp34357, .cuerpos = ss_tmp34359, .anchos = ss_tmp34360, .decimales = ss_tmp34361, .conversiones = ss_tmp34362 }));
+                FuncionesGeneradas ss_tmp34366 = ((ss_tmp34358 = false, ss_tmp34360 = ss_tmp34359, ss_tmp34362 = ss_tmp34361, ss_tmp34363 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34364 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34365 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, (FuncionesGeneradas){ .ok = ss_tmp34358, .protos = ss_tmp34360, .cuerpos = ss_tmp34362, .anchos = ss_tmp34363, .decimales = ss_tmp34364, .conversiones = ss_tmp34365 }));
                 if (ss_vivo_conversiones)
                 {
                     ss_mapa_libre_mapa_str_usize(&conversiones);
@@ -115273,14 +115279,14 @@ SS_LANG_QUIZA_SIN_USAR static FuncionesGeneradas generar_funciones(SS_LANG_QUIZA
                     protos.length = 0;
                     protos.capacity = 0;
                 }
-                return ss_tmp34363;
+                return ss_tmp34366;
             }
         }
 #line 3241 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34364;
-        size_t ss_tmp34365;
+        size_t ss_tmp34367;
+        size_t ss_tmp34368;
 #line 3241 "ejemplos/compilador/tcodec.t"
-        i = ((ss_tmp34364 = i, ss_tmp34365 = (size_t)1, ss_lang_suma_usize(ss_tmp34364, ss_tmp34365, "ejemplos/compilador/tcodec.t", 3241)));
+        i = ((ss_tmp34367 = i, ss_tmp34368 = (size_t)1, ss_lang_suma_usize(ss_tmp34367, ss_tmp34368, "ejemplos/compilador/tcodec.t", 3241)));
     }
 #line 3246 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize puesto_de = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
@@ -115289,121 +115295,121 @@ SS_LANG_QUIZA_SIN_USAR static FuncionesGeneradas generar_funciones(SS_LANG_QUIZA
 #line 3248 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34366;
-        size_t ss_tmp34367;
+        size_t ss_tmp34369;
+        size_t ss_tmp34370;
 #line 3248 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34366 = k_orden, ss_tmp34367 = ((*orden_copias_revision).length), (ss_tmp34366 < ss_tmp34367)))))
+        if (!(((ss_tmp34369 = k_orden, ss_tmp34370 = ((*orden_copias_revision).length), (ss_tmp34369 < ss_tmp34370)))))
         {
             break;
         }
 #line 3249 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp34368;
-        const ss_mapa_str_usize* ss_tmp34369;
-        SafeView ss_tmp34370;
+        const ss_lista_str* ss_tmp34371;
+        const ss_mapa_str_usize* ss_tmp34372;
+        SafeView ss_tmp34373;
 #line 3249 "ejemplos/compilador/tcodec.t"
-        if ((!((ss_tmp34369 = &puesto_de, ss_tmp34370 = ss_view(&((ss_tmp34368 = &((*orden_copias_revision)), &ss_tmp34368->e[ss_lang_indice_(k_orden, ss_tmp34368->length, "ejemplos/compilador/tcodec.t", 3249)])[0])), ss_mapa_tiene_mapa_str_usize(ss_tmp34369, ss_tmp34370)))))
+        if ((!((ss_tmp34372 = &puesto_de, ss_tmp34373 = ss_view(&((ss_tmp34371 = &((*orden_copias_revision)), &ss_tmp34371->e[ss_lang_indice_(k_orden, ss_tmp34371->length, "ejemplos/compilador/tcodec.t", 3249)])[0])), ss_mapa_tiene_mapa_str_usize(ss_tmp34372, ss_tmp34373)))))
         {
 #line 3250 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize* ss_tmp34371 = &puesto_de;
-            const ss_lista_str* ss_tmp34372;
+            ss_mapa_str_usize* ss_tmp34374 = &puesto_de;
+            const ss_lista_str* ss_tmp34375;
 #line 3250 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp34371, ss_view(&((ss_tmp34372 = &((*orden_copias_revision)), &ss_tmp34372->e[ss_lang_indice_(k_orden, ss_tmp34372->length, "ejemplos/compilador/tcodec.t", 3250)])[0])), k_orden, "ejemplos/compilador/tcodec.t", 3250);
+            ss_mapa_poner_mapa_str_usize(ss_tmp34374, ss_view(&((ss_tmp34375 = &((*orden_copias_revision)), &ss_tmp34375->e[ss_lang_indice_(k_orden, ss_tmp34375->length, "ejemplos/compilador/tcodec.t", 3250)])[0])), k_orden, "ejemplos/compilador/tcodec.t", 3250);
         }
 #line 3252 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34373;
-        size_t ss_tmp34374;
+        size_t ss_tmp34376;
+        size_t ss_tmp34377;
 #line 3252 "ejemplos/compilador/tcodec.t"
-        k_orden = ((ss_tmp34373 = k_orden, ss_tmp34374 = (size_t)1, ss_lang_suma_usize(ss_tmp34373, ss_tmp34374, "ejemplos/compilador/tcodec.t", 3252)));
+        k_orden = ((ss_tmp34376 = k_orden, ss_tmp34377 = (size_t)1, ss_lang_suma_usize(ss_tmp34376, ss_tmp34377, "ejemplos/compilador/tcodec.t", 3252)));
     }
 #line 3254 "ejemplos/compilador/tcodec.t"
-    ss_lista_usize ss_tmp34375 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_usize puestos_copias = ss_tmp34375;
+    ss_lista_usize ss_tmp34378 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_usize puestos_copias = ss_tmp34378;
 #line 3255 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1199 = 0; ss_k1199 < (*orden_inst).length; ss_k1199++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* p = &(*orden_inst).e[ss_k1199];
 #line 3256 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp34376;
-        size_t ss_tmp34377;
-        SS_LANG_QUIZA_SIN_USAR SafeString en_c_o = ((ss_tmp34376 = ss_view(p), ss_tmp34377 = (size_t)1, campo_pedido(ss_tmp34376, ss_tmp34377)));
+        SafeView ss_tmp34379;
+        size_t ss_tmp34380;
+        SS_LANG_QUIZA_SIN_USAR SafeString en_c_o = ((ss_tmp34379 = ss_view(p), ss_tmp34380 = (size_t)1, campo_pedido(ss_tmp34379, ss_tmp34380)));
 #line 3257 "ejemplos/compilador/tcodec.t"
-        ss_lista_usize* ss_tmp34378 = &puestos_copias;
-        const ss_mapa_str_usize* ss_tmp34380;
-        SafeView ss_tmp34381;
+        ss_lista_usize* ss_tmp34381 = &puestos_copias;
+        const ss_mapa_str_usize* ss_tmp34383;
+        SafeView ss_tmp34384;
 #line 3258 "ejemplos/compilador/tcodec.t"
-        ss_res_usize ss_tmp34379 = ((ss_tmp34380 = &puesto_de, ss_tmp34381 = ss_view(&en_c_o), ss_mapa_obtener_mapa_str_usize(ss_tmp34380, ss_tmp34381)));
-        size_t ss_tmp34382;
-        if (ss_tmp34379.motivo != NULL)
+        ss_res_usize ss_tmp34382 = ((ss_tmp34383 = &puesto_de, ss_tmp34384 = ss_view(&en_c_o), ss_mapa_obtener_mapa_str_usize(ss_tmp34383, ss_tmp34384)));
+        size_t ss_tmp34385;
+        if (ss_tmp34382.motivo != NULL)
         {
-            ss_tmp34382 = ((*orden_copias_revision).length);
+            ss_tmp34385 = ((*orden_copias_revision).length);
         }
         else
         {
-            ss_tmp34382 = ss_tmp34379.valor;
+            ss_tmp34385 = ss_tmp34382.valor;
         }
 #line 3257 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_usize(ss_tmp34378, ss_tmp34382, "ejemplos/compilador/tcodec.t", 3257);
+        ss_push_lista_usize(ss_tmp34381, ss_tmp34385, "ejemplos/compilador/tcodec.t", 3257);
         ss_free(&en_c_o);
     }
 #line 3260 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_usize orden_copias = orden_por_puesto(&puestos_copias);
 #line 3261 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp34383;
-    size_t ss_tmp34384;
+    size_t ss_tmp34386;
+    size_t ss_tmp34387;
 #line 3261 "ejemplos/compilador/tcodec.t"
-    const ss_lista_str* ss_tmp34385;
-    SS_LANG_QUIZA_SIN_USAR SafeString ultima_ruta = ss_clone(&((ss_tmp34385 = &((*modulos)), &ss_tmp34385->e[ss_lang_indice_(((ss_tmp34383 = ((*modulos).length), ss_tmp34384 = (size_t)1, ss_lang_resta_usize(ss_tmp34383, ss_tmp34384, "ejemplos/compilador/tcodec.t", 3261))), ss_tmp34385->length, "ejemplos/compilador/tcodec.t", 3261)])[0]));
+    const ss_lista_str* ss_tmp34388;
+    SS_LANG_QUIZA_SIN_USAR SafeString ultima_ruta = ss_clone(&((ss_tmp34388 = &((*modulos)), &ss_tmp34388->e[ss_lang_indice_(((ss_tmp34386 = ((*modulos).length), ss_tmp34387 = (size_t)1, ss_lang_resta_usize(ss_tmp34386, ss_tmp34387, "ejemplos/compilador/tcodec.t", 3261))), ss_tmp34388->length, "ejemplos/compilador/tcodec.t", 3261)])[0]));
 #line 3262 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1200 = 0; ss_k1200 < orden_copias.length; ss_k1200++)
     {
         SS_LANG_QUIZA_SIN_USAR size_t k_o = orden_copias.e[ss_k1200];
 #line 3263 "ejemplos/compilador/tcodec.t"
-        const ss_lista_usize* ss_tmp34386;
-        SS_LANG_QUIZA_SIN_USAR size_t de = ((ss_tmp34386 = &((*modulo_de)), &ss_tmp34386->e[ss_lang_indice_(k_o, ss_tmp34386->length, "ejemplos/compilador/tcodec.t", 3263)])[0]);
+        const ss_lista_usize* ss_tmp34389;
+        SS_LANG_QUIZA_SIN_USAR size_t de = ((ss_tmp34389 = &((*modulo_de)), &ss_tmp34389->e[ss_lang_indice_(k_o, ss_tmp34389->length, "ejemplos/compilador/tcodec.t", 3263)])[0]);
 #line 3264 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp34387;
-        SafeView ss_tmp34388;
-        SafeView ss_tmp34389;
-        if ((!((ss_tmp34388 = ss_view(&((ss_tmp34387 = &((*modulos)), &ss_tmp34387->e[ss_lang_indice_(de, ss_tmp34387->length, "ejemplos/compilador/tcodec.t", 3264)])[0])), ss_tmp34389 = ss_view(&ultima_ruta), sv_equals(ss_tmp34388, ss_tmp34389)))))
+        const ss_lista_str* ss_tmp34390;
+        SafeView ss_tmp34391;
+        SafeView ss_tmp34392;
+        if ((!((ss_tmp34391 = ss_view(&((ss_tmp34390 = &((*modulos)), &ss_tmp34390->e[ss_lang_indice_(de, ss_tmp34390->length, "ejemplos/compilador/tcodec.t", 3264)])[0])), ss_tmp34392 = ss_view(&ultima_ruta), sv_equals(ss_tmp34391, ss_tmp34392)))))
         {
             (*cta).ultima_linea = (size_t)0;
         }
 #line 3265 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp34390;
-        SafeString ss_tmp34391 = ss_clone(&((ss_tmp34390 = &((*modulos)), &ss_tmp34390->e[ss_lang_indice_(de, ss_tmp34390->length, "ejemplos/compilador/tcodec.t", 3265)])[0]));
+        const ss_lista_str* ss_tmp34393;
+        SafeString ss_tmp34394 = ss_clone(&((ss_tmp34393 = &((*modulos)), &ss_tmp34393->e[ss_lang_indice_(de, ss_tmp34393->length, "ejemplos/compilador/tcodec.t", 3265)])[0]));
         ss_free(&ultima_ruta);
-        ultima_ruta = ss_tmp34391;
+        ultima_ruta = ss_tmp34394;
 #line 3266 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp34392;
-        SafeString ss_tmp34393 = ss_clone(&((ss_tmp34392 = &((*duenos_inst)), &ss_tmp34392->e[ss_lang_indice_(k_o, ss_tmp34392->length, "ejemplos/compilador/tcodec.t", 3266)])[0]));
+        const ss_lista_str* ss_tmp34395;
+        SafeString ss_tmp34396 = ss_clone(&((ss_tmp34395 = &((*duenos_inst)), &ss_tmp34395->e[ss_lang_indice_(k_o, ss_tmp34395->length, "ejemplos/compilador/tcodec.t", 3266)])[0]));
         ss_free(&(*cta).dueno);
-        (*cta).dueno = ss_tmp34393;
+        (*cta).dueno = ss_tmp34396;
 #line 3267 "ejemplos/compilador/tcodec.t"
-        const ss_lista_Nodo* ss_tmp34394;
-        const Nodo* ss_tmp34395;
-        ss_lista_Contexto* ss_tmp34396;
-        Contexto* ss_tmp34397;
-        const ss_lista_str* ss_tmp34398;
-        SafeView ss_tmp34399;
-        Cuenta* ss_tmp34400;
-        ss_lista_str* ss_tmp34401;
-        ss_lista_str* ss_tmp34402;
-        ss_mapa_str_usize* ss_tmp34403;
-        ss_mapa_str_usize* ss_tmp34404;
-        ss_mapa_str_usize* ss_tmp34405;
-        if ((!((ss_tmp34395 = &((ss_tmp34394 = &((*instancias)), &ss_tmp34394->e[ss_lang_indice_(k_o, ss_tmp34394->length, "ejemplos/compilador/tcodec.t", 3267)])[0]), ss_tmp34397 = &((ss_tmp34396 = &((*contextos)), &ss_tmp34396->e[ss_lang_indice_(de, ss_tmp34396->length, "ejemplos/compilador/tcodec.t", 3267)])[0]), ss_tmp34399 = ss_view(&((ss_tmp34398 = &((*modulos)), &ss_tmp34398->e[ss_lang_indice_(de, ss_tmp34398->length, "ejemplos/compilador/tcodec.t", 3267)])[0])), ss_tmp34400 = cta, ss_tmp34401 = &protos, ss_tmp34402 = &cuerpos, ss_tmp34403 = &anchos, ss_tmp34404 = &decimales, ss_tmp34405 = &conversiones, emitir_funcion(ss_tmp34395, ss_tmp34397, ss_tmp34399, ss_tmp34400, ss_tmp34401, ss_tmp34402, ss_tmp34403, ss_tmp34404, ss_tmp34405)))))
+        const ss_lista_Nodo* ss_tmp34397;
+        const Nodo* ss_tmp34398;
+        ss_lista_Contexto* ss_tmp34399;
+        Contexto* ss_tmp34400;
+        const ss_lista_str* ss_tmp34401;
+        SafeView ss_tmp34402;
+        Cuenta* ss_tmp34403;
+        ss_lista_str* ss_tmp34404;
+        ss_lista_str* ss_tmp34405;
+        ss_mapa_str_usize* ss_tmp34406;
+        ss_mapa_str_usize* ss_tmp34407;
+        ss_mapa_str_usize* ss_tmp34408;
+        if ((!((ss_tmp34398 = &((ss_tmp34397 = &((*instancias)), &ss_tmp34397->e[ss_lang_indice_(k_o, ss_tmp34397->length, "ejemplos/compilador/tcodec.t", 3267)])[0]), ss_tmp34400 = &((ss_tmp34399 = &((*contextos)), &ss_tmp34399->e[ss_lang_indice_(de, ss_tmp34399->length, "ejemplos/compilador/tcodec.t", 3267)])[0]), ss_tmp34402 = ss_view(&((ss_tmp34401 = &((*modulos)), &ss_tmp34401->e[ss_lang_indice_(de, ss_tmp34401->length, "ejemplos/compilador/tcodec.t", 3267)])[0])), ss_tmp34403 = cta, ss_tmp34404 = &protos, ss_tmp34405 = &cuerpos, ss_tmp34406 = &anchos, ss_tmp34407 = &decimales, ss_tmp34408 = &conversiones, emitir_funcion(ss_tmp34398, ss_tmp34400, ss_tmp34402, ss_tmp34403, ss_tmp34404, ss_tmp34405, ss_tmp34406, ss_tmp34407, ss_tmp34408)))))
         {
 #line 3269 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp34406;
-            ss_lista_str ss_tmp34407 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34408;
-            ss_lista_str ss_tmp34409 = { .e = NULL, .length = 0, .capacity = 0 };
-            ss_lista_str ss_tmp34410;
-            ss_mapa_str_usize ss_tmp34411;
-            ss_mapa_str_usize ss_tmp34412;
-            ss_mapa_str_usize ss_tmp34413;
+            bool ss_tmp34409;
+            ss_lista_str ss_tmp34410 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34411;
+            ss_lista_str ss_tmp34412 = { .e = NULL, .length = 0, .capacity = 0 };
+            ss_lista_str ss_tmp34413;
+            ss_mapa_str_usize ss_tmp34414;
+            ss_mapa_str_usize ss_tmp34415;
+            ss_mapa_str_usize ss_tmp34416;
 #line 3269 "ejemplos/compilador/tcodec.t"
-            FuncionesGeneradas ss_tmp34414 = ((ss_tmp34406 = false, ss_tmp34408 = ss_tmp34407, ss_tmp34410 = ss_tmp34409, ss_tmp34411 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34412 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34413 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, (FuncionesGeneradas){ .ok = ss_tmp34406, .protos = ss_tmp34408, .cuerpos = ss_tmp34410, .anchos = ss_tmp34411, .decimales = ss_tmp34412, .conversiones = ss_tmp34413 }));
+            FuncionesGeneradas ss_tmp34417 = ((ss_tmp34409 = false, ss_tmp34411 = ss_tmp34410, ss_tmp34413 = ss_tmp34412, ss_tmp34414 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34415 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34416 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, (FuncionesGeneradas){ .ok = ss_tmp34409, .protos = ss_tmp34411, .cuerpos = ss_tmp34413, .anchos = ss_tmp34414, .decimales = ss_tmp34415, .conversiones = ss_tmp34416 }));
             ss_free(&ultima_ruta);
             free(orden_copias.e);
             orden_copias.e = NULL;
@@ -115448,18 +115454,18 @@ SS_LANG_QUIZA_SIN_USAR static FuncionesGeneradas generar_funciones(SS_LANG_QUIZA
                 protos.length = 0;
                 protos.capacity = 0;
             }
-            return ss_tmp34414;
+            return ss_tmp34417;
         }
     }
 #line 3273 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp34415;
-    ss_lista_str ss_tmp34416;
-    ss_lista_str ss_tmp34417;
-    ss_mapa_str_usize ss_tmp34418;
-    ss_mapa_str_usize ss_tmp34419;
-    ss_mapa_str_usize ss_tmp34420;
+    bool ss_tmp34418;
+    ss_lista_str ss_tmp34419;
+    ss_lista_str ss_tmp34420;
+    ss_mapa_str_usize ss_tmp34421;
+    ss_mapa_str_usize ss_tmp34422;
+    ss_mapa_str_usize ss_tmp34423;
 #line 3273 "ejemplos/compilador/tcodec.t"
-    FuncionesGeneradas ss_tmp34421 = ((ss_tmp34415 = true, ss_tmp34416 = protos, ss_tmp34417 = cuerpos, ss_tmp34418 = anchos, ss_tmp34419 = decimales, ss_tmp34420 = conversiones, (FuncionesGeneradas){ .ok = ss_tmp34415, .protos = ss_tmp34416, .cuerpos = ss_tmp34417, .anchos = ss_tmp34418, .decimales = ss_tmp34419, .conversiones = ss_tmp34420 }));
+    FuncionesGeneradas ss_tmp34424 = ((ss_tmp34418 = true, ss_tmp34419 = protos, ss_tmp34420 = cuerpos, ss_tmp34421 = anchos, ss_tmp34422 = decimales, ss_tmp34423 = conversiones, (FuncionesGeneradas){ .ok = ss_tmp34418, .protos = ss_tmp34419, .cuerpos = ss_tmp34420, .anchos = ss_tmp34421, .decimales = ss_tmp34422, .conversiones = ss_tmp34423 }));
     ss_vivo_protos = false;
     ss_vivo_cuerpos = false;
     ss_vivo_anchos = false;
@@ -115509,60 +115515,60 @@ SS_LANG_QUIZA_SIN_USAR static FuncionesGeneradas generar_funciones(SS_LANG_QUIZA
         protos.length = 0;
         protos.capacity = 0;
     }
-    return ss_tmp34421;
+    return ss_tmp34424;
 }
 
 #line 3322 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static ProgramaLeido programa_no_leido(void)
 {
 #line 3323 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp34422;
-    ss_lista_str ss_tmp34423 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_str ss_tmp34424;
-    Contexto ss_tmp34425;
-    ss_lista_Nodo ss_tmp34426 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_Nodo ss_tmp34427;
-    ss_lista_Contexto ss_tmp34428 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_Contexto ss_tmp34429;
-    ss_lista_str ss_tmp34430 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_str ss_tmp34431;
-    ss_lista_lista_str ss_tmp34432 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_lista_str ss_tmp34433;
-    ss_lista_lista_str ss_tmp34434 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_lista_str ss_tmp34435;
-    ss_mapa_str_usize ss_tmp34436;
+    bool ss_tmp34425;
+    ss_lista_str ss_tmp34426 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_str ss_tmp34427;
+    Contexto ss_tmp34428;
+    ss_lista_Nodo ss_tmp34429 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_Nodo ss_tmp34430;
+    ss_lista_Contexto ss_tmp34431 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_Contexto ss_tmp34432;
+    ss_lista_str ss_tmp34433 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_str ss_tmp34434;
+    ss_lista_lista_str ss_tmp34435 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_lista_str ss_tmp34436;
+    ss_lista_lista_str ss_tmp34437 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_lista_str ss_tmp34438;
+    ss_mapa_str_usize ss_tmp34439;
 #line 3325 "ejemplos/compilador/tcodec.t"
-    StructsLeidos ss_tmp34437;
-    ss_mapa_str_usize ss_tmp34438;
-    ss_lista_lista_str ss_tmp34439 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_lista_str ss_tmp34440;
-    ss_lista_lista_str ss_tmp34441 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_lista_str ss_tmp34442;
-    ss_lista_lista_str ss_tmp34443 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_lista_str ss_tmp34444;
+    StructsLeidos ss_tmp34440;
+    ss_mapa_str_usize ss_tmp34441;
+    ss_lista_lista_str ss_tmp34442 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_lista_str ss_tmp34443;
+    ss_lista_lista_str ss_tmp34444 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_lista_str ss_tmp34445;
+    ss_lista_lista_str ss_tmp34446 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_lista_str ss_tmp34447;
 #line 3326 "ejemplos/compilador/tcodec.t"
-    StructsGenericos ss_tmp34445;
-    ss_lista_str ss_tmp34446 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_str ss_tmp34447;
-    ss_mapa_str_usize ss_tmp34448;
-    ss_lista_lista_str ss_tmp34449 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_lista_str ss_tmp34450;
-    ss_lista_lista_str ss_tmp34451 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_lista_str ss_tmp34452;
+    StructsGenericos ss_tmp34448;
+    ss_lista_str ss_tmp34449 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_str ss_tmp34450;
+    ss_mapa_str_usize ss_tmp34451;
+    ss_lista_lista_str ss_tmp34452 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_lista_str ss_tmp34453;
+    ss_lista_lista_str ss_tmp34454 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_lista_str ss_tmp34455;
 #line 3327 "ejemplos/compilador/tcodec.t"
-    EnumsLeidos ss_tmp34453;
-    ss_lista_str ss_tmp34454 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_str ss_tmp34455;
-    ss_lista_str ss_tmp34456 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_str ss_tmp34457;
-    ss_lista_str ss_tmp34458 = { .e = NULL, .length = 0, .capacity = 0 };
-    ss_lista_str ss_tmp34459;
+    EnumsLeidos ss_tmp34456;
+    ss_lista_str ss_tmp34457 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_str ss_tmp34458;
+    ss_lista_str ss_tmp34459 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_str ss_tmp34460;
+    ss_lista_str ss_tmp34461 = { .e = NULL, .length = 0, .capacity = 0 };
+    ss_lista_str ss_tmp34462;
 #line 3328 "ejemplos/compilador/tcodec.t"
-    ExternosLeidos ss_tmp34460;
-    ss_mapa_str_usize ss_tmp34461;
+    ExternosLeidos ss_tmp34463;
+    ss_mapa_str_usize ss_tmp34464;
 #line 3323 "ejemplos/compilador/tcodec.t"
-    ProgramaLeido ss_tmp34462 = ((ss_tmp34422 = false, ss_tmp34424 = ss_tmp34423, ss_tmp34425 = contexto(), ss_tmp34427 = ss_tmp34426, ss_tmp34429 = ss_tmp34428, ss_tmp34437 = ((ss_tmp34431 = ss_tmp34430, ss_tmp34433 = ss_tmp34432, ss_tmp34435 = ss_tmp34434, ss_tmp34436 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, (StructsLeidos){ .nombres = ss_tmp34431, .campos = ss_tmp34433, .tipos = ss_tmp34435, .indice = ss_tmp34436 })), ss_tmp34445 = ((ss_tmp34438 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34440 = ss_tmp34439, ss_tmp34442 = ss_tmp34441, ss_tmp34444 = ss_tmp34443, (StructsGenericos){ .indice = ss_tmp34438, .params = ss_tmp34440, .campos = ss_tmp34442, .tipos = ss_tmp34444 })), ss_tmp34453 = ((ss_tmp34447 = ss_tmp34446, ss_tmp34448 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34450 = ss_tmp34449, ss_tmp34452 = ss_tmp34451, (EnumsLeidos){ .nombres = ss_tmp34447, .indice = ss_tmp34448, .variantes = ss_tmp34450, .lleva = ss_tmp34452 })), ss_tmp34460 = ((ss_tmp34455 = ss_tmp34454, ss_tmp34457 = ss_tmp34456, ss_tmp34459 = ss_tmp34458, (ExternosLeidos){ .cabeceras = ss_tmp34455, .modulos = ss_tmp34457, .protos = ss_tmp34459 })), ss_tmp34461 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, (ProgramaLeido){ .ok = ss_tmp34422, .modulos = ss_tmp34424, .global = ss_tmp34425, .arboles = ss_tmp34427, .contextos = ss_tmp34429, .structs = ss_tmp34437, .genericos = ss_tmp34445, .enums = ss_tmp34453, .externos = ss_tmp34460, .plantillas = ss_tmp34461 }));
-    return ss_tmp34462;
+    ProgramaLeido ss_tmp34465 = ((ss_tmp34425 = false, ss_tmp34427 = ss_tmp34426, ss_tmp34428 = contexto(), ss_tmp34430 = ss_tmp34429, ss_tmp34432 = ss_tmp34431, ss_tmp34440 = ((ss_tmp34434 = ss_tmp34433, ss_tmp34436 = ss_tmp34435, ss_tmp34438 = ss_tmp34437, ss_tmp34439 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, (StructsLeidos){ .nombres = ss_tmp34434, .campos = ss_tmp34436, .tipos = ss_tmp34438, .indice = ss_tmp34439 })), ss_tmp34448 = ((ss_tmp34441 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34443 = ss_tmp34442, ss_tmp34445 = ss_tmp34444, ss_tmp34447 = ss_tmp34446, (StructsGenericos){ .indice = ss_tmp34441, .params = ss_tmp34443, .campos = ss_tmp34445, .tipos = ss_tmp34447 })), ss_tmp34456 = ((ss_tmp34450 = ss_tmp34449, ss_tmp34451 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34453 = ss_tmp34452, ss_tmp34455 = ss_tmp34454, (EnumsLeidos){ .nombres = ss_tmp34450, .indice = ss_tmp34451, .variantes = ss_tmp34453, .lleva = ss_tmp34455 })), ss_tmp34463 = ((ss_tmp34458 = ss_tmp34457, ss_tmp34460 = ss_tmp34459, ss_tmp34462 = ss_tmp34461, (ExternosLeidos){ .cabeceras = ss_tmp34458, .modulos = ss_tmp34460, .protos = ss_tmp34462 })), ss_tmp34464 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, (ProgramaLeido){ .ok = ss_tmp34425, .modulos = ss_tmp34427, .global = ss_tmp34428, .arboles = ss_tmp34430, .contextos = ss_tmp34432, .structs = ss_tmp34440, .genericos = ss_tmp34448, .enums = ss_tmp34456, .externos = ss_tmp34463, .plantillas = ss_tmp34464 }));
+    return ss_tmp34465;
 }
 
 #line 3332 "ejemplos/compilador/tcodec.t"
@@ -115571,124 +115577,124 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
 #line 3335 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString error_nombres = ss_new();
 #line 3336 "ejemplos/compilador/tcodec.t"
-    const ss_lista_Nodo* ss_tmp34463;
-    const ss_lista_str* ss_tmp34464;
-    SafeView ss_tmp34465;
-    SafeString* ss_tmp34466;
-    if ((!((ss_tmp34463 = arboles, ss_tmp34464 = modulos, ss_tmp34465 = raiz, ss_tmp34466 = &error_nombres, revisar_nombres(ss_tmp34463, ss_tmp34464, ss_tmp34465, ss_tmp34466)))))
+    const ss_lista_Nodo* ss_tmp34466;
+    const ss_lista_str* ss_tmp34467;
+    SafeView ss_tmp34468;
+    SafeString* ss_tmp34469;
+    if ((!((ss_tmp34466 = arboles, ss_tmp34467 = modulos, ss_tmp34468 = raiz, ss_tmp34469 = &error_nombres, revisar_nombres(ss_tmp34466, ss_tmp34467, ss_tmp34468, ss_tmp34469)))))
     {
 #line 3337 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp34468 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp34468, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 3337);
-        ss_lang_agregar_texto_(&ss_tmp34468, ss_view(&error_nombres), "ejemplos/compilador/tcodec.t", 3337);
-        ss_lang_agregar_texto_(&ss_tmp34468, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 3337);
-        SafeString ss_tmp34467 = ss_tmp34468;
-        SafeView ss_tmp34469 = ss_view(&ss_tmp34467);
+        SafeString ss_tmp34471 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp34471, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 3337);
+        ss_lang_agregar_texto_(&ss_tmp34471, ss_view(&error_nombres), "ejemplos/compilador/tcodec.t", 3337);
+        ss_lang_agregar_texto_(&ss_tmp34471, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 3337);
+        SafeString ss_tmp34470 = ss_tmp34471;
+        SafeView ss_tmp34472 = ss_view(&ss_tmp34470);
 #line 3337 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp34469);
-        ss_free(&ss_tmp34467);
+        ss_lang_escribir_(stderr, ss_tmp34472);
+        ss_free(&ss_tmp34470);
 #line 3338 "ejemplos/compilador/tcodec.t"
-        bool ss_tmp34470 = false;
+        bool ss_tmp34473 = false;
         ss_free(&error_nombres);
-        return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp34470 };
+        return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp34473 };
     }
 #line 3340 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34471 = ss_mapa_claves_mapa_str_usize(plantillas, "ejemplos/compilador/tcodec.t", 3340);
-    for (size_t ss_k1205 = 0; ss_k1205 < ss_tmp34471.length; ss_k1205++)
+    ss_lista_str ss_tmp34474 = ss_mapa_claves_mapa_str_usize(plantillas, "ejemplos/compilador/tcodec.t", 3340);
+    for (size_t ss_k1205 = 0; ss_k1205 < ss_tmp34474.length; ss_k1205++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* g = &ss_tmp34471.e[ss_k1205];
+        SS_LANG_QUIZA_SIN_USAR const SafeString* g = &ss_tmp34474.e[ss_k1205];
 #line 3341 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp34472;
-        SafeView ss_tmp34473;
+        const ss_mapa_str_usize* ss_tmp34475;
+        SafeView ss_tmp34476;
 #line 3341 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp34472 = &(*global).repetidas, ss_tmp34473 = ss_view(g), ss_mapa_tiene_mapa_str_usize(ss_tmp34472, ss_tmp34473))))
+        if (((ss_tmp34475 = &(*global).repetidas, ss_tmp34476 = ss_view(g), ss_mapa_tiene_mapa_str_usize(ss_tmp34475, ss_tmp34476))))
         {
 #line 3342 "ejemplos/compilador/tcodec.t"
-            const ss_lista_Nodo* ss_tmp34475;
-            const ss_lista_str* ss_tmp34476;
-            SafeView ss_tmp34477;
-            SafeString ss_tmp34474 = ((ss_tmp34475 = arboles, ss_tmp34476 = modulos, ss_tmp34477 = ss_view(g), sitio_de_nombre(ss_tmp34475, ss_tmp34476, ss_tmp34477)));
-            SafeView ss_tmp34478;
-            SafeView ss_tmp34479;
-            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34478 = ss_view(&ss_tmp34474), ss_tmp34479 = sv_len("no admite una generica repetida entre modulos", 45), rechazo(ss_tmp34478, ss_tmp34479)));
-            ss_free(&ss_tmp34474);
+            const ss_lista_Nodo* ss_tmp34478;
+            const ss_lista_str* ss_tmp34479;
+            SafeView ss_tmp34480;
+            SafeString ss_tmp34477 = ((ss_tmp34478 = arboles, ss_tmp34479 = modulos, ss_tmp34480 = ss_view(g), sitio_de_nombre(ss_tmp34478, ss_tmp34479, ss_tmp34480)));
+            SafeView ss_tmp34481;
+            SafeView ss_tmp34482;
+            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34481 = ss_view(&ss_tmp34477), ss_tmp34482 = sv_len("no admite una generica repetida entre modulos", 45), rechazo(ss_tmp34481, ss_tmp34482)));
+            ss_free(&ss_tmp34477);
 #line 3344 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp34480 = false;
-            for (size_t ss_i1206 = 0; ss_i1206 < ss_tmp34471.length; ss_i1206++)
+            bool ss_tmp34483 = false;
+            for (size_t ss_i1206 = 0; ss_i1206 < ss_tmp34474.length; ss_i1206++)
             {
-                ss_free(&ss_tmp34471.e[ss_i1206]);
+                ss_free(&ss_tmp34474.e[ss_i1206]);
             }
-            free(ss_tmp34471.e);
-            ss_tmp34471.e = NULL;
-            ss_tmp34471.length = 0;
-            ss_tmp34471.capacity = 0;
+            free(ss_tmp34474.e);
+            ss_tmp34474.e = NULL;
+            ss_tmp34474.length = 0;
+            ss_tmp34474.capacity = 0;
             ss_free(&error_nombres);
-            return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp34480 };
+            return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp34483 };
         }
     }
-    for (size_t ss_i1207 = 0; ss_i1207 < ss_tmp34471.length; ss_i1207++)
+    for (size_t ss_i1207 = 0; ss_i1207 < ss_tmp34474.length; ss_i1207++)
     {
-        ss_free(&ss_tmp34471.e[ss_i1207]);
+        ss_free(&ss_tmp34474.e[ss_i1207]);
     }
-    free(ss_tmp34471.e);
-    ss_tmp34471.e = NULL;
-    ss_tmp34471.length = 0;
-    ss_tmp34471.capacity = 0;
+    free(ss_tmp34474.e);
+    ss_tmp34474.e = NULL;
+    ss_tmp34474.length = 0;
+    ss_tmp34474.capacity = 0;
 #line 3347 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t mr = (size_t)0;
 #line 3348 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34481;
-        size_t ss_tmp34482;
+        size_t ss_tmp34484;
+        size_t ss_tmp34485;
 #line 3348 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34481 = mr, ss_tmp34482 = ((*arboles).length), (ss_tmp34481 < ss_tmp34482)))))
+        if (!(((ss_tmp34484 = mr, ss_tmp34485 = ((*arboles).length), (ss_tmp34484 < ss_tmp34485)))))
         {
             break;
         }
 #line 3349 "ejemplos/compilador/tcodec.t"
-        const ss_lista_Nodo* ss_tmp34483;
-        for (size_t ss_k1208 = 0; ss_k1208 < ((ss_tmp34483 = &((*arboles)), &ss_tmp34483->e[ss_lang_indice_(mr, ss_tmp34483->length, "ejemplos/compilador/tcodec.t", 3349)])[0]).hijos.length; ss_k1208++)
+        const ss_lista_Nodo* ss_tmp34486;
+        for (size_t ss_k1208 = 0; ss_k1208 < ((ss_tmp34486 = &((*arboles)), &ss_tmp34486->e[ss_lang_indice_(mr, ss_tmp34486->length, "ejemplos/compilador/tcodec.t", 3349)])[0]).hijos.length; ss_k1208++)
         {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34483 = &((*arboles)), &ss_tmp34483->e[ss_lang_indice_(mr, ss_tmp34483->length, "ejemplos/compilador/tcodec.t", 3349)])[0]).hijos.e[ss_k1208];
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34486 = &((*arboles)), &ss_tmp34486->e[ss_lang_indice_(mr, ss_tmp34486->length, "ejemplos/compilador/tcodec.t", 3349)])[0]).hijos.e[ss_k1208];
 #line 3350 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp34484;
-            Clase ss_tmp34485;
+            Clase ss_tmp34487;
+            Clase ss_tmp34488;
 #line 3350 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_usize* ss_tmp34486;
-            SafeView ss_tmp34487;
+            const ss_mapa_str_usize* ss_tmp34489;
+            SafeView ss_tmp34490;
 #line 3350 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp34484 = (*d).clase, ss_tmp34485 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34484.etiqueta == ss_tmp34485.etiqueta))) && ((ss_tmp34486 = &(*global).repetidas, ss_tmp34487 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34486, ss_tmp34487)))))
+            if ((((ss_tmp34487 = (*d).clase, ss_tmp34488 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34487.etiqueta == ss_tmp34488.etiqueta))) && ((ss_tmp34489 = &(*global).repetidas, ss_tmp34490 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34489, ss_tmp34490)))))
             {
 #line 3351 "ejemplos/compilador/tcodec.t"
-                const ss_lista_Nodo* ss_tmp34488;
-                const ss_lista_str* ss_tmp34489;
-                SafeView ss_tmp34490;
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str suyos = ((ss_tmp34488 = arboles, ss_tmp34489 = modulos, ss_tmp34490 = ss_view(&(*d).texto), declarantes(ss_tmp34488, ss_tmp34489, ss_tmp34490)));
+                const ss_lista_Nodo* ss_tmp34491;
+                const ss_lista_str* ss_tmp34492;
+                SafeView ss_tmp34493;
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str suyos = ((ss_tmp34491 = arboles, ss_tmp34492 = modulos, ss_tmp34493 = ss_view(&(*d).texto), declarantes(ss_tmp34491, ss_tmp34492, ss_tmp34493)));
 #line 3352 "ejemplos/compilador/tcodec.t"
-                const ss_lista_str* ss_tmp34491;
-                SafeView ss_tmp34492;
-                const ss_lista_str* ss_tmp34493;
-                SS_LANG_QUIZA_SIN_USAR SafeString base = ((ss_tmp34492 = ss_view(&((ss_tmp34491 = &((*modulos)), &ss_tmp34491->e[ss_lang_indice_(mr, ss_tmp34491->length, "ejemplos/compilador/tcodec.t", 3352)])[0])), ss_tmp34493 = &suyos, prefijo_unico(ss_tmp34492, ss_tmp34493)));
+                const ss_lista_str* ss_tmp34494;
+                SafeView ss_tmp34495;
+                const ss_lista_str* ss_tmp34496;
+                SS_LANG_QUIZA_SIN_USAR SafeString base = ((ss_tmp34495 = ss_view(&((ss_tmp34494 = &((*modulos)), &ss_tmp34494->e[ss_lang_indice_(mr, ss_tmp34494->length, "ejemplos/compilador/tcodec.t", 3352)])[0])), ss_tmp34496 = &suyos, prefijo_unico(ss_tmp34495, ss_tmp34496)));
 #line 3353 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp34494 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp34494, ss_view(&base), "ejemplos/compilador/tcodec.t", 3353);
-                ss_lang_agregar_texto_(&ss_tmp34494, sv_len("__", 2), "ejemplos/compilador/tcodec.t", 3353);
-                ss_lang_agregar_texto_(&ss_tmp34494, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3353);
-                SS_LANG_QUIZA_SIN_USAR SafeString otro = ss_tmp34494;
+                SafeString ss_tmp34497 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp34497, ss_view(&base), "ejemplos/compilador/tcodec.t", 3353);
+                ss_lang_agregar_texto_(&ss_tmp34497, sv_len("__", 2), "ejemplos/compilador/tcodec.t", 3353);
+                ss_lang_agregar_texto_(&ss_tmp34497, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3353);
+                SS_LANG_QUIZA_SIN_USAR SafeString otro = ss_tmp34497;
                 bool ss_vivo_otro = true;
 #line 3354 "ejemplos/compilador/tcodec.t"
-                ss_lista_Contexto* ss_tmp34495;
-                ss_mapa_str_str* ss_tmp34496 = &((ss_tmp34495 = &((*contextos)), &ss_tmp34495->e[ss_lang_indice_(mr, ss_tmp34495->length, "ejemplos/compilador/tcodec.t", 3354)])[0]).renombradas;
+                ss_lista_Contexto* ss_tmp34498;
+                ss_mapa_str_str* ss_tmp34499 = &((ss_tmp34498 = &((*contextos)), &ss_tmp34498->e[ss_lang_indice_(mr, ss_tmp34498->length, "ejemplos/compilador/tcodec.t", 3354)])[0]).renombradas;
 #line 3354 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_str(ss_tmp34496, ss_view(&(*d).texto), otro, "ejemplos/compilador/tcodec.t", 3354);
+                ss_mapa_poner_mapa_str_str(ss_tmp34499, ss_view(&(*d).texto), otro, "ejemplos/compilador/tcodec.t", 3354);
                 ss_vivo_otro = false;
 #line 3355 "ejemplos/compilador/tcodec.t"
-                ss_lista_Contexto* ss_tmp34497;
-                ss_mapa_str_usize* ss_tmp34498;
-                SafeView ss_tmp34499;
+                ss_lista_Contexto* ss_tmp34500;
+                ss_mapa_str_usize* ss_tmp34501;
+                SafeView ss_tmp34502;
 #line 3355 "ejemplos/compilador/tcodec.t"
-                ((ss_tmp34498 = &((ss_tmp34497 = &((*contextos)), &ss_tmp34497->e[ss_lang_indice_(mr, ss_tmp34497->length, "ejemplos/compilador/tcodec.t", 3355)])[0]).repetidas, ss_tmp34499 = ss_view(&(*d).texto), ss_mapa_quitar_mapa_str_usize(ss_tmp34498, ss_tmp34499)));
+                ((ss_tmp34501 = &((ss_tmp34500 = &((*contextos)), &ss_tmp34500->e[ss_lang_indice_(mr, ss_tmp34500->length, "ejemplos/compilador/tcodec.t", 3355)])[0]).repetidas, ss_tmp34502 = ss_view(&(*d).texto), ss_mapa_quitar_mapa_str_usize(ss_tmp34501, ss_tmp34502)));
                 if (ss_vivo_otro)
                 {
                     ss_free(&otro);
@@ -115705,44 +115711,44 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
             }
         }
 #line 3358 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp34501;
-        ss_res_str ss_tmp34500 = ss_lang_leer_archivo_(ss_view(&((ss_tmp34501 = &((*modulos)), &ss_tmp34501->e[ss_lang_indice_(mr, ss_tmp34501->length, "ejemplos/compilador/tcodec.t", 3358)])[0])));
-        if (ss_tmp34500.motivo != NULL)
+        const ss_lista_str* ss_tmp34504;
+        ss_res_str ss_tmp34503 = ss_lang_leer_archivo_(ss_view(&((ss_tmp34504 = &((*modulos)), &ss_tmp34504->e[ss_lang_indice_(mr, ss_tmp34504->length, "ejemplos/compilador/tcodec.t", 3358)])[0])));
+        if (ss_tmp34503.motivo != NULL)
         {
             ss_free(&error_nombres);
-            return (ss_res_bool){ .motivo = ss_tmp34500.motivo };
+            return (ss_res_bool){ .motivo = ss_tmp34503.motivo };
         }
-        SS_LANG_QUIZA_SIN_USAR SafeString fuente_m = ss_tmp34500.valor;
+        SS_LANG_QUIZA_SIN_USAR SafeString fuente_m = ss_tmp34503.valor;
 #line 3359 "ejemplos/compilador/tcodec.t"
-        ss_res_lista_str ss_tmp34502 = usar_con_alias(ss_view(&fuente_m));
-        if (ss_tmp34502.motivo != NULL)
+        ss_res_lista_str ss_tmp34505 = usar_con_alias(ss_view(&fuente_m));
+        if (ss_tmp34505.motivo != NULL)
         {
             ss_free(&fuente_m);
             ss_free(&error_nombres);
-            return (ss_res_bool){ .motivo = ss_tmp34502.motivo };
+            return (ss_res_bool){ .motivo = ss_tmp34505.motivo };
         }
-        SS_LANG_QUIZA_SIN_USAR ss_lista_str pedidos_m = ss_tmp34502.valor;
+        SS_LANG_QUIZA_SIN_USAR ss_lista_str pedidos_m = ss_tmp34505.valor;
 #line 3360 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp34503;
-        SS_LANG_QUIZA_SIN_USAR SafeString dir_m = carpeta(ss_view(&((ss_tmp34503 = &((*modulos)), &ss_tmp34503->e[ss_lang_indice_(mr, ss_tmp34503->length, "ejemplos/compilador/tcodec.t", 3360)])[0])));
+        const ss_lista_str* ss_tmp34506;
+        SS_LANG_QUIZA_SIN_USAR SafeString dir_m = carpeta(ss_view(&((ss_tmp34506 = &((*modulos)), &ss_tmp34506->e[ss_lang_indice_(mr, ss_tmp34506->length, "ejemplos/compilador/tcodec.t", 3360)])[0])));
 #line 3361 "ejemplos/compilador/tcodec.t"
         for (size_t ss_k1210 = 0; ss_k1210 < pedidos_m.length; ss_k1210++)
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* pedido = &pedidos_m.e[ss_k1210];
 #line 3362 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp34504;
-            size_t ss_tmp34505;
-            SS_LANG_QUIZA_SIN_USAR SafeString ruta_p = ((ss_tmp34504 = ss_view(pedido), ss_tmp34505 = (size_t)0, campo_pedido(ss_tmp34504, ss_tmp34505)));
+            SafeView ss_tmp34507;
+            size_t ss_tmp34508;
+            SS_LANG_QUIZA_SIN_USAR SafeString ruta_p = ((ss_tmp34507 = ss_view(pedido), ss_tmp34508 = (size_t)0, campo_pedido(ss_tmp34507, ss_tmp34508)));
 #line 3363 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp34506;
-            size_t ss_tmp34507;
-            SS_LANG_QUIZA_SIN_USAR SafeString alias_p = ((ss_tmp34506 = ss_view(pedido), ss_tmp34507 = (size_t)1, campo_pedido(ss_tmp34506, ss_tmp34507)));
-#line 3364 "ejemplos/compilador/tcodec.t"
             SafeView ss_tmp34509;
-            SafeView ss_tmp34510;
-            SafeView ss_tmp34511;
-            ss_res_str ss_tmp34508 = ((ss_tmp34509 = ss_view(&ruta_p), ss_tmp34510 = ss_view(&dir_m), ss_tmp34511 = raiz, resolver(ss_tmp34509, ss_tmp34510, ss_tmp34511)));
-            if (ss_tmp34508.motivo != NULL)
+            size_t ss_tmp34510;
+            SS_LANG_QUIZA_SIN_USAR SafeString alias_p = ((ss_tmp34509 = ss_view(pedido), ss_tmp34510 = (size_t)1, campo_pedido(ss_tmp34509, ss_tmp34510)));
+#line 3364 "ejemplos/compilador/tcodec.t"
+            SafeView ss_tmp34512;
+            SafeView ss_tmp34513;
+            SafeView ss_tmp34514;
+            ss_res_str ss_tmp34511 = ((ss_tmp34512 = ss_view(&ruta_p), ss_tmp34513 = ss_view(&dir_m), ss_tmp34514 = raiz, resolver(ss_tmp34512, ss_tmp34513, ss_tmp34514)));
+            if (ss_tmp34511.motivo != NULL)
             {
                 ss_free(&alias_p);
                 ss_free(&ruta_p);
@@ -115757,53 +115763,53 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 pedidos_m.capacity = 0;
                 ss_free(&fuente_m);
                 ss_free(&error_nombres);
-                return (ss_res_bool){ .motivo = ss_tmp34508.motivo };
+                return (ss_res_bool){ .motivo = ss_tmp34511.motivo };
             }
-            SS_LANG_QUIZA_SIN_USAR SafeString destino = ss_tmp34508.valor;
+            SS_LANG_QUIZA_SIN_USAR SafeString destino = ss_tmp34511.valor;
 #line 3365 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR size_t jm = (size_t)0;
 #line 3366 "ejemplos/compilador/tcodec.t"
             while (true)
             {
-                size_t ss_tmp34512;
-                size_t ss_tmp34513;
+                size_t ss_tmp34515;
+                size_t ss_tmp34516;
 #line 3366 "ejemplos/compilador/tcodec.t"
-                const ss_lista_str* ss_tmp34514;
-                SafeView ss_tmp34515;
-                SafeView ss_tmp34516;
-                if (!((((ss_tmp34512 = jm, ss_tmp34513 = ((*modulos).length), (ss_tmp34512 < ss_tmp34513))) && (!((ss_tmp34515 = ss_view(&((ss_tmp34514 = &((*modulos)), &ss_tmp34514->e[ss_lang_indice_(jm, ss_tmp34514->length, "ejemplos/compilador/tcodec.t", 3366)])[0])), ss_tmp34516 = ss_view(&destino), sv_equals(ss_tmp34515, ss_tmp34516)))))))
+                const ss_lista_str* ss_tmp34517;
+                SafeView ss_tmp34518;
+                SafeView ss_tmp34519;
+                if (!((((ss_tmp34515 = jm, ss_tmp34516 = ((*modulos).length), (ss_tmp34515 < ss_tmp34516))) && (!((ss_tmp34518 = ss_view(&((ss_tmp34517 = &((*modulos)), &ss_tmp34517->e[ss_lang_indice_(jm, ss_tmp34517->length, "ejemplos/compilador/tcodec.t", 3366)])[0])), ss_tmp34519 = ss_view(&destino), sv_equals(ss_tmp34518, ss_tmp34519)))))))
                 {
                     break;
                 }
 #line 3367 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp34517;
-                size_t ss_tmp34518;
+                size_t ss_tmp34520;
+                size_t ss_tmp34521;
 #line 3367 "ejemplos/compilador/tcodec.t"
-                jm = ((ss_tmp34517 = jm, ss_tmp34518 = (size_t)1, ss_lang_suma_usize(ss_tmp34517, ss_tmp34518, "ejemplos/compilador/tcodec.t", 3367)));
+                jm = ((ss_tmp34520 = jm, ss_tmp34521 = (size_t)1, ss_lang_suma_usize(ss_tmp34520, ss_tmp34521, "ejemplos/compilador/tcodec.t", 3367)));
             }
 #line 3369 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp34519;
-            size_t ss_tmp34520;
+            size_t ss_tmp34522;
+            size_t ss_tmp34523;
 #line 3369 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp34519 = jm, ss_tmp34520 = ((*modulos).length), (ss_tmp34519 == ss_tmp34520))))
+            if (((ss_tmp34522 = jm, ss_tmp34523 = ((*modulos).length), (ss_tmp34522 == ss_tmp34523))))
             {
 #line 3370 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp34522 = ss_new();
-                const ss_lista_str* ss_tmp34523;
-                ss_lang_agregar_texto_(&ss_tmp34522, ss_view(&((ss_tmp34523 = &((*modulos)), &ss_tmp34523->e[ss_lang_indice_(mr, ss_tmp34523->length, "ejemplos/compilador/tcodec.t", 3370)])[0])), "ejemplos/compilador/tcodec.t", 3370);
-                ss_lang_agregar_texto_(&ss_tmp34522, sv_len(":", 1), "ejemplos/compilador/tcodec.t", 3370);
-                SafeView ss_tmp34525;
-                size_t ss_tmp34526;
-                SafeString ss_tmp34524 = ((ss_tmp34525 = ss_view(pedido), ss_tmp34526 = (size_t)2, campo_pedido(ss_tmp34525, ss_tmp34526)));
-                ss_lang_agregar_texto_(&ss_tmp34522, ss_view(&ss_tmp34524), "ejemplos/compilador/tcodec.t", 3370);
-                SafeString ss_tmp34521 = ss_tmp34522;
-                SafeView ss_tmp34527;
+                SafeString ss_tmp34525 = ss_new();
+                const ss_lista_str* ss_tmp34526;
+                ss_lang_agregar_texto_(&ss_tmp34525, ss_view(&((ss_tmp34526 = &((*modulos)), &ss_tmp34526->e[ss_lang_indice_(mr, ss_tmp34526->length, "ejemplos/compilador/tcodec.t", 3370)])[0])), "ejemplos/compilador/tcodec.t", 3370);
+                ss_lang_agregar_texto_(&ss_tmp34525, sv_len(":", 1), "ejemplos/compilador/tcodec.t", 3370);
                 SafeView ss_tmp34528;
-                SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34527 = ss_view(&ss_tmp34521), ss_tmp34528 = sv_len("no ha cargado un modulo que hacia falta", 39), rechazo(ss_tmp34527, ss_tmp34528)));
+                size_t ss_tmp34529;
+                SafeString ss_tmp34527 = ((ss_tmp34528 = ss_view(pedido), ss_tmp34529 = (size_t)2, campo_pedido(ss_tmp34528, ss_tmp34529)));
+                ss_lang_agregar_texto_(&ss_tmp34525, ss_view(&ss_tmp34527), "ejemplos/compilador/tcodec.t", 3370);
+                SafeString ss_tmp34524 = ss_tmp34525;
+                SafeView ss_tmp34530;
+                SafeView ss_tmp34531;
+                SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34530 = ss_view(&ss_tmp34524), ss_tmp34531 = sv_len("no ha cargado un modulo que hacia falta", 39), rechazo(ss_tmp34530, ss_tmp34531)));
+                ss_free(&ss_tmp34527);
                 ss_free(&ss_tmp34524);
-                ss_free(&ss_tmp34521);
 #line 3372 "ejemplos/compilador/tcodec.t"
-                bool ss_tmp34529 = false;
+                bool ss_tmp34532 = false;
                 ss_free(&destino);
                 ss_free(&alias_p);
                 ss_free(&ruta_p);
@@ -115818,21 +115824,21 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 pedidos_m.capacity = 0;
                 ss_free(&fuente_m);
                 ss_free(&error_nombres);
-                return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp34529 };
+                return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp34532 };
             }
 #line 3374 "ejemplos/compilador/tcodec.t"
-            const ss_lista_Nodo* ss_tmp34530;
-            for (size_t ss_k1213 = 0; ss_k1213 < ((ss_tmp34530 = &((*arboles)), &ss_tmp34530->e[ss_lang_indice_(jm, ss_tmp34530->length, "ejemplos/compilador/tcodec.t", 3374)])[0]).hijos.length; ss_k1213++)
+            const ss_lista_Nodo* ss_tmp34533;
+            for (size_t ss_k1213 = 0; ss_k1213 < ((ss_tmp34533 = &((*arboles)), &ss_tmp34533->e[ss_lang_indice_(jm, ss_tmp34533->length, "ejemplos/compilador/tcodec.t", 3374)])[0]).hijos.length; ss_k1213++)
             {
-                SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34530 = &((*arboles)), &ss_tmp34530->e[ss_lang_indice_(jm, ss_tmp34530->length, "ejemplos/compilador/tcodec.t", 3374)])[0]).hijos.e[ss_k1213];
+                SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34533 = &((*arboles)), &ss_tmp34533->e[ss_lang_indice_(jm, ss_tmp34533->length, "ejemplos/compilador/tcodec.t", 3374)])[0]).hijos.e[ss_k1213];
 #line 3375 "ejemplos/compilador/tcodec.t"
-                Clase ss_tmp34531;
-                Clase ss_tmp34532;
+                Clase ss_tmp34534;
+                Clase ss_tmp34535;
 #line 3375 "ejemplos/compilador/tcodec.t"
-                const ss_mapa_str_usize* ss_tmp34533;
-                SafeView ss_tmp34534;
+                const ss_mapa_str_usize* ss_tmp34536;
+                SafeView ss_tmp34537;
 #line 3375 "ejemplos/compilador/tcodec.t"
-                if ((((ss_tmp34531 = (*d).clase, ss_tmp34532 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34531.etiqueta != ss_tmp34532.etiqueta))) || (!((ss_tmp34533 = &(*global).repetidas, ss_tmp34534 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34533, ss_tmp34534))))))
+                if ((((ss_tmp34534 = (*d).clase, ss_tmp34535 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34534.etiqueta != ss_tmp34535.etiqueta))) || (!((ss_tmp34536 = &(*global).repetidas, ss_tmp34537 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34536, ss_tmp34537))))))
                 {
 #line 3376 "ejemplos/compilador/tcodec.t"
                     continue;
@@ -115840,47 +115846,47 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
 #line 3378 "ejemplos/compilador/tcodec.t"
                 SS_LANG_QUIZA_SIN_USAR SafeString clave = ss_clone(&(*d).texto);
 #line 3379 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp34535;
-                size_t ss_tmp34536;
+                size_t ss_tmp34538;
+                size_t ss_tmp34539;
 #line 3379 "ejemplos/compilador/tcodec.t"
-                if (((ss_tmp34535 = sv_len_of(ss_view(&alias_p)), ss_tmp34536 = (size_t)0, (ss_tmp34535 > ss_tmp34536))))
+                if (((ss_tmp34538 = sv_len_of(ss_view(&alias_p)), ss_tmp34539 = (size_t)0, (ss_tmp34538 > ss_tmp34539))))
                 {
-                    SafeString ss_tmp34537 = ss_new();
-                    ss_lang_agregar_texto_(&ss_tmp34537, ss_view(&alias_p), "ejemplos/compilador/tcodec.t", 3379);
-                    ss_lang_agregar_texto_(&ss_tmp34537, sv_len(".", 1), "ejemplos/compilador/tcodec.t", 3379);
-                    ss_lang_agregar_texto_(&ss_tmp34537, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3379);
-                    SafeString ss_tmp34538 = ss_tmp34537;
+                    SafeString ss_tmp34540 = ss_new();
+                    ss_lang_agregar_texto_(&ss_tmp34540, ss_view(&alias_p), "ejemplos/compilador/tcodec.t", 3379);
+                    ss_lang_agregar_texto_(&ss_tmp34540, sv_len(".", 1), "ejemplos/compilador/tcodec.t", 3379);
+                    ss_lang_agregar_texto_(&ss_tmp34540, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3379);
+                    SafeString ss_tmp34541 = ss_tmp34540;
                     ss_free(&clave);
-                    clave = ss_tmp34538;
+                    clave = ss_tmp34541;
                 }
 #line 3380 "ejemplos/compilador/tcodec.t"
-                const ss_lista_Nodo* ss_tmp34539;
-                const ss_lista_str* ss_tmp34540;
-                SafeView ss_tmp34541;
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str suyos = ((ss_tmp34539 = arboles, ss_tmp34540 = modulos, ss_tmp34541 = ss_view(&(*d).texto), declarantes(ss_tmp34539, ss_tmp34540, ss_tmp34541)));
-#line 3381 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp34542;
+                const ss_lista_Nodo* ss_tmp34542;
                 const ss_lista_str* ss_tmp34543;
-                SS_LANG_QUIZA_SIN_USAR SafeString base_d = ((ss_tmp34542 = ss_view(&destino), ss_tmp34543 = &suyos, prefijo_unico(ss_tmp34542, ss_tmp34543)));
+                SafeView ss_tmp34544;
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str suyos = ((ss_tmp34542 = arboles, ss_tmp34543 = modulos, ss_tmp34544 = ss_view(&(*d).texto), declarantes(ss_tmp34542, ss_tmp34543, ss_tmp34544)));
+#line 3381 "ejemplos/compilador/tcodec.t"
+                SafeView ss_tmp34545;
+                const ss_lista_str* ss_tmp34546;
+                SS_LANG_QUIZA_SIN_USAR SafeString base_d = ((ss_tmp34545 = ss_view(&destino), ss_tmp34546 = &suyos, prefijo_unico(ss_tmp34545, ss_tmp34546)));
 #line 3382 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp34544 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp34544, ss_view(&base_d), "ejemplos/compilador/tcodec.t", 3382);
-                ss_lang_agregar_texto_(&ss_tmp34544, sv_len("__", 2), "ejemplos/compilador/tcodec.t", 3382);
-                ss_lang_agregar_texto_(&ss_tmp34544, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3382);
-                SS_LANG_QUIZA_SIN_USAR SafeString otro = ss_tmp34544;
+                SafeString ss_tmp34547 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp34547, ss_view(&base_d), "ejemplos/compilador/tcodec.t", 3382);
+                ss_lang_agregar_texto_(&ss_tmp34547, sv_len("__", 2), "ejemplos/compilador/tcodec.t", 3382);
+                ss_lang_agregar_texto_(&ss_tmp34547, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3382);
+                SS_LANG_QUIZA_SIN_USAR SafeString otro = ss_tmp34547;
                 bool ss_vivo_otro = true;
 #line 3383 "ejemplos/compilador/tcodec.t"
-                ss_lista_Contexto* ss_tmp34545;
-                ss_mapa_str_str* ss_tmp34546 = &((ss_tmp34545 = &((*contextos)), &ss_tmp34545->e[ss_lang_indice_(mr, ss_tmp34545->length, "ejemplos/compilador/tcodec.t", 3383)])[0]).renombradas;
+                ss_lista_Contexto* ss_tmp34548;
+                ss_mapa_str_str* ss_tmp34549 = &((ss_tmp34548 = &((*contextos)), &ss_tmp34548->e[ss_lang_indice_(mr, ss_tmp34548->length, "ejemplos/compilador/tcodec.t", 3383)])[0]).renombradas;
 #line 3383 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_str(ss_tmp34546, ss_view(&clave), otro, "ejemplos/compilador/tcodec.t", 3383);
+                ss_mapa_poner_mapa_str_str(ss_tmp34549, ss_view(&clave), otro, "ejemplos/compilador/tcodec.t", 3383);
                 ss_vivo_otro = false;
 #line 3384 "ejemplos/compilador/tcodec.t"
-                ss_lista_Contexto* ss_tmp34547;
-                ss_mapa_str_usize* ss_tmp34548;
-                SafeView ss_tmp34549;
+                ss_lista_Contexto* ss_tmp34550;
+                ss_mapa_str_usize* ss_tmp34551;
+                SafeView ss_tmp34552;
 #line 3384 "ejemplos/compilador/tcodec.t"
-                ((ss_tmp34548 = &((ss_tmp34547 = &((*contextos)), &ss_tmp34547->e[ss_lang_indice_(mr, ss_tmp34547->length, "ejemplos/compilador/tcodec.t", 3384)])[0]).repetidas, ss_tmp34549 = ss_view(&clave), ss_mapa_quitar_mapa_str_usize(ss_tmp34548, ss_tmp34549)));
+                ((ss_tmp34551 = &((ss_tmp34550 = &((*contextos)), &ss_tmp34550->e[ss_lang_indice_(mr, ss_tmp34550->length, "ejemplos/compilador/tcodec.t", 3384)])[0]).repetidas, ss_tmp34552 = ss_view(&clave), ss_mapa_quitar_mapa_str_usize(ss_tmp34551, ss_tmp34552)));
                 if (ss_vivo_otro)
                 {
                     ss_free(&otro);
@@ -115901,10 +115907,10 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
             ss_free(&ruta_p);
         }
 #line 3387 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34550;
-        size_t ss_tmp34551;
+        size_t ss_tmp34553;
+        size_t ss_tmp34554;
 #line 3387 "ejemplos/compilador/tcodec.t"
-        mr = ((ss_tmp34550 = mr, ss_tmp34551 = (size_t)1, ss_lang_suma_usize(ss_tmp34550, ss_tmp34551, "ejemplos/compilador/tcodec.t", 3387)));
+        mr = ((ss_tmp34553 = mr, ss_tmp34554 = (size_t)1, ss_lang_suma_usize(ss_tmp34553, ss_tmp34554, "ejemplos/compilador/tcodec.t", 3387)));
         ss_free(&dir_m);
         for (size_t ss_i1215 = 0; ss_i1215 < pedidos_m.length; ss_i1215++)
         {
@@ -115921,70 +115927,70 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
 #line 3392 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34552;
-        size_t ss_tmp34553;
+        size_t ss_tmp34555;
+        size_t ss_tmp34556;
 #line 3392 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34552 = k_ctx, ss_tmp34553 = ((*contextos).length), (ss_tmp34552 < ss_tmp34553)))))
+        if (!(((ss_tmp34555 = k_ctx, ss_tmp34556 = ((*contextos).length), (ss_tmp34555 < ss_tmp34556)))))
         {
             break;
         }
 #line 3393 "ejemplos/compilador/tcodec.t"
-        ss_lista_str ss_tmp34554 = ss_mapa_claves_mapa_str_lista_str(&(*global).campos, "ejemplos/compilador/tcodec.t", 3393);
-        for (size_t ss_k1216 = 0; ss_k1216 < ss_tmp34554.length; ss_k1216++)
+        ss_lista_str ss_tmp34557 = ss_mapa_claves_mapa_str_lista_str(&(*global).campos, "ejemplos/compilador/tcodec.t", 3393);
+        for (size_t ss_k1216 = 0; ss_k1216 < ss_tmp34557.length; ss_k1216++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* st = &ss_tmp34554.e[ss_k1216];
+            SS_LANG_QUIZA_SIN_USAR const SafeString* st = &ss_tmp34557.e[ss_k1216];
 #line 3394 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp34555;
-            const ss_mapa_str_lista_str* ss_tmp34556;
-            SafeView ss_tmp34557;
+            ss_lista_Contexto* ss_tmp34558;
+            const ss_mapa_str_lista_str* ss_tmp34559;
+            SafeView ss_tmp34560;
 #line 3394 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp34556 = &((ss_tmp34555 = &((*contextos)), &ss_tmp34555->e[ss_lang_indice_(k_ctx, ss_tmp34555->length, "ejemplos/compilador/tcodec.t", 3394)])[0]).campos, ss_tmp34557 = ss_view(st), ss_mapa_tiene_mapa_str_lista_str(ss_tmp34556, ss_tmp34557))))
+            if (((ss_tmp34559 = &((ss_tmp34558 = &((*contextos)), &ss_tmp34558->e[ss_lang_indice_(k_ctx, ss_tmp34558->length, "ejemplos/compilador/tcodec.t", 3394)])[0]).campos, ss_tmp34560 = ss_view(st), ss_mapa_tiene_mapa_str_lista_str(ss_tmp34559, ss_tmp34560))))
             {
                 continue;
             }
 #line 3395 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_lista_str* ss_tmp34559;
-            SafeView ss_tmp34560;
-            ss_res_lista_str ss_tmp34558 = ((ss_tmp34559 = &(*global).campos, ss_tmp34560 = ss_view(st), lista_de(ss_tmp34559, ss_tmp34560)));
-            ss_lista_str ss_tmp34561;
-            if (ss_tmp34558.motivo != NULL)
+            const ss_mapa_str_lista_str* ss_tmp34562;
+            SafeView ss_tmp34563;
+            ss_res_lista_str ss_tmp34561 = ((ss_tmp34562 = &(*global).campos, ss_tmp34563 = ss_view(st), lista_de(ss_tmp34562, ss_tmp34563)));
+            ss_lista_str ss_tmp34564;
+            if (ss_tmp34561.motivo != NULL)
             {
-                ss_lista_str ss_tmp34562 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_tmp34561 = ss_tmp34562;
+                ss_lista_str ss_tmp34565 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_tmp34564 = ss_tmp34565;
             }
             else
             {
-                ss_tmp34561 = ss_tmp34558.valor;
+                ss_tmp34564 = ss_tmp34561.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str cs_g = ss_tmp34561;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str cs_g = ss_tmp34564;
             bool ss_vivo_cs_g = true;
 #line 3396 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp34563;
-            ss_mapa_str_lista_str* ss_tmp34564 = &((ss_tmp34563 = &((*contextos)), &ss_tmp34563->e[ss_lang_indice_(k_ctx, ss_tmp34563->length, "ejemplos/compilador/tcodec.t", 3396)])[0]).campos;
+            ss_lista_Contexto* ss_tmp34566;
+            ss_mapa_str_lista_str* ss_tmp34567 = &((ss_tmp34566 = &((*contextos)), &ss_tmp34566->e[ss_lang_indice_(k_ctx, ss_tmp34566->length, "ejemplos/compilador/tcodec.t", 3396)])[0]).campos;
 #line 3396 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_lista_str(ss_tmp34564, ss_view(st), cs_g, "ejemplos/compilador/tcodec.t", 3396);
+            ss_mapa_poner_mapa_str_lista_str(ss_tmp34567, ss_view(st), cs_g, "ejemplos/compilador/tcodec.t", 3396);
             ss_vivo_cs_g = false;
 #line 3397 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_lista_str* ss_tmp34566;
-            SafeView ss_tmp34567;
-            ss_res_lista_str ss_tmp34565 = ((ss_tmp34566 = &(*global).nombres, ss_tmp34567 = ss_view(st), lista_de(ss_tmp34566, ss_tmp34567)));
-            ss_lista_str ss_tmp34568;
-            if (ss_tmp34565.motivo != NULL)
+            const ss_mapa_str_lista_str* ss_tmp34569;
+            SafeView ss_tmp34570;
+            ss_res_lista_str ss_tmp34568 = ((ss_tmp34569 = &(*global).nombres, ss_tmp34570 = ss_view(st), lista_de(ss_tmp34569, ss_tmp34570)));
+            ss_lista_str ss_tmp34571;
+            if (ss_tmp34568.motivo != NULL)
             {
-                ss_lista_str ss_tmp34569 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_tmp34568 = ss_tmp34569;
+                ss_lista_str ss_tmp34572 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_tmp34571 = ss_tmp34572;
             }
             else
             {
-                ss_tmp34568 = ss_tmp34565.valor;
+                ss_tmp34571 = ss_tmp34568.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str ns_g = ss_tmp34568;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str ns_g = ss_tmp34571;
             bool ss_vivo_ns_g = true;
 #line 3398 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp34570;
-            ss_mapa_str_lista_str* ss_tmp34571 = &((ss_tmp34570 = &((*contextos)), &ss_tmp34570->e[ss_lang_indice_(k_ctx, ss_tmp34570->length, "ejemplos/compilador/tcodec.t", 3398)])[0]).nombres;
+            ss_lista_Contexto* ss_tmp34573;
+            ss_mapa_str_lista_str* ss_tmp34574 = &((ss_tmp34573 = &((*contextos)), &ss_tmp34573->e[ss_lang_indice_(k_ctx, ss_tmp34573->length, "ejemplos/compilador/tcodec.t", 3398)])[0]).nombres;
 #line 3398 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_lista_str(ss_tmp34571, ss_view(st), ns_g, "ejemplos/compilador/tcodec.t", 3398);
+            ss_mapa_poner_mapa_str_lista_str(ss_tmp34574, ss_view(st), ns_g, "ejemplos/compilador/tcodec.t", 3398);
             ss_vivo_ns_g = false;
             if (ss_vivo_ns_g)
             {
@@ -116009,49 +116015,49 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 cs_g.capacity = 0;
             }
         }
-        for (size_t ss_i1219 = 0; ss_i1219 < ss_tmp34554.length; ss_i1219++)
+        for (size_t ss_i1219 = 0; ss_i1219 < ss_tmp34557.length; ss_i1219++)
         {
-            ss_free(&ss_tmp34554.e[ss_i1219]);
+            ss_free(&ss_tmp34557.e[ss_i1219]);
         }
-        free(ss_tmp34554.e);
-        ss_tmp34554.e = NULL;
-        ss_tmp34554.length = 0;
-        ss_tmp34554.capacity = 0;
+        free(ss_tmp34557.e);
+        ss_tmp34557.e = NULL;
+        ss_tmp34557.length = 0;
+        ss_tmp34557.capacity = 0;
 #line 3400 "ejemplos/compilador/tcodec.t"
-        ss_lista_str ss_tmp34572 = ss_mapa_claves_mapa_str_lista_str(&(*global).struct_params, "ejemplos/compilador/tcodec.t", 3400);
-        for (size_t ss_k1220 = 0; ss_k1220 < ss_tmp34572.length; ss_k1220++)
+        ss_lista_str ss_tmp34575 = ss_mapa_claves_mapa_str_lista_str(&(*global).struct_params, "ejemplos/compilador/tcodec.t", 3400);
+        for (size_t ss_k1220 = 0; ss_k1220 < ss_tmp34575.length; ss_k1220++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* sp = &ss_tmp34572.e[ss_k1220];
+            SS_LANG_QUIZA_SIN_USAR const SafeString* sp = &ss_tmp34575.e[ss_k1220];
 #line 3401 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp34573;
-            const ss_mapa_str_lista_str* ss_tmp34574;
-            SafeView ss_tmp34575;
+            ss_lista_Contexto* ss_tmp34576;
+            const ss_mapa_str_lista_str* ss_tmp34577;
+            SafeView ss_tmp34578;
 #line 3401 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp34574 = &((ss_tmp34573 = &((*contextos)), &ss_tmp34573->e[ss_lang_indice_(k_ctx, ss_tmp34573->length, "ejemplos/compilador/tcodec.t", 3401)])[0]).struct_params, ss_tmp34575 = ss_view(sp), ss_mapa_tiene_mapa_str_lista_str(ss_tmp34574, ss_tmp34575))))
+            if (((ss_tmp34577 = &((ss_tmp34576 = &((*contextos)), &ss_tmp34576->e[ss_lang_indice_(k_ctx, ss_tmp34576->length, "ejemplos/compilador/tcodec.t", 3401)])[0]).struct_params, ss_tmp34578 = ss_view(sp), ss_mapa_tiene_mapa_str_lista_str(ss_tmp34577, ss_tmp34578))))
             {
                 continue;
             }
 #line 3402 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_lista_str* ss_tmp34577;
-            SafeView ss_tmp34578;
-            ss_res_lista_str ss_tmp34576 = ((ss_tmp34577 = &(*global).struct_params, ss_tmp34578 = ss_view(sp), lista_de(ss_tmp34577, ss_tmp34578)));
-            ss_lista_str ss_tmp34579;
-            if (ss_tmp34576.motivo != NULL)
+            const ss_mapa_str_lista_str* ss_tmp34580;
+            SafeView ss_tmp34581;
+            ss_res_lista_str ss_tmp34579 = ((ss_tmp34580 = &(*global).struct_params, ss_tmp34581 = ss_view(sp), lista_de(ss_tmp34580, ss_tmp34581)));
+            ss_lista_str ss_tmp34582;
+            if (ss_tmp34579.motivo != NULL)
             {
-                ss_lista_str ss_tmp34580 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_tmp34579 = ss_tmp34580;
+                ss_lista_str ss_tmp34583 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_tmp34582 = ss_tmp34583;
             }
             else
             {
-                ss_tmp34579 = ss_tmp34576.valor;
+                ss_tmp34582 = ss_tmp34579.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str ps_g = ss_tmp34579;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str ps_g = ss_tmp34582;
             bool ss_vivo_ps_g = true;
 #line 3403 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp34581;
-            ss_mapa_str_lista_str* ss_tmp34582 = &((ss_tmp34581 = &((*contextos)), &ss_tmp34581->e[ss_lang_indice_(k_ctx, ss_tmp34581->length, "ejemplos/compilador/tcodec.t", 3403)])[0]).struct_params;
+            ss_lista_Contexto* ss_tmp34584;
+            ss_mapa_str_lista_str* ss_tmp34585 = &((ss_tmp34584 = &((*contextos)), &ss_tmp34584->e[ss_lang_indice_(k_ctx, ss_tmp34584->length, "ejemplos/compilador/tcodec.t", 3403)])[0]).struct_params;
 #line 3403 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_lista_str(ss_tmp34582, ss_view(sp), ps_g, "ejemplos/compilador/tcodec.t", 3403);
+            ss_mapa_poner_mapa_str_lista_str(ss_tmp34585, ss_view(sp), ps_g, "ejemplos/compilador/tcodec.t", 3403);
             ss_vivo_ps_g = false;
             if (ss_vivo_ps_g)
             {
@@ -116065,49 +116071,49 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 ps_g.capacity = 0;
             }
         }
-        for (size_t ss_i1222 = 0; ss_i1222 < ss_tmp34572.length; ss_i1222++)
+        for (size_t ss_i1222 = 0; ss_i1222 < ss_tmp34575.length; ss_i1222++)
         {
-            ss_free(&ss_tmp34572.e[ss_i1222]);
+            ss_free(&ss_tmp34575.e[ss_i1222]);
         }
-        free(ss_tmp34572.e);
-        ss_tmp34572.e = NULL;
-        ss_tmp34572.length = 0;
-        ss_tmp34572.capacity = 0;
+        free(ss_tmp34575.e);
+        ss_tmp34575.e = NULL;
+        ss_tmp34575.length = 0;
+        ss_tmp34575.capacity = 0;
 #line 3405 "ejemplos/compilador/tcodec.t"
-        ss_lista_str ss_tmp34583 = ss_mapa_claves_mapa_str_lista_str(&(*global).variantes, "ejemplos/compilador/tcodec.t", 3405);
-        for (size_t ss_k1223 = 0; ss_k1223 < ss_tmp34583.length; ss_k1223++)
+        ss_lista_str ss_tmp34586 = ss_mapa_claves_mapa_str_lista_str(&(*global).variantes, "ejemplos/compilador/tcodec.t", 3405);
+        for (size_t ss_k1223 = 0; ss_k1223 < ss_tmp34586.length; ss_k1223++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* en_g = &ss_tmp34583.e[ss_k1223];
+            SS_LANG_QUIZA_SIN_USAR const SafeString* en_g = &ss_tmp34586.e[ss_k1223];
 #line 3406 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp34584;
-            const ss_mapa_str_lista_str* ss_tmp34585;
-            SafeView ss_tmp34586;
+            ss_lista_Contexto* ss_tmp34587;
+            const ss_mapa_str_lista_str* ss_tmp34588;
+            SafeView ss_tmp34589;
 #line 3406 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp34585 = &((ss_tmp34584 = &((*contextos)), &ss_tmp34584->e[ss_lang_indice_(k_ctx, ss_tmp34584->length, "ejemplos/compilador/tcodec.t", 3406)])[0]).variantes, ss_tmp34586 = ss_view(en_g), ss_mapa_tiene_mapa_str_lista_str(ss_tmp34585, ss_tmp34586))))
+            if (((ss_tmp34588 = &((ss_tmp34587 = &((*contextos)), &ss_tmp34587->e[ss_lang_indice_(k_ctx, ss_tmp34587->length, "ejemplos/compilador/tcodec.t", 3406)])[0]).variantes, ss_tmp34589 = ss_view(en_g), ss_mapa_tiene_mapa_str_lista_str(ss_tmp34588, ss_tmp34589))))
             {
                 continue;
             }
 #line 3407 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_lista_str* ss_tmp34588;
-            SafeView ss_tmp34589;
-            ss_res_lista_str ss_tmp34587 = ((ss_tmp34588 = &(*global).variantes, ss_tmp34589 = ss_view(en_g), lista_de(ss_tmp34588, ss_tmp34589)));
-            ss_lista_str ss_tmp34590;
-            if (ss_tmp34587.motivo != NULL)
+            const ss_mapa_str_lista_str* ss_tmp34591;
+            SafeView ss_tmp34592;
+            ss_res_lista_str ss_tmp34590 = ((ss_tmp34591 = &(*global).variantes, ss_tmp34592 = ss_view(en_g), lista_de(ss_tmp34591, ss_tmp34592)));
+            ss_lista_str ss_tmp34593;
+            if (ss_tmp34590.motivo != NULL)
             {
-                ss_lista_str ss_tmp34591 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_tmp34590 = ss_tmp34591;
+                ss_lista_str ss_tmp34594 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_tmp34593 = ss_tmp34594;
             }
             else
             {
-                ss_tmp34590 = ss_tmp34587.valor;
+                ss_tmp34593 = ss_tmp34590.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str vs_g = ss_tmp34590;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str vs_g = ss_tmp34593;
             bool ss_vivo_vs_g = true;
 #line 3408 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp34592;
-            ss_mapa_str_lista_str* ss_tmp34593 = &((ss_tmp34592 = &((*contextos)), &ss_tmp34592->e[ss_lang_indice_(k_ctx, ss_tmp34592->length, "ejemplos/compilador/tcodec.t", 3408)])[0]).variantes;
+            ss_lista_Contexto* ss_tmp34595;
+            ss_mapa_str_lista_str* ss_tmp34596 = &((ss_tmp34595 = &((*contextos)), &ss_tmp34595->e[ss_lang_indice_(k_ctx, ss_tmp34595->length, "ejemplos/compilador/tcodec.t", 3408)])[0]).variantes;
 #line 3408 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_lista_str(ss_tmp34593, ss_view(en_g), vs_g, "ejemplos/compilador/tcodec.t", 3408);
+            ss_mapa_poner_mapa_str_lista_str(ss_tmp34596, ss_view(en_g), vs_g, "ejemplos/compilador/tcodec.t", 3408);
             ss_vivo_vs_g = false;
             if (ss_vivo_vs_g)
             {
@@ -116121,49 +116127,49 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 vs_g.capacity = 0;
             }
         }
-        for (size_t ss_i1225 = 0; ss_i1225 < ss_tmp34583.length; ss_i1225++)
+        for (size_t ss_i1225 = 0; ss_i1225 < ss_tmp34586.length; ss_i1225++)
         {
-            ss_free(&ss_tmp34583.e[ss_i1225]);
+            ss_free(&ss_tmp34586.e[ss_i1225]);
         }
-        free(ss_tmp34583.e);
-        ss_tmp34583.e = NULL;
-        ss_tmp34583.length = 0;
-        ss_tmp34583.capacity = 0;
+        free(ss_tmp34586.e);
+        ss_tmp34586.e = NULL;
+        ss_tmp34586.length = 0;
+        ss_tmp34586.capacity = 0;
 #line 3410 "ejemplos/compilador/tcodec.t"
-        ss_lista_str ss_tmp34594 = ss_mapa_claves_mapa_str_lista_str(&(*global).formas, "ejemplos/compilador/tcodec.t", 3410);
-        for (size_t ss_k1226 = 0; ss_k1226 < ss_tmp34594.length; ss_k1226++)
+        ss_lista_str ss_tmp34597 = ss_mapa_claves_mapa_str_lista_str(&(*global).formas, "ejemplos/compilador/tcodec.t", 3410);
+        for (size_t ss_k1226 = 0; ss_k1226 < ss_tmp34597.length; ss_k1226++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* fk = &ss_tmp34594.e[ss_k1226];
+            SS_LANG_QUIZA_SIN_USAR const SafeString* fk = &ss_tmp34597.e[ss_k1226];
 #line 3411 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp34595;
-            const ss_mapa_str_lista_str* ss_tmp34596;
-            SafeView ss_tmp34597;
+            ss_lista_Contexto* ss_tmp34598;
+            const ss_mapa_str_lista_str* ss_tmp34599;
+            SafeView ss_tmp34600;
 #line 3411 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp34596 = &((ss_tmp34595 = &((*contextos)), &ss_tmp34595->e[ss_lang_indice_(k_ctx, ss_tmp34595->length, "ejemplos/compilador/tcodec.t", 3411)])[0]).formas, ss_tmp34597 = ss_view(fk), ss_mapa_tiene_mapa_str_lista_str(ss_tmp34596, ss_tmp34597))))
+            if (((ss_tmp34599 = &((ss_tmp34598 = &((*contextos)), &ss_tmp34598->e[ss_lang_indice_(k_ctx, ss_tmp34598->length, "ejemplos/compilador/tcodec.t", 3411)])[0]).formas, ss_tmp34600 = ss_view(fk), ss_mapa_tiene_mapa_str_lista_str(ss_tmp34599, ss_tmp34600))))
             {
                 continue;
             }
 #line 3412 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_lista_str* ss_tmp34599;
-            SafeView ss_tmp34600;
-            ss_res_lista_str ss_tmp34598 = ((ss_tmp34599 = &(*global).formas, ss_tmp34600 = ss_view(fk), lista_de(ss_tmp34599, ss_tmp34600)));
-            ss_lista_str ss_tmp34601;
-            if (ss_tmp34598.motivo != NULL)
+            const ss_mapa_str_lista_str* ss_tmp34602;
+            SafeView ss_tmp34603;
+            ss_res_lista_str ss_tmp34601 = ((ss_tmp34602 = &(*global).formas, ss_tmp34603 = ss_view(fk), lista_de(ss_tmp34602, ss_tmp34603)));
+            ss_lista_str ss_tmp34604;
+            if (ss_tmp34601.motivo != NULL)
             {
-                ss_lista_str ss_tmp34602 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_tmp34601 = ss_tmp34602;
+                ss_lista_str ss_tmp34605 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_tmp34604 = ss_tmp34605;
             }
             else
             {
-                ss_tmp34601 = ss_tmp34598.valor;
+                ss_tmp34604 = ss_tmp34601.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str fs_g = ss_tmp34601;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str fs_g = ss_tmp34604;
             bool ss_vivo_fs_g = true;
 #line 3413 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp34603;
-            ss_mapa_str_lista_str* ss_tmp34604 = &((ss_tmp34603 = &((*contextos)), &ss_tmp34603->e[ss_lang_indice_(k_ctx, ss_tmp34603->length, "ejemplos/compilador/tcodec.t", 3413)])[0]).formas;
+            ss_lista_Contexto* ss_tmp34606;
+            ss_mapa_str_lista_str* ss_tmp34607 = &((ss_tmp34606 = &((*contextos)), &ss_tmp34606->e[ss_lang_indice_(k_ctx, ss_tmp34606->length, "ejemplos/compilador/tcodec.t", 3413)])[0]).formas;
 #line 3413 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_lista_str(ss_tmp34604, ss_view(fk), fs_g, "ejemplos/compilador/tcodec.t", 3413);
+            ss_mapa_poner_mapa_str_lista_str(ss_tmp34607, ss_view(fk), fs_g, "ejemplos/compilador/tcodec.t", 3413);
             ss_vivo_fs_g = false;
             if (ss_vivo_fs_g)
             {
@@ -116177,24 +116183,24 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 fs_g.capacity = 0;
             }
         }
-        for (size_t ss_i1228 = 0; ss_i1228 < ss_tmp34594.length; ss_i1228++)
+        for (size_t ss_i1228 = 0; ss_i1228 < ss_tmp34597.length; ss_i1228++)
         {
-            ss_free(&ss_tmp34594.e[ss_i1228]);
+            ss_free(&ss_tmp34597.e[ss_i1228]);
         }
-        free(ss_tmp34594.e);
-        ss_tmp34594.e = NULL;
-        ss_tmp34594.length = 0;
-        ss_tmp34594.capacity = 0;
+        free(ss_tmp34597.e);
+        ss_tmp34597.e = NULL;
+        ss_tmp34597.length = 0;
+        ss_tmp34597.capacity = 0;
 #line 3415 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34605;
-        size_t ss_tmp34606;
+        size_t ss_tmp34608;
+        size_t ss_tmp34609;
 #line 3415 "ejemplos/compilador/tcodec.t"
-        k_ctx = ((ss_tmp34605 = k_ctx, ss_tmp34606 = (size_t)1, ss_lang_suma_usize(ss_tmp34605, ss_tmp34606, "ejemplos/compilador/tcodec.t", 3415)));
+        k_ctx = ((ss_tmp34608 = k_ctx, ss_tmp34609 = (size_t)1, ss_lang_suma_usize(ss_tmp34608, ss_tmp34609, "ejemplos/compilador/tcodec.t", 3415)));
     }
 #line 3417 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp34607 = true;
+    bool ss_tmp34610 = true;
     ss_free(&error_nombres);
-    return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp34607 };
+    return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp34610 };
 }
 
 #line 3420 "ejemplos/compilador/tcodec.t"
@@ -116203,36 +116209,36 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
 #line 3421 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString principal = normalizar(fuente);
 #line 3422 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34608 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str modulos = ss_tmp34608;
+    ss_lista_str ss_tmp34611 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str modulos = ss_tmp34611;
     bool ss_vivo_modulos = true;
 #line 3423 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34609 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str pila = ss_tmp34609;
+    ss_lista_str ss_tmp34612 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str pila = ss_tmp34612;
 #line 3424 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString error_carga = ss_new();
 #line 3425 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp34610;
-    SafeView ss_tmp34611;
-    ss_lista_str* ss_tmp34612;
-    ss_lista_str* ss_tmp34613;
-    SafeString* ss_tmp34614;
-    SafeView ss_tmp34615;
-    size_t ss_tmp34616;
-    if ((!((ss_tmp34610 = ss_view(&principal), ss_tmp34611 = raiz, ss_tmp34612 = &modulos, ss_tmp34613 = &pila, ss_tmp34614 = &error_carga, ss_tmp34615 = sv_len("", 0), ss_tmp34616 = (size_t)0, visitar(ss_tmp34610, ss_tmp34611, ss_tmp34612, ss_tmp34613, ss_tmp34614, ss_tmp34615, ss_tmp34616)))))
+    SafeView ss_tmp34613;
+    SafeView ss_tmp34614;
+    ss_lista_str* ss_tmp34615;
+    ss_lista_str* ss_tmp34616;
+    SafeString* ss_tmp34617;
+    SafeView ss_tmp34618;
+    size_t ss_tmp34619;
+    if ((!((ss_tmp34613 = ss_view(&principal), ss_tmp34614 = raiz, ss_tmp34615 = &modulos, ss_tmp34616 = &pila, ss_tmp34617 = &error_carga, ss_tmp34618 = sv_len("", 0), ss_tmp34619 = (size_t)0, visitar(ss_tmp34613, ss_tmp34614, ss_tmp34615, ss_tmp34616, ss_tmp34617, ss_tmp34618, ss_tmp34619)))))
     {
 #line 3426 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp34618 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp34618, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 3426);
-        ss_lang_agregar_texto_(&ss_tmp34618, ss_view(&error_carga), "ejemplos/compilador/tcodec.t", 3426);
-        ss_lang_agregar_texto_(&ss_tmp34618, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 3426);
-        SafeString ss_tmp34617 = ss_tmp34618;
-        SafeView ss_tmp34619 = ss_view(&ss_tmp34617);
+        SafeString ss_tmp34621 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp34621, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 3426);
+        ss_lang_agregar_texto_(&ss_tmp34621, ss_view(&error_carga), "ejemplos/compilador/tcodec.t", 3426);
+        ss_lang_agregar_texto_(&ss_tmp34621, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 3426);
+        SafeString ss_tmp34620 = ss_tmp34621;
+        SafeView ss_tmp34622 = ss_view(&ss_tmp34620);
 #line 3426 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp34619);
-        ss_free(&ss_tmp34617);
+        ss_lang_escribir_(stderr, ss_tmp34622);
+        ss_free(&ss_tmp34620);
 #line 3427 "ejemplos/compilador/tcodec.t"
-        ProgramaLeido ss_tmp34620 = programa_no_leido();
+        ProgramaLeido ss_tmp34623 = programa_no_leido();
         ss_free(&error_carga);
         for (size_t ss_i1229 = 0; ss_i1229 < pila.length; ss_i1229++)
         {
@@ -116254,78 +116260,78 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             modulos.capacity = 0;
         }
         ss_free(&principal);
-        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34620 };
+        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34623 };
     }
 #line 3430 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR Contexto global = contexto();
     bool ss_vivo_global = true;
 #line 3431 "ejemplos/compilador/tcodec.t"
-    ss_lista_Nodo ss_tmp34621 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo arboles = ss_tmp34621;
+    ss_lista_Nodo ss_tmp34624 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo arboles = ss_tmp34624;
     bool ss_vivo_arboles = true;
 #line 3432 "ejemplos/compilador/tcodec.t"
-    ss_lista_Contexto ss_tmp34622 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto contextos = ss_tmp34622;
+    ss_lista_Contexto ss_tmp34625 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto contextos = ss_tmp34625;
     bool ss_vivo_contextos = true;
 #line 3433 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34623 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str st_nombres = ss_tmp34623;
+    ss_lista_str ss_tmp34626 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str st_nombres = ss_tmp34626;
     bool ss_vivo_st_nombres = true;
 #line 3434 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp34624 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str st_campos = ss_tmp34624;
+    ss_lista_lista_str ss_tmp34627 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str st_campos = ss_tmp34627;
     bool ss_vivo_st_campos = true;
 #line 3435 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp34625 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str st_tipos = ss_tmp34625;
+    ss_lista_lista_str ss_tmp34628 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str st_tipos = ss_tmp34628;
     bool ss_vivo_st_tipos = true;
 #line 3436 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize st_indice = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
     bool ss_vivo_st_indice = true;
 #line 3437 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34626 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str stp_nombres = ss_tmp34626;
+    ss_lista_str ss_tmp34629 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str stp_nombres = ss_tmp34629;
 #line 3438 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize stp_indice = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
     bool ss_vivo_stp_indice = true;
 #line 3439 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp34627 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_params = ss_tmp34627;
+    ss_lista_lista_str ss_tmp34630 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_params = ss_tmp34630;
     bool ss_vivo_stp_params = true;
 #line 3440 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp34628 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_campos = ss_tmp34628;
+    ss_lista_lista_str ss_tmp34631 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_campos = ss_tmp34631;
     bool ss_vivo_stp_campos = true;
 #line 3441 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp34629 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_tipos = ss_tmp34629;
+    ss_lista_lista_str ss_tmp34632 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_tipos = ss_tmp34632;
     bool ss_vivo_stp_tipos = true;
 #line 3442 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34630 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_cabeceras = ss_tmp34630;
+    ss_lista_str ss_tmp34633 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_cabeceras = ss_tmp34633;
     bool ss_vivo_ext_cabeceras = true;
 #line 3443 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34631 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_modulos = ss_tmp34631;
+    ss_lista_str ss_tmp34634 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_modulos = ss_tmp34634;
     bool ss_vivo_ext_modulos = true;
 #line 3444 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34632 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_protos = ss_tmp34632;
+    ss_lista_str ss_tmp34635 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_protos = ss_tmp34635;
     bool ss_vivo_ext_protos = true;
 #line 3445 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34633 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str en_nombres = ss_tmp34633;
+    ss_lista_str ss_tmp34636 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str en_nombres = ss_tmp34636;
     bool ss_vivo_en_nombres = true;
 #line 3446 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize en_indice = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
     bool ss_vivo_en_indice = true;
 #line 3447 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp34634 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str en_variantes = ss_tmp34634;
+    ss_lista_lista_str ss_tmp34637 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str en_variantes = ss_tmp34637;
     bool ss_vivo_en_variantes = true;
 #line 3448 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp34635 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str en_lleva = ss_tmp34635;
+    ss_lista_lista_str ss_tmp34638 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str en_lleva = ss_tmp34638;
     bool ss_vivo_en_lleva = true;
 #line 3449 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize plantillas = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
@@ -116346,44 +116352,44 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
 #line 3455 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString error_m = ss_new();
 #line 3456 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp34637;
-        Contexto* ss_tmp34638;
-        SafeString* ss_tmp34639;
-        const ss_mapa_str_usize* ss_tmp34640;
-        const ss_mapa_str_usize* ss_tmp34641;
-        Leidos* ss_tmp34642;
-        ss_res_Nodo ss_tmp34636 = ((ss_tmp34637 = ss_view(m), ss_tmp34638 = &tipos, ss_tmp34639 = &error_m, ss_tmp34640 = &previos_st, ss_tmp34641 = &previos_en, ss_tmp34642 = &leidos, preparar_con_error(ss_tmp34637, ss_tmp34638, ss_tmp34639, ss_tmp34640, ss_tmp34641, ss_tmp34642)));
-        Nodo ss_tmp34643;
-        if (ss_tmp34636.motivo != NULL)
+        SafeView ss_tmp34640;
+        Contexto* ss_tmp34641;
+        SafeString* ss_tmp34642;
+        const ss_mapa_str_usize* ss_tmp34643;
+        const ss_mapa_str_usize* ss_tmp34644;
+        Leidos* ss_tmp34645;
+        ss_res_Nodo ss_tmp34639 = ((ss_tmp34640 = ss_view(m), ss_tmp34641 = &tipos, ss_tmp34642 = &error_m, ss_tmp34643 = &previos_st, ss_tmp34644 = &previos_en, ss_tmp34645 = &leidos, preparar_con_error(ss_tmp34640, ss_tmp34641, ss_tmp34642, ss_tmp34643, ss_tmp34644, ss_tmp34645)));
+        Nodo ss_tmp34646;
+        if (ss_tmp34639.motivo != NULL)
         {
-            Clase ss_tmp34644;
-            size_t ss_tmp34645;
-            ss_tmp34643 = ((ss_tmp34644 = (Clase){ .etiqueta = SS_CLASE_VACIO }, ss_tmp34645 = (size_t)0, rama(ss_tmp34644, ss_tmp34645)));
+            Clase ss_tmp34647;
+            size_t ss_tmp34648;
+            ss_tmp34646 = ((ss_tmp34647 = (Clase){ .etiqueta = SS_CLASE_VACIO }, ss_tmp34648 = (size_t)0, rama(ss_tmp34647, ss_tmp34648)));
         }
         else
         {
-            ss_tmp34643 = ss_tmp34636.valor;
+            ss_tmp34646 = ss_tmp34639.valor;
         }
-        SS_LANG_QUIZA_SIN_USAR Nodo arbol = ss_tmp34643;
+        SS_LANG_QUIZA_SIN_USAR Nodo arbol = ss_tmp34646;
         bool ss_vivo_arbol = true;
 #line 3458 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34646;
-        size_t ss_tmp34647;
+        size_t ss_tmp34649;
+        size_t ss_tmp34650;
 #line 3458 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp34646 = sv_len_of(ss_view(&error_m)), ss_tmp34647 = (size_t)0, (ss_tmp34646 > ss_tmp34647))))
+        if (((ss_tmp34649 = sv_len_of(ss_view(&error_m)), ss_tmp34650 = (size_t)0, (ss_tmp34649 > ss_tmp34650))))
         {
 #line 3459 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp34649 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp34649, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 3459);
-            ss_lang_agregar_texto_(&ss_tmp34649, ss_view(&error_m), "ejemplos/compilador/tcodec.t", 3459);
-            ss_lang_agregar_texto_(&ss_tmp34649, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 3459);
-            SafeString ss_tmp34648 = ss_tmp34649;
-            SafeView ss_tmp34650 = ss_view(&ss_tmp34648);
+            SafeString ss_tmp34652 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp34652, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 3459);
+            ss_lang_agregar_texto_(&ss_tmp34652, ss_view(&error_m), "ejemplos/compilador/tcodec.t", 3459);
+            ss_lang_agregar_texto_(&ss_tmp34652, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 3459);
+            SafeString ss_tmp34651 = ss_tmp34652;
+            SafeView ss_tmp34653 = ss_view(&ss_tmp34651);
 #line 3459 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp34650);
-            ss_free(&ss_tmp34648);
+            ss_lang_escribir_(stderr, ss_tmp34653);
+            ss_free(&ss_tmp34651);
 #line 3460 "ejemplos/compilador/tcodec.t"
-            ProgramaLeido ss_tmp34651 = programa_no_leido();
+            ProgramaLeido ss_tmp34654 = programa_no_leido();
             if (ss_vivo_arbol)
             {
                 ss_drop_Nodo(&arbol);
@@ -116648,26 +116654,26 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                 modulos.capacity = 0;
             }
             ss_free(&principal);
-            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34651 };
+            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34654 };
         }
 #line 3462 "ejemplos/compilador/tcodec.t"
-        Clase ss_tmp34652;
-        Clase ss_tmp34653;
+        Clase ss_tmp34655;
+        Clase ss_tmp34656;
 #line 3462 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp34652 = arbol.clase, ss_tmp34653 = (Clase){ .etiqueta = SS_CLASE_VACIO }, (ss_tmp34652.etiqueta == ss_tmp34653.etiqueta))))
+        if (((ss_tmp34655 = arbol.clase, ss_tmp34656 = (Clase){ .etiqueta = SS_CLASE_VACIO }, (ss_tmp34655.etiqueta == ss_tmp34656.etiqueta))))
         {
 #line 3463 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp34655 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp34655, sv_len("tcodec: no se pudo leer `", 25), "ejemplos/compilador/tcodec.t", 3463);
-            ss_lang_agregar_texto_(&ss_tmp34655, ss_view(m), "ejemplos/compilador/tcodec.t", 3463);
-            ss_lang_agregar_texto_(&ss_tmp34655, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 3463);
-            SafeString ss_tmp34654 = ss_tmp34655;
-            SafeView ss_tmp34656 = ss_view(&ss_tmp34654);
+            SafeString ss_tmp34658 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp34658, sv_len("tcodec: no se pudo leer `", 25), "ejemplos/compilador/tcodec.t", 3463);
+            ss_lang_agregar_texto_(&ss_tmp34658, ss_view(m), "ejemplos/compilador/tcodec.t", 3463);
+            ss_lang_agregar_texto_(&ss_tmp34658, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 3463);
+            SafeString ss_tmp34657 = ss_tmp34658;
+            SafeView ss_tmp34659 = ss_view(&ss_tmp34657);
 #line 3463 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp34656);
-            ss_free(&ss_tmp34654);
+            ss_lang_escribir_(stderr, ss_tmp34659);
+            ss_free(&ss_tmp34657);
 #line 3464 "ejemplos/compilador/tcodec.t"
-            ProgramaLeido ss_tmp34657 = programa_no_leido();
+            ProgramaLeido ss_tmp34660 = programa_no_leido();
             if (ss_vivo_arbol)
             {
                 ss_drop_Nodo(&arbol);
@@ -116932,41 +116938,41 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                 modulos.capacity = 0;
             }
             ss_free(&principal);
-            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34657 };
+            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34660 };
         }
 #line 3466 "ejemplos/compilador/tcodec.t"
         for (size_t ss_k1280 = 0; ss_k1280 < arbol.hijos.length; ss_k1280++)
         {
             SS_LANG_QUIZA_SIN_USAR const Nodo* d = &arbol.hijos.e[ss_k1280];
 #line 3467 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp34658;
-            Clase ss_tmp34659;
-#line 3467 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp34660;
             Clase ss_tmp34661;
+            Clase ss_tmp34662;
 #line 3467 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp34658 = (*d).clase, ss_tmp34659 = (Clase){ .etiqueta = SS_CLASE_STRUCT }, (ss_tmp34658.etiqueta == ss_tmp34659.etiqueta))) || ((ss_tmp34660 = (*d).clase, ss_tmp34661 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp34660.etiqueta == ss_tmp34661.etiqueta)))))
-            {
-#line 3468 "ejemplos/compilador/tcodec.t"
-                ss_mapa_str_usize* ss_tmp34662 = &previos_st;
-#line 3468 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_usize(ss_tmp34662, ss_view(&(*d).texto), (size_t)1, "ejemplos/compilador/tcodec.t", 3468);
-            }
-#line 3470 "ejemplos/compilador/tcodec.t"
             Clase ss_tmp34663;
             Clase ss_tmp34664;
-#line 3470 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp34663 = (*d).clase, ss_tmp34664 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp34663.etiqueta == ss_tmp34664.etiqueta))))
+#line 3467 "ejemplos/compilador/tcodec.t"
+            if ((((ss_tmp34661 = (*d).clase, ss_tmp34662 = (Clase){ .etiqueta = SS_CLASE_STRUCT }, (ss_tmp34661.etiqueta == ss_tmp34662.etiqueta))) || ((ss_tmp34663 = (*d).clase, ss_tmp34664 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp34663.etiqueta == ss_tmp34664.etiqueta)))))
             {
-                ss_mapa_str_usize* ss_tmp34665 = &previos_en;
+#line 3468 "ejemplos/compilador/tcodec.t"
+                ss_mapa_str_usize* ss_tmp34665 = &previos_st;
+#line 3468 "ejemplos/compilador/tcodec.t"
+                ss_mapa_poner_mapa_str_usize(ss_tmp34665, ss_view(&(*d).texto), (size_t)1, "ejemplos/compilador/tcodec.t", 3468);
+            }
 #line 3470 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_usize(ss_tmp34665, ss_view(&(*d).texto), (size_t)1, "ejemplos/compilador/tcodec.t", 3470);
+            Clase ss_tmp34666;
+            Clase ss_tmp34667;
+#line 3470 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp34666 = (*d).clase, ss_tmp34667 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp34666.etiqueta == ss_tmp34667.etiqueta))))
+            {
+                ss_mapa_str_usize* ss_tmp34668 = &previos_en;
+#line 3470 "ejemplos/compilador/tcodec.t"
+                ss_mapa_poner_mapa_str_usize(ss_tmp34668, ss_view(&(*d).texto), (size_t)1, "ejemplos/compilador/tcodec.t", 3470);
             }
         }
 #line 3472 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp34666;
-        Contexto* ss_tmp34667;
-        ((ss_tmp34666 = &arbol, ss_tmp34667 = &global, recoger_firmas(ss_tmp34666, ss_tmp34667)));
+        const Nodo* ss_tmp34669;
+        Contexto* ss_tmp34670;
+        ((ss_tmp34669 = &arbol, ss_tmp34670 = &global, recoger_firmas(ss_tmp34669, ss_tmp34670)));
 #line 3473 "ejemplos/compilador/tcodec.t"
         for (size_t ss_k1281 = 0; ss_k1281 < arbol.hijos.length; ss_k1281++)
         {
@@ -116982,29 +116988,29 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                 if (es_generica(d))
                 {
 #line 3478 "ejemplos/compilador/tcodec.t"
-                    ss_mapa_str_usize* ss_tmp34668 = &plantillas;
+                    ss_mapa_str_usize* ss_tmp34671 = &plantillas;
 #line 3478 "ejemplos/compilador/tcodec.t"
-                    ss_mapa_poner_mapa_str_usize(ss_tmp34668, ss_view(&(*d).texto), (arboles.length), "ejemplos/compilador/tcodec.t", 3478);
+                    ss_mapa_poner_mapa_str_usize(ss_tmp34671, ss_view(&(*d).texto), (arboles.length), "ejemplos/compilador/tcodec.t", 3478);
 #line 3479 "ejemplos/compilador/tcodec.t"
                     continue;
                 }
 #line 3481 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp34669;
-                SafeView ss_tmp34670;
-                SafeView ss_tmp34671;
                 SafeView ss_tmp34672;
-                if ((((ss_tmp34669 = ss_view(&(*d).texto), ss_tmp34670 = sv_len("main", 4), sv_equals(ss_tmp34669, ss_tmp34670))) && (!((ss_tmp34671 = ss_view(m), ss_tmp34672 = ss_view(&principal), sv_equals(ss_tmp34671, ss_tmp34672))))))
+                SafeView ss_tmp34673;
+                SafeView ss_tmp34674;
+                SafeView ss_tmp34675;
+                if ((((ss_tmp34672 = ss_view(&(*d).texto), ss_tmp34673 = sv_len("main", 4), sv_equals(ss_tmp34672, ss_tmp34673))) && (!((ss_tmp34674 = ss_view(m), ss_tmp34675 = ss_view(&principal), sv_equals(ss_tmp34674, ss_tmp34675))))))
                 {
 #line 3482 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp34674;
-                    size_t ss_tmp34675;
-                    SafeString ss_tmp34673 = ((ss_tmp34674 = ss_view(m), ss_tmp34675 = (*d).linea, sitio(ss_tmp34674, ss_tmp34675)));
-                    SafeView ss_tmp34676;
                     SafeView ss_tmp34677;
-                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34676 = ss_view(&ss_tmp34673), ss_tmp34677 = sv_len("no admite un `main` en un modulo", 32), rechazo(ss_tmp34676, ss_tmp34677)));
-                    ss_free(&ss_tmp34673);
+                    size_t ss_tmp34678;
+                    SafeString ss_tmp34676 = ((ss_tmp34677 = ss_view(m), ss_tmp34678 = (*d).linea, sitio(ss_tmp34677, ss_tmp34678)));
+                    SafeView ss_tmp34679;
+                    SafeView ss_tmp34680;
+                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34679 = ss_view(&ss_tmp34676), ss_tmp34680 = sv_len("no admite un `main` en un modulo", 32), rechazo(ss_tmp34679, ss_tmp34680)));
+                    ss_free(&ss_tmp34676);
 #line 3484 "ejemplos/compilador/tcodec.t"
-                    ProgramaLeido ss_tmp34678 = programa_no_leido();
+                    ProgramaLeido ss_tmp34681 = programa_no_leido();
                     if (ss_vivo_arbol)
                     {
                         ss_drop_Nodo(&arbol);
@@ -117269,7 +117275,7 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         modulos.capacity = 0;
                     }
                     ss_free(&principal);
-                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34678 };
+                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34681 };
                 }
 #line 3486 "ejemplos/compilador/tcodec.t"
                 continue;
@@ -117281,21 +117287,21 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                 if (tiene_tipo_param(d))
                 {
 #line 3490 "ejemplos/compilador/tcodec.t"
-                    const ss_mapa_str_usize* ss_tmp34679;
-                    SafeView ss_tmp34680;
+                    const ss_mapa_str_usize* ss_tmp34682;
+                    SafeView ss_tmp34683;
 #line 3490 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp34679 = &stp_indice, ss_tmp34680 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34679, ss_tmp34680))))
+                    if (((ss_tmp34682 = &stp_indice, ss_tmp34683 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34682, ss_tmp34683))))
                     {
 #line 3491 "ejemplos/compilador/tcodec.t"
-                        SafeView ss_tmp34682;
-                        size_t ss_tmp34683;
-                        SafeString ss_tmp34681 = ((ss_tmp34682 = ss_view(m), ss_tmp34683 = (*d).linea, sitio(ss_tmp34682, ss_tmp34683)));
-                        SafeView ss_tmp34684;
                         SafeView ss_tmp34685;
-                        SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34684 = ss_view(&ss_tmp34681), ss_tmp34685 = sv_len("no admite un struct generico repetido entre modulos", 51), rechazo(ss_tmp34684, ss_tmp34685)));
-                        ss_free(&ss_tmp34681);
+                        size_t ss_tmp34686;
+                        SafeString ss_tmp34684 = ((ss_tmp34685 = ss_view(m), ss_tmp34686 = (*d).linea, sitio(ss_tmp34685, ss_tmp34686)));
+                        SafeView ss_tmp34687;
+                        SafeView ss_tmp34688;
+                        SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34687 = ss_view(&ss_tmp34684), ss_tmp34688 = sv_len("no admite un struct generico repetido entre modulos", 51), rechazo(ss_tmp34687, ss_tmp34688)));
+                        ss_free(&ss_tmp34684);
 #line 3493 "ejemplos/compilador/tcodec.t"
-                        ProgramaLeido ss_tmp34686 = programa_no_leido();
+                        ProgramaLeido ss_tmp34689 = programa_no_leido();
                         if (ss_vivo_arbol)
                         {
                             ss_drop_Nodo(&arbol);
@@ -117560,51 +117566,51 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             modulos.capacity = 0;
                         }
                         ss_free(&principal);
-                        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34686 };
+                        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34689 };
                     }
 #line 3495 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str ss_tmp34687 = { .e = NULL, .length = 0, .capacity = 0 };
-                    SS_LANG_QUIZA_SIN_USAR ss_lista_str tps = ss_tmp34687;
+                    ss_lista_str ss_tmp34690 = { .e = NULL, .length = 0, .capacity = 0 };
+                    SS_LANG_QUIZA_SIN_USAR ss_lista_str tps = ss_tmp34690;
                     bool ss_vivo_tps = true;
 #line 3496 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str ss_tmp34688 = { .e = NULL, .length = 0, .capacity = 0 };
-                    SS_LANG_QUIZA_SIN_USAR ss_lista_str cs = ss_tmp34688;
+                    ss_lista_str ss_tmp34691 = { .e = NULL, .length = 0, .capacity = 0 };
+                    SS_LANG_QUIZA_SIN_USAR ss_lista_str cs = ss_tmp34691;
                     bool ss_vivo_cs = true;
 #line 3497 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str ss_tmp34689 = { .e = NULL, .length = 0, .capacity = 0 };
-                    SS_LANG_QUIZA_SIN_USAR ss_lista_str ts = ss_tmp34689;
+                    ss_lista_str ss_tmp34692 = { .e = NULL, .length = 0, .capacity = 0 };
+                    SS_LANG_QUIZA_SIN_USAR ss_lista_str ts = ss_tmp34692;
                     bool ss_vivo_ts = true;
 #line 3498 "ejemplos/compilador/tcodec.t"
                     for (size_t ss_k1330 = 0; ss_k1330 < (*d).hijos.length; ss_k1330++)
                     {
                         SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1330];
 #line 3499 "ejemplos/compilador/tcodec.t"
-                        Clase ss_tmp34690;
-                        Clase ss_tmp34691;
-#line 3499 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp34690 = (*h).clase, ss_tmp34691 = (Clase){ .etiqueta = SS_CLASE_TIPOPARAM }, (ss_tmp34690.etiqueta == ss_tmp34691.etiqueta))))
-                        {
-                            ss_lista_str* ss_tmp34692 = &tps;
-#line 3499 "ejemplos/compilador/tcodec.t"
-                            ss_push_lista_str(ss_tmp34692, ss_from_view(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3499);
-                        }
-#line 3500 "ejemplos/compilador/tcodec.t"
                         Clase ss_tmp34693;
                         Clase ss_tmp34694;
+#line 3499 "ejemplos/compilador/tcodec.t"
+                        if (((ss_tmp34693 = (*h).clase, ss_tmp34694 = (Clase){ .etiqueta = SS_CLASE_TIPOPARAM }, (ss_tmp34693.etiqueta == ss_tmp34694.etiqueta))))
+                        {
+                            ss_lista_str* ss_tmp34695 = &tps;
+#line 3499 "ejemplos/compilador/tcodec.t"
+                            ss_push_lista_str(ss_tmp34695, ss_from_view(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3499);
+                        }
 #line 3500 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp34693 = (*h).clase, ss_tmp34694 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp34693.etiqueta == ss_tmp34694.etiqueta))))
+                        Clase ss_tmp34696;
+                        Clase ss_tmp34697;
+#line 3500 "ejemplos/compilador/tcodec.t"
+                        if (((ss_tmp34696 = (*h).clase, ss_tmp34697 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp34696.etiqueta == ss_tmp34697.etiqueta))))
                         {
 #line 3501 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp34695 = &cs;
+                            ss_lista_str* ss_tmp34698 = &cs;
 #line 3501 "ejemplos/compilador/tcodec.t"
-                            ss_push_lista_str(ss_tmp34695, nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3501);
+                            ss_push_lista_str(ss_tmp34698, nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3501);
 #line 3502 "ejemplos/compilador/tcodec.t"
                             SS_LANG_QUIZA_SIN_USAR SafeString tp = tipo_pelado(ss_view(&(*h).texto));
                             bool ss_vivo_tp = true;
 #line 3503 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp34696 = &ts;
+                            ss_lista_str* ss_tmp34699 = &ts;
 #line 3503 "ejemplos/compilador/tcodec.t"
-                            ss_push_lista_str(ss_tmp34696, tp, "ejemplos/compilador/tcodec.t", 3503);
+                            ss_push_lista_str(ss_tmp34699, tp, "ejemplos/compilador/tcodec.t", 3503);
                             ss_vivo_tp = false;
                             if (ss_vivo_tp)
                             {
@@ -117613,27 +117619,27 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                     }
 #line 3506 "ejemplos/compilador/tcodec.t"
-                    ss_mapa_str_usize* ss_tmp34697 = &stp_indice;
+                    ss_mapa_str_usize* ss_tmp34700 = &stp_indice;
 #line 3506 "ejemplos/compilador/tcodec.t"
-                    ss_mapa_poner_mapa_str_usize(ss_tmp34697, ss_view(&(*d).texto), (stp_nombres.length), "ejemplos/compilador/tcodec.t", 3506);
+                    ss_mapa_poner_mapa_str_usize(ss_tmp34700, ss_view(&(*d).texto), (stp_nombres.length), "ejemplos/compilador/tcodec.t", 3506);
 #line 3507 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp34698 = &stp_nombres;
+                    ss_lista_str* ss_tmp34701 = &stp_nombres;
 #line 3507 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp34698, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3507);
+                    ss_push_lista_str(ss_tmp34701, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3507);
 #line 3508 "ejemplos/compilador/tcodec.t"
-                    ss_lista_lista_str* ss_tmp34699 = &stp_params;
+                    ss_lista_lista_str* ss_tmp34702 = &stp_params;
 #line 3508 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_lista_str(ss_tmp34699, tps, "ejemplos/compilador/tcodec.t", 3508);
+                    ss_push_lista_lista_str(ss_tmp34702, tps, "ejemplos/compilador/tcodec.t", 3508);
                     ss_vivo_tps = false;
 #line 3509 "ejemplos/compilador/tcodec.t"
-                    ss_lista_lista_str* ss_tmp34700 = &stp_campos;
+                    ss_lista_lista_str* ss_tmp34703 = &stp_campos;
 #line 3509 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_lista_str(ss_tmp34700, cs, "ejemplos/compilador/tcodec.t", 3509);
+                    ss_push_lista_lista_str(ss_tmp34703, cs, "ejemplos/compilador/tcodec.t", 3509);
                     ss_vivo_cs = false;
 #line 3510 "ejemplos/compilador/tcodec.t"
-                    ss_lista_lista_str* ss_tmp34701 = &stp_tipos;
+                    ss_lista_lista_str* ss_tmp34704 = &stp_tipos;
 #line 3510 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_lista_str(ss_tmp34701, ts, "ejemplos/compilador/tcodec.t", 3510);
+                    ss_push_lista_lista_str(ss_tmp34704, ts, "ejemplos/compilador/tcodec.t", 3510);
                     ss_vivo_ts = false;
 #line 3511 "ejemplos/compilador/tcodec.t"
                     if (ss_vivo_ts)
@@ -117672,21 +117678,21 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     continue;
                 }
 #line 3513 "ejemplos/compilador/tcodec.t"
-                const ss_mapa_str_usize* ss_tmp34702;
-                SafeView ss_tmp34703;
+                const ss_mapa_str_usize* ss_tmp34705;
+                SafeView ss_tmp34706;
 #line 3513 "ejemplos/compilador/tcodec.t"
-                if (((ss_tmp34702 = &st_indice, ss_tmp34703 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34702, ss_tmp34703))))
+                if (((ss_tmp34705 = &st_indice, ss_tmp34706 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34705, ss_tmp34706))))
                 {
 #line 3514 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp34705;
-                    size_t ss_tmp34706;
-                    SafeString ss_tmp34704 = ((ss_tmp34705 = ss_view(m), ss_tmp34706 = (*d).linea, sitio(ss_tmp34705, ss_tmp34706)));
-                    SafeView ss_tmp34707;
                     SafeView ss_tmp34708;
-                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34707 = ss_view(&ss_tmp34704), ss_tmp34708 = sv_len("no admite un struct repetido entre modulos", 42), rechazo(ss_tmp34707, ss_tmp34708)));
-                    ss_free(&ss_tmp34704);
+                    size_t ss_tmp34709;
+                    SafeString ss_tmp34707 = ((ss_tmp34708 = ss_view(m), ss_tmp34709 = (*d).linea, sitio(ss_tmp34708, ss_tmp34709)));
+                    SafeView ss_tmp34710;
+                    SafeView ss_tmp34711;
+                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34710 = ss_view(&ss_tmp34707), ss_tmp34711 = sv_len("no admite un struct repetido entre modulos", 42), rechazo(ss_tmp34710, ss_tmp34711)));
+                    ss_free(&ss_tmp34707);
 #line 3516 "ejemplos/compilador/tcodec.t"
-                    ProgramaLeido ss_tmp34709 = programa_no_leido();
+                    ProgramaLeido ss_tmp34712 = programa_no_leido();
                     if (ss_vivo_arbol)
                     {
                         ss_drop_Nodo(&arbol);
@@ -117951,37 +117957,37 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         modulos.capacity = 0;
                     }
                     ss_free(&principal);
-                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34709 };
+                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34712 };
                 }
 #line 3518 "ejemplos/compilador/tcodec.t"
-                ss_lista_str ss_tmp34710 = { .e = NULL, .length = 0, .capacity = 0 };
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str campos = ss_tmp34710;
+                ss_lista_str ss_tmp34713 = { .e = NULL, .length = 0, .capacity = 0 };
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str campos = ss_tmp34713;
                 bool ss_vivo_campos = true;
 #line 3519 "ejemplos/compilador/tcodec.t"
-                ss_lista_str ss_tmp34711 = { .e = NULL, .length = 0, .capacity = 0 };
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_campo = ss_tmp34711;
+                ss_lista_str ss_tmp34714 = { .e = NULL, .length = 0, .capacity = 0 };
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_campo = ss_tmp34714;
                 bool ss_vivo_tipos_campo = true;
 #line 3520 "ejemplos/compilador/tcodec.t"
                 for (size_t ss_k1358 = 0; ss_k1358 < (*d).hijos.length; ss_k1358++)
                 {
                     SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1358];
 #line 3521 "ejemplos/compilador/tcodec.t"
-                    Clase ss_tmp34712;
-                    Clase ss_tmp34713;
+                    Clase ss_tmp34715;
+                    Clase ss_tmp34716;
 #line 3521 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp34712 = (*h).clase, ss_tmp34713 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp34712.etiqueta == ss_tmp34713.etiqueta))))
+                    if (((ss_tmp34715 = (*h).clase, ss_tmp34716 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp34715.etiqueta == ss_tmp34716.etiqueta))))
                     {
 #line 3522 "ejemplos/compilador/tcodec.t"
                         SS_LANG_QUIZA_SIN_USAR SafeString tp = tipo_pelado(ss_view(&(*h).texto));
                         bool ss_vivo_tp = true;
 #line 3523 "ejemplos/compilador/tcodec.t"
-                        ss_lista_str* ss_tmp34714 = &campos;
+                        ss_lista_str* ss_tmp34717 = &campos;
 #line 3523 "ejemplos/compilador/tcodec.t"
-                        ss_push_lista_str(ss_tmp34714, nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3523);
+                        ss_push_lista_str(ss_tmp34717, nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3523);
 #line 3524 "ejemplos/compilador/tcodec.t"
-                        ss_lista_str* ss_tmp34715 = &tipos_campo;
+                        ss_lista_str* ss_tmp34718 = &tipos_campo;
 #line 3524 "ejemplos/compilador/tcodec.t"
-                        ss_push_lista_str(ss_tmp34715, tp, "ejemplos/compilador/tcodec.t", 3524);
+                        ss_push_lista_str(ss_tmp34718, tp, "ejemplos/compilador/tcodec.t", 3524);
                         ss_vivo_tp = false;
                         if (ss_vivo_tp)
                         {
@@ -117990,22 +117996,22 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                 }
 #line 3527 "ejemplos/compilador/tcodec.t"
-                ss_mapa_str_usize* ss_tmp34716 = &st_indice;
+                ss_mapa_str_usize* ss_tmp34719 = &st_indice;
 #line 3527 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_usize(ss_tmp34716, ss_view(&(*d).texto), (st_nombres.length), "ejemplos/compilador/tcodec.t", 3527);
+                ss_mapa_poner_mapa_str_usize(ss_tmp34719, ss_view(&(*d).texto), (st_nombres.length), "ejemplos/compilador/tcodec.t", 3527);
 #line 3528 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp34717 = &st_nombres;
+                ss_lista_str* ss_tmp34720 = &st_nombres;
 #line 3528 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp34717, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3528);
+                ss_push_lista_str(ss_tmp34720, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3528);
 #line 3529 "ejemplos/compilador/tcodec.t"
-                ss_lista_lista_str* ss_tmp34718 = &st_campos;
+                ss_lista_lista_str* ss_tmp34721 = &st_campos;
 #line 3529 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_lista_str(ss_tmp34718, campos, "ejemplos/compilador/tcodec.t", 3529);
+                ss_push_lista_lista_str(ss_tmp34721, campos, "ejemplos/compilador/tcodec.t", 3529);
                 ss_vivo_campos = false;
 #line 3530 "ejemplos/compilador/tcodec.t"
-                ss_lista_lista_str* ss_tmp34719 = &st_tipos;
+                ss_lista_lista_str* ss_tmp34722 = &st_tipos;
 #line 3530 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_lista_str(ss_tmp34719, tipos_campo, "ejemplos/compilador/tcodec.t", 3530);
+                ss_push_lista_lista_str(ss_tmp34722, tipos_campo, "ejemplos/compilador/tcodec.t", 3530);
                 ss_vivo_tipos_campo = false;
 #line 3531 "ejemplos/compilador/tcodec.t"
                 if (ss_vivo_tipos_campo)
@@ -118040,19 +118046,19 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                 {
                     SS_LANG_QUIZA_SIN_USAR const Nodo* f = &(*d).hijos.e[ss_k1361];
 #line 3535 "ejemplos/compilador/tcodec.t"
-                    Clase ss_tmp34720;
-                    Clase ss_tmp34721;
+                    Clase ss_tmp34723;
+                    Clase ss_tmp34724;
 #line 3535 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp34720 = (*f).clase, ss_tmp34721 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34720.etiqueta != ss_tmp34721.etiqueta))))
+                    if (((ss_tmp34723 = (*f).clase, ss_tmp34724 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34723.etiqueta != ss_tmp34724.etiqueta))))
                     {
                         continue;
                     }
 #line 3536 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str ss_tmp34722 = { .e = NULL, .length = 0, .capacity = 0 };
-                    SS_LANG_QUIZA_SIN_USAR ss_lista_str ps = ss_tmp34722;
+                    ss_lista_str ss_tmp34725 = { .e = NULL, .length = 0, .capacity = 0 };
+                    SS_LANG_QUIZA_SIN_USAR ss_lista_str ps = ss_tmp34725;
 #line 3537 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str ss_tmp34723 = { .e = NULL, .length = 0, .capacity = 0 };
-                    SS_LANG_QUIZA_SIN_USAR ss_lista_str pn = ss_tmp34723;
+                    ss_lista_str ss_tmp34726 = { .e = NULL, .length = 0, .capacity = 0 };
+                    SS_LANG_QUIZA_SIN_USAR ss_lista_str pn = ss_tmp34726;
 #line 3538 "ejemplos/compilador/tcodec.t"
                     SS_LANG_QUIZA_SIN_USAR SafeString ret = ss_new();
 #line 3539 "ejemplos/compilador/tcodec.t"
@@ -118060,55 +118066,55 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     {
                         SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*f).hijos.e[ss_k1362];
 #line 3540 "ejemplos/compilador/tcodec.t"
-                        Clase ss_tmp34724;
-                        Clase ss_tmp34725;
+                        Clase ss_tmp34727;
+                        Clase ss_tmp34728;
 #line 3540 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp34724 = (*h).clase, ss_tmp34725 = (Clase){ .etiqueta = SS_CLASE_PARAM }, (ss_tmp34724.etiqueta == ss_tmp34725.etiqueta))))
+                        if (((ss_tmp34727 = (*h).clase, ss_tmp34728 = (Clase){ .etiqueta = SS_CLASE_PARAM }, (ss_tmp34727.etiqueta == ss_tmp34728.etiqueta))))
                         {
 #line 3541 "ejemplos/compilador/tcodec.t"
                             SS_LANG_QUIZA_SIN_USAR SafeString tp = tipo_pelado(ss_view(&(*h).texto));
                             bool ss_vivo_tp = true;
 #line 3542 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp34726 = &ps;
+                            ss_lista_str* ss_tmp34729 = &ps;
 #line 3542 "ejemplos/compilador/tcodec.t"
-                            ss_push_lista_str(ss_tmp34726, tp, "ejemplos/compilador/tcodec.t", 3542);
+                            ss_push_lista_str(ss_tmp34729, tp, "ejemplos/compilador/tcodec.t", 3542);
                             ss_vivo_tp = false;
 #line 3543 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp34727 = &pn;
+                            ss_lista_str* ss_tmp34730 = &pn;
 #line 3543 "ejemplos/compilador/tcodec.t"
-                            ss_push_lista_str(ss_tmp34727, nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3543);
+                            ss_push_lista_str(ss_tmp34730, nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3543);
                             if (ss_vivo_tp)
                             {
                                 ss_free(&tp);
                             }
                         }
 #line 3545 "ejemplos/compilador/tcodec.t"
-                        Clase ss_tmp34728;
-                        Clase ss_tmp34729;
+                        Clase ss_tmp34731;
+                        Clase ss_tmp34732;
 #line 3545 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp34728 = (*h).clase, ss_tmp34729 = (Clase){ .etiqueta = SS_CLASE_RETORNOTIPO }, (ss_tmp34728.etiqueta == ss_tmp34729.etiqueta))))
+                        if (((ss_tmp34731 = (*h).clase, ss_tmp34732 = (Clase){ .etiqueta = SS_CLASE_RETORNOTIPO }, (ss_tmp34731.etiqueta == ss_tmp34732.etiqueta))))
                         {
-                            SafeString ss_tmp34730 = ss_from_view(ss_view(&(*h).texto));
+                            SafeString ss_tmp34733 = ss_from_view(ss_view(&(*h).texto));
                             ss_free(&ret);
-                            ret = ss_tmp34730;
+                            ret = ss_tmp34733;
                         }
                     }
 #line 3547 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp34731 = &ext_cabeceras;
+                    ss_lista_str* ss_tmp34734 = &ext_cabeceras;
 #line 3547 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp34731, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3547);
+                    ss_push_lista_str(ss_tmp34734, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3547);
 #line 3548 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp34732 = &ext_modulos;
+                    ss_lista_str* ss_tmp34735 = &ext_modulos;
 #line 3548 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp34732, ss_clone(m), "ejemplos/compilador/tcodec.t", 3548);
+                    ss_push_lista_str(ss_tmp34735, ss_clone(m), "ejemplos/compilador/tcodec.t", 3548);
 #line 3549 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp34733 = &ext_protos;
-                    SafeView ss_tmp34734;
-                    const ss_lista_str* ss_tmp34735;
-                    const ss_lista_str* ss_tmp34736;
+                    ss_lista_str* ss_tmp34736 = &ext_protos;
                     SafeView ss_tmp34737;
+                    const ss_lista_str* ss_tmp34738;
+                    const ss_lista_str* ss_tmp34739;
+                    SafeView ss_tmp34740;
 #line 3549 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp34733, ((ss_tmp34734 = ss_view(&(*f).texto), ss_tmp34735 = &ps, ss_tmp34736 = &pn, ss_tmp34737 = ss_view(&ret), prototipo_externo(ss_tmp34734, ss_tmp34735, ss_tmp34736, ss_tmp34737))), "ejemplos/compilador/tcodec.t", 3549);
+                    ss_push_lista_str(ss_tmp34736, ((ss_tmp34737 = ss_view(&(*f).texto), ss_tmp34738 = &ps, ss_tmp34739 = &pn, ss_tmp34740 = ss_view(&ret), prototipo_externo(ss_tmp34737, ss_tmp34738, ss_tmp34739, ss_tmp34740))), "ejemplos/compilador/tcodec.t", 3549);
                     ss_free(&ret);
                     for (size_t ss_i1363 = 0; ss_i1363 < pn.length; ss_i1363++)
                     {
@@ -118134,24 +118140,24 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             case SS_CLASE_ENUM:
             {
 #line 3554 "ejemplos/compilador/tcodec.t"
-                const ss_mapa_str_usize* ss_tmp34738;
-                SafeView ss_tmp34739;
+                const ss_mapa_str_usize* ss_tmp34741;
+                SafeView ss_tmp34742;
 #line 3554 "ejemplos/compilador/tcodec.t"
-                const ss_mapa_str_usize* ss_tmp34740;
-                SafeView ss_tmp34741;
+                const ss_mapa_str_usize* ss_tmp34743;
+                SafeView ss_tmp34744;
 #line 3554 "ejemplos/compilador/tcodec.t"
-                if ((((ss_tmp34738 = &en_indice, ss_tmp34739 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34738, ss_tmp34739))) || ((ss_tmp34740 = &st_indice, ss_tmp34741 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34740, ss_tmp34741)))))
+                if ((((ss_tmp34741 = &en_indice, ss_tmp34742 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34741, ss_tmp34742))) || ((ss_tmp34743 = &st_indice, ss_tmp34744 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp34743, ss_tmp34744)))))
                 {
 #line 3555 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp34743;
-                    size_t ss_tmp34744;
-                    SafeString ss_tmp34742 = ((ss_tmp34743 = ss_view(m), ss_tmp34744 = (*d).linea, sitio(ss_tmp34743, ss_tmp34744)));
-                    SafeView ss_tmp34745;
                     SafeView ss_tmp34746;
-                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34745 = ss_view(&ss_tmp34742), ss_tmp34746 = sv_len("no admite un enum repetido entre modulos", 40), rechazo(ss_tmp34745, ss_tmp34746)));
-                    ss_free(&ss_tmp34742);
+                    size_t ss_tmp34747;
+                    SafeString ss_tmp34745 = ((ss_tmp34746 = ss_view(m), ss_tmp34747 = (*d).linea, sitio(ss_tmp34746, ss_tmp34747)));
+                    SafeView ss_tmp34748;
+                    SafeView ss_tmp34749;
+                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34748 = ss_view(&ss_tmp34745), ss_tmp34749 = sv_len("no admite un enum repetido entre modulos", 40), rechazo(ss_tmp34748, ss_tmp34749)));
+                    ss_free(&ss_tmp34745);
 #line 3557 "ejemplos/compilador/tcodec.t"
-                    ProgramaLeido ss_tmp34747 = programa_no_leido();
+                    ProgramaLeido ss_tmp34750 = programa_no_leido();
                     if (ss_vivo_arbol)
                     {
                         ss_drop_Nodo(&arbol);
@@ -118416,32 +118422,32 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         modulos.capacity = 0;
                     }
                     ss_free(&principal);
-                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34747 };
+                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34750 };
                 }
 #line 3559 "ejemplos/compilador/tcodec.t"
-                ss_lista_str ss_tmp34748 = { .e = NULL, .length = 0, .capacity = 0 };
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str vs = ss_tmp34748;
+                ss_lista_str ss_tmp34751 = { .e = NULL, .length = 0, .capacity = 0 };
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str vs = ss_tmp34751;
                 bool ss_vivo_vs = true;
 #line 3560 "ejemplos/compilador/tcodec.t"
-                ss_lista_str ss_tmp34749 = { .e = NULL, .length = 0, .capacity = 0 };
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str ls = ss_tmp34749;
+                ss_lista_str ss_tmp34752 = { .e = NULL, .length = 0, .capacity = 0 };
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str ls = ss_tmp34752;
                 bool ss_vivo_ls = true;
 #line 3561 "ejemplos/compilador/tcodec.t"
                 for (size_t ss_k1389 = 0; ss_k1389 < (*d).hijos.length; ss_k1389++)
                 {
                     SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1389];
 #line 3562 "ejemplos/compilador/tcodec.t"
-                    Clase ss_tmp34750;
-                    Clase ss_tmp34751;
+                    Clase ss_tmp34753;
+                    Clase ss_tmp34754;
 #line 3562 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp34750 = (*h).clase, ss_tmp34751 = (Clase){ .etiqueta = SS_CLASE_VARIANTE }, (ss_tmp34750.etiqueta != ss_tmp34751.etiqueta))))
+                    if (((ss_tmp34753 = (*h).clase, ss_tmp34754 = (Clase){ .etiqueta = SS_CLASE_VARIANTE }, (ss_tmp34753.etiqueta != ss_tmp34754.etiqueta))))
                     {
                         continue;
                     }
 #line 3563 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp34752 = &vs;
+                    ss_lista_str* ss_tmp34755 = &vs;
 #line 3563 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp34752, ss_from_view(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3563);
+                    ss_push_lista_str(ss_tmp34755, ss_from_view(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3563);
 #line 3564 "ejemplos/compilador/tcodec.t"
                     SS_LANG_QUIZA_SIN_USAR SafeString junto = ss_new();
                     bool ss_vivo_junto = true;
@@ -118452,10 +118458,10 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     {
                         SS_LANG_QUIZA_SIN_USAR const Nodo* x = &(*h).hijos.e[ss_k1390];
 #line 3567 "ejemplos/compilador/tcodec.t"
-                        Clase ss_tmp34753;
-                        Clase ss_tmp34754;
+                        Clase ss_tmp34756;
+                        Clase ss_tmp34757;
 #line 3567 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp34753 = (*x).clase, ss_tmp34754 = (Clase){ .etiqueta = SS_CLASE_LLEVA }, (ss_tmp34753.etiqueta != ss_tmp34754.etiqueta))))
+                        if (((ss_tmp34756 = (*x).clase, ss_tmp34757 = (Clase){ .etiqueta = SS_CLASE_LLEVA }, (ss_tmp34756.etiqueta != ss_tmp34757.etiqueta))))
                         {
                             continue;
                         }
@@ -118465,15 +118471,15 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         if (lleva_bloque_o_arreglo(ss_view(&t)))
                         {
 #line 3570 "ejemplos/compilador/tcodec.t"
-                            SafeView ss_tmp34756;
-                            size_t ss_tmp34757;
-                            SafeString ss_tmp34755 = ((ss_tmp34756 = ss_view(m), ss_tmp34757 = (*x).linea, sitio(ss_tmp34756, ss_tmp34757)));
-                            SafeView ss_tmp34758;
                             SafeView ss_tmp34759;
-                            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34758 = ss_view(&ss_tmp34755), ss_tmp34759 = sv_len("no escribe bloques ni arreglos dentro de un enum", 48), rechazo(ss_tmp34758, ss_tmp34759)));
-                            ss_free(&ss_tmp34755);
+                            size_t ss_tmp34760;
+                            SafeString ss_tmp34758 = ((ss_tmp34759 = ss_view(m), ss_tmp34760 = (*x).linea, sitio(ss_tmp34759, ss_tmp34760)));
+                            SafeView ss_tmp34761;
+                            SafeView ss_tmp34762;
+                            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34761 = ss_view(&ss_tmp34758), ss_tmp34762 = sv_len("no escribe bloques ni arreglos dentro de un enum", 48), rechazo(ss_tmp34761, ss_tmp34762)));
+                            ss_free(&ss_tmp34758);
 #line 3572 "ejemplos/compilador/tcodec.t"
-                            ProgramaLeido ss_tmp34760 = programa_no_leido();
+                            ProgramaLeido ss_tmp34763 = programa_no_leido();
                             ss_free(&t);
                             if (ss_vivo_junto)
                             {
@@ -118765,27 +118771,27 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                                 modulos.capacity = 0;
                             }
                             ss_free(&principal);
-                            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34760 };
+                            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34763 };
                         }
 #line 3574 "ejemplos/compilador/tcodec.t"
                         if ((!primero_t))
                         {
-                            SafeString* ss_tmp34761 = &junto;
+                            SafeString* ss_tmp34764 = &junto;
 #line 3574 "ejemplos/compilador/tcodec.t"
-                            ss_append_view(ss_tmp34761, sv_len("\t", 1));
+                            ss_append_view(ss_tmp34764, sv_len("\t", 1));
                         }
 #line 3575 "ejemplos/compilador/tcodec.t"
                         primero_t = false;
 #line 3576 "ejemplos/compilador/tcodec.t"
-                        SafeString* ss_tmp34762 = &junto;
+                        SafeString* ss_tmp34765 = &junto;
 #line 3576 "ejemplos/compilador/tcodec.t"
-                        ss_append_view(ss_tmp34762, ss_view(&t));
+                        ss_append_view(ss_tmp34765, ss_view(&t));
                         ss_free(&t);
                     }
 #line 3578 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp34763 = &ls;
+                    ss_lista_str* ss_tmp34766 = &ls;
 #line 3578 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp34763, junto, "ejemplos/compilador/tcodec.t", 3578);
+                    ss_push_lista_str(ss_tmp34766, junto, "ejemplos/compilador/tcodec.t", 3578);
                     ss_vivo_junto = false;
                     if (ss_vivo_junto)
                     {
@@ -118793,22 +118799,22 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                 }
 #line 3580 "ejemplos/compilador/tcodec.t"
-                ss_mapa_str_usize* ss_tmp34764 = &en_indice;
+                ss_mapa_str_usize* ss_tmp34767 = &en_indice;
 #line 3580 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_usize(ss_tmp34764, ss_view(&(*d).texto), (en_nombres.length), "ejemplos/compilador/tcodec.t", 3580);
+                ss_mapa_poner_mapa_str_usize(ss_tmp34767, ss_view(&(*d).texto), (en_nombres.length), "ejemplos/compilador/tcodec.t", 3580);
 #line 3581 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp34765 = &en_nombres;
+                ss_lista_str* ss_tmp34768 = &en_nombres;
 #line 3581 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp34765, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3581);
+                ss_push_lista_str(ss_tmp34768, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3581);
 #line 3582 "ejemplos/compilador/tcodec.t"
-                ss_lista_lista_str* ss_tmp34766 = &en_variantes;
+                ss_lista_lista_str* ss_tmp34769 = &en_variantes;
 #line 3582 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_lista_str(ss_tmp34766, vs, "ejemplos/compilador/tcodec.t", 3582);
+                ss_push_lista_lista_str(ss_tmp34769, vs, "ejemplos/compilador/tcodec.t", 3582);
                 ss_vivo_vs = false;
 #line 3583 "ejemplos/compilador/tcodec.t"
-                ss_lista_lista_str* ss_tmp34767 = &en_lleva;
+                ss_lista_lista_str* ss_tmp34770 = &en_lleva;
 #line 3583 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_lista_str(ss_tmp34767, ls, "ejemplos/compilador/tcodec.t", 3583);
+                ss_push_lista_lista_str(ss_tmp34770, ls, "ejemplos/compilador/tcodec.t", 3583);
                 ss_vivo_ls = false;
 #line 3584 "ejemplos/compilador/tcodec.t"
                 if (ss_vivo_ls)
@@ -118839,13 +118845,13 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             default:
             {
 #line 3587 "ejemplos/compilador/tcodec.t"
-                Clase ss_tmp34768;
-                Clase ss_tmp34769;
-#line 3587 "ejemplos/compilador/tcodec.t"
-                Clase ss_tmp34770;
                 Clase ss_tmp34771;
+                Clase ss_tmp34772;
 #line 3587 "ejemplos/compilador/tcodec.t"
-                if ((((ss_tmp34768 = clase, ss_tmp34769 = (Clase){ .etiqueta = SS_CLASE_USAR }, (ss_tmp34768.etiqueta == ss_tmp34769.etiqueta))) || ((ss_tmp34770 = clase, ss_tmp34771 = (Clase){ .etiqueta = SS_CLASE_ALIAS }, (ss_tmp34770.etiqueta == ss_tmp34771.etiqueta)))))
+                Clase ss_tmp34773;
+                Clase ss_tmp34774;
+#line 3587 "ejemplos/compilador/tcodec.t"
+                if ((((ss_tmp34771 = clase, ss_tmp34772 = (Clase){ .etiqueta = SS_CLASE_USAR }, (ss_tmp34771.etiqueta == ss_tmp34772.etiqueta))) || ((ss_tmp34773 = clase, ss_tmp34774 = (Clase){ .etiqueta = SS_CLASE_ALIAS }, (ss_tmp34773.etiqueta == ss_tmp34774.etiqueta)))))
                 {
                     continue;
                 }
@@ -118853,22 +118859,22 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             }
 #line 3590 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp34773;
-            size_t ss_tmp34774;
-            SafeString ss_tmp34772 = ((ss_tmp34773 = ss_view(m), ss_tmp34774 = (*d).linea, sitio(ss_tmp34773, ss_tmp34774)));
-            SafeView ss_tmp34775;
-            SafeString ss_tmp34777 = ss_new();
-            SafeView ss_tmp34778 = ss_view(&ss_tmp34772);
-            ss_lang_agregar_texto_(&ss_tmp34777, sv_len("no escribe `", 12), "ejemplos/compilador/tcodec.t", 3591);
-            ss_lang_agregar_texto_(&ss_tmp34777, nombre_de_clase(clase), "ejemplos/compilador/tcodec.t", 3591);
-            ss_lang_agregar_texto_(&ss_tmp34777, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 3591);
-            SafeString ss_tmp34776 = ss_tmp34777;
-            SafeView ss_tmp34779;
-            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34775 = ss_tmp34778, ss_tmp34779 = ss_view(&ss_tmp34776), rechazo(ss_tmp34775, ss_tmp34779)));
-            ss_free(&ss_tmp34772);
-            ss_free(&ss_tmp34776);
+            SafeView ss_tmp34776;
+            size_t ss_tmp34777;
+            SafeString ss_tmp34775 = ((ss_tmp34776 = ss_view(m), ss_tmp34777 = (*d).linea, sitio(ss_tmp34776, ss_tmp34777)));
+            SafeView ss_tmp34778;
+            SafeString ss_tmp34780 = ss_new();
+            SafeView ss_tmp34781 = ss_view(&ss_tmp34775);
+            ss_lang_agregar_texto_(&ss_tmp34780, sv_len("no escribe `", 12), "ejemplos/compilador/tcodec.t", 3591);
+            ss_lang_agregar_texto_(&ss_tmp34780, nombre_de_clase(clase), "ejemplos/compilador/tcodec.t", 3591);
+            ss_lang_agregar_texto_(&ss_tmp34780, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 3591);
+            SafeString ss_tmp34779 = ss_tmp34780;
+            SafeView ss_tmp34782;
+            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp34778 = ss_tmp34781, ss_tmp34782 = ss_view(&ss_tmp34779), rechazo(ss_tmp34778, ss_tmp34782)));
+            ss_free(&ss_tmp34775);
+            ss_free(&ss_tmp34779);
 #line 3592 "ejemplos/compilador/tcodec.t"
-            ProgramaLeido ss_tmp34780 = programa_no_leido();
+            ProgramaLeido ss_tmp34783 = programa_no_leido();
             if (ss_vivo_arbol)
             {
                 ss_drop_Nodo(&arbol);
@@ -119133,17 +119139,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                 modulos.capacity = 0;
             }
             ss_free(&principal);
-            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34780 };
+            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34783 };
         }
 #line 3594 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp34781 = &arboles;
+        ss_lista_Nodo* ss_tmp34784 = &arboles;
 #line 3594 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_Nodo(ss_tmp34781, arbol, "ejemplos/compilador/tcodec.t", 3594);
+        ss_push_lista_Nodo(ss_tmp34784, arbol, "ejemplos/compilador/tcodec.t", 3594);
         ss_vivo_arbol = false;
 #line 3595 "ejemplos/compilador/tcodec.t"
-        ss_lista_Contexto* ss_tmp34782 = &contextos;
+        ss_lista_Contexto* ss_tmp34785 = &contextos;
 #line 3595 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_Contexto(ss_tmp34782, tipos, "ejemplos/compilador/tcodec.t", 3595);
+        ss_push_lista_Contexto(ss_tmp34785, tipos, "ejemplos/compilador/tcodec.t", 3595);
         ss_vivo_tipos = false;
         if (ss_vivo_arbol)
         {
@@ -119156,19 +119162,19 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
     }
 #line 3597 "ejemplos/compilador/tcodec.t"
-    const ss_lista_Nodo* ss_tmp34783;
-    const ss_mapa_str_usize* ss_tmp34784;
-    Contexto* ss_tmp34785;
-    ((ss_tmp34783 = &arboles, ss_tmp34784 = &plantillas, ss_tmp34785 = &global, marcar_tapadas(ss_tmp34783, ss_tmp34784, ss_tmp34785)));
+    const ss_lista_Nodo* ss_tmp34786;
+    const ss_mapa_str_usize* ss_tmp34787;
+    Contexto* ss_tmp34788;
+    ((ss_tmp34786 = &arboles, ss_tmp34787 = &plantillas, ss_tmp34788 = &global, marcar_tapadas(ss_tmp34786, ss_tmp34787, ss_tmp34788)));
 #line 3598 "ejemplos/compilador/tcodec.t"
-    const ss_lista_Nodo* ss_tmp34787;
-    const ss_lista_str* ss_tmp34788;
-    SafeView ss_tmp34789;
-    const Contexto* ss_tmp34790;
-    const ss_mapa_str_usize* ss_tmp34791;
-    ss_lista_Contexto* ss_tmp34792;
-    ss_res_bool ss_tmp34786 = ((ss_tmp34787 = &arboles, ss_tmp34788 = &modulos, ss_tmp34789 = raiz, ss_tmp34790 = &global, ss_tmp34791 = &plantillas, ss_tmp34792 = &contextos, ajustar_contextos(ss_tmp34787, ss_tmp34788, ss_tmp34789, ss_tmp34790, ss_tmp34791, ss_tmp34792)));
-    if (ss_tmp34786.motivo != NULL)
+    const ss_lista_Nodo* ss_tmp34790;
+    const ss_lista_str* ss_tmp34791;
+    SafeView ss_tmp34792;
+    const Contexto* ss_tmp34793;
+    const ss_mapa_str_usize* ss_tmp34794;
+    ss_lista_Contexto* ss_tmp34795;
+    ss_res_bool ss_tmp34789 = ((ss_tmp34790 = &arboles, ss_tmp34791 = &modulos, ss_tmp34792 = raiz, ss_tmp34793 = &global, ss_tmp34794 = &plantillas, ss_tmp34795 = &contextos, ajustar_contextos(ss_tmp34790, ss_tmp34791, ss_tmp34792, ss_tmp34793, ss_tmp34794, ss_tmp34795)));
+    if (ss_tmp34789.motivo != NULL)
     {
         ss_drop_Leidos(&leidos);
         ss_mapa_libre_mapa_str_usize(&previos_en);
@@ -119425,12 +119431,12 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             modulos.capacity = 0;
         }
         ss_free(&principal);
-        return (ss_res_ProgramaLeido){ .motivo = ss_tmp34786.motivo };
+        return (ss_res_ProgramaLeido){ .motivo = ss_tmp34789.motivo };
     }
-    if ((!ss_tmp34786.valor))
+    if ((!ss_tmp34789.valor))
     {
 #line 3599 "ejemplos/compilador/tcodec.t"
-        ProgramaLeido ss_tmp34793 = programa_no_leido();
+        ProgramaLeido ss_tmp34796 = programa_no_leido();
         ss_drop_Leidos(&leidos);
         ss_mapa_libre_mapa_str_usize(&previos_en);
         ss_mapa_libre_mapa_str_usize(&previos_st);
@@ -119686,88 +119692,88 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             modulos.capacity = 0;
         }
         ss_free(&principal);
-        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34793 };
+        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34796 };
     }
 #line 3603 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_alias = (size_t)0;
 #line 3604 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34794;
-        size_t ss_tmp34795;
+        size_t ss_tmp34797;
+        size_t ss_tmp34798;
 #line 3604 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34794 = k_alias, ss_tmp34795 = (arboles.length), (ss_tmp34794 < ss_tmp34795)))))
+        if (!(((ss_tmp34797 = k_alias, ss_tmp34798 = (arboles.length), (ss_tmp34797 < ss_tmp34798)))))
         {
             break;
         }
 #line 3605 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp34796;
-        quitar_alias_de_tipos(&((ss_tmp34796 = &(arboles), &ss_tmp34796->e[ss_lang_indice_(k_alias, ss_tmp34796->length, "ejemplos/compilador/tcodec.t", 3605)])[0]));
+        ss_lista_Nodo* ss_tmp34799;
+        quitar_alias_de_tipos(&((ss_tmp34799 = &(arboles), &ss_tmp34799->e[ss_lang_indice_(k_alias, ss_tmp34799->length, "ejemplos/compilador/tcodec.t", 3605)])[0]));
 #line 3606 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34797;
-        size_t ss_tmp34798;
+        size_t ss_tmp34800;
+        size_t ss_tmp34801;
 #line 3606 "ejemplos/compilador/tcodec.t"
-        k_alias = ((ss_tmp34797 = k_alias, ss_tmp34798 = (size_t)1, ss_lang_suma_usize(ss_tmp34797, ss_tmp34798, "ejemplos/compilador/tcodec.t", 3606)));
+        k_alias = ((ss_tmp34800 = k_alias, ss_tmp34801 = (size_t)1, ss_lang_suma_usize(ss_tmp34800, ss_tmp34801, "ejemplos/compilador/tcodec.t", 3606)));
     }
 #line 3608 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34799;
-    ss_lista_lista_str ss_tmp34800;
-    ss_lista_lista_str ss_tmp34801;
-    ss_mapa_str_usize ss_tmp34802;
+    ss_lista_str ss_tmp34802;
+    ss_lista_lista_str ss_tmp34803;
+    ss_lista_lista_str ss_tmp34804;
+    ss_mapa_str_usize ss_tmp34805;
 #line 3608 "ejemplos/compilador/tcodec.t"
-    SS_LANG_QUIZA_SIN_USAR StructsLeidos structs = ((ss_tmp34799 = st_nombres, ss_tmp34800 = st_campos, ss_tmp34801 = st_tipos, ss_tmp34802 = st_indice, (StructsLeidos){ .nombres = ss_tmp34799, .campos = ss_tmp34800, .tipos = ss_tmp34801, .indice = ss_tmp34802 }));
+    SS_LANG_QUIZA_SIN_USAR StructsLeidos structs = ((ss_tmp34802 = st_nombres, ss_tmp34803 = st_campos, ss_tmp34804 = st_tipos, ss_tmp34805 = st_indice, (StructsLeidos){ .nombres = ss_tmp34802, .campos = ss_tmp34803, .tipos = ss_tmp34804, .indice = ss_tmp34805 }));
     bool ss_vivo_structs = true;
     ss_vivo_st_nombres = false;
     ss_vivo_st_campos = false;
     ss_vivo_st_tipos = false;
     ss_vivo_st_indice = false;
 #line 3610 "ejemplos/compilador/tcodec.t"
-    ss_mapa_str_usize ss_tmp34803;
-    ss_lista_lista_str ss_tmp34804;
-    ss_lista_lista_str ss_tmp34805;
-    ss_lista_lista_str ss_tmp34806;
+    ss_mapa_str_usize ss_tmp34806;
+    ss_lista_lista_str ss_tmp34807;
+    ss_lista_lista_str ss_tmp34808;
+    ss_lista_lista_str ss_tmp34809;
 #line 3610 "ejemplos/compilador/tcodec.t"
-    SS_LANG_QUIZA_SIN_USAR StructsGenericos genericos = ((ss_tmp34803 = stp_indice, ss_tmp34804 = stp_params, ss_tmp34805 = stp_campos, ss_tmp34806 = stp_tipos, (StructsGenericos){ .indice = ss_tmp34803, .params = ss_tmp34804, .campos = ss_tmp34805, .tipos = ss_tmp34806 }));
+    SS_LANG_QUIZA_SIN_USAR StructsGenericos genericos = ((ss_tmp34806 = stp_indice, ss_tmp34807 = stp_params, ss_tmp34808 = stp_campos, ss_tmp34809 = stp_tipos, (StructsGenericos){ .indice = ss_tmp34806, .params = ss_tmp34807, .campos = ss_tmp34808, .tipos = ss_tmp34809 }));
     bool ss_vivo_genericos = true;
     ss_vivo_stp_indice = false;
     ss_vivo_stp_params = false;
     ss_vivo_stp_campos = false;
     ss_vivo_stp_tipos = false;
 #line 3612 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34807;
-    ss_mapa_str_usize ss_tmp34808;
-    ss_lista_lista_str ss_tmp34809;
-    ss_lista_lista_str ss_tmp34810;
+    ss_lista_str ss_tmp34810;
+    ss_mapa_str_usize ss_tmp34811;
+    ss_lista_lista_str ss_tmp34812;
+    ss_lista_lista_str ss_tmp34813;
 #line 3612 "ejemplos/compilador/tcodec.t"
-    SS_LANG_QUIZA_SIN_USAR EnumsLeidos enums = ((ss_tmp34807 = en_nombres, ss_tmp34808 = en_indice, ss_tmp34809 = en_variantes, ss_tmp34810 = en_lleva, (EnumsLeidos){ .nombres = ss_tmp34807, .indice = ss_tmp34808, .variantes = ss_tmp34809, .lleva = ss_tmp34810 }));
+    SS_LANG_QUIZA_SIN_USAR EnumsLeidos enums = ((ss_tmp34810 = en_nombres, ss_tmp34811 = en_indice, ss_tmp34812 = en_variantes, ss_tmp34813 = en_lleva, (EnumsLeidos){ .nombres = ss_tmp34810, .indice = ss_tmp34811, .variantes = ss_tmp34812, .lleva = ss_tmp34813 }));
     bool ss_vivo_enums = true;
     ss_vivo_en_nombres = false;
     ss_vivo_en_indice = false;
     ss_vivo_en_variantes = false;
     ss_vivo_en_lleva = false;
 #line 3614 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34811;
-    ss_lista_str ss_tmp34812;
-    ss_lista_str ss_tmp34813;
+    ss_lista_str ss_tmp34814;
+    ss_lista_str ss_tmp34815;
+    ss_lista_str ss_tmp34816;
 #line 3614 "ejemplos/compilador/tcodec.t"
-    SS_LANG_QUIZA_SIN_USAR ExternosLeidos externos = ((ss_tmp34811 = ext_cabeceras, ss_tmp34812 = ext_modulos, ss_tmp34813 = ext_protos, (ExternosLeidos){ .cabeceras = ss_tmp34811, .modulos = ss_tmp34812, .protos = ss_tmp34813 }));
+    SS_LANG_QUIZA_SIN_USAR ExternosLeidos externos = ((ss_tmp34814 = ext_cabeceras, ss_tmp34815 = ext_modulos, ss_tmp34816 = ext_protos, (ExternosLeidos){ .cabeceras = ss_tmp34814, .modulos = ss_tmp34815, .protos = ss_tmp34816 }));
     bool ss_vivo_externos = true;
     ss_vivo_ext_cabeceras = false;
     ss_vivo_ext_modulos = false;
     ss_vivo_ext_protos = false;
 #line 3616 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp34814;
-    ss_lista_str ss_tmp34815;
-    Contexto ss_tmp34816;
-    ss_lista_Nodo ss_tmp34817;
-    ss_lista_Contexto ss_tmp34818;
-    StructsLeidos ss_tmp34819;
-    StructsGenericos ss_tmp34820;
-    EnumsLeidos ss_tmp34821;
-    ExternosLeidos ss_tmp34822;
-    ss_mapa_str_usize ss_tmp34823;
+    bool ss_tmp34817;
+    ss_lista_str ss_tmp34818;
+    Contexto ss_tmp34819;
+    ss_lista_Nodo ss_tmp34820;
+    ss_lista_Contexto ss_tmp34821;
+    StructsLeidos ss_tmp34822;
+    StructsGenericos ss_tmp34823;
+    EnumsLeidos ss_tmp34824;
+    ExternosLeidos ss_tmp34825;
+    ss_mapa_str_usize ss_tmp34826;
 #line 3616 "ejemplos/compilador/tcodec.t"
-    ProgramaLeido ss_tmp34824 = ((ss_tmp34814 = true, ss_tmp34815 = modulos, ss_tmp34816 = global, ss_tmp34817 = arboles, ss_tmp34818 = contextos, ss_tmp34819 = structs, ss_tmp34820 = genericos, ss_tmp34821 = enums, ss_tmp34822 = externos, ss_tmp34823 = plantillas, (ProgramaLeido){ .ok = ss_tmp34814, .modulos = ss_tmp34815, .global = ss_tmp34816, .arboles = ss_tmp34817, .contextos = ss_tmp34818, .structs = ss_tmp34819, .genericos = ss_tmp34820, .enums = ss_tmp34821, .externos = ss_tmp34822, .plantillas = ss_tmp34823 }));
+    ProgramaLeido ss_tmp34827 = ((ss_tmp34817 = true, ss_tmp34818 = modulos, ss_tmp34819 = global, ss_tmp34820 = arboles, ss_tmp34821 = contextos, ss_tmp34822 = structs, ss_tmp34823 = genericos, ss_tmp34824 = enums, ss_tmp34825 = externos, ss_tmp34826 = plantillas, (ProgramaLeido){ .ok = ss_tmp34817, .modulos = ss_tmp34818, .global = ss_tmp34819, .arboles = ss_tmp34820, .contextos = ss_tmp34821, .structs = ss_tmp34822, .genericos = ss_tmp34823, .enums = ss_tmp34824, .externos = ss_tmp34825, .plantillas = ss_tmp34826 }));
     ss_vivo_modulos = false;
     ss_vivo_global = false;
     ss_vivo_arboles = false;
@@ -120048,7 +120054,7 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         modulos.capacity = 0;
     }
     ss_free(&principal);
-    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34824 };
+    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp34827 };
 }
 
 #line 3622 "ejemplos/compilador/tcodec.t"
@@ -120061,28 +120067,28 @@ SS_LANG_QUIZA_SIN_USAR static Cierres preparar_cierres(SS_LANG_QUIZA_SIN_USAR co
     for (size_t ss_k1515 = 0; ss_k1515 < (*revision).sacados.length; ss_k1515++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*revision).sacados.e[ss_k1515];
-        ss_mapa_str_usize* ss_tmp34825 = &sacados;
+        ss_mapa_str_usize* ss_tmp34828 = &sacados;
 #line 3625 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp34825, ss_view(x), (size_t)1, "ejemplos/compilador/tcodec.t", 3625);
+        ss_mapa_poner_mapa_str_usize(ss_tmp34828, ss_view(x), (size_t)1, "ejemplos/compilador/tcodec.t", 3625);
     }
 #line 3626 "ejemplos/compilador/tcodec.t"
-    ss_lista_Nodo ss_tmp34826;
-    ss_lista_usize ss_tmp34827;
-    ss_mapa_str_usize ss_tmp34828;
-    ss_mapa_str_usize ss_tmp34829;
-    ss_mapa_str_usize ss_tmp34830;
+    ss_lista_Nodo ss_tmp34829;
+    ss_lista_usize ss_tmp34830;
+    ss_mapa_str_usize ss_tmp34831;
+    ss_mapa_str_usize ss_tmp34832;
+    ss_mapa_str_usize ss_tmp34833;
 #line 3626 "ejemplos/compilador/tcodec.t"
-    SS_LANG_QUIZA_SIN_USAR Cierres cierres = ((ss_tmp34826 = ss_copia_lista_Nodo(&(*revision).cierres), ss_tmp34827 = ss_copia_lista_usize(&(*revision).cierres_mod), ss_tmp34828 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34829 = ss_copia_mapa_str_usize(&(*revision).numeracion), ss_tmp34830 = sacados, (Cierres){ .fns = ss_tmp34826, .modulo = ss_tmp34827, .indice = ss_tmp34828, .numeracion = ss_tmp34829, .sacados = ss_tmp34830 }));
+    SS_LANG_QUIZA_SIN_USAR Cierres cierres = ((ss_tmp34829 = ss_copia_lista_Nodo(&(*revision).cierres), ss_tmp34830 = ss_copia_lista_usize(&(*revision).cierres_mod), ss_tmp34831 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34832 = ss_copia_mapa_str_usize(&(*revision).numeracion), ss_tmp34833 = sacados, (Cierres){ .fns = ss_tmp34829, .modulo = ss_tmp34830, .indice = ss_tmp34831, .numeracion = ss_tmp34832, .sacados = ss_tmp34833 }));
     ss_vivo_sacados = false;
 #line 3629 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t m_c = (size_t)0;
 #line 3630 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34831;
-        size_t ss_tmp34832;
+        size_t ss_tmp34834;
+        size_t ss_tmp34835;
 #line 3630 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34831 = m_c, ss_tmp34832 = ((*arboles).length), (ss_tmp34831 < ss_tmp34832)))))
+        if (!(((ss_tmp34834 = m_c, ss_tmp34835 = ((*arboles).length), (ss_tmp34834 < ss_tmp34835)))))
         {
             break;
         }
@@ -120091,77 +120097,77 @@ SS_LANG_QUIZA_SIN_USAR static Cierres preparar_cierres(SS_LANG_QUIZA_SIN_USAR co
 #line 3632 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            ss_lista_Nodo* ss_tmp34833;
-            size_t ss_tmp34834;
-            size_t ss_tmp34835;
+            ss_lista_Nodo* ss_tmp34836;
+            size_t ss_tmp34837;
+            size_t ss_tmp34838;
 #line 3632 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp34834 = k_d, ss_tmp34835 = (((ss_tmp34833 = &((*arboles)), &ss_tmp34833->e[ss_lang_indice_(m_c, ss_tmp34833->length, "ejemplos/compilador/tcodec.t", 3632)])[0]).hijos.length), (ss_tmp34834 < ss_tmp34835)))))
+            if (!(((ss_tmp34837 = k_d, ss_tmp34838 = (((ss_tmp34836 = &((*arboles)), &ss_tmp34836->e[ss_lang_indice_(m_c, ss_tmp34836->length, "ejemplos/compilador/tcodec.t", 3632)])[0]).hijos.length), (ss_tmp34837 < ss_tmp34838)))))
             {
                 break;
             }
 #line 3633 "ejemplos/compilador/tcodec.t"
-            ss_lista_Nodo* ss_tmp34836;
-            ss_lista_Nodo* ss_tmp34837;
-            Clase ss_tmp34838;
-            Clase ss_tmp34839;
-#line 3633 "ejemplos/compilador/tcodec.t"
+            ss_lista_Nodo* ss_tmp34839;
             ss_lista_Nodo* ss_tmp34840;
-            ss_lista_Nodo* ss_tmp34841;
-            if ((((ss_tmp34838 = ((ss_tmp34837 = &(((ss_tmp34836 = &((*arboles)), &ss_tmp34836->e[ss_lang_indice_(m_c, ss_tmp34836->length, "ejemplos/compilador/tcodec.t", 3633)])[0]).hijos), &ss_tmp34837->e[ss_lang_indice_(k_d, ss_tmp34837->length, "ejemplos/compilador/tcodec.t", 3633)])[0]).clase, ss_tmp34839 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34838.etiqueta == ss_tmp34839.etiqueta))) && (!es_generica(&((ss_tmp34841 = &(((ss_tmp34840 = &((*arboles)), &ss_tmp34840->e[ss_lang_indice_(m_c, ss_tmp34840->length, "ejemplos/compilador/tcodec.t", 3634)])[0]).hijos), &ss_tmp34841->e[ss_lang_indice_(k_d, ss_tmp34841->length, "ejemplos/compilador/tcodec.t", 3634)])[0])))))
+            Clase ss_tmp34841;
+            Clase ss_tmp34842;
+#line 3633 "ejemplos/compilador/tcodec.t"
+            ss_lista_Nodo* ss_tmp34843;
+            ss_lista_Nodo* ss_tmp34844;
+            if ((((ss_tmp34841 = ((ss_tmp34840 = &(((ss_tmp34839 = &((*arboles)), &ss_tmp34839->e[ss_lang_indice_(m_c, ss_tmp34839->length, "ejemplos/compilador/tcodec.t", 3633)])[0]).hijos), &ss_tmp34840->e[ss_lang_indice_(k_d, ss_tmp34840->length, "ejemplos/compilador/tcodec.t", 3633)])[0]).clase, ss_tmp34842 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34841.etiqueta == ss_tmp34842.etiqueta))) && (!es_generica(&((ss_tmp34844 = &(((ss_tmp34843 = &((*arboles)), &ss_tmp34843->e[ss_lang_indice_(m_c, ss_tmp34843->length, "ejemplos/compilador/tcodec.t", 3634)])[0]).hijos), &ss_tmp34844->e[ss_lang_indice_(k_d, ss_tmp34844->length, "ejemplos/compilador/tcodec.t", 3634)])[0])))))
             {
 #line 3635 "ejemplos/compilador/tcodec.t"
-                ss_lista_Nodo* ss_tmp34842;
-                ss_lista_Nodo* ss_tmp34843;
-                SS_LANG_QUIZA_SIN_USAR SafeString dueno = ss_clone(&((ss_tmp34843 = &(((ss_tmp34842 = &((*arboles)), &ss_tmp34842->e[ss_lang_indice_(m_c, ss_tmp34842->length, "ejemplos/compilador/tcodec.t", 3635)])[0]).hijos), &ss_tmp34843->e[ss_lang_indice_(k_d, ss_tmp34843->length, "ejemplos/compilador/tcodec.t", 3635)])[0]).texto);
+                ss_lista_Nodo* ss_tmp34845;
+                ss_lista_Nodo* ss_tmp34846;
+                SS_LANG_QUIZA_SIN_USAR SafeString dueno = ss_clone(&((ss_tmp34846 = &(((ss_tmp34845 = &((*arboles)), &ss_tmp34845->e[ss_lang_indice_(m_c, ss_tmp34845->length, "ejemplos/compilador/tcodec.t", 3635)])[0]).hijos), &ss_tmp34846->e[ss_lang_indice_(k_d, ss_tmp34846->length, "ejemplos/compilador/tcodec.t", 3635)])[0]).texto);
 #line 3636 "ejemplos/compilador/tcodec.t"
-                ss_lista_Contexto* ss_tmp34844;
-                const ss_mapa_str_str* ss_tmp34845;
-                SafeView ss_tmp34846;
+                ss_lista_Contexto* ss_tmp34847;
+                const ss_mapa_str_str* ss_tmp34848;
+                SafeView ss_tmp34849;
 #line 3636 "ejemplos/compilador/tcodec.t"
-                if (((ss_tmp34845 = &((ss_tmp34844 = &((*contextos)), &ss_tmp34844->e[ss_lang_indice_(m_c, ss_tmp34844->length, "ejemplos/compilador/tcodec.t", 3636)])[0]).renombradas, ss_tmp34846 = ss_view(&dueno), ss_mapa_tiene_mapa_str_str(ss_tmp34845, ss_tmp34846))))
+                if (((ss_tmp34848 = &((ss_tmp34847 = &((*contextos)), &ss_tmp34847->e[ss_lang_indice_(m_c, ss_tmp34847->length, "ejemplos/compilador/tcodec.t", 3636)])[0]).renombradas, ss_tmp34849 = ss_view(&dueno), ss_mapa_tiene_mapa_str_str(ss_tmp34848, ss_tmp34849))))
                 {
 #line 3637 "ejemplos/compilador/tcodec.t"
-                    ss_lista_Contexto* ss_tmp34848;
-                    const ss_mapa_str_str* ss_tmp34849;
-                    SafeView ss_tmp34850;
+                    ss_lista_Contexto* ss_tmp34851;
+                    const ss_mapa_str_str* ss_tmp34852;
+                    SafeView ss_tmp34853;
 #line 3637 "ejemplos/compilador/tcodec.t"
-                    ss_res_view ss_tmp34847 = ((ss_tmp34849 = &((ss_tmp34848 = &((*contextos)), &ss_tmp34848->e[ss_lang_indice_(m_c, ss_tmp34848->length, "ejemplos/compilador/tcodec.t", 3637)])[0]).renombradas, ss_tmp34850 = ss_view(&dueno), ss_mapa_obtener_mapa_str_str(ss_tmp34849, ss_tmp34850)));
-                    SafeView ss_tmp34851;
-                    if (ss_tmp34847.motivo != NULL)
+                    ss_res_view ss_tmp34850 = ((ss_tmp34852 = &((ss_tmp34851 = &((*contextos)), &ss_tmp34851->e[ss_lang_indice_(m_c, ss_tmp34851->length, "ejemplos/compilador/tcodec.t", 3637)])[0]).renombradas, ss_tmp34853 = ss_view(&dueno), ss_mapa_obtener_mapa_str_str(ss_tmp34852, ss_tmp34853)));
+                    SafeView ss_tmp34854;
+                    if (ss_tmp34850.motivo != NULL)
                     {
-                        ss_tmp34851 = sv_len("", 0);
+                        ss_tmp34854 = sv_len("", 0);
                     }
                     else
                     {
-                        ss_tmp34851 = ss_tmp34847.valor;
+                        ss_tmp34854 = ss_tmp34850.valor;
                     }
-                    SafeString ss_tmp34852 = ss_from_view(ss_tmp34851);
+                    SafeString ss_tmp34855 = ss_from_view(ss_tmp34854);
                     ss_free(&dueno);
-                    dueno = ss_tmp34852;
+                    dueno = ss_tmp34855;
                 }
 #line 3639 "ejemplos/compilador/tcodec.t"
                 SS_LANG_QUIZA_SIN_USAR size_t cuenta = (size_t)0;
 #line 3640 "ejemplos/compilador/tcodec.t"
-                ss_lista_Nodo* ss_tmp34853;
-                ss_lista_Nodo* ss_tmp34854;
-                Nodo* ss_tmp34855;
-                SafeView ss_tmp34856;
-                const ss_mapa_str_usize* ss_tmp34857;
-                size_t* ss_tmp34858;
-                ((ss_tmp34855 = &((ss_tmp34854 = &(((ss_tmp34853 = &((*arboles)), &ss_tmp34853->e[ss_lang_indice_(m_c, ss_tmp34853->length, "ejemplos/compilador/tcodec.t", 3640)])[0]).hijos), &ss_tmp34854->e[ss_lang_indice_(k_d, ss_tmp34854->length, "ejemplos/compilador/tcodec.t", 3640)])[0]), ss_tmp34856 = ss_view(&dueno), ss_tmp34857 = &cierres.numeracion, ss_tmp34858 = &cuenta, numerar_cierres(ss_tmp34855, ss_tmp34856, ss_tmp34857, ss_tmp34858)));
+                ss_lista_Nodo* ss_tmp34856;
+                ss_lista_Nodo* ss_tmp34857;
+                Nodo* ss_tmp34858;
+                SafeView ss_tmp34859;
+                const ss_mapa_str_usize* ss_tmp34860;
+                size_t* ss_tmp34861;
+                ((ss_tmp34858 = &((ss_tmp34857 = &(((ss_tmp34856 = &((*arboles)), &ss_tmp34856->e[ss_lang_indice_(m_c, ss_tmp34856->length, "ejemplos/compilador/tcodec.t", 3640)])[0]).hijos), &ss_tmp34857->e[ss_lang_indice_(k_d, ss_tmp34857->length, "ejemplos/compilador/tcodec.t", 3640)])[0]), ss_tmp34859 = ss_view(&dueno), ss_tmp34860 = &cierres.numeracion, ss_tmp34861 = &cuenta, numerar_cierres(ss_tmp34858, ss_tmp34859, ss_tmp34860, ss_tmp34861)));
                 ss_free(&dueno);
             }
 #line 3643 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp34859;
-            size_t ss_tmp34860;
+            size_t ss_tmp34862;
+            size_t ss_tmp34863;
 #line 3643 "ejemplos/compilador/tcodec.t"
-            k_d = ((ss_tmp34859 = k_d, ss_tmp34860 = (size_t)1, ss_lang_suma_usize(ss_tmp34859, ss_tmp34860, "ejemplos/compilador/tcodec.t", 3643)));
+            k_d = ((ss_tmp34862 = k_d, ss_tmp34863 = (size_t)1, ss_lang_suma_usize(ss_tmp34862, ss_tmp34863, "ejemplos/compilador/tcodec.t", 3643)));
         }
 #line 3645 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34861;
-        size_t ss_tmp34862;
+        size_t ss_tmp34864;
+        size_t ss_tmp34865;
 #line 3645 "ejemplos/compilador/tcodec.t"
-        m_c = ((ss_tmp34861 = m_c, ss_tmp34862 = (size_t)1, ss_lang_suma_usize(ss_tmp34861, ss_tmp34862, "ejemplos/compilador/tcodec.t", 3645)));
+        m_c = ((ss_tmp34864 = m_c, ss_tmp34865 = (size_t)1, ss_lang_suma_usize(ss_tmp34864, ss_tmp34865, "ejemplos/compilador/tcodec.t", 3645)));
     }
 #line 3647 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize numeracion = ss_copia_mapa_str_usize(&cierres.numeracion);
@@ -120170,63 +120176,63 @@ SS_LANG_QUIZA_SIN_USAR static Cierres preparar_cierres(SS_LANG_QUIZA_SIN_USAR co
 #line 3649 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34863;
-        size_t ss_tmp34864;
+        size_t ss_tmp34866;
+        size_t ss_tmp34867;
 #line 3649 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34863 = k_cf, ss_tmp34864 = (cierres.fns.length), (ss_tmp34863 < ss_tmp34864)))))
+        if (!(((ss_tmp34866 = k_cf, ss_tmp34867 = (cierres.fns.length), (ss_tmp34866 < ss_tmp34867)))))
         {
             break;
         }
 #line 3650 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp34865;
-        SS_LANG_QUIZA_SIN_USAR SafeString dueno_c = ss_clone(&((ss_tmp34865 = &(cierres.fns), &ss_tmp34865->e[ss_lang_indice_(k_cf, ss_tmp34865->length, "ejemplos/compilador/tcodec.t", 3650)])[0]).texto);
+        ss_lista_Nodo* ss_tmp34868;
+        SS_LANG_QUIZA_SIN_USAR SafeString dueno_c = ss_clone(&((ss_tmp34868 = &(cierres.fns), &ss_tmp34868->e[ss_lang_indice_(k_cf, ss_tmp34868->length, "ejemplos/compilador/tcodec.t", 3650)])[0]).texto);
 #line 3651 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t cuenta_c = (size_t)0;
 #line 3652 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp34866;
-        Nodo* ss_tmp34867;
-        SafeView ss_tmp34868;
-        const ss_mapa_str_usize* ss_tmp34869;
-        size_t* ss_tmp34870;
-        ((ss_tmp34867 = &((ss_tmp34866 = &(cierres.fns), &ss_tmp34866->e[ss_lang_indice_(k_cf, ss_tmp34866->length, "ejemplos/compilador/tcodec.t", 3652)])[0]), ss_tmp34868 = ss_view(&dueno_c), ss_tmp34869 = &numeracion, ss_tmp34870 = &cuenta_c, numerar_cierres(ss_tmp34867, ss_tmp34868, ss_tmp34869, ss_tmp34870)));
+        ss_lista_Nodo* ss_tmp34869;
+        Nodo* ss_tmp34870;
+        SafeView ss_tmp34871;
+        const ss_mapa_str_usize* ss_tmp34872;
+        size_t* ss_tmp34873;
+        ((ss_tmp34870 = &((ss_tmp34869 = &(cierres.fns), &ss_tmp34869->e[ss_lang_indice_(k_cf, ss_tmp34869->length, "ejemplos/compilador/tcodec.t", 3652)])[0]), ss_tmp34871 = ss_view(&dueno_c), ss_tmp34872 = &numeracion, ss_tmp34873 = &cuenta_c, numerar_cierres(ss_tmp34870, ss_tmp34871, ss_tmp34872, ss_tmp34873)));
 #line 3653 "ejemplos/compilador/tcodec.t"
-        ss_mapa_str_usize* ss_tmp34871 = &cierres.indice;
+        ss_mapa_str_usize* ss_tmp34874 = &cierres.indice;
 #line 3653 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp34871, ss_view(&dueno_c), k_cf, "ejemplos/compilador/tcodec.t", 3653);
+        ss_mapa_poner_mapa_str_usize(ss_tmp34874, ss_view(&dueno_c), k_cf, "ejemplos/compilador/tcodec.t", 3653);
 #line 3654 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp34872;
-        const Nodo* ss_tmp34873;
-        Contexto* ss_tmp34874;
-        ((ss_tmp34873 = &((ss_tmp34872 = &(cierres.fns), &ss_tmp34872->e[ss_lang_indice_(k_cf, ss_tmp34872->length, "ejemplos/compilador/tcodec.t", 3654)])[0]), ss_tmp34874 = global, recoger_firmas(ss_tmp34873, ss_tmp34874)));
+        ss_lista_Nodo* ss_tmp34875;
+        const Nodo* ss_tmp34876;
+        Contexto* ss_tmp34877;
+        ((ss_tmp34876 = &((ss_tmp34875 = &(cierres.fns), &ss_tmp34875->e[ss_lang_indice_(k_cf, ss_tmp34875->length, "ejemplos/compilador/tcodec.t", 3654)])[0]), ss_tmp34877 = global, recoger_firmas(ss_tmp34876, ss_tmp34877)));
 #line 3655 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t k_cx = (size_t)0;
 #line 3656 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            size_t ss_tmp34875;
-            size_t ss_tmp34876;
+            size_t ss_tmp34878;
+            size_t ss_tmp34879;
 #line 3656 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp34875 = k_cx, ss_tmp34876 = ((*contextos).length), (ss_tmp34875 < ss_tmp34876)))))
+            if (!(((ss_tmp34878 = k_cx, ss_tmp34879 = ((*contextos).length), (ss_tmp34878 < ss_tmp34879)))))
             {
                 break;
             }
 #line 3657 "ejemplos/compilador/tcodec.t"
-            ss_lista_Nodo* ss_tmp34877;
-            const Nodo* ss_tmp34878;
-            ss_lista_Contexto* ss_tmp34879;
-            Contexto* ss_tmp34880;
-            ((ss_tmp34878 = &((ss_tmp34877 = &(cierres.fns), &ss_tmp34877->e[ss_lang_indice_(k_cf, ss_tmp34877->length, "ejemplos/compilador/tcodec.t", 3657)])[0]), ss_tmp34880 = &((ss_tmp34879 = &((*contextos)), &ss_tmp34879->e[ss_lang_indice_(k_cx, ss_tmp34879->length, "ejemplos/compilador/tcodec.t", 3657)])[0]), recoger_firmas(ss_tmp34878, ss_tmp34880)));
+            ss_lista_Nodo* ss_tmp34880;
+            const Nodo* ss_tmp34881;
+            ss_lista_Contexto* ss_tmp34882;
+            Contexto* ss_tmp34883;
+            ((ss_tmp34881 = &((ss_tmp34880 = &(cierres.fns), &ss_tmp34880->e[ss_lang_indice_(k_cf, ss_tmp34880->length, "ejemplos/compilador/tcodec.t", 3657)])[0]), ss_tmp34883 = &((ss_tmp34882 = &((*contextos)), &ss_tmp34882->e[ss_lang_indice_(k_cx, ss_tmp34882->length, "ejemplos/compilador/tcodec.t", 3657)])[0]), recoger_firmas(ss_tmp34881, ss_tmp34883)));
 #line 3658 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp34881;
-            size_t ss_tmp34882;
+            size_t ss_tmp34884;
+            size_t ss_tmp34885;
 #line 3658 "ejemplos/compilador/tcodec.t"
-            k_cx = ((ss_tmp34881 = k_cx, ss_tmp34882 = (size_t)1, ss_lang_suma_usize(ss_tmp34881, ss_tmp34882, "ejemplos/compilador/tcodec.t", 3658)));
+            k_cx = ((ss_tmp34884 = k_cx, ss_tmp34885 = (size_t)1, ss_lang_suma_usize(ss_tmp34884, ss_tmp34885, "ejemplos/compilador/tcodec.t", 3658)));
         }
 #line 3660 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34883;
-        size_t ss_tmp34884;
+        size_t ss_tmp34886;
+        size_t ss_tmp34887;
 #line 3660 "ejemplos/compilador/tcodec.t"
-        k_cf = ((ss_tmp34883 = k_cf, ss_tmp34884 = (size_t)1, ss_lang_suma_usize(ss_tmp34883, ss_tmp34884, "ejemplos/compilador/tcodec.t", 3660)));
+        k_cf = ((ss_tmp34886 = k_cf, ss_tmp34887 = (size_t)1, ss_lang_suma_usize(ss_tmp34886, ss_tmp34887, "ejemplos/compilador/tcodec.t", 3660)));
         ss_free(&dueno_c);
     }
 #line 3662 "ejemplos/compilador/tcodec.t"
@@ -120250,65 +120256,65 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
 #line 3689 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34885;
-        size_t ss_tmp34886;
+        size_t ss_tmp34888;
+        size_t ss_tmp34889;
 #line 3689 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34885 = k_st, ss_tmp34886 = n_concretos, (ss_tmp34885 < ss_tmp34886)))))
+        if (!(((ss_tmp34888 = k_st, ss_tmp34889 = n_concretos, (ss_tmp34888 < ss_tmp34889)))))
         {
             break;
         }
 #line 3690 "ejemplos/compilador/tcodec.t"
-        ss_lista_str ss_tmp34887 = { .e = NULL, .length = 0, .capacity = 0 };
-        SS_LANG_QUIZA_SIN_USAR ss_lista_str nuevos_t = ss_tmp34887;
+        ss_lista_str ss_tmp34890 = { .e = NULL, .length = 0, .capacity = 0 };
+        SS_LANG_QUIZA_SIN_USAR ss_lista_str nuevos_t = ss_tmp34890;
         bool ss_vivo_nuevos_t = true;
 #line 3691 "ejemplos/compilador/tcodec.t"
-        ss_lista_lista_str* ss_tmp34888;
-        SS_LANG_QUIZA_SIN_USAR ss_lista_str viejos_t = ss_copia_lista_str(&((ss_tmp34888 = &((*st_tipos)), &ss_tmp34888->e[ss_lang_indice_(k_st, ss_tmp34888->length, "ejemplos/compilador/tcodec.t", 3691)])[0]));
+        ss_lista_lista_str* ss_tmp34891;
+        SS_LANG_QUIZA_SIN_USAR ss_lista_str viejos_t = ss_copia_lista_str(&((ss_tmp34891 = &((*st_tipos)), &ss_tmp34891->e[ss_lang_indice_(k_st, ss_tmp34891->length, "ejemplos/compilador/tcodec.t", 3691)])[0]));
 #line 3692 "ejemplos/compilador/tcodec.t"
         for (size_t ss_k1516 = 0; ss_k1516 < viejos_t.length; ss_k1516++)
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* vt = &viejos_t.e[ss_k1516];
 #line 3693 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp34889 = &nuevos_t;
-            SafeView ss_tmp34890;
-            const ss_mapa_str_usize* ss_tmp34891;
-            const ss_lista_lista_str* ss_tmp34892;
-            const ss_lista_lista_str* ss_tmp34893;
-            const ss_lista_lista_str* ss_tmp34894;
-            ss_mapa_str_usize* ss_tmp34895;
-            ss_lista_str* ss_tmp34896;
-            ss_mapa_str_usize* ss_tmp34897;
-            ss_lista_lista_str* ss_tmp34898;
-            ss_lista_lista_str* ss_tmp34899;
-            Contexto* ss_tmp34900;
+            ss_lista_str* ss_tmp34892 = &nuevos_t;
+            SafeView ss_tmp34893;
+            const ss_mapa_str_usize* ss_tmp34894;
+            const ss_lista_lista_str* ss_tmp34895;
+            const ss_lista_lista_str* ss_tmp34896;
+            const ss_lista_lista_str* ss_tmp34897;
+            ss_mapa_str_usize* ss_tmp34898;
+            ss_lista_str* ss_tmp34899;
+            ss_mapa_str_usize* ss_tmp34900;
+            ss_lista_lista_str* ss_tmp34901;
+            ss_lista_lista_str* ss_tmp34902;
+            Contexto* ss_tmp34903;
 #line 3693 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp34889, ((ss_tmp34890 = ss_view(vt), ss_tmp34891 = stp_indice, ss_tmp34892 = stp_params, ss_tmp34893 = stp_campos, ss_tmp34894 = stp_tipos, ss_tmp34895 = &en_curso_st, ss_tmp34896 = st_nombres, ss_tmp34897 = st_indice, ss_tmp34898 = st_campos, ss_tmp34899 = st_tipos, ss_tmp34900 = global, resolver_reg(ss_tmp34890, ss_tmp34891, ss_tmp34892, ss_tmp34893, ss_tmp34894, ss_tmp34895, ss_tmp34896, ss_tmp34897, ss_tmp34898, ss_tmp34899, ss_tmp34900))), "ejemplos/compilador/tcodec.t", 3693);
+            ss_push_lista_str(ss_tmp34892, ((ss_tmp34893 = ss_view(vt), ss_tmp34894 = stp_indice, ss_tmp34895 = stp_params, ss_tmp34896 = stp_campos, ss_tmp34897 = stp_tipos, ss_tmp34898 = &en_curso_st, ss_tmp34899 = st_nombres, ss_tmp34900 = st_indice, ss_tmp34901 = st_campos, ss_tmp34902 = st_tipos, ss_tmp34903 = global, resolver_reg(ss_tmp34893, ss_tmp34894, ss_tmp34895, ss_tmp34896, ss_tmp34897, ss_tmp34898, ss_tmp34899, ss_tmp34900, ss_tmp34901, ss_tmp34902, ss_tmp34903))), "ejemplos/compilador/tcodec.t", 3693);
         }
 #line 3697 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp34901;
-        SS_LANG_QUIZA_SIN_USAR SafeString nombre_st = ss_clone(&((ss_tmp34901 = &((*st_nombres)), &ss_tmp34901->e[ss_lang_indice_(k_st, ss_tmp34901->length, "ejemplos/compilador/tcodec.t", 3697)])[0]));
+        ss_lista_str* ss_tmp34904;
+        SS_LANG_QUIZA_SIN_USAR SafeString nombre_st = ss_clone(&((ss_tmp34904 = &((*st_nombres)), &ss_tmp34904->e[ss_lang_indice_(k_st, ss_tmp34904->length, "ejemplos/compilador/tcodec.t", 3697)])[0]));
 #line 3698 "ejemplos/compilador/tcodec.t"
-        ss_mapa_str_lista_str* ss_tmp34902 = &(*global).campos;
+        ss_mapa_str_lista_str* ss_tmp34905 = &(*global).campos;
 #line 3698 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_lista_str(ss_tmp34902, ss_view(&nombre_st), ss_copia_lista_str(&nuevos_t), "ejemplos/compilador/tcodec.t", 3698);
+        ss_mapa_poner_mapa_str_lista_str(ss_tmp34905, ss_view(&nombre_st), ss_copia_lista_str(&nuevos_t), "ejemplos/compilador/tcodec.t", 3698);
 #line 3699 "ejemplos/compilador/tcodec.t"
-        ss_lista_lista_str* ss_tmp34903;
-        ss_lista_str ss_tmp34904 = nuevos_t;
-        for (size_t ss_i1517 = 0; ss_i1517 < ((ss_tmp34903 = &((*st_tipos)), &ss_tmp34903->e[ss_lang_indice_(k_st, ss_tmp34903->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).length; ss_i1517++)
+        ss_lista_lista_str* ss_tmp34906;
+        ss_lista_str ss_tmp34907 = nuevos_t;
+        for (size_t ss_i1517 = 0; ss_i1517 < ((ss_tmp34906 = &((*st_tipos)), &ss_tmp34906->e[ss_lang_indice_(k_st, ss_tmp34906->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).length; ss_i1517++)
         {
-            ss_free(&((ss_tmp34903 = &((*st_tipos)), &ss_tmp34903->e[ss_lang_indice_(k_st, ss_tmp34903->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).e[ss_i1517]);
+            ss_free(&((ss_tmp34906 = &((*st_tipos)), &ss_tmp34906->e[ss_lang_indice_(k_st, ss_tmp34906->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).e[ss_i1517]);
         }
-        free(((ss_tmp34903 = &((*st_tipos)), &ss_tmp34903->e[ss_lang_indice_(k_st, ss_tmp34903->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).e);
-        ((ss_tmp34903 = &((*st_tipos)), &ss_tmp34903->e[ss_lang_indice_(k_st, ss_tmp34903->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).e = NULL;
-        ((ss_tmp34903 = &((*st_tipos)), &ss_tmp34903->e[ss_lang_indice_(k_st, ss_tmp34903->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).length = 0;
-        ((ss_tmp34903 = &((*st_tipos)), &ss_tmp34903->e[ss_lang_indice_(k_st, ss_tmp34903->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).capacity = 0;
-        ((ss_tmp34903 = &((*st_tipos)), &ss_tmp34903->e[ss_lang_indice_(k_st, ss_tmp34903->length, "ejemplos/compilador/tcodec.t", 3699)])[0]) = ss_tmp34904;
+        free(((ss_tmp34906 = &((*st_tipos)), &ss_tmp34906->e[ss_lang_indice_(k_st, ss_tmp34906->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).e);
+        ((ss_tmp34906 = &((*st_tipos)), &ss_tmp34906->e[ss_lang_indice_(k_st, ss_tmp34906->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).e = NULL;
+        ((ss_tmp34906 = &((*st_tipos)), &ss_tmp34906->e[ss_lang_indice_(k_st, ss_tmp34906->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).length = 0;
+        ((ss_tmp34906 = &((*st_tipos)), &ss_tmp34906->e[ss_lang_indice_(k_st, ss_tmp34906->length, "ejemplos/compilador/tcodec.t", 3699)])[0]).capacity = 0;
+        ((ss_tmp34906 = &((*st_tipos)), &ss_tmp34906->e[ss_lang_indice_(k_st, ss_tmp34906->length, "ejemplos/compilador/tcodec.t", 3699)])[0]) = ss_tmp34907;
         ss_vivo_nuevos_t = false;
 #line 3700 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34905;
-        size_t ss_tmp34906;
+        size_t ss_tmp34908;
+        size_t ss_tmp34909;
 #line 3700 "ejemplos/compilador/tcodec.t"
-        k_st = ((ss_tmp34905 = k_st, ss_tmp34906 = (size_t)1, ss_lang_suma_usize(ss_tmp34905, ss_tmp34906, "ejemplos/compilador/tcodec.t", 3700)));
+        k_st = ((ss_tmp34908 = k_st, ss_tmp34909 = (size_t)1, ss_lang_suma_usize(ss_tmp34908, ss_tmp34909, "ejemplos/compilador/tcodec.t", 3700)));
         ss_free(&nombre_st);
         for (size_t ss_i1518 = 0; ss_i1518 < viejos_t.length; ss_i1518++)
         {
@@ -120335,44 +120341,44 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
 #line 3703 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34907;
-        size_t ss_tmp34908;
+        size_t ss_tmp34910;
+        size_t ss_tmp34911;
 #line 3703 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34907 = k_fn, ss_tmp34908 = ((*arboles).length), (ss_tmp34907 < ss_tmp34908)))))
+        if (!(((ss_tmp34910 = k_fn, ss_tmp34911 = ((*arboles).length), (ss_tmp34910 < ss_tmp34911)))))
         {
             break;
         }
 #line 3704 "ejemplos/compilador/tcodec.t"
-        const ss_lista_Nodo* ss_tmp34909;
-        for (size_t ss_k1520 = 0; ss_k1520 < ((ss_tmp34909 = &((*arboles)), &ss_tmp34909->e[ss_lang_indice_(k_fn, ss_tmp34909->length, "ejemplos/compilador/tcodec.t", 3704)])[0]).hijos.length; ss_k1520++)
+        const ss_lista_Nodo* ss_tmp34912;
+        for (size_t ss_k1520 = 0; ss_k1520 < ((ss_tmp34912 = &((*arboles)), &ss_tmp34912->e[ss_lang_indice_(k_fn, ss_tmp34912->length, "ejemplos/compilador/tcodec.t", 3704)])[0]).hijos.length; ss_k1520++)
         {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34909 = &((*arboles)), &ss_tmp34909->e[ss_lang_indice_(k_fn, ss_tmp34909->length, "ejemplos/compilador/tcodec.t", 3704)])[0]).hijos.e[ss_k1520];
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34912 = &((*arboles)), &ss_tmp34912->e[ss_lang_indice_(k_fn, ss_tmp34912->length, "ejemplos/compilador/tcodec.t", 3704)])[0]).hijos.e[ss_k1520];
 #line 3705 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp34910;
-            Clase ss_tmp34911;
+            Clase ss_tmp34913;
+            Clase ss_tmp34914;
 #line 3705 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp34910 = (*d).clase, ss_tmp34911 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34910.etiqueta == ss_tmp34911.etiqueta))) && (!es_generica(d))))
+            if ((((ss_tmp34913 = (*d).clase, ss_tmp34914 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34913.etiqueta == ss_tmp34914.etiqueta))) && (!es_generica(d))))
             {
 #line 3706 "ejemplos/compilador/tcodec.t"
-                const Nodo* ss_tmp34912;
-                const ss_mapa_str_usize* ss_tmp34913;
-                const ss_lista_lista_str* ss_tmp34914;
-                const ss_lista_lista_str* ss_tmp34915;
-                const ss_lista_lista_str* ss_tmp34916;
-                ss_mapa_str_usize* ss_tmp34917;
-                ss_lista_str* ss_tmp34918;
-                ss_mapa_str_usize* ss_tmp34919;
-                ss_lista_lista_str* ss_tmp34920;
-                ss_lista_lista_str* ss_tmp34921;
-                Contexto* ss_tmp34922;
-                ((ss_tmp34912 = d, ss_tmp34913 = stp_indice, ss_tmp34914 = stp_params, ss_tmp34915 = stp_campos, ss_tmp34916 = stp_tipos, ss_tmp34917 = &en_curso_st, ss_tmp34918 = st_nombres, ss_tmp34919 = st_indice, ss_tmp34920 = st_campos, ss_tmp34921 = st_tipos, ss_tmp34922 = global, resolver_en_nodo(ss_tmp34912, ss_tmp34913, ss_tmp34914, ss_tmp34915, ss_tmp34916, ss_tmp34917, ss_tmp34918, ss_tmp34919, ss_tmp34920, ss_tmp34921, ss_tmp34922)));
+                const Nodo* ss_tmp34915;
+                const ss_mapa_str_usize* ss_tmp34916;
+                const ss_lista_lista_str* ss_tmp34917;
+                const ss_lista_lista_str* ss_tmp34918;
+                const ss_lista_lista_str* ss_tmp34919;
+                ss_mapa_str_usize* ss_tmp34920;
+                ss_lista_str* ss_tmp34921;
+                ss_mapa_str_usize* ss_tmp34922;
+                ss_lista_lista_str* ss_tmp34923;
+                ss_lista_lista_str* ss_tmp34924;
+                Contexto* ss_tmp34925;
+                ((ss_tmp34915 = d, ss_tmp34916 = stp_indice, ss_tmp34917 = stp_params, ss_tmp34918 = stp_campos, ss_tmp34919 = stp_tipos, ss_tmp34920 = &en_curso_st, ss_tmp34921 = st_nombres, ss_tmp34922 = st_indice, ss_tmp34923 = st_campos, ss_tmp34924 = st_tipos, ss_tmp34925 = global, resolver_en_nodo(ss_tmp34915, ss_tmp34916, ss_tmp34917, ss_tmp34918, ss_tmp34919, ss_tmp34920, ss_tmp34921, ss_tmp34922, ss_tmp34923, ss_tmp34924, ss_tmp34925)));
             }
         }
 #line 3711 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34923;
-        size_t ss_tmp34924;
+        size_t ss_tmp34926;
+        size_t ss_tmp34927;
 #line 3711 "ejemplos/compilador/tcodec.t"
-        k_fn = ((ss_tmp34923 = k_fn, ss_tmp34924 = (size_t)1, ss_lang_suma_usize(ss_tmp34923, ss_tmp34924, "ejemplos/compilador/tcodec.t", 3711)));
+        k_fn = ((ss_tmp34926 = k_fn, ss_tmp34927 = (size_t)1, ss_lang_suma_usize(ss_tmp34926, ss_tmp34927, "ejemplos/compilador/tcodec.t", 3711)));
     }
 #line 3714 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize con_partes = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
@@ -120381,79 +120387,79 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
     for (size_t ss_k1521 = 0; ss_k1521 < (*st_nombres).length; ss_k1521++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1521];
-        ss_mapa_str_usize* ss_tmp34925 = &con_partes;
+        ss_mapa_str_usize* ss_tmp34928 = &con_partes;
 #line 3715 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp34925, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3715);
+        ss_mapa_poner_mapa_str_usize(ss_tmp34928, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3715);
     }
 #line 3716 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1522 = 0; ss_k1522 < (*en_nombres).length; ss_k1522++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*en_nombres).e[ss_k1522];
-        ss_mapa_str_usize* ss_tmp34926 = &con_partes;
+        ss_mapa_str_usize* ss_tmp34929 = &con_partes;
 #line 3716 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp34926, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3716);
+        ss_mapa_poner_mapa_str_usize(ss_tmp34929, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3716);
     }
 #line 3720 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize vistas = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
     bool ss_vivo_vistas = true;
 #line 3721 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34927 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str orden = ss_tmp34927;
+    ss_lista_str ss_tmp34930 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str orden = ss_tmp34930;
     bool ss_vivo_orden = true;
 #line 3722 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp34928 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str creados = ss_tmp34928;
+    ss_lista_str ss_tmp34931 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str creados = ss_tmp34931;
 #line 3723 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_desc = (size_t)0;
 #line 3724 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp34929;
-        size_t ss_tmp34930;
+        size_t ss_tmp34932;
+        size_t ss_tmp34933;
 #line 3724 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp34929 = k_desc, ss_tmp34930 = ((*arboles).length), (ss_tmp34929 < ss_tmp34930)))))
+        if (!(((ss_tmp34932 = k_desc, ss_tmp34933 = ((*arboles).length), (ss_tmp34932 < ss_tmp34933)))))
         {
             break;
         }
 #line 3725 "ejemplos/compilador/tcodec.t"
-        const ss_lista_Nodo* ss_tmp34931;
-        for (size_t ss_k1523 = 0; ss_k1523 < ((ss_tmp34931 = &((*arboles)), &ss_tmp34931->e[ss_lang_indice_(k_desc, ss_tmp34931->length, "ejemplos/compilador/tcodec.t", 3725)])[0]).hijos.length; ss_k1523++)
+        const ss_lista_Nodo* ss_tmp34934;
+        for (size_t ss_k1523 = 0; ss_k1523 < ((ss_tmp34934 = &((*arboles)), &ss_tmp34934->e[ss_lang_indice_(k_desc, ss_tmp34934->length, "ejemplos/compilador/tcodec.t", 3725)])[0]).hijos.length; ss_k1523++)
         {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34931 = &((*arboles)), &ss_tmp34931->e[ss_lang_indice_(k_desc, ss_tmp34931->length, "ejemplos/compilador/tcodec.t", 3725)])[0]).hijos.e[ss_k1523];
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp34934 = &((*arboles)), &ss_tmp34934->e[ss_lang_indice_(k_desc, ss_tmp34934->length, "ejemplos/compilador/tcodec.t", 3725)])[0]).hijos.e[ss_k1523];
 #line 3726 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp34932;
-            Clase ss_tmp34933;
+            Clase ss_tmp34935;
+            Clase ss_tmp34936;
 #line 3726 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp34932 = (*d).clase, ss_tmp34933 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34932.etiqueta != ss_tmp34933.etiqueta))) || es_generica(d)))
+            if ((((ss_tmp34935 = (*d).clase, ss_tmp34936 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp34935.etiqueta != ss_tmp34936.etiqueta))) || es_generica(d)))
             {
                 continue;
             }
 #line 3727 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR Cuenta borrador = cuenta_nueva();
 #line 3728 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize ss_tmp34934 = ss_copia_mapa_str_usize(&(*cierres).sacados);
+            ss_mapa_str_usize ss_tmp34937 = ss_copia_mapa_str_usize(&(*cierres).sacados);
             ss_mapa_libre_mapa_str_usize(&borrador.sacados);
-            borrador.sacados = ss_tmp34934;
+            borrador.sacados = ss_tmp34937;
 #line 3729 "ejemplos/compilador/tcodec.t"
-            const Nodo* ss_tmp34935;
-            ss_lista_Contexto* ss_tmp34936;
-            const Contexto* ss_tmp34937;
-            SafeString ss_tmp34938 = ((ss_tmp34935 = d, ss_tmp34937 = &((ss_tmp34936 = &((*contextos)), &ss_tmp34936->e[ss_lang_indice_(k_desc, ss_tmp34936->length, "ejemplos/compilador/tcodec.t", 3729)])[0]), dueno_de_funcion(ss_tmp34935, ss_tmp34937)));
+            const Nodo* ss_tmp34938;
+            ss_lista_Contexto* ss_tmp34939;
+            const Contexto* ss_tmp34940;
+            SafeString ss_tmp34941 = ((ss_tmp34938 = d, ss_tmp34940 = &((ss_tmp34939 = &((*contextos)), &ss_tmp34939->e[ss_lang_indice_(k_desc, ss_tmp34939->length, "ejemplos/compilador/tcodec.t", 3729)])[0]), dueno_de_funcion(ss_tmp34938, ss_tmp34940)));
             ss_free(&borrador.dueno);
-            borrador.dueno = ss_tmp34938;
+            borrador.dueno = ss_tmp34941;
 #line 3730 "ejemplos/compilador/tcodec.t"
-            const Nodo* ss_tmp34939;
-            ss_lista_Contexto* ss_tmp34940;
-            Contexto* ss_tmp34941;
-            const ss_lista_str* ss_tmp34942;
-            SafeView ss_tmp34943;
-            Cuenta* ss_tmp34944;
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str escritas = ((ss_tmp34939 = d, ss_tmp34941 = &((ss_tmp34940 = &((*contextos)), &ss_tmp34940->e[ss_lang_indice_(k_desc, ss_tmp34940->length, "ejemplos/compilador/tcodec.t", 3730)])[0]), ss_tmp34943 = ss_view(&((ss_tmp34942 = &((*modulos)), &ss_tmp34942->e[ss_lang_indice_(k_desc, ss_tmp34942->length, "ejemplos/compilador/tcodec.t", 3731)])[0])), ss_tmp34944 = &borrador, generar_funcion(ss_tmp34939, ss_tmp34941, ss_tmp34943, ss_tmp34944)));
+            const Nodo* ss_tmp34942;
+            ss_lista_Contexto* ss_tmp34943;
+            Contexto* ss_tmp34944;
+            const ss_lista_str* ss_tmp34945;
+            SafeView ss_tmp34946;
+            Cuenta* ss_tmp34947;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str escritas = ((ss_tmp34942 = d, ss_tmp34944 = &((ss_tmp34943 = &((*contextos)), &ss_tmp34943->e[ss_lang_indice_(k_desc, ss_tmp34943->length, "ejemplos/compilador/tcodec.t", 3730)])[0]), ss_tmp34946 = ss_view(&((ss_tmp34945 = &((*modulos)), &ss_tmp34945->e[ss_lang_indice_(k_desc, ss_tmp34945->length, "ejemplos/compilador/tcodec.t", 3731)])[0])), ss_tmp34947 = &borrador, generar_funcion(ss_tmp34942, ss_tmp34944, ss_tmp34946, ss_tmp34947)));
 #line 3732 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp34945;
-            size_t ss_tmp34946;
+            size_t ss_tmp34948;
+            size_t ss_tmp34949;
 #line 3732 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp34945 = (escritas.length), ss_tmp34946 = (size_t)0, (ss_tmp34945 == ss_tmp34946))))
+            if (((ss_tmp34948 = (escritas.length), ss_tmp34949 = (size_t)0, (ss_tmp34948 == ss_tmp34949))))
             {
                 for (size_t ss_i1524 = 0; ss_i1524 < escritas.length; ss_i1524++)
                 {
@@ -120467,39 +120473,39 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
                 continue;
             }
 #line 3733 "ejemplos/compilador/tcodec.t"
-            const ss_lista_str* ss_tmp34947;
-            const ss_lista_Nodo* ss_tmp34948;
-            ss_lista_Contexto* ss_tmp34949;
             const ss_lista_str* ss_tmp34950;
-            const ss_mapa_str_usize* ss_tmp34951;
-            ss_mapa_str_usize* ss_tmp34952;
-            ss_lista_str* ss_tmp34953;
-            ss_lista_str* ss_tmp34954;
-            const Cierres* ss_tmp34955;
-            Contexto* ss_tmp34956;
-            const ss_lista_str* ss_tmp34958;
-            SafeView ss_tmp34959;
-            size_t ss_tmp34960;
-            SafeString ss_tmp34957 = ((ss_tmp34959 = ss_view(&((ss_tmp34958 = &((*modulos)), &ss_tmp34958->e[ss_lang_indice_(k_desc, ss_tmp34958->length, "ejemplos/compilador/tcodec.t", 3735)])[0])), ss_tmp34960 = (*d).linea, sitio(ss_tmp34959, ss_tmp34960)));
-            SafeView ss_tmp34961;
-            if ((!((ss_tmp34947 = &borrador.instancias, ss_tmp34948 = arboles, ss_tmp34949 = contextos, ss_tmp34950 = modulos, ss_tmp34951 = plantillas, ss_tmp34952 = &vistas, ss_tmp34953 = &orden, ss_tmp34954 = &creados, ss_tmp34955 = cierres, ss_tmp34956 = global, ss_tmp34961 = ss_view(&ss_tmp34957), descubrir(ss_tmp34947, ss_tmp34948, ss_tmp34949, ss_tmp34950, ss_tmp34951, ss_tmp34952, ss_tmp34953, ss_tmp34954, ss_tmp34955, ss_tmp34956, ss_tmp34961)))))
+            const ss_lista_Nodo* ss_tmp34951;
+            ss_lista_Contexto* ss_tmp34952;
+            const ss_lista_str* ss_tmp34953;
+            const ss_mapa_str_usize* ss_tmp34954;
+            ss_mapa_str_usize* ss_tmp34955;
+            ss_lista_str* ss_tmp34956;
+            ss_lista_str* ss_tmp34957;
+            const Cierres* ss_tmp34958;
+            Contexto* ss_tmp34959;
+            const ss_lista_str* ss_tmp34961;
+            SafeView ss_tmp34962;
+            size_t ss_tmp34963;
+            SafeString ss_tmp34960 = ((ss_tmp34962 = ss_view(&((ss_tmp34961 = &((*modulos)), &ss_tmp34961->e[ss_lang_indice_(k_desc, ss_tmp34961->length, "ejemplos/compilador/tcodec.t", 3735)])[0])), ss_tmp34963 = (*d).linea, sitio(ss_tmp34962, ss_tmp34963)));
+            SafeView ss_tmp34964;
+            if ((!((ss_tmp34950 = &borrador.instancias, ss_tmp34951 = arboles, ss_tmp34952 = contextos, ss_tmp34953 = modulos, ss_tmp34954 = plantillas, ss_tmp34955 = &vistas, ss_tmp34956 = &orden, ss_tmp34957 = &creados, ss_tmp34958 = cierres, ss_tmp34959 = global, ss_tmp34964 = ss_view(&ss_tmp34960), descubrir(ss_tmp34950, ss_tmp34951, ss_tmp34952, ss_tmp34953, ss_tmp34954, ss_tmp34955, ss_tmp34956, ss_tmp34957, ss_tmp34958, ss_tmp34959, ss_tmp34964)))))
             {
 #line 3736 "ejemplos/compilador/tcodec.t"
-                bool ss_tmp34962;
-                ss_mapa_str_usize ss_tmp34963;
-                ss_mapa_str_usize ss_tmp34964;
-                ss_lista_str ss_tmp34965 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_str ss_tmp34966;
-                ss_lista_Nodo ss_tmp34967 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_Nodo ss_tmp34968;
-                ss_lista_usize ss_tmp34969 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_usize ss_tmp34970;
-                ss_lista_str ss_tmp34971 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_str ss_tmp34972;
-                size_t ss_tmp34973;
+                bool ss_tmp34965;
+                ss_mapa_str_usize ss_tmp34966;
+                ss_mapa_str_usize ss_tmp34967;
+                ss_lista_str ss_tmp34968 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_str ss_tmp34969;
+                ss_lista_Nodo ss_tmp34970 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_Nodo ss_tmp34971;
+                ss_lista_usize ss_tmp34972 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_usize ss_tmp34973;
+                ss_lista_str ss_tmp34974 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_str ss_tmp34975;
+                size_t ss_tmp34976;
 #line 3736 "ejemplos/compilador/tcodec.t"
-                InstanciasPreparadas ss_tmp34974 = ((ss_tmp34962 = false, ss_tmp34963 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34964 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34966 = ss_tmp34965, ss_tmp34968 = ss_tmp34967, ss_tmp34970 = ss_tmp34969, ss_tmp34972 = ss_tmp34971, ss_tmp34973 = (size_t)0, (InstanciasPreparadas){ .ok = ss_tmp34962, .con_partes = ss_tmp34963, .vistas = ss_tmp34964, .orden = ss_tmp34966, .nodos = ss_tmp34968, .modulos = ss_tmp34970, .duenos = ss_tmp34972, .n_concretos = ss_tmp34973 }));
-                ss_free(&ss_tmp34957);
+                InstanciasPreparadas ss_tmp34977 = ((ss_tmp34965 = false, ss_tmp34966 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34967 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp34969 = ss_tmp34968, ss_tmp34971 = ss_tmp34970, ss_tmp34973 = ss_tmp34972, ss_tmp34975 = ss_tmp34974, ss_tmp34976 = (size_t)0, (InstanciasPreparadas){ .ok = ss_tmp34965, .con_partes = ss_tmp34966, .vistas = ss_tmp34967, .orden = ss_tmp34969, .nodos = ss_tmp34971, .modulos = ss_tmp34973, .duenos = ss_tmp34975, .n_concretos = ss_tmp34976 }));
+                ss_free(&ss_tmp34960);
                 for (size_t ss_i1525 = 0; ss_i1525 < escritas.length; ss_i1525++)
                 {
                     ss_free(&escritas.e[ss_i1525]);
@@ -120537,9 +120543,9 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
                     ss_mapa_libre_mapa_str_usize(&con_partes);
                 }
                 ss_mapa_libre_mapa_str_usize(&en_curso_st);
-                return ss_tmp34974;
+                return ss_tmp34977;
             }
-            ss_free(&ss_tmp34957);
+            ss_free(&ss_tmp34960);
             for (size_t ss_i1528 = 0; ss_i1528 < escritas.length; ss_i1528++)
             {
                 ss_free(&escritas.e[ss_i1528]);
@@ -120551,63 +120557,63 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
             ss_drop_Cuenta(&borrador);
         }
 #line 3741 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp34975;
-        size_t ss_tmp34976;
+        size_t ss_tmp34978;
+        size_t ss_tmp34979;
 #line 3741 "ejemplos/compilador/tcodec.t"
-        k_desc = ((ss_tmp34975 = k_desc, ss_tmp34976 = (size_t)1, ss_lang_suma_usize(ss_tmp34975, ss_tmp34976, "ejemplos/compilador/tcodec.t", 3741)));
+        k_desc = ((ss_tmp34978 = k_desc, ss_tmp34979 = (size_t)1, ss_lang_suma_usize(ss_tmp34978, ss_tmp34979, "ejemplos/compilador/tcodec.t", 3741)));
     }
 #line 3743 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1529 = 0; ss_k1529 < creados.length; ss_k1529++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* p = &creados.e[ss_k1529];
 #line 3744 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp34978;
-        size_t ss_tmp34979;
-        SafeString ss_tmp34977 = ((ss_tmp34978 = ss_view(p), ss_tmp34979 = (size_t)0, campo_pedido(ss_tmp34978, ss_tmp34979)));
-        size_t ss_tmp34980;
-        size_t ss_tmp34981;
+        SafeView ss_tmp34981;
+        size_t ss_tmp34982;
+        SafeString ss_tmp34980 = ((ss_tmp34981 = ss_view(p), ss_tmp34982 = (size_t)0, campo_pedido(ss_tmp34981, ss_tmp34982)));
+        size_t ss_tmp34983;
+        size_t ss_tmp34984;
 #line 3744 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp34980 = sv_len_of(ss_view(&ss_tmp34977)), ss_tmp34981 = (size_t)0, (ss_tmp34980 == ss_tmp34981))))
+        if (((ss_tmp34983 = sv_len_of(ss_view(&ss_tmp34980)), ss_tmp34984 = (size_t)0, (ss_tmp34983 == ss_tmp34984))))
         {
 #line 3745 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp34982;
-            size_t ss_tmp34983;
-            SS_LANG_QUIZA_SIN_USAR SafeString en_c_c = ((ss_tmp34982 = ss_view(p), ss_tmp34983 = (size_t)1, campo_pedido(ss_tmp34982, ss_tmp34983)));
+            SafeView ss_tmp34985;
+            size_t ss_tmp34986;
+            SS_LANG_QUIZA_SIN_USAR SafeString en_c_c = ((ss_tmp34985 = ss_view(p), ss_tmp34986 = (size_t)1, campo_pedido(ss_tmp34985, ss_tmp34986)));
 #line 3746 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR SafeString st_c = struct_de_cierre(ss_view(&en_c_c));
 #line 3747 "ejemplos/compilador/tcodec.t"
-            ss_lista_str ss_tmp34984 = { .e = NULL, .length = 0, .capacity = 0 };
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str cn = ss_tmp34984;
+            ss_lista_str ss_tmp34987 = { .e = NULL, .length = 0, .capacity = 0 };
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str cn = ss_tmp34987;
             bool ss_vivo_cn = true;
 #line 3748 "ejemplos/compilador/tcodec.t"
-            ss_lista_str ss_tmp34985 = { .e = NULL, .length = 0, .capacity = 0 };
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str ct = ss_tmp34985;
+            ss_lista_str ss_tmp34988 = { .e = NULL, .length = 0, .capacity = 0 };
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str ct = ss_tmp34988;
             bool ss_vivo_ct = true;
 #line 3749 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp34986;
-            ss_lista_str* ss_tmp34987;
-            ss_lista_str* ss_tmp34988;
-            ((ss_tmp34986 = ss_view(p), ss_tmp34987 = &cn, ss_tmp34988 = &ct, campos_de_cierre(ss_tmp34986, ss_tmp34987, ss_tmp34988)));
+            SafeView ss_tmp34989;
+            ss_lista_str* ss_tmp34990;
+            ss_lista_str* ss_tmp34991;
+            ((ss_tmp34989 = ss_view(p), ss_tmp34990 = &cn, ss_tmp34991 = &ct, campos_de_cierre(ss_tmp34989, ss_tmp34990, ss_tmp34991)));
 #line 3750 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize* ss_tmp34989 = st_indice;
+            ss_mapa_str_usize* ss_tmp34992 = st_indice;
 #line 3750 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp34989, ss_view(&st_c), ((*st_nombres).length), "ejemplos/compilador/tcodec.t", 3750);
+            ss_mapa_poner_mapa_str_usize(ss_tmp34992, ss_view(&st_c), ((*st_nombres).length), "ejemplos/compilador/tcodec.t", 3750);
 #line 3751 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp34990 = st_nombres;
+            ss_lista_str* ss_tmp34993 = st_nombres;
 #line 3751 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp34990, ss_clone(&st_c), "ejemplos/compilador/tcodec.t", 3751);
+            ss_push_lista_str(ss_tmp34993, ss_clone(&st_c), "ejemplos/compilador/tcodec.t", 3751);
 #line 3752 "ejemplos/compilador/tcodec.t"
-            ss_lista_lista_str* ss_tmp34991 = st_campos;
+            ss_lista_lista_str* ss_tmp34994 = st_campos;
 #line 3752 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_lista_str(ss_tmp34991, cn, "ejemplos/compilador/tcodec.t", 3752);
+            ss_push_lista_lista_str(ss_tmp34994, cn, "ejemplos/compilador/tcodec.t", 3752);
             ss_vivo_cn = false;
 #line 3753 "ejemplos/compilador/tcodec.t"
-            ss_lista_lista_str* ss_tmp34992 = st_tipos;
+            ss_lista_lista_str* ss_tmp34995 = st_tipos;
 #line 3753 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_lista_str(ss_tmp34992, ct, "ejemplos/compilador/tcodec.t", 3753);
+            ss_push_lista_lista_str(ss_tmp34995, ct, "ejemplos/compilador/tcodec.t", 3753);
             ss_vivo_ct = false;
 #line 3754 "ejemplos/compilador/tcodec.t"
-            ss_free(&ss_tmp34977);
+            ss_free(&ss_tmp34980);
             if (ss_vivo_ct)
             {
                 for (size_t ss_i1530 = 0; ss_i1530 < ct.length; ss_i1530++)
@@ -120634,26 +120640,26 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
             ss_free(&en_c_c);
             continue;
         }
-        ss_free(&ss_tmp34977);
+        ss_free(&ss_tmp34980);
 #line 3756 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp34993;
-        const ss_lista_Nodo* ss_tmp34994;
-        const ss_mapa_str_usize* ss_tmp34995;
-        const ss_mapa_str_usize* ss_tmp34996;
-        SS_LANG_QUIZA_SIN_USAR Nodo copia_r = ((ss_tmp34993 = ss_view(p), ss_tmp34994 = arboles, ss_tmp34995 = plantillas, ss_tmp34996 = &(*cierres).numeracion, nodo_instancia(ss_tmp34993, ss_tmp34994, ss_tmp34995, ss_tmp34996)));
-#line 3757 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp34997;
+        SafeView ss_tmp34996;
+        const ss_lista_Nodo* ss_tmp34997;
         const ss_mapa_str_usize* ss_tmp34998;
-        const ss_lista_lista_str* ss_tmp34999;
-        const ss_lista_lista_str* ss_tmp35000;
-        const ss_lista_lista_str* ss_tmp35001;
-        ss_mapa_str_usize* ss_tmp35002;
-        ss_lista_str* ss_tmp35003;
-        ss_mapa_str_usize* ss_tmp35004;
-        ss_lista_lista_str* ss_tmp35005;
-        ss_lista_lista_str* ss_tmp35006;
-        Contexto* ss_tmp35007;
-        ((ss_tmp34997 = &copia_r, ss_tmp34998 = stp_indice, ss_tmp34999 = stp_params, ss_tmp35000 = stp_campos, ss_tmp35001 = stp_tipos, ss_tmp35002 = &en_curso_st, ss_tmp35003 = st_nombres, ss_tmp35004 = st_indice, ss_tmp35005 = st_campos, ss_tmp35006 = st_tipos, ss_tmp35007 = global, resolver_instancia(ss_tmp34997, ss_tmp34998, ss_tmp34999, ss_tmp35000, ss_tmp35001, ss_tmp35002, ss_tmp35003, ss_tmp35004, ss_tmp35005, ss_tmp35006, ss_tmp35007)));
+        const ss_mapa_str_usize* ss_tmp34999;
+        SS_LANG_QUIZA_SIN_USAR Nodo copia_r = ((ss_tmp34996 = ss_view(p), ss_tmp34997 = arboles, ss_tmp34998 = plantillas, ss_tmp34999 = &(*cierres).numeracion, nodo_instancia(ss_tmp34996, ss_tmp34997, ss_tmp34998, ss_tmp34999)));
+#line 3757 "ejemplos/compilador/tcodec.t"
+        const Nodo* ss_tmp35000;
+        const ss_mapa_str_usize* ss_tmp35001;
+        const ss_lista_lista_str* ss_tmp35002;
+        const ss_lista_lista_str* ss_tmp35003;
+        const ss_lista_lista_str* ss_tmp35004;
+        ss_mapa_str_usize* ss_tmp35005;
+        ss_lista_str* ss_tmp35006;
+        ss_mapa_str_usize* ss_tmp35007;
+        ss_lista_lista_str* ss_tmp35008;
+        ss_lista_lista_str* ss_tmp35009;
+        Contexto* ss_tmp35010;
+        ((ss_tmp35000 = &copia_r, ss_tmp35001 = stp_indice, ss_tmp35002 = stp_params, ss_tmp35003 = stp_campos, ss_tmp35004 = stp_tipos, ss_tmp35005 = &en_curso_st, ss_tmp35006 = st_nombres, ss_tmp35007 = st_indice, ss_tmp35008 = st_campos, ss_tmp35009 = st_tipos, ss_tmp35010 = global, resolver_instancia(ss_tmp35000, ss_tmp35001, ss_tmp35002, ss_tmp35003, ss_tmp35004, ss_tmp35005, ss_tmp35006, ss_tmp35007, ss_tmp35008, ss_tmp35009, ss_tmp35010)));
         ss_drop_Nodo(&copia_r);
     }
 #line 3761 "ejemplos/compilador/tcodec.t"
@@ -120661,147 +120667,147 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* t_ap = &(*revision).structs_aplicados.e[ss_k1532];
 #line 3762 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp35008;
-        const ss_mapa_str_usize* ss_tmp35009;
-        const ss_lista_lista_str* ss_tmp35010;
-        const ss_lista_lista_str* ss_tmp35011;
-        const ss_lista_lista_str* ss_tmp35012;
-        ss_mapa_str_usize* ss_tmp35013;
-        ss_lista_str* ss_tmp35014;
-        ss_mapa_str_usize* ss_tmp35015;
-        ss_lista_lista_str* ss_tmp35016;
-        ss_lista_lista_str* ss_tmp35017;
-        Contexto* ss_tmp35018;
-        SS_LANG_QUIZA_SIN_USAR SafeString _r = ((ss_tmp35008 = ss_view(t_ap), ss_tmp35009 = stp_indice, ss_tmp35010 = stp_params, ss_tmp35011 = stp_campos, ss_tmp35012 = stp_tipos, ss_tmp35013 = &en_curso_st, ss_tmp35014 = st_nombres, ss_tmp35015 = st_indice, ss_tmp35016 = st_campos, ss_tmp35017 = st_tipos, ss_tmp35018 = global, resolver_reg(ss_tmp35008, ss_tmp35009, ss_tmp35010, ss_tmp35011, ss_tmp35012, ss_tmp35013, ss_tmp35014, ss_tmp35015, ss_tmp35016, ss_tmp35017, ss_tmp35018)));
+        SafeView ss_tmp35011;
+        const ss_mapa_str_usize* ss_tmp35012;
+        const ss_lista_lista_str* ss_tmp35013;
+        const ss_lista_lista_str* ss_tmp35014;
+        const ss_lista_lista_str* ss_tmp35015;
+        ss_mapa_str_usize* ss_tmp35016;
+        ss_lista_str* ss_tmp35017;
+        ss_mapa_str_usize* ss_tmp35018;
+        ss_lista_lista_str* ss_tmp35019;
+        ss_lista_lista_str* ss_tmp35020;
+        Contexto* ss_tmp35021;
+        SS_LANG_QUIZA_SIN_USAR SafeString _r = ((ss_tmp35011 = ss_view(t_ap), ss_tmp35012 = stp_indice, ss_tmp35013 = stp_params, ss_tmp35014 = stp_campos, ss_tmp35015 = stp_tipos, ss_tmp35016 = &en_curso_st, ss_tmp35017 = st_nombres, ss_tmp35018 = st_indice, ss_tmp35019 = st_campos, ss_tmp35020 = st_tipos, ss_tmp35021 = global, resolver_reg(ss_tmp35011, ss_tmp35012, ss_tmp35013, ss_tmp35014, ss_tmp35015, ss_tmp35016, ss_tmp35017, ss_tmp35018, ss_tmp35019, ss_tmp35020, ss_tmp35021)));
         ss_free(&_r);
     }
 #line 3766 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp35019;
-    const ss_lista_str* ss_tmp35020;
-    ss_lista_str* ss_tmp35021;
-    ss_mapa_str_usize* ss_tmp35022;
-    ss_lista_lista_str* ss_tmp35023;
-    ss_lista_lista_str* ss_tmp35024;
-    ((ss_tmp35019 = n_concretos, ss_tmp35020 = &(*revision).orden_structs, ss_tmp35021 = st_nombres, ss_tmp35022 = st_indice, ss_tmp35023 = st_campos, ss_tmp35024 = st_tipos, ordenar_como_comprobador(ss_tmp35019, ss_tmp35020, ss_tmp35021, ss_tmp35022, ss_tmp35023, ss_tmp35024)));
+    size_t ss_tmp35022;
+    const ss_lista_str* ss_tmp35023;
+    ss_lista_str* ss_tmp35024;
+    ss_mapa_str_usize* ss_tmp35025;
+    ss_lista_lista_str* ss_tmp35026;
+    ss_lista_lista_str* ss_tmp35027;
+    ((ss_tmp35022 = n_concretos, ss_tmp35023 = &(*revision).orden_structs, ss_tmp35024 = st_nombres, ss_tmp35025 = st_indice, ss_tmp35026 = st_campos, ss_tmp35027 = st_tipos, ordenar_como_comprobador(ss_tmp35022, ss_tmp35023, ss_tmp35024, ss_tmp35025, ss_tmp35026, ss_tmp35027)));
 #line 3768 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1533 = 0; ss_k1533 < (*st_nombres).length; ss_k1533++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1533];
-        ss_mapa_str_usize* ss_tmp35025 = &con_partes;
+        ss_mapa_str_usize* ss_tmp35028 = &con_partes;
 #line 3768 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp35025, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3768);
+        ss_mapa_poner_mapa_str_usize(ss_tmp35028, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3768);
     }
 #line 3770 "ejemplos/compilador/tcodec.t"
-    ss_lista_Nodo ss_tmp35026 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo nodos = ss_tmp35026;
+    ss_lista_Nodo ss_tmp35029 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo nodos = ss_tmp35029;
     bool ss_vivo_nodos = true;
 #line 3771 "ejemplos/compilador/tcodec.t"
-    ss_lista_usize ss_tmp35027 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_usize modulos_i = ss_tmp35027;
+    ss_lista_usize ss_tmp35030 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_usize modulos_i = ss_tmp35030;
     bool ss_vivo_modulos_i = true;
 #line 3772 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp35028 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str duenos = ss_tmp35028;
+    ss_lista_str ss_tmp35031 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str duenos = ss_tmp35031;
     bool ss_vivo_duenos = true;
 #line 3773 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1534 = 0; ss_k1534 < orden.length; ss_k1534++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* p = &orden.e[ss_k1534];
 #line 3774 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp35030;
-        size_t ss_tmp35031;
-        SafeString ss_tmp35029 = ((ss_tmp35030 = ss_view(p), ss_tmp35031 = (size_t)0, campo_pedido(ss_tmp35030, ss_tmp35031)));
-        size_t ss_tmp35032;
-        size_t ss_tmp35033;
+        SafeView ss_tmp35033;
+        size_t ss_tmp35034;
+        SafeString ss_tmp35032 = ((ss_tmp35033 = ss_view(p), ss_tmp35034 = (size_t)0, campo_pedido(ss_tmp35033, ss_tmp35034)));
+        size_t ss_tmp35035;
+        size_t ss_tmp35036;
 #line 3774 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp35032 = sv_len_of(ss_view(&ss_tmp35029)), ss_tmp35033 = (size_t)0, (ss_tmp35032 == ss_tmp35033))))
+        if (((ss_tmp35035 = sv_len_of(ss_view(&ss_tmp35032)), ss_tmp35036 = (size_t)0, (ss_tmp35035 == ss_tmp35036))))
         {
 #line 3775 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp35034;
-            size_t ss_tmp35035;
-            SS_LANG_QUIZA_SIN_USAR SafeString en_c_i = ((ss_tmp35034 = ss_view(p), ss_tmp35035 = (size_t)1, campo_pedido(ss_tmp35034, ss_tmp35035)));
+            SafeView ss_tmp35037;
+            size_t ss_tmp35038;
+            SS_LANG_QUIZA_SIN_USAR SafeString en_c_i = ((ss_tmp35037 = ss_view(p), ss_tmp35038 = (size_t)1, campo_pedido(ss_tmp35037, ss_tmp35038)));
 #line 3776 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_usize* ss_tmp35037;
-            SafeView ss_tmp35038;
+            const ss_mapa_str_usize* ss_tmp35040;
+            SafeView ss_tmp35041;
 #line 3776 "ejemplos/compilador/tcodec.t"
-            ss_res_usize ss_tmp35036 = ((ss_tmp35037 = &(*cierres).indice, ss_tmp35038 = ss_view(&en_c_i), ss_mapa_obtener_mapa_str_usize(ss_tmp35037, ss_tmp35038)));
-            size_t ss_tmp35039;
-            if (ss_tmp35036.motivo != NULL)
+            ss_res_usize ss_tmp35039 = ((ss_tmp35040 = &(*cierres).indice, ss_tmp35041 = ss_view(&en_c_i), ss_mapa_obtener_mapa_str_usize(ss_tmp35040, ss_tmp35041)));
+            size_t ss_tmp35042;
+            if (ss_tmp35039.motivo != NULL)
             {
-                ss_tmp35039 = (size_t)0;
+                ss_tmp35042 = (size_t)0;
             }
             else
             {
-                ss_tmp35039 = ss_tmp35036.valor;
+                ss_tmp35042 = ss_tmp35039.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR size_t k_ci = ss_tmp35039;
+            SS_LANG_QUIZA_SIN_USAR size_t k_ci = ss_tmp35042;
 #line 3777 "ejemplos/compilador/tcodec.t"
-            ss_lista_Nodo* ss_tmp35040 = &nodos;
-            const ss_lista_Nodo* ss_tmp35041;
+            ss_lista_Nodo* ss_tmp35043 = &nodos;
+            const ss_lista_Nodo* ss_tmp35044;
 #line 3777 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_Nodo(ss_tmp35040, ss_copia_Nodo(&((ss_tmp35041 = &((*cierres).fns), &ss_tmp35041->e[ss_lang_indice_(k_ci, ss_tmp35041->length, "ejemplos/compilador/tcodec.t", 3777)])[0])), "ejemplos/compilador/tcodec.t", 3777);
+            ss_push_lista_Nodo(ss_tmp35043, ss_copia_Nodo(&((ss_tmp35044 = &((*cierres).fns), &ss_tmp35044->e[ss_lang_indice_(k_ci, ss_tmp35044->length, "ejemplos/compilador/tcodec.t", 3777)])[0])), "ejemplos/compilador/tcodec.t", 3777);
 #line 3778 "ejemplos/compilador/tcodec.t"
-            ss_lista_usize* ss_tmp35042 = &modulos_i;
-            const ss_lista_usize* ss_tmp35043;
+            ss_lista_usize* ss_tmp35045 = &modulos_i;
+            const ss_lista_usize* ss_tmp35046;
 #line 3778 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_usize(ss_tmp35042, ((ss_tmp35043 = &((*cierres).modulo), &ss_tmp35043->e[ss_lang_indice_(k_ci, ss_tmp35043->length, "ejemplos/compilador/tcodec.t", 3778)])[0]), "ejemplos/compilador/tcodec.t", 3778);
+            ss_push_lista_usize(ss_tmp35045, ((ss_tmp35046 = &((*cierres).modulo), &ss_tmp35046->e[ss_lang_indice_(k_ci, ss_tmp35046->length, "ejemplos/compilador/tcodec.t", 3778)])[0]), "ejemplos/compilador/tcodec.t", 3778);
 #line 3779 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp35044 = &duenos;
-            const ss_lista_Nodo* ss_tmp35045;
+            ss_lista_str* ss_tmp35047 = &duenos;
+            const ss_lista_Nodo* ss_tmp35048;
 #line 3779 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35044, ss_clone(&((ss_tmp35045 = &((*cierres).fns), &ss_tmp35045->e[ss_lang_indice_(k_ci, ss_tmp35045->length, "ejemplos/compilador/tcodec.t", 3779)])[0]).texto), "ejemplos/compilador/tcodec.t", 3779);
+            ss_push_lista_str(ss_tmp35047, ss_clone(&((ss_tmp35048 = &((*cierres).fns), &ss_tmp35048->e[ss_lang_indice_(k_ci, ss_tmp35048->length, "ejemplos/compilador/tcodec.t", 3779)])[0]).texto), "ejemplos/compilador/tcodec.t", 3779);
 #line 3780 "ejemplos/compilador/tcodec.t"
-            ss_free(&ss_tmp35029);
+            ss_free(&ss_tmp35032);
             ss_free(&en_c_i);
             continue;
         }
-        ss_free(&ss_tmp35029);
+        ss_free(&ss_tmp35032);
 #line 3782 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp35046 = &nodos;
-        SafeView ss_tmp35047;
-        const ss_lista_Nodo* ss_tmp35048;
-        const ss_mapa_str_usize* ss_tmp35049;
-        const ss_mapa_str_usize* ss_tmp35050;
+        ss_lista_Nodo* ss_tmp35049 = &nodos;
+        SafeView ss_tmp35050;
+        const ss_lista_Nodo* ss_tmp35051;
+        const ss_mapa_str_usize* ss_tmp35052;
+        const ss_mapa_str_usize* ss_tmp35053;
 #line 3782 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_Nodo(ss_tmp35046, ((ss_tmp35047 = ss_view(p), ss_tmp35048 = arboles, ss_tmp35049 = plantillas, ss_tmp35050 = &(*cierres).numeracion, nodo_instancia(ss_tmp35047, ss_tmp35048, ss_tmp35049, ss_tmp35050))), "ejemplos/compilador/tcodec.t", 3782);
+        ss_push_lista_Nodo(ss_tmp35049, ((ss_tmp35050 = ss_view(p), ss_tmp35051 = arboles, ss_tmp35052 = plantillas, ss_tmp35053 = &(*cierres).numeracion, nodo_instancia(ss_tmp35050, ss_tmp35051, ss_tmp35052, ss_tmp35053))), "ejemplos/compilador/tcodec.t", 3782);
 #line 3783 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp35051 = &duenos;
+        ss_lista_str* ss_tmp35054 = &duenos;
 #line 3783 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35051, dueno_de_pedido(ss_view(p)), "ejemplos/compilador/tcodec.t", 3783);
+        ss_push_lista_str(ss_tmp35054, dueno_de_pedido(ss_view(p)), "ejemplos/compilador/tcodec.t", 3783);
 #line 3784 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp35052;
-        size_t ss_tmp35053;
-        SS_LANG_QUIZA_SIN_USAR SafeString plantilla = ((ss_tmp35052 = ss_view(p), ss_tmp35053 = (size_t)0, campo_pedido(ss_tmp35052, ss_tmp35053)));
+        SafeView ss_tmp35055;
+        size_t ss_tmp35056;
+        SS_LANG_QUIZA_SIN_USAR SafeString plantilla = ((ss_tmp35055 = ss_view(p), ss_tmp35056 = (size_t)0, campo_pedido(ss_tmp35055, ss_tmp35056)));
 #line 3785 "ejemplos/compilador/tcodec.t"
-        ss_lista_usize* ss_tmp35054 = &modulos_i;
-        const ss_mapa_str_usize* ss_tmp35056;
-        SafeView ss_tmp35057;
+        ss_lista_usize* ss_tmp35057 = &modulos_i;
+        const ss_mapa_str_usize* ss_tmp35059;
+        SafeView ss_tmp35060;
 #line 3785 "ejemplos/compilador/tcodec.t"
-        ss_res_usize ss_tmp35055 = ((ss_tmp35056 = plantillas, ss_tmp35057 = ss_view(&plantilla), ss_mapa_obtener_mapa_str_usize(ss_tmp35056, ss_tmp35057)));
-        size_t ss_tmp35058;
-        if (ss_tmp35055.motivo != NULL)
+        ss_res_usize ss_tmp35058 = ((ss_tmp35059 = plantillas, ss_tmp35060 = ss_view(&plantilla), ss_mapa_obtener_mapa_str_usize(ss_tmp35059, ss_tmp35060)));
+        size_t ss_tmp35061;
+        if (ss_tmp35058.motivo != NULL)
         {
-            ss_tmp35058 = (size_t)0;
+            ss_tmp35061 = (size_t)0;
         }
         else
         {
-            ss_tmp35058 = ss_tmp35055.valor;
+            ss_tmp35061 = ss_tmp35058.valor;
         }
 #line 3785 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_usize(ss_tmp35054, ss_tmp35058, "ejemplos/compilador/tcodec.t", 3785);
+        ss_push_lista_usize(ss_tmp35057, ss_tmp35061, "ejemplos/compilador/tcodec.t", 3785);
         ss_free(&plantilla);
     }
 #line 3787 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp35059;
-    ss_mapa_str_usize ss_tmp35060;
-    ss_mapa_str_usize ss_tmp35061;
-    ss_lista_str ss_tmp35062;
-    ss_lista_Nodo ss_tmp35063;
-    ss_lista_usize ss_tmp35064;
+    bool ss_tmp35062;
+    ss_mapa_str_usize ss_tmp35063;
+    ss_mapa_str_usize ss_tmp35064;
     ss_lista_str ss_tmp35065;
-    size_t ss_tmp35066;
+    ss_lista_Nodo ss_tmp35066;
+    ss_lista_usize ss_tmp35067;
+    ss_lista_str ss_tmp35068;
+    size_t ss_tmp35069;
 #line 3787 "ejemplos/compilador/tcodec.t"
-    InstanciasPreparadas ss_tmp35067 = ((ss_tmp35059 = true, ss_tmp35060 = con_partes, ss_tmp35061 = vistas, ss_tmp35062 = orden, ss_tmp35063 = nodos, ss_tmp35064 = modulos_i, ss_tmp35065 = duenos, ss_tmp35066 = n_concretos, (InstanciasPreparadas){ .ok = ss_tmp35059, .con_partes = ss_tmp35060, .vistas = ss_tmp35061, .orden = ss_tmp35062, .nodos = ss_tmp35063, .modulos = ss_tmp35064, .duenos = ss_tmp35065, .n_concretos = ss_tmp35066 }));
+    InstanciasPreparadas ss_tmp35070 = ((ss_tmp35062 = true, ss_tmp35063 = con_partes, ss_tmp35064 = vistas, ss_tmp35065 = orden, ss_tmp35066 = nodos, ss_tmp35067 = modulos_i, ss_tmp35068 = duenos, ss_tmp35069 = n_concretos, (InstanciasPreparadas){ .ok = ss_tmp35062, .con_partes = ss_tmp35063, .vistas = ss_tmp35064, .orden = ss_tmp35065, .nodos = ss_tmp35066, .modulos = ss_tmp35067, .duenos = ss_tmp35068, .n_concretos = ss_tmp35069 }));
     ss_vivo_con_partes = false;
     ss_vivo_vistas = false;
     ss_vivo_orden = false;
@@ -120865,7 +120871,7 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
         ss_mapa_libre_mapa_str_usize(&con_partes);
     }
     ss_mapa_libre_mapa_str_usize(&en_curso_st);
-    return ss_tmp35067;
+    return ss_tmp35070;
 }
 
 #line 3792 "ejemplos/compilador/tcodec.t"
@@ -120886,267 +120892,267 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
     {
         SS_LANG_QUIZA_SIN_USAR const Nodo* arbol = &(*arboles).e[ss_k1539];
 #line 3805 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp35068;
-        SafeView ss_tmp35069;
-        if (((ss_tmp35068 = arbol, ss_tmp35069 = sv_len("leer_archivo", 12), llama_a(ss_tmp35068, ss_tmp35069))))
+        const Nodo* ss_tmp35071;
+        SafeView ss_tmp35072;
+        if (((ss_tmp35071 = arbol, ss_tmp35072 = sv_len("leer_archivo", 12), llama_a(ss_tmp35071, ss_tmp35072))))
         {
             usa_leer_archivo = true;
         }
 #line 3806 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp35070;
-        SafeView ss_tmp35071;
-        if (((ss_tmp35070 = arbol, ss_tmp35071 = sv_len("leer_parte_archivo", 18), llama_a(ss_tmp35070, ss_tmp35071))))
+        const Nodo* ss_tmp35073;
+        SafeView ss_tmp35074;
+        if (((ss_tmp35073 = arbol, ss_tmp35074 = sv_len("leer_parte_archivo", 18), llama_a(ss_tmp35073, ss_tmp35074))))
         {
             usa_leer_parte_archivo = true;
         }
 #line 3807 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp35072;
-        SafeView ss_tmp35073;
-        if (((ss_tmp35072 = arbol, ss_tmp35073 = sv_len("escribir_archivo", 16), llama_a(ss_tmp35072, ss_tmp35073))))
+        const Nodo* ss_tmp35075;
+        SafeView ss_tmp35076;
+        if (((ss_tmp35075 = arbol, ss_tmp35076 = sv_len("escribir_archivo", 16), llama_a(ss_tmp35075, ss_tmp35076))))
         {
             usa_escribir_archivo = true;
         }
 #line 3808 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp35074;
-        SafeView ss_tmp35075;
-        if (((ss_tmp35074 = arbol, ss_tmp35075 = sv_len("leer_linea", 10), llama_a(ss_tmp35074, ss_tmp35075))))
+        const Nodo* ss_tmp35077;
+        SafeView ss_tmp35078;
+        if (((ss_tmp35077 = arbol, ss_tmp35078 = sv_len("leer_linea", 10), llama_a(ss_tmp35077, ss_tmp35078))))
         {
 #line 3809 "ejemplos/compilador/tcodec.t"
             da_texto = true;
 #line 3810 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize* ss_tmp35076 = &usa_sistema;
+            ss_mapa_str_usize* ss_tmp35079 = &usa_sistema;
 #line 3810 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp35076, sv_len("leer_linea", 10), (size_t)1, "ejemplos/compilador/tcodec.t", 3810);
+            ss_mapa_poner_mapa_str_usize(ss_tmp35079, sv_len("leer_linea", 10), (size_t)1, "ejemplos/compilador/tcodec.t", 3810);
         }
 #line 3812 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp35077;
-        SafeView ss_tmp35078;
-        if (((ss_tmp35077 = arbol, ss_tmp35078 = sv_len("entrada_completa", 16), llama_a(ss_tmp35077, ss_tmp35078))))
+        const Nodo* ss_tmp35080;
+        SafeView ss_tmp35081;
+        if (((ss_tmp35080 = arbol, ss_tmp35081 = sv_len("entrada_completa", 16), llama_a(ss_tmp35080, ss_tmp35081))))
         {
 #line 3813 "ejemplos/compilador/tcodec.t"
             da_texto = true;
 #line 3814 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize* ss_tmp35079 = &usa_sistema;
+            ss_mapa_str_usize* ss_tmp35082 = &usa_sistema;
 #line 3814 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp35079, sv_len("entrada_completa", 16), (size_t)1, "ejemplos/compilador/tcodec.t", 3814);
+            ss_mapa_poner_mapa_str_usize(ss_tmp35082, sv_len("entrada_completa", 16), (size_t)1, "ejemplos/compilador/tcodec.t", 3814);
         }
 #line 3816 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp35080;
-        SafeView ss_tmp35081;
-        if (((ss_tmp35080 = arbol, ss_tmp35081 = sv_len("variable_entorno", 16), llama_a(ss_tmp35080, ss_tmp35081))))
+        const Nodo* ss_tmp35083;
+        SafeView ss_tmp35084;
+        if (((ss_tmp35083 = arbol, ss_tmp35084 = sv_len("variable_entorno", 16), llama_a(ss_tmp35083, ss_tmp35084))))
         {
 #line 3817 "ejemplos/compilador/tcodec.t"
             da_texto = true;
 #line 3818 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize* ss_tmp35082 = &usa_sistema;
-#line 3818 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp35082, sv_len("variable_entorno", 16), (size_t)1, "ejemplos/compilador/tcodec.t", 3818);
-        }
-#line 3820 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp35083;
-        SafeView ss_tmp35084;
-        if (((ss_tmp35083 = arbol, ss_tmp35084 = sv_len("ahora_ms", 8), llama_a(ss_tmp35083, ss_tmp35084))))
-        {
             ss_mapa_str_usize* ss_tmp35085 = &usa_sistema;
-#line 3820 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp35085, sv_len("ahora_ms", 8), (size_t)1, "ejemplos/compilador/tcodec.t", 3820);
+#line 3818 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_usize(ss_tmp35085, sv_len("variable_entorno", 16), (size_t)1, "ejemplos/compilador/tcodec.t", 3818);
         }
-#line 3821 "ejemplos/compilador/tcodec.t"
+#line 3820 "ejemplos/compilador/tcodec.t"
         const Nodo* ss_tmp35086;
         SafeView ss_tmp35087;
-        if (((ss_tmp35086 = arbol, ss_tmp35087 = sv_len("monotono_ms", 11), llama_a(ss_tmp35086, ss_tmp35087))))
+        if (((ss_tmp35086 = arbol, ss_tmp35087 = sv_len("ahora_ms", 8), llama_a(ss_tmp35086, ss_tmp35087))))
         {
             ss_mapa_str_usize* ss_tmp35088 = &usa_sistema;
-#line 3821 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp35088, sv_len("monotono_ms", 11), (size_t)1, "ejemplos/compilador/tcodec.t", 3821);
+#line 3820 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_usize(ss_tmp35088, sv_len("ahora_ms", 8), (size_t)1, "ejemplos/compilador/tcodec.t", 3820);
         }
-#line 3822 "ejemplos/compilador/tcodec.t"
+#line 3821 "ejemplos/compilador/tcodec.t"
         const Nodo* ss_tmp35089;
         SafeView ss_tmp35090;
-        const Nodo* ss_tmp35091;
-        SafeView ss_tmp35092;
-        if ((((ss_tmp35089 = arbol, ss_tmp35090 = sv_len("azar", 4), llama_a(ss_tmp35089, ss_tmp35090))) || ((ss_tmp35091 = arbol, ss_tmp35092 = sv_len("sembrar", 7), llama_a(ss_tmp35091, ss_tmp35092)))))
+        if (((ss_tmp35089 = arbol, ss_tmp35090 = sv_len("monotono_ms", 11), llama_a(ss_tmp35089, ss_tmp35090))))
+        {
+            ss_mapa_str_usize* ss_tmp35091 = &usa_sistema;
+#line 3821 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_usize(ss_tmp35091, sv_len("monotono_ms", 11), (size_t)1, "ejemplos/compilador/tcodec.t", 3821);
+        }
+#line 3822 "ejemplos/compilador/tcodec.t"
+        const Nodo* ss_tmp35092;
+        SafeView ss_tmp35093;
+        const Nodo* ss_tmp35094;
+        SafeView ss_tmp35095;
+        if ((((ss_tmp35092 = arbol, ss_tmp35093 = sv_len("azar", 4), llama_a(ss_tmp35092, ss_tmp35093))) || ((ss_tmp35094 = arbol, ss_tmp35095 = sv_len("sembrar", 7), llama_a(ss_tmp35094, ss_tmp35095)))))
         {
 #line 3823 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize* ss_tmp35093 = &usa_sistema;
+            ss_mapa_str_usize* ss_tmp35096 = &usa_sistema;
 #line 3823 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp35093, sv_len("semilla", 7), (size_t)1, "ejemplos/compilador/tcodec.t", 3823);
+            ss_mapa_poner_mapa_str_usize(ss_tmp35096, sv_len("semilla", 7), (size_t)1, "ejemplos/compilador/tcodec.t", 3823);
         }
     }
 #line 3826 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1540 = 0; ss_k1540 < (*arboles).length; ss_k1540++)
     {
         SS_LANG_QUIZA_SIN_USAR const Nodo* arbol = &(*arboles).e[ss_k1540];
-        const Nodo* ss_tmp35094;
-        const Cierres* ss_tmp35095;
-        Registro* ss_tmp35096;
-        ((ss_tmp35094 = arbol, ss_tmp35095 = cierres, ss_tmp35096 = reg, resultados_de_internas(ss_tmp35094, ss_tmp35095, ss_tmp35096)));
+        const Nodo* ss_tmp35097;
+        const Cierres* ss_tmp35098;
+        Registro* ss_tmp35099;
+        ((ss_tmp35097 = arbol, ss_tmp35098 = cierres, ss_tmp35099 = reg, resultados_de_internas(ss_tmp35097, ss_tmp35098, ss_tmp35099)));
     }
 #line 3827 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR bool _t = da_texto;
 #line 3830 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize listos = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
 #line 3831 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp35097 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str orden = ss_tmp35097;
+    ss_lista_str ss_tmp35100 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str orden = ss_tmp35100;
 #line 3832 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1541 = 0; ss_k1541 < (*st_nombres).length; ss_k1541++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1541];
-        SafeView ss_tmp35098;
-        const ss_mapa_str_usize* ss_tmp35099;
-        const ss_lista_lista_str* ss_tmp35100;
-        ss_mapa_str_usize* ss_tmp35101;
-        ss_lista_str* ss_tmp35102;
-        ((ss_tmp35098 = ss_view(n), ss_tmp35099 = st_indice, ss_tmp35100 = st_tipos, ss_tmp35101 = &listos, ss_tmp35102 = &orden, visitar_struct(ss_tmp35098, ss_tmp35099, ss_tmp35100, ss_tmp35101, ss_tmp35102)));
+        SafeView ss_tmp35101;
+        const ss_mapa_str_usize* ss_tmp35102;
+        const ss_lista_lista_str* ss_tmp35103;
+        ss_mapa_str_usize* ss_tmp35104;
+        ss_lista_str* ss_tmp35105;
+        ((ss_tmp35101 = ss_view(n), ss_tmp35102 = st_indice, ss_tmp35103 = st_tipos, ss_tmp35104 = &listos, ss_tmp35105 = &orden, visitar_struct(ss_tmp35101, ss_tmp35102, ss_tmp35103, ss_tmp35104, ss_tmp35105)));
     }
 #line 3833 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR Cuenta cta = cuenta_nueva();
     bool ss_vivo_cta = true;
 #line 3834 "ejemplos/compilador/tcodec.t"
-    ss_mapa_str_usize ss_tmp35103 = ss_copia_mapa_str_usize(&(*cierres).sacados);
+    ss_mapa_str_usize ss_tmp35106 = ss_copia_mapa_str_usize(&(*cierres).sacados);
     ss_mapa_libre_mapa_str_usize(&cta.sacados);
-    cta.sacados = ss_tmp35103;
+    cta.sacados = ss_tmp35106;
 #line 3836 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp35104 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str partes = ss_tmp35104;
+    ss_lista_str ss_tmp35107 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str partes = ss_tmp35107;
     bool ss_vivo_partes = true;
 #line 3837 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1542 = 0; ss_k1542 < (*st_nombres).length; ss_k1542++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1542];
-        ss_lista_str* ss_tmp35105 = &partes;
-        SafeString ss_tmp35106 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp35106, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 3837);
-        ss_lang_agregar_texto_(&ss_tmp35106, ss_view(n), "ejemplos/compilador/tcodec.t", 3837);
-        ss_lang_agregar_texto_(&ss_tmp35106, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3837);
-        ss_lang_agregar_texto_(&ss_tmp35106, ss_view(n), "ejemplos/compilador/tcodec.t", 3837);
-        ss_lang_agregar_texto_(&ss_tmp35106, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3837);
+        ss_lista_str* ss_tmp35108 = &partes;
+        SafeString ss_tmp35109 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp35109, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 3837);
+        ss_lang_agregar_texto_(&ss_tmp35109, ss_view(n), "ejemplos/compilador/tcodec.t", 3837);
+        ss_lang_agregar_texto_(&ss_tmp35109, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3837);
+        ss_lang_agregar_texto_(&ss_tmp35109, ss_view(n), "ejemplos/compilador/tcodec.t", 3837);
+        ss_lang_agregar_texto_(&ss_tmp35109, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3837);
 #line 3837 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35105, ss_tmp35106, "ejemplos/compilador/tcodec.t", 3837);
+        ss_push_lista_str(ss_tmp35108, ss_tmp35109, "ejemplos/compilador/tcodec.t", 3837);
     }
 #line 3838 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp35107;
-    size_t ss_tmp35108;
+    size_t ss_tmp35110;
+    size_t ss_tmp35111;
 #line 3838 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp35107 = ((*st_nombres).length), ss_tmp35108 = (size_t)0, (ss_tmp35107 > ss_tmp35108))))
+    if (((ss_tmp35110 = ((*st_nombres).length), ss_tmp35111 = (size_t)0, (ss_tmp35110 > ss_tmp35111))))
     {
-        ss_lista_str* ss_tmp35109 = &partes;
+        ss_lista_str* ss_tmp35112 = &partes;
 #line 3838 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35109, ss_new(), "ejemplos/compilador/tcodec.t", 3838);
+        ss_push_lista_str(ss_tmp35112, ss_new(), "ejemplos/compilador/tcodec.t", 3838);
     }
 #line 3840 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t ie_t = (size_t)0;
 #line 3841 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp35110;
-        size_t ss_tmp35111;
+        size_t ss_tmp35113;
+        size_t ss_tmp35114;
 #line 3841 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp35110 = ie_t, ss_tmp35111 = ((*en_nombres).length), (ss_tmp35110 < ss_tmp35111)))))
+        if (!(((ss_tmp35113 = ie_t, ss_tmp35114 = ((*en_nombres).length), (ss_tmp35113 < ss_tmp35114)))))
         {
             break;
         }
 #line 3842 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp35112 = &partes;
-        SafeString ss_tmp35113 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp35113, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 3842);
-        const ss_lista_str* ss_tmp35114;
-        ss_lang_agregar_texto_(&ss_tmp35113, ss_view(&((ss_tmp35114 = &((*en_nombres)), &ss_tmp35114->e[ss_lang_indice_(ie_t, ss_tmp35114->length, "ejemplos/compilador/tcodec.t", 3842)])[0])), "ejemplos/compilador/tcodec.t", 3842);
-        ss_lang_agregar_texto_(&ss_tmp35113, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3842);
-        const ss_lista_str* ss_tmp35115;
-        ss_lang_agregar_texto_(&ss_tmp35113, ss_view(&((ss_tmp35115 = &((*en_nombres)), &ss_tmp35115->e[ss_lang_indice_(ie_t, ss_tmp35115->length, "ejemplos/compilador/tcodec.t", 3842)])[0])), "ejemplos/compilador/tcodec.t", 3842);
-        ss_lang_agregar_texto_(&ss_tmp35113, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3842);
+        ss_lista_str* ss_tmp35115 = &partes;
+        SafeString ss_tmp35116 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp35116, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 3842);
+        const ss_lista_str* ss_tmp35117;
+        ss_lang_agregar_texto_(&ss_tmp35116, ss_view(&((ss_tmp35117 = &((*en_nombres)), &ss_tmp35117->e[ss_lang_indice_(ie_t, ss_tmp35117->length, "ejemplos/compilador/tcodec.t", 3842)])[0])), "ejemplos/compilador/tcodec.t", 3842);
+        ss_lang_agregar_texto_(&ss_tmp35116, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3842);
+        const ss_lista_str* ss_tmp35118;
+        ss_lang_agregar_texto_(&ss_tmp35116, ss_view(&((ss_tmp35118 = &((*en_nombres)), &ss_tmp35118->e[ss_lang_indice_(ie_t, ss_tmp35118->length, "ejemplos/compilador/tcodec.t", 3842)])[0])), "ejemplos/compilador/tcodec.t", 3842);
+        ss_lang_agregar_texto_(&ss_tmp35116, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3842);
 #line 3842 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35112, ss_tmp35113, "ejemplos/compilador/tcodec.t", 3842);
+        ss_push_lista_str(ss_tmp35115, ss_tmp35116, "ejemplos/compilador/tcodec.t", 3842);
 #line 3843 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t iv_t = (size_t)0;
 #line 3844 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            const ss_lista_lista_str* ss_tmp35116;
-            size_t ss_tmp35117;
-            size_t ss_tmp35118;
+            const ss_lista_lista_str* ss_tmp35119;
+            size_t ss_tmp35120;
+            size_t ss_tmp35121;
 #line 3844 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp35117 = iv_t, ss_tmp35118 = (((ss_tmp35116 = &((*en_variantes)), &ss_tmp35116->e[ss_lang_indice_(ie_t, ss_tmp35116->length, "ejemplos/compilador/tcodec.t", 3844)])[0]).length), (ss_tmp35117 < ss_tmp35118)))))
+            if (!(((ss_tmp35120 = iv_t, ss_tmp35121 = (((ss_tmp35119 = &((*en_variantes)), &ss_tmp35119->e[ss_lang_indice_(ie_t, ss_tmp35119->length, "ejemplos/compilador/tcodec.t", 3844)])[0]).length), (ss_tmp35120 < ss_tmp35121)))))
             {
                 break;
             }
 #line 3845 "ejemplos/compilador/tcodec.t"
-            const ss_lista_str* ss_tmp35119;
-            SafeView ss_tmp35120;
-            const ss_lista_lista_str* ss_tmp35121;
             const ss_lista_str* ss_tmp35122;
             SafeView ss_tmp35123;
-            SS_LANG_QUIZA_SIN_USAR SafeString etq = ((ss_tmp35120 = ss_view(&((ss_tmp35119 = &((*en_nombres)), &ss_tmp35119->e[ss_lang_indice_(ie_t, ss_tmp35119->length, "ejemplos/compilador/tcodec.t", 3845)])[0])), ss_tmp35123 = ss_view(&((ss_tmp35122 = &(((ss_tmp35121 = &((*en_variantes)), &ss_tmp35121->e[ss_lang_indice_(ie_t, ss_tmp35121->length, "ejemplos/compilador/tcodec.t", 3845)])[0])), &ss_tmp35122->e[ss_lang_indice_(iv_t, ss_tmp35122->length, "ejemplos/compilador/tcodec.t", 3845)])[0])), etiqueta(ss_tmp35120, ss_tmp35123)));
+            const ss_lista_lista_str* ss_tmp35124;
+            const ss_lista_str* ss_tmp35125;
+            SafeView ss_tmp35126;
+            SS_LANG_QUIZA_SIN_USAR SafeString etq = ((ss_tmp35123 = ss_view(&((ss_tmp35122 = &((*en_nombres)), &ss_tmp35122->e[ss_lang_indice_(ie_t, ss_tmp35122->length, "ejemplos/compilador/tcodec.t", 3845)])[0])), ss_tmp35126 = ss_view(&((ss_tmp35125 = &(((ss_tmp35124 = &((*en_variantes)), &ss_tmp35124->e[ss_lang_indice_(ie_t, ss_tmp35124->length, "ejemplos/compilador/tcodec.t", 3845)])[0])), &ss_tmp35125->e[ss_lang_indice_(iv_t, ss_tmp35125->length, "ejemplos/compilador/tcodec.t", 3845)])[0])), etiqueta(ss_tmp35123, ss_tmp35126)));
 #line 3846 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp35124 = &partes;
-            SafeString ss_tmp35125 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp35125, sv_len("#define ", 8), "ejemplos/compilador/tcodec.t", 3846);
-            ss_lang_agregar_texto_(&ss_tmp35125, ss_view(&etq), "ejemplos/compilador/tcodec.t", 3846);
-            ss_lang_agregar_texto_(&ss_tmp35125, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3846);
-            SafeString ss_tmp35126 = ss_lang_texto_usize_(iv_t, "ejemplos/compilador/tcodec.t", 3846);
-            ss_lang_agregar_texto_(&ss_tmp35125, ss_view(&ss_tmp35126), "ejemplos/compilador/tcodec.t", 3846);
+            ss_lista_str* ss_tmp35127 = &partes;
+            SafeString ss_tmp35128 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp35128, sv_len("#define ", 8), "ejemplos/compilador/tcodec.t", 3846);
+            ss_lang_agregar_texto_(&ss_tmp35128, ss_view(&etq), "ejemplos/compilador/tcodec.t", 3846);
+            ss_lang_agregar_texto_(&ss_tmp35128, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3846);
+            SafeString ss_tmp35129 = ss_lang_texto_usize_(iv_t, "ejemplos/compilador/tcodec.t", 3846);
+            ss_lang_agregar_texto_(&ss_tmp35128, ss_view(&ss_tmp35129), "ejemplos/compilador/tcodec.t", 3846);
 #line 3846 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35124, ss_tmp35125, "ejemplos/compilador/tcodec.t", 3846);
-            ss_free(&ss_tmp35126);
+            ss_push_lista_str(ss_tmp35127, ss_tmp35128, "ejemplos/compilador/tcodec.t", 3846);
+            ss_free(&ss_tmp35129);
 #line 3847 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp35127;
-            size_t ss_tmp35128;
+            size_t ss_tmp35130;
+            size_t ss_tmp35131;
 #line 3847 "ejemplos/compilador/tcodec.t"
-            iv_t = ((ss_tmp35127 = iv_t, ss_tmp35128 = (size_t)1, ss_lang_suma_usize(ss_tmp35127, ss_tmp35128, "ejemplos/compilador/tcodec.t", 3847)));
+            iv_t = ((ss_tmp35130 = iv_t, ss_tmp35131 = (size_t)1, ss_lang_suma_usize(ss_tmp35130, ss_tmp35131, "ejemplos/compilador/tcodec.t", 3847)));
             ss_free(&etq);
         }
 #line 3849 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35129;
-        size_t ss_tmp35130;
+        size_t ss_tmp35132;
+        size_t ss_tmp35133;
 #line 3849 "ejemplos/compilador/tcodec.t"
-        ie_t = ((ss_tmp35129 = ie_t, ss_tmp35130 = (size_t)1, ss_lang_suma_usize(ss_tmp35129, ss_tmp35130, "ejemplos/compilador/tcodec.t", 3849)));
+        ie_t = ((ss_tmp35132 = ie_t, ss_tmp35133 = (size_t)1, ss_lang_suma_usize(ss_tmp35132, ss_tmp35133, "ejemplos/compilador/tcodec.t", 3849)));
     }
 #line 3851 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp35131;
-    size_t ss_tmp35132;
+    size_t ss_tmp35134;
+    size_t ss_tmp35135;
 #line 3851 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp35131 = ((*en_nombres).length), ss_tmp35132 = (size_t)0, (ss_tmp35131 > ss_tmp35132))))
+    if (((ss_tmp35134 = ((*en_nombres).length), ss_tmp35135 = (size_t)0, (ss_tmp35134 > ss_tmp35135))))
     {
-        ss_lista_str* ss_tmp35133 = &partes;
+        ss_lista_str* ss_tmp35136 = &partes;
 #line 3851 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35133, ss_new(), "ejemplos/compilador/tcodec.t", 3851);
+        ss_push_lista_str(ss_tmp35136, ss_new(), "ejemplos/compilador/tcodec.t", 3851);
     }
 #line 3852 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp35134 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str ordenadas = ss_tmp35134;
+    ss_lista_str ss_tmp35137 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str ordenadas = ss_tmp35137;
 #line 3853 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1543 = 0; ss_k1543 < (*reg).bloques.length; ss_k1543++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).bloques.e[ss_k1543];
-        ss_lista_str* ss_tmp35135 = &ordenadas;
+        ss_lista_str* ss_tmp35138 = &ordenadas;
 #line 3853 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35135, ss_clone(x), "ejemplos/compilador/tcodec.t", 3853);
+        ss_push_lista_str(ss_tmp35138, ss_clone(x), "ejemplos/compilador/tcodec.t", 3853);
     }
 #line 3854 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1544 = 0; ss_k1544 < (*reg).listas.length; ss_k1544++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).listas.e[ss_k1544];
-        ss_lista_str* ss_tmp35136 = &ordenadas;
+        ss_lista_str* ss_tmp35139 = &ordenadas;
 #line 3854 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35136, ss_clone(x), "ejemplos/compilador/tcodec.t", 3854);
+        ss_push_lista_str(ss_tmp35139, ss_clone(x), "ejemplos/compilador/tcodec.t", 3854);
     }
 #line 3855 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1545 = 0; ss_k1545 < (*reg).mapas.length; ss_k1545++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).mapas.e[ss_k1545];
-        ss_lista_str* ss_tmp35137 = &ordenadas;
+        ss_lista_str* ss_tmp35140 = &ordenadas;
 #line 3855 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35137, ss_clone(x), "ejemplos/compilador/tcodec.t", 3855);
+        ss_push_lista_str(ss_tmp35140, ss_clone(x), "ejemplos/compilador/tcodec.t", 3855);
     }
 #line 3856 "ejemplos/compilador/tcodec.t"
     ss_ordenar_lista_str(&ordenadas);
 #line 3860 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize adelantados = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
 #line 3861 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp35138 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str adelantados_orden = ss_tmp35138;
+    ss_lista_str ss_tmp35141 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str adelantados_orden = ss_tmp35141;
 #line 3862 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1546 = 0; ss_k1546 < ordenadas.length; ss_k1546++)
     {
@@ -121158,19 +121164,19 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* d = &dependencias.e[ss_k1547];
 #line 3865 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_usize* ss_tmp35139;
-            SafeView ss_tmp35140;
+            const ss_mapa_str_usize* ss_tmp35142;
+            SafeView ss_tmp35143;
 #line 3865 "ejemplos/compilador/tcodec.t"
-            if ((es_arreglo(ss_view(d)) && (!((ss_tmp35139 = &adelantados, ss_tmp35140 = ss_view(d), ss_mapa_tiene_mapa_str_usize(ss_tmp35139, ss_tmp35140))))))
+            if ((es_arreglo(ss_view(d)) && (!((ss_tmp35142 = &adelantados, ss_tmp35143 = ss_view(d), ss_mapa_tiene_mapa_str_usize(ss_tmp35142, ss_tmp35143))))))
             {
 #line 3866 "ejemplos/compilador/tcodec.t"
-                ss_mapa_str_usize* ss_tmp35141 = &adelantados;
+                ss_mapa_str_usize* ss_tmp35144 = &adelantados;
 #line 3866 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_usize(ss_tmp35141, ss_view(d), (size_t)1, "ejemplos/compilador/tcodec.t", 3866);
+                ss_mapa_poner_mapa_str_usize(ss_tmp35144, ss_view(d), (size_t)1, "ejemplos/compilador/tcodec.t", 3866);
 #line 3867 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp35142 = &adelantados_orden;
+                ss_lista_str* ss_tmp35145 = &adelantados_orden;
 #line 3867 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp35142, ss_clone(d), "ejemplos/compilador/tcodec.t", 3867);
+                ss_push_lista_str(ss_tmp35145, ss_clone(d), "ejemplos/compilador/tcodec.t", 3867);
             }
         }
         for (size_t ss_i1548 = 0; ss_i1548 < dependencias.length; ss_i1548++)
@@ -121191,15 +121197,15 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
 #line 3873 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString tc_d = tipo_c(ss_view(d));
 #line 3874 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp35143 = &partes;
-        SafeString ss_tmp35144 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp35144, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 3874);
-        ss_lang_agregar_texto_(&ss_tmp35144, ss_view(&tc_d), "ejemplos/compilador/tcodec.t", 3874);
-        ss_lang_agregar_texto_(&ss_tmp35144, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3874);
-        ss_lang_agregar_texto_(&ss_tmp35144, ss_view(&tc_d), "ejemplos/compilador/tcodec.t", 3874);
-        ss_lang_agregar_texto_(&ss_tmp35144, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3874);
+        ss_lista_str* ss_tmp35146 = &partes;
+        SafeString ss_tmp35147 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp35147, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 3874);
+        ss_lang_agregar_texto_(&ss_tmp35147, ss_view(&tc_d), "ejemplos/compilador/tcodec.t", 3874);
+        ss_lang_agregar_texto_(&ss_tmp35147, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3874);
+        ss_lang_agregar_texto_(&ss_tmp35147, ss_view(&tc_d), "ejemplos/compilador/tcodec.t", 3874);
+        ss_lang_agregar_texto_(&ss_tmp35147, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3874);
 #line 3874 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35143, ss_tmp35144, "ejemplos/compilador/tcodec.t", 3874);
+        ss_push_lista_str(ss_tmp35146, ss_tmp35147, "ejemplos/compilador/tcodec.t", 3874);
         ss_free(&tc_d);
     }
 #line 3876 "ejemplos/compilador/tcodec.t"
@@ -121208,21 +121214,21 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
     for (size_t ss_k1550 = 0; ss_k1550 < ordenadas.length; ss_k1550++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &ordenadas.e[ss_k1550];
-        SafeView ss_tmp35145;
-        const Registro* ss_tmp35146;
-        ss_mapa_str_usize* ss_tmp35147;
-        ss_lista_str* ss_tmp35148;
-        ((ss_tmp35145 = ss_view(x), ss_tmp35146 = reg, ss_tmp35147 = &puestos, ss_tmp35148 = &partes, poner_typedef(ss_tmp35145, ss_tmp35146, ss_tmp35147, ss_tmp35148)));
+        SafeView ss_tmp35148;
+        const Registro* ss_tmp35149;
+        ss_mapa_str_usize* ss_tmp35150;
+        ss_lista_str* ss_tmp35151;
+        ((ss_tmp35148 = ss_view(x), ss_tmp35149 = reg, ss_tmp35150 = &puestos, ss_tmp35151 = &partes, poner_typedef(ss_tmp35148, ss_tmp35149, ss_tmp35150, ss_tmp35151)));
     }
 #line 3878 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp35149;
-    size_t ss_tmp35150;
+    size_t ss_tmp35152;
+    size_t ss_tmp35153;
 #line 3878 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp35149 = (ordenadas.length), ss_tmp35150 = (size_t)0, (ss_tmp35149 > ss_tmp35150))))
+    if (((ss_tmp35152 = (ordenadas.length), ss_tmp35153 = (size_t)0, (ss_tmp35152 > ss_tmp35153))))
     {
-        ss_lista_str* ss_tmp35151 = &partes;
+        ss_lista_str* ss_tmp35154 = &partes;
 #line 3878 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35151, ss_new(), "ejemplos/compilador/tcodec.t", 3878);
+        ss_push_lista_str(ss_tmp35154, ss_new(), "ejemplos/compilador/tcodec.t", 3878);
     }
 #line 3881 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize definidos = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
@@ -121233,36 +121239,36 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* en_n = &(*en_nombres).e[ss_k1551];
 #line 3884 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp35152;
-        const ss_lista_str* ss_tmp35153;
-        const ss_lista_lista_str* ss_tmp35154;
-        const ss_lista_lista_str* ss_tmp35155;
-        const ss_mapa_str_usize* ss_tmp35156;
+        SafeView ss_tmp35155;
+        const ss_lista_str* ss_tmp35156;
         const ss_lista_lista_str* ss_tmp35157;
         const ss_lista_lista_str* ss_tmp35158;
-        ss_mapa_str_usize* ss_tmp35159;
-        ss_mapa_str_usize* ss_tmp35160;
-        const ss_mapa_str_usize* ss_tmp35161;
-        ss_lista_str* ss_tmp35162;
-        ((ss_tmp35152 = ss_view(en_n), ss_tmp35153 = en_nombres, ss_tmp35154 = en_variantes, ss_tmp35155 = en_lleva, ss_tmp35156 = st_indice, ss_tmp35157 = st_campos, ss_tmp35158 = st_tipos, ss_tmp35159 = &definidos, ss_tmp35160 = &envueltos, ss_tmp35161 = &adelantados, ss_tmp35162 = &partes, definir_tipo_c(ss_tmp35152, ss_tmp35153, ss_tmp35154, ss_tmp35155, ss_tmp35156, ss_tmp35157, ss_tmp35158, ss_tmp35159, ss_tmp35160, ss_tmp35161, ss_tmp35162)));
+        const ss_mapa_str_usize* ss_tmp35159;
+        const ss_lista_lista_str* ss_tmp35160;
+        const ss_lista_lista_str* ss_tmp35161;
+        ss_mapa_str_usize* ss_tmp35162;
+        ss_mapa_str_usize* ss_tmp35163;
+        const ss_mapa_str_usize* ss_tmp35164;
+        ss_lista_str* ss_tmp35165;
+        ((ss_tmp35155 = ss_view(en_n), ss_tmp35156 = en_nombres, ss_tmp35157 = en_variantes, ss_tmp35158 = en_lleva, ss_tmp35159 = st_indice, ss_tmp35160 = st_campos, ss_tmp35161 = st_tipos, ss_tmp35162 = &definidos, ss_tmp35163 = &envueltos, ss_tmp35164 = &adelantados, ss_tmp35165 = &partes, definir_tipo_c(ss_tmp35155, ss_tmp35156, ss_tmp35157, ss_tmp35158, ss_tmp35159, ss_tmp35160, ss_tmp35161, ss_tmp35162, ss_tmp35163, ss_tmp35164, ss_tmp35165)));
     }
 #line 3887 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1552 = 0; ss_k1552 < orden.length; ss_k1552++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* n = &orden.e[ss_k1552];
 #line 3888 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp35163;
-        const ss_lista_str* ss_tmp35164;
-        const ss_lista_lista_str* ss_tmp35165;
-        const ss_lista_lista_str* ss_tmp35166;
-        const ss_mapa_str_usize* ss_tmp35167;
+        SafeView ss_tmp35166;
+        const ss_lista_str* ss_tmp35167;
         const ss_lista_lista_str* ss_tmp35168;
         const ss_lista_lista_str* ss_tmp35169;
-        ss_mapa_str_usize* ss_tmp35170;
-        ss_mapa_str_usize* ss_tmp35171;
-        const ss_mapa_str_usize* ss_tmp35172;
-        ss_lista_str* ss_tmp35173;
-        ((ss_tmp35163 = ss_view(n), ss_tmp35164 = en_nombres, ss_tmp35165 = en_variantes, ss_tmp35166 = en_lleva, ss_tmp35167 = st_indice, ss_tmp35168 = st_campos, ss_tmp35169 = st_tipos, ss_tmp35170 = &definidos, ss_tmp35171 = &envueltos, ss_tmp35172 = &adelantados, ss_tmp35173 = &partes, definir_tipo_c(ss_tmp35163, ss_tmp35164, ss_tmp35165, ss_tmp35166, ss_tmp35167, ss_tmp35168, ss_tmp35169, ss_tmp35170, ss_tmp35171, ss_tmp35172, ss_tmp35173)));
+        const ss_mapa_str_usize* ss_tmp35170;
+        const ss_lista_lista_str* ss_tmp35171;
+        const ss_lista_lista_str* ss_tmp35172;
+        ss_mapa_str_usize* ss_tmp35173;
+        ss_mapa_str_usize* ss_tmp35174;
+        const ss_mapa_str_usize* ss_tmp35175;
+        ss_lista_str* ss_tmp35176;
+        ((ss_tmp35166 = ss_view(n), ss_tmp35167 = en_nombres, ss_tmp35168 = en_variantes, ss_tmp35169 = en_lleva, ss_tmp35170 = st_indice, ss_tmp35171 = st_campos, ss_tmp35172 = st_tipos, ss_tmp35173 = &definidos, ss_tmp35174 = &envueltos, ss_tmp35175 = &adelantados, ss_tmp35176 = &partes, definir_tipo_c(ss_tmp35166, ss_tmp35167, ss_tmp35168, ss_tmp35169, ss_tmp35170, ss_tmp35171, ss_tmp35172, ss_tmp35173, ss_tmp35174, ss_tmp35175, ss_tmp35176)));
     }
 #line 3891 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR bool alguno_posee = false;
@@ -121271,20 +121277,20 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* n = &orden.e[ss_k1553];
 #line 3893 "ejemplos/compilador/tcodec.t"
-        const Contexto* ss_tmp35174;
-        SafeView ss_tmp35175;
-        if (((ss_tmp35174 = global, ss_tmp35175 = ss_view(n), posee_con_formas(ss_tmp35174, ss_tmp35175))))
+        const Contexto* ss_tmp35177;
+        SafeView ss_tmp35178;
+        if (((ss_tmp35177 = global, ss_tmp35178 = ss_view(n), posee_con_formas(ss_tmp35177, ss_tmp35178))))
         {
 #line 3894 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp35176 = &partes;
-            SafeString ss_tmp35177 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp35177, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 3894);
-            ss_lang_agregar_texto_(&ss_tmp35177, ss_view(n), "ejemplos/compilador/tcodec.t", 3894);
-            ss_lang_agregar_texto_(&ss_tmp35177, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 3894);
-            ss_lang_agregar_texto_(&ss_tmp35177, ss_view(n), "ejemplos/compilador/tcodec.t", 3894);
-            ss_lang_agregar_texto_(&ss_tmp35177, sv_len("* p);", 5), "ejemplos/compilador/tcodec.t", 3894);
+            ss_lista_str* ss_tmp35179 = &partes;
+            SafeString ss_tmp35180 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp35180, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 3894);
+            ss_lang_agregar_texto_(&ss_tmp35180, ss_view(n), "ejemplos/compilador/tcodec.t", 3894);
+            ss_lang_agregar_texto_(&ss_tmp35180, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 3894);
+            ss_lang_agregar_texto_(&ss_tmp35180, ss_view(n), "ejemplos/compilador/tcodec.t", 3894);
+            ss_lang_agregar_texto_(&ss_tmp35180, sv_len("* p);", 5), "ejemplos/compilador/tcodec.t", 3894);
 #line 3894 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35176, ss_tmp35177, "ejemplos/compilador/tcodec.t", 3894);
+            ss_push_lista_str(ss_tmp35179, ss_tmp35180, "ejemplos/compilador/tcodec.t", 3894);
 #line 3895 "ejemplos/compilador/tcodec.t"
             alguno_posee = true;
         }
@@ -121294,20 +121300,20 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*en_nombres).e[ss_k1554];
 #line 3899 "ejemplos/compilador/tcodec.t"
-        const Contexto* ss_tmp35178;
-        SafeView ss_tmp35179;
-        if (((ss_tmp35178 = global, ss_tmp35179 = ss_view(n), posee_con_formas(ss_tmp35178, ss_tmp35179))))
+        const Contexto* ss_tmp35181;
+        SafeView ss_tmp35182;
+        if (((ss_tmp35181 = global, ss_tmp35182 = ss_view(n), posee_con_formas(ss_tmp35181, ss_tmp35182))))
         {
 #line 3900 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp35180 = &partes;
-            SafeString ss_tmp35181 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp35181, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 3900);
-            ss_lang_agregar_texto_(&ss_tmp35181, ss_view(n), "ejemplos/compilador/tcodec.t", 3900);
-            ss_lang_agregar_texto_(&ss_tmp35181, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 3900);
-            ss_lang_agregar_texto_(&ss_tmp35181, ss_view(n), "ejemplos/compilador/tcodec.t", 3900);
-            ss_lang_agregar_texto_(&ss_tmp35181, sv_len("* p);", 5), "ejemplos/compilador/tcodec.t", 3900);
+            ss_lista_str* ss_tmp35183 = &partes;
+            SafeString ss_tmp35184 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp35184, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 3900);
+            ss_lang_agregar_texto_(&ss_tmp35184, ss_view(n), "ejemplos/compilador/tcodec.t", 3900);
+            ss_lang_agregar_texto_(&ss_tmp35184, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 3900);
+            ss_lang_agregar_texto_(&ss_tmp35184, ss_view(n), "ejemplos/compilador/tcodec.t", 3900);
+            ss_lang_agregar_texto_(&ss_tmp35184, sv_len("* p);", 5), "ejemplos/compilador/tcodec.t", 3900);
 #line 3900 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35180, ss_tmp35181, "ejemplos/compilador/tcodec.t", 3900);
+            ss_push_lista_str(ss_tmp35183, ss_tmp35184, "ejemplos/compilador/tcodec.t", 3900);
 #line 3901 "ejemplos/compilador/tcodec.t"
             alguno_posee = true;
         }
@@ -121315,13 +121321,13 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
 #line 3904 "ejemplos/compilador/tcodec.t"
     if (alguno_posee)
     {
-        ss_lista_str* ss_tmp35182 = &partes;
+        ss_lista_str* ss_tmp35185 = &partes;
 #line 3904 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35182, ss_new(), "ejemplos/compilador/tcodec.t", 3904);
+        ss_push_lista_str(ss_tmp35185, ss_new(), "ejemplos/compilador/tcodec.t", 3904);
     }
 #line 3907 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp35183 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str arr_orden = ss_tmp35183;
+    ss_lista_str ss_tmp35186 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str arr_orden = ss_tmp35186;
 #line 3908 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t hondo_a = (size_t)0;
 #line 3909 "ejemplos/compilador/tcodec.t"
@@ -121329,10 +121335,10 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
 #line 3910 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp35184;
-        size_t ss_tmp35185;
+        size_t ss_tmp35187;
+        size_t ss_tmp35188;
 #line 3910 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp35184 = quedan_a, ss_tmp35185 = (size_t)0, (ss_tmp35184 > ss_tmp35185)))))
+        if (!(((ss_tmp35187 = quedan_a, ss_tmp35188 = (size_t)0, (ss_tmp35187 > ss_tmp35188)))))
         {
             break;
         }
@@ -121341,27 +121347,27 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* t = &(*reg).arreglos.e[ss_k1555];
 #line 3912 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp35186;
-            size_t ss_tmp35187;
+            size_t ss_tmp35189;
+            size_t ss_tmp35190;
 #line 3912 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp35186 = arreglos_dentro(ss_view(t)), ss_tmp35187 = hondo_a, (ss_tmp35186 == ss_tmp35187))))
+            if (((ss_tmp35189 = arreglos_dentro(ss_view(t)), ss_tmp35190 = hondo_a, (ss_tmp35189 == ss_tmp35190))))
             {
 #line 3913 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp35188 = &arr_orden;
+                ss_lista_str* ss_tmp35191 = &arr_orden;
 #line 3913 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp35188, ss_clone(t), "ejemplos/compilador/tcodec.t", 3913);
+                ss_push_lista_str(ss_tmp35191, ss_clone(t), "ejemplos/compilador/tcodec.t", 3913);
 #line 3914 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp35189;
-                size_t ss_tmp35190;
+                size_t ss_tmp35192;
+                size_t ss_tmp35193;
 #line 3914 "ejemplos/compilador/tcodec.t"
-                quedan_a = ((ss_tmp35189 = quedan_a, ss_tmp35190 = (size_t)1, ss_lang_resta_usize(ss_tmp35189, ss_tmp35190, "ejemplos/compilador/tcodec.t", 3914)));
+                quedan_a = ((ss_tmp35192 = quedan_a, ss_tmp35193 = (size_t)1, ss_lang_resta_usize(ss_tmp35192, ss_tmp35193, "ejemplos/compilador/tcodec.t", 3914)));
             }
         }
 #line 3917 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35191;
-        size_t ss_tmp35192;
+        size_t ss_tmp35194;
+        size_t ss_tmp35195;
 #line 3917 "ejemplos/compilador/tcodec.t"
-        hondo_a = ((ss_tmp35191 = hondo_a, ss_tmp35192 = (size_t)1, ss_lang_suma_usize(ss_tmp35191, ss_tmp35192, "ejemplos/compilador/tcodec.t", 3917)));
+        hondo_a = ((ss_tmp35194 = hondo_a, ss_tmp35195 = (size_t)1, ss_lang_suma_usize(ss_tmp35194, ss_tmp35195, "ejemplos/compilador/tcodec.t", 3917)));
     }
 #line 3919 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t sueltos = (size_t)0;
@@ -121370,82 +121376,82 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* t = &arr_orden.e[ss_k1556];
 #line 3921 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp35193;
-        SafeView ss_tmp35194;
+        const ss_mapa_str_usize* ss_tmp35196;
+        SafeView ss_tmp35197;
 #line 3921 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp35193 = &envueltos, ss_tmp35194 = ss_view(t), ss_mapa_tiene_mapa_str_usize(ss_tmp35193, ss_tmp35194))))
+        if (((ss_tmp35196 = &envueltos, ss_tmp35197 = ss_view(t), ss_mapa_tiene_mapa_str_usize(ss_tmp35196, ss_tmp35197))))
         {
             continue;
         }
 #line 3922 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp35195 = &partes;
-        SafeView ss_tmp35196;
-        const ss_mapa_str_usize* ss_tmp35197;
+        ss_lista_str* ss_tmp35198 = &partes;
+        SafeView ss_tmp35199;
+        const ss_mapa_str_usize* ss_tmp35200;
 #line 3922 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35195, ((ss_tmp35196 = ss_view(t), ss_tmp35197 = &adelantados, linea_arreglo(ss_tmp35196, ss_tmp35197))), "ejemplos/compilador/tcodec.t", 3922);
+        ss_push_lista_str(ss_tmp35198, ((ss_tmp35199 = ss_view(t), ss_tmp35200 = &adelantados, linea_arreglo(ss_tmp35199, ss_tmp35200))), "ejemplos/compilador/tcodec.t", 3922);
 #line 3923 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35198;
-        size_t ss_tmp35199;
+        size_t ss_tmp35201;
+        size_t ss_tmp35202;
 #line 3923 "ejemplos/compilador/tcodec.t"
-        sueltos = ((ss_tmp35198 = sueltos, ss_tmp35199 = (size_t)1, ss_lang_suma_usize(ss_tmp35198, ss_tmp35199, "ejemplos/compilador/tcodec.t", 3923)));
+        sueltos = ((ss_tmp35201 = sueltos, ss_tmp35202 = (size_t)1, ss_lang_suma_usize(ss_tmp35201, ss_tmp35202, "ejemplos/compilador/tcodec.t", 3923)));
     }
 #line 3925 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp35200;
-    size_t ss_tmp35201;
+    size_t ss_tmp35203;
+    size_t ss_tmp35204;
 #line 3925 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp35200 = sueltos, ss_tmp35201 = (size_t)0, (ss_tmp35200 > ss_tmp35201))))
+    if (((ss_tmp35203 = sueltos, ss_tmp35204 = (size_t)0, (ss_tmp35203 > ss_tmp35204))))
     {
-        ss_lista_str* ss_tmp35202 = &partes;
+        ss_lista_str* ss_tmp35205 = &partes;
 #line 3925 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35202, ss_new(), "ejemplos/compilador/tcodec.t", 3925);
+        ss_push_lista_str(ss_tmp35205, ss_new(), "ejemplos/compilador/tcodec.t", 3925);
     }
 #line 3926 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1557 = 0; ss_k1557 < (*reg).resultados.length; ss_k1557++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* r = &(*reg).resultados.e[ss_k1557];
-        ss_lista_str* ss_tmp35203 = &partes;
+        ss_lista_str* ss_tmp35206 = &partes;
 #line 3926 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35203, typedef_resultado(ss_view(r)), "ejemplos/compilador/tcodec.t", 3926);
+        ss_push_lista_str(ss_tmp35206, typedef_resultado(ss_view(r)), "ejemplos/compilador/tcodec.t", 3926);
     }
 #line 3927 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp35204;
-    size_t ss_tmp35205;
+    size_t ss_tmp35207;
+    size_t ss_tmp35208;
 #line 3927 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp35204 = ((*reg).resultados.length), ss_tmp35205 = (size_t)0, (ss_tmp35204 > ss_tmp35205))))
+    if (((ss_tmp35207 = ((*reg).resultados.length), ss_tmp35208 = (size_t)0, (ss_tmp35207 > ss_tmp35208))))
     {
-        ss_lista_str* ss_tmp35206 = &partes;
+        ss_lista_str* ss_tmp35209 = &partes;
 #line 3927 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35206, ss_new(), "ejemplos/compilador/tcodec.t", 3927);
+        ss_push_lista_str(ss_tmp35209, ss_new(), "ejemplos/compilador/tcodec.t", 3927);
     }
 #line 3930 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString res_texto = tipo_resultado(sv_len("str", 3));
 #line 3931 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp35207 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str internas_orden = ss_tmp35207;
+    ss_lista_str ss_tmp35210 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str internas_orden = ss_tmp35210;
 #line 3932 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp35208 = &internas_orden;
-#line 3932 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp35208, ss_from_view(sv_len("ahora_ms", 8)), "ejemplos/compilador/tcodec.t", 3932);
-#line 3933 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp35209 = &internas_orden;
-#line 3933 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp35209, ss_from_view(sv_len("monotono_ms", 11)), "ejemplos/compilador/tcodec.t", 3933);
-#line 3934 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp35210 = &internas_orden;
-#line 3934 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp35210, ss_from_view(sv_len("semilla", 7)), "ejemplos/compilador/tcodec.t", 3934);
-#line 3935 "ejemplos/compilador/tcodec.t"
     ss_lista_str* ss_tmp35211 = &internas_orden;
-#line 3935 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp35211, ss_from_view(sv_len("leer_linea", 10)), "ejemplos/compilador/tcodec.t", 3935);
-#line 3936 "ejemplos/compilador/tcodec.t"
+#line 3932 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp35211, ss_from_view(sv_len("ahora_ms", 8)), "ejemplos/compilador/tcodec.t", 3932);
+#line 3933 "ejemplos/compilador/tcodec.t"
     ss_lista_str* ss_tmp35212 = &internas_orden;
-#line 3936 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp35212, ss_from_view(sv_len("entrada_completa", 16)), "ejemplos/compilador/tcodec.t", 3936);
-#line 3937 "ejemplos/compilador/tcodec.t"
+#line 3933 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp35212, ss_from_view(sv_len("monotono_ms", 11)), "ejemplos/compilador/tcodec.t", 3933);
+#line 3934 "ejemplos/compilador/tcodec.t"
     ss_lista_str* ss_tmp35213 = &internas_orden;
+#line 3934 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp35213, ss_from_view(sv_len("semilla", 7)), "ejemplos/compilador/tcodec.t", 3934);
+#line 3935 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp35214 = &internas_orden;
+#line 3935 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp35214, ss_from_view(sv_len("leer_linea", 10)), "ejemplos/compilador/tcodec.t", 3935);
+#line 3936 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp35215 = &internas_orden;
+#line 3936 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp35215, ss_from_view(sv_len("entrada_completa", 16)), "ejemplos/compilador/tcodec.t", 3936);
 #line 3937 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp35213, ss_from_view(sv_len("variable_entorno", 16)), "ejemplos/compilador/tcodec.t", 3937);
+    ss_lista_str* ss_tmp35216 = &internas_orden;
+#line 3937 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp35216, ss_from_view(sv_len("variable_entorno", 16)), "ejemplos/compilador/tcodec.t", 3937);
 #line 3938 "ejemplos/compilador/tcodec.t"
     if (usa_escribir_archivo)
     {
@@ -121456,24 +121462,24 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* interna = &internas_orden.e[ss_k1558];
 #line 3940 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp35214;
-        SafeView ss_tmp35215;
+        const ss_mapa_str_usize* ss_tmp35217;
+        SafeView ss_tmp35218;
 #line 3940 "ejemplos/compilador/tcodec.t"
-        if ((!((ss_tmp35214 = &usa_sistema, ss_tmp35215 = ss_view(interna), ss_mapa_tiene_mapa_str_usize(ss_tmp35214, ss_tmp35215)))))
+        if ((!((ss_tmp35217 = &usa_sistema, ss_tmp35218 = ss_view(interna), ss_mapa_tiene_mapa_str_usize(ss_tmp35217, ss_tmp35218)))))
         {
             continue;
         }
 #line 3941 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp35218 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp35218, raiz, "ejemplos/compilador/tcodec.t", 3941);
-        ss_lang_agregar_texto_(&ss_tmp35218, sv_len("/runtime/sistema/", 17), "ejemplos/compilador/tcodec.t", 3941);
-        ss_lang_agregar_texto_(&ss_tmp35218, ss_view(interna), "ejemplos/compilador/tcodec.t", 3941);
-        ss_lang_agregar_texto_(&ss_tmp35218, sv_len(".inc", 4), "ejemplos/compilador/tcodec.t", 3941);
-        SafeString ss_tmp35217 = ss_tmp35218;
-        ss_res_str ss_tmp35216 = ss_lang_leer_archivo_(ss_view(&ss_tmp35217));
-        if (ss_tmp35216.motivo != NULL)
+        SafeString ss_tmp35221 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp35221, raiz, "ejemplos/compilador/tcodec.t", 3941);
+        ss_lang_agregar_texto_(&ss_tmp35221, sv_len("/runtime/sistema/", 17), "ejemplos/compilador/tcodec.t", 3941);
+        ss_lang_agregar_texto_(&ss_tmp35221, ss_view(interna), "ejemplos/compilador/tcodec.t", 3941);
+        ss_lang_agregar_texto_(&ss_tmp35221, sv_len(".inc", 4), "ejemplos/compilador/tcodec.t", 3941);
+        SafeString ss_tmp35220 = ss_tmp35221;
+        ss_res_str ss_tmp35219 = ss_lang_leer_archivo_(ss_view(&ss_tmp35220));
+        if (ss_tmp35219.motivo != NULL)
         {
-            ss_free(&ss_tmp35217);
+            ss_free(&ss_tmp35220);
             for (size_t ss_i1559 = 0; ss_i1559 < internas_orden.length; ss_i1559++)
             {
                 ss_free(&internas_orden.e[ss_i1559]);
@@ -121536,16 +121542,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
             orden.capacity = 0;
             ss_mapa_libre_mapa_str_usize(&listos);
             ss_mapa_libre_mapa_str_usize(&usa_sistema);
-            return (ss_res_SoporteGenerado){ .motivo = ss_tmp35216.motivo };
+            return (ss_res_SoporteGenerado){ .motivo = ss_tmp35219.motivo };
         }
-        SS_LANG_QUIZA_SIN_USAR SafeString crudo = ss_tmp35216.valor;
-        ss_free(&ss_tmp35217);
+        SS_LANG_QUIZA_SIN_USAR SafeString crudo = ss_tmp35219.valor;
+        ss_free(&ss_tmp35220);
 #line 3942 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp35220;
-        SafeView ss_tmp35221;
-        SafeView ss_tmp35222;
-        ss_res_str ss_tmp35219 = ((ss_tmp35220 = ss_view(&crudo), ss_tmp35221 = sv_len("@RES_STR@", 9), ss_tmp35222 = ss_view(&res_texto), reemplazar(ss_tmp35220, ss_tmp35221, ss_tmp35222)));
-        if (ss_tmp35219.motivo != NULL)
+        SafeView ss_tmp35223;
+        SafeView ss_tmp35224;
+        SafeView ss_tmp35225;
+        ss_res_str ss_tmp35222 = ((ss_tmp35223 = ss_view(&crudo), ss_tmp35224 = sv_len("@RES_STR@", 9), ss_tmp35225 = ss_view(&res_texto), reemplazar(ss_tmp35223, ss_tmp35224, ss_tmp35225)));
+        if (ss_tmp35222.motivo != NULL)
         {
             ss_free(&crudo);
             for (size_t ss_i1565 = 0; ss_i1565 < internas_orden.length; ss_i1565++)
@@ -121610,71 +121616,71 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
             orden.capacity = 0;
             ss_mapa_libre_mapa_str_usize(&listos);
             ss_mapa_libre_mapa_str_usize(&usa_sistema);
-            return (ss_res_SoporteGenerado){ .motivo = ss_tmp35219.motivo };
+            return (ss_res_SoporteGenerado){ .motivo = ss_tmp35222.motivo };
         }
-        SS_LANG_QUIZA_SIN_USAR SafeString hecho = ss_tmp35219.valor;
+        SS_LANG_QUIZA_SIN_USAR SafeString hecho = ss_tmp35222.valor;
 #line 3943 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t desde = (size_t)0;
 #line 3944 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t k_l = (size_t)0;
 #line 3945 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35223;
-        size_t ss_tmp35224;
-#line 3945 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp35225;
         size_t ss_tmp35226;
         size_t ss_tmp35227;
 #line 3945 "ejemplos/compilador/tcodec.t"
-        SS_LANG_QUIZA_SIN_USAR SafeView cuerpo_c = ((ss_tmp35225 = ss_view(&hecho), ss_tmp35226 = (size_t)0, ss_tmp35227 = ((ss_tmp35223 = sv_len_of(ss_view(&hecho)), ss_tmp35224 = (size_t)1, ss_lang_resta_usize(ss_tmp35223, ss_tmp35224, "ejemplos/compilador/tcodec.t", 3945))), ss_lang_rebanar_(ss_tmp35225, ss_tmp35226, ss_tmp35227, "ejemplos/compilador/tcodec.t", 3945)));
+        SafeView ss_tmp35228;
+        size_t ss_tmp35229;
+        size_t ss_tmp35230;
+#line 3945 "ejemplos/compilador/tcodec.t"
+        SS_LANG_QUIZA_SIN_USAR SafeView cuerpo_c = ((ss_tmp35228 = ss_view(&hecho), ss_tmp35229 = (size_t)0, ss_tmp35230 = ((ss_tmp35226 = sv_len_of(ss_view(&hecho)), ss_tmp35227 = (size_t)1, ss_lang_resta_usize(ss_tmp35226, ss_tmp35227, "ejemplos/compilador/tcodec.t", 3945))), ss_lang_rebanar_(ss_tmp35228, ss_tmp35229, ss_tmp35230, "ejemplos/compilador/tcodec.t", 3945)));
 #line 3946 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            size_t ss_tmp35228;
-            size_t ss_tmp35229;
+            size_t ss_tmp35231;
+            size_t ss_tmp35232;
 #line 3946 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp35228 = k_l, ss_tmp35229 = sv_len_of(cuerpo_c), (ss_tmp35228 <= ss_tmp35229)))))
+            if (!(((ss_tmp35231 = k_l, ss_tmp35232 = sv_len_of(cuerpo_c), (ss_tmp35231 <= ss_tmp35232)))))
             {
                 break;
             }
 #line 3947 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp35230;
-            size_t ss_tmp35231;
+            size_t ss_tmp35233;
+            size_t ss_tmp35234;
 #line 3947 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp35235 = ((ss_tmp35230 = k_l, ss_tmp35231 = sv_len_of(cuerpo_c), (ss_tmp35230 == ss_tmp35231)));
-            if (!ss_tmp35235)
+            bool ss_tmp35238 = ((ss_tmp35233 = k_l, ss_tmp35234 = sv_len_of(cuerpo_c), (ss_tmp35233 == ss_tmp35234)));
+            if (!ss_tmp35238)
             {
-                SafeView ss_tmp35232 = cuerpo_c;
-                size_t ss_tmp35233;
-                size_t ss_tmp35234;
+                SafeView ss_tmp35235 = cuerpo_c;
+                size_t ss_tmp35236;
+                size_t ss_tmp35237;
 #line 3947 "ejemplos/compilador/tcodec.t"
-                ss_tmp35235 = ((ss_tmp35233 = ((size_t)(unsigned char)ss_tmp35232.ptr[ss_lang_indice_(k_l, ss_tmp35232.len, "ejemplos/compilador/tcodec.t", 3947)]), ss_tmp35234 = (size_t)10, (ss_tmp35233 == ss_tmp35234)));
+                ss_tmp35238 = ((ss_tmp35236 = ((size_t)(unsigned char)ss_tmp35235.ptr[ss_lang_indice_(k_l, ss_tmp35235.len, "ejemplos/compilador/tcodec.t", 3947)]), ss_tmp35237 = (size_t)10, (ss_tmp35236 == ss_tmp35237)));
             }
-            if (ss_tmp35235)
+            if (ss_tmp35238)
             {
 #line 3948 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp35236 = &partes;
-                SafeView ss_tmp35237;
-                size_t ss_tmp35238;
-                size_t ss_tmp35239;
-#line 3948 "ejemplos/compilador/tcodec.t"
-#line 3948 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp35236, ss_from_view(((ss_tmp35237 = cuerpo_c, ss_tmp35238 = desde, ss_tmp35239 = k_l, ss_lang_rebanar_(ss_tmp35237, ss_tmp35238, ss_tmp35239, "ejemplos/compilador/tcodec.t", 3948)))), "ejemplos/compilador/tcodec.t", 3948);
-#line 3949 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp35240;
+                ss_lista_str* ss_tmp35239 = &partes;
+                SafeView ss_tmp35240;
                 size_t ss_tmp35241;
+                size_t ss_tmp35242;
+#line 3948 "ejemplos/compilador/tcodec.t"
+#line 3948 "ejemplos/compilador/tcodec.t"
+                ss_push_lista_str(ss_tmp35239, ss_from_view(((ss_tmp35240 = cuerpo_c, ss_tmp35241 = desde, ss_tmp35242 = k_l, ss_lang_rebanar_(ss_tmp35240, ss_tmp35241, ss_tmp35242, "ejemplos/compilador/tcodec.t", 3948)))), "ejemplos/compilador/tcodec.t", 3948);
 #line 3949 "ejemplos/compilador/tcodec.t"
-                desde = ((ss_tmp35240 = k_l, ss_tmp35241 = (size_t)1, ss_lang_suma_usize(ss_tmp35240, ss_tmp35241, "ejemplos/compilador/tcodec.t", 3949)));
+                size_t ss_tmp35243;
+                size_t ss_tmp35244;
+#line 3949 "ejemplos/compilador/tcodec.t"
+                desde = ((ss_tmp35243 = k_l, ss_tmp35244 = (size_t)1, ss_lang_suma_usize(ss_tmp35243, ss_tmp35244, "ejemplos/compilador/tcodec.t", 3949)));
             }
 #line 3951 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp35242;
-            size_t ss_tmp35243;
+            size_t ss_tmp35245;
+            size_t ss_tmp35246;
 #line 3951 "ejemplos/compilador/tcodec.t"
-            k_l = ((ss_tmp35242 = k_l, ss_tmp35243 = (size_t)1, ss_lang_suma_usize(ss_tmp35242, ss_tmp35243, "ejemplos/compilador/tcodec.t", 3951)));
+            k_l = ((ss_tmp35245 = k_l, ss_tmp35246 = (size_t)1, ss_lang_suma_usize(ss_tmp35245, ss_tmp35246, "ejemplos/compilador/tcodec.t", 3951)));
         }
 #line 3953 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp35244 = &partes;
+        ss_lista_str* ss_tmp35247 = &partes;
 #line 3953 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35244, ss_new(), "ejemplos/compilador/tcodec.t", 3953);
+        ss_push_lista_str(ss_tmp35247, ss_new(), "ejemplos/compilador/tcodec.t", 3953);
         ss_free(&hecho);
         ss_free(&crudo);
     }
@@ -121692,65 +121698,65 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
     for (size_t ss_k1571 = 0; ss_k1571 < (*reg).bloques.length; ss_k1571++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).bloques.e[ss_k1571];
-        SafeView ss_tmp35245;
-        const Contexto* ss_tmp35246;
-        Cuenta* ss_tmp35247;
-        ss_lista_str* ss_tmp35248;
-        ((ss_tmp35245 = ss_view(x), ss_tmp35246 = global, ss_tmp35247 = &cta, ss_tmp35248 = &partes, funcion_bloque(ss_tmp35245, ss_tmp35246, ss_tmp35247, ss_tmp35248)));
+        SafeView ss_tmp35248;
+        const Contexto* ss_tmp35249;
+        Cuenta* ss_tmp35250;
+        ss_lista_str* ss_tmp35251;
+        ((ss_tmp35248 = ss_view(x), ss_tmp35249 = global, ss_tmp35250 = &cta, ss_tmp35251 = &partes, funcion_bloque(ss_tmp35248, ss_tmp35249, ss_tmp35250, ss_tmp35251)));
     }
 #line 3958 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1572 = 0; ss_k1572 < (*reg).listas.length; ss_k1572++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).listas.e[ss_k1572];
-        SafeView ss_tmp35249;
-        ss_lista_str* ss_tmp35250;
-        ((ss_tmp35249 = ss_view(x), ss_tmp35250 = &partes, funcion_push(ss_tmp35249, ss_tmp35250)));
+        SafeView ss_tmp35252;
+        ss_lista_str* ss_tmp35253;
+        ((ss_tmp35252 = ss_view(x), ss_tmp35253 = &partes, funcion_push(ss_tmp35252, ss_tmp35253)));
     }
 #line 3959 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1573 = 0; ss_k1573 < (*reg).listas.length; ss_k1573++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).listas.e[ss_k1573];
-        SafeView ss_tmp35251;
-        ss_lista_str* ss_tmp35252;
-        ((ss_tmp35251 = ss_view(x), ss_tmp35252 = &partes, funcion_ordenar(ss_tmp35251, ss_tmp35252)));
+        SafeView ss_tmp35254;
+        ss_lista_str* ss_tmp35255;
+        ((ss_tmp35254 = ss_view(x), ss_tmp35255 = &partes, funcion_ordenar(ss_tmp35254, ss_tmp35255)));
     }
 #line 3960 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1574 = 0; ss_k1574 < (*reg).mapas.length; ss_k1574++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).mapas.e[ss_k1574];
-        SafeView ss_tmp35253;
-        const Contexto* ss_tmp35254;
-        const ss_mapa_str_usize* ss_tmp35255;
-        Cuenta* ss_tmp35256;
-        ss_lista_str* ss_tmp35257;
-        ((ss_tmp35253 = ss_view(x), ss_tmp35254 = global, ss_tmp35255 = con_partes, ss_tmp35256 = &cta, ss_tmp35257 = &partes, funcion_mapa(ss_tmp35253, ss_tmp35254, ss_tmp35255, ss_tmp35256, ss_tmp35257)));
+        SafeView ss_tmp35256;
+        const Contexto* ss_tmp35257;
+        const ss_mapa_str_usize* ss_tmp35258;
+        Cuenta* ss_tmp35259;
+        ss_lista_str* ss_tmp35260;
+        ((ss_tmp35256 = ss_view(x), ss_tmp35257 = global, ss_tmp35258 = con_partes, ss_tmp35259 = &cta, ss_tmp35260 = &partes, funcion_mapa(ss_tmp35256, ss_tmp35257, ss_tmp35258, ss_tmp35259, ss_tmp35260)));
     }
 #line 3963 "ejemplos/compilador/tcodec.t"
     for (size_t ss_k1575 = 0; ss_k1575 < orden.length; ss_k1575++)
     {
         SS_LANG_QUIZA_SIN_USAR const SafeString* n = &orden.e[ss_k1575];
 #line 3964 "ejemplos/compilador/tcodec.t"
-        const Contexto* ss_tmp35258;
-        SafeView ss_tmp35259;
-        if ((!((ss_tmp35258 = global, ss_tmp35259 = ss_view(n), posee_con_formas(ss_tmp35258, ss_tmp35259)))))
+        const Contexto* ss_tmp35261;
+        SafeView ss_tmp35262;
+        if ((!((ss_tmp35261 = global, ss_tmp35262 = ss_view(n), posee_con_formas(ss_tmp35261, ss_tmp35262)))))
         {
             continue;
         }
 #line 3965 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp35261;
-        SafeView ss_tmp35262;
+        const ss_mapa_str_usize* ss_tmp35264;
+        SafeView ss_tmp35265;
 #line 3965 "ejemplos/compilador/tcodec.t"
-        ss_res_usize ss_tmp35260 = ((ss_tmp35261 = st_indice, ss_tmp35262 = ss_view(n), ss_mapa_obtener_mapa_str_usize(ss_tmp35261, ss_tmp35262)));
-        size_t ss_tmp35263;
-        if (ss_tmp35260.motivo != NULL)
+        ss_res_usize ss_tmp35263 = ((ss_tmp35264 = st_indice, ss_tmp35265 = ss_view(n), ss_mapa_obtener_mapa_str_usize(ss_tmp35264, ss_tmp35265)));
+        size_t ss_tmp35266;
+        if (ss_tmp35263.motivo != NULL)
         {
-            ss_tmp35263 = (size_t)0;
+            ss_tmp35266 = (size_t)0;
         }
         else
         {
-            ss_tmp35263 = ss_tmp35260.valor;
+            ss_tmp35266 = ss_tmp35263.valor;
         }
-        SS_LANG_QUIZA_SIN_USAR size_t k = ss_tmp35263;
+        SS_LANG_QUIZA_SIN_USAR size_t k = ss_tmp35266;
 #line 3966 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR Cuerpo b = cuerpo();
 #line 3967 "ejemplos/compilador/tcodec.t"
@@ -121764,70 +121770,70 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
 #line 3971 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            const ss_lista_lista_str* ss_tmp35264;
-            size_t ss_tmp35265;
-            size_t ss_tmp35266;
+            const ss_lista_lista_str* ss_tmp35267;
+            size_t ss_tmp35268;
+            size_t ss_tmp35269;
 #line 3971 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp35265 = j, ss_tmp35266 = (((ss_tmp35264 = &((*st_campos)), &ss_tmp35264->e[ss_lang_indice_(k, ss_tmp35264->length, "ejemplos/compilador/tcodec.t", 3971)])[0]).length), (ss_tmp35265 < ss_tmp35266)))))
+            if (!(((ss_tmp35268 = j, ss_tmp35269 = (((ss_tmp35267 = &((*st_campos)), &ss_tmp35267->e[ss_lang_indice_(k, ss_tmp35267->length, "ejemplos/compilador/tcodec.t", 3971)])[0]).length), (ss_tmp35268 < ss_tmp35269)))))
             {
                 break;
             }
 #line 3972 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp35267 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp35267, sv_len("p->", 3), "ejemplos/compilador/tcodec.t", 3972);
-            const ss_lista_lista_str* ss_tmp35268;
-            const ss_lista_str* ss_tmp35269;
-            ss_lang_agregar_texto_(&ss_tmp35267, ss_view(&((ss_tmp35269 = &(((ss_tmp35268 = &((*st_campos)), &ss_tmp35268->e[ss_lang_indice_(k, ss_tmp35268->length, "ejemplos/compilador/tcodec.t", 3972)])[0])), &ss_tmp35269->e[ss_lang_indice_(j, ss_tmp35269->length, "ejemplos/compilador/tcodec.t", 3972)])[0])), "ejemplos/compilador/tcodec.t", 3972);
-            SS_LANG_QUIZA_SIN_USAR SafeString donde = ss_tmp35267;
+            SafeString ss_tmp35270 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp35270, sv_len("p->", 3), "ejemplos/compilador/tcodec.t", 3972);
+            const ss_lista_lista_str* ss_tmp35271;
+            const ss_lista_str* ss_tmp35272;
+            ss_lang_agregar_texto_(&ss_tmp35270, ss_view(&((ss_tmp35272 = &(((ss_tmp35271 = &((*st_campos)), &ss_tmp35271->e[ss_lang_indice_(k, ss_tmp35271->length, "ejemplos/compilador/tcodec.t", 3972)])[0])), &ss_tmp35272->e[ss_lang_indice_(j, ss_tmp35272->length, "ejemplos/compilador/tcodec.t", 3972)])[0])), "ejemplos/compilador/tcodec.t", 3972);
+            SS_LANG_QUIZA_SIN_USAR SafeString donde = ss_tmp35270;
 #line 3973 "ejemplos/compilador/tcodec.t"
-            Cuerpo* ss_tmp35270;
-            const Contexto* ss_tmp35271;
-            SafeView ss_tmp35272;
-            const ss_lista_lista_str* ss_tmp35273;
-            const ss_lista_str* ss_tmp35274;
+            Cuerpo* ss_tmp35273;
+            const Contexto* ss_tmp35274;
             SafeView ss_tmp35275;
-            ((ss_tmp35270 = &b, ss_tmp35271 = global, ss_tmp35272 = ss_view(&donde), ss_tmp35275 = ss_view(&((ss_tmp35274 = &(((ss_tmp35273 = &((*st_tipos)), &ss_tmp35273->e[ss_lang_indice_(k, ss_tmp35273->length, "ejemplos/compilador/tcodec.t", 3973)])[0])), &ss_tmp35274->e[ss_lang_indice_(j, ss_tmp35274->length, "ejemplos/compilador/tcodec.t", 3973)])[0])), liberacion(ss_tmp35270, ss_tmp35271, ss_tmp35272, ss_tmp35275)));
+            const ss_lista_lista_str* ss_tmp35276;
+            const ss_lista_str* ss_tmp35277;
+            SafeView ss_tmp35278;
+            ((ss_tmp35273 = &b, ss_tmp35274 = global, ss_tmp35275 = ss_view(&donde), ss_tmp35278 = ss_view(&((ss_tmp35277 = &(((ss_tmp35276 = &((*st_tipos)), &ss_tmp35276->e[ss_lang_indice_(k, ss_tmp35276->length, "ejemplos/compilador/tcodec.t", 3973)])[0])), &ss_tmp35277->e[ss_lang_indice_(j, ss_tmp35277->length, "ejemplos/compilador/tcodec.t", 3973)])[0])), liberacion(ss_tmp35273, ss_tmp35274, ss_tmp35275, ss_tmp35278)));
 #line 3974 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp35276;
-            size_t ss_tmp35277;
+            size_t ss_tmp35279;
+            size_t ss_tmp35280;
 #line 3974 "ejemplos/compilador/tcodec.t"
-            j = ((ss_tmp35276 = j, ss_tmp35277 = (size_t)1, ss_lang_suma_usize(ss_tmp35276, ss_tmp35277, "ejemplos/compilador/tcodec.t", 3974)));
+            j = ((ss_tmp35279 = j, ss_tmp35280 = (size_t)1, ss_lang_suma_usize(ss_tmp35279, ss_tmp35280, "ejemplos/compilador/tcodec.t", 3974)));
             ss_free(&donde);
         }
 #line 3976 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp35278 = &partes;
-#line 3976 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35278, ss_from_view(sv_len("SS_LANG_QUIZA_SIN_USAR", 22)), "ejemplos/compilador/tcodec.t", 3976);
-#line 3977 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp35279 = &partes;
-        SafeString ss_tmp35280 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp35280, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 3977);
-        ss_lang_agregar_texto_(&ss_tmp35280, ss_view(n), "ejemplos/compilador/tcodec.t", 3977);
-        ss_lang_agregar_texto_(&ss_tmp35280, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 3977);
-        ss_lang_agregar_texto_(&ss_tmp35280, ss_view(n), "ejemplos/compilador/tcodec.t", 3977);
-        ss_lang_agregar_texto_(&ss_tmp35280, sv_len("* p)", 4), "ejemplos/compilador/tcodec.t", 3977);
-#line 3977 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35279, ss_tmp35280, "ejemplos/compilador/tcodec.t", 3977);
-#line 3978 "ejemplos/compilador/tcodec.t"
         ss_lista_str* ss_tmp35281 = &partes;
+#line 3976 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp35281, ss_from_view(sv_len("SS_LANG_QUIZA_SIN_USAR", 22)), "ejemplos/compilador/tcodec.t", 3976);
+#line 3977 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp35282 = &partes;
+        SafeString ss_tmp35283 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp35283, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 3977);
+        ss_lang_agregar_texto_(&ss_tmp35283, ss_view(n), "ejemplos/compilador/tcodec.t", 3977);
+        ss_lang_agregar_texto_(&ss_tmp35283, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 3977);
+        ss_lang_agregar_texto_(&ss_tmp35283, ss_view(n), "ejemplos/compilador/tcodec.t", 3977);
+        ss_lang_agregar_texto_(&ss_tmp35283, sv_len("* p)", 4), "ejemplos/compilador/tcodec.t", 3977);
+#line 3977 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp35282, ss_tmp35283, "ejemplos/compilador/tcodec.t", 3977);
 #line 3978 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35281, ss_from_view(sv_len("{", 1)), "ejemplos/compilador/tcodec.t", 3978);
+        ss_lista_str* ss_tmp35284 = &partes;
+#line 3978 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp35284, ss_from_view(sv_len("{", 1)), "ejemplos/compilador/tcodec.t", 3978);
 #line 3979 "ejemplos/compilador/tcodec.t"
         for (size_t ss_k1576 = 0; ss_k1576 < b.lineas.length; ss_k1576++)
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* l = &b.lineas.e[ss_k1576];
-            ss_lista_str* ss_tmp35282 = &partes;
+            ss_lista_str* ss_tmp35285 = &partes;
 #line 3979 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35282, ss_clone(l), "ejemplos/compilador/tcodec.t", 3979);
+            ss_push_lista_str(ss_tmp35285, ss_clone(l), "ejemplos/compilador/tcodec.t", 3979);
         }
 #line 3980 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp35283 = &partes;
+        ss_lista_str* ss_tmp35286 = &partes;
 #line 3980 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35283, ss_from_view(sv_len("}", 1)), "ejemplos/compilador/tcodec.t", 3980);
+        ss_push_lista_str(ss_tmp35286, ss_from_view(sv_len("}", 1)), "ejemplos/compilador/tcodec.t", 3980);
 #line 3981 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp35284 = &partes;
+        ss_lista_str* ss_tmp35287 = &partes;
 #line 3981 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp35284, ss_new(), "ejemplos/compilador/tcodec.t", 3981);
+        ss_push_lista_str(ss_tmp35287, ss_new(), "ejemplos/compilador/tcodec.t", 3981);
 #line 3982 "ejemplos/compilador/tcodec.t"
         cta.temporal = b.temporal;
 #line 3983 "ejemplos/compilador/tcodec.t"
@@ -121841,64 +121847,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
 #line 3989 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp35285;
-        size_t ss_tmp35286;
+        size_t ss_tmp35288;
+        size_t ss_tmp35289;
 #line 3989 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp35285 = ie_d, ss_tmp35286 = ((*en_nombres).length), (ss_tmp35285 < ss_tmp35286)))))
+        if (!(((ss_tmp35288 = ie_d, ss_tmp35289 = ((*en_nombres).length), (ss_tmp35288 < ss_tmp35289)))))
         {
             break;
         }
 #line 3990 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp35287;
-        SS_LANG_QUIZA_SIN_USAR SafeString en_n = ss_clone(&((ss_tmp35287 = &((*en_nombres)), &ss_tmp35287->e[ss_lang_indice_(ie_d, ss_tmp35287->length, "ejemplos/compilador/tcodec.t", 3990)])[0]));
+        const ss_lista_str* ss_tmp35290;
+        SS_LANG_QUIZA_SIN_USAR SafeString en_n = ss_clone(&((ss_tmp35290 = &((*en_nombres)), &ss_tmp35290->e[ss_lang_indice_(ie_d, ss_tmp35290->length, "ejemplos/compilador/tcodec.t", 3990)])[0]));
 #line 3991 "ejemplos/compilador/tcodec.t"
-        const Contexto* ss_tmp35288;
-        SafeView ss_tmp35289;
-        if (((ss_tmp35288 = global, ss_tmp35289 = ss_view(&en_n), posee_con_formas(ss_tmp35288, ss_tmp35289))))
+        const Contexto* ss_tmp35291;
+        SafeView ss_tmp35292;
+        if (((ss_tmp35291 = global, ss_tmp35292 = ss_view(&en_n), posee_con_formas(ss_tmp35291, ss_tmp35292))))
         {
 #line 3992 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp35290 = &partes;
-#line 3992 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35290, ss_from_view(sv_len("SS_LANG_QUIZA_SIN_USAR", 22)), "ejemplos/compilador/tcodec.t", 3992);
-#line 3993 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp35291 = &partes;
-            SafeString ss_tmp35292 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp35292, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 3993);
-            ss_lang_agregar_texto_(&ss_tmp35292, ss_view(&en_n), "ejemplos/compilador/tcodec.t", 3993);
-            ss_lang_agregar_texto_(&ss_tmp35292, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 3993);
-            ss_lang_agregar_texto_(&ss_tmp35292, ss_view(&en_n), "ejemplos/compilador/tcodec.t", 3993);
-            ss_lang_agregar_texto_(&ss_tmp35292, sv_len("* p)", 4), "ejemplos/compilador/tcodec.t", 3993);
-#line 3993 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35291, ss_tmp35292, "ejemplos/compilador/tcodec.t", 3993);
-#line 3994 "ejemplos/compilador/tcodec.t"
             ss_lista_str* ss_tmp35293 = &partes;
-#line 3994 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35293, ss_from_view(sv_len("{", 1)), "ejemplos/compilador/tcodec.t", 3994);
-#line 3995 "ejemplos/compilador/tcodec.t"
+#line 3992 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp35293, ss_from_view(sv_len("SS_LANG_QUIZA_SIN_USAR", 22)), "ejemplos/compilador/tcodec.t", 3992);
+#line 3993 "ejemplos/compilador/tcodec.t"
             ss_lista_str* ss_tmp35294 = &partes;
+            SafeString ss_tmp35295 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp35295, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 3993);
+            ss_lang_agregar_texto_(&ss_tmp35295, ss_view(&en_n), "ejemplos/compilador/tcodec.t", 3993);
+            ss_lang_agregar_texto_(&ss_tmp35295, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 3993);
+            ss_lang_agregar_texto_(&ss_tmp35295, ss_view(&en_n), "ejemplos/compilador/tcodec.t", 3993);
+            ss_lang_agregar_texto_(&ss_tmp35295, sv_len("* p)", 4), "ejemplos/compilador/tcodec.t", 3993);
+#line 3993 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp35294, ss_tmp35295, "ejemplos/compilador/tcodec.t", 3993);
+#line 3994 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp35296 = &partes;
+#line 3994 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp35296, ss_from_view(sv_len("{", 1)), "ejemplos/compilador/tcodec.t", 3994);
 #line 3995 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35294, ss_from_view(sv_len("    switch (p->etiqueta)", 24)), "ejemplos/compilador/tcodec.t", 3995);
+            ss_lista_str* ss_tmp35297 = &partes;
+#line 3995 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp35297, ss_from_view(sv_len("    switch (p->etiqueta)", 24)), "ejemplos/compilador/tcodec.t", 3995);
 #line 3996 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp35295 = &partes;
+            ss_lista_str* ss_tmp35298 = &partes;
 #line 3996 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35295, ss_from_view(sv_len("    {", 5)), "ejemplos/compilador/tcodec.t", 3996);
+            ss_push_lista_str(ss_tmp35298, ss_from_view(sv_len("    {", 5)), "ejemplos/compilador/tcodec.t", 3996);
 #line 3997 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR size_t iv = (size_t)0;
 #line 3998 "ejemplos/compilador/tcodec.t"
             while (true)
             {
-                const ss_lista_lista_str* ss_tmp35296;
-                size_t ss_tmp35297;
-                size_t ss_tmp35298;
+                const ss_lista_lista_str* ss_tmp35299;
+                size_t ss_tmp35300;
+                size_t ss_tmp35301;
 #line 3998 "ejemplos/compilador/tcodec.t"
-                if (!(((ss_tmp35297 = iv, ss_tmp35298 = (((ss_tmp35296 = &((*en_variantes)), &ss_tmp35296->e[ss_lang_indice_(ie_d, ss_tmp35296->length, "ejemplos/compilador/tcodec.t", 3998)])[0]).length), (ss_tmp35297 < ss_tmp35298)))))
+                if (!(((ss_tmp35300 = iv, ss_tmp35301 = (((ss_tmp35299 = &((*en_variantes)), &ss_tmp35299->e[ss_lang_indice_(ie_d, ss_tmp35299->length, "ejemplos/compilador/tcodec.t", 3998)])[0]).length), (ss_tmp35300 < ss_tmp35301)))))
                 {
                     break;
                 }
 #line 3999 "ejemplos/compilador/tcodec.t"
-                const ss_lista_lista_str* ss_tmp35299;
-                const ss_lista_str* ss_tmp35300;
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_v = partir_tab(ss_view(&((ss_tmp35300 = &(((ss_tmp35299 = &((*en_lleva)), &ss_tmp35299->e[ss_lang_indice_(ie_d, ss_tmp35299->length, "ejemplos/compilador/tcodec.t", 3999)])[0])), &ss_tmp35300->e[ss_lang_indice_(iv, ss_tmp35300->length, "ejemplos/compilador/tcodec.t", 3999)])[0])));
+                const ss_lista_lista_str* ss_tmp35302;
+                const ss_lista_str* ss_tmp35303;
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_v = partir_tab(ss_view(&((ss_tmp35303 = &(((ss_tmp35302 = &((*en_lleva)), &ss_tmp35302->e[ss_lang_indice_(ie_d, ss_tmp35302->length, "ejemplos/compilador/tcodec.t", 3999)])[0])), &ss_tmp35303->e[ss_lang_indice_(iv, ss_tmp35303->length, "ejemplos/compilador/tcodec.t", 3999)])[0])));
 #line 4000 "ejemplos/compilador/tcodec.t"
                 SS_LANG_QUIZA_SIN_USAR bool alguna = false;
 #line 4001 "ejemplos/compilador/tcodec.t"
@@ -121906,9 +121912,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
                 {
                     SS_LANG_QUIZA_SIN_USAR const SafeString* tt = &tipos_v.e[ss_k1577];
 #line 4002 "ejemplos/compilador/tcodec.t"
-                    const Contexto* ss_tmp35301;
-                    SafeView ss_tmp35302;
-                    if (((ss_tmp35301 = global, ss_tmp35302 = ss_view(tt), posee_con_formas(ss_tmp35301, ss_tmp35302))))
+                    const Contexto* ss_tmp35304;
+                    SafeView ss_tmp35305;
+                    if (((ss_tmp35304 = global, ss_tmp35305 = ss_view(tt), posee_con_formas(ss_tmp35304, ss_tmp35305))))
                     {
                         alguna = true;
                     }
@@ -121917,84 +121923,84 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
                 if (alguna)
                 {
 #line 4005 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp35303;
-                    const ss_lista_lista_str* ss_tmp35304;
-                    const ss_lista_str* ss_tmp35305;
                     SafeView ss_tmp35306;
-                    SS_LANG_QUIZA_SIN_USAR SafeString etq = ((ss_tmp35303 = ss_view(&en_n), ss_tmp35306 = ss_view(&((ss_tmp35305 = &(((ss_tmp35304 = &((*en_variantes)), &ss_tmp35304->e[ss_lang_indice_(ie_d, ss_tmp35304->length, "ejemplos/compilador/tcodec.t", 4005)])[0])), &ss_tmp35305->e[ss_lang_indice_(iv, ss_tmp35305->length, "ejemplos/compilador/tcodec.t", 4005)])[0])), etiqueta(ss_tmp35303, ss_tmp35306)));
+                    const ss_lista_lista_str* ss_tmp35307;
+                    const ss_lista_str* ss_tmp35308;
+                    SafeView ss_tmp35309;
+                    SS_LANG_QUIZA_SIN_USAR SafeString etq = ((ss_tmp35306 = ss_view(&en_n), ss_tmp35309 = ss_view(&((ss_tmp35308 = &(((ss_tmp35307 = &((*en_variantes)), &ss_tmp35307->e[ss_lang_indice_(ie_d, ss_tmp35307->length, "ejemplos/compilador/tcodec.t", 4005)])[0])), &ss_tmp35308->e[ss_lang_indice_(iv, ss_tmp35308->length, "ejemplos/compilador/tcodec.t", 4005)])[0])), etiqueta(ss_tmp35306, ss_tmp35309)));
 #line 4006 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp35307 = &partes;
-                    SafeString ss_tmp35308 = ss_new();
-                    ss_lang_agregar_texto_(&ss_tmp35308, sv_len("    case ", 9), "ejemplos/compilador/tcodec.t", 4006);
-                    ss_lang_agregar_texto_(&ss_tmp35308, ss_view(&etq), "ejemplos/compilador/tcodec.t", 4006);
-                    ss_lang_agregar_texto_(&ss_tmp35308, sv_len(":", 1), "ejemplos/compilador/tcodec.t", 4006);
+                    ss_lista_str* ss_tmp35310 = &partes;
+                    SafeString ss_tmp35311 = ss_new();
+                    ss_lang_agregar_texto_(&ss_tmp35311, sv_len("    case ", 9), "ejemplos/compilador/tcodec.t", 4006);
+                    ss_lang_agregar_texto_(&ss_tmp35311, ss_view(&etq), "ejemplos/compilador/tcodec.t", 4006);
+                    ss_lang_agregar_texto_(&ss_tmp35311, sv_len(":", 1), "ejemplos/compilador/tcodec.t", 4006);
 #line 4006 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp35307, ss_tmp35308, "ejemplos/compilador/tcodec.t", 4006);
+                    ss_push_lista_str(ss_tmp35310, ss_tmp35311, "ejemplos/compilador/tcodec.t", 4006);
 #line 4007 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp35309 = &partes;
+                    ss_lista_str* ss_tmp35312 = &partes;
 #line 4007 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp35309, ss_from_view(sv_len("    {", 5)), "ejemplos/compilador/tcodec.t", 4007);
+                    ss_push_lista_str(ss_tmp35312, ss_from_view(sv_len("    {", 5)), "ejemplos/compilador/tcodec.t", 4007);
 #line 4008 "ejemplos/compilador/tcodec.t"
                     SS_LANG_QUIZA_SIN_USAR size_t q = (size_t)0;
 #line 4009 "ejemplos/compilador/tcodec.t"
                     while (true)
                     {
-                        size_t ss_tmp35310;
-                        size_t ss_tmp35311;
+                        size_t ss_tmp35313;
+                        size_t ss_tmp35314;
 #line 4009 "ejemplos/compilador/tcodec.t"
-                        if (!(((ss_tmp35310 = q, ss_tmp35311 = (tipos_v.length), (ss_tmp35310 < ss_tmp35311)))))
+                        if (!(((ss_tmp35313 = q, ss_tmp35314 = (tipos_v.length), (ss_tmp35313 < ss_tmp35314)))))
                         {
                             break;
                         }
 #line 4010 "ejemplos/compilador/tcodec.t"
-                        const Contexto* ss_tmp35312;
-                        ss_lista_str* ss_tmp35313;
-                        SafeView ss_tmp35314;
-                        if (((ss_tmp35312 = global, ss_tmp35314 = ss_view(&((ss_tmp35313 = &(tipos_v), &ss_tmp35313->e[ss_lang_indice_(q, ss_tmp35313->length, "ejemplos/compilador/tcodec.t", 4010)])[0])), posee_con_formas(ss_tmp35312, ss_tmp35314))))
+                        const Contexto* ss_tmp35315;
+                        ss_lista_str* ss_tmp35316;
+                        SafeView ss_tmp35317;
+                        if (((ss_tmp35315 = global, ss_tmp35317 = ss_view(&((ss_tmp35316 = &(tipos_v), &ss_tmp35316->e[ss_lang_indice_(q, ss_tmp35316->length, "ejemplos/compilador/tcodec.t", 4010)])[0])), posee_con_formas(ss_tmp35315, ss_tmp35317))))
                         {
 #line 4011 "ejemplos/compilador/tcodec.t"
-                            SafeString ss_tmp35315 = ss_new();
-                            ss_lang_agregar_texto_(&ss_tmp35315, sv_len("p->dato.v_", 10), "ejemplos/compilador/tcodec.t", 4011);
-                            const ss_lista_lista_str* ss_tmp35316;
-                            const ss_lista_str* ss_tmp35317;
-                            ss_lang_agregar_texto_(&ss_tmp35315, ss_view(&((ss_tmp35317 = &(((ss_tmp35316 = &((*en_variantes)), &ss_tmp35316->e[ss_lang_indice_(ie_d, ss_tmp35316->length, "ejemplos/compilador/tcodec.t", 4011)])[0])), &ss_tmp35317->e[ss_lang_indice_(iv, ss_tmp35317->length, "ejemplos/compilador/tcodec.t", 4011)])[0])), "ejemplos/compilador/tcodec.t", 4011);
-                            ss_lang_agregar_texto_(&ss_tmp35315, sv_len("._", 2), "ejemplos/compilador/tcodec.t", 4011);
-                            SafeString ss_tmp35318 = ss_lang_texto_usize_(q, "ejemplos/compilador/tcodec.t", 4011);
-                            ss_lang_agregar_texto_(&ss_tmp35315, ss_view(&ss_tmp35318), "ejemplos/compilador/tcodec.t", 4011);
-                            SS_LANG_QUIZA_SIN_USAR SafeString donde = ss_tmp35315;
-                            ss_free(&ss_tmp35318);
+                            SafeString ss_tmp35318 = ss_new();
+                            ss_lang_agregar_texto_(&ss_tmp35318, sv_len("p->dato.v_", 10), "ejemplos/compilador/tcodec.t", 4011);
+                            const ss_lista_lista_str* ss_tmp35319;
+                            const ss_lista_str* ss_tmp35320;
+                            ss_lang_agregar_texto_(&ss_tmp35318, ss_view(&((ss_tmp35320 = &(((ss_tmp35319 = &((*en_variantes)), &ss_tmp35319->e[ss_lang_indice_(ie_d, ss_tmp35319->length, "ejemplos/compilador/tcodec.t", 4011)])[0])), &ss_tmp35320->e[ss_lang_indice_(iv, ss_tmp35320->length, "ejemplos/compilador/tcodec.t", 4011)])[0])), "ejemplos/compilador/tcodec.t", 4011);
+                            ss_lang_agregar_texto_(&ss_tmp35318, sv_len("._", 2), "ejemplos/compilador/tcodec.t", 4011);
+                            SafeString ss_tmp35321 = ss_lang_texto_usize_(q, "ejemplos/compilador/tcodec.t", 4011);
+                            ss_lang_agregar_texto_(&ss_tmp35318, ss_view(&ss_tmp35321), "ejemplos/compilador/tcodec.t", 4011);
+                            SS_LANG_QUIZA_SIN_USAR SafeString donde = ss_tmp35318;
+                            ss_free(&ss_tmp35321);
 #line 4012 "ejemplos/compilador/tcodec.t"
-                            const Contexto* ss_tmp35319;
-                            SafeView ss_tmp35320;
-                            ss_lista_str* ss_tmp35321;
-                            SafeView ss_tmp35322;
-                            size_t ss_tmp35323;
-                            Cuenta* ss_tmp35324;
-                            ss_lista_str* ss_tmp35325;
-                            ((ss_tmp35319 = global, ss_tmp35320 = ss_view(&donde), ss_tmp35322 = ss_view(&((ss_tmp35321 = &(tipos_v), &ss_tmp35321->e[ss_lang_indice_(q, ss_tmp35321->length, "ejemplos/compilador/tcodec.t", 4012)])[0])), ss_tmp35323 = (size_t)2, ss_tmp35324 = &cta, ss_tmp35325 = &partes, lineas_liberacion(ss_tmp35319, ss_tmp35320, ss_tmp35322, ss_tmp35323, ss_tmp35324, ss_tmp35325)));
+                            const Contexto* ss_tmp35322;
+                            SafeView ss_tmp35323;
+                            ss_lista_str* ss_tmp35324;
+                            SafeView ss_tmp35325;
+                            size_t ss_tmp35326;
+                            Cuenta* ss_tmp35327;
+                            ss_lista_str* ss_tmp35328;
+                            ((ss_tmp35322 = global, ss_tmp35323 = ss_view(&donde), ss_tmp35325 = ss_view(&((ss_tmp35324 = &(tipos_v), &ss_tmp35324->e[ss_lang_indice_(q, ss_tmp35324->length, "ejemplos/compilador/tcodec.t", 4012)])[0])), ss_tmp35326 = (size_t)2, ss_tmp35327 = &cta, ss_tmp35328 = &partes, lineas_liberacion(ss_tmp35322, ss_tmp35323, ss_tmp35325, ss_tmp35326, ss_tmp35327, ss_tmp35328)));
                             ss_free(&donde);
                         }
 #line 4015 "ejemplos/compilador/tcodec.t"
-                        size_t ss_tmp35326;
-                        size_t ss_tmp35327;
+                        size_t ss_tmp35329;
+                        size_t ss_tmp35330;
 #line 4015 "ejemplos/compilador/tcodec.t"
-                        q = ((ss_tmp35326 = q, ss_tmp35327 = (size_t)1, ss_lang_suma_usize(ss_tmp35326, ss_tmp35327, "ejemplos/compilador/tcodec.t", 4015)));
+                        q = ((ss_tmp35329 = q, ss_tmp35330 = (size_t)1, ss_lang_suma_usize(ss_tmp35329, ss_tmp35330, "ejemplos/compilador/tcodec.t", 4015)));
                     }
 #line 4017 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp35328 = &partes;
+                    ss_lista_str* ss_tmp35331 = &partes;
 #line 4017 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp35328, ss_from_view(sv_len("        break;", 14)), "ejemplos/compilador/tcodec.t", 4017);
+                    ss_push_lista_str(ss_tmp35331, ss_from_view(sv_len("        break;", 14)), "ejemplos/compilador/tcodec.t", 4017);
 #line 4018 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp35329 = &partes;
+                    ss_lista_str* ss_tmp35332 = &partes;
 #line 4018 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp35329, ss_from_view(sv_len("    }", 5)), "ejemplos/compilador/tcodec.t", 4018);
+                    ss_push_lista_str(ss_tmp35332, ss_from_view(sv_len("    }", 5)), "ejemplos/compilador/tcodec.t", 4018);
                     ss_free(&etq);
                 }
 #line 4020 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp35330;
-                size_t ss_tmp35331;
+                size_t ss_tmp35333;
+                size_t ss_tmp35334;
 #line 4020 "ejemplos/compilador/tcodec.t"
-                iv = ((ss_tmp35330 = iv, ss_tmp35331 = (size_t)1, ss_lang_suma_usize(ss_tmp35330, ss_tmp35331, "ejemplos/compilador/tcodec.t", 4020)));
+                iv = ((ss_tmp35333 = iv, ss_tmp35334 = (size_t)1, ss_lang_suma_usize(ss_tmp35333, ss_tmp35334, "ejemplos/compilador/tcodec.t", 4020)));
                 for (size_t ss_i1578 = 0; ss_i1578 < tipos_v.length; ss_i1578++)
                 {
                     ss_free(&tipos_v.e[ss_i1578]);
@@ -122005,34 +122011,34 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
                 tipos_v.capacity = 0;
             }
 #line 4022 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp35332 = &partes;
-#line 4022 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35332, ss_from_view(sv_len("    default: break;", 19)), "ejemplos/compilador/tcodec.t", 4022);
-#line 4023 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp35333 = &partes;
-#line 4023 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35333, ss_from_view(sv_len("    }", 5)), "ejemplos/compilador/tcodec.t", 4023);
-#line 4024 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp35334 = &partes;
-#line 4024 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35334, ss_from_view(sv_len("}", 1)), "ejemplos/compilador/tcodec.t", 4024);
-#line 4025 "ejemplos/compilador/tcodec.t"
             ss_lista_str* ss_tmp35335 = &partes;
+#line 4022 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp35335, ss_from_view(sv_len("    default: break;", 19)), "ejemplos/compilador/tcodec.t", 4022);
+#line 4023 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp35336 = &partes;
+#line 4023 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp35336, ss_from_view(sv_len("    }", 5)), "ejemplos/compilador/tcodec.t", 4023);
+#line 4024 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp35337 = &partes;
+#line 4024 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp35337, ss_from_view(sv_len("}", 1)), "ejemplos/compilador/tcodec.t", 4024);
 #line 4025 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp35335, ss_new(), "ejemplos/compilador/tcodec.t", 4025);
+            ss_lista_str* ss_tmp35338 = &partes;
+#line 4025 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp35338, ss_new(), "ejemplos/compilador/tcodec.t", 4025);
         }
 #line 4027 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35336;
-        size_t ss_tmp35337;
+        size_t ss_tmp35339;
+        size_t ss_tmp35340;
 #line 4027 "ejemplos/compilador/tcodec.t"
-        ie_d = ((ss_tmp35336 = ie_d, ss_tmp35337 = (size_t)1, ss_lang_suma_usize(ss_tmp35336, ss_tmp35337, "ejemplos/compilador/tcodec.t", 4027)));
+        ie_d = ((ss_tmp35339 = ie_d, ss_tmp35340 = (size_t)1, ss_lang_suma_usize(ss_tmp35339, ss_tmp35340, "ejemplos/compilador/tcodec.t", 4027)));
         ss_free(&en_n);
     }
 #line 4029 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp35338;
-    Cuenta ss_tmp35339;
+    ss_lista_str ss_tmp35341;
+    Cuenta ss_tmp35342;
 #line 4029 "ejemplos/compilador/tcodec.t"
-    SoporteGenerado ss_tmp35340 = ((ss_tmp35338 = partes, ss_tmp35339 = cta, (SoporteGenerado){ .partes = ss_tmp35338, .cta = ss_tmp35339 }));
+    SoporteGenerado ss_tmp35343 = ((ss_tmp35341 = partes, ss_tmp35342 = cta, (SoporteGenerado){ .partes = ss_tmp35341, .cta = ss_tmp35342 }));
     ss_vivo_partes = false;
     ss_vivo_cta = false;
     for (size_t ss_i1579 = 0; ss_i1579 < internas_orden.length; ss_i1579++)
@@ -122097,7 +122103,7 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
     orden.capacity = 0;
     ss_mapa_libre_mapa_str_usize(&listos);
     ss_mapa_libre_mapa_str_usize(&usa_sistema);
-    return (ss_res_SoporteGenerado){ .motivo = NULL, .valor = ss_tmp35340 };
+    return (ss_res_SoporteGenerado){ .motivo = NULL, .valor = ss_tmp35343 };
 }
 
 #line 4032 "ejemplos/compilador/tcodec.t"
@@ -122110,21 +122116,21 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
 #line 4036 "ejemplos/compilador/tcodec.t"
     if (opciones.terminar)
     {
-        size_t ss_tmp35341 = opciones.codigo;
+        size_t ss_tmp35344 = opciones.codigo;
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35341 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35344 };
     }
 #line 4037 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp35342;
-    SafeView ss_tmp35343;
-    if (((ss_tmp35342 = ss_view(&opciones.modo), ss_tmp35343 = sv_len("formatear", 9), sv_equals(ss_tmp35342, ss_tmp35343))))
+    SafeView ss_tmp35345;
+    SafeView ss_tmp35346;
+    if (((ss_tmp35345 = ss_view(&opciones.modo), ss_tmp35346 = sv_len("formatear", 9), sv_equals(ss_tmp35345, ss_tmp35346))))
     {
 #line 4038 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp35344;
-        bool ss_tmp35345;
-        size_t ss_tmp35346 = ((ss_tmp35344 = ss_view(&opciones.fuente), ss_tmp35345 = opciones.escribir, formatear_archivo(ss_tmp35344, ss_tmp35345)));
+        SafeView ss_tmp35347;
+        bool ss_tmp35348;
+        size_t ss_tmp35349 = ((ss_tmp35347 = ss_view(&opciones.fuente), ss_tmp35348 = opciones.escribir, formatear_archivo(ss_tmp35347, ss_tmp35348)));
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35346 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35349 };
     }
 #line 4040 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString fuente = ss_clone(&opciones.fuente);
@@ -122141,33 +122147,33 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
 #line 4046 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR bool avisos_como_errores = opciones.avisos_como_errores;
 #line 4048 "ejemplos/compilador/tcodec.t"
-    ss_res_str ss_tmp35347 = ss_lang_variable_entorno_(sv_len("TCODE_RAIZ", 10));
-    SafeString ss_tmp35348;
-    if (ss_tmp35347.motivo != NULL)
+    ss_res_str ss_tmp35350 = ss_lang_variable_entorno_(sv_len("TCODE_RAIZ", 10));
+    SafeString ss_tmp35351;
+    if (ss_tmp35350.motivo != NULL)
     {
-        SafeString ss_tmp35349 = ss_from(tcodec_raiz_instalada());
-        ss_tmp35348 = ss_tmp35349;
+        SafeString ss_tmp35352 = ss_from(tcodec_raiz_instalada());
+        ss_tmp35351 = ss_tmp35352;
     }
     else
     {
-        ss_tmp35348 = ss_tmp35347.valor;
+        ss_tmp35351 = ss_tmp35350.valor;
     }
-    SS_LANG_QUIZA_SIN_USAR SafeString raiz = ss_tmp35348;
+    SS_LANG_QUIZA_SIN_USAR SafeString raiz = ss_tmp35351;
 #line 4049 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp35350;
-    size_t ss_tmp35351;
+    size_t ss_tmp35353;
+    size_t ss_tmp35354;
 #line 4049 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp35350 = sv_len_of(ss_view(&raiz)), ss_tmp35351 = (size_t)0, (ss_tmp35350 == ss_tmp35351))))
+    if (((ss_tmp35353 = sv_len_of(ss_view(&raiz)), ss_tmp35354 = (size_t)0, (ss_tmp35353 == ss_tmp35354))))
     {
-        SafeString ss_tmp35352 = ss_from_view(sv_len(".", 1));
+        SafeString ss_tmp35355 = ss_from_view(sv_len(".", 1));
         ss_free(&raiz);
-        raiz = ss_tmp35352;
+        raiz = ss_tmp35355;
     }
 #line 4050 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp35354;
-    SafeView ss_tmp35355;
-    ss_res_ProgramaLeido ss_tmp35353 = ((ss_tmp35354 = ss_view(&fuente), ss_tmp35355 = ss_view(&raiz), leer_programa(ss_tmp35354, ss_tmp35355)));
-    if (ss_tmp35353.motivo != NULL)
+    SafeView ss_tmp35357;
+    SafeView ss_tmp35358;
+    ss_res_ProgramaLeido ss_tmp35356 = ((ss_tmp35357 = ss_view(&fuente), ss_tmp35358 = ss_view(&raiz), leer_programa(ss_tmp35357, ss_tmp35358)));
+    if (ss_tmp35356.motivo != NULL)
     {
         ss_free(&raiz);
         ss_free(&modo);
@@ -122176,13 +122182,13 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = ss_tmp35353.motivo };
+        return (ss_res_usize){ .motivo = ss_tmp35356.motivo };
     }
-    SS_LANG_QUIZA_SIN_USAR ProgramaLeido leido = ss_tmp35353.valor;
+    SS_LANG_QUIZA_SIN_USAR ProgramaLeido leido = ss_tmp35356.valor;
 #line 4051 "ejemplos/compilador/tcodec.t"
     if ((!leido.ok))
     {
-        size_t ss_tmp35356 = (size_t)1;
+        size_t ss_tmp35359 = (size_t)1;
         ss_drop_ProgramaLeido(&leido);
         ss_free(&raiz);
         ss_free(&modo);
@@ -122191,7 +122197,7 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35356 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35359 };
     }
 #line 4052 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str modulos = ss_copia_lista_str(&leido.modulos);
@@ -122234,86 +122240,86 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
 #line 4071 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize plantillas = ss_copia_mapa_str_usize(&leido.plantillas);
 #line 4075 "ejemplos/compilador/tcodec.t"
-    const ss_lista_Nodo* ss_tmp35357;
-    const ss_lista_str* ss_tmp35358;
-    const ss_lista_Contexto* ss_tmp35359;
-    SS_LANG_QUIZA_SIN_USAR Revision revision = ((ss_tmp35357 = &arboles, ss_tmp35358 = &modulos, ss_tmp35359 = &contextos, comprobar_programa(ss_tmp35357, ss_tmp35358, ss_tmp35359)));
+    const ss_lista_Nodo* ss_tmp35360;
+    const ss_lista_str* ss_tmp35361;
+    const ss_lista_Contexto* ss_tmp35362;
+    SS_LANG_QUIZA_SIN_USAR Revision revision = ((ss_tmp35360 = &arboles, ss_tmp35361 = &modulos, ss_tmp35362 = &contextos, comprobar_programa(ss_tmp35360, ss_tmp35361, ss_tmp35362)));
 #line 4078 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_anot = (size_t)0;
 #line 4079 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp35360;
-        size_t ss_tmp35361;
-#line 4079 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35362;
         size_t ss_tmp35363;
+        size_t ss_tmp35364;
 #line 4079 "ejemplos/compilador/tcodec.t"
-        if (!((((ss_tmp35360 = k_anot, ss_tmp35361 = (contextos.length), (ss_tmp35360 < ss_tmp35361))) && ((ss_tmp35362 = k_anot, ss_tmp35363 = (revision.anotados.length), (ss_tmp35362 < ss_tmp35363))))))
+        size_t ss_tmp35365;
+        size_t ss_tmp35366;
+#line 4079 "ejemplos/compilador/tcodec.t"
+        if (!((((ss_tmp35363 = k_anot, ss_tmp35364 = (contextos.length), (ss_tmp35363 < ss_tmp35364))) && ((ss_tmp35365 = k_anot, ss_tmp35366 = (revision.anotados.length), (ss_tmp35365 < ss_tmp35366))))))
         {
             break;
         }
 #line 4080 "ejemplos/compilador/tcodec.t"
-        ss_lista_Contexto* ss_tmp35364;
-        ss_lista_mapa_str_str* ss_tmp35365;
-        ss_mapa_str_str ss_tmp35366 = ss_copia_mapa_str_str(&((ss_tmp35365 = &(revision.anotados), &ss_tmp35365->e[ss_lang_indice_(k_anot, ss_tmp35365->length, "ejemplos/compilador/tcodec.t", 4080)])[0]));
-        ss_mapa_libre_mapa_str_str(&((ss_tmp35364 = &(contextos), &ss_tmp35364->e[ss_lang_indice_(k_anot, ss_tmp35364->length, "ejemplos/compilador/tcodec.t", 4080)])[0]).anotados);
-        ((ss_tmp35364 = &(contextos), &ss_tmp35364->e[ss_lang_indice_(k_anot, ss_tmp35364->length, "ejemplos/compilador/tcodec.t", 4080)])[0]).anotados = ss_tmp35366;
+        ss_lista_Contexto* ss_tmp35367;
+        ss_lista_mapa_str_str* ss_tmp35368;
+        ss_mapa_str_str ss_tmp35369 = ss_copia_mapa_str_str(&((ss_tmp35368 = &(revision.anotados), &ss_tmp35368->e[ss_lang_indice_(k_anot, ss_tmp35368->length, "ejemplos/compilador/tcodec.t", 4080)])[0]));
+        ss_mapa_libre_mapa_str_str(&((ss_tmp35367 = &(contextos), &ss_tmp35367->e[ss_lang_indice_(k_anot, ss_tmp35367->length, "ejemplos/compilador/tcodec.t", 4080)])[0]).anotados);
+        ((ss_tmp35367 = &(contextos), &ss_tmp35367->e[ss_lang_indice_(k_anot, ss_tmp35367->length, "ejemplos/compilador/tcodec.t", 4080)])[0]).anotados = ss_tmp35369;
 #line 4081 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35367;
-        size_t ss_tmp35368;
+        size_t ss_tmp35370;
+        size_t ss_tmp35371;
 #line 4081 "ejemplos/compilador/tcodec.t"
-        k_anot = ((ss_tmp35367 = k_anot, ss_tmp35368 = (size_t)1, ss_lang_suma_usize(ss_tmp35367, ss_tmp35368, "ejemplos/compilador/tcodec.t", 4081)));
+        k_anot = ((ss_tmp35370 = k_anot, ss_tmp35371 = (size_t)1, ss_lang_suma_usize(ss_tmp35370, ss_tmp35371, "ejemplos/compilador/tcodec.t", 4081)));
     }
 #line 4083 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp35369;
-    size_t ss_tmp35370;
+    size_t ss_tmp35372;
+    size_t ss_tmp35373;
 #line 4083 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp35369 = (revision.errores.length), ss_tmp35370 = (size_t)0, (ss_tmp35369 > ss_tmp35370))))
+    if (((ss_tmp35372 = (revision.errores.length), ss_tmp35373 = (size_t)0, (ss_tmp35372 > ss_tmp35373))))
     {
 #line 4084 "ejemplos/compilador/tcodec.t"
         for (size_t ss_k1585 = 0; ss_k1585 < revision.errores.length; ss_k1585++)
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* e = &revision.errores.e[ss_k1585];
-            SafeString ss_tmp35372 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp35372, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 4084);
-            ss_lang_agregar_texto_(&ss_tmp35372, ss_view(e), "ejemplos/compilador/tcodec.t", 4084);
-            ss_lang_agregar_texto_(&ss_tmp35372, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4084);
-            SafeString ss_tmp35371 = ss_tmp35372;
-            SafeView ss_tmp35373 = ss_view(&ss_tmp35371);
+            SafeString ss_tmp35375 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp35375, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 4084);
+            ss_lang_agregar_texto_(&ss_tmp35375, ss_view(e), "ejemplos/compilador/tcodec.t", 4084);
+            ss_lang_agregar_texto_(&ss_tmp35375, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4084);
+            SafeString ss_tmp35374 = ss_tmp35375;
+            SafeView ss_tmp35376 = ss_view(&ss_tmp35374);
 #line 4084 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp35373);
-            ss_free(&ss_tmp35371);
+            ss_lang_escribir_(stderr, ss_tmp35376);
+            ss_free(&ss_tmp35374);
         }
 #line 4085 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t n = (revision.errores.length);
 #line 4086 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35374;
-        size_t ss_tmp35375;
+        size_t ss_tmp35377;
+        size_t ss_tmp35378;
 #line 4086 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp35374 = n, ss_tmp35375 = (size_t)1, (ss_tmp35374 == ss_tmp35375))))
+        if (((ss_tmp35377 = n, ss_tmp35378 = (size_t)1, (ss_tmp35377 == ss_tmp35378))))
         {
-            SafeView ss_tmp35376 = sv_len("\n1 error. No se genero nada.\n", 29);
+            SafeView ss_tmp35379 = sv_len("\n1 error. No se genero nada.\n", 29);
 #line 4086 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp35376);
+            ss_lang_escribir_(stderr, ss_tmp35379);
         }
         else
         {
 #line 4087 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp35378 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp35378, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4087);
-            SafeString ss_tmp35379 = ss_lang_texto_usize_(n, "ejemplos/compilador/tcodec.t", 4087);
-            ss_lang_agregar_texto_(&ss_tmp35378, ss_view(&ss_tmp35379), "ejemplos/compilador/tcodec.t", 4087);
-            ss_lang_agregar_texto_(&ss_tmp35378, sv_len(" errores. No se genero nada.\n", 29), "ejemplos/compilador/tcodec.t", 4087);
-            SafeString ss_tmp35377 = ss_tmp35378;
-            SafeView ss_tmp35380 = ss_view(&ss_tmp35377);
+            SafeString ss_tmp35381 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp35381, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4087);
+            SafeString ss_tmp35382 = ss_lang_texto_usize_(n, "ejemplos/compilador/tcodec.t", 4087);
+            ss_lang_agregar_texto_(&ss_tmp35381, ss_view(&ss_tmp35382), "ejemplos/compilador/tcodec.t", 4087);
+            ss_lang_agregar_texto_(&ss_tmp35381, sv_len(" errores. No se genero nada.\n", 29), "ejemplos/compilador/tcodec.t", 4087);
+            SafeString ss_tmp35380 = ss_tmp35381;
+            SafeView ss_tmp35383 = ss_view(&ss_tmp35380);
 #line 4087 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp35380);
-            ss_free(&ss_tmp35379);
-            ss_free(&ss_tmp35377);
+            ss_lang_escribir_(stderr, ss_tmp35383);
+            ss_free(&ss_tmp35382);
+            ss_free(&ss_tmp35380);
         }
 #line 4088 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35381 = (size_t)1;
+        size_t ss_tmp35384 = (size_t)1;
         ss_drop_Revision(&revision);
         ss_mapa_libre_mapa_str_usize(&plantillas);
         for (size_t ss_i1586 = 0; ss_i1586 < en_lleva.length; ss_i1586++)
@@ -122497,61 +122503,61 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35381 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35384 };
     }
 #line 4091 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t n_avisos = (revision.avisos.length);
 #line 4092 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp35382;
-    size_t ss_tmp35383;
+    size_t ss_tmp35385;
+    size_t ss_tmp35386;
 #line 4092 "ejemplos/compilador/tcodec.t"
-    if ((((ss_tmp35382 = n_avisos, ss_tmp35383 = (size_t)0, (ss_tmp35382 > ss_tmp35383))) && (!sin_avisos)))
+    if ((((ss_tmp35385 = n_avisos, ss_tmp35386 = (size_t)0, (ss_tmp35385 > ss_tmp35386))) && (!sin_avisos)))
     {
 #line 4093 "ejemplos/compilador/tcodec.t"
         for (size_t ss_k1608 = 0; ss_k1608 < revision.avisos.length; ss_k1608++)
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* a = &revision.avisos.e[ss_k1608];
-            SafeString ss_tmp35385 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp35385, sv_len("aviso: ", 7), "ejemplos/compilador/tcodec.t", 4093);
-            ss_lang_agregar_texto_(&ss_tmp35385, ss_view(a), "ejemplos/compilador/tcodec.t", 4093);
-            ss_lang_agregar_texto_(&ss_tmp35385, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4093);
-            SafeString ss_tmp35384 = ss_tmp35385;
-            SafeView ss_tmp35386 = ss_view(&ss_tmp35384);
+            SafeString ss_tmp35388 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp35388, sv_len("aviso: ", 7), "ejemplos/compilador/tcodec.t", 4093);
+            ss_lang_agregar_texto_(&ss_tmp35388, ss_view(a), "ejemplos/compilador/tcodec.t", 4093);
+            ss_lang_agregar_texto_(&ss_tmp35388, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4093);
+            SafeString ss_tmp35387 = ss_tmp35388;
+            SafeView ss_tmp35389 = ss_view(&ss_tmp35387);
 #line 4093 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp35386);
-            ss_free(&ss_tmp35384);
+            ss_lang_escribir_(stderr, ss_tmp35389);
+            ss_free(&ss_tmp35387);
         }
 #line 4094 "ejemplos/compilador/tcodec.t"
         if (avisos_como_errores)
         {
 #line 4095 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp35387;
-            size_t ss_tmp35388;
+            size_t ss_tmp35390;
+            size_t ss_tmp35391;
 #line 4095 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp35387 = n_avisos, ss_tmp35388 = (size_t)1, (ss_tmp35387 == ss_tmp35388))))
+            if (((ss_tmp35390 = n_avisos, ss_tmp35391 = (size_t)1, (ss_tmp35390 == ss_tmp35391))))
             {
 #line 4096 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp35389 = sv_len("\n1 aviso tratado como error. No se genero nada.\n", 48);
+                SafeView ss_tmp35392 = sv_len("\n1 aviso tratado como error. No se genero nada.\n", 48);
 #line 4096 "ejemplos/compilador/tcodec.t"
-                ss_lang_escribir_(stderr, ss_tmp35389);
+                ss_lang_escribir_(stderr, ss_tmp35392);
             }
             else
             {
 #line 4098 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp35391 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp35391, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4098);
-                SafeString ss_tmp35392 = ss_lang_texto_usize_(n_avisos, "ejemplos/compilador/tcodec.t", 4098);
-                ss_lang_agregar_texto_(&ss_tmp35391, ss_view(&ss_tmp35392), "ejemplos/compilador/tcodec.t", 4098);
-                ss_lang_agregar_texto_(&ss_tmp35391, sv_len(" avisos tratados como error. No se genero nada.\n", 48), "ejemplos/compilador/tcodec.t", 4098);
-                SafeString ss_tmp35390 = ss_tmp35391;
-                SafeView ss_tmp35393 = ss_view(&ss_tmp35390);
+                SafeString ss_tmp35394 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp35394, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4098);
+                SafeString ss_tmp35395 = ss_lang_texto_usize_(n_avisos, "ejemplos/compilador/tcodec.t", 4098);
+                ss_lang_agregar_texto_(&ss_tmp35394, ss_view(&ss_tmp35395), "ejemplos/compilador/tcodec.t", 4098);
+                ss_lang_agregar_texto_(&ss_tmp35394, sv_len(" avisos tratados como error. No se genero nada.\n", 48), "ejemplos/compilador/tcodec.t", 4098);
+                SafeString ss_tmp35393 = ss_tmp35394;
+                SafeView ss_tmp35396 = ss_view(&ss_tmp35393);
 #line 4098 "ejemplos/compilador/tcodec.t"
-                ss_lang_escribir_(stderr, ss_tmp35393);
-                ss_free(&ss_tmp35392);
-                ss_free(&ss_tmp35390);
+                ss_lang_escribir_(stderr, ss_tmp35396);
+                ss_free(&ss_tmp35395);
+                ss_free(&ss_tmp35393);
             }
 #line 4100 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp35394 = (size_t)1;
+            size_t ss_tmp35397 = (size_t)1;
             ss_drop_Revision(&revision);
             ss_mapa_libre_mapa_str_usize(&plantillas);
             for (size_t ss_i1609 = 0; ss_i1609 < en_lleva.length; ss_i1609++)
@@ -122735,13 +122741,13 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
             ss_free(&salida);
             ss_free(&fuente);
             ss_drop_Opciones(&opciones);
-            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35394 };
+            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35397 };
         }
     }
 #line 4105 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp35395;
-    SafeView ss_tmp35396;
-    if (((ss_tmp35395 = ss_view(&modo), ss_tmp35396 = sv_len("explicar", 8), sv_equals(ss_tmp35395, ss_tmp35396))))
+    SafeView ss_tmp35398;
+    SafeView ss_tmp35399;
+    if (((ss_tmp35398 = ss_view(&modo), ss_tmp35399 = sv_len("explicar", 8), sv_equals(ss_tmp35398, ss_tmp35399))))
     {
 #line 4106 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeView texto_e = ss_view(&revision.explicacion);
@@ -122750,43 +122756,43 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
 #line 4108 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            size_t ss_tmp35397;
-            size_t ss_tmp35398;
+            size_t ss_tmp35400;
+            size_t ss_tmp35401;
 #line 4108 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp35402 = ((ss_tmp35397 = salto, ss_tmp35398 = sv_len_of(texto_e), (ss_tmp35397 < ss_tmp35398)));
-            if (ss_tmp35402)
+            bool ss_tmp35405 = ((ss_tmp35400 = salto, ss_tmp35401 = sv_len_of(texto_e), (ss_tmp35400 < ss_tmp35401)));
+            if (ss_tmp35405)
             {
-                SafeView ss_tmp35399 = texto_e;
-                size_t ss_tmp35400;
-                size_t ss_tmp35401;
+                SafeView ss_tmp35402 = texto_e;
+                size_t ss_tmp35403;
+                size_t ss_tmp35404;
 #line 4108 "ejemplos/compilador/tcodec.t"
-                ss_tmp35402 = ((ss_tmp35400 = ((size_t)(unsigned char)ss_tmp35399.ptr[ss_lang_indice_(salto, ss_tmp35399.len, "ejemplos/compilador/tcodec.t", 4108)]), ss_tmp35401 = (size_t)10, (ss_tmp35400 != ss_tmp35401)));
+                ss_tmp35405 = ((ss_tmp35403 = ((size_t)(unsigned char)ss_tmp35402.ptr[ss_lang_indice_(salto, ss_tmp35402.len, "ejemplos/compilador/tcodec.t", 4108)]), ss_tmp35404 = (size_t)10, (ss_tmp35403 != ss_tmp35404)));
             }
-            if (!(ss_tmp35402))
+            if (!(ss_tmp35405))
             {
                 break;
             }
-            size_t ss_tmp35403;
-            size_t ss_tmp35404;
+            size_t ss_tmp35406;
+            size_t ss_tmp35407;
 #line 4108 "ejemplos/compilador/tcodec.t"
-            salto = ((ss_tmp35403 = salto, ss_tmp35404 = (size_t)1, ss_lang_suma_usize(ss_tmp35403, ss_tmp35404, "ejemplos/compilador/tcodec.t", 4108)));
+            salto = ((ss_tmp35406 = salto, ss_tmp35407 = (size_t)1, ss_lang_suma_usize(ss_tmp35406, ss_tmp35407, "ejemplos/compilador/tcodec.t", 4108)));
         }
 #line 4109 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp35406 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp35406, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4109);
-        SafeView ss_tmp35407;
-        size_t ss_tmp35408;
-        size_t ss_tmp35409;
+        SafeString ss_tmp35409 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp35409, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4109);
+        SafeView ss_tmp35410;
+        size_t ss_tmp35411;
+        size_t ss_tmp35412;
 #line 4109 "ejemplos/compilador/tcodec.t"
-        ss_lang_agregar_texto_(&ss_tmp35406, ((ss_tmp35407 = texto_e, ss_tmp35408 = salto, ss_tmp35409 = sv_len_of(texto_e), ss_lang_rebanar_(ss_tmp35407, ss_tmp35408, ss_tmp35409, "ejemplos/compilador/tcodec.t", 4109))), "ejemplos/compilador/tcodec.t", 4109);
-        ss_lang_agregar_texto_(&ss_tmp35406, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4109);
-        SafeString ss_tmp35405 = ss_tmp35406;
-        SafeView ss_tmp35410 = ss_view(&ss_tmp35405);
+        ss_lang_agregar_texto_(&ss_tmp35409, ((ss_tmp35410 = texto_e, ss_tmp35411 = salto, ss_tmp35412 = sv_len_of(texto_e), ss_lang_rebanar_(ss_tmp35410, ss_tmp35411, ss_tmp35412, "ejemplos/compilador/tcodec.t", 4109))), "ejemplos/compilador/tcodec.t", 4109);
+        ss_lang_agregar_texto_(&ss_tmp35409, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4109);
+        SafeString ss_tmp35408 = ss_tmp35409;
+        SafeView ss_tmp35413 = ss_view(&ss_tmp35408);
 #line 4109 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stdout, ss_tmp35410);
-        ss_free(&ss_tmp35405);
+        ss_lang_escribir_(stdout, ss_tmp35413);
+        ss_free(&ss_tmp35408);
 #line 4110 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35411 = (size_t)0;
+        size_t ss_tmp35414 = (size_t)0;
         ss_drop_Revision(&revision);
         ss_mapa_libre_mapa_str_usize(&plantillas);
         for (size_t ss_i1631 = 0; ss_i1631 < en_lleva.length; ss_i1631++)
@@ -122970,64 +122976,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35411 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35414 };
     }
 #line 4112 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp35412;
-    SafeView ss_tmp35413;
-    if (((ss_tmp35412 = ss_view(&modo), ss_tmp35413 = sv_len("comprobar", 9), sv_equals(ss_tmp35412, ss_tmp35413))))
+    SafeView ss_tmp35415;
+    SafeView ss_tmp35416;
+    if (((ss_tmp35415 = ss_view(&modo), ss_tmp35416 = sv_len("comprobar", 9), sv_equals(ss_tmp35415, ss_tmp35416))))
     {
 #line 4113 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35414;
-        size_t ss_tmp35415;
+        size_t ss_tmp35417;
+        size_t ss_tmp35418;
 #line 4113 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp35414 = n_avisos, ss_tmp35415 = (size_t)0, (ss_tmp35414 == ss_tmp35415))))
+        if (((ss_tmp35417 = n_avisos, ss_tmp35418 = (size_t)0, (ss_tmp35417 == ss_tmp35418))))
         {
-            SafeString ss_tmp35417 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp35417, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4113);
-            ss_lang_agregar_texto_(&ss_tmp35417, sv_len(": sin errores\n", 14), "ejemplos/compilador/tcodec.t", 4113);
-            SafeString ss_tmp35416 = ss_tmp35417;
-            SafeView ss_tmp35418 = ss_view(&ss_tmp35416);
+            SafeString ss_tmp35420 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp35420, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4113);
+            ss_lang_agregar_texto_(&ss_tmp35420, sv_len(": sin errores\n", 14), "ejemplos/compilador/tcodec.t", 4113);
+            SafeString ss_tmp35419 = ss_tmp35420;
+            SafeView ss_tmp35421 = ss_view(&ss_tmp35419);
 #line 4113 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stdout, ss_tmp35418);
-            ss_free(&ss_tmp35416);
+            ss_lang_escribir_(stdout, ss_tmp35421);
+            ss_free(&ss_tmp35419);
         }
         else
         {
 #line 4114 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp35419;
-            size_t ss_tmp35420;
+            size_t ss_tmp35422;
+            size_t ss_tmp35423;
 #line 4114 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp35419 = n_avisos, ss_tmp35420 = (size_t)1, (ss_tmp35419 == ss_tmp35420))))
+            if (((ss_tmp35422 = n_avisos, ss_tmp35423 = (size_t)1, (ss_tmp35422 == ss_tmp35423))))
             {
-                SafeString ss_tmp35422 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp35422, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4114);
-                ss_lang_agregar_texto_(&ss_tmp35422, sv_len(": sin errores, 1 aviso\n", 23), "ejemplos/compilador/tcodec.t", 4114);
-                SafeString ss_tmp35421 = ss_tmp35422;
-                SafeView ss_tmp35423 = ss_view(&ss_tmp35421);
+                SafeString ss_tmp35425 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp35425, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4114);
+                ss_lang_agregar_texto_(&ss_tmp35425, sv_len(": sin errores, 1 aviso\n", 23), "ejemplos/compilador/tcodec.t", 4114);
+                SafeString ss_tmp35424 = ss_tmp35425;
+                SafeView ss_tmp35426 = ss_view(&ss_tmp35424);
 #line 4114 "ejemplos/compilador/tcodec.t"
-                ss_lang_escribir_(stdout, ss_tmp35423);
-                ss_free(&ss_tmp35421);
+                ss_lang_escribir_(stdout, ss_tmp35426);
+                ss_free(&ss_tmp35424);
             }
             else
             {
 #line 4115 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp35425 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp35425, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4115);
-                ss_lang_agregar_texto_(&ss_tmp35425, sv_len(": sin errores, ", 15), "ejemplos/compilador/tcodec.t", 4115);
-                SafeString ss_tmp35426 = ss_lang_texto_usize_(n_avisos, "ejemplos/compilador/tcodec.t", 4115);
-                ss_lang_agregar_texto_(&ss_tmp35425, ss_view(&ss_tmp35426), "ejemplos/compilador/tcodec.t", 4115);
-                ss_lang_agregar_texto_(&ss_tmp35425, sv_len(" avisos\n", 8), "ejemplos/compilador/tcodec.t", 4115);
-                SafeString ss_tmp35424 = ss_tmp35425;
-                SafeView ss_tmp35427 = ss_view(&ss_tmp35424);
+                SafeString ss_tmp35428 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp35428, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4115);
+                ss_lang_agregar_texto_(&ss_tmp35428, sv_len(": sin errores, ", 15), "ejemplos/compilador/tcodec.t", 4115);
+                SafeString ss_tmp35429 = ss_lang_texto_usize_(n_avisos, "ejemplos/compilador/tcodec.t", 4115);
+                ss_lang_agregar_texto_(&ss_tmp35428, ss_view(&ss_tmp35429), "ejemplos/compilador/tcodec.t", 4115);
+                ss_lang_agregar_texto_(&ss_tmp35428, sv_len(" avisos\n", 8), "ejemplos/compilador/tcodec.t", 4115);
+                SafeString ss_tmp35427 = ss_tmp35428;
+                SafeView ss_tmp35430 = ss_view(&ss_tmp35427);
 #line 4115 "ejemplos/compilador/tcodec.t"
-                ss_lang_escribir_(stdout, ss_tmp35427);
-                ss_free(&ss_tmp35426);
-                ss_free(&ss_tmp35424);
+                ss_lang_escribir_(stdout, ss_tmp35430);
+                ss_free(&ss_tmp35429);
+                ss_free(&ss_tmp35427);
             }
         }
 #line 4116 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35428 = (size_t)0;
+        size_t ss_tmp35431 = (size_t)0;
         ss_drop_Revision(&revision);
         ss_mapa_libre_mapa_str_usize(&plantillas);
         for (size_t ss_i1653 = 0; ss_i1653 < en_lleva.length; ss_i1653++)
@@ -123211,36 +123217,36 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35428 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35431 };
     }
 #line 4121 "ejemplos/compilador/tcodec.t"
-    const Revision* ss_tmp35429;
-    ss_lista_Nodo* ss_tmp35430;
-    ss_lista_Contexto* ss_tmp35431;
-    Contexto* ss_tmp35432;
-    SS_LANG_QUIZA_SIN_USAR Cierres cierres = ((ss_tmp35429 = &revision, ss_tmp35430 = &arboles, ss_tmp35431 = &contextos, ss_tmp35432 = &global, preparar_cierres(ss_tmp35429, ss_tmp35430, ss_tmp35431, ss_tmp35432)));
+    const Revision* ss_tmp35432;
+    ss_lista_Nodo* ss_tmp35433;
+    ss_lista_Contexto* ss_tmp35434;
+    Contexto* ss_tmp35435;
+    SS_LANG_QUIZA_SIN_USAR Cierres cierres = ((ss_tmp35432 = &revision, ss_tmp35433 = &arboles, ss_tmp35434 = &contextos, ss_tmp35435 = &global, preparar_cierres(ss_tmp35432, ss_tmp35433, ss_tmp35434, ss_tmp35435)));
 #line 4123 "ejemplos/compilador/tcodec.t"
-    const Revision* ss_tmp35433;
-    const ss_lista_Nodo* ss_tmp35434;
-    ss_lista_Contexto* ss_tmp35435;
-    const ss_lista_str* ss_tmp35436;
-    Contexto* ss_tmp35437;
-    const Cierres* ss_tmp35438;
-    const ss_mapa_str_usize* ss_tmp35439;
-    const ss_mapa_str_usize* ss_tmp35440;
-    const ss_lista_lista_str* ss_tmp35441;
-    const ss_lista_lista_str* ss_tmp35442;
-    const ss_lista_lista_str* ss_tmp35443;
-    ss_lista_str* ss_tmp35444;
-    ss_mapa_str_usize* ss_tmp35445;
-    ss_lista_lista_str* ss_tmp35446;
-    ss_lista_lista_str* ss_tmp35447;
-    const ss_lista_str* ss_tmp35448;
-    SS_LANG_QUIZA_SIN_USAR InstanciasPreparadas preparadas = ((ss_tmp35433 = &revision, ss_tmp35434 = &arboles, ss_tmp35435 = &contextos, ss_tmp35436 = &modulos, ss_tmp35437 = &global, ss_tmp35438 = &cierres, ss_tmp35439 = &plantillas, ss_tmp35440 = &stp_indice, ss_tmp35441 = &stp_params, ss_tmp35442 = &stp_campos, ss_tmp35443 = &stp_tipos, ss_tmp35444 = &st_nombres, ss_tmp35445 = &st_indice, ss_tmp35446 = &st_campos, ss_tmp35447 = &st_tipos, ss_tmp35448 = &en_nombres, preparar_instancias(ss_tmp35433, ss_tmp35434, ss_tmp35435, ss_tmp35436, ss_tmp35437, ss_tmp35438, ss_tmp35439, ss_tmp35440, ss_tmp35441, ss_tmp35442, ss_tmp35443, ss_tmp35444, ss_tmp35445, ss_tmp35446, ss_tmp35447, ss_tmp35448)));
+    const Revision* ss_tmp35436;
+    const ss_lista_Nodo* ss_tmp35437;
+    ss_lista_Contexto* ss_tmp35438;
+    const ss_lista_str* ss_tmp35439;
+    Contexto* ss_tmp35440;
+    const Cierres* ss_tmp35441;
+    const ss_mapa_str_usize* ss_tmp35442;
+    const ss_mapa_str_usize* ss_tmp35443;
+    const ss_lista_lista_str* ss_tmp35444;
+    const ss_lista_lista_str* ss_tmp35445;
+    const ss_lista_lista_str* ss_tmp35446;
+    ss_lista_str* ss_tmp35447;
+    ss_mapa_str_usize* ss_tmp35448;
+    ss_lista_lista_str* ss_tmp35449;
+    ss_lista_lista_str* ss_tmp35450;
+    const ss_lista_str* ss_tmp35451;
+    SS_LANG_QUIZA_SIN_USAR InstanciasPreparadas preparadas = ((ss_tmp35436 = &revision, ss_tmp35437 = &arboles, ss_tmp35438 = &contextos, ss_tmp35439 = &modulos, ss_tmp35440 = &global, ss_tmp35441 = &cierres, ss_tmp35442 = &plantillas, ss_tmp35443 = &stp_indice, ss_tmp35444 = &stp_params, ss_tmp35445 = &stp_campos, ss_tmp35446 = &stp_tipos, ss_tmp35447 = &st_nombres, ss_tmp35448 = &st_indice, ss_tmp35449 = &st_campos, ss_tmp35450 = &st_tipos, ss_tmp35451 = &en_nombres, preparar_instancias(ss_tmp35436, ss_tmp35437, ss_tmp35438, ss_tmp35439, ss_tmp35440, ss_tmp35441, ss_tmp35442, ss_tmp35443, ss_tmp35444, ss_tmp35445, ss_tmp35446, ss_tmp35447, ss_tmp35448, ss_tmp35449, ss_tmp35450, ss_tmp35451)));
 #line 4126 "ejemplos/compilador/tcodec.t"
     if ((!preparadas.ok))
     {
-        size_t ss_tmp35449 = (size_t)1;
+        size_t ss_tmp35452 = (size_t)1;
         ss_drop_InstanciasPreparadas(&preparadas);
         ss_drop_Cierres(&cierres);
         ss_drop_Revision(&revision);
@@ -123426,7 +123432,7 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35449 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35452 };
     }
 #line 4127 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize con_partes = ss_copia_mapa_str_usize(&preparadas.con_partes);
@@ -123449,59 +123455,59 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
 #line 4139 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp35450;
-        size_t ss_tmp35451;
+        size_t ss_tmp35453;
+        size_t ss_tmp35454;
 #line 4139 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp35450 = im, ss_tmp35451 = (arboles.length), (ss_tmp35450 < ss_tmp35451)))))
+        if (!(((ss_tmp35453 = im, ss_tmp35454 = (arboles.length), (ss_tmp35453 < ss_tmp35454)))))
         {
             break;
         }
 #line 4140 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp35452;
-        for (size_t ss_k1697 = 0; ss_k1697 < ((ss_tmp35452 = &(arboles), &ss_tmp35452->e[ss_lang_indice_(im, ss_tmp35452->length, "ejemplos/compilador/tcodec.t", 4140)])[0]).hijos.length; ss_k1697++)
+        ss_lista_Nodo* ss_tmp35455;
+        for (size_t ss_k1697 = 0; ss_k1697 < ((ss_tmp35455 = &(arboles), &ss_tmp35455->e[ss_lang_indice_(im, ss_tmp35455->length, "ejemplos/compilador/tcodec.t", 4140)])[0]).hijos.length; ss_k1697++)
         {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp35452 = &(arboles), &ss_tmp35452->e[ss_lang_indice_(im, ss_tmp35452->length, "ejemplos/compilador/tcodec.t", 4140)])[0]).hijos.e[ss_k1697];
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp35455 = &(arboles), &ss_tmp35455->e[ss_lang_indice_(im, ss_tmp35455->length, "ejemplos/compilador/tcodec.t", 4140)])[0]).hijos.e[ss_k1697];
 #line 4141 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp35453;
-            Clase ss_tmp35454;
+            Clase ss_tmp35456;
+            Clase ss_tmp35457;
 #line 4141 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp35453 = (*d).clase, ss_tmp35454 = (Clase){ .etiqueta = SS_CLASE_STRUCT }, (ss_tmp35453.etiqueta == ss_tmp35454.etiqueta))) && (!tiene_tipo_param(d))))
+            if ((((ss_tmp35456 = (*d).clase, ss_tmp35457 = (Clase){ .etiqueta = SS_CLASE_STRUCT }, (ss_tmp35456.etiqueta == ss_tmp35457.etiqueta))) && (!tiene_tipo_param(d))))
             {
 #line 4142 "ejemplos/compilador/tcodec.t"
                 for (size_t ss_k1698 = 0; ss_k1698 < (*d).hijos.length; ss_k1698++)
                 {
                     SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1698];
 #line 4143 "ejemplos/compilador/tcodec.t"
-                    Clase ss_tmp35455;
-                    Clase ss_tmp35456;
+                    Clase ss_tmp35458;
+                    Clase ss_tmp35459;
 #line 4143 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp35455 = (*h).clase, ss_tmp35456 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp35455.etiqueta == ss_tmp35456.etiqueta))))
+                    if (((ss_tmp35458 = (*h).clase, ss_tmp35459 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp35458.etiqueta == ss_tmp35459.etiqueta))))
                     {
 #line 4144 "ejemplos/compilador/tcodec.t"
                         SS_LANG_QUIZA_SIN_USAR SafeString t = tipo_pelado(ss_view(&(*h).texto));
 #line 4145 "ejemplos/compilador/tcodec.t"
-                        SafeView ss_tmp35457;
-                        Registro* ss_tmp35458;
-                        const Contexto* ss_tmp35459;
-                        const ss_mapa_str_usize* ss_tmp35460;
-                        if ((!((ss_tmp35457 = ss_view(&t), ss_tmp35458 = &reg, ss_tmp35459 = &global, ss_tmp35460 = &con_partes, mirar_tipo(ss_tmp35457, ss_tmp35458, ss_tmp35459, ss_tmp35460)))))
+                        SafeView ss_tmp35460;
+                        Registro* ss_tmp35461;
+                        const Contexto* ss_tmp35462;
+                        const ss_mapa_str_usize* ss_tmp35463;
+                        if ((!((ss_tmp35460 = ss_view(&t), ss_tmp35461 = &reg, ss_tmp35462 = &global, ss_tmp35463 = &con_partes, mirar_tipo(ss_tmp35460, ss_tmp35461, ss_tmp35462, ss_tmp35463)))))
                         {
 #line 4146 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp35462;
-                            SafeView ss_tmp35463;
-                            size_t ss_tmp35464;
-                            SafeString ss_tmp35461 = ((ss_tmp35463 = ss_view(&((ss_tmp35462 = &(modulos), &ss_tmp35462->e[ss_lang_indice_(im, ss_tmp35462->length, "ejemplos/compilador/tcodec.t", 4146)])[0])), ss_tmp35464 = (*h).linea, sitio(ss_tmp35463, ss_tmp35464)));
-                            SafeView ss_tmp35465;
-                            SafeString ss_tmp35467 = ss_new();
-                            SafeView ss_tmp35468 = ss_view(&ss_tmp35461);
-                            ss_lang_agregar_texto_(&ss_tmp35467, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4147);
-                            ss_lang_agregar_texto_(&ss_tmp35467, ss_view(&t), "ejemplos/compilador/tcodec.t", 4147);
-                            ss_lang_agregar_texto_(&ss_tmp35467, sv_len("` en un campo", 13), "ejemplos/compilador/tcodec.t", 4147);
-                            SafeString ss_tmp35466 = ss_tmp35467;
-                            SafeView ss_tmp35469;
-                            size_t ss_tmp35470 = ((ss_tmp35465 = ss_tmp35468, ss_tmp35469 = ss_view(&ss_tmp35466), rechazo(ss_tmp35465, ss_tmp35469)));
-                            ss_free(&ss_tmp35461);
-                            ss_free(&ss_tmp35466);
+                            ss_lista_str* ss_tmp35465;
+                            SafeView ss_tmp35466;
+                            size_t ss_tmp35467;
+                            SafeString ss_tmp35464 = ((ss_tmp35466 = ss_view(&((ss_tmp35465 = &(modulos), &ss_tmp35465->e[ss_lang_indice_(im, ss_tmp35465->length, "ejemplos/compilador/tcodec.t", 4146)])[0])), ss_tmp35467 = (*h).linea, sitio(ss_tmp35466, ss_tmp35467)));
+                            SafeView ss_tmp35468;
+                            SafeString ss_tmp35470 = ss_new();
+                            SafeView ss_tmp35471 = ss_view(&ss_tmp35464);
+                            ss_lang_agregar_texto_(&ss_tmp35470, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4147);
+                            ss_lang_agregar_texto_(&ss_tmp35470, ss_view(&t), "ejemplos/compilador/tcodec.t", 4147);
+                            ss_lang_agregar_texto_(&ss_tmp35470, sv_len("` en un campo", 13), "ejemplos/compilador/tcodec.t", 4147);
+                            SafeString ss_tmp35469 = ss_tmp35470;
+                            SafeView ss_tmp35472;
+                            size_t ss_tmp35473 = ((ss_tmp35468 = ss_tmp35471, ss_tmp35472 = ss_view(&ss_tmp35469), rechazo(ss_tmp35468, ss_tmp35472)));
+                            ss_free(&ss_tmp35464);
+                            ss_free(&ss_tmp35469);
                             ss_free(&t);
                             ss_drop_Registro(&reg);
                             for (size_t ss_i1699 = 0; ss_i1699 < duenos_inst.length; ss_i1699++)
@@ -123719,27 +123725,27 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                             ss_free(&salida);
                             ss_free(&fuente);
                             ss_drop_Opciones(&opciones);
-                            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35470 };
+                            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35473 };
                         }
                         ss_free(&t);
                     }
                 }
             }
 #line 4152 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp35471;
-            Clase ss_tmp35472;
+            Clase ss_tmp35474;
+            Clase ss_tmp35475;
 #line 4152 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp35471 = (*d).clase, ss_tmp35472 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp35471.etiqueta == ss_tmp35472.etiqueta))))
+            if (((ss_tmp35474 = (*d).clase, ss_tmp35475 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp35474.etiqueta == ss_tmp35475.etiqueta))))
             {
 #line 4156 "ejemplos/compilador/tcodec.t"
                 for (size_t ss_k1724 = 0; ss_k1724 < (*d).hijos.length; ss_k1724++)
                 {
                     SS_LANG_QUIZA_SIN_USAR const Nodo* v = &(*d).hijos.e[ss_k1724];
 #line 4157 "ejemplos/compilador/tcodec.t"
-                    Clase ss_tmp35473;
-                    Clase ss_tmp35474;
+                    Clase ss_tmp35476;
+                    Clase ss_tmp35477;
 #line 4157 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp35473 = (*v).clase, ss_tmp35474 = (Clase){ .etiqueta = SS_CLASE_VARIANTE }, (ss_tmp35473.etiqueta != ss_tmp35474.etiqueta))))
+                    if (((ss_tmp35476 = (*v).clase, ss_tmp35477 = (Clase){ .etiqueta = SS_CLASE_VARIANTE }, (ss_tmp35476.etiqueta != ss_tmp35477.etiqueta))))
                     {
                         continue;
                     }
@@ -123748,36 +123754,36 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                     {
                         SS_LANG_QUIZA_SIN_USAR const Nodo* x = &(*v).hijos.e[ss_k1725];
 #line 4159 "ejemplos/compilador/tcodec.t"
-                        Clase ss_tmp35475;
-                        Clase ss_tmp35476;
+                        Clase ss_tmp35478;
+                        Clase ss_tmp35479;
 #line 4159 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp35475 = (*x).clase, ss_tmp35476 = (Clase){ .etiqueta = SS_CLASE_LLEVA }, (ss_tmp35475.etiqueta != ss_tmp35476.etiqueta))))
+                        if (((ss_tmp35478 = (*x).clase, ss_tmp35479 = (Clase){ .etiqueta = SS_CLASE_LLEVA }, (ss_tmp35478.etiqueta != ss_tmp35479.etiqueta))))
                         {
                             continue;
                         }
 #line 4160 "ejemplos/compilador/tcodec.t"
-                        SafeView ss_tmp35477;
-                        Registro* ss_tmp35478;
-                        const Contexto* ss_tmp35479;
-                        const ss_mapa_str_usize* ss_tmp35480;
-                        if ((!((ss_tmp35477 = ss_view(&(*x).texto), ss_tmp35478 = &reg, ss_tmp35479 = &global, ss_tmp35480 = &con_partes, mirar_tipo(ss_tmp35477, ss_tmp35478, ss_tmp35479, ss_tmp35480)))))
+                        SafeView ss_tmp35480;
+                        Registro* ss_tmp35481;
+                        const Contexto* ss_tmp35482;
+                        const ss_mapa_str_usize* ss_tmp35483;
+                        if ((!((ss_tmp35480 = ss_view(&(*x).texto), ss_tmp35481 = &reg, ss_tmp35482 = &global, ss_tmp35483 = &con_partes, mirar_tipo(ss_tmp35480, ss_tmp35481, ss_tmp35482, ss_tmp35483)))))
                         {
 #line 4161 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp35482;
-                            SafeView ss_tmp35483;
-                            size_t ss_tmp35484;
-                            SafeString ss_tmp35481 = ((ss_tmp35483 = ss_view(&((ss_tmp35482 = &(modulos), &ss_tmp35482->e[ss_lang_indice_(im, ss_tmp35482->length, "ejemplos/compilador/tcodec.t", 4161)])[0])), ss_tmp35484 = (*x).linea, sitio(ss_tmp35483, ss_tmp35484)));
-                            SafeView ss_tmp35485;
-                            SafeString ss_tmp35487 = ss_new();
-                            SafeView ss_tmp35488 = ss_view(&ss_tmp35481);
-                            ss_lang_agregar_texto_(&ss_tmp35487, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4162);
-                            ss_lang_agregar_texto_(&ss_tmp35487, ss_view(&(*x).texto), "ejemplos/compilador/tcodec.t", 4162);
-                            ss_lang_agregar_texto_(&ss_tmp35487, sv_len("` en una carga", 14), "ejemplos/compilador/tcodec.t", 4162);
-                            SafeString ss_tmp35486 = ss_tmp35487;
-                            SafeView ss_tmp35489;
-                            size_t ss_tmp35490 = ((ss_tmp35485 = ss_tmp35488, ss_tmp35489 = ss_view(&ss_tmp35486), rechazo(ss_tmp35485, ss_tmp35489)));
-                            ss_free(&ss_tmp35481);
-                            ss_free(&ss_tmp35486);
+                            ss_lista_str* ss_tmp35485;
+                            SafeView ss_tmp35486;
+                            size_t ss_tmp35487;
+                            SafeString ss_tmp35484 = ((ss_tmp35486 = ss_view(&((ss_tmp35485 = &(modulos), &ss_tmp35485->e[ss_lang_indice_(im, ss_tmp35485->length, "ejemplos/compilador/tcodec.t", 4161)])[0])), ss_tmp35487 = (*x).linea, sitio(ss_tmp35486, ss_tmp35487)));
+                            SafeView ss_tmp35488;
+                            SafeString ss_tmp35490 = ss_new();
+                            SafeView ss_tmp35491 = ss_view(&ss_tmp35484);
+                            ss_lang_agregar_texto_(&ss_tmp35490, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4162);
+                            ss_lang_agregar_texto_(&ss_tmp35490, ss_view(&(*x).texto), "ejemplos/compilador/tcodec.t", 4162);
+                            ss_lang_agregar_texto_(&ss_tmp35490, sv_len("` en una carga", 14), "ejemplos/compilador/tcodec.t", 4162);
+                            SafeString ss_tmp35489 = ss_tmp35490;
+                            SafeView ss_tmp35492;
+                            size_t ss_tmp35493 = ((ss_tmp35488 = ss_tmp35491, ss_tmp35492 = ss_view(&ss_tmp35489), rechazo(ss_tmp35488, ss_tmp35492)));
+                            ss_free(&ss_tmp35484);
+                            ss_free(&ss_tmp35489);
                             ss_drop_Registro(&reg);
                             for (size_t ss_i1726 = 0; ss_i1726 < duenos_inst.length; ss_i1726++)
                             {
@@ -123994,42 +124000,42 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                             ss_free(&salida);
                             ss_free(&fuente);
                             ss_drop_Opciones(&opciones);
-                            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35490 };
+                            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35493 };
                         }
                     }
                 }
             }
 #line 4167 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp35491;
-            Clase ss_tmp35492;
+            Clase ss_tmp35494;
+            Clase ss_tmp35495;
 #line 4167 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp35491 = (*d).clase, ss_tmp35492 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp35491.etiqueta == ss_tmp35492.etiqueta))) && (!es_generica(d))))
+            if ((((ss_tmp35494 = (*d).clase, ss_tmp35495 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp35494.etiqueta == ss_tmp35495.etiqueta))) && (!es_generica(d))))
             {
 #line 4168 "ejemplos/compilador/tcodec.t"
-                const Nodo* ss_tmp35493;
-                ss_lista_Contexto* ss_tmp35494;
-                Contexto* ss_tmp35495;
-                Registro* ss_tmp35496;
-                const Contexto* ss_tmp35497;
-                const ss_mapa_str_usize* ss_tmp35498;
-                if ((!((ss_tmp35493 = d, ss_tmp35495 = &((ss_tmp35494 = &(contextos), &ss_tmp35494->e[ss_lang_indice_(im, ss_tmp35494->length, "ejemplos/compilador/tcodec.t", 4168)])[0]), ss_tmp35496 = &reg, ss_tmp35497 = &global, ss_tmp35498 = &con_partes, mirar_funcion(ss_tmp35493, ss_tmp35495, ss_tmp35496, ss_tmp35497, ss_tmp35498)))))
+                const Nodo* ss_tmp35496;
+                ss_lista_Contexto* ss_tmp35497;
+                Contexto* ss_tmp35498;
+                Registro* ss_tmp35499;
+                const Contexto* ss_tmp35500;
+                const ss_mapa_str_usize* ss_tmp35501;
+                if ((!((ss_tmp35496 = d, ss_tmp35498 = &((ss_tmp35497 = &(contextos), &ss_tmp35497->e[ss_lang_indice_(im, ss_tmp35497->length, "ejemplos/compilador/tcodec.t", 4168)])[0]), ss_tmp35499 = &reg, ss_tmp35500 = &global, ss_tmp35501 = &con_partes, mirar_funcion(ss_tmp35496, ss_tmp35498, ss_tmp35499, ss_tmp35500, ss_tmp35501)))))
                 {
 #line 4169 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp35500;
-                    SafeView ss_tmp35501;
-                    size_t ss_tmp35502;
-                    SafeString ss_tmp35499 = ((ss_tmp35501 = ss_view(&((ss_tmp35500 = &(modulos), &ss_tmp35500->e[ss_lang_indice_(im, ss_tmp35500->length, "ejemplos/compilador/tcodec.t", 4169)])[0])), ss_tmp35502 = (*d).linea, sitio(ss_tmp35501, ss_tmp35502)));
-                    SafeView ss_tmp35503;
-                    SafeString ss_tmp35505 = ss_new();
-                    SafeView ss_tmp35506 = ss_view(&ss_tmp35499);
-                    ss_lang_agregar_texto_(&ss_tmp35505, sv_len("no escribe los tipos de `", 25), "ejemplos/compilador/tcodec.t", 4170);
-                    ss_lang_agregar_texto_(&ss_tmp35505, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 4170);
-                    ss_lang_agregar_texto_(&ss_tmp35505, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4170);
-                    SafeString ss_tmp35504 = ss_tmp35505;
-                    SafeView ss_tmp35507;
-                    size_t ss_tmp35508 = ((ss_tmp35503 = ss_tmp35506, ss_tmp35507 = ss_view(&ss_tmp35504), rechazo(ss_tmp35503, ss_tmp35507)));
-                    ss_free(&ss_tmp35499);
-                    ss_free(&ss_tmp35504);
+                    ss_lista_str* ss_tmp35503;
+                    SafeView ss_tmp35504;
+                    size_t ss_tmp35505;
+                    SafeString ss_tmp35502 = ((ss_tmp35504 = ss_view(&((ss_tmp35503 = &(modulos), &ss_tmp35503->e[ss_lang_indice_(im, ss_tmp35503->length, "ejemplos/compilador/tcodec.t", 4169)])[0])), ss_tmp35505 = (*d).linea, sitio(ss_tmp35504, ss_tmp35505)));
+                    SafeView ss_tmp35506;
+                    SafeString ss_tmp35508 = ss_new();
+                    SafeView ss_tmp35509 = ss_view(&ss_tmp35502);
+                    ss_lang_agregar_texto_(&ss_tmp35508, sv_len("no escribe los tipos de `", 25), "ejemplos/compilador/tcodec.t", 4170);
+                    ss_lang_agregar_texto_(&ss_tmp35508, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 4170);
+                    ss_lang_agregar_texto_(&ss_tmp35508, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4170);
+                    SafeString ss_tmp35507 = ss_tmp35508;
+                    SafeView ss_tmp35510;
+                    size_t ss_tmp35511 = ((ss_tmp35506 = ss_tmp35509, ss_tmp35510 = ss_view(&ss_tmp35507), rechazo(ss_tmp35506, ss_tmp35510)));
+                    ss_free(&ss_tmp35502);
+                    ss_free(&ss_tmp35507);
                     ss_drop_Registro(&reg);
                     for (size_t ss_i1751 = 0; ss_i1751 < duenos_inst.length; ss_i1751++)
                     {
@@ -124246,62 +124252,62 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                     ss_free(&salida);
                     ss_free(&fuente);
                     ss_drop_Opciones(&opciones);
-                    return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35508 };
+                    return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35511 };
                 }
             }
         }
 #line 4174 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35509;
-        size_t ss_tmp35510;
+        size_t ss_tmp35512;
+        size_t ss_tmp35513;
 #line 4174 "ejemplos/compilador/tcodec.t"
-        im = ((ss_tmp35509 = im, ss_tmp35510 = (size_t)1, ss_lang_suma_usize(ss_tmp35509, ss_tmp35510, "ejemplos/compilador/tcodec.t", 4174)));
+        im = ((ss_tmp35512 = im, ss_tmp35513 = (size_t)1, ss_lang_suma_usize(ss_tmp35512, ss_tmp35513, "ejemplos/compilador/tcodec.t", 4174)));
     }
 #line 4177 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_ist = n_concretos;
 #line 4178 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp35511;
-        size_t ss_tmp35512;
+        size_t ss_tmp35514;
+        size_t ss_tmp35515;
 #line 4178 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp35511 = k_ist, ss_tmp35512 = (st_nombres.length), (ss_tmp35511 < ss_tmp35512)))))
+        if (!(((ss_tmp35514 = k_ist, ss_tmp35515 = (st_nombres.length), (ss_tmp35514 < ss_tmp35515)))))
         {
             break;
         }
 #line 4179 "ejemplos/compilador/tcodec.t"
-        ss_lista_lista_str* ss_tmp35513;
-        SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_ist = ss_copia_lista_str(&((ss_tmp35513 = &(st_tipos), &ss_tmp35513->e[ss_lang_indice_(k_ist, ss_tmp35513->length, "ejemplos/compilador/tcodec.t", 4179)])[0]));
+        ss_lista_lista_str* ss_tmp35516;
+        SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_ist = ss_copia_lista_str(&((ss_tmp35516 = &(st_tipos), &ss_tmp35516->e[ss_lang_indice_(k_ist, ss_tmp35516->length, "ejemplos/compilador/tcodec.t", 4179)])[0]));
 #line 4180 "ejemplos/compilador/tcodec.t"
         for (size_t ss_k1776 = 0; ss_k1776 < tipos_ist.length; ss_k1776++)
         {
             SS_LANG_QUIZA_SIN_USAR const SafeString* tt = &tipos_ist.e[ss_k1776];
 #line 4181 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp35514;
-            Registro* ss_tmp35515;
-            const Contexto* ss_tmp35516;
-            const ss_mapa_str_usize* ss_tmp35517;
-            if ((!((ss_tmp35514 = ss_view(tt), ss_tmp35515 = &reg, ss_tmp35516 = &global, ss_tmp35517 = &con_partes, mirar_tipo(ss_tmp35514, ss_tmp35515, ss_tmp35516, ss_tmp35517)))))
+            SafeView ss_tmp35517;
+            Registro* ss_tmp35518;
+            const Contexto* ss_tmp35519;
+            const ss_mapa_str_usize* ss_tmp35520;
+            if ((!((ss_tmp35517 = ss_view(tt), ss_tmp35518 = &reg, ss_tmp35519 = &global, ss_tmp35520 = &con_partes, mirar_tipo(ss_tmp35517, ss_tmp35518, ss_tmp35519, ss_tmp35520)))))
             {
 #line 4182 "ejemplos/compilador/tcodec.t"
-                const ss_lista_Nodo* ss_tmp35519;
-                const ss_lista_str* ss_tmp35520;
-                ss_lista_str* ss_tmp35521;
-                SafeView ss_tmp35522;
-                SafeString ss_tmp35518 = ((ss_tmp35519 = &arboles, ss_tmp35520 = &modulos, ss_tmp35522 = ss_view(&((ss_tmp35521 = &(st_nombres), &ss_tmp35521->e[ss_lang_indice_(k_ist, ss_tmp35521->length, "ejemplos/compilador/tcodec.t", 4182)])[0])), sitio_de_nombre(ss_tmp35519, ss_tmp35520, ss_tmp35522)));
-                SafeView ss_tmp35523;
-                SafeString ss_tmp35525 = ss_new();
-                SafeView ss_tmp35526 = ss_view(&ss_tmp35518);
-                ss_lang_agregar_texto_(&ss_tmp35525, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4183);
-                ss_lang_agregar_texto_(&ss_tmp35525, ss_view(tt), "ejemplos/compilador/tcodec.t", 4183);
-                ss_lang_agregar_texto_(&ss_tmp35525, sv_len("` de `", 6), "ejemplos/compilador/tcodec.t", 4183);
-                ss_lista_str* ss_tmp35527;
-                ss_lang_agregar_texto_(&ss_tmp35525, ss_view(&((ss_tmp35527 = &(st_nombres), &ss_tmp35527->e[ss_lang_indice_(k_ist, ss_tmp35527->length, "ejemplos/compilador/tcodec.t", 4183)])[0])), "ejemplos/compilador/tcodec.t", 4183);
-                ss_lang_agregar_texto_(&ss_tmp35525, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4183);
-                SafeString ss_tmp35524 = ss_tmp35525;
-                SafeView ss_tmp35528;
-                size_t ss_tmp35529 = ((ss_tmp35523 = ss_tmp35526, ss_tmp35528 = ss_view(&ss_tmp35524), rechazo(ss_tmp35523, ss_tmp35528)));
-                ss_free(&ss_tmp35518);
-                ss_free(&ss_tmp35524);
+                const ss_lista_Nodo* ss_tmp35522;
+                const ss_lista_str* ss_tmp35523;
+                ss_lista_str* ss_tmp35524;
+                SafeView ss_tmp35525;
+                SafeString ss_tmp35521 = ((ss_tmp35522 = &arboles, ss_tmp35523 = &modulos, ss_tmp35525 = ss_view(&((ss_tmp35524 = &(st_nombres), &ss_tmp35524->e[ss_lang_indice_(k_ist, ss_tmp35524->length, "ejemplos/compilador/tcodec.t", 4182)])[0])), sitio_de_nombre(ss_tmp35522, ss_tmp35523, ss_tmp35525)));
+                SafeView ss_tmp35526;
+                SafeString ss_tmp35528 = ss_new();
+                SafeView ss_tmp35529 = ss_view(&ss_tmp35521);
+                ss_lang_agregar_texto_(&ss_tmp35528, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4183);
+                ss_lang_agregar_texto_(&ss_tmp35528, ss_view(tt), "ejemplos/compilador/tcodec.t", 4183);
+                ss_lang_agregar_texto_(&ss_tmp35528, sv_len("` de `", 6), "ejemplos/compilador/tcodec.t", 4183);
+                ss_lista_str* ss_tmp35530;
+                ss_lang_agregar_texto_(&ss_tmp35528, ss_view(&((ss_tmp35530 = &(st_nombres), &ss_tmp35530->e[ss_lang_indice_(k_ist, ss_tmp35530->length, "ejemplos/compilador/tcodec.t", 4183)])[0])), "ejemplos/compilador/tcodec.t", 4183);
+                ss_lang_agregar_texto_(&ss_tmp35528, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4183);
+                SafeString ss_tmp35527 = ss_tmp35528;
+                SafeView ss_tmp35531;
+                size_t ss_tmp35532 = ((ss_tmp35526 = ss_tmp35529, ss_tmp35531 = ss_view(&ss_tmp35527), rechazo(ss_tmp35526, ss_tmp35531)));
+                ss_free(&ss_tmp35521);
+                ss_free(&ss_tmp35527);
                 for (size_t ss_i1777 = 0; ss_i1777 < tipos_ist.length; ss_i1777++)
                 {
                     ss_free(&tipos_ist.e[ss_i1777]);
@@ -124526,14 +124532,14 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                 ss_free(&salida);
                 ss_free(&fuente);
                 ss_drop_Opciones(&opciones);
-                return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35529 };
+                return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35532 };
             }
         }
 #line 4186 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35530;
-        size_t ss_tmp35531;
+        size_t ss_tmp35533;
+        size_t ss_tmp35534;
 #line 4186 "ejemplos/compilador/tcodec.t"
-        k_ist = ((ss_tmp35530 = k_ist, ss_tmp35531 = (size_t)1, ss_lang_suma_usize(ss_tmp35530, ss_tmp35531, "ejemplos/compilador/tcodec.t", 4186)));
+        k_ist = ((ss_tmp35533 = k_ist, ss_tmp35534 = (size_t)1, ss_lang_suma_usize(ss_tmp35533, ss_tmp35534, "ejemplos/compilador/tcodec.t", 4186)));
         for (size_t ss_i1803 = 0; ss_i1803 < tipos_ist.length; ss_i1803++)
         {
             ss_free(&tipos_ist.e[ss_i1803]);
@@ -124548,42 +124554,42 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
 #line 4189 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp35532;
-        size_t ss_tmp35533;
+        size_t ss_tmp35535;
+        size_t ss_tmp35536;
 #line 4189 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp35532 = k_mira, ss_tmp35533 = (instancias.length), (ss_tmp35532 < ss_tmp35533)))))
+        if (!(((ss_tmp35535 = k_mira, ss_tmp35536 = (instancias.length), (ss_tmp35535 < ss_tmp35536)))))
         {
             break;
         }
 #line 4190 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp35534;
-        const Nodo* ss_tmp35535;
-        ss_lista_usize* ss_tmp35536;
-        ss_lista_Contexto* ss_tmp35537;
-        Contexto* ss_tmp35538;
-        Registro* ss_tmp35539;
-        const Contexto* ss_tmp35540;
-        const ss_mapa_str_usize* ss_tmp35541;
-        if ((!((ss_tmp35535 = &((ss_tmp35534 = &(instancias), &ss_tmp35534->e[ss_lang_indice_(k_mira, ss_tmp35534->length, "ejemplos/compilador/tcodec.t", 4190)])[0]), ss_tmp35538 = &((ss_tmp35537 = &(contextos), &ss_tmp35537->e[ss_lang_indice_(((ss_tmp35536 = &(modulo_de), &ss_tmp35536->e[ss_lang_indice_(k_mira, ss_tmp35536->length, "ejemplos/compilador/tcodec.t", 4190)])[0]), ss_tmp35537->length, "ejemplos/compilador/tcodec.t", 4190)])[0]), ss_tmp35539 = &reg, ss_tmp35540 = &global, ss_tmp35541 = &con_partes, mirar_funcion(ss_tmp35535, ss_tmp35538, ss_tmp35539, ss_tmp35540, ss_tmp35541)))))
+        ss_lista_Nodo* ss_tmp35537;
+        const Nodo* ss_tmp35538;
+        ss_lista_usize* ss_tmp35539;
+        ss_lista_Contexto* ss_tmp35540;
+        Contexto* ss_tmp35541;
+        Registro* ss_tmp35542;
+        const Contexto* ss_tmp35543;
+        const ss_mapa_str_usize* ss_tmp35544;
+        if ((!((ss_tmp35538 = &((ss_tmp35537 = &(instancias), &ss_tmp35537->e[ss_lang_indice_(k_mira, ss_tmp35537->length, "ejemplos/compilador/tcodec.t", 4190)])[0]), ss_tmp35541 = &((ss_tmp35540 = &(contextos), &ss_tmp35540->e[ss_lang_indice_(((ss_tmp35539 = &(modulo_de), &ss_tmp35539->e[ss_lang_indice_(k_mira, ss_tmp35539->length, "ejemplos/compilador/tcodec.t", 4190)])[0]), ss_tmp35540->length, "ejemplos/compilador/tcodec.t", 4190)])[0]), ss_tmp35542 = &reg, ss_tmp35543 = &global, ss_tmp35544 = &con_partes, mirar_funcion(ss_tmp35538, ss_tmp35541, ss_tmp35542, ss_tmp35543, ss_tmp35544)))))
         {
 #line 4192 "ejemplos/compilador/tcodec.t"
-            const ss_lista_Nodo* ss_tmp35543;
-            const ss_lista_str* ss_tmp35544;
-            ss_lista_Nodo* ss_tmp35545;
-            SafeView ss_tmp35546;
-            SafeString ss_tmp35542 = ((ss_tmp35543 = &arboles, ss_tmp35544 = &modulos, ss_tmp35546 = ss_view(&((ss_tmp35545 = &(instancias), &ss_tmp35545->e[ss_lang_indice_(k_mira, ss_tmp35545->length, "ejemplos/compilador/tcodec.t", 4193)])[0]).texto), sitio_de_nombre(ss_tmp35543, ss_tmp35544, ss_tmp35546)));
-            SafeView ss_tmp35547;
-            SafeString ss_tmp35549 = ss_new();
-            SafeView ss_tmp35550 = ss_view(&ss_tmp35542);
-            ss_lang_agregar_texto_(&ss_tmp35549, sv_len("no escribe los tipos de `", 25), "ejemplos/compilador/tcodec.t", 4194);
-            ss_lista_Nodo* ss_tmp35551;
-            ss_lang_agregar_texto_(&ss_tmp35549, ss_view(&((ss_tmp35551 = &(instancias), &ss_tmp35551->e[ss_lang_indice_(k_mira, ss_tmp35551->length, "ejemplos/compilador/tcodec.t", 4194)])[0]).texto), "ejemplos/compilador/tcodec.t", 4194);
-            ss_lang_agregar_texto_(&ss_tmp35549, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4194);
-            SafeString ss_tmp35548 = ss_tmp35549;
-            SafeView ss_tmp35552;
-            size_t ss_tmp35553 = ((ss_tmp35547 = ss_tmp35550, ss_tmp35552 = ss_view(&ss_tmp35548), rechazo(ss_tmp35547, ss_tmp35552)));
-            ss_free(&ss_tmp35542);
-            ss_free(&ss_tmp35548);
+            const ss_lista_Nodo* ss_tmp35546;
+            const ss_lista_str* ss_tmp35547;
+            ss_lista_Nodo* ss_tmp35548;
+            SafeView ss_tmp35549;
+            SafeString ss_tmp35545 = ((ss_tmp35546 = &arboles, ss_tmp35547 = &modulos, ss_tmp35549 = ss_view(&((ss_tmp35548 = &(instancias), &ss_tmp35548->e[ss_lang_indice_(k_mira, ss_tmp35548->length, "ejemplos/compilador/tcodec.t", 4193)])[0]).texto), sitio_de_nombre(ss_tmp35546, ss_tmp35547, ss_tmp35549)));
+            SafeView ss_tmp35550;
+            SafeString ss_tmp35552 = ss_new();
+            SafeView ss_tmp35553 = ss_view(&ss_tmp35545);
+            ss_lang_agregar_texto_(&ss_tmp35552, sv_len("no escribe los tipos de `", 25), "ejemplos/compilador/tcodec.t", 4194);
+            ss_lista_Nodo* ss_tmp35554;
+            ss_lang_agregar_texto_(&ss_tmp35552, ss_view(&((ss_tmp35554 = &(instancias), &ss_tmp35554->e[ss_lang_indice_(k_mira, ss_tmp35554->length, "ejemplos/compilador/tcodec.t", 4194)])[0]).texto), "ejemplos/compilador/tcodec.t", 4194);
+            ss_lang_agregar_texto_(&ss_tmp35552, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4194);
+            SafeString ss_tmp35551 = ss_tmp35552;
+            SafeView ss_tmp35555;
+            size_t ss_tmp35556 = ((ss_tmp35550 = ss_tmp35553, ss_tmp35555 = ss_view(&ss_tmp35551), rechazo(ss_tmp35550, ss_tmp35555)));
+            ss_free(&ss_tmp35545);
+            ss_free(&ss_tmp35551);
             ss_drop_Registro(&reg);
             for (size_t ss_i1804 = 0; ss_i1804 < duenos_inst.length; ss_i1804++)
             {
@@ -124800,30 +124806,30 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
             ss_free(&salida);
             ss_free(&fuente);
             ss_drop_Opciones(&opciones);
-            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35553 };
+            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35556 };
         }
 #line 4196 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35554;
-        size_t ss_tmp35555;
+        size_t ss_tmp35557;
+        size_t ss_tmp35558;
 #line 4196 "ejemplos/compilador/tcodec.t"
-        k_mira = ((ss_tmp35554 = k_mira, ss_tmp35555 = (size_t)1, ss_lang_suma_usize(ss_tmp35554, ss_tmp35555, "ejemplos/compilador/tcodec.t", 4196)));
+        k_mira = ((ss_tmp35557 = k_mira, ss_tmp35558 = (size_t)1, ss_lang_suma_usize(ss_tmp35557, ss_tmp35558, "ejemplos/compilador/tcodec.t", 4196)));
     }
 #line 4199 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp35557;
-    const ss_lista_Nodo* ss_tmp35558;
-    const Contexto* ss_tmp35559;
-    const Cierres* ss_tmp35560;
-    Registro* ss_tmp35561;
-    const ss_mapa_str_usize* ss_tmp35562;
-    const ss_lista_str* ss_tmp35563;
-    const ss_mapa_str_usize* ss_tmp35564;
-    const ss_lista_lista_str* ss_tmp35565;
-    const ss_lista_lista_str* ss_tmp35566;
-    const ss_lista_str* ss_tmp35567;
+    SafeView ss_tmp35560;
+    const ss_lista_Nodo* ss_tmp35561;
+    const Contexto* ss_tmp35562;
+    const Cierres* ss_tmp35563;
+    Registro* ss_tmp35564;
+    const ss_mapa_str_usize* ss_tmp35565;
+    const ss_lista_str* ss_tmp35566;
+    const ss_mapa_str_usize* ss_tmp35567;
     const ss_lista_lista_str* ss_tmp35568;
     const ss_lista_lista_str* ss_tmp35569;
-    ss_res_SoporteGenerado ss_tmp35556 = ((ss_tmp35557 = ss_view(&raiz), ss_tmp35558 = &arboles, ss_tmp35559 = &global, ss_tmp35560 = &cierres, ss_tmp35561 = &reg, ss_tmp35562 = &con_partes, ss_tmp35563 = &st_nombres, ss_tmp35564 = &st_indice, ss_tmp35565 = &st_campos, ss_tmp35566 = &st_tipos, ss_tmp35567 = &en_nombres, ss_tmp35568 = &en_variantes, ss_tmp35569 = &en_lleva, generar_soporte(ss_tmp35557, ss_tmp35558, ss_tmp35559, ss_tmp35560, ss_tmp35561, ss_tmp35562, ss_tmp35563, ss_tmp35564, ss_tmp35565, ss_tmp35566, ss_tmp35567, ss_tmp35568, ss_tmp35569)));
-    if (ss_tmp35556.motivo != NULL)
+    const ss_lista_str* ss_tmp35570;
+    const ss_lista_lista_str* ss_tmp35571;
+    const ss_lista_lista_str* ss_tmp35572;
+    ss_res_SoporteGenerado ss_tmp35559 = ((ss_tmp35560 = ss_view(&raiz), ss_tmp35561 = &arboles, ss_tmp35562 = &global, ss_tmp35563 = &cierres, ss_tmp35564 = &reg, ss_tmp35565 = &con_partes, ss_tmp35566 = &st_nombres, ss_tmp35567 = &st_indice, ss_tmp35568 = &st_campos, ss_tmp35569 = &st_tipos, ss_tmp35570 = &en_nombres, ss_tmp35571 = &en_variantes, ss_tmp35572 = &en_lleva, generar_soporte(ss_tmp35560, ss_tmp35561, ss_tmp35562, ss_tmp35563, ss_tmp35564, ss_tmp35565, ss_tmp35566, ss_tmp35567, ss_tmp35568, ss_tmp35569, ss_tmp35570, ss_tmp35571, ss_tmp35572)));
+    if (ss_tmp35559.motivo != NULL)
     {
         ss_drop_Registro(&reg);
         for (size_t ss_i1829 = 0; ss_i1829 < duenos_inst.length; ss_i1829++)
@@ -125041,28 +125047,28 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = ss_tmp35556.motivo };
+        return (ss_res_usize){ .motivo = ss_tmp35559.motivo };
     }
-    SS_LANG_QUIZA_SIN_USAR SoporteGenerado soporte = ss_tmp35556.valor;
+    SS_LANG_QUIZA_SIN_USAR SoporteGenerado soporte = ss_tmp35559.valor;
 #line 4202 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str partes = ss_copia_lista_str(&soporte.partes);
 #line 4203 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR Cuenta cta = ss_copia_Cuenta(&soporte.cta);
 #line 4205 "ejemplos/compilador/tcodec.t"
-    const ss_lista_Nodo* ss_tmp35570;
-    ss_lista_Contexto* ss_tmp35571;
-    const ss_lista_str* ss_tmp35572;
     const ss_lista_Nodo* ss_tmp35573;
-    const ss_lista_usize* ss_tmp35574;
+    ss_lista_Contexto* ss_tmp35574;
     const ss_lista_str* ss_tmp35575;
-    const ss_lista_str* ss_tmp35576;
-    const ss_lista_str* ss_tmp35577;
-    Cuenta* ss_tmp35578;
-    SS_LANG_QUIZA_SIN_USAR FuncionesGeneradas funciones = ((ss_tmp35570 = &arboles, ss_tmp35571 = &contextos, ss_tmp35572 = &modulos, ss_tmp35573 = &instancias, ss_tmp35574 = &modulo_de, ss_tmp35575 = &duenos_inst, ss_tmp35576 = &orden_inst, ss_tmp35577 = &revision.orden_copias, ss_tmp35578 = &cta, generar_funciones(ss_tmp35570, ss_tmp35571, ss_tmp35572, ss_tmp35573, ss_tmp35574, ss_tmp35575, ss_tmp35576, ss_tmp35577, ss_tmp35578)));
+    const ss_lista_Nodo* ss_tmp35576;
+    const ss_lista_usize* ss_tmp35577;
+    const ss_lista_str* ss_tmp35578;
+    const ss_lista_str* ss_tmp35579;
+    const ss_lista_str* ss_tmp35580;
+    Cuenta* ss_tmp35581;
+    SS_LANG_QUIZA_SIN_USAR FuncionesGeneradas funciones = ((ss_tmp35573 = &arboles, ss_tmp35574 = &contextos, ss_tmp35575 = &modulos, ss_tmp35576 = &instancias, ss_tmp35577 = &modulo_de, ss_tmp35578 = &duenos_inst, ss_tmp35579 = &orden_inst, ss_tmp35580 = &revision.orden_copias, ss_tmp35581 = &cta, generar_funciones(ss_tmp35573, ss_tmp35574, ss_tmp35575, ss_tmp35576, ss_tmp35577, ss_tmp35578, ss_tmp35579, ss_tmp35580, ss_tmp35581)));
 #line 4207 "ejemplos/compilador/tcodec.t"
     if ((!funciones.ok))
     {
-        size_t ss_tmp35579 = (size_t)1;
+        size_t ss_tmp35582 = (size_t)1;
         ss_drop_FuncionesGeneradas(&funciones);
         ss_drop_Cuenta(&cta);
         for (size_t ss_i1854 = 0; ss_i1854 < partes.length; ss_i1854++)
@@ -125290,7 +125296,7 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35579 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35582 };
     }
 #line 4208 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str protos = ss_copia_lista_str(&funciones.protos);
@@ -125303,16 +125309,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
 #line 4212 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize conversiones = ss_copia_mapa_str_usize(&funciones.conversiones);
 #line 4214 "ejemplos/compilador/tcodec.t"
-    const ss_lista_str* ss_tmp35580;
-    const Registro* ss_tmp35581;
-    const Cuenta* ss_tmp35582;
-    const ss_mapa_str_usize* ss_tmp35583;
-    const ss_mapa_str_usize* ss_tmp35584;
-    SS_LANG_QUIZA_SIN_USAR UsosGenerados usos = ((ss_tmp35580 = &cuerpos, ss_tmp35581 = &reg, ss_tmp35582 = &cta, ss_tmp35583 = &plantillas, ss_tmp35584 = &vistas_inst, revisar_usos_generados(ss_tmp35580, ss_tmp35581, ss_tmp35582, ss_tmp35583, ss_tmp35584)));
+    const ss_lista_str* ss_tmp35583;
+    const Registro* ss_tmp35584;
+    const Cuenta* ss_tmp35585;
+    const ss_mapa_str_usize* ss_tmp35586;
+    const ss_mapa_str_usize* ss_tmp35587;
+    SS_LANG_QUIZA_SIN_USAR UsosGenerados usos = ((ss_tmp35583 = &cuerpos, ss_tmp35584 = &reg, ss_tmp35585 = &cta, ss_tmp35586 = &plantillas, ss_tmp35587 = &vistas_inst, revisar_usos_generados(ss_tmp35583, ss_tmp35584, ss_tmp35585, ss_tmp35586, ss_tmp35587)));
 #line 4215 "ejemplos/compilador/tcodec.t"
     if ((!usos.ok))
     {
-        size_t ss_tmp35585 = (size_t)1;
+        size_t ss_tmp35588 = (size_t)1;
         ss_drop_UsosGenerados(&usos);
         ss_mapa_libre_mapa_str_usize(&conversiones);
         ss_mapa_libre_mapa_str_usize(&decimales);
@@ -125560,29 +125566,29 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35585 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35588 };
     }
 #line 4216 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str limpios = ss_copia_lista_str(&usos.limpios);
 #line 4217 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str envoltorios = ss_copia_lista_str(&usos.envoltorios);
 #line 4219 "ejemplos/compilador/tcodec.t"
-    const Cuenta* ss_tmp35586;
-    const Contexto* ss_tmp35587;
-    const ss_mapa_str_usize* ss_tmp35588;
-    const ss_lista_lista_str* ss_tmp35589;
-    const ss_lista_lista_str* ss_tmp35590;
+    const Cuenta* ss_tmp35589;
+    const Contexto* ss_tmp35590;
     const ss_mapa_str_usize* ss_tmp35591;
     const ss_lista_lista_str* ss_tmp35592;
     const ss_lista_lista_str* ss_tmp35593;
-    const ss_lista_str* ss_tmp35594;
-    const ss_lista_Nodo* ss_tmp35595;
-    const ss_lista_str* ss_tmp35596;
-    SS_LANG_QUIZA_SIN_USAR CopiadoresGenerados copias_c = ((ss_tmp35586 = &cta, ss_tmp35587 = &global, ss_tmp35588 = &st_indice, ss_tmp35589 = &st_campos, ss_tmp35590 = &st_tipos, ss_tmp35591 = &en_indice, ss_tmp35592 = &en_variantes, ss_tmp35593 = &en_lleva, ss_tmp35594 = &limpios, ss_tmp35595 = &arboles, ss_tmp35596 = &modulos, generar_copiadores(ss_tmp35586, ss_tmp35587, ss_tmp35588, ss_tmp35589, ss_tmp35590, ss_tmp35591, ss_tmp35592, ss_tmp35593, ss_tmp35594, ss_tmp35595, ss_tmp35596)));
+    const ss_mapa_str_usize* ss_tmp35594;
+    const ss_lista_lista_str* ss_tmp35595;
+    const ss_lista_lista_str* ss_tmp35596;
+    const ss_lista_str* ss_tmp35597;
+    const ss_lista_Nodo* ss_tmp35598;
+    const ss_lista_str* ss_tmp35599;
+    SS_LANG_QUIZA_SIN_USAR CopiadoresGenerados copias_c = ((ss_tmp35589 = &cta, ss_tmp35590 = &global, ss_tmp35591 = &st_indice, ss_tmp35592 = &st_campos, ss_tmp35593 = &st_tipos, ss_tmp35594 = &en_indice, ss_tmp35595 = &en_variantes, ss_tmp35596 = &en_lleva, ss_tmp35597 = &limpios, ss_tmp35598 = &arboles, ss_tmp35599 = &modulos, generar_copiadores(ss_tmp35589, ss_tmp35590, ss_tmp35591, ss_tmp35592, ss_tmp35593, ss_tmp35594, ss_tmp35595, ss_tmp35596, ss_tmp35597, ss_tmp35598, ss_tmp35599)));
 #line 4221 "ejemplos/compilador/tcodec.t"
     if ((!copias_c.ok))
     {
-        size_t ss_tmp35597 = (size_t)1;
+        size_t ss_tmp35600 = (size_t)1;
         ss_drop_CopiadoresGenerados(&copias_c);
         for (size_t ss_i1908 = 0; ss_i1908 < envoltorios.length; ss_i1908++)
         {
@@ -125847,35 +125853,35 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35597 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35600 };
     }
 #line 4222 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str bloque_copias = ss_copia_lista_str(&copias_c.lineas);
 #line 4224 "ejemplos/compilador/tcodec.t"
-    const ss_mapa_str_usize* ss_tmp35598;
-    const ss_mapa_str_usize* ss_tmp35599;
-    const ss_mapa_str_usize* ss_tmp35600;
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str arit = ((ss_tmp35598 = &anchos, ss_tmp35599 = &decimales, ss_tmp35600 = &conversiones, aritmetica_usada(ss_tmp35598, ss_tmp35599, ss_tmp35600)));
+    const ss_mapa_str_usize* ss_tmp35601;
+    const ss_mapa_str_usize* ss_tmp35602;
+    const ss_mapa_str_usize* ss_tmp35603;
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str arit = ((ss_tmp35601 = &anchos, ss_tmp35602 = &decimales, ss_tmp35603 = &conversiones, aritmetica_usada(ss_tmp35601, ss_tmp35602, ss_tmp35603)));
 #line 4225 "ejemplos/compilador/tcodec.t"
-    const Contexto* ss_tmp35601;
-    const ss_lista_Nodo* ss_tmp35602;
-    const ss_lista_Nodo* ss_tmp35603;
-    const ss_lista_str* ss_tmp35604;
-    const ss_lista_str* ss_tmp35605;
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_fn = ((ss_tmp35601 = &global, ss_tmp35602 = &arboles, ss_tmp35603 = &instancias, ss_tmp35604 = &protos, ss_tmp35605 = &limpios, tipos_funcion_usados(ss_tmp35601, ss_tmp35602, ss_tmp35603, ss_tmp35604, ss_tmp35605)));
-#line 4226 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp35607;
+    const Contexto* ss_tmp35604;
+    const ss_lista_Nodo* ss_tmp35605;
+    const ss_lista_Nodo* ss_tmp35606;
+    const ss_lista_str* ss_tmp35607;
     const ss_lista_str* ss_tmp35608;
-    const ss_lista_str* ss_tmp35609;
-    const ss_lista_str* ss_tmp35610;
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_fn = ((ss_tmp35604 = &global, ss_tmp35605 = &arboles, ss_tmp35606 = &instancias, ss_tmp35607 = &protos, ss_tmp35608 = &limpios, tipos_funcion_usados(ss_tmp35604, ss_tmp35605, ss_tmp35606, ss_tmp35607, ss_tmp35608)));
+#line 4226 "ejemplos/compilador/tcodec.t"
+    SafeView ss_tmp35610;
     const ss_lista_str* ss_tmp35611;
     const ss_lista_str* ss_tmp35612;
     const ss_lista_str* ss_tmp35613;
     const ss_lista_str* ss_tmp35614;
     const ss_lista_str* ss_tmp35615;
     const ss_lista_str* ss_tmp35616;
-    ss_res_str ss_tmp35606 = ((ss_tmp35607 = ss_view(&raiz), ss_tmp35608 = &ext_cabeceras, ss_tmp35609 = &ext_protos, ss_tmp35610 = &partes, ss_tmp35611 = &envoltorios, ss_tmp35612 = &tipos_fn, ss_tmp35613 = &arit, ss_tmp35614 = &bloque_copias, ss_tmp35615 = &protos, ss_tmp35616 = &cuerpos, ensamblar_c(ss_tmp35607, ss_tmp35608, ss_tmp35609, ss_tmp35610, ss_tmp35611, ss_tmp35612, ss_tmp35613, ss_tmp35614, ss_tmp35615, ss_tmp35616)));
-    if (ss_tmp35606.motivo != NULL)
+    const ss_lista_str* ss_tmp35617;
+    const ss_lista_str* ss_tmp35618;
+    const ss_lista_str* ss_tmp35619;
+    ss_res_str ss_tmp35609 = ((ss_tmp35610 = ss_view(&raiz), ss_tmp35611 = &ext_cabeceras, ss_tmp35612 = &ext_protos, ss_tmp35613 = &partes, ss_tmp35614 = &envoltorios, ss_tmp35615 = &tipos_fn, ss_tmp35616 = &arit, ss_tmp35617 = &bloque_copias, ss_tmp35618 = &protos, ss_tmp35619 = &cuerpos, ensamblar_c(ss_tmp35610, ss_tmp35611, ss_tmp35612, ss_tmp35613, ss_tmp35614, ss_tmp35615, ss_tmp35616, ss_tmp35617, ss_tmp35618, ss_tmp35619)));
+    if (ss_tmp35609.motivo != NULL)
     {
         for (size_t ss_i1938 = 0; ss_i1938 < tipos_fn.length; ss_i1938++)
         {
@@ -126165,18 +126171,18 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = ss_tmp35606.motivo };
+        return (ss_res_usize){ .motivo = ss_tmp35609.motivo };
     }
-    SS_LANG_QUIZA_SIN_USAR SafeString todo = ss_tmp35606.valor;
+    SS_LANG_QUIZA_SIN_USAR SafeString todo = ss_tmp35609.valor;
 #line 4228 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp35617;
-    SafeView ss_tmp35618;
-    if (((ss_tmp35617 = ss_view(&modo), ss_tmp35618 = sv_len("mostrar", 7), sv_equals(ss_tmp35617, ss_tmp35618))))
+    SafeView ss_tmp35620;
+    SafeView ss_tmp35621;
+    if (((ss_tmp35620 = ss_view(&modo), ss_tmp35621 = sv_len("mostrar", 7), sv_equals(ss_tmp35620, ss_tmp35621))))
     {
 #line 4229 "ejemplos/compilador/tcodec.t"
         ss_lang_escribir_(stdout, ss_view(&todo));
 #line 4230 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp35619 = (size_t)0;
+        size_t ss_tmp35622 = (size_t)0;
         ss_free(&todo);
         for (size_t ss_i1971 = 0; ss_i1971 < tipos_fn.length; ss_i1971++)
         {
@@ -126466,19 +126472,19 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35619 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35622 };
     }
 #line 4232 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp35620;
-    SafeView ss_tmp35621;
-    SafeView ss_tmp35622;
     SafeView ss_tmp35623;
     SafeView ss_tmp35624;
     SafeView ss_tmp35625;
     SafeView ss_tmp35626;
-    const ss_lista_str* ss_tmp35627;
-    const ss_lista_str* ss_tmp35628;
-    size_t ss_tmp35629 = ((ss_tmp35620 = ss_view(&todo), ss_tmp35621 = ss_view(&fuente), ss_tmp35622 = ss_view(&salida), ss_tmp35623 = ss_view(&modo), ss_tmp35624 = ss_view(&nivel), ss_tmp35625 = ss_view(&cc), ss_tmp35626 = ss_view(&raiz), ss_tmp35627 = &ext_cabeceras, ss_tmp35628 = &ext_modulos, construir(ss_tmp35620, ss_tmp35621, ss_tmp35622, ss_tmp35623, ss_tmp35624, ss_tmp35625, ss_tmp35626, ss_tmp35627, ss_tmp35628)));
+    SafeView ss_tmp35627;
+    SafeView ss_tmp35628;
+    SafeView ss_tmp35629;
+    const ss_lista_str* ss_tmp35630;
+    const ss_lista_str* ss_tmp35631;
+    size_t ss_tmp35632 = ((ss_tmp35623 = ss_view(&todo), ss_tmp35624 = ss_view(&fuente), ss_tmp35625 = ss_view(&salida), ss_tmp35626 = ss_view(&modo), ss_tmp35627 = ss_view(&nivel), ss_tmp35628 = ss_view(&cc), ss_tmp35629 = ss_view(&raiz), ss_tmp35630 = &ext_cabeceras, ss_tmp35631 = &ext_modulos, construir(ss_tmp35623, ss_tmp35624, ss_tmp35625, ss_tmp35626, ss_tmp35627, ss_tmp35628, ss_tmp35629, ss_tmp35630, ss_tmp35631)));
     ss_free(&todo);
     for (size_t ss_i2004 = 0; ss_i2004 < tipos_fn.length; ss_i2004++)
     {
@@ -126768,7 +126774,7 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
     ss_free(&salida);
     ss_free(&fuente);
     ss_drop_Opciones(&opciones);
-    return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35629 };
+    return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp35632 };
 }
 
 int main(int argc, char** argv)
@@ -126788,11 +126794,11 @@ int main(int argc, char** argv)
 SS_LANG_QUIZA_SIN_USAR static bool esta_vacia__usize(SS_LANG_QUIZA_SIN_USAR const ss_lista_usize* xs)
 {
 #line 21 "std/lista.t"
-    size_t ss_tmp35630;
-    size_t ss_tmp35631;
+    size_t ss_tmp35633;
+    size_t ss_tmp35634;
 #line 21 "std/lista.t"
-    bool ss_tmp35632 = ((ss_tmp35630 = ((*xs).length), ss_tmp35631 = (size_t)0, (ss_tmp35630 == ss_tmp35631)));
-    return ss_tmp35632;
+    bool ss_tmp35635 = ((ss_tmp35633 = ((*xs).length), ss_tmp35634 = (size_t)0, (ss_tmp35633 == ss_tmp35634)));
+    return ss_tmp35635;
 }
 
 #line 170 "std/lista.t"
@@ -126804,10 +126810,10 @@ SS_LANG_QUIZA_SIN_USAR static size_t suma__usize(SS_LANG_QUIZA_SIN_USAR const ss
     for (size_t ss_k2037 = 0; ss_k2037 < (*ns).length; ss_k2037++)
     {
         SS_LANG_QUIZA_SIN_USAR size_t n = (*ns).e[ss_k2037];
-        size_t ss_tmp35633;
-        size_t ss_tmp35634;
+        size_t ss_tmp35636;
+        size_t ss_tmp35637;
 #line 172 "std/lista.t"
-        total = ((ss_tmp35633 = total, ss_tmp35634 = n, ss_lang_suma_usize(ss_tmp35633, ss_tmp35634, "std/lista.t", 172)));
+        total = ((ss_tmp35636 = total, ss_tmp35637 = n, ss_lang_suma_usize(ss_tmp35636, ss_tmp35637, "std/lista.t", 172)));
     }
 #line 173 "std/lista.t"
     return total;

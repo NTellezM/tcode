@@ -232,7 +232,7 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 `ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.748<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->53<!--/c--> archivos que
-el parser del compilador, y sobre ellos produce <!--c:nodos-->108.418<!--/c--> nodos:
+el parser del compilador, y sobre ellos produce <!--c:nodos-->108.422<!--/c--> nodos:
 
 <!--c:bloque:parser-->
 ```

@@ -1,0 +1,13 @@
+# Fragmento de referencia para `github/linguist` → `lib/linguist/languages.yml`.
+# `languages.yml` no admite comentarios; este archivo es solo una propuesta que
+# hay que integrar a mano. Ajusta `language_id` a un entero libre y `color` a
+# tu gusto.
+
+TCode:
+  type: programming
+  color: "#c2410c"
+  extensions:
+  - ".t"
+  tm_scope: source.tcode
+  ace_mode: text
+  language_id: 403937577   # TODO: elegir un id entero único, no usado en Linguist
