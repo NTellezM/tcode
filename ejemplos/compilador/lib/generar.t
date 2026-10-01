@@ -668,33 +668,8 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         // Una cadena escrita es una vista de si misma: no reserva nada, y vive
         // lo que vive el programa.
         Clase.Cadena -> { return como_vista(b, s, n, tipos); }
-        Clase.Expresion -> {
-            if n.hijos.largo() == 1 {
-                return expresion_c(b, s, n.hijos[0], esperado, tipos);
-            }
-            return no_se();
-        }
-        Clase.Variable -> {
-            let nombre = vista(n.texto);
-            if es_puntero(s, tipos, nombre) {
-                var v = nuevo("(*");
-                v.empujar(nombre);
-                v.empujar(")");
-                return v;
-            }
-            // El nombre de una funcion como valor: el puntero, que en C se
-            // escribe igual que ella.
-            if largo(I.buscar(tipos, nombre)) == 0
-            && largo(I.firma_de_funcion(tipos, nombre)) > 0 {
-                if tiene(tipos.repetidas, nombre) { return no_se(); }
-                var en_c = I.sin_modulo(nombre);
-                if tiene(tipos.renombradas, nombre) {
-                    en_c = nuevo(obtener(tipos.renombradas, nombre) sino "");
-                }
-                return en_c;
-            }
-            return nuevo(nombre);
-        }
+        Clase.Expresion -> { return expresion_sola_c(b, s, n, esperado, tipos); }
+        Clase.Variable -> { return variable_c(s, n, tipos); }
         Clase.Cierre -> { return cierre_c(b, s, n, tipos); }
         Clase.Llamada -> {
             // `reservar(n)` no dice de que: lo dice donde va.
@@ -705,50 +680,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         Clase.LiteralStruct -> {
             return literal_struct_c(b, s, n, esperado, tipos);
         }
-        // `Json.Numero(42)`: la etiqueta de la forma y, en su hueco de la union,
-        // lo que lleve. La variante se queda con lo que recibe.
-        Clase.EnumLit -> {
-            let en_t = I.sin_modulo(I.antes_del_punto(n.texto));
-            let cual = I.tras_el_punto(n.texto);
-            let clave = $"{en_t}.{cual}";
-            let lleva = I.lista_de(tipos.formas, vista(clave)) sino [];
-            if lleva.largo() != n.hijos.largo() { return no_se(); }
-            let etq = etiqueta(en_t, cual);
-            var r = $"({en_t}){{ .etiqueta = {etq}";
-            var previos: lista<str> = [];
-            abrir_marco(b);
-            var i = 0;
-            for h en n.hijos {
-                let valor = expresion_c(b, s, h, lleva[i], tipos);
-                if es_desconocido(valor) {
-                    let _m = cerrar_marco(b);
-                    return no_se();
-                }
-                reclamar(b, valor);
-                agregar_argumento_marcado(b, h, vista(valor), vista(lleva[i]), false,
-                    false, n.hijos.largo() > 1);
-                i = i + 1;
-            }
-            let marco_v = cerrar_marco(b);
-            i = 0;
-            for p_v en marco_v.entradas {
-                let pieza = $", .dato.v_{cual}._{i} = ";
-                r.empujar(pieza);
-                if p_v.tmp.largo() > 0 {
-                    previos.anadir($"{p_v.tmp} = {p_v.valor}");
-                    r.empujar(p_v.tmp);
-                } else {
-                    r.empujar(p_v.valor);
-                }
-                i = i + 1;
-            }
-            r.empujar(" }");
-            if previos.largo() > 0 {
-                b.ultima_linea = 0;
-                marcar(b, s, n.linea);
-            }
-            return envolver_llamada_ordenada(r, previos);
-        }
+        Clase.EnumLit -> { return enum_lit_c(b, s, n, tipos); }
         Clase.Interpolada -> { return interpolada_c(b, s, n, tipos); }
         Clase.SiExpr -> { return si_expr_c(b, s, n, esperado, tipos); }
         Clase.Try -> { return try_c(b, s, n, tipos); }
@@ -763,175 +695,261 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
             var t_m = copiar(tipos);
             return match_valor(b, s_m, n, t_m, s.retorno, false);
         }
-        // Un decimal va tal cual se escribio, con sufijo si el destino es de
-        // 32 bits: `2.5` en un `f32` sin la `f` seria un `double` recortado.
-        Clase.Decimal -> {
-            if (esperado == "f32" || esperado == "f64")
-            && !cabe_literal_decimal(n.texto, esperado) {
-                return no_se();
-            }
-            var r = nuevo(n.texto);
-            if !contiene(n.texto, ".") && !contiene(n.texto, "e")
-            && !contiene(n.texto, "E") {
-                r.empujar(".0");
-            }
-            if esperado == "f32" { r.empujar("f"); }
-            return r;
-        }
-        // `[a, b]` donde se espera una lista: nace vacia y se van metiendo.
-        Clase.LiteralLista -> {
-            if T.es_lista(esperado) {
-                let elem = T.elemento(esperado);
-                let tmp = nuevo_temporal(b);
-                var l = nuevo(tipo_c(esperado));
-                l.empujar(" ");
-                l.empujar(tmp);
-                l.empujar(" = { .e = NULL, .length = 0, .capacity = 0 };");
-                emitir(b, l);
-                for x en n.hijos {
-                    let valor = expresion_c(b, s, x, elem, tipos);
-                    if es_desconocido(valor) { return no_se(); }
-                    reclamar(b, valor);
-                    var mete = nuevo("ss_push_");
-                    mete.empujar(mangle(esperado));
-                    mete.empujar("(&");
-                    mete.empujar(tmp);
-                    mete.empujar(", ");
-                    mete.empujar(valor);
-                    mete.empujar(", \"");
-                    mete.empujar(s.archivo);
-                    mete.empujar("\", ");
-                    mete.empujar(texto(n.linea));
-                    mete.empujar(");");
-                    emitir(b, mete);
-                }
-                return copiar(tmp);
-            }
-            // `[a, b, c]` de tamaño fijo: un literal compuesto de C, de una vez.
-            if !T.es_mapa(esperado) && n.hijos.largo() > 0 {
-                var t = nuevo(esperado);
-                if !T.es_arreglo(esperado) { t = I.tipo_de(tipos, n); }
-                if !T.es_arreglo(t) { return no_se(); }
-                let elem = T.elemento(t);
-                var piezas = vacio();
-                var previos: lista<str> = [];
-                abrir_marco(b);
-                for x en n.hijos {
-                    let valor = expresion_c(b, s, x, elem, tipos);
-                    if es_desconocido(valor) {
-                        let _m = cerrar_marco(b);
-                        return no_se();
-                    }
-                    reclamar(b, valor);
-                    agregar_argumento_marcado(b, x, vista(valor), vista(elem), false, false,
-                        n.hijos.largo() > 1);
-                }
-                let marco_e = cerrar_marco(b);
-                escribir_argumentos(marco_e, piezas, previos, ", ");
-                apuntar_arreglo(b, t);
-                let tc = tipo_c(t);
-                let literal = $"({tc}){{{{ {piezas} }}}}";
-                if previos.largo() > 0 {
-                    b.ultima_linea = 0;
-                    marcar(b, s, n.linea);
-                }
-                return envolver_llamada_ordenada(literal, previos);
-            }
-            // `[]` donde se espera un mapa: la tabla no nace hasta el primer
-            // `poner`, que es donde el coste se ve.
-            if n.hijos.largo() != 0 { return no_se(); }
-            if !T.es_mapa(esperado) { return no_se(); }
-            var r = nuevo("(");
-            r.empujar(tipo_c(esperado));
-            r.empujar("){ .claves = NULL, .valores = NULL, .largo = 0, ");
-            r.empujar(".capacidad = 0 }");
-            return r;
-        }
-        Clase.Campo -> {
-            // `sitio_c` ya devuelve el valor, no el puntero: un prestamo sale
-            // como `(*x)`, asi que aqui siempre es un punto.
-            let base = sitio_c(b, s, n.hijos[0], tipos);
-            if es_desconocido(base) { return no_se(); }
-            var r = copiar(base);
-            r.empujar(".");
-            r.empujar(n.texto);
-            let ruta = ruta_de_campo_c(n);
-            if ruta.largo() > 0 && tiene(s.sacados, $"{s.archivo}\t{n.id}\t{ruta}") {
-                // Sacar un campo: se copia y su sitio queda a ceros, que es un
-                // valor valido y al liberar el struct no suelta nada.
-                let t = I.tipo_de(tipos, n);
-                let tc = tipo_c(t);
-                let tmp = nuevo_temporal(b);
-                emitir(b, $"{tc} {tmp};");
-                return $"({tmp} = {r}, {r} = ({tc}){{0}}, {tmp})";
-            }
-            return r;
-        }
+        Clase.Decimal -> { return decimal_c(n, esperado); }
+        Clase.LiteralLista -> { return literal_lista_c(b, s, n, esperado, tipos); }
+        Clase.Campo -> { return campo_c(b, s, n, tipos); }
         Clase.Indice -> {
             return indice_c(b, s, n, tipos);
         }
         Clase.Binaria -> {
             return binaria_c(b, s, n, esperado, tipos);
         }
-        Clase.Unaria -> {
-            let op = vista(n.texto);
-            if n.hijos.largo() != 1 { return no_se(); }
-            // `~` lleva molde para que el resultado no se ensanche por el camino.
-            if op == "~" {
-                var t = I.tipo_de(tipos, n.hijos[0]);
-                if !es_entero(t) { t = nuevo(esperado); }
-                if !es_entero(t) { return no_se(); }
-                let dentro = expresion_c(b, s, n.hijos[0], t, tipos);
-                if es_desconocido(dentro) { return no_se(); }
-                let tc = tipo_c(t);
-                if empieza_con(t, "i") {
-                    let ut = $"uint{rebanar(vista(t), 1, largo(vista(t)))}_t";
-                    return $"ss_lang_env_{t}(({ut}) ~({ut}) ({dentro}))";
-                }
-                return $"(({tc}) ~{dentro})";
-            }
-            if op == "-" {
-                var t = I.tipo_de(tipos, n.hijos[0]);
-                if es_entero(esperado) || esperado == "f32" || esperado == "f64" {
-                    t = nuevo(esperado);
-                } else {
-                    if I.literal_de(n.hijos[0]) == "entero" { t = nuevo("i64"); }
-                }
-                if empieza_con(t, "i")
-                && n.hijos[0].clase == Clase.Entero {
-                    let valor = sin_ceros_izquierda(vista(n.hijos[0].texto));
-                    if !cabe_literal_entero(valor, t, true) { return no_se(); }
-                    if (t == "i8" && valor == "128")
-                    || (t == "i16" && valor == "32768")
-                    || (t == "i32" && valor == "2147483648")
-                    || (t == "i64" && valor == "9223372036854775808") {
-                        return $"INT{rebanar(vista(t), 1, largo(vista(t)))}_MIN";
-                    }
-                    return $"(({tipo_c(vista(t))})-{valor})";
-                }
-                if es_entero(t) && !empieza_con(t, "i")
-                && n.hijos[0].clase == Clase.Entero {
-                    return no_se();
-                }
-                let dentro = expresion_c(b, s, n.hijos[0], t, tipos);
-                if es_desconocido(dentro) { return no_se(); }
-                if empieza_con(t, "i") {
-                    return $"ss_lang_neg_{t}({dentro}, \"{s.archivo}\", {n.linea})";
-                }
-                return $"(-{dentro})";
-            }
-            let dentro = expresion_c(b, s, n.hijos[0], esperado, tipos);
-            if es_desconocido(dentro) { return no_se(); }
-            var v = nuevo("(");
-            v.empujar(op);
-            v.empujar(dentro);
-            v.empujar(")");
-            return v;
-        }
+        Clase.Unaria -> { return unaria_c(b, s, n, esperado, tipos); }
         _ -> { }
     }
 
     return no_se();
+}
+fn expresion_sola_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    esperado: view, tipos: &I.Contexto) -> str {
+    if n.hijos.largo() == 1 {
+        return expresion_c(b, s, n.hijos[0], esperado, tipos);
+    }
+    return no_se();
+}
+
+fn variable_c(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
+    let nombre = vista(n.texto);
+    if es_puntero(s, tipos, nombre) {
+        var v = nuevo("(*");
+        v.empujar(nombre);
+        v.empujar(")");
+        return v;
+    }
+    // El nombre de una funcion como valor: el puntero, que en C se
+    // escribe igual que ella.
+    if largo(I.buscar(tipos, nombre)) == 0
+    && largo(I.firma_de_funcion(tipos, nombre)) > 0 {
+        if tiene(tipos.repetidas, nombre) { return no_se(); }
+        var en_c = I.sin_modulo(nombre);
+        if tiene(tipos.renombradas, nombre) {
+            en_c = nuevo(obtener(tipos.renombradas, nombre) sino "");
+        }
+        return en_c;
+    }
+    return nuevo(nombre);
+}
+
+fn enum_lit_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    // `Json.Numero(42)`: la etiqueta de la forma y, en su hueco de la union,
+    // lo que lleve. La variante se queda con lo que recibe.
+    let en_t = I.sin_modulo(I.antes_del_punto(n.texto));
+    let cual = I.tras_el_punto(n.texto);
+    let clave = $"{en_t}.{cual}";
+    let lleva = I.lista_de(tipos.formas, vista(clave)) sino [];
+    if lleva.largo() != n.hijos.largo() { return no_se(); }
+    let etq = etiqueta(en_t, cual);
+    var r = $"({en_t}){{ .etiqueta = {etq}";
+    var previos: lista<str> = [];
+    abrir_marco(b);
+    var i = 0;
+    for h en n.hijos {
+        let valor = expresion_c(b, s, h, lleva[i], tipos);
+        if es_desconocido(valor) {
+            let _m = cerrar_marco(b);
+            return no_se();
+        }
+        reclamar(b, valor);
+        agregar_argumento_marcado(b, h, vista(valor), vista(lleva[i]), false,
+            false, n.hijos.largo() > 1);
+        i = i + 1;
+    }
+    let marco_v = cerrar_marco(b);
+    i = 0;
+    for p_v en marco_v.entradas {
+        let pieza = $", .dato.v_{cual}._{i} = ";
+        r.empujar(pieza);
+        if p_v.tmp.largo() > 0 {
+            previos.anadir($"{p_v.tmp} = {p_v.valor}");
+            r.empujar(p_v.tmp);
+        } else {
+            r.empujar(p_v.valor);
+        }
+        i = i + 1;
+    }
+    r.empujar(" }");
+    if previos.largo() > 0 {
+        b.ultima_linea = 0;
+        marcar(b, s, n.linea);
+    }
+    return envolver_llamada_ordenada(r, previos);
+}
+
+fn decimal_c(n: &P.Nodo, esperado: view) -> str {
+    // Un decimal va tal cual se escribio, con sufijo si el destino es de
+    // 32 bits: `2.5` en un `f32` sin la `f` seria un `double` recortado.
+    if (esperado == "f32" || esperado == "f64")
+    && !cabe_literal_decimal(n.texto, esperado) {
+        return no_se();
+    }
+    var r = nuevo(n.texto);
+    if !contiene(n.texto, ".") && !contiene(n.texto, "e")
+    && !contiene(n.texto, "E") {
+        r.empujar(".0");
+    }
+    if esperado == "f32" { r.empujar("f"); }
+    return r;
+}
+
+fn literal_lista_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    esperado: view, tipos: &I.Contexto) -> str {
+    // `[a, b]` donde se espera una lista: nace vacia y se van metiendo.
+    if T.es_lista(esperado) {
+        let elem = T.elemento(esperado);
+        let tmp = nuevo_temporal(b);
+        var l = nuevo(tipo_c(esperado));
+        l.empujar(" ");
+        l.empujar(tmp);
+        l.empujar(" = { .e = NULL, .length = 0, .capacity = 0 };");
+        emitir(b, l);
+        for x en n.hijos {
+            let valor = expresion_c(b, s, x, elem, tipos);
+            if es_desconocido(valor) { return no_se(); }
+            reclamar(b, valor);
+            var mete = nuevo("ss_push_");
+            mete.empujar(mangle(esperado));
+            mete.empujar("(&");
+            mete.empujar(tmp);
+            mete.empujar(", ");
+            mete.empujar(valor);
+            mete.empujar(", \"");
+            mete.empujar(s.archivo);
+            mete.empujar("\", ");
+            mete.empujar(texto(n.linea));
+            mete.empujar(");");
+            emitir(b, mete);
+        }
+        return copiar(tmp);
+    }
+    // `[a, b, c]` de tamaño fijo: un literal compuesto de C, de una vez.
+    if !T.es_mapa(esperado) && n.hijos.largo() > 0 {
+        var t = nuevo(esperado);
+        if !T.es_arreglo(esperado) { t = I.tipo_de(tipos, n); }
+        if !T.es_arreglo(t) { return no_se(); }
+        let elem = T.elemento(t);
+        var piezas = vacio();
+        var previos: lista<str> = [];
+        abrir_marco(b);
+        for x en n.hijos {
+            let valor = expresion_c(b, s, x, elem, tipos);
+            if es_desconocido(valor) {
+                let _m = cerrar_marco(b);
+                return no_se();
+            }
+            reclamar(b, valor);
+            agregar_argumento_marcado(b, x, vista(valor), vista(elem), false, false,
+                n.hijos.largo() > 1);
+        }
+        let marco_e = cerrar_marco(b);
+        escribir_argumentos(marco_e, piezas, previos, ", ");
+        apuntar_arreglo(b, t);
+        let tc = tipo_c(t);
+        let literal = $"({tc}){{{{ {piezas} }}}}";
+        if previos.largo() > 0 {
+            b.ultima_linea = 0;
+            marcar(b, s, n.linea);
+        }
+        return envolver_llamada_ordenada(literal, previos);
+    }
+    // `[]` donde se espera un mapa: la tabla no nace hasta el primer
+    // `poner`, que es donde el coste se ve.
+    if n.hijos.largo() != 0 { return no_se(); }
+    if !T.es_mapa(esperado) { return no_se(); }
+    var r = nuevo("(");
+    r.empujar(tipo_c(esperado));
+    r.empujar("){ .claves = NULL, .valores = NULL, .largo = 0, ");
+    r.empujar(".capacidad = 0 }");
+    return r;
+}
+
+fn campo_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    // `sitio_c` ya devuelve el valor, no el puntero: un prestamo sale
+    // como `(*x)`, asi que aqui siempre es un punto.
+    let base = sitio_c(b, s, n.hijos[0], tipos);
+    if es_desconocido(base) { return no_se(); }
+    var r = copiar(base);
+    r.empujar(".");
+    r.empujar(n.texto);
+    let ruta = ruta_de_campo_c(n);
+    if ruta.largo() > 0 && tiene(s.sacados, $"{s.archivo}\t{n.id}\t{ruta}") {
+        // Sacar un campo: se copia y su sitio queda a ceros, que es un
+        // valor valido y al liberar el struct no suelta nada.
+        let t = I.tipo_de(tipos, n);
+        let tc = tipo_c(t);
+        let tmp = nuevo_temporal(b);
+        emitir(b, $"{tc} {tmp};");
+        return $"({tmp} = {r}, {r} = ({tc}){{0}}, {tmp})";
+    }
+    return r;
+}
+
+fn unaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    esperado: view, tipos: &I.Contexto) -> str {
+    let op = vista(n.texto);
+    if n.hijos.largo() != 1 { return no_se(); }
+    // `~` lleva molde para que el resultado no se ensanche por el camino.
+    if op == "~" {
+        var t = I.tipo_de(tipos, n.hijos[0]);
+        if !es_entero(t) { t = nuevo(esperado); }
+        if !es_entero(t) { return no_se(); }
+        let dentro = expresion_c(b, s, n.hijos[0], t, tipos);
+        if es_desconocido(dentro) { return no_se(); }
+        let tc = tipo_c(t);
+        if empieza_con(t, "i") {
+            let ut = $"uint{rebanar(vista(t), 1, largo(vista(t)))}_t";
+            return $"ss_lang_env_{t}(({ut}) ~({ut}) ({dentro}))";
+        }
+        return $"(({tc}) ~{dentro})";
+    }
+    if op == "-" {
+        var t = I.tipo_de(tipos, n.hijos[0]);
+        if es_entero(esperado) || esperado == "f32" || esperado == "f64" {
+            t = nuevo(esperado);
+        } else {
+            if I.literal_de(n.hijos[0]) == "entero" { t = nuevo("i64"); }
+        }
+        if empieza_con(t, "i")
+        && n.hijos[0].clase == Clase.Entero {
+            let valor = sin_ceros_izquierda(vista(n.hijos[0].texto));
+            if !cabe_literal_entero(valor, t, true) { return no_se(); }
+            if (t == "i8" && valor == "128")
+            || (t == "i16" && valor == "32768")
+            || (t == "i32" && valor == "2147483648")
+            || (t == "i64" && valor == "9223372036854775808") {
+                return $"INT{rebanar(vista(t), 1, largo(vista(t)))}_MIN";
+            }
+            return $"(({tipo_c(vista(t))})-{valor})";
+        }
+        if es_entero(t) && !empieza_con(t, "i")
+        && n.hijos[0].clase == Clase.Entero {
+            return no_se();
+        }
+        let dentro = expresion_c(b, s, n.hijos[0], t, tipos);
+        if es_desconocido(dentro) { return no_se(); }
+        if empieza_con(t, "i") {
+            return $"ss_lang_neg_{t}({dentro}, \"{s.archivo}\", {n.linea})";
+        }
+        return $"(-{dentro})";
+    }
+    let dentro = expresion_c(b, s, n.hijos[0], esperado, tipos);
+    if es_desconocido(dentro) { return no_se(); }
+    var v = nuevo("(");
+    v.empujar(op);
+    v.empujar(dentro);
+    v.empujar(")");
+    return v;
 }
 
 // `$"van {n} de {total}"`. Se baja a un `str` que se va llenando: cada

@@ -89,6 +89,15 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   `interna_pura_texto`, `interna_pura_numeros`, `interna_pura_ordenar`,
   `interna_pura_empujar_byte`, `interna_pura_rebanar`—, de 9 a 64 lineas. El C
   que sale es el mismo, byte a byte.
+- `expresion_c` (274 lineas) y `comprobar_sentencia_sin_contar` (333) eran un
+  `match` sobre la clase del nodo: ahora son un despacho y siete y nueve
+  funciones de un brazo cada una —`expresion_sola_c`, `variable_c`,
+  `enum_lit_c`, `decimal_c`, `literal_lista_c`, `campo_c`, `unaria_c`, y
+  `sentencia_declaracion`, `sentencia_asignacion`, `sentencia_si`,
+  `sentencia_para`, `sentencia_mientras`, `sentencia_retorno`,
+  `sentencia_falla`, `sentencia_expresion`, `sentencia_otra`—. Cada una lleva
+  justo lo que usa: el compilador senalo los parametros que sobraban y se
+  ajustaron. El C que sale es el mismo, byte a byte.
 
 ## 1.0.0-rc2 — 2026-09-30, candidata local
 
