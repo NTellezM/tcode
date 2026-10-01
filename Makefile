@@ -11,6 +11,7 @@
 #   make bench-comprobar  y falla si algo pasa de `bench/limites.json`
 #   make formato      deja todo el codigo Tcode en el formato canonico
 #   make lint         revisa el codigo Python con ruff y mypy
+#   make cobertura    que caminos del oraculo de Python no se pisan nunca
 #   make compiladores la semilla, el punto fijo y `rapido` con cada compilador de C
 #   make paquete      dist/tcode-VERSION.tar.gz, reproducible (arbol limpio)
 #   make probar-paquete  y desde el, sin Python, tcodec y un programa
@@ -23,7 +24,7 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar instalar desinstalar ddc paquete probar-paquete version
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint cobertura semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar instalar desinstalar ddc paquete probar-paquete version
 
 all: tcodec
 
@@ -219,3 +220,13 @@ formato: tcodec
 lint:
 	@ruff check
 	@mypy
+
+# La cobertura del compilador de Python: que caminos del oraculo congelado no
+# se pisan nunca. Necesita `coverage` (pip install coverage), como `lint`
+# necesita ruff y mypy. `FALTAN=6` anade las lineas sin ejecutar de los 6
+# peores, y `MINIMO=80` falla si el total baja de ahi.
+FALTAN ?=
+MINIMO ?=
+
+cobertura:
+	@$(PY) tests/cobertura.py $(if $(FALTAN),--faltan $(FALTAN),) $(if $(MINIMO),--minimo $(MINIMO),)

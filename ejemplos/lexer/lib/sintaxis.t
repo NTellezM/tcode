@@ -1532,14 +1532,6 @@ fn declaracion(e: mut Estado) -> Nodo ! {
     return n;
 }
 
-fn recoger_structs(toks: &lista<Token>) -> mapa<str, usize> {
-    return recoger_tras(toks, "struct");
-}
-
-fn recoger_enums(toks: &lista<Token>) -> mapa<str, usize> {
-    return recoger_tras(toks, "enum");
-}
-
 // Los nombres que van detras de una palabra: `struct Punto` -> `Punto`.
 fn recoger_tras(toks: &lista<Token>, palabra: view) -> mapa<str, usize> {
     var m: mapa<str, usize> = [];
@@ -1645,13 +1637,6 @@ fn candidatos_de(dir: view, pedido: view, raiz: view) -> lista<str> {
         candidatos.anadir(junto);
     }
     return candidatos;
-}
-
-// Los modulos que este archivo pide, analizados. Un solo nivel: lo que usen
-// ellos a su vez no se sigue, porque desde aqui no se nombra.
-fn modulos_usados(ruta: view, toks: &lista<Token>) -> lista<Usado> {
-    var l = leidos();
-    return modulos_usados_con(ruta, toks, l);
 }
 
 fn modulos_usados_con(ruta: view, toks: &lista<Token>, l: mut Leidos) -> lista<Usado> {

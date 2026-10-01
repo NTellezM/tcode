@@ -445,20 +445,6 @@ fn recoger_bucles(n: &P.Nodo, primeros: mut mapa<str, usize>,
     for h en n.hijos { recoger_bucles(h, primeros, segundos); }
 }
 
-fn ya_esta(vs: &lista<Q.Vigilada>, nombre: view) -> bool {
-    for v en vs {
-        if igual(v.nombre, nombre) { return true; }
-    }
-    return false;
-}
-
-fn destino_para(c: &I.Contexto, vs: &lista<Q.Vigilada>, nombre: view) -> str {
-    for v en vs {
-        if igual(v.nombre, nombre) { return Q.destino_de(c, v); }
-    }
-    return nuevo("nada");
-}
-
 fn partir_por_tab(l: view) -> lista<str> {
     var salida: lista<str> = [];
     var desde = 0;

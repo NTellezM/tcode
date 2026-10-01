@@ -650,12 +650,6 @@ fn mayor_que(valor: view, tope: view) -> bool {
     return menor(tope, valor);
 }
 
-// El tipo de un nombre segun lo que se sabe aqui.
-fn tipo_de_nombre(s: &Sitio, nombre: view) -> str {
-    if !tiene(s.tipos, nombre) { return vacio(); }
-    return nuevo(obtener(s.tipos, nombre) sino "");
-}
-
 // La aritmetica comprobada tiene una familia por ancho, y el nombre lo elige
 // el tipo de los operandos.
 fn familia(op: view) -> str {
@@ -2065,15 +2059,6 @@ fn direccion_del_sitio(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto)
         return r;
     }
     return no_se();
-}
-
-// `ss_view(&x)`, o `ss_view(x)` si `x` ya es un puntero.
-fn direccion_de(s: &Sitio, nombre: view, envoltura: view) -> str {
-    var r = nuevo(envoltura);
-    if !tiene(s.punteros, nombre) { r.empujar("&"); }
-    r.empujar(nombre);
-    r.empujar(")");
-    return r;
 }
 
 // Un argumento donde se pide una vista: un `view` va tal cual, un `str` se
@@ -3780,16 +3765,6 @@ fn segundo_nombre(t: view) -> str {
         i = i + 1;
     }
     return vacio();
-}
-
-// `for k, v en m` lleva dos nombres separados por coma.
-fn lleva_coma(t: view) -> bool {
-    var i = 0;
-    while i < t.largo() {
-        if byte(t, i) == 44 { return true; }
-        i = i + 1;
-    }
-    return false;
 }
 
 fn mueve_algo(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {

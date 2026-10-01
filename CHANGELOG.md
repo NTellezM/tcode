@@ -48,6 +48,20 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   una forma de struct que presta a nueve —el literal, `rebanar`, una funcion,
   `if`, `match`, y dos campos de hondo—, cada una con sus dos enlaces, sus
   cuatro invalidantes y la llamada con el prestamo sin nombre: 221 pares.
+- `make cobertura`: la cobertura del compilador de Python, que dice que
+  caminos del oraculo congelado no se pisan nunca. Compila el corpus de la
+  suite y los rechazos escritos a mano en un solo proceso; hoy el 85%. Lo que
+  queda son asserts defensivos que nadie dispara, accesores duplicados y las
+  internas que el corpus no llama. Las secciones por capas compilan en hijos
+  de `fork` y `coverage` no los ve, asi que es un suelo y no el total.
+
+### Cambiado
+
+- Diez funciones del compilador que nadie llamaba —`tipo_de_nombre`,
+  `direccion_de`, `lleva_coma`, `hacer_bloque`, `hacer_mapa`, `ya_esta`,
+  `destino_para`, `recoger_structs`, `recoger_enums` y `modulos_usados`— se
+  han quitado: 56 lineas menos, y ninguna se menciona en todo el repositorio,
+  ni pasandola como valor.
 
 ## 1.0.0-rc2 — 2026-09-30, candidata local
 

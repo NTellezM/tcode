@@ -402,9 +402,7 @@ fn lleva_bloque_o_arreglo_en(t: &Tipo) -> bool {
 }
 
 fn hacer_lista(e: view) -> str { return $"lista<{e}>"; }
-fn hacer_bloque(e: view) -> str { return $"bloque<{e}>"; }
 fn hacer_rango(e: view) -> str { return $"rango<{e}>"; }
-fn hacer_mapa(k: view, v: view) -> str { return $"mapa<{k}, {v}>"; }
 fn hacer_arreglo(e: view, n: view) -> str { return $"[{e}; {n}]"; }
 fn hacer_prestado(t: view) -> str { return $"&{t}"; }
 fn hacer_prestado_mut(t: view) -> str { return $"&mut {t}"; }
