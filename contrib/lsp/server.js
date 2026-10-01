@@ -1,21 +1,25 @@
-// LSP de Tcode: diagnósticos y formato.
+// LSP de Tcode: diagnósticos, formato e ir a la definición.
 //
-// No hay un segundo analizador: los diagnósticos salen del propio compilador
-// (`tcodec --solo-comprobar`), que ya escribe `error: archivo:linea: mensaje`
-// por la salida de error. El formato sale de `tcodec --formatear`, que escribe
-// el resultado por la salida normal. El servidor solo traduce eso al
-// protocolo.
+// No hay un segundo analizador para lo duro: los diagnósticos salen del propio
+// compilador (`tcodec --solo-comprobar`), que ya escribe
+// `error: archivo:linea: mensaje` por la salida de error, y el formato de
+// `tcodec --formatear`. El «ir a la definición» es sintáctico: usa la gramática
+// de tree-sitter (`tree-sitter-tcode.wasm`) para encontrar el identificador
+// bajo el cursor y su declaración. No es consciente de ámbitos ni de tipos;
+// eso vendrá cuando el compilador exponga su análisis.
 //
 // Configuración (por `initializationOptions` o variables de entorno):
 //   tcodec  -> ruta del binario (por defecto `tcodec`, o `$TCODEC`)
 //   raiz    -> raíz del proyecto, donde está `std/` (por defecto `$TCODE_RAIZ`)
 
+const path = require('path');
 const { createConnection, TextDocuments, TextDocumentSyncKind,
-        Diagnostic, DiagnosticSeverity, ProposedFeatures, TextEdit, Position } =
+        Diagnostic, DiagnosticSeverity, ProposedFeatures, TextEdit } =
         require('vscode-languageserver/node');
 const { TextDocument } = require('vscode-languageserver-textdocument');
 const { execFile } = require('child_process');
 const { fileURLToPath } = require('url');
+const { Parser, Language } = require('web-tree-sitter');
 
 const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
@@ -31,6 +35,7 @@ connection.onInitialize((params) => {
         capabilities: {
             textDocumentSync: TextDocumentSyncKind.Full,
             documentFormattingProvider: true,
+            definitionProvider: true,
         },
     };
 });
@@ -117,6 +122,55 @@ connection.onDocumentFormatting((params) => {
         });
     });
 });
+
+// ---------- ir a la definición (sintáctico, vía tree-sitter) ----------
+
+// Los nodos que declaran un nombre, con el campo `nombre` de la gramática.
+const DECLARACIONES = ['fn', 'struct', 'enum', 'declaracion_local', 'param',
+                       'campo_def', 'variante', 'tipo_param', 'captura'];
+
+// La gramática se carga una vez, antes de atender peticiones.
+async function gramatica() {
+    await Parser.init();
+    const ruta = path.join(__dirname, 'tree-sitter-tcode.wasm');
+    return await Language.load(ruta);
+}
+
+let analizador = null;
+
+connection.onDefinition((params) => {
+    const documento = documents.get(params.textDocument.uri);
+    if (!documento || !analizador) return null;
+    const arbol = analizador.parse(documento.getText());
+    const { line, character } = params.position;
+
+    const nodo = arbol.rootNode.descendantForPosition({ row: line, column: character });
+    if (!nodo || nodo.type !== 'ident') return null;
+    const nombre = nodo.text;
+
+    // Buscar la primera declaración con ese nombre, de arriba hacia abajo.
+    for (const tipo of DECLARACIONES) {
+        for (const candidato of arbol.rootNode.descendantsOfType(tipo)) {
+            const campo = candidato.childForFieldName('nombre');
+            if (campo && campo.text === nombre) {
+                return [{
+                    uri: params.textDocument.uri,
+                    range: {
+                        start: { line: campo.startPosition.row, character: campo.startPosition.column },
+                        end: { line: campo.endPosition.row, character: campo.endPosition.column },
+                    },
+                }];
+            }
+        }
+    }
+    return null;
+});
+
+// La gramática lista antes de escuchar; si no está, el LSP igual arranca
+// (diagnósticos y formato no la necesitan) y la definición queda muda.
+gramatica()
+    .then((lenguaje) => { analizador = new Parser(); analizador.setLanguage(lenguaje); })
+    .catch(() => { /* sin gramática: no hay go-to-definition */ });
 
 documents.listen(connection);
 connection.listen();

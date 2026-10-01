@@ -1,8 +1,10 @@
 # tcode-lsp
 
 Servidor [LSP](https://microsoft.github.io/language-server-protocol/) de Tcode.
-Da **diagnósticos** (los errores del compilador, como subrayados) y **formato**.
-No hay un segundo analizador: los dos salen del propio `tcodec`.
+Da **diagnósticos** (los errores del compilador, como subrayados), **formato** e
+**ir a la definición**. No hay un segundo analizador para lo duro: los dos
+primeros salen del propio `tcodec`; el «ir a la definición» es sintáctico, con
+la gramática de tree-sitter (`tree-sitter-tcode.wasm`).
 
 ## Requisitos
 
@@ -42,6 +44,16 @@ node contrib/lsp/server.js --stdio <<'EOF'
 Content-Length: ...\r\n
 ...initialize...
 EOF
+```
+
+## Regenerar la gramática
+
+`tree-sitter-tcode.wasm` es la gramática compilada. Si cambia
+`contrib/tree-sitter-tcode/grammar.js`, regenera y copia:
+
+```sh
+cd ../tree-sitter-tcode && npx tree-sitter build --wasm
+cp tree-sitter-tcode.wasm ../lsp/
 ```
 
 ## Qué hace falta para usarlo de verdad
