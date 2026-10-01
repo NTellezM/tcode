@@ -1,0 +1,38 @@
+{
+  "name": "tcode",
+  "displayName": "Tcode",
+  "description": "Soporte de lenguaje para Tcode: diagnósticos y formato (via el LSP de contrib/lsp)",
+  "version": "0.1.0",
+  "publisher": "tcode",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Programming Languages"],
+  "activationEvents": ["onLanguage:tcode"],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "tcode",
+        "extensions": [".t"],
+        "aliases": ["Tcode"]
+      }
+    ],
+    "configuration": {
+      "title": "Tcode",
+      "properties": {
+        "tcode.lsp.tcodec": {
+          "type": "string",
+          "default": "tcodec",
+          "description": "Ruta del binario tcodec."
+        },
+        "tcode.lsp.raiz": {
+          "type": "string",
+          "default": "",
+          "description": "Raíz del proyecto (donde está std/). Vacío = la carpeta del espacio de trabajo."
+        }
+      }
+    }
+  }
+}

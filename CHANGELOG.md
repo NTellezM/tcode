@@ -23,6 +23,10 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   del compilador, con resaltado y el parser C generado—, para que Tcode se
   resalte y se pliegue en el editor. Es el primer paso del peldaño 2.
 
+- `contrib/lsp`: un servidor LSP —diagnósticos (los errores del compilador,
+  subrayados) y formato— que habla con el propio `tcodec`, sin un segundo
+  analizador. Con una extensión mínima de VS Code. Es el LSP del peldaño 2.
+
 ### Documentado
 
 - `docs/TIPOS.md`: el plan del modelo de tipos (de `str` a `Tipo`), en tres
