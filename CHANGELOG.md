@@ -2,6 +2,16 @@
 
 Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
+## Sin publicar
+
+### Añadido
+
+- `make fuzz-safestr`: fuzzing del runtime C con libFuzzer (clang). La entrada
+  se lee como un guion de operaciones sobre `SafeString` y `SafeView` y
+  comprueba los invariantes de `safestr.h` bajo ASan+UBSan, ademas de los
+  fallos de memoria. Corre tambien en la CI nocturna, junto al fuzzing del
+  compilador. Es la respuesta a la pregunta abierta 4 de la auditoria.
+
 ## 1.0.0-rc3 — 2026-10-01, candidata local
 
 ### Corregido

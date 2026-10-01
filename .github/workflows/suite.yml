@@ -130,3 +130,10 @@ jobs:
         with:
           name: hallazgos
           path: tests/fuzz/hallazgos/
+      - name: fuzz del runtime (libFuzzer)
+        run: make fuzz-safestr CLANG=clang-18 FUZZ_RUNTIME_SEGUNDOS=600
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hallazgos-runtime
+          path: .cache/safestr-hallazgos/

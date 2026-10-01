@@ -228,7 +228,10 @@ En un solo sitio; cada uno se explica donde se enlaza.
 3. **`obtener_mut` y el rehash**: se rechaza `poner` mientras vive el
    préstamo; ¿hay otro camino que haga crecer la tabla?
 4. **`runtime/safestr.c`**: es C escrito a mano, el origen del proyecto, y
-   cada programa lo enlaza.
+   cada programa lo enlaza. Desde el 2026-10-01 tiene su fuzzing con
+   libFuzzer (`make fuzz-safestr`, tambien en la CI nocturna): la entrada se
+   lee como un guion de operaciones sobre `SafeString` y comprueba los
+   invariantes de `safestr.h` bajo ASan+UBSan.
 5. **Los fallos que compartían los dos compiladores** (ver `CHANGELOG.md`,
    1.0.0-rc1, *Corregido*): la comparación con Python no puede ver un error de
    diseño que está en los dos.

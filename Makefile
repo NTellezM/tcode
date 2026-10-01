@@ -26,7 +26,7 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint cobertura mutar semilla compiladores con-un-cc punto-fijo-cc fuzz bench-comprobar instalar desinstalar ddc paquete probar-paquete version
+.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint cobertura mutar semilla compiladores con-un-cc punto-fijo-cc fuzz fuzz-safestr bench-comprobar instalar desinstalar ddc paquete probar-paquete version
 
 all: tcodec
 
@@ -101,6 +101,8 @@ punto-fijo-cc:
 # Fuzzing sobre los `.t` del repositorio: cada fallo se reduce y se guarda
 # en `tests/fuzz/hallazgos/`. `make check` repite los guardados.
 FUZZ_SEGUNDOS ?= 60
+FUZZ_RUNTIME_SEGUNDOS ?= 300
+CLANG ?= clang
 
 # Una version: ver `docs/VERSIONES.md`.
 paquete:
@@ -128,6 +130,17 @@ ddc:
 
 fuzz:
 	@$(PY) tests/fuzz.py --segundos $(FUZZ_SEGUNDOS)
+
+# Fuzzing del runtime C (safestr.c) con libFuzzer: necesita clang con
+# -fsanitize=fuzzer. La entrada se lee como un guion de operaciones sobre
+# SafeString y comprueba los invariantes de safestr.h, ademas de ASan+UBSan.
+fuzz-safestr:
+	@$(CLANG) -g -O1 -fsanitize=fuzzer,address,undefined -I runtime \
+	    runtime/safestr.c tests/fuzz_safestr.c -o .cache/fuzz_safestr
+	@mkdir -p .cache/safestr-hallazgos
+	@ASAN_OPTIONS=quarantine_size_mb=16 .cache/fuzz_safestr \
+	    -max_total_time=$(FUZZ_RUNTIME_SEGUNDOS) -rss_limit_mb=1024 \
+	    -artifact_prefix=.cache/safestr-hallazgos/ -print_final_stats=1
 
 # Instalado: `PREFIJO/lib/tcode/` lleva tcodec, `std/` y `runtime/` juntos,
 # y `PREFIJO/bin/tcodec` es un enlace. tcodec sigue el enlace hasta su
