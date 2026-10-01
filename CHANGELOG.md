@@ -80,6 +80,15 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   `interna_largo`, `interna_anadir`, `interna_ordenar`, `interna_texto`—,
   todas de 15 a 35 lineas, como ya era `interna_mapa`. El C que sale es el
   mismo, byte a byte.
+- `interna_pura`, la parte del generador que baja las internas a C, pesaba 504
+  lineas: ahora es un despacho plano y dieciseis funciones de una interna cada
+  una —`interna_pura_redimensionar`, `interna_pura_intercambiar`,
+  `interna_pura_argumento`, `interna_pura_largo`, `interna_pura_nuevo`,
+  `interna_pura_vista`, `interna_pura_comparar`, `interna_pura_byte`,
+  `interna_pura_mapa`, `interna_pura_copiar`, `interna_pura_imprimir`,
+  `interna_pura_texto`, `interna_pura_numeros`, `interna_pura_ordenar`,
+  `interna_pura_empujar_byte`, `interna_pura_rebanar`—, de 9 a 64 lineas. El C
+  que sale es el mismo, byte a byte.
 
 ## 1.0.0-rc2 — 2026-09-30, candidata local
 

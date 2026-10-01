@@ -1539,502 +1539,553 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
 
     if nombre == "n_argumentos" { return nuevo("ss_lang_n_argumentos_()"); }
 
-    if nombre == "redimensionar" {
-        if n.hijos.largo() != 2 { return no_se(); }
-        let crudo = I.tipo_de(tipos, n.hijos[0]);
-        let t = T.apuntado_si(crudo);
-        if !T.es_bloque(t) { return no_se(); }
-        let dir = direccion_del_sitio(b, s, n.hijos[0], tipos);
-        if es_desconocido(dir) { return no_se(); }
-        let ptr = nuevo_temporal(b);
-        let tc = tipo_c(t);
-        emitir(b, $"{tc}* {ptr} = {dir};");
-        let cuantos = expresion_c(b, s, n.hijos[1], "usize", tipos);
-        if es_desconocido(cuantos) { return no_se(); }
-        let m = mangle(t);
-        return $"ss_lang_bloque_cambiar_{m}({ptr}, {cuantos}, \"{s.archivo}\", {n.linea})";
+    if nombre == "redimensionar" { return interna_pura_redimensionar(b, s, n, tipos); }
+
+    if nombre == "intercambiar" { return interna_pura_intercambiar(b, s, n, tipos); }
+
+    if nombre == "argumento" { return interna_pura_argumento(b, s, n, tipos); }
+
+    if nombre == "largo" { return interna_pura_largo(b, s, n, tipos); }
+
+    if nombre == "nuevo" { return interna_pura_nuevo(b, s, n, tipos); }
+
+    if nombre == "vista" { return interna_pura_vista(b, s, n, tipos); }
+
+    if nombre == "igual" || nombre == "menor" { return interna_pura_comparar(b, s, n, tipos, nombre); }
+
+    if nombre == "byte" { return interna_pura_byte(b, s, n, tipos); }
+
+    if nombre == "poner" || nombre == "obtener"
+    || nombre == "obtener_mut" || nombre == "tiene"
+    || nombre == "claves" || nombre == "quitar" {
+        return interna_pura_mapa(b, s, n, tipos, nombre);
     }
 
+    if nombre == "copiar" { return interna_pura_copiar(b, s, n, tipos); }
+
+    if nombre == "imprimir" || nombre == "imprimir_error" { return interna_pura_imprimir(b, s, n, tipos, nombre); }
+
+    if nombre == "texto" { return interna_pura_texto(b, s, n, tipos); }
+
+    if nombre == "raiz" || nombre == "piso" || nombre == "techo"
+    || nombre == "redondear" || nombre == "absoluto" {
+        return interna_pura_numeros(b, s, n, tipos, nombre);
+    }
+
+    if nombre == "ordenar" { return interna_pura_ordenar(b, s, n, tipos); }
+
+    if nombre == "empujar_byte" { return interna_pura_empujar_byte(b, s, n, tipos); }
+
+    if nombre == "rebanar" { return interna_pura_rebanar(b, s, n, tipos); }
+
+    return no_se();
+}
+fn interna_pura_redimensionar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    if n.hijos.largo() != 2 { return no_se(); }
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    let t = T.apuntado_si(crudo);
+    if !T.es_bloque(t) { return no_se(); }
+    let dir = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(dir) { return no_se(); }
+    let ptr = nuevo_temporal(b);
+    let tc = tipo_c(t);
+    emitir(b, $"{tc}* {ptr} = {dir};");
+    let cuantos = expresion_c(b, s, n.hijos[1], "usize", tipos);
+    if es_desconocido(cuantos) { return no_se(); }
+    let m = mangle(t);
+    return $"ss_lang_bloque_cambiar_{m}({ptr}, {cuantos}, \"{s.archivo}\", {n.linea})";
+}
+
+fn interna_pura_intercambiar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
     // Se saca primero y se pone despues: si el valor nuevo viniera del mismo
     // sitio, hacerlo al reves lo perderia. Nunca queda un hueco sin duenio.
-    if nombre == "intercambiar" {
-        if n.hijos.largo() != 2 { return no_se(); }
-        var t = I.tipo_de(tipos, n.hijos[0]);
-        if t.largo() == 0 { t = nuevo("usize"); }
-        // El destino puede hacer trabajo al calcularse. Su direccion se
-        // guarda para leer y escribir exactamente el mismo sitio.
-        let direccion = direccion_del_sitio(b, s, n.hijos[0], tipos);
-        if es_desconocido(direccion) { return no_se(); }
-        let tc = tipo_c(t);
-        let ptr = nuevo_temporal(b);
-        emitir(b, $"{tc}* {ptr} = {direccion};");
-        let valor = expresion_c(b, s, n.hijos[1], t, tipos);
-        if es_desconocido(valor) { return no_se(); }
-        reclamar(b, valor);
-        let tmp = nuevo_temporal(b);
-        emitir(b, $"{tc} {tmp} = *{ptr};");
-        emitir(b, $"*{ptr} = {valor};");
-        return tmp;
-    }
+    if n.hijos.largo() != 2 { return no_se(); }
+    var t = I.tipo_de(tipos, n.hijos[0]);
+    if t.largo() == 0 { t = nuevo("usize"); }
+    // El destino puede hacer trabajo al calcularse. Su direccion se
+    // guarda para leer y escribir exactamente el mismo sitio.
+    let direccion = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(direccion) { return no_se(); }
+    let tc = tipo_c(t);
+    let ptr = nuevo_temporal(b);
+    emitir(b, $"{tc}* {ptr} = {direccion};");
+    let valor = expresion_c(b, s, n.hijos[1], t, tipos);
+    if es_desconocido(valor) { return no_se(); }
+    reclamar(b, valor);
+    let tmp = nuevo_temporal(b);
+    emitir(b, $"{tc} {tmp} = *{ptr};");
+    emitir(b, $"*{ptr} = {valor};");
+    return tmp;
+}
 
-    if nombre == "argumento" {
-        if n.hijos.largo() != 1 { return no_se(); }
-        let i = expresion_c(b, s, n.hijos[0], "usize", tipos);
-        if es_desconocido(i) { return no_se(); }
-        var r = nuevo("ss_lang_argumento_(");
-        r.empujar(i);
-        r.empujar(", \"");
-        r.empujar(s.archivo);
-        r.empujar("\", ");
-        r.empujar(texto(n.linea));
-        r.empujar(")");
-        return r;
-    }
+fn interna_pura_argumento(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    if n.hijos.largo() != 1 { return no_se(); }
+    let i = expresion_c(b, s, n.hijos[0], "usize", tipos);
+    if es_desconocido(i) { return no_se(); }
+    var r = nuevo("ss_lang_argumento_(");
+    r.empujar(i);
+    r.empujar(", \"");
+    r.empujar(s.archivo);
+    r.empujar("\", ");
+    r.empujar(texto(n.linea));
+    r.empujar(")");
+    return r;
+}
 
-    if nombre == "largo" {
-        if n.hijos.largo() != 1 { return no_se(); }
-        // `let p: &mut bloque<usize> = ...` se mide por lo que apunta.
-        let suyo = I.tipo_de(tipos, n.hijos[0]);
-        let sobre = T.apuntado_si(suyo);
-        if T.es_mapa(sobre) {
-            let donde = sitio_c(b, s, n.hijos[0], tipos);
-            if es_desconocido(donde) { return no_se(); }
-            var r = nuevo("(");
-            r.empujar(donde);
-            r.empujar(".largo)");
-            return r;
-        }
-        if T.es_lista(sobre) {
-            let donde = sitio_c(b, s, n.hijos[0], tipos);
-            if es_desconocido(donde) { return no_se(); }
-            var r = nuevo("(");
-            r.empujar(donde);
-            r.empujar(".length)");
-            return r;
-        }
-        if T.es_bloque(sobre) {
-            let donde = sitio_c(b, s, n.hijos[0], tipos);
-            if es_desconocido(donde) { return no_se(); }
-            return $"({donde}.n)";
-        }
-        let v = como_vista(b, s, n.hijos[0], tipos);
-        if es_desconocido(v) { return no_se(); }
-        var r = nuevo("sv_len_of(");
-        r.empujar(v);
-        r.empujar(")");
-        return r;
-    }
-
-    if nombre == "nuevo" {
-        if n.hijos.largo() != 1 { return no_se(); }
-        let v = como_vista(b, s, n.hijos[0], tipos);
-        if es_desconocido(v) { return no_se(); }
-        var r = nuevo("ss_from_view(");
-        r.empujar(v);
-        r.empujar(")");
-        return r;
-    }
-
-    if nombre == "vista" {
-        if n.hijos.largo() != 1 { return no_se(); }
-        let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+fn interna_pura_largo(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    if n.hijos.largo() != 1 { return no_se(); }
+    // `let p: &mut bloque<usize> = ...` se mide por lo que apunta.
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    let sobre = T.apuntado_si(suyo);
+    if T.es_mapa(sobre) {
+        let donde = sitio_c(b, s, n.hijos[0], tipos);
         if es_desconocido(donde) { return no_se(); }
-        var r = nuevo("ss_view(");
+        var r = nuevo("(");
         r.empujar(donde);
-        r.empujar(")");
+        r.empujar(".largo)");
         return r;
     }
-
-    if nombre == "igual" || nombre == "menor" {
-        if n.hijos.largo() != 2 { return no_se(); }
-        let crudo = I.tipo_de(tipos, n.hijos[0]);
-        let ta = T.apuntado_si(crudo);
-        let es_texto = ta == "str" || ta == "view";
-        var uno = vacio();
-        var dos = vacio();
-        var tc = vacio();
-        if es_texto { tc = nuevo("SafeView"); } else { tc = tipo_c(ta); }
-        abrir_marco(b);
-        if es_texto { uno = como_vista(b, s, n.hijos[0], tipos); }
-        else { uno = expresion_c(b, s, n.hijos[0], ta, tipos); }
-        apuntar_pendiente(b, operando(n.hijos[0], uno, tc));
-        if es_texto { dos = como_vista(b, s, n.hijos[1], tipos); }
-        else { dos = expresion_c(b, s, n.hijos[1], ta, tipos); }
-        let marco_u = cerrar_marco(b);
-        uno = copiar(marco_u.entradas[0].valor);
-        if es_desconocido(uno) || es_desconocido(dos) {
-            return no_se();
-        }
-        let tmp_uno = nuevo_temporal(b);
-        let tmp_dos = nuevo_temporal(b);
-        emitir(b, $"{tc} {tmp_uno};");
-        emitir(b, $"{tc} {tmp_dos};");
-        var comparacion = vacio();
-        if es_texto {
-            comparacion = nuevo("sv_equals(");
-            if nombre == "menor" { comparacion = nuevo("(sv_cmp("); }
-            comparacion.empujar(tmp_uno);
-            comparacion.empujar(", ");
-            comparacion.empujar(tmp_dos);
-            if nombre == "menor" { comparacion.empujar(") < 0)"); }
-            else { comparacion.empujar(")"); }
-        } else {
-            var op = nuevo("<");
-            if nombre == "igual" { op = nuevo("=="); }
-            comparacion = $"({tmp_uno} {op} {tmp_dos})";
-        }
-        var r = $"(({tmp_uno} = {uno}, {tmp_dos} = {dos}, ";
-        r.empujar(comparacion);
-        r.empujar("))");
+    if T.es_lista(sobre) {
+        let donde = sitio_c(b, s, n.hijos[0], tipos);
+        if es_desconocido(donde) { return no_se(); }
+        var r = nuevo("(");
+        r.empujar(donde);
+        r.empujar(".length)");
         return r;
     }
+    if T.es_bloque(sobre) {
+        let donde = sitio_c(b, s, n.hijos[0], tipos);
+        if es_desconocido(donde) { return no_se(); }
+        return $"({donde}.n)";
+    }
+    let v = como_vista(b, s, n.hijos[0], tipos);
+    if es_desconocido(v) { return no_se(); }
+    var r = nuevo("sv_len_of(");
+    r.empujar(v);
+    r.empujar(")");
+    return r;
+}
 
+fn interna_pura_nuevo(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    if n.hijos.largo() != 1 { return no_se(); }
+    let v = como_vista(b, s, n.hijos[0], tipos);
+    if es_desconocido(v) { return no_se(); }
+    var r = nuevo("ss_from_view(");
+    r.empujar(v);
+    r.empujar(")");
+    return r;
+}
+
+fn interna_pura_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    if n.hijos.largo() != 1 { return no_se(); }
+    let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(donde) { return no_se(); }
+    var r = nuevo("ss_view(");
+    r.empujar(donde);
+    r.empujar(")");
+    return r;
+}
+
+fn interna_pura_comparar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto, nombre: view) -> str {
+    if n.hijos.largo() != 2 { return no_se(); }
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    let ta = T.apuntado_si(crudo);
+    let es_texto = ta == "str" || ta == "view";
+    var uno = vacio();
+    var dos = vacio();
+    var tc = vacio();
+    if es_texto { tc = nuevo("SafeView"); } else { tc = tipo_c(ta); }
+    abrir_marco(b);
+    if es_texto { uno = como_vista(b, s, n.hijos[0], tipos); }
+    else { uno = expresion_c(b, s, n.hijos[0], ta, tipos); }
+    apuntar_pendiente(b, operando(n.hijos[0], uno, tc));
+    if es_texto { dos = como_vista(b, s, n.hijos[1], tipos); }
+    else { dos = expresion_c(b, s, n.hijos[1], ta, tipos); }
+    let marco_u = cerrar_marco(b);
+    uno = copiar(marco_u.entradas[0].valor);
+    if es_desconocido(uno) || es_desconocido(dos) {
+        return no_se();
+    }
+    let tmp_uno = nuevo_temporal(b);
+    let tmp_dos = nuevo_temporal(b);
+    emitir(b, $"{tc} {tmp_uno};");
+    emitir(b, $"{tc} {tmp_dos};");
+    var comparacion = vacio();
+    if es_texto {
+        comparacion = nuevo("sv_equals(");
+        if nombre == "menor" { comparacion = nuevo("(sv_cmp("); }
+        comparacion.empujar(tmp_uno);
+        comparacion.empujar(", ");
+        comparacion.empujar(tmp_dos);
+        if nombre == "menor" { comparacion.empujar(") < 0)"); }
+        else { comparacion.empujar(")"); }
+    } else {
+        var op = nuevo("<");
+        if nombre == "igual" { op = nuevo("=="); }
+        comparacion = $"({tmp_uno} {op} {tmp_dos})";
+    }
+    var r = $"(({tmp_uno} = {uno}, {tmp_dos} = {dos}, ";
+    r.empujar(comparacion);
+    r.empujar("))");
+    return r;
+}
+
+fn interna_pura_byte(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
     // `byte(v, i)` no cabe en una sola expresion de C: hay que guardar la
     // vista en un temporal y luego indexarla, porque si no se calcularia dos
     // veces —una para el elemento y otra para el largo— y `byte(f(), 0)`
     // llamaria a `f` dos veces. Es la primera interna que necesita emitir
     // una linea propia, y por eso esta capa recibe el cuerpo.
-    if nombre == "byte" {
-        if n.hijos.largo() != 2 { return no_se(); }
-        let v = como_vista(b, s, n.hijos[0], tipos);
-        let i = expresion_c(b, s, n.hijos[1], "usize", tipos);
-        if es_desconocido(v) || es_desconocido(i) {
-            return no_se();
-        }
-        let tmp = nuevo_temporal(b);
-        var l = nuevo("SafeView ");
-        l.empujar(tmp);
-        l.empujar(" = ");
-        l.empujar(v);
-        l.empujar(";");
-        emitir(b, l);
-
-        var r = nuevo("((size_t)(unsigned char)");
-        r.empujar(tmp);
-        r.empujar(".ptr[ss_lang_indice_(");
-        r.empujar(i);
-        r.empujar(", ");
-        r.empujar(tmp);
-        r.empujar(".len, \"");
-        r.empujar(s.archivo);
-        r.empujar("\", ");
-        r.empujar(texto(n.linea));
-        r.empujar(")])");
-        return r;
+    if n.hijos.largo() != 2 { return no_se(); }
+    let v = como_vista(b, s, n.hijos[0], tipos);
+    let i = expresion_c(b, s, n.hijos[1], "usize", tipos);
+    if es_desconocido(v) || es_desconocido(i) {
+        return no_se();
     }
+    let tmp = nuevo_temporal(b);
+    var l = nuevo("SafeView ");
+    l.empujar(tmp);
+    l.empujar(" = ");
+    l.empujar(v);
+    l.empujar(";");
+    emitir(b, l);
 
+    var r = nuevo("((size_t)(unsigned char)");
+    r.empujar(tmp);
+    r.empujar(".ptr[ss_lang_indice_(");
+    r.empujar(i);
+    r.empujar(", ");
+    r.empujar(tmp);
+    r.empujar(".len, \"");
+    r.empujar(s.archivo);
+    r.empujar("\", ");
+    r.empujar(texto(n.linea));
+    r.empujar(")])");
+    return r;
+}
+
+fn interna_pura_mapa(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto, nombre: view) -> str {
     // Los mapas. El nombre de cada operacion lleva dentro el tipo del mapa,
     // porque cada uno tiene su propia tabla generada: no hay una funcion
     // generica que reciba tamanios y punteros a void.
-    if nombre == "poner" || nombre == "obtener"
-    || nombre == "obtener_mut" || nombre == "tiene"
-    || nombre == "claves" || nombre == "quitar" {
-        if n.hijos.largo() == 0 { return no_se(); }
-        let suyo = I.tipo_de(tipos, n.hijos[0]);
-        let tm = T.apuntado_si(suyo);
-        if !T.es_mapa(tm) { return no_se(); }
-        let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
-        if es_desconocido(donde) { return no_se(); }
+    if n.hijos.largo() == 0 { return no_se(); }
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    let tm = T.apuntado_si(suyo);
+    if !T.es_mapa(tm) { return no_se(); }
+    let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(donde) { return no_se(); }
 
-        var r = nuevo("ss_mapa_");
-        r.empujar(nombre);
-        r.empujar("_");
-        r.empujar(mangle(tm));
-        r.empujar("(");
-        r.empujar(donde);
+    var r = nuevo("ss_mapa_");
+    r.empujar(nombre);
+    r.empujar("_");
+    r.empujar(mangle(tm));
+    r.empujar("(");
+    r.empujar(donde);
 
-        if nombre == "claves" {
-            if n.hijos.largo() != 1 { return no_se(); }
-            r.empujar(", \"");
-            r.empujar(s.archivo);
-            r.empujar("\", ");
-            r.empujar(texto(n.linea));
-            r.empujar(")");
-            return r;
-        }
-
-        if n.hijos.largo() < 2 { return no_se(); }
-        if nombre == "poner" {
-            if n.hijos.largo() != 3 { return no_se(); }
-            let ptr = nuevo_temporal(b);
-            let tc = tipo_c(tm);
-            emitir(b, $"{tc}* {ptr} = {donde};");
-            let clave_p = como_vista(b, s, n.hijos[1], tipos);
-            if es_desconocido(clave_p) { return no_se(); }
-            let tv = T.valor_de_mapa(tm) sino vacio();
-            if tv.largo() == 0 { return no_se(); }
-            let valor = expresion_c(b, s, n.hijos[2], tv, tipos);
-            if es_desconocido(valor) { return no_se(); }
-            reclamar(b, valor); // el mapa se lo queda
-            b.ultima_linea = 0;
-            marcar(b, s, n.linea);
-            return $"ss_mapa_poner_{mangle(vista(tm))}({ptr}, {clave_p}, {valor}, \"{s.archivo}\", {n.linea})";
-        }
-        let clave = como_vista(b, s, n.hijos[1], tipos);
-        if es_desconocido(clave) { return no_se(); }
-        var previos: lista<str> = [];
-        var llamada = nuevo("ss_mapa_");
-        llamada.empujar(nombre);
-        llamada.empujar("_");
-        llamada.empujar(mangle(tm));
-        llamada.empujar("(");
-        let mutable = nombre == "obtener_mut" || nombre == "quitar";
-        agregar_argumento_ordenado(b, llamada, previos, vista(donde),
-            vista(tm), true, mutable, true);
-        llamada.empujar(", ");
-        agregar_argumento_ordenado(b, llamada, previos, vista(clave),
-            "view", false, false, true);
-        llamada.empujar(")");
-        b.ultima_linea = 0;
-        marcar(b, s, n.linea);
-        return envolver_llamada_ordenada(llamada, previos);
-    }
-
-    // `copiar(x)`: una copia independiente, hasta el fondo. Cada tipo lleva
-    // su copiador generado, espejo exacto de su liberacion.
-    if nombre == "copiar" {
+    if nombre == "claves" {
         if n.hijos.largo() != 1 { return no_se(); }
-        let crudo = I.tipo_de(tipos, n.hijos[0]);
-        let t = T.apuntado_si(crudo);
-        if t.largo() == 0 { return no_se(); }
-        if !I.posee_con_formas(tipos, t) {
-            // Un escalar se copia solo.
-            return expresion_c(b, s, n.hijos[0], t, tipos);
-        }
-        var donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
-        if es_desconocido(donde) && T.es_referencia(crudo) {
-            // Llega prestado, y en C eso ya es la direccion.
-            donde = expresion_c(b, s, n.hijos[0], crudo, tipos);
-        }
-        if es_desconocido(donde) { return no_se(); }
-        if t == "str" {
-            var r = nuevo("ss_clone(");
-            r.empujar(donde);
-            r.empujar(")");
-            return r;
-        }
-        // El copiador se escribe aparte, al final: se apunta que hace falta.
-        b.copias.anadir(T.sin_alias_tipo(t));
-        var r = nuevo("ss_copia_");
-        r.empujar(mangle(t));
-        r.empujar("(");
-        r.empujar(donde);
+        r.empujar(", \"");
+        r.empujar(s.archivo);
+        r.empujar("\", ");
+        r.empujar(texto(n.linea));
         r.empujar(")");
         return r;
     }
 
+    if n.hijos.largo() < 2 { return no_se(); }
+    if nombre == "poner" {
+        if n.hijos.largo() != 3 { return no_se(); }
+        let ptr = nuevo_temporal(b);
+        let tc = tipo_c(tm);
+        emitir(b, $"{tc}* {ptr} = {donde};");
+        let clave_p = como_vista(b, s, n.hijos[1], tipos);
+        if es_desconocido(clave_p) { return no_se(); }
+        let tv = T.valor_de_mapa(tm) sino vacio();
+        if tv.largo() == 0 { return no_se(); }
+        let valor = expresion_c(b, s, n.hijos[2], tv, tipos);
+        if es_desconocido(valor) { return no_se(); }
+        reclamar(b, valor); // el mapa se lo queda
+        b.ultima_linea = 0;
+        marcar(b, s, n.linea);
+        return $"ss_mapa_poner_{mangle(vista(tm))}({ptr}, {clave_p}, {valor}, \"{s.archivo}\", {n.linea})";
+    }
+    let clave = como_vista(b, s, n.hijos[1], tipos);
+    if es_desconocido(clave) { return no_se(); }
+    var previos: lista<str> = [];
+    var llamada = nuevo("ss_mapa_");
+    llamada.empujar(nombre);
+    llamada.empujar("_");
+    llamada.empujar(mangle(tm));
+    llamada.empujar("(");
+    let mutable = nombre == "obtener_mut" || nombre == "quitar";
+    agregar_argumento_ordenado(b, llamada, previos, vista(donde),
+        vista(tm), true, mutable, true);
+    llamada.empujar(", ");
+    agregar_argumento_ordenado(b, llamada, previos, vista(clave),
+        "view", false, false, true);
+    llamada.empujar(")");
+    b.ultima_linea = 0;
+    marcar(b, s, n.linea);
+    return envolver_llamada_ordenada(llamada, previos);
+}
+
+fn interna_pura_copiar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    // `copiar(x)`: una copia independiente, hasta el fondo. Cada tipo lleva
+    // su copiador generado, espejo exacto de su liberacion.
+    if n.hijos.largo() != 1 { return no_se(); }
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    let t = T.apuntado_si(crudo);
+    if t.largo() == 0 { return no_se(); }
+    if !I.posee_con_formas(tipos, t) {
+        // Un escalar se copia solo.
+        return expresion_c(b, s, n.hijos[0], t, tipos);
+    }
+    var donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(donde) && T.es_referencia(crudo) {
+        // Llega prestado, y en C eso ya es la direccion.
+        donde = expresion_c(b, s, n.hijos[0], crudo, tipos);
+    }
+    if es_desconocido(donde) { return no_se(); }
+    if t == "str" {
+        var r = nuevo("ss_clone(");
+        r.empujar(donde);
+        r.empujar(")");
+        return r;
+    }
+    // El copiador se escribe aparte, al final: se apunta que hace falta.
+    b.copias.anadir(T.sin_alias_tipo(t));
+    var r = nuevo("ss_copia_");
+    r.empujar(mangle(t));
+    r.empujar("(");
+    r.empujar(donde);
+    r.empujar(")");
+    return r;
+}
+
+fn interna_pura_imprimir(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto, nombre: view) -> str {
     // `imprimir` va a la salida; `imprimir_error`, al diagnostico. Separarlos
     // es lo que permite encauzar la salida de una herramienta sin que se le
     // cuelen los mensajes de uso. El formato sale del tipo, que se sabe al
     // compilar: no hay `%d` con un puntero que valga.
-    if nombre == "imprimir" || nombre == "imprimir_error" {
-        if n.hijos.largo() != 1 { return no_se(); }
-        var r = nuevo("printf(");
-        if nombre == "imprimir_error" { r = nuevo("fprintf(stderr, "); }
-        let t = I.tipo_de(tipos, n.hijos[0]);
-        let clase = n.hijos[0].clase;
-        // El texto va con `fwrite`, por su largo: un `str` guarda bytes y
-        // puede llevar ceros, que `%s` y `%.*s` tomarian por el final.
-        var salida = nuevo("stdout");
-        if nombre == "imprimir_error" { salida = nuevo("stderr"); }
-        if t == "str" && (clase == Clase.Variable
-            || clase == Clase.Campo || clase == Clase.Indice) {
-            let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
-            if es_desconocido(donde) { return no_se(); }
-            return $"ss_lang_escribir_({salida}, ss_view({donde}))";
+    if n.hijos.largo() != 1 { return no_se(); }
+    var r = nuevo("printf(");
+    if nombre == "imprimir_error" { r = nuevo("fprintf(stderr, "); }
+    let t = I.tipo_de(tipos, n.hijos[0]);
+    let clase = n.hijos[0].clase;
+    // El texto va con `fwrite`, por su largo: un `str` guarda bytes y
+    // puede llevar ceros, que `%s` y `%.*s` tomarian por el final.
+    var salida = nuevo("stdout");
+    if nombre == "imprimir_error" { salida = nuevo("stderr"); }
+    if t == "str" && (clase == Clase.Variable
+        || clase == Clase.Campo || clase == Clase.Indice) {
+        let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+        if es_desconocido(donde) { return no_se(); }
+        return $"ss_lang_escribir_({salida}, ss_view({donde}))";
+    }
+    if t == "str" || t == "view" {
+        let v = como_vista(b, s, n.hijos[0], tipos);
+        if es_desconocido(v) { return no_se(); }
+        let tmp = nuevo_temporal(b);
+        emitir(b, $"SafeView {tmp} = {v};");
+        b.ultima_linea = 0;
+        marcar(b, s, n.hijos[0].linea);
+        return $"ss_lang_escribir_({salida}, {tmp})";
+    }
+    let valor = expresion_c(b, s, n.hijos[0], t, tipos);
+    if es_desconocido(valor) { return no_se(); }
+    if t == "usize" {
+        r.empujar("\"%zu\", ");
+    } else {
+        if t == "f32" || t == "f64" {
+            r.empujar("\"%s\", ss_lang_texto_decimal_(");
+            r.empujar(valor);
+            r.empujar("))");
+            return r;
         }
-        if t == "str" || t == "view" {
-            let v = como_vista(b, s, n.hijos[0], tipos);
-            if es_desconocido(v) { return no_se(); }
-            let tmp = nuevo_temporal(b);
-            emitir(b, $"SafeView {tmp} = {v};");
-            b.ultima_linea = 0;
-            marcar(b, s, n.hijos[0].linea);
-            return $"ss_lang_escribir_({salida}, {tmp})";
+        if t == "bool" {
+            r.empujar("\"%s\", (");
+            r.empujar(valor);
+            r.empujar(") ? \"true\" : \"false\")");
+            return r;
         }
-        let valor = expresion_c(b, s, n.hijos[0], t, tipos);
-        if es_desconocido(valor) { return no_se(); }
-        if t == "usize" {
-            r.empujar("\"%zu\", ");
+        if !es_entero(t) { return no_se(); }
+        // Un ancho fijo se ensancha al mayor para imprimirlo: un formato
+        // por signo y no nueve.
+        if empieza_con(t, "u") {
+            r.empujar("\"%llu\", (unsigned long long)");
         } else {
-            if t == "f32" || t == "f64" {
-                r.empujar("\"%s\", ss_lang_texto_decimal_(");
-                r.empujar(valor);
-                r.empujar("))");
-                return r;
-            }
-            if t == "bool" {
-                r.empujar("\"%s\", (");
-                r.empujar(valor);
-                r.empujar(") ? \"true\" : \"false\")");
-                return r;
-            }
-            if !es_entero(t) { return no_se(); }
-            // Un ancho fijo se ensancha al mayor para imprimirlo: un formato
-            // por signo y no nueve.
-            if empieza_con(t, "u") {
-                r.empujar("\"%llu\", (unsigned long long)");
-            } else {
-                r.empujar("\"%lld\", (long long)");
-            }
+            r.empujar("\"%lld\", (long long)");
         }
-        r.empujar(valor);
+    }
+    r.empujar(valor);
+    r.empujar(")");
+    return r;
+}
+
+fn interna_pura_texto(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    // `texto(x)`: el `str` que representa un valor, con las mismas reglas
+    // que un hueco de una cadena interpolada.
+    if n.hijos.largo() != 1 { return no_se(); }
+    let t = I.tipo_de(tipos, n.hijos[0]);
+    if t == "str" || t == "view" {
+        let v = como_vista(b, s, n.hijos[0], tipos);
+        if es_desconocido(v) { return no_se(); }
+        var r = nuevo("ss_lang_texto_view_(");
+        r.empujar(v);
+        r.empujar(", \"");
+        r.empujar(s.archivo);
+        r.empujar("\", ");
+        r.empujar(texto(n.linea));
         r.empujar(")");
         return r;
     }
+    let valor = expresion_c(b, s, n.hijos[0], t, tipos);
+    if es_desconocido(valor) { return no_se(); }
+    return texto_de(s, vista(valor), vista(t), n.linea);
+}
 
-    // `texto(x)`: el `str` que representa un valor, con las mismas reglas
-    // que un hueco de una cadena interpolada.
-    if nombre == "texto" {
-        if n.hijos.largo() != 1 { return no_se(); }
-        let t = I.tipo_de(tipos, n.hijos[0]);
-        if t == "str" || t == "view" {
-            let v = como_vista(b, s, n.hijos[0], tipos);
-            if es_desconocido(v) { return no_se(); }
-            var r = nuevo("ss_lang_texto_view_(");
-            r.empujar(v);
-            r.empujar(", \"");
-            r.empujar(s.archivo);
-            r.empujar("\", ");
-            r.empujar(texto(n.linea));
-            r.empujar(")");
-            return r;
-        }
-        let valor = expresion_c(b, s, n.hijos[0], t, tipos);
-        if es_desconocido(valor) { return no_se(); }
-        return texto_de(s, vista(valor), vista(t), n.linea);
-    }
-
+fn interna_pura_numeros(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto, nombre: view) -> str {
     // `raiz`, `piso`, `techo`, `redondear` y `absoluto`. Sobre un decimal
     // pasan por la comprobacion de finitud: `raiz` de un negativo da NaN, y
     // eso para donde aparece como cualquier otro NaN. Sobre un entero con
     // signo, `absoluto` del minimo no cabe en el tipo: es el unico caso.
-    if nombre == "raiz" || nombre == "piso" || nombre == "techo"
-    || nombre == "redondear" || nombre == "absoluto" {
-        if n.hijos.largo() != 1 { return no_se(); }
-        let crudo = I.tipo_de(tipos, n.hijos[0]);
-        var t = T.apuntado_si(crudo);
-        if !es_aritmetico(t) { t = nuevo("f64"); }
-        let valor = expresion_c(b, s, n.hijos[0], t, tipos);
-        if es_desconocido(valor) { return no_se(); }
-        if t == "f32" || t == "f64" {
-            var fn_c = nuevo("fabs");
-            if nombre == "raiz" { fn_c = nuevo("sqrt"); }
-            if nombre == "piso" { fn_c = nuevo("floor"); }
-            if nombre == "techo" { fn_c = nuevo("ceil"); }
-            if nombre == "redondear" { fn_c = nuevo("round"); }
-            var r = nuevo("ss_lang_fin_");
-            r.empujar(t);
-            r.empujar("(");
-            r.empujar(fn_c);
-            if t == "f32" { r.empujar("f"); }
-            r.empujar("(");
-            r.empujar(valor);
-            r.empujar("), \"");
-            r.empujar(nombre);
-            r.empujar("\", \"");
-            if nombre == "raiz" {
-                r.empujar("Comprueba el signo antes: la raiz de un negativo ");
-                r.empujar("no es un numero.");
-            } else {
-                r.empujar("Comprueba el valor antes de operar con el.");
-            }
-            r.empujar("\", \"");
-            r.empujar(s.archivo);
-            r.empujar("\", ");
-            r.empujar(texto(n.linea));
-            r.empujar(")");
-            return r;
-        }
-        if nombre != "absoluto" { return no_se(); }
-        var r = nuevo("ss_lang_abs_");
+    if n.hijos.largo() != 1 { return no_se(); }
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    var t = T.apuntado_si(crudo);
+    if !es_aritmetico(t) { t = nuevo("f64"); }
+    let valor = expresion_c(b, s, n.hijos[0], t, tipos);
+    if es_desconocido(valor) { return no_se(); }
+    if t == "f32" || t == "f64" {
+        var fn_c = nuevo("fabs");
+        if nombre == "raiz" { fn_c = nuevo("sqrt"); }
+        if nombre == "piso" { fn_c = nuevo("floor"); }
+        if nombre == "techo" { fn_c = nuevo("ceil"); }
+        if nombre == "redondear" { fn_c = nuevo("round"); }
+        var r = nuevo("ss_lang_fin_");
         r.empujar(t);
         r.empujar("(");
+        r.empujar(fn_c);
+        if t == "f32" { r.empujar("f"); }
+        r.empujar("(");
         r.empujar(valor);
-        r.empujar(", \"");
+        r.empujar("), \"");
+        r.empujar(nombre);
+        r.empujar("\", \"");
+        if nombre == "raiz" {
+            r.empujar("Comprueba el signo antes: la raiz de un negativo ");
+            r.empujar("no es un numero.");
+        } else {
+            r.empujar("Comprueba el valor antes de operar con el.");
+        }
+        r.empujar("\", \"");
         r.empujar(s.archivo);
         r.empujar("\", ");
         r.empujar(texto(n.linea));
         r.empujar(")");
         return r;
     }
+    if nombre != "absoluto" { return no_se(); }
+    var r = nuevo("ss_lang_abs_");
+    r.empujar(t);
+    r.empujar("(");
+    r.empujar(valor);
+    r.empujar(", \"");
+    r.empujar(s.archivo);
+    r.empujar("\", ");
+    r.empujar(texto(n.linea));
+    r.empujar(")");
+    return r;
+}
 
+fn interna_pura_ordenar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
     // `ordenar(xs)`: cada tipo de lista lleva su propia ordenacion generada.
-    if nombre == "ordenar" {
-        if n.hijos.largo() != 1 { return no_se(); }
-        let crudo = I.tipo_de(tipos, n.hijos[0]);
-        let t = T.apuntado_si(crudo);
-        if !T.es_lista(t) { return no_se(); }
-        let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
-        if es_desconocido(donde) { return no_se(); }
-        var r = nuevo("ss_ordenar_");
-        r.empujar(mangle(t));
-        r.empujar("(");
-        r.empujar(donde);
-        r.empujar(")");
-        return r;
-    }
+    if n.hijos.largo() != 1 { return no_se(); }
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    let t = T.apuntado_si(crudo);
+    if !T.es_lista(t) { return no_se(); }
+    let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(donde) { return no_se(); }
+    var r = nuevo("ss_ordenar_");
+    r.empujar(mangle(t));
+    r.empujar("(");
+    r.empujar(donde);
+    r.empujar(")");
+    return r;
+}
 
+fn interna_pura_empujar_byte(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
     // `empujar_byte(s, b)`: un byte crudo, no texto. Es lo que permite
     // construir un buffer binario y no solo leerlo.
-    if nombre == "empujar_byte" {
-        if n.hijos.largo() != 2 { return no_se(); }
-        let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
-        if es_desconocido(donde) { return no_se(); }
-        let ptr = nuevo_temporal(b);
-        emitir(b, $"SafeString* {ptr} = {donde};");
-        let valor = expresion_c(b, s, n.hijos[1], "u8", tipos);
-        if es_desconocido(valor) { return no_se(); }
-        var r = nuevo("ss_lang_empujar_byte_(");
-        r.empujar(ptr);
-        r.empujar(", ");
-        r.empujar(valor);
-        r.empujar(", \"");
-        r.empujar(s.archivo);
-        r.empujar("\", ");
-        r.empujar(texto(n.linea));
-        r.empujar(")");
-        b.ultima_linea = 0;
-        marcar(b, s, n.linea);
-        return r;
-    }
+    if n.hijos.largo() != 2 { return no_se(); }
+    let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(donde) { return no_se(); }
+    let ptr = nuevo_temporal(b);
+    emitir(b, $"SafeString* {ptr} = {donde};");
+    let valor = expresion_c(b, s, n.hijos[1], "u8", tipos);
+    if es_desconocido(valor) { return no_se(); }
+    var r = nuevo("ss_lang_empujar_byte_(");
+    r.empujar(ptr);
+    r.empujar(", ");
+    r.empujar(valor);
+    r.empujar(", \"");
+    r.empujar(s.archivo);
+    r.empujar("\", ");
+    r.empujar(texto(n.linea));
+    r.empujar(")");
+    b.ultima_linea = 0;
+    marcar(b, s, n.linea);
+    return r;
+}
 
-    if nombre == "rebanar" {
-        if n.hijos.largo() != 3 { return no_se(); }
-        abrir_marco(b);
-        let v_0 = como_vista(b, s, n.hijos[0], tipos);
-        apuntar_pendiente(b, operando(n.hijos[0], v_0, "SafeView"));
-        let desde_0 = expresion_c(b, s, n.hijos[1], "usize", tipos);
-        apuntar_pendiente(b, operando(n.hijos[1], desde_0, "size_t"));
-        let hasta = expresion_c(b, s, n.hijos[2], "usize", tipos);
-        let marco_r = cerrar_marco(b);
-        let v = copiar(marco_r.entradas[0].valor);
-        let desde = copiar(marco_r.entradas[1].valor);
-        if es_desconocido(v) || es_desconocido(desde)
-        || es_desconocido(hasta) {
-            return no_se();
-        }
-        var r = nuevo("ss_lang_rebanar_(");
-        var previos: lista<str> = [];
-        agregar_argumento_ordenado(b, r, previos, vista(v), "view",
-            false, false, true);
-        r.empujar(", ");
-        agregar_argumento_ordenado(b, r, previos, vista(desde), "usize",
-            false, false, true);
-        r.empujar(", ");
-        agregar_argumento_ordenado(b, r, previos, vista(hasta), "usize",
-            false, false, true);
-        r.empujar(", \"");
-        r.empujar(s.archivo);
-        r.empujar("\", ");
-        r.empujar(texto(n.linea));
-        r.empujar(")");
-        b.ultima_linea = 0;
-        marcar(b, s, n.linea);
-        return envolver_llamada_ordenada(r, previos);
+fn interna_pura_rebanar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    if n.hijos.largo() != 3 { return no_se(); }
+    abrir_marco(b);
+    let v_0 = como_vista(b, s, n.hijos[0], tipos);
+    apuntar_pendiente(b, operando(n.hijos[0], v_0, "SafeView"));
+    let desde_0 = expresion_c(b, s, n.hijos[1], "usize", tipos);
+    apuntar_pendiente(b, operando(n.hijos[1], desde_0, "size_t"));
+    let hasta = expresion_c(b, s, n.hijos[2], "usize", tipos);
+    let marco_r = cerrar_marco(b);
+    let v = copiar(marco_r.entradas[0].valor);
+    let desde = copiar(marco_r.entradas[1].valor);
+    if es_desconocido(v) || es_desconocido(desde)
+    || es_desconocido(hasta) {
+        return no_se();
     }
-
-    return no_se();
+    var r = nuevo("ss_lang_rebanar_(");
+    var previos: lista<str> = [];
+    agregar_argumento_ordenado(b, r, previos, vista(v), "view",
+        false, false, true);
+    r.empujar(", ");
+    agregar_argumento_ordenado(b, r, previos, vista(desde), "usize",
+        false, false, true);
+    r.empujar(", ");
+    agregar_argumento_ordenado(b, r, previos, vista(hasta), "usize",
+        false, false, true);
+    r.empujar(", \"");
+    r.empujar(s.archivo);
+    r.empujar("\", ");
+    r.empujar(texto(n.linea));
+    r.empujar(")");
+    b.ultima_linea = 0;
+    marcar(b, s, n.linea);
+    return envolver_llamada_ordenada(r, previos);
 }
 
 // La direccion de un sitio con nombre: `&x`, `&p.campo`, `&v.e[i]`. Prestar
