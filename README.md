@@ -29,6 +29,15 @@ Hola, mundo!
 12 bytes
 ```
 
+O, con el comando amigable que compila y ejecuta de una (`bin/tcode`; tras
+`make instalar` queda como `tcode` en el PATH):
+
+```
+$ ./bin/tcode correr ejemplos/hola.t
+Hola, mundo!
+12 bytes
+```
+
 ## De dónde sale
 
 Tcode salió de auditar **safestr**, una librería de cadenas en C.

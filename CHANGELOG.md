@@ -27,6 +27,11 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   subrayados) y formato— que habla con el propio `tcodec`, sin un segundo
   analizador. Con una extensión mínima de VS Code. Es el LSP del peldaño 2.
 
+- `bin/tcode`: el comando amigable —`tcode correr` (compila y ejecuta de una),
+  `tcode nuevo` (crea un proyecto), `tcode comprobar`, `tcode formato` y
+  `tcode version`—. No es un segundo compilador: es un nombre corto sobre
+  `tcodec`, y `make instalar` lo deja en el PATH.
+
 ### Documentado
 
 - `docs/TIPOS.md`: el plan del modelo de tipos (de `str` a `Tipo`), en tres

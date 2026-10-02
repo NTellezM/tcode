@@ -156,12 +156,15 @@ instalar: tcodec
 	@install -m 644 runtime/*.c runtime/*.h runtime/*.inc $(INSTALADO)/runtime/
 	@install -m 644 runtime/sistema/*.inc $(INSTALADO)/runtime/sistema/
 	@install -m 644 VERSION $(INSTALADO)/VERSION
+	@install -m 755 bin/tcode $(INSTALADO)/tcode
 	@ln -sf ../lib/tcode/tcodec $(DESTDIR)$(PREFIJO)/bin/tcodec
-	@echo "tcodec $$(cat VERSION) en $(DESTDIR)$(PREFIJO)/bin/tcodec"
+	@ln -sf ../lib/tcode/tcode $(DESTDIR)$(PREFIJO)/bin/tcode
+	@echo "tcodec $$(cat VERSION) en $(DESTDIR)$(PREFIJO)/bin/tcodec, y el comando tcode al lado"
 
 desinstalar:
 	@rm -rf $(INSTALADO)
 	@rm -f $(DESTDIR)$(PREFIJO)/bin/tcodec
+	@rm -f $(DESTDIR)$(PREFIJO)/bin/tcode
 	@echo "quitado de $(DESTDIR)$(PREFIJO)"
 
 bench: tcodec

@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# tcode — la puerta amigable a Tcode: compila, corre, comprueba y formatea.
+# No es un segundo compilador: es un nombre corto sobre `tcodec`.
+set -euo pipefail
+
+# La raiz del arbol, si corremos desde el repo (bin/tcode -> ..).
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RAIZ="$(cd "$DIR/.." && pwd)"
+
+# El compilador: $TCODEC, el del repo, o el instalado (del PATH).
+if [[ -n "${TCODEC:-}" ]]; then
+    TCODEC_BIN="$TCODEC"
+elif [[ -x "$RAIZ/tcodec" ]]; then
+    TCODEC_BIN="$RAIZ/tcodec"
+    export TCODE_RAIZ="${TCODE_RAIZ:-$RAIZ}"
+else
+    TCODEC_BIN="tcodec"
+fi
+
+uso() {
+    cat <<EOF
+tcode — el compilador de Tcode, con nombre amigable
+
+Uso:
+  tcode correr    archivo.t [argumentos...]   compila y ejecuta
+  tcode nuevo     nombre                       crea un proyecto con main.t
+  tcode comprobar archivo.t                    mira si compila, sin generar C
+  tcode formato   archivo.t                    reformatea el archivo en su sitio
+  tcode version                                la version del compilador
+  tcode ayuda                                  esto
+
+Ejemplos:
+  tcode nuevo hola
+  cd hola && tcode correr main.t
+  tcode comprobar mi.t
+EOF
+}
+
+case "${1:-ayuda}" in
+    correr)
+        archivo="${2:-}"
+        [[ -n "$archivo" ]] || { uso; exit 2; }
+        shift 2
+        tmp="$(mktemp -d)"
+        trap 'rm -rf "$tmp"' EXIT
+        # El compilador escribe la ruta del binario por la salida normal;
+        # aqui sobra: lo unico que importa es la salida del programa.
+        "$TCODEC_BIN" "$archivo" -o "$tmp/programa" >/dev/null
+        "$tmp/programa" "$@"
+        ;;
+    nuevo)
+        nombre="${2:-}"
+        [[ -n "$nombre" ]] || { uso; exit 2; }
+        mkdir -p "$nombre"
+        cat > "$nombre/main.t" <<'EOF'
+// main.t — tu primer programa en Tcode.
+fn main() {
+    imprimir("hola, mundo\n");
+}
+EOF
+        cat > "$nombre/Makefile" <<'EOF'
+# El proyecto de Tcode. `make correr` compila y ejecuta main.t.
+correr:
+	tcode correr main.t
+
+comprobar:
+	tcode comprobar main.t
+
+formato:
+	tcode formato main.t
+EOF
+        echo "creado $nombre/main.t — correlo con:"
+        echo "  cd $nombre && tcode correr main.t"
+        ;;
+    comprobar)
+        archivo="${2:-}"
+        [[ -n "$archivo" ]] || { uso; exit 2; }
+        "$TCODEC_BIN" --solo-comprobar "$archivo"
+        ;;
+    formato)
+        archivo="${2:-}"
+        [[ -n "$archivo" ]] || { uso; exit 2; }
+        "$TCODEC_BIN" --formatear --escribir "$archivo"
+        ;;
+    version)
+        "$TCODEC_BIN" --version
+        ;;
+    ayuda|-h|--ayuda|--help)
+        uso
+        ;;
+    *)
+        uso
+        exit 2
+        ;;
+esac
