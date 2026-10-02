@@ -3,6 +3,8 @@
 Un lenguaje de sistemas pequeño que compila a C portable, donde las clases de
 fallo de memoria más comunes de C **no son expresables**.
 
+> **Nuevo aquí?** Empieza por la [guía de 10 minutos](docs/GUIA.md).
+
 ```tcode
 fn main() {
     let saludo = nuevo("hola, ");

@@ -37,6 +37,10 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 - La extensión de VS Code (`contrib/lsp/vscode`) ahora trae **resaltado**
   (gramática TextMate) e **icono** para los `.t`, además del LSP.
 
+- `docs/GUIA.md`: «Tcode en 10 minutos» —instalar, hola mundo, structs,
+  `view` contra `str`, genéricos, enums y fallos— con todos los ejemplos
+  compilados y verificados. Es por donde entra un recién llegado.
+
 ### Documentado
 
 - `docs/TIPOS.md`: el plan del modelo de tipos (de `str` a `Tipo`), en tres
