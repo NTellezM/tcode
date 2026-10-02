@@ -32,6 +32,11 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   `tcode version`—. No es un segundo compilador: es un nombre corto sobre
   `tcodec`, y `make instalar` lo deja en el PATH.
 
+- `instalar.sh`: instala `tcodec` y `tcode` en `~/.local` sin sudo, y dice
+  cómo añadirlo al PATH.
+- La extensión de VS Code (`contrib/lsp/vscode`) ahora trae **resaltado**
+  (gramática TextMate) e **icono** para los `.t`, además del LSP.
+
 ### Documentado
 
 - `docs/TIPOS.md`: el plan del modelo de tipos (de `str` a `Tipo`), en tres

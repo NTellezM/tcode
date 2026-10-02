@@ -1,7 +1,7 @@
 {
   "name": "tcode",
   "displayName": "Tcode",
-  "description": "Soporte de lenguaje para Tcode: diagnósticos y formato (via el LSP de contrib/lsp)",
+  "description": "Soporte de lenguaje para Tcode: resaltado, diagnósticos, formato e ir a la definición",
   "version": "0.1.0",
   "publisher": "tcode",
   "license": "MIT",
@@ -16,7 +16,18 @@
       {
         "id": "tcode",
         "extensions": [".t"],
-        "aliases": ["Tcode"]
+        "aliases": ["Tcode"],
+        "icon": {
+          "light": "./icons/tcode.svg",
+          "dark": "./icons/tcode.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tcode",
+        "scopeName": "source.tcode",
+        "path": "./syntaxes/tcode.tmLanguage.json"
       }
     ],
     "configuration": {

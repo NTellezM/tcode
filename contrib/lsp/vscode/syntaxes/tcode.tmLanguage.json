@@ -1,0 +1,84 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Tcode",
+  "scopeName": "source.tcode",
+  "fileTypes": ["t"],
+  "patterns": [
+    { "include": "#comentarios" },
+    { "include": "#cadenas" },
+    { "include": "#numeros" },
+    { "include": "#funciones" },
+    { "include": "#declaraciones" },
+    { "include": "#tipos" },
+    { "include": "#palabras_clave" },
+    { "include": "#constantes" }
+  ],
+  "repository": {
+    "comentarios": {
+      "patterns": [
+        { "name": "comment.line.double-slash.tcode", "match": "//.*$" },
+        { "name": "comment.block.tcode", "begin": "/\\*", "end": "\\*/" }
+      ]
+    },
+    "cadenas": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.tcode",
+          "begin": "\\$?\"",
+          "end": "\"",
+          "patterns": [
+            { "name": "constant.character.escape.tcode", "match": "\\\\." }
+          ]
+        }
+      ]
+    },
+    "numeros": {
+      "patterns": [
+        {
+          "name": "constant.numeric.float.tcode",
+          "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9]+)?\\b"
+        },
+        {
+          "name": "constant.numeric.integer.tcode",
+          "match": "\\b[0-9][0-9_]*\\b"
+        }
+      ]
+    },
+    "funciones": {
+      "patterns": [
+        {
+          "name": "meta.function.tcode",
+          "match": "\\b(fn)\\s+([A-Za-z_\\p{L}][A-Za-z0-9_\\p{L}\\p{N}]*)",
+          "captures": {
+            "1": { "name": "keyword.control.tcode" },
+            "2": { "name": "entity.name.function.tcode" }
+          }
+        }
+      ]
+    },
+    "declaraciones": {
+      "patterns": [
+        {
+          "name": "meta.type.tcode",
+          "match": "\\b(struct|enum)\\s+([A-Za-z_\\p{L}][A-Za-z0-9_\\p{L}\\p{N}]*)",
+          "captures": {
+            "1": { "name": "keyword.control.tcode" },
+            "2": { "name": "entity.name.type.tcode" }
+          }
+        }
+      ]
+    },
+    "tipos": {
+      "name": "storage.type.tcode",
+      "match": "\\b(str|view|usize|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64|bool|mapa|lista|bloque|cadena_c)\\b"
+    },
+    "palabras_clave": {
+      "name": "keyword.control.tcode",
+      "match": "\\b(fn|if|else|while|for|match|return|falla|break|continue|let|var|mut|try|sino|en|usar|struct|enum|externo|como)\\b"
+    },
+    "constantes": {
+      "name": "constant.language.tcode",
+      "match": "\\b(true|false)\\b"
+    }
+  }
+}
