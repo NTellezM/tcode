@@ -15,5 +15,17 @@
   ],
   "devDependencies": {
     "tree-sitter-cli": "^0.27.0"
+  },
+  "files": [
+    "grammar.js",
+    "src/",
+    "queries/",
+    "README.md",
+    "tree-sitter.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/NTellezM/tcode.git",
+    "directory": "contrib/tree-sitter-tcode"
   }
 }

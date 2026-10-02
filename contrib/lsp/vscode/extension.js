@@ -1,5 +1,5 @@
 // Extensión mínima de VS Code: arranca el servidor LSP de Tcode.
-// El servidor vive en `../server.js` (esta carpeta es `contrib/lsp/vscode/`).
+// El servidor vive en `./server/server.js` (empaquetado dentro de la extension).
 
 const path = require('path');
 const { workspace } = require('vscode');
@@ -8,7 +8,7 @@ const { LanguageClient, ServerOptions, TransportKind } = require('vscode-languag
 let cliente;
 
 function activar(contexto) {
-    const servidor = path.join(__dirname, '..', 'server.js');
+    const servidor = path.join(__dirname, 'server', 'server.js');
     const config = workspace.getConfiguration('tcode.lsp');
     const opciones = {
         tcodec: config.get('tcodec', 'tcodec'),
