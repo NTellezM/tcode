@@ -390,21 +390,23 @@ def nodo_fn(archivo, fn):
     return f"{nodo_id(archivo)}__{fn}"
 
 
-def mermaid_funciones(aristas):
-    usados = {}
-    for a, fa, b, fb in aristas:
-        usados.setdefault(a, set()).add(fa)
-        usados.setdefault(b, set()).add(fb)
-
+def mermaid_funciones_de(archivo, aristas_de):
+    """El grafo de UN archivo: sus funciones y las de fuera que llama."""
+    locales = sorted({fa for fa, _b, _fb in aristas_de})
+    externas = sorted({(b, fb) for _fa, b, fb in aristas_de})
     lineas = ["graph TD"]
-    for a in sorted(usados):
-        lineas.append(f"    subgraph {nodo_id(a)}[\"{etiqueta(a)}\"]")
-        for fn in sorted(usados[a]):
-            lineas.append(f"        {nodo_fn(a, fn)}[\"{fn}\"]")
+    lineas.append(f"    subgraph {nodo_id(archivo)}[\"{etiqueta(archivo)}\"]")
+    for fn in locales:
+        lineas.append(f"        {nodo_fn(archivo, fn)}[\"{fn}\"]")
+    lineas.append("    end")
+    if externas:
+        lineas.append("    subgraph fuera[\"de otros archivos\"]")
+        for b, fb in externas:
+            lineas.append(f"        {nodo_fn(b, fb)}[\"{fb} · {etiqueta_corta(b)}\"]")
         lineas.append("    end")
     lineas.append("")
-    for a, fa, b, fb in sorted(aristas):
-        lineas.append(f"    {nodo_fn(a, fa)} --> {nodo_fn(b, fb)}")
+    for fa, b, fb in sorted(aristas_de):
+        lineas.append(f"    {nodo_fn(archivo, fa)} --> {nodo_fn(b, fb)}")
     return "\n".join(lineas) + "\n"
 
 
@@ -432,15 +434,26 @@ def contenido(red):
 
 
 def contenido_funciones(aristas):
-    return (
-        "# Grafo de funciones del compilador\n\n"
-        "Generado por `make grafo` (`tests/grafo.py`); no se edita a mano.\n"
-        "Cada nodo es una funcion, agrupada por archivo; una flecha `A --> B`\n"
-        "dice que la funcion `A` llama a la `B` de otro archivo. Las llamadas\n"
-        "dentro del mismo archivo y las funciones del lenguaje (`copiar`,\n"
-        "`igual`, `largo`...) no se dibujan.\n\n"
-        "```mermaid\n" + mermaid_funciones(aristas) + "```\n"
-    )
+    por_archivo = {}
+    for a, fa, b, fb in aristas:
+        por_archivo.setdefault(a, []).append((fa, b, fb))
+    lineas = [
+        "# Grafo de funciones del compilador\n",
+        "\n",
+        "Generado por `make grafo` (`tests/grafo.py`); no se edita a mano.\n",
+        "Un diagrama por archivo: sus funciones y las que llama de otros\n",
+        "archivos (las de fuera llevan el nombre del archivo). Las llamadas\n",
+        "dentro del mismo archivo y las funciones del lenguaje no se dibujan.\n",
+        "Para saber quien llama a una funcion, mira `docs/llamadas.md`.\n",
+        "\n",
+    ]
+    for a in sorted(por_archivo):
+        lineas.append(f"## {etiqueta(a)}\n")
+        lineas.append("\n```mermaid\n")
+        lineas.append(mermaid_funciones_de(a, por_archivo[a]))
+        lineas.append("```\n")
+        lineas.append("\n")
+    return "".join(lineas)
 
 
 def principal():
@@ -477,7 +490,8 @@ def principal():
     n_flechas = sum(len(v) for v in red.values())
     print(f"escrito {os.path.relpath(SALIDA, RAIZ)} "
           f"({len(red)} archivos, {n_flechas} flechas), "
-          f"{os.path.relpath(SALIDA_FUNCIONES, RAIZ)} ({len(aristas)} aristas) "
+          f"{os.path.relpath(SALIDA_FUNCIONES, RAIZ)} ({len(aristas)} aristas "
+          f"en {len({a for a, _f, _b, _fb in aristas})} diagramas) "
           f"y {os.path.relpath(SALIDA_INDICE, RAIZ)} "
           f"({len(indice(todas))} funciones)")
 

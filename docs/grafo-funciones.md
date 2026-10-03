@@ -1,16 +1,37 @@
 # Grafo de funciones del compilador
 
 Generado por `make grafo` (`tests/grafo.py`); no se edita a mano.
-Cada nodo es una funcion, agrupada por archivo; una flecha `A --> B`
-dice que la funcion `A` llama a la `B` de otro archivo. Las llamadas
-dentro del mismo archivo y las funciones del lenguaje (`copiar`,
-`igual`, `largo`...) no se dibujan.
+Un diagrama por archivo: sus funciones y las que llama de otros
+archivos (las de fuera llevan el nombre del archivo). Las llamadas
+dentro del mismo archivo y las funciones del lenguaje no se dibujan.
+Para saber quien llama a una funcion, mira `docs/llamadas.md`.
+
+## compilador/cuerpos.t
 
 ```mermaid
 graph TD
     subgraph compilador_cuerpos["compilador/cuerpos.t"]
         compilador_cuerpos__main["main"]
     end
+    subgraph fuera["de otros archivos"]
+        compilador_lib_programa__cuenta_nueva["cuenta_nueva · programa.t"]
+        compilador_lib_programa__es_generica["es_generica · programa.t"]
+        compilador_lib_programa__generar_funcion["generar_funcion · programa.t"]
+        compilador_lib_programa__preparar["preparar · programa.t"]
+        compilador_lib_tipar__contexto["contexto · tipar.t"]
+    end
+
+    compilador_cuerpos__main --> compilador_lib_programa__cuenta_nueva
+    compilador_cuerpos__main --> compilador_lib_programa__es_generica
+    compilador_cuerpos__main --> compilador_lib_programa__generar_funcion
+    compilador_cuerpos__main --> compilador_lib_programa__preparar
+    compilador_cuerpos__main --> compilador_lib_tipar__contexto
+```
+
+## compilador/expresiones.t
+
+```mermaid
+graph TD
     subgraph compilador_expresiones["compilador/expresiones.t"]
         compilador_expresiones__main["main"]
         compilador_expresiones__marca_de["marca_de"]
@@ -19,6 +40,51 @@ graph TD
         compilador_expresiones__tipo_pelado["tipo_pelado"]
         compilador_expresiones__tras_dos_puntos["tras_dos_puntos"]
     end
+    subgraph fuera["de otros archivos"]
+        compilador_lib_generar__cuerpo["cuerpo · generar.t"]
+        compilador_lib_generar__expresion_c["expresion_c · generar.t"]
+        compilador_lib_generar__externas_de["externas_de · generar.t"]
+        compilador_lib_generar__nombres_de_c["nombres_de_c · generar.t"]
+        compilador_lib_generar__renombrar_para_c["renombrar_para_c · generar.t"]
+        compilador_lib_tipar__abrir["abrir · tipar.t"]
+        compilador_lib_tipar__cerrar["cerrar · tipar.t"]
+        compilador_lib_tipar__contexto["contexto · tipar.t"]
+        compilador_lib_tipar__declarar["declarar · tipar.t"]
+        compilador_lib_tipos__leer_tipo["leer_tipo · tipos.t"]
+        compilador_lib_tipos__leer_tipos["leer_tipos · tipos.t"]
+        lexer_lib_sintaxis__enums_visibles["enums_visibles · sintaxis.t"]
+        lexer_lib_sintaxis__estado_de["estado_de · sintaxis.t"]
+        lexer_lib_sintaxis__programa["programa · sintaxis.t"]
+        lexer_lib_sintaxis__structs_visibles["structs_visibles · sintaxis.t"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__recortar["recortar · std/texto"]
+    end
+
+    compilador_expresiones__main --> compilador_lib_generar__cuerpo
+    compilador_expresiones__main --> compilador_lib_generar__expresion_c
+    compilador_expresiones__main --> compilador_lib_generar__externas_de
+    compilador_expresiones__main --> compilador_lib_generar__nombres_de_c
+    compilador_expresiones__main --> compilador_lib_generar__renombrar_para_c
+    compilador_expresiones__main --> compilador_lib_tipar__abrir
+    compilador_expresiones__main --> compilador_lib_tipar__cerrar
+    compilador_expresiones__main --> compilador_lib_tipar__contexto
+    compilador_expresiones__main --> compilador_lib_tipar__declarar
+    compilador_expresiones__main --> lexer_lib_sintaxis__enums_visibles
+    compilador_expresiones__main --> lexer_lib_sintaxis__estado_de
+    compilador_expresiones__main --> lexer_lib_sintaxis__programa
+    compilador_expresiones__main --> lexer_lib_sintaxis__structs_visibles
+    compilador_expresiones__marca_de --> std_texto__empieza_con
+    compilador_expresiones__presta --> std_texto__empieza_con
+    compilador_expresiones__recoger_firmas --> compilador_lib_tipos__leer_tipo
+    compilador_expresiones__recoger_firmas --> compilador_lib_tipos__leer_tipos
+    compilador_expresiones__tipo_pelado --> std_texto__empieza_con
+    compilador_expresiones__tras_dos_puntos --> std_texto__recortar
+```
+
+## compilador/firmas.t
+
+```mermaid
+graph TD
     subgraph compilador_firmas["compilador/firmas.t"]
         compilador_firmas__main["main"]
         compilador_firmas__marca_de["marca_de"]
@@ -26,6 +92,27 @@ graph TD
         compilador_firmas__tipo_pelado["tipo_pelado"]
         compilador_firmas__tras_dos_puntos["tras_dos_puntos"]
     end
+    subgraph fuera["de otros archivos"]
+        compilador_lib_generar__prototipo["prototipo · generar.t"]
+        compilador_lib_programa__preparar["preparar · programa.t"]
+        compilador_lib_tipar__contexto["contexto · tipar.t"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__recortar["recortar · std/texto"]
+    end
+
+    compilador_firmas__main --> compilador_lib_generar__prototipo
+    compilador_firmas__main --> compilador_lib_programa__preparar
+    compilador_firmas__main --> compilador_lib_tipar__contexto
+    compilador_firmas__marca_de --> std_texto__recortar
+    compilador_firmas__solo_marca --> std_texto__empieza_con
+    compilador_firmas__tipo_pelado --> std_texto__empieza_con
+    compilador_firmas__tras_dos_puntos --> std_texto__recortar
+```
+
+## compilador/lib/comprobar.t
+
+```mermaid
+graph TD
     subgraph compilador_lib_comprobar["compilador/lib/comprobar.t"]
         compilador_lib_comprobar__almacenable["almacenable"]
         compilador_lib_comprobar__avisar_sin_usar["avisar_sin_usar"]
@@ -88,7 +175,6 @@ graph TD
         compilador_lib_comprobar__lleva_suelto["lleva_suelto"]
         compilador_lib_comprobar__mutar["mutar"]
         compilador_lib_comprobar__nodo_de_cierre["nodo_de_cierre"]
-        compilador_lib_comprobar__nombra_interna["nombra_interna"]
         compilador_lib_comprobar__origenes_de["origenes_de"]
         compilador_lib_comprobar__origenes_de_puntero["origenes_de_puntero"]
         compilador_lib_comprobar__param_de["param_de"]
@@ -141,388 +227,66 @@ graph TD
         compilador_lib_comprobar__valor_escrito["valor_escrito"]
         compilador_lib_comprobar__variable["variable"]
     end
-    subgraph compilador_lib_formato["compilador/lib/formato.t"]
-        compilador_lib_formato__formatear["formatear"]
-    end
-    subgraph compilador_lib_generar["compilador/lib/generar.t"]
-        compilador_lib_generar__abrir_bloque["abrir_bloque"]
-        compilador_lib_generar__anadir_c["anadir_c"]
-        compilador_lib_generar__anotar_duenio["anotar_duenio"]
-        compilador_lib_generar__apuntar_arreglo["apuntar_arreglo"]
-        compilador_lib_generar__apuntar_fallo["apuntar_fallo"]
-        compilador_lib_generar__apuntar_nombres_c["apuntar_nombres_c"]
-        compilador_lib_generar__asignacion_c["asignacion_c"]
-        compilador_lib_generar__atrapar_c["atrapar_c"]
-        compilador_lib_generar__binaria_c["binaria_c"]
-        compilador_lib_generar__bloque_c["bloque_c"]
-        compilador_lib_generar__cabe_literal_decimal["cabe_literal_decimal"]
-        compilador_lib_generar__cabe_literal_entero["cabe_literal_entero"]
-        compilador_lib_generar__campo_c["campo_c"]
-        compilador_lib_generar__choca_con_c["choca_con_c"]
-        compilador_lib_generar__cierre_c["cierre_c"]
-        compilador_lib_generar__clave_de["clave_de"]
-        compilador_lib_generar__como_vista["como_vista"]
-        compilador_lib_generar__condiciones_patron_c["condiciones_patron_c"]
-        compilador_lib_generar__conversion_c["conversion_c"]
-        compilador_lib_generar__cuantos_bytes["cuantos_bytes"]
-        compilador_lib_generar__cuantos_de_arreglo["cuantos_de_arreglo"]
-        compilador_lib_generar__cuerpo["cuerpo"]
-        compilador_lib_generar__cuerpo_brazo_c["cuerpo_brazo_c"]
-        compilador_lib_generar__da_texto["da_texto"]
-        compilador_lib_generar__decimal_c["decimal_c"]
-        compilador_lib_generar__declaracion_c["declaracion_c"]
-        compilador_lib_generar__descartar_c["descartar_c"]
-        compilador_lib_generar__emitir["emitir"]
-        compilador_lib_generar__emitir_final_bien["emitir_final_bien"]
-        compilador_lib_generar__entero_exacto_en["entero_exacto_en"]
-        compilador_lib_generar__entrega_suelta["entrega_suelta"]
-        compilador_lib_generar__enum_lit_c["enum_lit_c"]
-        compilador_lib_generar__es_puntero["es_puntero"]
-        compilador_lib_generar__escrito["escrito"]
-        compilador_lib_generar__etiqueta["etiqueta"]
-        compilador_lib_generar__expresion_c["expresion_c"]
-        compilador_lib_generar__externas_de["externas_de"]
-        compilador_lib_generar__hueco_c["hueco_c"]
-        compilador_lib_generar__indice_c["indice_c"]
-        compilador_lib_generar__interna_pura_comparar["interna_pura_comparar"]
-        compilador_lib_generar__interna_pura_copiar["interna_pura_copiar"]
-        compilador_lib_generar__interna_pura_imprimir["interna_pura_imprimir"]
-        compilador_lib_generar__interna_pura_intercambiar["interna_pura_intercambiar"]
-        compilador_lib_generar__interna_pura_largo["interna_pura_largo"]
-        compilador_lib_generar__interna_pura_mapa["interna_pura_mapa"]
-        compilador_lib_generar__interna_pura_numeros["interna_pura_numeros"]
-        compilador_lib_generar__interna_pura_ordenar["interna_pura_ordenar"]
-        compilador_lib_generar__interna_pura_redimensionar["interna_pura_redimensionar"]
-        compilador_lib_generar__interna_pura_texto["interna_pura_texto"]
-        compilador_lib_generar__interpolada_c["interpolada_c"]
-        compilador_lib_generar__junta["junta"]
-        compilador_lib_generar__legible_c["legible_c"]
-        compilador_lib_generar__liberacion["liberacion"]
-        compilador_lib_generar__liberar_todo["liberar_todo"]
-        compilador_lib_generar__literal_c["literal_c"]
-        compilador_lib_generar__literal_lista_c["literal_lista_c"]
-        compilador_lib_generar__literal_struct_c["literal_struct_c"]
-        compilador_lib_generar__llamada_a_valor["llamada_a_valor"]
-        compilador_lib_generar__llamada_c["llamada_c"]
-        compilador_lib_generar__llamada_con_firma["llamada_con_firma"]
-        compilador_lib_generar__llamada_externa_c["llamada_externa_c"]
-        compilador_lib_generar__mangle["mangle"]
-        compilador_lib_generar__marca_sola["marca_sola"]
-        compilador_lib_generar__match_c["match_c"]
-        compilador_lib_generar__match_condiciones["match_condiciones"]
-        compilador_lib_generar__match_valor["match_valor"]
-        compilador_lib_generar__mientras_c["mientras_c"]
-        compilador_lib_generar__movidas_en["movidas_en"]
-        compilador_lib_generar__movidas_hondo["movidas_hondo"]
-        compilador_lib_generar__movidas_hondo_en["movidas_hondo_en"]
-        compilador_lib_generar__nace_bandera["nace_bandera"]
-        compilador_lib_generar__nombre_de_param["nombre_de_param"]
-        compilador_lib_generar__nombre_declarado["nombre_declarado"]
-        compilador_lib_generar__nombres_de_c["nombres_de_c"]
-        compilador_lib_generar__para_c["para_c"]
-        compilador_lib_generar__para_rango_c["para_rango_c"]
-        compilador_lib_generar__presta_argumento["presta_argumento"]
-        compilador_lib_generar__primer_nombre["primer_nombre"]
-        compilador_lib_generar__prototipo["prototipo"]
-        compilador_lib_generar__renombrar_para_c["renombrar_para_c"]
-        compilador_lib_generar__reservar_c["reservar_c"]
-        compilador_lib_generar__se_llama_como["se_llama_como"]
-        compilador_lib_generar__segundo_nombre["segundo_nombre"]
-        compilador_lib_generar__sentencia_c["sentencia_c"]
-        compilador_lib_generar__si_expr_c["si_expr_c"]
-        compilador_lib_generar__sin_ceros_izquierda["sin_ceros_izquierda"]
-        compilador_lib_generar__sitio_c["sitio_c"]
-        compilador_lib_generar__sitio_solo_lectura["sitio_solo_lectura"]
-        compilador_lib_generar__termina_saliendo["termina_saliendo"]
-        compilador_lib_generar__texto_de["texto_de"]
-        compilador_lib_generar__texto_para_c["texto_para_c"]
-        compilador_lib_generar__tiene_duenio["tiene_duenio"]
-        compilador_lib_generar__tipo_c["tipo_c"]
-        compilador_lib_generar__tipo_c_prestamo["tipo_c_prestamo"]
-        compilador_lib_generar__tipo_escrito["tipo_escrito"]
-        compilador_lib_generar__tipo_resultado["tipo_resultado"]
-        compilador_lib_generar__tipo_si_va_bien["tipo_si_va_bien"]
-        compilador_lib_generar__tipo_suelto["tipo_suelto"]
-        compilador_lib_generar__truncar_c["truncar_c"]
-        compilador_lib_generar__unaria_c["unaria_c"]
-        compilador_lib_generar__variable_c["variable_c"]
-    end
-    subgraph compilador_lib_programa["compilador/lib/programa.t"]
-        compilador_lib_programa__copiar_firma["copiar_firma"]
-        compilador_lib_programa__cuenta_nueva["cuenta_nueva"]
-        compilador_lib_programa__declarar_de_para["declarar_de_para"]
-        compilador_lib_programa__es_generica["es_generica"]
-        compilador_lib_programa__generar_funcion["generar_funcion"]
-        compilador_lib_programa__marca_de["marca_de"]
-        compilador_lib_programa__nombre_de["nombre_de"]
-        compilador_lib_programa__normalizar["normalizar"]
-        compilador_lib_programa__prefijo_unico["prefijo_unico"]
-        compilador_lib_programa__preparar["preparar"]
-        compilador_lib_programa__preparar_con_error["preparar_con_error"]
-        compilador_lib_programa__prestar_si_str["prestar_si_str"]
-        compilador_lib_programa__quitar_alias_de_tipos["quitar_alias_de_tipos"]
-        compilador_lib_programa__recoger_de_modulo["recoger_de_modulo"]
-        compilador_lib_programa__recoger_firmas["recoger_firmas"]
-        compilador_lib_programa__tipo_pelado["tipo_pelado"]
-        compilador_lib_programa__tipo_sin_alias_tras_nombre["tipo_sin_alias_tras_nombre"]
-        compilador_lib_programa__tras_dos_puntos["tras_dos_puntos"]
-        compilador_lib_programa__vistas_en_bloque["vistas_en_bloque"]
-        compilador_lib_programa__vistas_en_funcion["vistas_en_funcion"]
-        compilador_lib_programa__vistas_en_sentencia["vistas_en_sentencia"]
-        compilador_lib_programa__vistas_implicitas["vistas_implicitas"]
-    end
-    subgraph compilador_lib_propiedad["compilador/lib/propiedad.t"]
-        compilador_lib_propiedad__declara_prestamo["declara_prestamo"]
-        compilador_lib_propiedad__destino_de["destino_de"]
-        compilador_lib_propiedad__mirar["mirar"]
-        compilador_lib_propiedad__se_lo_queda["se_lo_queda"]
-        compilador_lib_propiedad__tiene_duenio["tiene_duenio"]
-        compilador_lib_propiedad__vigilar["vigilar"]
-    end
-    subgraph compilador_lib_tipar["compilador/lib/tipar.t"]
-        compilador_lib_tipar__abrir["abrir"]
-        compilador_lib_tipar__anotado_crudo["anotado_crudo"]
-        compilador_lib_tipar__antes_del_punto["antes_del_punto"]
-        compilador_lib_tipar__buscar["buscar"]
-        compilador_lib_tipar__cerrar["cerrar"]
-        compilador_lib_tipar__contexto["contexto"]
-        compilador_lib_tipar__declarar["declarar"]
-        compilador_lib_tipar__firma_de_funcion["firma_de_funcion"]
-        compilador_lib_tipar__funcion_de_cierre["funcion_de_cierre"]
-        compilador_lib_tipar__lista_de["lista_de"]
-        compilador_lib_tipar__literal_de["literal_de"]
-        compilador_lib_tipar__nombre_resuelto["nombre_resuelto"]
-        compilador_lib_tipar__posee_con_formas["posee_con_formas"]
-        compilador_lib_tipar__redimensionar_ambitos["redimensionar_ambitos"]
-        compilador_lib_tipar__sin_modulo["sin_modulo"]
-        compilador_lib_tipar__tipo_anotado["tipo_anotado"]
-        compilador_lib_tipar__tipo_atrapado["tipo_atrapado"]
-        compilador_lib_tipar__tipo_cuenta["tipo_cuenta"]
-        compilador_lib_tipar__tipo_de["tipo_de"]
-        compilador_lib_tipar__tipo_de_campo["tipo_de_campo"]
-        compilador_lib_tipar__tipo_de_llamada["tipo_de_llamada"]
-        compilador_lib_tipar__tipos_de_aplicacion["tipos_de_aplicacion"]
-        compilador_lib_tipar__tras_el_punto["tras_el_punto"]
-    end
-    subgraph compilador_lib_tipos["compilador/lib/tipos.t"]
-        compilador_lib_tipos__apuntado["apuntado"]
-        compilador_lib_tipos__apuntado_si["apuntado_si"]
-        compilador_lib_tipos__arreglos_dentro["arreglos_dentro"]
-        compilador_lib_tipos__base["base"]
-        compilador_lib_tipos__base_de_aplicacion["base_de_aplicacion"]
-        compilador_lib_tipos__con_partes["con_partes"]
-        compilador_lib_tipos__conocido["conocido"]
-        compilador_lib_tipos__cuantos_del_arreglo["cuantos_del_arreglo"]
-        compilador_lib_tipos__elemento["elemento"]
-        compilador_lib_tipos__empieza["empieza"]
-        compilador_lib_tipos__es_aplicacion["es_aplicacion"]
-        compilador_lib_tipos__es_arreglo["es_arreglo"]
-        compilador_lib_tipos__es_bloque["es_bloque"]
-        compilador_lib_tipos__es_de_nombre["es_de_nombre"]
-        compilador_lib_tipos__es_funcion["es_funcion"]
-        compilador_lib_tipos__es_lista["es_lista"]
-        compilador_lib_tipos__es_mapa["es_mapa"]
-        compilador_lib_tipos__es_rango["es_rango"]
-        compilador_lib_tipos__es_referencia["es_referencia"]
-        compilador_lib_tipos__es_referencia_mutable["es_referencia_mutable"]
-        compilador_lib_tipos__escribir_de_mapa["escribir_de_mapa"]
-        compilador_lib_tipos__escribir_de_mapa_tipos["escribir_de_mapa_tipos"]
-        compilador_lib_tipos__escribir_tipo["escribir_tipo"]
-        compilador_lib_tipos__escribir_tipos["escribir_tipos"]
-        compilador_lib_tipos__forma_de["forma_de"]
-        compilador_lib_tipos__hacer_arreglo["hacer_arreglo"]
-        compilador_lib_tipos__hacer_lista["hacer_lista"]
-        compilador_lib_tipos__hacer_prestado["hacer_prestado"]
-        compilador_lib_tipos__hacer_prestado_mut["hacer_prestado_mut"]
-        compilador_lib_tipos__hacer_rango["hacer_rango"]
-        compilador_lib_tipos__leer_tipo["leer_tipo"]
-        compilador_lib_tipos__leer_tipos["leer_tipos"]
-        compilador_lib_tipos__ligar_tipo["ligar_tipo"]
-        compilador_lib_tipos__lleva_bloque_o_arreglo["lleva_bloque_o_arreglo"]
-        compilador_lib_tipos__marcador["marcador"]
-        compilador_lib_tipos__ninguno["ninguno"]
-        compilador_lib_tipos__nombre_de_copia["nombre_de_copia"]
-        compilador_lib_tipos__partes["partes"]
-        compilador_lib_tipos__partes_de_arreglo["partes_de_arreglo"]
-        compilador_lib_tipos__partes_de_funcion["partes_de_funcion"]
-        compilador_lib_tipos__partir_tipos["partir_tipos"]
-        compilador_lib_tipos__posee_en["posee_en"]
-        compilador_lib_tipos__sanear["sanear"]
-        compilador_lib_tipos__sin_alias_tipo["sin_alias_tipo"]
-        compilador_lib_tipos__sustituir["sustituir"]
-        compilador_lib_tipos__sustituir_tipo["sustituir_tipo"]
-        compilador_lib_tipos__tiene_flecha["tiene_flecha"]
-        compilador_lib_tipos__tipo_de_mapa["tipo_de_mapa"]
-        compilador_lib_tipos__tipo_existe["tipo_existe"]
-        compilador_lib_tipos__tipos_de_mapa["tipos_de_mapa"]
-        compilador_lib_tipos__valor_de_mapa["valor_de_mapa"]
-    end
-    subgraph compilador_tcodec["compilador/tcodec.t"]
-        compilador_tcodec__ajustar_contextos["ajustar_contextos"]
-        compilador_tcodec__apuntar_nombres["apuntar_nombres"]
-        compilador_tcodec__apuntar_tipo_funcion["apuntar_tipo_funcion"]
-        compilador_tcodec__aritmetica_usada["aritmetica_usada"]
-        compilador_tcodec__ayudante_escribir_archivo["ayudante_escribir_archivo"]
-        compilador_tcodec__ayudante_leer_archivo["ayudante_leer_archivo"]
-        compilador_tcodec__ayudante_leer_parte_archivo["ayudante_leer_parte_archivo"]
-        compilador_tcodec__con_prefijo["con_prefijo"]
-        compilador_tcodec__construir["construir"]
-        compilador_tcodec__copia_de["copia_de"]
-        compilador_tcodec__copiar_sustituido["copiar_sustituido"]
-        compilador_tcodec__cuerpo_copiador["cuerpo_copiador"]
-        compilador_tcodec__cuerpo_enum_c["cuerpo_enum_c"]
-        compilador_tcodec__declarar_tipos["declarar_tipos"]
-        compilador_tcodec__definir_tipo_c["definir_tipo_c"]
-        compilador_tcodec__definir_tipos["definir_tipos"]
-        compilador_tcodec__dependencias_de_agregado["dependencias_de_agregado"]
-        compilador_tcodec__descubrir["descubrir"]
-        compilador_tcodec__emitir_funcion["emitir_funcion"]
-        compilador_tcodec__ensamblar_c["ensamblar_c"]
-        compilador_tcodec__envolver_arreglo_c["envolver_arreglo_c"]
-        compilador_tcodec__es_compuesto_t["es_compuesto_t"]
-        compilador_tcodec__formatear_archivo["formatear_archivo"]
-        compilador_tcodec__funcion_bloque["funcion_bloque"]
-        compilador_tcodec__funcion_mapa["funcion_mapa"]
-        compilador_tcodec__funcion_ordenar["funcion_ordenar"]
-        compilador_tcodec__funcion_push["funcion_push"]
-        compilador_tcodec__generar_copiadores["generar_copiadores"]
-        compilador_tcodec__generar_funciones["generar_funciones"]
-        compilador_tcodec__generar_soporte["generar_soporte"]
-        compilador_tcodec__internas_del_sistema["internas_del_sistema"]
-        compilador_tcodec__leer_opciones["leer_opciones"]
-        compilador_tcodec__leer_programa["leer_programa"]
-        compilador_tcodec__linea_arreglo["linea_arreglo"]
-        compilador_tcodec__lineas_liberacion["lineas_liberacion"]
-        compilador_tcodec__locales_de["locales_de"]
-        compilador_tcodec__main["main"]
-        compilador_tcodec__mirar_bloque["mirar_bloque"]
-        compilador_tcodec__mirar_funcion["mirar_funcion"]
-        compilador_tcodec__mirar_tapadas["mirar_tapadas"]
-        compilador_tcodec__mirar_tipo["mirar_tipo"]
-        compilador_tcodec__necesita_copiador["necesita_copiador"]
-        compilador_tcodec__nodo_instancia["nodo_instancia"]
-        compilador_tcodec__nombre_de_declaracion["nombre_de_declaracion"]
-        compilador_tcodec__nombre_de_param["nombre_de_param"]
-        compilador_tcodec__nombres_con_raya["nombres_con_raya"]
-        compilador_tcodec__numerar_cierres["numerar_cierres"]
-        compilador_tcodec__poner_typedef["poner_typedef"]
-        compilador_tcodec__preparar_cierres["preparar_cierres"]
-        compilador_tcodec__preparar_instancias["preparar_instancias"]
-        compilador_tcodec__programa_no_leido["programa_no_leido"]
-        compilador_tcodec__prototipo_externo["prototipo_externo"]
-        compilador_tcodec__registrar_resultado["registrar_resultado"]
-        compilador_tcodec__resolver["resolver"]
-        compilador_tcodec__resolver_en_nodo["resolver_en_nodo"]
-        compilador_tcodec__resolver_reg["resolver_reg"]
-        compilador_tcodec__resultados_de_internas["resultados_de_internas"]
-        compilador_tcodec__revisar_nombres["revisar_nombres"]
-        compilador_tcodec__revisar_usos_generados["revisar_usos_generados"]
-        compilador_tcodec__sin_pedir["sin_pedir"]
-        compilador_tcodec__soltar_enums["soltar_enums"]
-        compilador_tcodec__soltar_structs["soltar_structs"]
-        compilador_tcodec__tipo_de_nombre_mapa["tipo_de_nombre_mapa"]
-        compilador_tcodec__tipo_obtener["tipo_obtener"]
-        compilador_tcodec__tipos_funcion_de["tipos_funcion_de"]
-        compilador_tcodec__tipos_funcion_usados["tipos_funcion_usados"]
-        compilador_tcodec__typedef_resultado["typedef_resultado"]
-        compilador_tcodec__visitar["visitar"]
-        compilador_tcodec__visitar_struct["visitar_struct"]
-    end
-    subgraph compilador_tipar["compilador/tipar.t"]
-        compilador_tipar__anotar_propiedad["anotar_propiedad"]
-        compilador_tipar__atrapar["atrapar"]
-        compilador_tipar__elemento_de_bruto["elemento_de_bruto"]
-        compilador_tipar__main["main"]
-        compilador_tipar__mirar_modulo["mirar_modulo"]
-        compilador_tipar__partir_angulos["partir_angulos"]
-        compilador_tipar__primera_de["primera_de"]
-        compilador_tipar__programa_o_vacio["programa_o_vacio"]
-        compilador_tipar__quitar_prestamo["quitar_prestamo"]
-        compilador_tipar__recoger_declaraciones["recoger_declaraciones"]
-        compilador_tipar__recorrer["recorrer"]
-        compilador_tipar__tipo_con_marca["tipo_con_marca"]
-        compilador_tipar__tipo_de_declaracion["tipo_de_declaracion"]
-        compilador_tipar__tipo_desnudo["tipo_desnudo"]
-        compilador_tipar__try_partir["try_partir"]
-        compilador_tipar__valor_de["valor_de"]
-    end
-    subgraph compilador_tipos["compilador/tipos.t"]
-        compilador_tipos__main["main"]
-        compilador_tipos__posee_de["posee_de"]
-        compilador_tipos__tras_dos_puntos["tras_dos_puntos"]
-    end
-    subgraph lexer_lib_lexico["lexer/lib/lexico.t"]
-        lexer_lib_lexico__cierre_de_hueco["cierre_de_hueco"]
-        lexer_lib_lexico__empieza_nombre["empieza_nombre"]
-        lexer_lib_lexico__sigue_nombre["sigue_nombre"]
-        lexer_lib_lexico__tokens_de_todo["tokens_de_todo"]
-    end
-    subgraph lexer_lib_sintaxis["lexer/lib/sintaxis.t"]
-        lexer_lib_sintaxis__candidatos_de["candidatos_de"]
-        lexer_lib_sintaxis__carpeta["carpeta"]
-        lexer_lib_sintaxis__desescapar["desescapar"]
-        lexer_lib_sintaxis__enums_visibles["enums_visibles"]
-        lexer_lib_sintaxis__es_lugar["es_lugar"]
-        lexer_lib_sintaxis__estado_de["estado_de"]
-        lexer_lib_sintaxis__hoja["hoja"]
-        lexer_lib_sintaxis__huecos_de["huecos_de"]
-        lexer_lib_sintaxis__leidos["leidos"]
-        lexer_lib_sintaxis__leidos_en["leidos_en"]
-        lexer_lib_sintaxis__modulos_usados_con["modulos_usados_con"]
-        lexer_lib_sintaxis__modulos_usados_transitivos["modulos_usados_transitivos"]
-        lexer_lib_sintaxis__numerar["numerar"]
-        lexer_lib_sintaxis__programa["programa"]
-        lexer_lib_sintaxis__rama["rama"]
-        lexer_lib_sintaxis__structs_visibles["structs_visibles"]
-        lexer_lib_sintaxis__visibles_con["visibles_con"]
-    end
-    subgraph std_caracter["std/caracter"]
-        std_caracter__es_digito["es_digito"]
-        std_caracter__es_mayuscula["es_mayuscula"]
-        std_caracter__es_minuscula["es_minuscula"]
-    end
-    subgraph std_texto["std/texto"]
-        std_texto__a_entero["a_entero"]
-        std_texto__contiene["contiene"]
-        std_texto__empieza_con["empieza_con"]
-        std_texto__indice_de["indice_de"]
-        std_texto__palabras["palabras"]
-        std_texto__recortar["recortar"]
-        std_texto__reemplazar["reemplazar"]
-        std_texto__termina_con["termina_con"]
+    subgraph fuera["de otros archivos"]
+        compilador_lib_generar__cabe_literal_decimal["cabe_literal_decimal · generar.t"]
+        compilador_lib_generar__cabe_literal_entero["cabe_literal_entero · generar.t"]
+        compilador_lib_generar__entero_exacto_en["entero_exacto_en · generar.t"]
+        compilador_lib_generar__escrito["escrito · generar.t"]
+        compilador_lib_generar__sin_ceros_izquierda["sin_ceros_izquierda · generar.t"]
+        compilador_lib_tipar__antes_del_punto["antes_del_punto · tipar.t"]
+        compilador_lib_tipar__contexto["contexto · tipar.t"]
+        compilador_lib_tipar__funcion_de_cierre["funcion_de_cierre · tipar.t"]
+        compilador_lib_tipar__lista_de["lista_de · tipar.t"]
+        compilador_lib_tipar__literal_de["literal_de · tipar.t"]
+        compilador_lib_tipar__nombre_resuelto["nombre_resuelto · tipar.t"]
+        compilador_lib_tipar__sin_modulo["sin_modulo · tipar.t"]
+        compilador_lib_tipar__tras_el_punto["tras_el_punto · tipar.t"]
+        compilador_lib_tipos__apuntado["apuntado · tipos.t"]
+        compilador_lib_tipos__apuntado_si["apuntado_si · tipos.t"]
+        compilador_lib_tipos__base["base · tipos.t"]
+        compilador_lib_tipos__base_de_aplicacion["base_de_aplicacion · tipos.t"]
+        compilador_lib_tipos__conocido["conocido · tipos.t"]
+        compilador_lib_tipos__cuantos_del_arreglo["cuantos_del_arreglo · tipos.t"]
+        compilador_lib_tipos__elemento["elemento · tipos.t"]
+        compilador_lib_tipos__es_aplicacion["es_aplicacion · tipos.t"]
+        compilador_lib_tipos__es_arreglo["es_arreglo · tipos.t"]
+        compilador_lib_tipos__es_bloque["es_bloque · tipos.t"]
+        compilador_lib_tipos__es_de_nombre["es_de_nombre · tipos.t"]
+        compilador_lib_tipos__es_funcion["es_funcion · tipos.t"]
+        compilador_lib_tipos__es_lista["es_lista · tipos.t"]
+        compilador_lib_tipos__es_mapa["es_mapa · tipos.t"]
+        compilador_lib_tipos__es_rango["es_rango · tipos.t"]
+        compilador_lib_tipos__es_referencia["es_referencia · tipos.t"]
+        compilador_lib_tipos__es_referencia_mutable["es_referencia_mutable · tipos.t"]
+        compilador_lib_tipos__escribir_de_mapa["escribir_de_mapa · tipos.t"]
+        compilador_lib_tipos__escribir_de_mapa_tipos["escribir_de_mapa_tipos · tipos.t"]
+        compilador_lib_tipos__escribir_tipo["escribir_tipo · tipos.t"]
+        compilador_lib_tipos__hacer_arreglo["hacer_arreglo · tipos.t"]
+        compilador_lib_tipos__hacer_lista["hacer_lista · tipos.t"]
+        compilador_lib_tipos__hacer_prestado["hacer_prestado · tipos.t"]
+        compilador_lib_tipos__hacer_prestado_mut["hacer_prestado_mut · tipos.t"]
+        compilador_lib_tipos__hacer_rango["hacer_rango · tipos.t"]
+        compilador_lib_tipos__leer_tipo["leer_tipo · tipos.t"]
+        compilador_lib_tipos__leer_tipos["leer_tipos · tipos.t"]
+        compilador_lib_tipos__marcador["marcador · tipos.t"]
+        compilador_lib_tipos__ninguno["ninguno · tipos.t"]
+        compilador_lib_tipos__partes["partes · tipos.t"]
+        compilador_lib_tipos__partes_de_funcion["partes_de_funcion · tipos.t"]
+        compilador_lib_tipos__posee_en["posee_en · tipos.t"]
+        compilador_lib_tipos__sanear["sanear · tipos.t"]
+        compilador_lib_tipos__sin_alias_tipo["sin_alias_tipo · tipos.t"]
+        compilador_lib_tipos__sustituir["sustituir · tipos.t"]
+        compilador_lib_tipos__sustituir_tipo["sustituir_tipo · tipos.t"]
+        compilador_lib_tipos__tipos_de_mapa["tipos_de_mapa · tipos.t"]
+        lexer_lib_sintaxis__es_lugar["es_lugar · sintaxis.t"]
+        lexer_lib_sintaxis__hoja["hoja · sintaxis.t"]
+        lexer_lib_sintaxis__rama["rama · sintaxis.t"]
+        std_texto__contiene["contiene · std/texto"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__recortar["recortar · std/texto"]
+        std_texto__termina_con["termina_con · std/texto"]
     end
 
-    compilador_cuerpos__main --> compilador_lib_programa__cuenta_nueva
-    compilador_cuerpos__main --> compilador_lib_programa__es_generica
-    compilador_cuerpos__main --> compilador_lib_programa__generar_funcion
-    compilador_cuerpos__main --> compilador_lib_programa__preparar
-    compilador_cuerpos__main --> compilador_lib_tipar__contexto
-    compilador_expresiones__main --> compilador_lib_generar__cuerpo
-    compilador_expresiones__main --> compilador_lib_generar__expresion_c
-    compilador_expresiones__main --> compilador_lib_generar__externas_de
-    compilador_expresiones__main --> compilador_lib_generar__nombres_de_c
-    compilador_expresiones__main --> compilador_lib_generar__renombrar_para_c
-    compilador_expresiones__main --> compilador_lib_tipar__abrir
-    compilador_expresiones__main --> compilador_lib_tipar__cerrar
-    compilador_expresiones__main --> compilador_lib_tipar__contexto
-    compilador_expresiones__main --> compilador_lib_tipar__declarar
-    compilador_expresiones__main --> lexer_lib_sintaxis__enums_visibles
-    compilador_expresiones__main --> lexer_lib_sintaxis__estado_de
-    compilador_expresiones__main --> lexer_lib_sintaxis__programa
-    compilador_expresiones__main --> lexer_lib_sintaxis__structs_visibles
-    compilador_expresiones__marca_de --> std_texto__empieza_con
-    compilador_expresiones__presta --> std_texto__empieza_con
-    compilador_expresiones__recoger_firmas --> compilador_lib_tipos__leer_tipo
-    compilador_expresiones__recoger_firmas --> compilador_lib_tipos__leer_tipos
-    compilador_expresiones__tipo_pelado --> std_texto__empieza_con
-    compilador_expresiones__tras_dos_puntos --> std_texto__recortar
-    compilador_firmas__main --> compilador_lib_generar__prototipo
-    compilador_firmas__main --> compilador_lib_programa__preparar
-    compilador_firmas__main --> compilador_lib_tipar__contexto
-    compilador_firmas__marca_de --> std_texto__recortar
-    compilador_firmas__solo_marca --> std_texto__empieza_con
-    compilador_firmas__tipo_pelado --> std_texto__empieza_con
-    compilador_firmas__tras_dos_puntos --> std_texto__recortar
     compilador_lib_comprobar__almacenable --> compilador_lib_tipos__apuntado
     compilador_lib_comprobar__almacenable --> compilador_lib_tipos__elemento
     compilador_lib_comprobar__almacenable --> compilador_lib_tipos__es_arreglo
@@ -877,6 +641,148 @@ graph TD
     compilador_lib_comprobar__valor_escrito --> compilador_lib_generar__cabe_literal_entero
     compilador_lib_comprobar__valor_escrito --> compilador_lib_generar__sin_ceros_izquierda
     compilador_lib_comprobar__variable --> compilador_lib_tipos__ninguno
+```
+
+## compilador/lib/generar.t
+
+```mermaid
+graph TD
+    subgraph compilador_lib_generar["compilador/lib/generar.t"]
+        compilador_lib_generar__anadir_c["anadir_c"]
+        compilador_lib_generar__apuntar_arreglo["apuntar_arreglo"]
+        compilador_lib_generar__apuntar_nombres_c["apuntar_nombres_c"]
+        compilador_lib_generar__asignacion_c["asignacion_c"]
+        compilador_lib_generar__atrapar_c["atrapar_c"]
+        compilador_lib_generar__binaria_c["binaria_c"]
+        compilador_lib_generar__bloque_c["bloque_c"]
+        compilador_lib_generar__cabe_literal_entero["cabe_literal_entero"]
+        compilador_lib_generar__campo_c["campo_c"]
+        compilador_lib_generar__choca_con_c["choca_con_c"]
+        compilador_lib_generar__cierre_c["cierre_c"]
+        compilador_lib_generar__como_vista["como_vista"]
+        compilador_lib_generar__condiciones_patron_c["condiciones_patron_c"]
+        compilador_lib_generar__conversion_c["conversion_c"]
+        compilador_lib_generar__cuantos_bytes["cuantos_bytes"]
+        compilador_lib_generar__cuantos_de_arreglo["cuantos_de_arreglo"]
+        compilador_lib_generar__cuerpo_brazo_c["cuerpo_brazo_c"]
+        compilador_lib_generar__da_texto["da_texto"]
+        compilador_lib_generar__decimal_c["decimal_c"]
+        compilador_lib_generar__declaracion_c["declaracion_c"]
+        compilador_lib_generar__descartar_c["descartar_c"]
+        compilador_lib_generar__entrega_suelta["entrega_suelta"]
+        compilador_lib_generar__enum_lit_c["enum_lit_c"]
+        compilador_lib_generar__es_puntero["es_puntero"]
+        compilador_lib_generar__escrito["escrito"]
+        compilador_lib_generar__hueco_c["hueco_c"]
+        compilador_lib_generar__indice_c["indice_c"]
+        compilador_lib_generar__interna_pura_comparar["interna_pura_comparar"]
+        compilador_lib_generar__interna_pura_copiar["interna_pura_copiar"]
+        compilador_lib_generar__interna_pura_imprimir["interna_pura_imprimir"]
+        compilador_lib_generar__interna_pura_intercambiar["interna_pura_intercambiar"]
+        compilador_lib_generar__interna_pura_largo["interna_pura_largo"]
+        compilador_lib_generar__interna_pura_mapa["interna_pura_mapa"]
+        compilador_lib_generar__interna_pura_numeros["interna_pura_numeros"]
+        compilador_lib_generar__interna_pura_ordenar["interna_pura_ordenar"]
+        compilador_lib_generar__interna_pura_redimensionar["interna_pura_redimensionar"]
+        compilador_lib_generar__interna_pura_texto["interna_pura_texto"]
+        compilador_lib_generar__interpolada_c["interpolada_c"]
+        compilador_lib_generar__junta["junta"]
+        compilador_lib_generar__legible_c["legible_c"]
+        compilador_lib_generar__liberacion["liberacion"]
+        compilador_lib_generar__literal_c["literal_c"]
+        compilador_lib_generar__literal_lista_c["literal_lista_c"]
+        compilador_lib_generar__literal_struct_c["literal_struct_c"]
+        compilador_lib_generar__llamada_a_valor["llamada_a_valor"]
+        compilador_lib_generar__llamada_c["llamada_c"]
+        compilador_lib_generar__llamada_con_firma["llamada_con_firma"]
+        compilador_lib_generar__llamada_externa_c["llamada_externa_c"]
+        compilador_lib_generar__mangle["mangle"]
+        compilador_lib_generar__match_c["match_c"]
+        compilador_lib_generar__match_condiciones["match_condiciones"]
+        compilador_lib_generar__match_valor["match_valor"]
+        compilador_lib_generar__mientras_c["mientras_c"]
+        compilador_lib_generar__movidas_en["movidas_en"]
+        compilador_lib_generar__movidas_hondo_en["movidas_hondo_en"]
+        compilador_lib_generar__para_c["para_c"]
+        compilador_lib_generar__para_rango_c["para_rango_c"]
+        compilador_lib_generar__presta_argumento["presta_argumento"]
+        compilador_lib_generar__primer_nombre["primer_nombre"]
+        compilador_lib_generar__prototipo["prototipo"]
+        compilador_lib_generar__reservar_c["reservar_c"]
+        compilador_lib_generar__se_llama_como["se_llama_como"]
+        compilador_lib_generar__segundo_nombre["segundo_nombre"]
+        compilador_lib_generar__si_expr_c["si_expr_c"]
+        compilador_lib_generar__sitio_c["sitio_c"]
+        compilador_lib_generar__sitio_solo_lectura["sitio_solo_lectura"]
+        compilador_lib_generar__texto_de["texto_de"]
+        compilador_lib_generar__texto_para_c["texto_para_c"]
+        compilador_lib_generar__tiene_duenio["tiene_duenio"]
+        compilador_lib_generar__tipo_c["tipo_c"]
+        compilador_lib_generar__tipo_c_prestamo["tipo_c_prestamo"]
+        compilador_lib_generar__tipo_escrito["tipo_escrito"]
+        compilador_lib_generar__tipo_si_va_bien["tipo_si_va_bien"]
+        compilador_lib_generar__tipo_suelto["tipo_suelto"]
+        compilador_lib_generar__truncar_c["truncar_c"]
+        compilador_lib_generar__unaria_c["unaria_c"]
+        compilador_lib_generar__variable_c["variable_c"]
+    end
+    subgraph fuera["de otros archivos"]
+        compilador_lib_tipar__abrir["abrir · tipar.t"]
+        compilador_lib_tipar__antes_del_punto["antes_del_punto · tipar.t"]
+        compilador_lib_tipar__buscar["buscar · tipar.t"]
+        compilador_lib_tipar__cerrar["cerrar · tipar.t"]
+        compilador_lib_tipar__declarar["declarar · tipar.t"]
+        compilador_lib_tipar__firma_de_funcion["firma_de_funcion · tipar.t"]
+        compilador_lib_tipar__funcion_de_cierre["funcion_de_cierre · tipar.t"]
+        compilador_lib_tipar__lista_de["lista_de · tipar.t"]
+        compilador_lib_tipar__literal_de["literal_de · tipar.t"]
+        compilador_lib_tipar__nombre_resuelto["nombre_resuelto · tipar.t"]
+        compilador_lib_tipar__posee_con_formas["posee_con_formas · tipar.t"]
+        compilador_lib_tipar__sin_modulo["sin_modulo · tipar.t"]
+        compilador_lib_tipar__tipo_anotado["tipo_anotado · tipar.t"]
+        compilador_lib_tipar__tipo_cuenta["tipo_cuenta · tipar.t"]
+        compilador_lib_tipar__tipo_de["tipo_de · tipar.t"]
+        compilador_lib_tipar__tipo_de_campo["tipo_de_campo · tipar.t"]
+        compilador_lib_tipar__tras_el_punto["tras_el_punto · tipar.t"]
+        compilador_lib_tipos__apuntado["apuntado · tipos.t"]
+        compilador_lib_tipos__apuntado_si["apuntado_si · tipos.t"]
+        compilador_lib_tipos__base_de_aplicacion["base_de_aplicacion · tipos.t"]
+        compilador_lib_tipos__conocido["conocido · tipos.t"]
+        compilador_lib_tipos__elemento["elemento · tipos.t"]
+        compilador_lib_tipos__es_aplicacion["es_aplicacion · tipos.t"]
+        compilador_lib_tipos__es_arreglo["es_arreglo · tipos.t"]
+        compilador_lib_tipos__es_bloque["es_bloque · tipos.t"]
+        compilador_lib_tipos__es_de_nombre["es_de_nombre · tipos.t"]
+        compilador_lib_tipos__es_funcion["es_funcion · tipos.t"]
+        compilador_lib_tipos__es_lista["es_lista · tipos.t"]
+        compilador_lib_tipos__es_mapa["es_mapa · tipos.t"]
+        compilador_lib_tipos__es_referencia["es_referencia · tipos.t"]
+        compilador_lib_tipos__es_referencia_mutable["es_referencia_mutable · tipos.t"]
+        compilador_lib_tipos__escribir_de_mapa["escribir_de_mapa · tipos.t"]
+        compilador_lib_tipos__escribir_tipo["escribir_tipo · tipos.t"]
+        compilador_lib_tipos__escribir_tipos["escribir_tipos · tipos.t"]
+        compilador_lib_tipos__hacer_prestado["hacer_prestado · tipos.t"]
+        compilador_lib_tipos__leer_tipo["leer_tipo · tipos.t"]
+        compilador_lib_tipos__leer_tipos["leer_tipos · tipos.t"]
+        compilador_lib_tipos__ligar_tipo["ligar_tipo · tipos.t"]
+        compilador_lib_tipos__ninguno["ninguno · tipos.t"]
+        compilador_lib_tipos__partes["partes · tipos.t"]
+        compilador_lib_tipos__partes_de_funcion["partes_de_funcion · tipos.t"]
+        compilador_lib_tipos__sanear["sanear · tipos.t"]
+        compilador_lib_tipos__sin_alias_tipo["sin_alias_tipo · tipos.t"]
+        compilador_lib_tipos__sustituir_tipo["sustituir_tipo · tipos.t"]
+        compilador_lib_tipos__tipos_de_mapa["tipos_de_mapa · tipos.t"]
+        compilador_lib_tipos__valor_de_mapa["valor_de_mapa · tipos.t"]
+        lexer_lib_lexico__cierre_de_hueco["cierre_de_hueco · lexico.t"]
+        lexer_lib_sintaxis__desescapar["desescapar · sintaxis.t"]
+        lexer_lib_sintaxis__hoja["hoja · sintaxis.t"]
+        lexer_lib_sintaxis__rama["rama · sintaxis.t"]
+        std_texto__contiene["contiene · std/texto"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__palabras["palabras · std/texto"]
+        std_texto__recortar["recortar · std/texto"]
+    end
+
     compilador_lib_generar__anadir_c --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__anadir_c --> compilador_lib_tipos__apuntado_si
     compilador_lib_generar__anadir_c --> compilador_lib_tipos__elemento
@@ -1183,6 +1089,94 @@ graph TD
     compilador_lib_generar__variable_c --> compilador_lib_tipar__buscar
     compilador_lib_generar__variable_c --> compilador_lib_tipar__firma_de_funcion
     compilador_lib_generar__variable_c --> compilador_lib_tipar__sin_modulo
+```
+
+## compilador/lib/programa.t
+
+```mermaid
+graph TD
+    subgraph compilador_lib_programa["compilador/lib/programa.t"]
+        compilador_lib_programa__copiar_firma["copiar_firma"]
+        compilador_lib_programa__declarar_de_para["declarar_de_para"]
+        compilador_lib_programa__generar_funcion["generar_funcion"]
+        compilador_lib_programa__marca_de["marca_de"]
+        compilador_lib_programa__prefijo_unico["prefijo_unico"]
+        compilador_lib_programa__preparar["preparar"]
+        compilador_lib_programa__preparar_con_error["preparar_con_error"]
+        compilador_lib_programa__prestar_si_str["prestar_si_str"]
+        compilador_lib_programa__quitar_alias_de_tipos["quitar_alias_de_tipos"]
+        compilador_lib_programa__recoger_de_modulo["recoger_de_modulo"]
+        compilador_lib_programa__recoger_firmas["recoger_firmas"]
+        compilador_lib_programa__tipo_pelado["tipo_pelado"]
+        compilador_lib_programa__tipo_sin_alias_tras_nombre["tipo_sin_alias_tras_nombre"]
+        compilador_lib_programa__tras_dos_puntos["tras_dos_puntos"]
+        compilador_lib_programa__vistas_en_bloque["vistas_en_bloque"]
+        compilador_lib_programa__vistas_en_funcion["vistas_en_funcion"]
+        compilador_lib_programa__vistas_en_sentencia["vistas_en_sentencia"]
+        compilador_lib_programa__vistas_implicitas["vistas_implicitas"]
+    end
+    subgraph fuera["de otros archivos"]
+        compilador_lib_generar__abrir_bloque["abrir_bloque · generar.t"]
+        compilador_lib_generar__anotar_duenio["anotar_duenio · generar.t"]
+        compilador_lib_generar__apuntar_fallo["apuntar_fallo · generar.t"]
+        compilador_lib_generar__clave_de["clave_de · generar.t"]
+        compilador_lib_generar__cuerpo["cuerpo · generar.t"]
+        compilador_lib_generar__emitir["emitir · generar.t"]
+        compilador_lib_generar__emitir_final_bien["emitir_final_bien · generar.t"]
+        compilador_lib_generar__externas_de["externas_de · generar.t"]
+        compilador_lib_generar__liberar_todo["liberar_todo · generar.t"]
+        compilador_lib_generar__marca_sola["marca_sola · generar.t"]
+        compilador_lib_generar__movidas_hondo["movidas_hondo · generar.t"]
+        compilador_lib_generar__nace_bandera["nace_bandera · generar.t"]
+        compilador_lib_generar__nombre_de_param["nombre_de_param · generar.t"]
+        compilador_lib_generar__nombre_declarado["nombre_declarado · generar.t"]
+        compilador_lib_generar__nombres_de_c["nombres_de_c · generar.t"]
+        compilador_lib_generar__primer_nombre["primer_nombre · generar.t"]
+        compilador_lib_generar__prototipo["prototipo · generar.t"]
+        compilador_lib_generar__renombrar_para_c["renombrar_para_c · generar.t"]
+        compilador_lib_generar__segundo_nombre["segundo_nombre · generar.t"]
+        compilador_lib_generar__sentencia_c["sentencia_c · generar.t"]
+        compilador_lib_generar__termina_saliendo["termina_saliendo · generar.t"]
+        compilador_lib_generar__tipo_escrito["tipo_escrito · generar.t"]
+        compilador_lib_generar__tipo_resultado["tipo_resultado · generar.t"]
+        compilador_lib_tipar__abrir["abrir · tipar.t"]
+        compilador_lib_tipar__cerrar["cerrar · tipar.t"]
+        compilador_lib_tipar__contexto["contexto · tipar.t"]
+        compilador_lib_tipar__declarar["declarar · tipar.t"]
+        compilador_lib_tipar__lista_de["lista_de · tipar.t"]
+        compilador_lib_tipar__posee_con_formas["posee_con_formas · tipar.t"]
+        compilador_lib_tipar__tipo_de["tipo_de · tipar.t"]
+        compilador_lib_tipos__apuntado["apuntado · tipos.t"]
+        compilador_lib_tipos__apuntado_si["apuntado_si · tipos.t"]
+        compilador_lib_tipos__elemento["elemento · tipos.t"]
+        compilador_lib_tipos__es_de_nombre["es_de_nombre · tipos.t"]
+        compilador_lib_tipos__es_mapa["es_mapa · tipos.t"]
+        compilador_lib_tipos__es_rango["es_rango · tipos.t"]
+        compilador_lib_tipos__es_referencia["es_referencia · tipos.t"]
+        compilador_lib_tipos__es_referencia_mutable["es_referencia_mutable · tipos.t"]
+        compilador_lib_tipos__escribir_tipo["escribir_tipo · tipos.t"]
+        compilador_lib_tipos__leer_tipo["leer_tipo · tipos.t"]
+        compilador_lib_tipos__leer_tipos["leer_tipos · tipos.t"]
+        compilador_lib_tipos__ninguno["ninguno · tipos.t"]
+        compilador_lib_tipos__partes["partes · tipos.t"]
+        compilador_lib_tipos__sin_alias_tipo["sin_alias_tipo · tipos.t"]
+        compilador_lib_tipos__tipo_de_mapa["tipo_de_mapa · tipos.t"]
+        compilador_lib_tipos__tipos_de_mapa["tipos_de_mapa · tipos.t"]
+        lexer_lib_sintaxis__es_lugar["es_lugar · sintaxis.t"]
+        lexer_lib_sintaxis__estado_de["estado_de · sintaxis.t"]
+        lexer_lib_sintaxis__leidos["leidos · sintaxis.t"]
+        lexer_lib_sintaxis__modulos_usados_con["modulos_usados_con · sintaxis.t"]
+        lexer_lib_sintaxis__modulos_usados_transitivos["modulos_usados_transitivos · sintaxis.t"]
+        lexer_lib_sintaxis__numerar["numerar · sintaxis.t"]
+        lexer_lib_sintaxis__programa["programa · sintaxis.t"]
+        lexer_lib_sintaxis__rama["rama · sintaxis.t"]
+        lexer_lib_sintaxis__visibles_con["visibles_con · sintaxis.t"]
+        std_texto__contiene["contiene · std/texto"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__indice_de["indice_de · std/texto"]
+        std_texto__recortar["recortar · std/texto"]
+    end
+
     compilador_lib_programa__copiar_firma --> compilador_lib_tipar__lista_de
     compilador_lib_programa__copiar_firma --> compilador_lib_tipos__ninguno
     compilador_lib_programa__copiar_firma --> compilador_lib_tipos__tipo_de_mapa
@@ -1266,6 +1260,27 @@ graph TD
     compilador_lib_programa__vistas_en_sentencia --> compilador_lib_tipos__escribir_tipo
     compilador_lib_programa__vistas_en_sentencia --> compilador_lib_tipos__sin_alias_tipo
     compilador_lib_programa__vistas_implicitas --> lexer_lib_sintaxis__numerar
+```
+
+## compilador/lib/propiedad.t
+
+```mermaid
+graph TD
+    subgraph compilador_lib_propiedad["compilador/lib/propiedad.t"]
+        compilador_lib_propiedad__declara_prestamo["declara_prestamo"]
+        compilador_lib_propiedad__se_lo_queda["se_lo_queda"]
+        compilador_lib_propiedad__tiene_duenio["tiene_duenio"]
+    end
+    subgraph fuera["de otros archivos"]
+        compilador_lib_tipar__lista_de["lista_de · tipar.t"]
+        compilador_lib_tipar__posee_con_formas["posee_con_formas · tipar.t"]
+        compilador_lib_tipar__sin_modulo["sin_modulo · tipar.t"]
+        compilador_lib_tipos__es_referencia["es_referencia · tipos.t"]
+        compilador_lib_tipos__sustituir["sustituir · tipos.t"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__indice_de["indice_de · std/texto"]
+    end
+
     compilador_lib_propiedad__declara_prestamo --> std_texto__indice_de
     compilador_lib_propiedad__se_lo_queda --> compilador_lib_tipar__lista_de
     compilador_lib_propiedad__se_lo_queda --> compilador_lib_tipar__sin_modulo
@@ -1273,6 +1288,63 @@ graph TD
     compilador_lib_propiedad__se_lo_queda --> compilador_lib_tipos__sustituir
     compilador_lib_propiedad__se_lo_queda --> std_texto__empieza_con
     compilador_lib_propiedad__tiene_duenio --> compilador_lib_tipar__posee_con_formas
+```
+
+## compilador/lib/tipar.t
+
+```mermaid
+graph TD
+    subgraph compilador_lib_tipar["compilador/lib/tipar.t"]
+        compilador_lib_tipar__anotado_crudo["anotado_crudo"]
+        compilador_lib_tipar__buscar["buscar"]
+        compilador_lib_tipar__declarar["declarar"]
+        compilador_lib_tipar__firma_de_funcion["firma_de_funcion"]
+        compilador_lib_tipar__funcion_de_cierre["funcion_de_cierre"]
+        compilador_lib_tipar__nombre_resuelto["nombre_resuelto"]
+        compilador_lib_tipar__posee_con_formas["posee_con_formas"]
+        compilador_lib_tipar__redimensionar_ambitos["redimensionar_ambitos"]
+        compilador_lib_tipar__tipo_atrapado["tipo_atrapado"]
+        compilador_lib_tipar__tipo_cuenta["tipo_cuenta"]
+        compilador_lib_tipar__tipo_de["tipo_de"]
+        compilador_lib_tipar__tipo_de_campo["tipo_de_campo"]
+        compilador_lib_tipar__tipo_de_llamada["tipo_de_llamada"]
+        compilador_lib_tipar__tipos_de_aplicacion["tipos_de_aplicacion"]
+    end
+    subgraph fuera["de otros archivos"]
+        compilador_lib_tipos__apuntado_si["apuntado_si · tipos.t"]
+        compilador_lib_tipos__base_de_aplicacion["base_de_aplicacion · tipos.t"]
+        compilador_lib_tipos__con_partes["con_partes · tipos.t"]
+        compilador_lib_tipos__conocido["conocido · tipos.t"]
+        compilador_lib_tipos__elemento["elemento · tipos.t"]
+        compilador_lib_tipos__es_aplicacion["es_aplicacion · tipos.t"]
+        compilador_lib_tipos__es_arreglo["es_arreglo · tipos.t"]
+        compilador_lib_tipos__es_bloque["es_bloque · tipos.t"]
+        compilador_lib_tipos__es_funcion["es_funcion · tipos.t"]
+        compilador_lib_tipos__es_lista["es_lista · tipos.t"]
+        compilador_lib_tipos__es_mapa["es_mapa · tipos.t"]
+        compilador_lib_tipos__es_referencia["es_referencia · tipos.t"]
+        compilador_lib_tipos__escribir_de_mapa["escribir_de_mapa · tipos.t"]
+        compilador_lib_tipos__escribir_tipo["escribir_tipo · tipos.t"]
+        compilador_lib_tipos__hacer_arreglo["hacer_arreglo · tipos.t"]
+        compilador_lib_tipos__hacer_lista["hacer_lista · tipos.t"]
+        compilador_lib_tipos__hacer_prestado["hacer_prestado · tipos.t"]
+        compilador_lib_tipos__hacer_prestado_mut["hacer_prestado_mut · tipos.t"]
+        compilador_lib_tipos__hacer_rango["hacer_rango · tipos.t"]
+        compilador_lib_tipos__leer_tipo["leer_tipo · tipos.t"]
+        compilador_lib_tipos__ligar_tipo["ligar_tipo · tipos.t"]
+        compilador_lib_tipos__ninguno["ninguno · tipos.t"]
+        compilador_lib_tipos__nombre_de_copia["nombre_de_copia · tipos.t"]
+        compilador_lib_tipos__partes["partes · tipos.t"]
+        compilador_lib_tipos__partes_de_funcion["partes_de_funcion · tipos.t"]
+        compilador_lib_tipos__posee_en["posee_en · tipos.t"]
+        compilador_lib_tipos__sustituir["sustituir · tipos.t"]
+        compilador_lib_tipos__sustituir_tipo["sustituir_tipo · tipos.t"]
+        compilador_lib_tipos__tipo_de_mapa["tipo_de_mapa · tipos.t"]
+        compilador_lib_tipos__tipos_de_mapa["tipos_de_mapa · tipos.t"]
+        std_texto__contiene["contiene · std/texto"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+    end
+
     compilador_lib_tipar__anotado_crudo --> compilador_lib_tipos__escribir_de_mapa
     compilador_lib_tipar__anotado_crudo --> compilador_lib_tipos__escribir_tipo
     compilador_lib_tipar__anotado_crudo --> compilador_lib_tipos__ninguno
@@ -1334,6 +1406,28 @@ graph TD
     compilador_lib_tipar__tipos_de_aplicacion --> compilador_lib_tipos__escribir_tipo
     compilador_lib_tipar__tipos_de_aplicacion --> compilador_lib_tipos__partes
     compilador_lib_tipar__tipos_de_aplicacion --> compilador_lib_tipos__sustituir_tipo
+```
+
+## compilador/lib/tipos.t
+
+```mermaid
+graph TD
+    subgraph compilador_lib_tipos["compilador/lib/tipos.t"]
+        compilador_lib_tipos__empieza["empieza"]
+        compilador_lib_tipos__es_aplicacion["es_aplicacion"]
+        compilador_lib_tipos__forma_de["forma_de"]
+        compilador_lib_tipos__leer_tipo["leer_tipo"]
+        compilador_lib_tipos__partes_de_funcion["partes_de_funcion"]
+        compilador_lib_tipos__partir_tipos["partir_tipos"]
+        compilador_lib_tipos__tiene_flecha["tiene_flecha"]
+    end
+    subgraph fuera["de otros archivos"]
+        std_texto__contiene["contiene · std/texto"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__recortar["recortar · std/texto"]
+        std_texto__termina_con["termina_con · std/texto"]
+    end
+
     compilador_lib_tipos__empieza --> std_texto__empieza_con
     compilador_lib_tipos__es_aplicacion --> std_texto__termina_con
     compilador_lib_tipos__forma_de --> std_texto__contiene
@@ -1344,6 +1438,155 @@ graph TD
     compilador_lib_tipos__partir_tipos --> std_texto__recortar
     compilador_lib_tipos__tiene_flecha --> std_texto__empieza_con
     compilador_lib_tipos__tiene_flecha --> std_texto__recortar
+```
+
+## compilador/tcodec.t
+
+```mermaid
+graph TD
+    subgraph compilador_tcodec["compilador/tcodec.t"]
+        compilador_tcodec__ajustar_contextos["ajustar_contextos"]
+        compilador_tcodec__apuntar_nombres["apuntar_nombres"]
+        compilador_tcodec__apuntar_tipo_funcion["apuntar_tipo_funcion"]
+        compilador_tcodec__aritmetica_usada["aritmetica_usada"]
+        compilador_tcodec__ayudante_escribir_archivo["ayudante_escribir_archivo"]
+        compilador_tcodec__ayudante_leer_archivo["ayudante_leer_archivo"]
+        compilador_tcodec__ayudante_leer_parte_archivo["ayudante_leer_parte_archivo"]
+        compilador_tcodec__con_prefijo["con_prefijo"]
+        compilador_tcodec__construir["construir"]
+        compilador_tcodec__copia_de["copia_de"]
+        compilador_tcodec__copiar_sustituido["copiar_sustituido"]
+        compilador_tcodec__cuerpo_copiador["cuerpo_copiador"]
+        compilador_tcodec__cuerpo_enum_c["cuerpo_enum_c"]
+        compilador_tcodec__declarar_tipos["declarar_tipos"]
+        compilador_tcodec__definir_tipo_c["definir_tipo_c"]
+        compilador_tcodec__definir_tipos["definir_tipos"]
+        compilador_tcodec__dependencias_de_agregado["dependencias_de_agregado"]
+        compilador_tcodec__descubrir["descubrir"]
+        compilador_tcodec__emitir_funcion["emitir_funcion"]
+        compilador_tcodec__ensamblar_c["ensamblar_c"]
+        compilador_tcodec__envolver_arreglo_c["envolver_arreglo_c"]
+        compilador_tcodec__es_compuesto_t["es_compuesto_t"]
+        compilador_tcodec__formatear_archivo["formatear_archivo"]
+        compilador_tcodec__funcion_bloque["funcion_bloque"]
+        compilador_tcodec__funcion_mapa["funcion_mapa"]
+        compilador_tcodec__funcion_ordenar["funcion_ordenar"]
+        compilador_tcodec__funcion_push["funcion_push"]
+        compilador_tcodec__generar_copiadores["generar_copiadores"]
+        compilador_tcodec__generar_funciones["generar_funciones"]
+        compilador_tcodec__generar_soporte["generar_soporte"]
+        compilador_tcodec__internas_del_sistema["internas_del_sistema"]
+        compilador_tcodec__leer_opciones["leer_opciones"]
+        compilador_tcodec__leer_programa["leer_programa"]
+        compilador_tcodec__linea_arreglo["linea_arreglo"]
+        compilador_tcodec__lineas_liberacion["lineas_liberacion"]
+        compilador_tcodec__locales_de["locales_de"]
+        compilador_tcodec__main["main"]
+        compilador_tcodec__mirar_bloque["mirar_bloque"]
+        compilador_tcodec__mirar_funcion["mirar_funcion"]
+        compilador_tcodec__mirar_tapadas["mirar_tapadas"]
+        compilador_tcodec__mirar_tipo["mirar_tipo"]
+        compilador_tcodec__necesita_copiador["necesita_copiador"]
+        compilador_tcodec__nodo_instancia["nodo_instancia"]
+        compilador_tcodec__nombre_de_declaracion["nombre_de_declaracion"]
+        compilador_tcodec__nombre_de_param["nombre_de_param"]
+        compilador_tcodec__nombres_con_raya["nombres_con_raya"]
+        compilador_tcodec__numerar_cierres["numerar_cierres"]
+        compilador_tcodec__poner_typedef["poner_typedef"]
+        compilador_tcodec__preparar_cierres["preparar_cierres"]
+        compilador_tcodec__preparar_instancias["preparar_instancias"]
+        compilador_tcodec__programa_no_leido["programa_no_leido"]
+        compilador_tcodec__prototipo_externo["prototipo_externo"]
+        compilador_tcodec__registrar_resultado["registrar_resultado"]
+        compilador_tcodec__resolver["resolver"]
+        compilador_tcodec__resolver_en_nodo["resolver_en_nodo"]
+        compilador_tcodec__resolver_reg["resolver_reg"]
+        compilador_tcodec__resultados_de_internas["resultados_de_internas"]
+        compilador_tcodec__revisar_nombres["revisar_nombres"]
+        compilador_tcodec__revisar_usos_generados["revisar_usos_generados"]
+        compilador_tcodec__sin_pedir["sin_pedir"]
+        compilador_tcodec__soltar_enums["soltar_enums"]
+        compilador_tcodec__soltar_structs["soltar_structs"]
+        compilador_tcodec__tipo_de_nombre_mapa["tipo_de_nombre_mapa"]
+        compilador_tcodec__tipo_obtener["tipo_obtener"]
+        compilador_tcodec__tipos_funcion_de["tipos_funcion_de"]
+        compilador_tcodec__tipos_funcion_usados["tipos_funcion_usados"]
+        compilador_tcodec__typedef_resultado["typedef_resultado"]
+        compilador_tcodec__visitar["visitar"]
+        compilador_tcodec__visitar_struct["visitar_struct"]
+    end
+    subgraph fuera["de otros archivos"]
+        compilador_lib_comprobar__comprobar_programa["comprobar_programa · comprobar.t"]
+        compilador_lib_comprobar__nombra_interna["nombra_interna · comprobar.t"]
+        compilador_lib_formato__formatear["formatear · formato.t"]
+        compilador_lib_generar__cuerpo["cuerpo · generar.t"]
+        compilador_lib_generar__escrito["escrito · generar.t"]
+        compilador_lib_generar__etiqueta["etiqueta · generar.t"]
+        compilador_lib_generar__legible_c["legible_c · generar.t"]
+        compilador_lib_generar__liberacion["liberacion · generar.t"]
+        compilador_lib_generar__mangle["mangle · generar.t"]
+        compilador_lib_generar__nombre_declarado["nombre_declarado · generar.t"]
+        compilador_lib_generar__tipo_c["tipo_c · generar.t"]
+        compilador_lib_generar__tipo_escrito["tipo_escrito · generar.t"]
+        compilador_lib_generar__tipo_resultado["tipo_resultado · generar.t"]
+        compilador_lib_programa__cuenta_nueva["cuenta_nueva · programa.t"]
+        compilador_lib_programa__es_generica["es_generica · programa.t"]
+        compilador_lib_programa__generar_funcion["generar_funcion · programa.t"]
+        compilador_lib_programa__nombre_de["nombre_de · programa.t"]
+        compilador_lib_programa__normalizar["normalizar · programa.t"]
+        compilador_lib_programa__prefijo_unico["prefijo_unico · programa.t"]
+        compilador_lib_programa__preparar_con_error["preparar_con_error · programa.t"]
+        compilador_lib_programa__quitar_alias_de_tipos["quitar_alias_de_tipos · programa.t"]
+        compilador_lib_programa__recoger_firmas["recoger_firmas · programa.t"]
+        compilador_lib_programa__tipo_pelado["tipo_pelado · programa.t"]
+        compilador_lib_tipar__abrir["abrir · tipar.t"]
+        compilador_lib_tipar__antes_del_punto["antes_del_punto · tipar.t"]
+        compilador_lib_tipar__cerrar["cerrar · tipar.t"]
+        compilador_lib_tipar__contexto["contexto · tipar.t"]
+        compilador_lib_tipar__declarar["declarar · tipar.t"]
+        compilador_lib_tipar__firma_de_funcion["firma_de_funcion · tipar.t"]
+        compilador_lib_tipar__funcion_de_cierre["funcion_de_cierre · tipar.t"]
+        compilador_lib_tipar__lista_de["lista_de · tipar.t"]
+        compilador_lib_tipar__nombre_resuelto["nombre_resuelto · tipar.t"]
+        compilador_lib_tipar__posee_con_formas["posee_con_formas · tipar.t"]
+        compilador_lib_tipar__tipo_de["tipo_de · tipar.t"]
+        compilador_lib_tipos__apuntado_si["apuntado_si · tipos.t"]
+        compilador_lib_tipos__arreglos_dentro["arreglos_dentro · tipos.t"]
+        compilador_lib_tipos__base_de_aplicacion["base_de_aplicacion · tipos.t"]
+        compilador_lib_tipos__con_partes["con_partes · tipos.t"]
+        compilador_lib_tipos__elemento["elemento · tipos.t"]
+        compilador_lib_tipos__es_aplicacion["es_aplicacion · tipos.t"]
+        compilador_lib_tipos__es_arreglo["es_arreglo · tipos.t"]
+        compilador_lib_tipos__es_bloque["es_bloque · tipos.t"]
+        compilador_lib_tipos__es_de_nombre["es_de_nombre · tipos.t"]
+        compilador_lib_tipos__es_funcion["es_funcion · tipos.t"]
+        compilador_lib_tipos__es_lista["es_lista · tipos.t"]
+        compilador_lib_tipos__es_mapa["es_mapa · tipos.t"]
+        compilador_lib_tipos__es_referencia["es_referencia · tipos.t"]
+        compilador_lib_tipos__escribir_tipo["escribir_tipo · tipos.t"]
+        compilador_lib_tipos__hacer_lista["hacer_lista · tipos.t"]
+        compilador_lib_tipos__hacer_prestado["hacer_prestado · tipos.t"]
+        compilador_lib_tipos__hacer_prestado_mut["hacer_prestado_mut · tipos.t"]
+        compilador_lib_tipos__leer_tipos["leer_tipos · tipos.t"]
+        compilador_lib_tipos__lleva_bloque_o_arreglo["lleva_bloque_o_arreglo · tipos.t"]
+        compilador_lib_tipos__nombre_de_copia["nombre_de_copia · tipos.t"]
+        compilador_lib_tipos__partes["partes · tipos.t"]
+        compilador_lib_tipos__partes_de_arreglo["partes_de_arreglo · tipos.t"]
+        compilador_lib_tipos__partes_de_funcion["partes_de_funcion · tipos.t"]
+        compilador_lib_tipos__sin_alias_tipo["sin_alias_tipo · tipos.t"]
+        compilador_lib_tipos__sustituir["sustituir · tipos.t"]
+        compilador_lib_tipos__tipos_de_mapa["tipos_de_mapa · tipos.t"]
+        lexer_lib_sintaxis__carpeta["carpeta · sintaxis.t"]
+        lexer_lib_sintaxis__leidos_en["leidos_en · sintaxis.t"]
+        lexer_lib_sintaxis__rama["rama · sintaxis.t"]
+        std_texto__a_entero["a_entero · std/texto"]
+        std_texto__contiene["contiene · std/texto"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__recortar["recortar · std/texto"]
+        std_texto__reemplazar["reemplazar · std/texto"]
+        std_texto__termina_con["termina_con · std/texto"]
+    end
+
     compilador_tcodec__ajustar_contextos --> compilador_lib_programa__prefijo_unico
     compilador_tcodec__ajustar_contextos --> compilador_lib_tipar__lista_de
     compilador_tcodec__ajustar_contextos --> compilador_lib_tipos__tipos_de_mapa
@@ -1556,6 +1799,57 @@ graph TD
     compilador_tcodec__visitar --> std_texto__termina_con
     compilador_tcodec__visitar_struct --> compilador_lib_tipos__es_arreglo
     compilador_tcodec__visitar_struct --> compilador_lib_tipos__partes_de_arreglo
+```
+
+## compilador/tipar.t
+
+```mermaid
+graph TD
+    subgraph compilador_tipar["compilador/tipar.t"]
+        compilador_tipar__anotar_propiedad["anotar_propiedad"]
+        compilador_tipar__atrapar["atrapar"]
+        compilador_tipar__elemento_de_bruto["elemento_de_bruto"]
+        compilador_tipar__main["main"]
+        compilador_tipar__mirar_modulo["mirar_modulo"]
+        compilador_tipar__partir_angulos["partir_angulos"]
+        compilador_tipar__primera_de["primera_de"]
+        compilador_tipar__programa_o_vacio["programa_o_vacio"]
+        compilador_tipar__quitar_prestamo["quitar_prestamo"]
+        compilador_tipar__recoger_declaraciones["recoger_declaraciones"]
+        compilador_tipar__recorrer["recorrer"]
+        compilador_tipar__tipo_con_marca["tipo_con_marca"]
+        compilador_tipar__tipo_de_declaracion["tipo_de_declaracion"]
+        compilador_tipar__tipo_desnudo["tipo_desnudo"]
+        compilador_tipar__try_partir["try_partir"]
+        compilador_tipar__valor_de["valor_de"]
+    end
+    subgraph fuera["de otros archivos"]
+        compilador_lib_propiedad__destino_de["destino_de · propiedad.t"]
+        compilador_lib_propiedad__mirar["mirar · propiedad.t"]
+        compilador_lib_propiedad__tiene_duenio["tiene_duenio · propiedad.t"]
+        compilador_lib_propiedad__vigilar["vigilar · propiedad.t"]
+        compilador_lib_tipar__abrir["abrir · tipar.t"]
+        compilador_lib_tipar__cerrar["cerrar · tipar.t"]
+        compilador_lib_tipar__contexto["contexto · tipar.t"]
+        compilador_lib_tipar__declarar["declarar · tipar.t"]
+        compilador_lib_tipar__nombre_resuelto["nombre_resuelto · tipar.t"]
+        compilador_lib_tipar__tipo_atrapado["tipo_atrapado · tipar.t"]
+        compilador_lib_tipar__tipo_de["tipo_de · tipar.t"]
+        compilador_lib_tipos__escribir_tipo["escribir_tipo · tipos.t"]
+        compilador_lib_tipos__leer_tipo["leer_tipo · tipos.t"]
+        compilador_lib_tipos__leer_tipos["leer_tipos · tipos.t"]
+        compilador_lib_tipos__sin_alias_tipo["sin_alias_tipo · tipos.t"]
+        compilador_lib_tipos__tipos_de_mapa["tipos_de_mapa · tipos.t"]
+        lexer_lib_sintaxis__enums_visibles["enums_visibles · sintaxis.t"]
+        lexer_lib_sintaxis__estado_de["estado_de · sintaxis.t"]
+        lexer_lib_sintaxis__hoja["hoja · sintaxis.t"]
+        lexer_lib_sintaxis__programa["programa · sintaxis.t"]
+        lexer_lib_sintaxis__structs_visibles["structs_visibles · sintaxis.t"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__indice_de["indice_de · std/texto"]
+        std_texto__recortar["recortar · std/texto"]
+    end
+
     compilador_tipar__anotar_propiedad --> compilador_lib_propiedad__destino_de
     compilador_tipar__anotar_propiedad --> compilador_lib_propiedad__mirar
     compilador_tipar__anotar_propiedad --> compilador_lib_propiedad__tiene_duenio
@@ -1599,6 +1893,33 @@ graph TD
     compilador_tipar__tipo_desnudo --> std_texto__recortar
     compilador_tipar__try_partir --> std_texto__recortar
     compilador_tipar__valor_de --> std_texto__empieza_con
+```
+
+## compilador/tipos.t
+
+```mermaid
+graph TD
+    subgraph compilador_tipos["compilador/tipos.t"]
+        compilador_tipos__main["main"]
+        compilador_tipos__posee_de["posee_de"]
+        compilador_tipos__tras_dos_puntos["tras_dos_puntos"]
+    end
+    subgraph fuera["de otros archivos"]
+        compilador_lib_tipos__con_partes["con_partes · tipos.t"]
+        compilador_lib_tipos__escribir_tipo["escribir_tipo · tipos.t"]
+        compilador_lib_tipos__leer_tipo["leer_tipo · tipos.t"]
+        compilador_lib_tipos__leer_tipos["leer_tipos · tipos.t"]
+        compilador_lib_tipos__partes["partes · tipos.t"]
+        compilador_lib_tipos__posee_en["posee_en · tipos.t"]
+        compilador_lib_tipos__tipo_existe["tipo_existe · tipos.t"]
+        lexer_lib_sintaxis__enums_visibles["enums_visibles · sintaxis.t"]
+        lexer_lib_sintaxis__estado_de["estado_de · sintaxis.t"]
+        lexer_lib_sintaxis__programa["programa · sintaxis.t"]
+        lexer_lib_sintaxis__structs_visibles["structs_visibles · sintaxis.t"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__recortar["recortar · std/texto"]
+    end
+
     compilador_tipos__main --> compilador_lib_tipos__con_partes
     compilador_tipos__main --> compilador_lib_tipos__escribir_tipo
     compilador_tipos__main --> compilador_lib_tipos__leer_tipo
@@ -1612,13 +1933,47 @@ graph TD
     compilador_tipos__posee_de --> compilador_lib_tipos__posee_en
     compilador_tipos__tras_dos_puntos --> std_texto__empieza_con
     compilador_tipos__tras_dos_puntos --> std_texto__recortar
+```
+
+## lexer/lib/lexico.t
+
+```mermaid
+graph TD
+    subgraph lexer_lib_lexico["lexer/lib/lexico.t"]
+        lexer_lib_lexico__empieza_nombre["empieza_nombre"]
+        lexer_lib_lexico__sigue_nombre["sigue_nombre"]
+        lexer_lib_lexico__tokens_de_todo["tokens_de_todo"]
+    end
+    subgraph fuera["de otros archivos"]
+        std_caracter__es_digito["es_digito · std/caracter"]
+        std_caracter__es_mayuscula["es_mayuscula · std/caracter"]
+        std_caracter__es_minuscula["es_minuscula · std/caracter"]
+    end
+
     lexer_lib_lexico__empieza_nombre --> std_caracter__es_mayuscula
     lexer_lib_lexico__empieza_nombre --> std_caracter__es_minuscula
     lexer_lib_lexico__sigue_nombre --> std_caracter__es_digito
     lexer_lib_lexico__sigue_nombre --> std_caracter__es_mayuscula
     lexer_lib_lexico__sigue_nombre --> std_caracter__es_minuscula
     lexer_lib_lexico__tokens_de_todo --> std_caracter__es_digito
+```
+
+## lexer/lib/sintaxis.t
+
+```mermaid
+graph TD
+    subgraph lexer_lib_sintaxis["lexer/lib/sintaxis.t"]
+        lexer_lib_sintaxis__candidatos_de["candidatos_de"]
+        lexer_lib_sintaxis__huecos_de["huecos_de"]
+    end
+    subgraph fuera["de otros archivos"]
+        std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__recortar["recortar · std/texto"]
+        std_texto__termina_con["termina_con · std/texto"]
+    end
+
     lexer_lib_sintaxis__candidatos_de --> std_texto__empieza_con
     lexer_lib_sintaxis__candidatos_de --> std_texto__termina_con
     lexer_lib_sintaxis__huecos_de --> std_texto__recortar
 ```
+
