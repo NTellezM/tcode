@@ -38,7 +38,7 @@ from lenguaje.comun import Resultado, construir_tcodec
 # sola, y es el modulo de `tests/lenguaje/` que se llama como ella.
 SECCIONES = [
     "RECHAZO", "AVISA", "ACEPTA", "SALIDA", "ARCHIVOS", "FORMATO", "LINEAS",
-    "ABORTA", "MODULOS", "EJEMPLOS", "PROGRAMAS", "CONGELADO", "REGLAS",
+    "ABORTA", "MODULOS", "EJEMPLOS", "PROGRAMAS", "REGLAS",
     "ESPECIFICACION",
 ]
 # Las que mas tardan, en el orden en que conviene empezarlas: con una seccion
