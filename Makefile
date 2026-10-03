@@ -26,7 +26,7 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras bench ejemplos limpiar formato lint cobertura mutar semilla compiladores con-un-cc punto-fijo-cc fuzz fuzz-safestr bench-comprobar instalar desinstalar ddc paquete probar-paquete version
+.PHONY: all check rapido propiedades cifras grafo bench ejemplos limpiar formato lint cobertura mutar semilla compiladores con-un-cc punto-fijo-cc fuzz fuzz-safestr bench-comprobar instalar desinstalar ddc paquete probar-paquete version
 
 all: tcodec
 
@@ -179,6 +179,7 @@ check:
 	@$(PY) tests/fuzz.py --repetir
 	@$(PY) tests/ddc.py
 	@$(PY) tests/cifras.py --comprobar
+	@$(PY) tests/grafo.py --comprobar
 
 # Las secciones que prueban el lenguaje con `tcodec`; las que tardan son las
 # que comparan sus capas con las del compilador de Python. Una sola se pide
@@ -190,6 +191,9 @@ rapido:
 
 cifras:
 	@$(PY) tests/cifras.py
+
+grafo:
+	@$(PY) tests/grafo.py
 
 propiedades:
 	@$(PY) tests/test_propiedades.py
