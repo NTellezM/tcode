@@ -155,9 +155,11 @@ fn elemento(t: view) -> str {
 
 // El valor de un mapa: el segundo de los dos que van entre angulos.
 fn valor_de_mapa(t: view) -> str ! {
-    let partes = partir_tipos(entre_angulos(t));
-    if partes.largo() != 2 { falla "un mapa lleva clave y valor"; }
-    return copiar(partes[1]);
+    let leido = leer_tipo(t);
+    if leido.forma != Forma.Mapa || leido.args.largo() != 2 {
+        falla "un mapa lleva clave y valor";
+    }
+    return escribir_tipo(leido.args[1]);
 }
 
 // ------------------------------------------------------------------
@@ -407,7 +409,7 @@ fn hacer_arreglo(e: view, n: view) -> str { return $"[{e}; {n}]"; }
 fn hacer_prestado(t: view) -> str { return $"&{t}"; }
 fn hacer_prestado_mut(t: view) -> str { return $"&mut {t}"; }
 
-fn es_referencia_mutable(t: view) -> bool { return empieza(t, "&mut "); }
+fn es_referencia_mutable(t: view) -> bool { return forma_de(t) == Forma.PrestaMut; }
 
 // `[T; N]` -> `N`, como se escribio.
 fn cuantos_del_arreglo(t: view) -> str {
