@@ -476,7 +476,7 @@ fn campos_tipos(m: &Mundo, t: view) -> lista<str> {
             i = i + 1;
         }
         let crudos = T.tipos_de_mapa(m.st_tipos, vista(base)) sino [];
-        for x en crudos { salida.anadir(T.sustituir(T.escribir_tipo(x), lig)); }
+        for x en crudos { salida.anadir(T.escribir_tipo(T.sustituir_tipo(x, lig))); }
         return salida;
     }
     return T.escribir_tipos(T.tipos_de_mapa(m.st_tipos, t) sino []);

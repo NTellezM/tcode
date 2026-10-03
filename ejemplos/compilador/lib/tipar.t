@@ -377,7 +377,7 @@ fn tipos_de_aplicacion(c: &Contexto, t: view) -> lista<str> {
         i = i + 1;
     }
     let crudos = mirar_tipos(c, base) sino [];
-    for x en crudos { salida.anadir(T.sustituir(T.escribir_tipo(x), ligaduras)); }
+    for x en crudos { salida.anadir(T.escribir_tipo(T.sustituir_tipo(x, ligaduras))); }
     return salida;
 }
 

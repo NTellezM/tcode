@@ -2701,7 +2701,7 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             pedido.empujar(sin_alias);
         }
         var puestos: lista<str> = [];
-        for f en firmados { puestos.anadir(T.sustituir(T.escribir_tipo(f), ligaduras)); }
+        for f en firmados { puestos.anadir(T.escribir_tipo(T.sustituir_tipo(f, ligaduras))); }
         firmados = T.leer_tipos(puestos);
     }
     return llamada_con_firma(b, s, n, tipos, vista(en_c), T.escribir_tipos(firmados), marcados,

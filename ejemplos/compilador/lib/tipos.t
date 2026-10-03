@@ -567,7 +567,7 @@ fn posee_desde(t: &Tipo, campos: &mapa<str, lista<Tipo>>, parametros: &mapa<str,
         }
         let crudos = try obtener(campos, base);
         for x en crudos {
-            let puesto = leer_tipo(sustituir(escribir_tipo(x), ligaduras));
+            let puesto = sustituir_tipo(x, ligaduras);
             if try posee_desde(puesto, campos, parametros, variantes, formas, vistos) { return true; }
         }
         return false;
@@ -645,6 +645,26 @@ fn sustituir(t: view, ligaduras: &mapa<str, str>) -> str {
             if i < t.largo() { salida.empujar(rebanar(t, i, i + 1)); }
             desde = i + 1;
         }
+        i = i + 1;
+    }
+    return salida;
+}
+
+// Cambia cada nombre de `t` que este en `ligaduras` por lo suyo, sobre el
+// arbol: los parametros de una plantilla por los tipos de una aplicacion.
+// Es la pareja estructurada de `sustituir`; las ligaduras siguen en str
+// porque las lee quien las escribe en C.
+fn sustituir_tipo(t: &Tipo, ligaduras: &mapa<str, str>) -> Tipo {
+    if t.forma == Forma.Nombre && t.args.largo() == 0 {
+        if tiene(ligaduras, t.nombre) {
+            return leer_tipo(obtener(ligaduras, t.nombre) sino "");
+        }
+        return copiar(t);
+    }
+    var salida = copiar(t);
+    var i = 0;
+    while i < salida.args.largo() {
+        salida.args[i] = sustituir_tipo(salida.args[i], ligaduras);
         i = i + 1;
     }
     return salida;
