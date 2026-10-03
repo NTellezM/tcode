@@ -141,7 +141,7 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
                     tipos.anadir(T.sin_alias_tipo(tipo_campo));
                 }
             }
-            poner(c.campos, vista(n.texto), tipos);
+            poner(c.campos, vista(n.texto), T.leer_tipos(tipos));
             poner(c.nombres, vista(n.texto), nombres);
             // Un struct generico: sus parametros, para leer `Par<str, usize>`.
             var sueltos: lista<str> = [];
@@ -164,7 +164,7 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
                     var clave = nuevo(n.texto);
                     clave.empujar(".");
                     clave.empujar(h.texto);
-                    poner(c.formas, vista(clave), lleva);
+                    poner(c.formas, vista(clave), T.leer_tipos(lleva));
                 }
             }
             poner(c.variantes, vista(n.texto), cuales);
@@ -398,7 +398,7 @@ fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
 // brazo o la rama `patron`, con la forma en su texto. `_` no atrapa nada.
 fn atrapar(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
     lineas: mut lista<usize>) {
-    let lleva = I.lista_de(c.formas, vista(n.texto)) sino [];
+    let lleva = T.tipos_de_mapa(c.formas, vista(n.texto)) sino [];
     var k = 0;
     for x en n.hijos {
         let xc = x.clase;
@@ -407,7 +407,7 @@ fn atrapar(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
             atrapar(x, c, quien, salida, lineas);
         } else if xc == Clase.Atrapa && x.texto != "_" {
             var t = vacio();
-            if k < lleva.largo() { t = I.tipo_atrapado(c, lleva[k]); }
+            if k < lleva.largo() { t = I.tipo_atrapado(c, T.escribir_tipo(lleva[k])); }
             I.declarar(c, x.texto, t);
             salida.anadir($"{quien}\t{x.texto}\t{t}");
             lineas.anadir(x.linea);

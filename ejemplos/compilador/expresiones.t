@@ -86,7 +86,7 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
                 suyos.anadir(tipo_pelado(h.texto));
             }
         }
-        poner(c.campos, vista(n.texto), suyos);
+        poner(c.campos, vista(n.texto), T.leer_tipos(suyos));
         poner(c.nombres, vista(n.texto), como_se_llaman);
     }
     if n.clase == Clase.Fn {

@@ -292,13 +292,13 @@ struct Mundo {
     funciones: lista<Funcion>,
     indice: mapa<str, usize>,
     // Structs concretos y plantillas: tipos y nombres de sus campos.
-    st_tipos: mapa<str, lista<str>>,
+    st_tipos: mapa<str, lista<T.Tipo>>,
     st_nombres: mapa<str, lista<str>>,
     // Struct generico -> sus parametros de tipo.
     st_params: mapa<str, lista<str>>,
     // Enum -> sus formas; `Enum.Forma` -> lo que lleva.
     en_variantes: mapa<str, lista<str>>,
-    en_formas: mapa<str, lista<str>>,
+    en_formas: mapa<str, lista<T.Tipo>>,
     // Nombre por dentro -> el que se escribio, para los mensajes.
     bonitos: mapa<str, str>,
     // Las funciones de las clausuras, que nacen al comprobarlas: la N-1 es
@@ -475,11 +475,11 @@ fn campos_tipos(m: &Mundo, t: view) -> lista<str> {
             poner(lig, vista(sueltos[i]), copiar(dados[i]));
             i = i + 1;
         }
-        let crudos = I.lista_de(m.st_tipos, vista(base)) sino [];
-        for x en crudos { salida.anadir(T.sustituir(x, lig)); }
+        let crudos = T.tipos_de_mapa(m.st_tipos, vista(base)) sino [];
+        for x en crudos { salida.anadir(T.sustituir(T.escribir_tipo(x), lig)); }
         return salida;
     }
-    return I.lista_de(m.st_tipos, t) sino [];
+    return T.escribir_tipos(T.tipos_de_mapa(m.st_tipos, t) sino []);
 }
 
 fn campos_nombres(m: &Mundo, t: view) -> lista<str> {
@@ -503,7 +503,7 @@ fn campo_tipo(m: &Mundo, t: view, campo: view) -> str {
 
 fn formas_de(m: &Mundo, en_t: view, forma: view) -> lista<str> {
     let clave = $"{en_t}.{forma}";
-    return I.lista_de(m.en_formas, vista(clave)) sino [];
+    return T.escribir_tipos(T.tipos_de_mapa(m.en_formas, vista(clave)) sino []);
 }
 
 fn tiene_forma(m: &Mundo, en_t: view, forma: view) -> bool {
@@ -515,7 +515,7 @@ fn tiene_forma(m: &Mundo, en_t: view, forma: view) -> bool {
 // `tipos.t`, con lo que este mundo sabe de structs, genericas y enums.
 fn posee_memoria(m: &Mundo, t: view) -> bool {
     var vistos: mapa<str, usize> = [];
-    return T.posee_en(t, m.st_tipos, m.st_params, m.en_variantes, m.en_formas, vistos);
+    return T.posee_en(T.leer_tipo(t), m.st_tipos, m.st_params, m.en_variantes, m.en_formas, vistos);
 }
 
 // Tiene partes: se puede mirar o modificar por dentro.
@@ -3500,7 +3500,7 @@ fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Context
     }
     var lig: mapa<str, str> = [];
     let ns = I.lista_de(m.st_nombres, base) sino [];
-    let ts = I.lista_de(m.st_tipos, base) sino [];
+    let ts = T.tipos_de_mapa(m.st_tipos, base) sino [];
     for h en n.hijos {
         var k = 0;
         while k < ns.largo() && !igual(ns[k], h.texto) { k = k + 1; }
@@ -3508,7 +3508,7 @@ fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Context
         var dado = tipo_probable(c, m, tipos, h.hijos[0]);
         if igual(dado, literal()) { dado = nuevo("usize"); }
         if T.es_referencia(dado) { dado = nuevo(T.apuntado(dado)); }
-        let _u = unificar_tipo(ts[k], dado, sueltos, lig);
+        let _u = unificar_tipo(T.escribir_tipo(ts[k]), dado, sueltos, lig);
     }
     var faltan: lista<str> = [];
     for tp en sueltos {
@@ -4122,7 +4122,7 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
         nombres.anadir(nuevo("ss_vacio"));
         ts.anadir(nuevo("u8"));
     }
-    poner(m.st_tipos, vista(st), ts);
+    poner(m.st_tipos, vista(st), T.leer_tipos(ts));
     poner(m.st_nombres, vista(st), nombres);
     m.orden_structs.anadir(copiar(st));
     m.tipo_de_struct.anadir(copiar(st));
@@ -6053,7 +6053,7 @@ fn registrar_enums(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, m
                 for x en v.hijos {
                     if x.clase == Clase.Lleva { lleva.anadir(T.sin_alias_tipo(x.texto)); }
                 }
-                poner(m.en_formas, $"{nombre}.{v.texto}", lleva);
+                poner(m.en_formas, $"{nombre}.{v.texto}", T.leer_tipos(lleva));
             }
             poner(m.en_variantes, nombre, formas);
         }
@@ -6089,7 +6089,7 @@ fn registrar_structs(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>,
                 }
             }
             poner(m.st_nombres, nombre, ns);
-            poner(m.st_tipos, nombre, ts);
+            poner(m.st_tipos, nombre, T.leer_tipos(ts));
             if ps.largo() > 0 { poner(m.st_params, nombre, ps); }
             else if !esta_entre(m.orden_structs, nombre) {
                 m.orden_structs.anadir(nuevo(nombre));

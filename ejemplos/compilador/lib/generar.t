@@ -747,7 +747,7 @@ fn enum_lit_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     let en_t = I.sin_modulo(I.antes_del_punto(n.texto));
     let cual = I.tras_el_punto(n.texto);
     let clave = $"{en_t}.{cual}";
-    let lleva = I.lista_de(tipos.formas, vista(clave)) sino [];
+    let lleva = T.tipos_de_mapa(tipos.formas, vista(clave)) sino [];
     if lleva.largo() != n.hijos.largo() { return no_se(); }
     let etq = etiqueta(en_t, cual);
     var r = $"({en_t}){{ .etiqueta = {etq}";
@@ -755,13 +755,13 @@ fn enum_lit_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     abrir_marco(b);
     var i = 0;
     for h en n.hijos {
-        let valor = expresion_c(b, s, h, lleva[i], tipos);
+        let valor = expresion_c(b, s, h, T.escribir_tipo(lleva[i]), tipos);
         if es_desconocido(valor) {
             let _m = cerrar_marco(b);
             return no_se();
         }
         reclamar(b, valor);
-        agregar_argumento_marcado(b, h, vista(valor), vista(lleva[i]), false,
+        agregar_argumento_marcado(b, h, vista(valor), T.escribir_tipo(lleva[i]), false,
             false, n.hijos.largo() > 1);
         i = i + 1;
     }
@@ -5122,7 +5122,7 @@ fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Conte
 // de lo anidado y el valor de cada literal.
 fn condiciones_patron_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto, base: view,
     variante: view, posiciones: &lista<P.Nodo>, sitio: view, conds: mut lista<str>) -> bool {
-    let lleva = I.lista_de(tipos.formas, $"{base}.{variante}") sino [];
+    let lleva = T.tipos_de_mapa(tipos.formas, $"{base}.{variante}") sino [];
     var i = 0;
     while i < posiciones.largo() {
         if i >= lleva.largo() { return false; }
@@ -5131,7 +5131,7 @@ fn condiciones_patron_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto, base
         let dentro = $"{sitio}.dato.v_{variante}._{i}";
         i = i + 1;
         if p.clase == Clase.Patron {
-            let otro = I.sin_modulo(t);
+            let otro = I.sin_modulo(T.escribir_tipo(t));
             let cual = I.tras_el_punto(p.texto);
             let et = etiqueta(otro, cual);
             conds.anadir($"{dentro}.etiqueta == {et}");
@@ -5140,12 +5140,12 @@ fn condiciones_patron_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto, base
                 return false;
             }
         } else if p.clase == Clase.Literal {
-            if t == "str" {
+            if t.nombre == "str" {
                 let lit = expresion_c(b, s, p.hijos[0], "view", tipos);
                 if es_desconocido(lit) { return false; }
                 conds.anadir($"sv_equals(ss_view(&{dentro}), {lit})");
             } else {
-                let lit = expresion_c(b, s, p.hijos[0], t, tipos);
+                let lit = expresion_c(b, s, p.hijos[0], T.escribir_tipo(t), tipos);
                 if es_desconocido(lit) { return false; }
                 conds.anadir($"{dentro} == {lit}");
             }
@@ -5158,7 +5158,7 @@ fn condiciones_patron_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto, base
 // duenio como puntero, y los escalares por valor.
 fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
     posiciones: &lista<P.Nodo>, sitio: view) -> bool {
-    let lleva = I.lista_de(tipos.formas, $"{base}.{variante}") sino [];
+    let lleva = T.tipos_de_mapa(tipos.formas, $"{base}.{variante}") sino [];
     var i = 0;
     while i < posiciones.largo() {
         if i >= lleva.largo() { return false; }
@@ -5167,7 +5167,7 @@ fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
         let dentro = $"{sitio}.dato.v_{variante}._{i}";
         i = i + 1;
         if h.clase == Clase.Patron {
-            let otro = I.sin_modulo(t);
+            let otro = I.sin_modulo(T.escribir_tipo(t));
             let cual = I.tras_el_punto(h.texto);
             if !atrapar_c(b, tipos, otro, cual, posiciones_patron_c(h), dentro) {
                 return false;
@@ -5175,17 +5175,17 @@ fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
             continue;
         }
         if h.clase != Clase.Atrapa || h.texto == "_" { continue; }
-        if t == "str" {
+        if t.nombre == "str" {
             emitir(b, $"SS_LANG_QUIZA_SIN_USAR SafeView {h.texto} = ss_view(&{dentro});");
             I.declarar(tipos, h.texto, "view");
-        } else if I.posee_con_formas(tipos, t) {
-            let tc = tipo_c(t);
+        } else if I.posee_con_formas(tipos, T.escribir_tipo(t)) {
+            let tc = tipo_c(T.escribir_tipo(t));
             emitir(b, $"SS_LANG_QUIZA_SIN_USAR const {tc}* {h.texto} = &{dentro};");
-            I.declarar(tipos, h.texto, T.hacer_prestado(t));
+            I.declarar(tipos, h.texto, T.hacer_prestado(T.escribir_tipo(t)));
         } else {
-            let tc = tipo_c(t);
+            let tc = tipo_c(T.escribir_tipo(t));
             emitir(b, $"SS_LANG_QUIZA_SIN_USAR {tc} {h.texto} = {dentro};");
-            I.declarar(tipos, h.texto, t);
+            I.declarar(tipos, h.texto, T.escribir_tipo(t));
         }
     }
     return true;

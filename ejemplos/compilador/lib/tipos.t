@@ -517,18 +517,18 @@ fn escalar(t: view) -> bool {
 // Un tipo de otro modulo se escribe `Q.Nombre`, pero se apunta por su
 // nombre. `vistos` corta la recursion: un `Nodo` con un campo `lista<Nodo>`
 // se contiene a si mismo de forma finita, y preguntarle dos veces no aporta.
-fn posee_en(t: view, campos: &mapa<str, lista<str>>, parametros: &mapa<str, lista<str>>,
-    variantes: &mapa<str, lista<str>>, formas: &mapa<str, lista<str>>,
+fn posee_en(t: &Tipo, campos: &mapa<str, lista<Tipo>>, parametros: &mapa<str, lista<str>>,
+    variantes: &mapa<str, lista<str>>, formas: &mapa<str, lista<Tipo>>,
     vistos: mut mapa<str, usize>) -> bool {
     return posee_desde(t, campos, parametros, variantes, formas, vistos) sino false;
 }
 
 // Falible solo para leer los mapas sin copiar; cada `obtener` va detras de
 // su `tiene`, asi que no falla.
-fn posee_desde(t: view, campos: &mapa<str, lista<str>>, parametros: &mapa<str, lista<str>>,
-    variantes: &mapa<str, lista<str>>, formas: &mapa<str, lista<str>>,
+fn posee_desde(t: &Tipo, campos: &mapa<str, lista<Tipo>>, parametros: &mapa<str, lista<str>>,
+    variantes: &mapa<str, lista<str>>, formas: &mapa<str, lista<Tipo>>,
     vistos: mut mapa<str, usize>) -> bool ! {
-    match forma_de(t) {
+    match t.forma {
         // Lo prestado es de otro; una funcion y un rango no guardan nada.
         Forma.Presta -> { return false; }
         Forma.PrestaMut -> { return false; }
@@ -538,37 +538,35 @@ fn posee_desde(t: view, campos: &mapa<str, lista<str>>, parametros: &mapa<str, l
         Forma.Bloque -> { return true; }
         Forma.Mapa -> { return true; }
         Forma.Arreglo -> {
-            let dentro = elemento(t);
-            return try posee_desde(dentro, campos, parametros, variantes, formas, vistos);
+            return try posee_desde(t.args[0], campos, parametros, variantes, formas, vistos);
         }
         Forma.Nombre -> { }
     }
-    if t == "str" { return true; }
-    if escalar(t) { return false; }
+    if t.nombre == "str" { return true; }
+    if escalar(t.nombre) { return false; }
 
     // Un struct generico aplicado posee si posee alguno de sus campos, con
     // los tipos ya puestos.
-    if es_aplicacion(t) {
-        let base = base_de_aplicacion(t);
+    if t.forma == Forma.Nombre && t.args.largo() > 0 {
+        let base = sin_alias_tipo(t.nombre);
         if !tiene(parametros, base) || !tiene(campos, base) { return false; }
         let sueltos = try obtener(parametros, base);
-        let dados = partes(t);
-        if dados.largo() != sueltos.largo() { return false; }
+        if t.args.largo() != sueltos.largo() { return false; }
         var ligaduras: mapa<str, str> = [];
         var i = 0;
         while i < sueltos.largo() {
-            poner(ligaduras, vista(sueltos[i]), copiar(dados[i]));
+            poner(ligaduras, vista(sueltos[i]), escribir_tipo(t.args[i]));
             i = i + 1;
         }
         let crudos = try obtener(campos, base);
         for x en crudos {
-            let puesto = sustituir(x, ligaduras);
+            let puesto = leer_tipo(sustituir(escribir_tipo(x), ligaduras));
             if try posee_desde(puesto, campos, parametros, variantes, formas, vistos) { return true; }
         }
         return false;
     }
 
-    let nombre = sin_alias_tipo(t);
+    let nombre = sin_alias_tipo(t.nombre);
     if tiene(vistos, nombre) { return false; }
     poner(vistos, vista(nombre), 1);
     // Un enum posee si alguna de sus formas lleva algo que posee: en tiempo

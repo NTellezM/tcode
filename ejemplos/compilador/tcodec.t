@@ -1735,8 +1735,8 @@ fn necesita_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
     if tiene(global.variantes, t) {
         // Lo que llevan sus formas, en orden.
         for v en I.lista_de(global.variantes, t) sino [] {
-            for x en I.lista_de(global.formas, $"{t}.{v}") sino [] {
-                necesita_copiador(x, global, st_indice, st_tipos, vistos, salida);
+            for x en T.tipos_de_mapa(global.formas, $"{t}.{v}") sino [] {
+                necesita_copiador(T.escribir_tipo(x), global, st_indice, st_tipos, vistos, salida);
             }
         }
     }
@@ -2018,7 +2018,7 @@ fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
     poner(st_indice, vista(nombre), st_nombres.largo());
     st_nombres.anadir(copiar(nombre));
     st_campos.anadir(copiar(p_campos[kp]));
-    poner(global.campos, vista(nombre), copiar(tipos_c));
+    poner(global.campos, vista(nombre), T.leer_tipos(tipos_c));
     poner(global.nombres, vista(nombre), copiar(p_campos[kp]));
     st_tipos.anadir(tipos_c);
     return nombre;
@@ -2393,11 +2393,11 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
             var ct: lista<str> = [];
             campos_de_cierre(p, cn, ct);
             let st = struct_de_cierre(en_c);
-            poner(global.campos, vista(st), copiar(ct));
+            poner(global.campos, vista(st), T.leer_tipos(ct));
             poner(global.nombres, vista(st), copiar(cn));
             var kc = 0;
             while kc < contextos.largo() {
-                poner(contextos[kc].campos, vista(st), copiar(ct));
+                poner(contextos[kc].campos, vista(st), T.leer_tipos(ct));
                 poner(contextos[kc].nombres, vista(st), copiar(cn));
                 kc = kc + 1;
             }
@@ -3392,7 +3392,7 @@ fn ajustar_contextos(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
     while k_ctx < contextos.largo() {
         for st en claves(global.campos) {
             if tiene(contextos[k_ctx].campos, st) { continue; }
-            let cs_g = I.lista_de(global.campos, vista(st)) sino [];
+            let cs_g = T.tipos_de_mapa(global.campos, vista(st)) sino [];
             poner(contextos[k_ctx].campos, vista(st), cs_g);
             let ns_g = I.lista_de(global.nombres, vista(st)) sino [];
             poner(contextos[k_ctx].nombres, vista(st), ns_g);
@@ -3409,7 +3409,7 @@ fn ajustar_contextos(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
         }
         for fk en claves(global.formas) {
             if tiene(contextos[k_ctx].formas, fk) { continue; }
-            let fs_g = I.lista_de(global.formas, vista(fk)) sino [];
+            let fs_g = T.tipos_de_mapa(global.formas, vista(fk)) sino [];
             poner(contextos[k_ctx].formas, vista(fk), fs_g);
         }
         k_ctx = k_ctx + 1;
@@ -3695,7 +3695,7 @@ fn preparar_instancias(revision: &C.Revision, arboles: &lista<P.Nodo>,
                     st_campos, st_tipos, global));
         }
         let nombre_st = copiar(st_nombres[k_st]);
-        poner(global.campos, vista(nombre_st), copiar(nuevos_t));
+        poner(global.campos, vista(nombre_st), T.leer_tipos(nuevos_t));
         st_tipos[k_st] = nuevos_t;
         k_st = k_st + 1;
     }

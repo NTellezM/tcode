@@ -20,7 +20,7 @@ struct Contexto {
     // Pila de ambitos: nombre -> tipo. El de dentro manda.
     ambitos: lista<mapa<str, T.Tipo>>,
     // Struct -> tipos de sus campos, y sus nombres, en el mismo orden.
-    campos: mapa<str, lista<str>>,
+    campos: mapa<str, lista<T.Tipo>>,
     nombres: mapa<str, lista<str>>,
     // Funcion -> lo que devuelve.
     retornos: mapa<str, T.Tipo>,
@@ -34,7 +34,7 @@ struct Contexto {
     params_marcados: mapa<str, lista<str>>,
     // `Enum.Variante` -> lo que lleva esa forma, en orden. Un enum no tiene
     // campos: tiene formas, y solo una a la vez.
-    formas: mapa<str, lista<str>>,
+    formas: mapa<str, lista<T.Tipo>>,
     // Enum -> los nombres de sus formas, para saber si un tipo es un enum.
     variantes: mapa<str, lista<str>>,
     // Nombres que traen dos modulos a la vez. El cargador de verdad los
@@ -246,7 +246,7 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> T.Tipo {
 // `obtener` sobre un mapa de listas devuelve un prestamo, y un prestamo no
 // se puede sustituir si falla. Se pregunta antes con `tiene` y aqui se
 // entrega una copia, que es lo que el que llama necesita.
-fn mirar_tipos(c: &Contexto, struct_: view) -> lista<str> ! {
+fn mirar_tipos(c: &Contexto, struct_: view) -> lista<T.Tipo> ! {
     return copiar(try obtener(c.campos, struct_));
 }
 
@@ -377,7 +377,7 @@ fn tipos_de_aplicacion(c: &Contexto, t: view) -> lista<str> {
         i = i + 1;
     }
     let crudos = mirar_tipos(c, base) sino [];
-    for x en crudos { salida.anadir(T.sustituir(x, ligaduras)); }
+    for x en crudos { salida.anadir(T.sustituir(T.escribir_tipo(x), ligaduras)); }
     return salida;
 }
 
@@ -406,7 +406,7 @@ fn tipo_de_campo(c: &Contexto, struct_: view, campo: view) -> str {
     let nombres = mirar_nombres(c, struct_) sino [];
     var i = 0;
     while i < nombres.largo() && i < tipos.largo() {
-        if igual(nombres[i], campo) { return copiar(tipos[i]); }
+        if igual(nombres[i], campo) { return T.escribir_tipo(tipos[i]); }
         i = i + 1;
     }
     return vacio();
@@ -453,7 +453,7 @@ fn tipo_atrapado(c: &Contexto, t: view) -> str {
 // sabe de structs, genericas y enums.
 fn posee_con_formas(c: &Contexto, t: view) -> bool {
     var vistos: mapa<str, usize> = [];
-    return T.posee_en(t, c.campos, c.struct_params, c.variantes, c.formas, vistos);
+    return T.posee_en(T.leer_tipo(t), c.campos, c.struct_params, c.variantes, c.formas, vistos);
 }
 
 // `Color.Rojo` -> `Color`; `m.Color.Rojo` -> `m.Color`.

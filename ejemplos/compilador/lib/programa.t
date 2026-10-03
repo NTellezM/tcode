@@ -76,7 +76,7 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
                     suyos.anadir(tipo_pelado(h.texto));
                 }
             }
-            poner(c.campos, vista(n.texto), suyos);
+            poner(c.campos, vista(n.texto), T.leer_tipos(suyos));
             poner(c.nombres, vista(n.texto), como_se_llaman);
             var sueltos_st: lista<str> = [];
             for h en n.hijos {
@@ -100,7 +100,7 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
                     var clave = nuevo(n.texto);
                     clave.empujar(".");
                     clave.empujar(h.texto);
-                    poner(c.formas, vista(clave), lleva);
+                    poner(c.formas, vista(clave), T.leer_tipos(lleva));
                 }
             }
             poner(c.variantes, vista(n.texto), cuales);
@@ -164,7 +164,7 @@ fn recoger_de_modulo(m: &P.Usado, c: mut I.Contexto) {
     recoger_firmas(m.arbol, suyas);
     // Los tipos de otro modulo se llaman igual en C: van tal cual.
     for st en claves(suyas.campos) {
-        let cs = I.lista_de(suyas.campos, vista(st)) sino [];
+        let cs = T.tipos_de_mapa(suyas.campos, vista(st)) sino [];
         poner(c.campos, vista(st), cs);
         let ns = I.lista_de(suyas.nombres, vista(st)) sino [];
         poner(c.nombres, vista(st), ns);
@@ -179,7 +179,7 @@ fn recoger_de_modulo(m: &P.Usado, c: mut I.Contexto) {
             var clave = nuevo(en_);
             clave.empujar(".");
             clave.empujar(v);
-            let lleva = I.lista_de(suyas.formas, vista(clave)) sino [];
+            let lleva = T.tipos_de_mapa(suyas.formas, vista(clave)) sino [];
             poner(c.formas, vista(clave), lleva);
         }
         poner(c.variantes, vista(en_), vs);
