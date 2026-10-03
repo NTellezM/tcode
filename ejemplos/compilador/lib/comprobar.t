@@ -33,10 +33,10 @@ fn es_literal(t: &T.Tipo) -> bool {
     return es_literal_entero(t) || es_literal_decimal_t(t);
 }
 fn es_literal_entero(t: &T.Tipo) -> bool {
-    return t.forma == T.Forma.Nombre && t.args.largo() == 0 && igual(t.nombre, literal());
+    return igual(t.nombre, literal());
 }
 fn es_literal_decimal_t(t: &T.Tipo) -> bool {
-    return t.forma == T.Forma.Nombre && t.args.largo() == 0 && igual(t.nombre, literal_decimal());
+    return igual(t.nombre, literal_decimal());
 }
 // Un texto de tipo (real o marcador) leido a `Tipo`.
 fn tipo_de_escrito(v: view) -> T.Tipo {
