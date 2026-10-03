@@ -886,8 +886,8 @@ fn campo_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     if ruta.largo() > 0 && tiene(s.sacados, $"{s.archivo}\t{n.id}\t{ruta}") {
         // Sacar un campo: se copia y su sitio queda a ceros, que es un
         // valor valido y al liberar el struct no suelta nada.
-        let t = T.escribir_tipo(I.tipo_de(tipos, n));
-        let tc = tipo_c(t);
+        let t = I.tipo_de(tipos, n);
+        let tc = tipo_c(T.escribir_tipo(t));
         let tmp = nuevo_temporal(b);
         emitir(b, $"{tc} {tmp};");
         return $"({tmp} = {r}, {r} = ({tc}){{0}}, {tmp})";
@@ -901,45 +901,45 @@ fn unaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     if n.hijos.largo() != 1 { return no_se(); }
     // `~` lleva molde para que el resultado no se ensanche por el camino.
     if op == "~" {
-        var t = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-        if !es_entero(t) { t = nuevo(esperado); }
-        if !es_entero(t) { return no_se(); }
-        let dentro = expresion_c(b, s, n.hijos[0], t, tipos);
+        var t = I.tipo_de(tipos, n.hijos[0]);
+        if !es_entero(T.escribir_tipo(t)) { t = T.leer_tipo(esperado); }
+        if !es_entero(T.escribir_tipo(t)) { return no_se(); }
+        let dentro = expresion_c(b, s, n.hijos[0], T.escribir_tipo(t), tipos);
         if es_desconocido(dentro) { return no_se(); }
-        let tc = tipo_c(t);
-        if empieza_con(t, "i") {
-            let ut = $"uint{rebanar(vista(t), 1, largo(vista(t)))}_t";
-            return $"ss_lang_env_{t}(({ut}) ~({ut}) ({dentro}))";
+        let tc = tipo_c(T.escribir_tipo(t));
+        if empieza_con(t.nombre, "i") {
+            let ut = $"uint{rebanar(t.nombre, 1, largo(t.nombre))}_t";
+            return $"ss_lang_env_{T.escribir_tipo(t)}(({ut}) ~({ut}) ({dentro}))";
         }
         return $"(({tc}) ~{dentro})";
     }
     if op == "-" {
-        var t = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
+        var t = I.tipo_de(tipos, n.hijos[0]);
         if es_entero(esperado) || esperado == "f32" || esperado == "f64" {
-            t = nuevo(esperado);
+            t = T.leer_tipo(esperado);
         } else {
-            if I.literal_de(n.hijos[0]) == "entero" { t = nuevo("i64"); }
+            if I.literal_de(n.hijos[0]) == "entero" { t = T.leer_tipo("i64"); }
         }
-        if empieza_con(t, "i")
+        if empieza_con(t.nombre, "i")
         && n.hijos[0].clase == Clase.Entero {
             let valor = sin_ceros_izquierda(vista(n.hijos[0].texto));
-            if !cabe_literal_entero(valor, t, true) { return no_se(); }
-            if (t == "i8" && valor == "128")
-            || (t == "i16" && valor == "32768")
-            || (t == "i32" && valor == "2147483648")
-            || (t == "i64" && valor == "9223372036854775808") {
-                return $"INT{rebanar(vista(t), 1, largo(vista(t)))}_MIN";
+            if !cabe_literal_entero(valor, t.nombre, true) { return no_se(); }
+            if (t.nombre == "i8" && valor == "128")
+            || (t.nombre == "i16" && valor == "32768")
+            || (t.nombre == "i32" && valor == "2147483648")
+            || (t.nombre == "i64" && valor == "9223372036854775808") {
+                return $"INT{rebanar(t.nombre, 1, largo(t.nombre))}_MIN";
             }
-            return $"(({tipo_c(vista(t))})-{valor})";
+            return $"(({tipo_c(t.nombre)})-{valor})";
         }
-        if es_entero(t) && !empieza_con(t, "i")
+        if es_entero(T.escribir_tipo(t)) && !empieza_con(t.nombre, "i")
         && n.hijos[0].clase == Clase.Entero {
             return no_se();
         }
-        let dentro = expresion_c(b, s, n.hijos[0], t, tipos);
+        let dentro = expresion_c(b, s, n.hijos[0], T.escribir_tipo(t), tipos);
         if es_desconocido(dentro) { return no_se(); }
-        if empieza_con(t, "i") {
-            return $"ss_lang_neg_{t}({dentro}, \"{s.archivo}\", {n.linea})";
+        if empieza_con(t.nombre, "i") {
+            return $"ss_lang_neg_{T.escribir_tipo(t)}({dentro}, \"{s.archivo}\", {n.linea})";
         }
         return $"(-{dentro})";
     }
@@ -1019,13 +1019,13 @@ fn interpolada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
 // El texto de un hueco, ya como vista. Un `str` o una `view` se prestan; lo
 // demas se convierte a texto en un temporal.
 fn hueco_c(b: mut Cuerpo, s: &Sitio, x: &P.Nodo, tipos: &I.Contexto) -> str {
-    let t = T.escribir_tipo(I.tipo_de(tipos, x));
-    if t == "str" || t == "view" {
+    let t = I.tipo_de(tipos, x);
+    if t.nombre == "str" || t.nombre == "view" {
         return como_vista(b, s, x, tipos);
     }
-    let valor = expresion_c(b, s, x, t, tipos);
+    let valor = expresion_c(b, s, x, T.escribir_tipo(t), tipos);
     if es_desconocido(valor) { return no_se(); }
-    let convertido = texto_de(s, vista(valor), vista(t), x.linea);
+    let convertido = texto_de(s, vista(valor), T.escribir_tipo(t), x.linea);
     if es_desconocido(convertido) { return no_se(); }
     let pieza = nuevo_temporal(b);
     var l = nuevo("SafeString ");
@@ -1120,8 +1120,8 @@ fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
     }
     // Sin tipos escritos ni esperados, los que dedujo el comprobador.
     if !contiene(escrito_s, "<") {
-        let dicho = T.escribir_tipo(I.tipo_de(tipos, n));
-        if T.es_aplicacion(dicho) { escrito_s = dicho; }
+        let dicho = I.tipo_de(tipos, n);
+        if T.es_aplicacion(T.escribir_tipo(dicho)) { escrito_s = T.escribir_tipo(dicho); }
     }
     let escrito = vista(escrito_s);
     var r = nuevo("(");
@@ -1182,8 +1182,8 @@ fn conversion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         envolviendo = true;
         destino = nuevo(rebanar(escrito, 1, escrito.largo()));
     }
-    let suyo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    var origen = T.apuntado_si(suyo);
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    var origen = T.apuntado_si(T.escribir_tipo(suyo));
     if !es_aritmetico(origen) { origen = nuevo("usize"); }
     let valor = expresion_c(b, s, n.hijos[0], origen, tipos);
     if es_desconocido(valor) { return no_se(); }
@@ -1229,16 +1229,16 @@ fn sitio_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     // Una llamada no es un sitio: `claves(m).length` la evaluaria una vez
     // por cada aparicion en el C, y lo que devuelve no lo soltaria nadie. Se
     // guarda en un temporal, que se suelta al acabar la sentencia.
-    var t = T.escribir_tipo(I.tipo_de(tipos, n));
-    if t.largo() == 0 { t = nuevo("usize"); }
+    var t = I.tipo_de(tipos, n);
+    if !T.conocido(t) { t = T.leer_tipo("usize"); }
     let tmp = nuevo_temporal(b);
-    let valor = expresion_c(b, s, n, t, tipos);
+    let valor = expresion_c(b, s, n, T.escribir_tipo(t), tipos);
     if es_desconocido(valor) { return no_se(); }
     reclamar(b, valor);
-    let tc = tipo_c(t);
+    let tc = tipo_c(T.escribir_tipo(t));
     emitir(b, $"{tc} {tmp} = {valor};");
-    if I.posee_con_formas(tipos, t) {
-        apuntar_temporal(b, tmp, t);
+    if I.posee_con_formas(tipos, T.escribir_tipo(t)) {
+        apuntar_temporal(b, tmp, T.escribir_tipo(t));
     }
     return tmp;
 }
@@ -1250,8 +1250,8 @@ fn sitio_solo_lectura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
             let marca = obtener(s.punteros, n.texto) sino 0;
             if marca == 2 { return true; }
         }
-        let t = T.escribir_tipo(I.tipo_de(tipos, n));
-        return T.es_referencia(t) && !T.es_referencia_mutable(t);
+        let t = I.tipo_de(tipos, n);
+        return T.es_referencia(T.escribir_tipo(t)) && !T.es_referencia_mutable(T.escribir_tipo(t));
     }
     if (clase == Clase.Campo || clase == Clase.Indice) && n.hijos.largo() > 0 {
         return sitio_solo_lectura(s, n.hijos[0], tipos);
@@ -1264,8 +1264,8 @@ fn sitio_solo_lectura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
 // sabe al correr.
 fn indice_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if n.hijos.largo() != 2 { return no_se(); }
-    let suyo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    let base = T.apuntado_si(suyo);
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    let base = T.apuntado_si(T.escribir_tipo(suyo));
     let sitio = sitio_c(b, s, n.hijos[0], tipos);
     if es_desconocido(sitio) { return no_se(); }
     let idx = expresion_c(b, s, n.hijos[1], "usize", tipos);
@@ -1311,8 +1311,8 @@ fn indice_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 
 // Si `n` es un texto, con duenio o prestado.
 fn da_texto(tipos: &I.Contexto, n: &P.Nodo) -> bool {
-    let escrito = T.escribir_tipo(I.tipo_de(tipos, n));
-    let t = T.apuntado_si(escrito);
+    let escrito = I.tipo_de(tipos, n);
+    let t = T.apuntado_si(T.escribir_tipo(escrito));
     return t == "str" || t == "view";
 }
 
@@ -1345,8 +1345,8 @@ fn binaria_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.Con
     if t.largo() == 0 { return no_se(); }
     // Un enum se compara por su etiqueta, y los temporales son del enum.
     if op == "==" || op == "!=" {
-        let de_izq = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-        let pelado = T.apuntado_si(de_izq);
+        let de_izq = I.tipo_de(tipos, n.hijos[0]);
+        let pelado = T.apuntado_si(T.escribir_tipo(de_izq));
         if tiene(tipos.variantes, pelado) { t = copiar(pelado); }
     }
 
@@ -1601,8 +1601,8 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
 fn interna_pura_redimensionar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     tipos: &I.Contexto) -> str {
     if n.hijos.largo() != 2 { return no_se(); }
-    let crudo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    let t = T.apuntado_si(crudo);
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    let t = T.apuntado_si(T.escribir_tipo(crudo));
     if !T.es_bloque(t) { return no_se(); }
     let dir = direccion_del_sitio(b, s, n.hijos[0], tipos);
     if es_desconocido(dir) { return no_se(); }
@@ -1620,16 +1620,16 @@ fn interna_pura_intercambiar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     // Se saca primero y se pone despues: si el valor nuevo viniera del mismo
     // sitio, hacerlo al reves lo perderia. Nunca queda un hueco sin duenio.
     if n.hijos.largo() != 2 { return no_se(); }
-    var t = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    if t.largo() == 0 { t = nuevo("usize"); }
+    var t = I.tipo_de(tipos, n.hijos[0]);
+    if !T.conocido(t) { t = T.leer_tipo("usize"); }
     // El destino puede hacer trabajo al calcularse. Su direccion se
     // guarda para leer y escribir exactamente el mismo sitio.
     let direccion = direccion_del_sitio(b, s, n.hijos[0], tipos);
     if es_desconocido(direccion) { return no_se(); }
-    let tc = tipo_c(t);
+    let tc = tipo_c(T.escribir_tipo(t));
     let ptr = nuevo_temporal(b);
     emitir(b, $"{tc}* {ptr} = {direccion};");
-    let valor = expresion_c(b, s, n.hijos[1], t, tipos);
+    let valor = expresion_c(b, s, n.hijos[1], T.escribir_tipo(t), tipos);
     if es_desconocido(valor) { return no_se(); }
     reclamar(b, valor);
     let tmp = nuevo_temporal(b);
@@ -1657,8 +1657,8 @@ fn interna_pura_largo(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     tipos: &I.Contexto) -> str {
     if n.hijos.largo() != 1 { return no_se(); }
     // `let p: &mut bloque<usize> = ...` se mide por lo que apunta.
-    let suyo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    let sobre = T.apuntado_si(suyo);
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    let sobre = T.apuntado_si(T.escribir_tipo(suyo));
     if T.es_mapa(sobre) {
         let donde = sitio_c(b, s, n.hijos[0], tipos);
         if es_desconocido(donde) { return no_se(); }
@@ -1713,8 +1713,8 @@ fn interna_pura_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
 fn interna_pura_comparar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     tipos: &I.Contexto, nombre: view) -> str {
     if n.hijos.largo() != 2 { return no_se(); }
-    let crudo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    let ta = T.apuntado_si(crudo);
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    let ta = T.apuntado_si(T.escribir_tipo(crudo));
     let es_texto = ta == "str" || ta == "view";
     var uno = vacio();
     var dos = vacio();
@@ -1796,8 +1796,8 @@ fn interna_pura_mapa(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     // porque cada uno tiene su propia tabla generada: no hay una funcion
     // generica que reciba tamanios y punteros a void.
     if n.hijos.largo() == 0 { return no_se(); }
-    let suyo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    let tm = T.apuntado_si(suyo);
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    let tm = T.apuntado_si(T.escribir_tipo(suyo));
     if !T.es_mapa(tm) { return no_se(); }
     let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
     if es_desconocido(donde) { return no_se(); }
@@ -1861,17 +1861,17 @@ fn interna_pura_copiar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     // `copiar(x)`: una copia independiente, hasta el fondo. Cada tipo lleva
     // su copiador generado, espejo exacto de su liberacion.
     if n.hijos.largo() != 1 { return no_se(); }
-    let crudo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    let t = T.apuntado_si(crudo);
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    let t = T.apuntado_si(T.escribir_tipo(crudo));
     if t.largo() == 0 { return no_se(); }
     if !I.posee_con_formas(tipos, t) {
         // Un escalar se copia solo.
         return expresion_c(b, s, n.hijos[0], t, tipos);
     }
     var donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
-    if es_desconocido(donde) && T.es_referencia(crudo) {
+    if es_desconocido(donde) && T.es_referencia(T.escribir_tipo(crudo)) {
         // Llega prestado, y en C eso ya es la direccion.
-        donde = expresion_c(b, s, n.hijos[0], crudo, tipos);
+        donde = expresion_c(b, s, n.hijos[0], T.escribir_tipo(crudo), tipos);
     }
     if es_desconocido(donde) { return no_se(); }
     if t == "str" {
@@ -1899,19 +1899,19 @@ fn interna_pura_imprimir(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     if n.hijos.largo() != 1 { return no_se(); }
     var r = nuevo("printf(");
     if nombre == "imprimir_error" { r = nuevo("fprintf(stderr, "); }
-    let t = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
+    let t = I.tipo_de(tipos, n.hijos[0]);
     let clase = n.hijos[0].clase;
     // El texto va con `fwrite`, por su largo: un `str` guarda bytes y
     // puede llevar ceros, que `%s` y `%.*s` tomarian por el final.
     var salida = nuevo("stdout");
     if nombre == "imprimir_error" { salida = nuevo("stderr"); }
-    if t == "str" && (clase == Clase.Variable
+    if t.nombre == "str" && (clase == Clase.Variable
         || clase == Clase.Campo || clase == Clase.Indice) {
         let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
         if es_desconocido(donde) { return no_se(); }
         return $"ss_lang_escribir_({salida}, ss_view({donde}))";
     }
-    if t == "str" || t == "view" {
+    if t.nombre == "str" || t.nombre == "view" {
         let v = como_vista(b, s, n.hijos[0], tipos);
         if es_desconocido(v) { return no_se(); }
         let tmp = nuevo_temporal(b);
@@ -1920,27 +1920,27 @@ fn interna_pura_imprimir(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         marcar(b, s, n.hijos[0].linea);
         return $"ss_lang_escribir_({salida}, {tmp})";
     }
-    let valor = expresion_c(b, s, n.hijos[0], t, tipos);
+    let valor = expresion_c(b, s, n.hijos[0], T.escribir_tipo(t), tipos);
     if es_desconocido(valor) { return no_se(); }
-    if t == "usize" {
+    if t.nombre == "usize" {
         r.empujar("\"%zu\", ");
     } else {
-        if t == "f32" || t == "f64" {
+        if t.nombre == "f32" || t.nombre == "f64" {
             r.empujar("\"%s\", ss_lang_texto_decimal_(");
             r.empujar(valor);
             r.empujar("))");
             return r;
         }
-        if t == "bool" {
+        if t.nombre == "bool" {
             r.empujar("\"%s\", (");
             r.empujar(valor);
             r.empujar(") ? \"true\" : \"false\")");
             return r;
         }
-        if !es_entero(t) { return no_se(); }
+        if !es_entero(T.escribir_tipo(t)) { return no_se(); }
         // Un ancho fijo se ensancha al mayor para imprimirlo: un formato
         // por signo y no nueve.
-        if empieza_con(t, "u") {
+        if empieza_con(t.nombre, "u") {
             r.empujar("\"%llu\", (unsigned long long)");
         } else {
             r.empujar("\"%lld\", (long long)");
@@ -1956,8 +1956,8 @@ fn interna_pura_texto(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     // `texto(x)`: el `str` que representa un valor, con las mismas reglas
     // que un hueco de una cadena interpolada.
     if n.hijos.largo() != 1 { return no_se(); }
-    let t = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    if t == "str" || t == "view" {
+    let t = I.tipo_de(tipos, n.hijos[0]);
+    if t.nombre == "str" || t.nombre == "view" {
         let v = como_vista(b, s, n.hijos[0], tipos);
         if es_desconocido(v) { return no_se(); }
         var r = nuevo("ss_lang_texto_view_(");
@@ -1969,9 +1969,9 @@ fn interna_pura_texto(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         r.empujar(")");
         return r;
     }
-    let valor = expresion_c(b, s, n.hijos[0], t, tipos);
+    let valor = expresion_c(b, s, n.hijos[0], T.escribir_tipo(t), tipos);
     if es_desconocido(valor) { return no_se(); }
-    return texto_de(s, vista(valor), vista(t), n.linea);
+    return texto_de(s, vista(valor), T.escribir_tipo(t), n.linea);
 }
 
 fn interna_pura_numeros(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
@@ -1981,8 +1981,8 @@ fn interna_pura_numeros(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     // eso para donde aparece como cualquier otro NaN. Sobre un entero con
     // signo, `absoluto` del minimo no cabe en el tipo: es el unico caso.
     if n.hijos.largo() != 1 { return no_se(); }
-    let crudo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    var t = T.apuntado_si(crudo);
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    var t = T.apuntado_si(T.escribir_tipo(crudo));
     if !es_aritmetico(t) { t = nuevo("f64"); }
     let valor = expresion_c(b, s, n.hijos[0], t, tipos);
     if es_desconocido(valor) { return no_se(); }
@@ -2032,8 +2032,8 @@ fn interna_pura_ordenar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     tipos: &I.Contexto) -> str {
     // `ordenar(xs)`: cada tipo de lista lleva su propia ordenacion generada.
     if n.hijos.largo() != 1 { return no_se(); }
-    let crudo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    let t = T.apuntado_si(crudo);
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    let t = T.apuntado_si(T.escribir_tipo(crudo));
     if !T.es_lista(t) { return no_se(); }
     let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
     if es_desconocido(donde) { return no_se(); }
@@ -2141,8 +2141,8 @@ fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         r.empujar(")");
         return r;
     }
-    let t = T.escribir_tipo(I.tipo_de(tipos, n));
-    if t == "str" {
+    let t = I.tipo_de(tipos, n);
+    if t.nombre == "str" {
         let clase = n.clase;
         if clase == Clase.Variable || clase == Clase.Campo
         || clase == Clase.Indice {
@@ -2171,11 +2171,11 @@ fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         r.empujar(")");
         return r;
     }
-    if t == "view" { return expresion_c(b, s, n, "view", tipos); }
+    if t.nombre == "view" { return expresion_c(b, s, n, "view", tipos); }
     // Un `&str` ya es el puntero que necesita `ss_view`: en C es un
     // `const SafeString *`, y `direccion_del_sitio` lo devuelve tal cual
     // cuando el nombre ya es puntero. Antes caia aqui al `no_se()`.
-    if T.es_referencia(t) && T.apuntado(t) == "str" {
+    if T.es_referencia(T.escribir_tipo(t)) && T.apuntado(T.escribir_tipo(t)) == "str" {
         let donde = direccion_del_sitio(b, s, n, tipos);
         if es_desconocido(donde) { return no_se(); }
         var r = nuevo("ss_view(");
@@ -2555,8 +2555,8 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
         // Donde se pide una vista, un `str` se lee prestandolo: escribir
         // `vista(s)` no le aportaria nada al compilador.
         if esperado == "view" {
-            let suyo = T.escribir_tipo(I.tipo_de(tipos, h));
-            if suyo == "str" {
+            let suyo = I.tipo_de(tipos, h);
+            if suyo.nombre == "str" {
                 let arg = como_vista(b, s, h, tipos);
                 if es_desconocido(arg) {
                     let _m = cerrar_marco(b);
@@ -2570,7 +2570,7 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
             // Una capa aislada puede conocer la firma pero no los campos de
             // un struct importado. Emitir el campo como si ya fuera `view`
             // seria inventar C; se declara fuera de cobertura con `?`.
-            if suyo.largo() == 0 && (h.clase == Clase.Campo
+            if !T.conocido(suyo) && (h.clase == Clase.Campo
                 || h.clase == Clase.Indice) {
                 let _m = cerrar_marco(b);
                 return no_se();
@@ -2670,8 +2670,8 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         var ligaduras: mapa<str, str> = [];
         var k = 0;
         while k < firmados.largo() && k < n.hijos.largo() {
-            let dado = T.escribir_tipo(I.tipo_de(tipos, n.hijos[k]));
-            let limpio = T.apuntado_si(dado);
+            let dado = I.tipo_de(tipos, n.hijos[k]);
+            let limpio = T.apuntado_si(T.escribir_tipo(dado));
             I.unificar(firmados[k], limpio, sueltos, ligaduras);
             k = k + 1;
         }
@@ -2720,11 +2720,11 @@ fn entrega_suelta(punteros: &mapa<str, usize>, n: &P.Nodo,
     tipos: &I.Contexto) -> bool {
     if n.clase != Clase.Variable { return false; }
     if tiene(punteros, n.texto) { return false; }
-    let t = T.escribir_tipo(I.tipo_de(tipos, n));
+    let t = I.tipo_de(tipos, n);
     // Un struct que posee se mueve igual que un `str`: si solo se miraran
     // las colecciones, pasar un `Nodo` a quien se lo queda no pediria
     // bandera y se soltaria dos veces.
-    return I.posee_con_formas(tipos, t);
+    return I.posee_con_formas(tipos, T.escribir_tipo(t));
 }
 
 // ------------------------------------------------------------------
@@ -2914,8 +2914,8 @@ fn movidas_hondo_en(punteros: &mapa<str, usize>, bloque: &P.Nodo,
         let es_para = st.clase == Clase.Para && st.hijos.largo() == 2;
         if es_para {
             I.abrir(tipos);
-            let suyo = T.escribir_tipo(I.tipo_de(tipos, st.hijos[0]));
-            let sobre = T.apuntado_si(suyo);
+            let suyo = I.tipo_de(tipos, st.hijos[0]);
+            let sobre = T.apuntado_si(T.escribir_tipo(suyo));
             let uno = primer_nombre(st.texto);
             let dos = segundo_nombre(st.texto);
             if T.es_mapa(sobre) {
@@ -4399,8 +4399,8 @@ fn para_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     // no, que se calcula una sola vez y eso pide un temporal que soltar
     // al final.
     let que = n.hijos[0].clase;
-    let suyo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    let sobre = T.apuntado_si(suyo);
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    let sobre = T.apuntado_si(T.escribir_tipo(suyo));
     let es_mapa_ = T.es_mapa(sobre);
     let es_arreglo_ = T.es_arreglo(sobre);
     if !T.es_lista(sobre) && !es_mapa_ && !es_arreglo_ { return false; }
@@ -4542,9 +4542,9 @@ fn para_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
 fn para_rango_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     retorno: view, falible: bool) -> bool {
     if n.hijos[0].hijos.largo() != 2 { return false; }
-    let suyo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    if !T.es_rango(suyo) { return false; }
-    let t = T.elemento(suyo);
+    let suyo = I.tipo_de(tipos, n.hijos[0]);
+    if suyo.forma != T.Forma.Rango { return false; }
+    let t = T.elemento(T.escribir_tipo(suyo));
     let tc = tipo_c(t);
     let desde = extremo_c(b, s, n.hijos[0].hijos[0], t, tipos);
     if es_desconocido(desde) { return false; }
@@ -4830,8 +4830,8 @@ fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     if n.clase != Clase.Llamada { return false; }
     if n.texto != "anadir" { return false; }
     if n.hijos.largo() != 2 { return false; }
-    let suya = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    let sobre = T.apuntado_si(suya);
+    let suya = I.tipo_de(tipos, n.hijos[0]);
+    let sobre = T.apuntado_si(T.escribir_tipo(suya));
     if !T.es_lista(sobre) { return false; }
     let elem = T.elemento(sobre);
     // Meter una variable con duenio en una lista la mueve: la lista se la
@@ -4963,8 +4963,8 @@ fn ruta_de_campo_c(n: &P.Nodo) -> str {
 fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     retorno: view, falible: bool, destino: view) -> bool {
     if n.hijos.largo() < 2 { return false; }
-    let crudo = T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]));
-    let apuntado = T.apuntado_si(crudo);
+    let crudo = I.tipo_de(tipos, n.hijos[0]);
+    let apuntado = T.apuntado_si(T.escribir_tipo(crudo));
     let base = I.sin_modulo(apuntado);
     if !tiene(tipos.variantes, base) { return false; }
     let sitio = sitio_c(b, s, n.hijos[0], tipos);

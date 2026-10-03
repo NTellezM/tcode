@@ -765,8 +765,8 @@ fn vistas_en_sentencia(st: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
         if t == "view" { prestar_si_str(st.hijos[0], tipos, cambio); }
     }
     if clase == Clase.Asignacion && st.hijos.largo() == 2 {
-        let destino = T.escribir_tipo(I.tipo_de(tipos, st.hijos[0]));
-        if destino == "view" { prestar_si_str(st.hijos[1], tipos, cambio); }
+        let destino = I.tipo_de(tipos, st.hijos[0]);
+        if destino.nombre == "view" { prestar_si_str(st.hijos[1], tipos, cambio); }
     }
     if clase == Clase.Retorno && st.hijos.largo() == 1 && retorno == "view" {
         prestar_si_str(st.hijos[0], tipos, cambio);
@@ -811,8 +811,8 @@ fn vistas_en_hijo(h: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
 }
 
 fn declarar_de_para(st: &P.Nodo, tipos: mut I.Contexto) {
-    let suyo = T.escribir_tipo(I.tipo_de(tipos, st.hijos[0]));
-    let sobre = T.apuntado_si(suyo);
+    let suyo = I.tipo_de(tipos, st.hijos[0]);
+    let sobre = T.apuntado_si(T.escribir_tipo(suyo));
     let uno = G.primer_nombre(st.texto);
     let dos = G.segundo_nombre(st.texto);
     if T.es_rango(sobre) {
@@ -832,8 +832,8 @@ fn declarar_de_para(st: &P.Nodo, tipos: mut I.Contexto) {
 // Si `n` es un `str` con nombre, pasa a ser `vista(n)`.
 fn prestar_si_str(n: mut P.Nodo, tipos: &I.Contexto, cambio: mut bool) {
     if !P.es_lugar(n) { return; }
-    let t = T.escribir_tipo(I.tipo_de(tipos, n));
-    let sin = T.apuntado_si(t);
+    let t = I.tipo_de(tipos, n);
+    let sin = T.apuntado_si(T.escribir_tipo(t));
     if sin != "str" { return; }
     var envuelto = P.rama(Clase.Llamada, n.linea);
     envuelto.texto.empujar("vista");
