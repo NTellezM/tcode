@@ -84,6 +84,32 @@ compilador mismo señala cada sitio que deja de compilar.
    y el punto fijo verdes, y se commitea sola. Un compilador a medio migrar
    es peor que el de hoy.
 
+## Aparte: los nombres de tipo son globales
+
+No es el refactor de arriba, pero cae en el mismo viaje y conviene tenerlo
+escrito. Hoy los **tipos** (struct y enum, genéricos o no) tienen nombre
+**global**: `tcodec` y el oráculo de Python rechazan dos módulos que declaren
+el mismo —«no admite un struct/enum repetido entre módulos»—. Las
+**funciones**, en cambio, se resuelven por archivo y se manglean al chocar.
+
+Lo destapó `tc-config` al juntar `std/json` y `std/toml`: los dos querían un
+`Valor`, que es el nombre natural del tipo de un dato, y cada biblioteca
+querrá el suyo. Rodeado renombrando el de TOML a `ValorToml`.
+
+El arreglo, en los dos compiladores:
+
+1. **Cargador**: no rechazar; guardar cada tipo con su módulo y un nombre
+   interno único (`modulo__Tipo`) **solo cuando choca**, como se hace ya con
+   las funciones.
+2. **Resolución**: `Modulo.Enum.Variante` y `Modulo.Struct { ... }` apuntan al
+   tipo de ese módulo; la forma a secas, al propio o al único importado.
+3. **C**: el tag del enum (`etiqueta`, hoy `SS_VALOR_TEXTO`) y el nombre del
+   struct usan el nombre interno único, no el escrito.
+4. **Espejo en Python**: `modulos.py` (quién declara qué), `comprobador.py`
+   (formas) y `generador.py` (tags).
+
+Como el refactor de arriba, es post-1.0: toca los tipos, que están congelados.
+
 ## Criterio de entrada
 
 Arrancar **después** de cortar el 1.0 (cuando la congelación pase y esté la
