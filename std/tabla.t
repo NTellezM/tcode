@@ -8,11 +8,11 @@
 
 usar "std/formato" como f;
 
-// Una linea de `veces` guiones, para separar la cabecera.
-fn guiones(veces: usize) -> str {
+// `t` repetido `veces` veces.
+fn repetir(t: view, veces: usize) -> str {
     var s = vacio();
     var i = 0;
-    while i < veces { empujar(s, "-"); i = i + 1; }
+    while i < veces { empujar(s, t); i = i + 1; }
     return s;
 }
 
@@ -29,7 +29,7 @@ fn dibujar(cabecera: &lista<str>, filas: &lista<lista<str>>) -> str {
         var i = 0;
         while i < largo(anchos) {
             if i > 0 { empujar(salida, "  "); }
-            empujar(salida, guiones(anchos[i]));
+            empujar(salida, repetir("-", anchos[i]));
             i = i + 1;
         }
         empujar(salida, "\n");

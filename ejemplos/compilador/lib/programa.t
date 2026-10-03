@@ -373,7 +373,7 @@ fn preparar(ruta: view, tipos: mut I.Contexto) -> P.Nodo ! {
     var error = vacio();
     let ninguno: mapa<str, usize> = [];
     var leidos = P.leidos();
-    return try preparar_con_error(ruta, tipos, error, ninguno, ninguno, leidos);
+    return try preparar_con_error(ruta, tipos, error, ninguno, ninguno, leidos, true);
 }
 
 // Lo mismo, y si el archivo no se puede leer como Tcode, `error` dice por que
@@ -435,7 +435,7 @@ fn forma_sin_alias(texto: view) -> str {
 
 fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
     previos_st: &mapa<str, usize>, previos_en: &mapa<str, usize>,
-    leidos: mut P.Leidos) -> P.Nodo ! {
+    leidos: mut P.Leidos, transitivo: bool) -> P.Nodo ! {
     let fuente = try leer_archivo(ruta);
     let tokens = try tokens_de(fuente, ruta, error);
     var nombres = P.visibles_con(ruta, tokens, "struct", leidos);
@@ -445,6 +445,11 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
     // Lo que traen los modulos, antes de nada: los tokens pasan a ser del
     // `Estado` en cuanto se construye.
     var usados = P.modulos_usados_con(ruta, tokens, leidos);
+    // Para manglear: las herramientas quieren ver tambien lo que llega de
+    // segunda mano, como el cargador completo. La carga de firmas —`usados`—
+    // sigue siendo la directa.
+    var extra: lista<P.Usado> = [];
+    if transitivo { extra = P.modulos_usados_transitivos(ruta, tokens, leidos); }
 
     var estado = P.estado_de(tokens, ruta, nombres, formas);
     var arbol = P.programa(estado) sino P.rama(Clase.Vacio, 0);
@@ -476,16 +481,24 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
     // aqui es el propio. El cargador lo renombra con el nombre de este
     // archivo delante, y asi se llama en C.
     for d en arbol.hijos {
-        if d.clase == Clase.Fn && tiene(tipos.repetidas, d.texto) {
+        if d.clase == Clase.Fn {
             var suyos: lista<str> = [normalizar(ruta)];
-            for u en usados {
-                if declara_fn(u.arbol, d.texto) { suyos.anadir(normalizar(u.ruta)); }
+            if transitivo {
+                for u en extra {
+                    if declara_fn(u.arbol, d.texto) { suyos.anadir(normalizar(u.ruta)); }
+                }
+            } else {
+                for u en usados {
+                    if declara_fn(u.arbol, d.texto) { suyos.anadir(normalizar(u.ruta)); }
+                }
             }
-            var otro = prefijo_unico(ruta, suyos);
-            otro.empujar("__");
-            otro.empujar(d.texto);
-            poner(tipos.renombradas, vista(d.texto), otro);
-            quitar(tipos.repetidas, d.texto);
+            if suyos.largo() > 1 {
+                var otro = prefijo_unico(ruta, suyos);
+                otro.empujar("__");
+                otro.empujar(d.texto);
+                poner(tipos.renombradas, vista(d.texto), otro);
+                quitar(tipos.repetidas, d.texto);
+            }
         }
     }
     vistas_implicitas(arbol, tipos);

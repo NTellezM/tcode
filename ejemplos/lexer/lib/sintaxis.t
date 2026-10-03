@@ -1676,6 +1676,60 @@ fn modulos_usados_con(ruta: view, toks: &lista<Token>, l: mut Leidos) -> lista<U
     return salida;
 }
 
+// Igual que `modulos_usados_con`, pero con el cierre transitivo: cada `usar`
+// trae tambien lo que ese modulo usa, como el cargador completo. `preparar`
+// lo usa para manglear una colision de segunda mano igual que la compilacion.
+fn modulos_usados_transitivos(ruta: view, toks: &lista<Token>, l: mut Leidos) -> lista<Usado> {
+    var salida: lista<Usado> = [];
+    var vistos: mapa<str, usize> = [];
+    poner(vistos, nuevo(ruta), 1);
+    recoger_usados(ruta, toks, l, vistos, salida);
+    return salida;
+}
+
+// Lo que `ruta` usa, y una vuelta mas lo que cada uno usa. `vistos` evita
+// recorrer dos veces el mismo modulo y corta los ciclos.
+fn recoger_usados(ruta: view, toks: &lista<Token>, l: mut Leidos,
+    vistos: mut mapa<str, usize>, salida: mut lista<Usado>) {
+    let dir = carpeta(ruta);
+    var i = 0;
+    while i + 1 < toks.largo() {
+        if toks[i].valor == "usar" {
+            if toks[i + 1].tipo == "cadena" {
+                let pedido = nuevo(toks[i + 1].valor);
+                var alias = vacio();
+                if i + 3 < toks.largo() {
+                    if toks[i + 2].valor == "como" {
+                        alias = nuevo(toks[i + 3].valor);
+                    }
+                }
+                for c en candidatos_de(dir, pedido, l.raiz) {
+                    let k = leido(c, l);
+                    if k >= l.tokens.largo() { continue; }
+                    if l.tokens[k].largo() == 0 { break; }
+                    if !l.con_arbol[k] {
+                        let otros = copiar(l.tokens[k]);
+                        let nombres = visibles_con(c, otros, "struct", l);
+                        let formas = visibles_con(c, otros, "enum", l);
+                        var e = estado_de(otros, c, nombres, formas);
+                        l.arboles[k] = programa(e) sino rama(Clase.Programa, 1);
+                        l.con_arbol[k] = true;
+                    }
+                    anadir(salida, Usado { alias: copiar(alias),
+                            ruta: copiar(c), arbol: copiar(l.arboles[k]) });
+                    if !tiene(vistos, c) {
+                        poner(vistos, copiar(c), 1);
+                        let otros = copiar(l.tokens[k]);
+                        recoger_usados(c, otros, l, vistos, salida);
+                    }
+                    break;
+                }
+            }
+        }
+        i = i + 1;
+    }
+}
+
 fn structs_visibles(ruta: view, toks: &lista<Token>) -> mapa<str, usize> {
     return visibles(ruta, toks, "struct");
 }

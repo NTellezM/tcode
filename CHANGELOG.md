@@ -112,6 +112,12 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   bucle si es un temporal. Con esto el arreglo de la procedencia queda
   completo: se acepta la vista de un parametro prestado y se rechaza la de un
   temporal. Prueba de regresion en RECHAZO.
+- Las capas de prueba (`firmas`, `cuerpos`) no mangleaban una colision de
+  nombres transitiva: si un modulo llega a otro que, de segunda mano, declara
+  el mismo nombre, `tcodec` lo renombraba (`tabla__repetir`) pero la capa de
+  prueba no. `preparar` ahora recoge el cierre transitivo de modulos —solo
+  para el mangleo, sin tocar la carga de firmas—, y las capas coinciden con el
+  compilador completo. Con eso `std/tabla` recupera su `repetir`.
 - `tcode/generador.py`: en la capa aislada —sin los locales declarados— un
   operando desconocido se inventaba como `usize` en vez de respetar el tipo
   esperado, y `return local * local` salia `usize` y no `i64`. Ahora un

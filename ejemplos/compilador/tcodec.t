@@ -3454,7 +3454,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
         var tipos = I.contexto();
         var error_m = vacio();
         let arbol = F.preparar_con_error(vista(m), tipos, error_m, previos_st,
-            previos_en, leidos) sino P.rama(Clase.Vacio, 0);
+            previos_en, leidos, false) sino P.rama(Clase.Vacio, 0);
         if error_m.largo() > 0 {
             imprimir_error($"error: {error_m}\n");
             return programa_no_leido();
