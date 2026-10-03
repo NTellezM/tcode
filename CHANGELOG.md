@@ -46,6 +46,9 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   (`--bandera`, `--opcion=valor`, y los sueltos). `programas/json.t` ahora las
   usa, asi que el oraculo de ida y vuelta contra el `json` de Python las
   ejercita (280 casos).
+- `std/csv` y `std/azar`: dos mas. `csv` lee y escribe CSV (comillas, escapes
+  y saltos de linea); `azar` da un entero entre dos, un indice valido, y baraja
+  con Fisher-Yates. Igual que las anteriores, en forma libre.
 
 ### Corregido
 
