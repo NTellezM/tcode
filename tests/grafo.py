@@ -35,6 +35,7 @@ DIRS = [
 
 SALIDA = os.path.join(RAIZ, "docs", "grafo-llamadas.md")
 SALIDA_FUNCIONES = os.path.join(RAIZ, "docs", "grafo-funciones.md")
+SALIDA_INDICE = os.path.join(RAIZ, "docs", "llamadas.md")
 
 # Los modulos de std que el compilador importa sin calificar: sus funciones
 # son las que una llamada sin calificar puede traer.
@@ -147,11 +148,11 @@ def funciones_de(archivo):
     return defs
 
 
-def grafo_funciones():
-    """Aristas entre funciones de distintos archivos.
+def llamadas():
+    """Todas las llamadas: `(archivo, funcion, archivo_del_callee, callee)`.
 
-    Devuelve un conjunto de `(archivo, funcion, archivo, funcion)`. Las
-    llamadas dentro del mismo archivo no salen: son la madeja interna."""
+    `archivo_del_callee` es `None` si es del lenguaje (builtin), el mismo
+    archivo si es local, o el modulo de std/calificado."""
     comps = archivos()
     locales = {a: funciones_de(a) for a in comps}
     std_de = {}
@@ -159,7 +160,7 @@ def grafo_funciones():
         for fn in funciones_de(s):
             std_de.setdefault(fn, []).append(s)
 
-    aristas = set()
+    todas = []
     for a in comps:
         toks = tokenizar(leer_fuente(os.path.join(RAIZ, a)), a)
 
@@ -210,17 +211,70 @@ def grafo_funciones():
                         # calificada: `alias.func(...)`
                         cabeza = toks[i - 3].valor
                         if cabeza in alias:
-                            aristas.add((a, actual, alias[cabeza],
-                                         toks[i - 1].valor))
+                            todas.append((a, actual, alias[cabeza],
+                                          toks[i - 1].valor))
                     elif i >= 1 and toks[i - 1].tipo == "ident":
                         # sin calificar: local, de std, o del lenguaje
                         nombre = toks[i - 1].valor
-                        if nombre in std_de:
+                        if nombre in locales[a]:
+                            todas.append((a, actual, a, nombre))
+                        elif nombre in std_de:
                             for s in std_de[nombre]:
-                                aristas.add((a, actual, s, nombre))
+                                todas.append((a, actual, s, nombre))
+                        else:
+                            todas.append((a, actual, None, nombre))
             i += 1
 
-    return aristas
+    return todas
+
+
+def grafo_funciones():
+    """Aristas entre funciones de distintos archivos (de `llamadas()`)."""
+    return {(a, fa, b, fb) for (a, fa, b, fb) in llamadas()
+            if b is not None and b != a}
+
+
+def etiqueta_corta(rel):
+    if rel.startswith("std/"):
+        return rel[:-2]
+    return os.path.basename(rel)
+
+
+def indice(todas):
+    """`{(archivo, funcion): {(archivo_llamante, funcion_llamante)}}`.
+
+    Sin las del lenguaje: no se cambian desde aqui."""
+    de = {}
+    for ca, cf, b, fb in todas:
+        if b is None:
+            continue
+        de.setdefault((b, fb), set()).add((ca, cf))
+    return de
+
+
+def contenido_indice(de):
+    por_archivo = {}
+    for b, fb in de:
+        por_archivo.setdefault(b, []).append(fb)
+
+    lineas = [
+        "# Índice de llamadas del compilador\n",
+        "\n",
+        "Regenerado por `make grafo` (`tests/grafo.py`); no se edita a mano.\n",
+        "Para cada función, quién la llama: `nombre (archivo)`, con el archivo\n",
+        "de la que llama. Las funciones del lenguaje (`copiar`, `igual`,\n",
+        "`largo`...) no aparecen porque no se cambian desde aquí.\n",
+        "\n",
+    ]
+    for b in sorted(por_archivo):
+        lineas.append(f"## {etiqueta(b)}\n")
+        for fb in sorted(por_archivo[b]):
+            llamantes = sorted(de[(b, fb)])
+            lista = ", ".join(f"`{cf}` ({etiqueta_corta(ca)})"
+                              for ca, cf in llamantes)
+            lineas.append(f"- `{fb}` ← {lista}\n")
+        lineas.append("\n")
+    return "".join(lineas)
 
 
 def nodo_fn(archivo, fn):
@@ -282,10 +336,13 @@ def contenido_funciones(aristas):
 
 def principal():
     red = grafo()
-    aristas = grafo_funciones()
+    todas = llamadas()
+    aristas = {(a, fa, b, fb) for (a, fa, b, fb) in todas
+               if b is not None and b != a}
     textos = {
         SALIDA: contenido(red),
         SALIDA_FUNCIONES: contenido_funciones(aristas),
+        SALIDA_INDICE: contenido_indice(indice(todas)),
     }
 
     if "--comprobar" in sys.argv:
@@ -310,8 +367,10 @@ def principal():
             f.write(texto)
     n_flechas = sum(len(v) for v in red.values())
     print(f"escrito {os.path.relpath(SALIDA, RAIZ)} "
-          f"({len(red)} archivos, {n_flechas} flechas) y "
-          f"{os.path.relpath(SALIDA_FUNCIONES, RAIZ)} ({len(aristas)} aristas)")
+          f"({len(red)} archivos, {n_flechas} flechas), "
+          f"{os.path.relpath(SALIDA_FUNCIONES, RAIZ)} ({len(aristas)} aristas) "
+          f"y {os.path.relpath(SALIDA_INDICE, RAIZ)} "
+          f"({len(indice(todas))} funciones)")
 
 
 if __name__ == "__main__":
