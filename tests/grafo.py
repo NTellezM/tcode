@@ -20,9 +20,118 @@ import os
 import sys
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, RAIZ)
 
-from tcode.lexer import leer_fuente, tokenizar
+# Las palabras reservadas, igual que en el lexer del compilador: un
+# identificador que sea una de estas es `palabra`, no `ident`.
+PALABRAS = {
+    "fn", "let", "var", "mut", "if", "else", "while", "return",
+    "true", "false", "str", "view", "bool", "lista", "struct",
+    "usar", "try", "sino", "falla", "mapa", "enum", "match", "externo",
+    "for", "en", "break", "continue",
+    "u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64", "f32", "f64",
+}
+
+
+class _Token:
+    __slots__ = ("tipo", "valor")
+
+    def __init__(self, tipo, valor):
+        self.tipo = tipo
+        self.valor = valor
+
+
+def leer(ruta):
+    with open(ruta, encoding="utf-8") as f:
+        return f.read()
+
+
+def tokenizar(fuente):
+    """Un lexer minimo para el grafo: `palabra`, `ident`, `cadena`,
+    `interpolada`, `entero` y `simbolo`. Salta comentarios y trata las
+    cadenas (normales e interpoladas) como un solo token, asi que un
+    `I.algo` dentro de un mensaje no se cuenta como llamada."""
+    toks = []
+    i = 0
+    n = len(fuente)
+    while i < n:
+        c = fuente[i]
+        if c in " \t\r\n":
+            i += 1
+            continue
+        if fuente.startswith("//", i):
+            while i < n and fuente[i] != "\n":
+                i += 1
+            continue
+        if fuente.startswith("/*", i):
+            fin = fuente.find("*/", i + 2)
+            i = n if fin < 0 else fin + 2
+            continue
+        if c == '"':
+            inicio = i
+            i += 1
+            while i < n:
+                if fuente[i] == "\\":
+                    i += 2
+                    continue
+                if fuente[i] == '"':
+                    i += 1
+                    break
+                i += 1
+            toks.append(_Token("cadena", fuente[inicio + 1:i - 1]))
+            continue
+        if c == "$" and i + 1 < n and fuente[i + 1] == '"':
+            i += 2
+            prof = 0
+            while i < n:
+                if fuente[i] == "\\":
+                    i += 2
+                    continue
+                if fuente[i] == '"':
+                    if prof == 0:
+                        i += 1
+                        break
+                    i += 1
+                    while i < n:  # cadena dentro de la interpolacion
+                        if fuente[i] == "\\":
+                            i += 2
+                            continue
+                        if fuente[i] == '"':
+                            i += 1
+                            break
+                        i += 1
+                    continue
+                if fuente[i] == "{":
+                    if i + 1 < n and fuente[i + 1] == "{":
+                        i += 2  # {{ es una llave literal
+                        continue
+                    prof += 1
+                elif fuente[i] == "}":
+                    if i + 1 < n and fuente[i + 1] == "}":
+                        i += 2  # }} es una llave literal
+                        continue
+                    prof -= 1
+                i += 1
+            toks.append(_Token("interpolada", ""))
+            continue
+        if c.isalpha() or c == "_":
+            j = i
+            while j < n and (fuente[j].isalnum() or fuente[j] == "_"):
+                j += 1
+            palabra = fuente[i:j]
+            toks.append(_Token("palabra" if palabra in PALABRAS else "ident",
+                               palabra))
+            i = j
+            continue
+        if c.isdigit():
+            j = i
+            while j < n and (fuente[j].isalnum() or fuente[j] in "._"):
+                j += 1
+            toks.append(_Token("entero", fuente[i:j]))
+            i = j
+            continue
+        toks.append(_Token("simbolo", c))
+        i += 1
+    return toks
 
 # Los directorios del compilador. De `std` no se listan todos: solo se dibujan
 # los modulos que el compilador importa, como hojas.
@@ -92,7 +201,7 @@ def grafo():
     salidas = {a: set() for a in nodos}
 
     for a in sorted(nodos):
-        toks = tokenizar(leer_fuente(os.path.join(RAIZ, a)), a)
+        toks = tokenizar(leer(os.path.join(RAIZ, a)))
 
         # Primero los `usar`: alias -> archivo, y las hojas de std.
         alias = {}
@@ -134,7 +243,7 @@ def grafo():
 
 def funciones_de(archivo):
     """Los nombres de las funciones que define `archivo`."""
-    toks = tokenizar(leer_fuente(os.path.join(RAIZ, archivo)), archivo)
+    toks = tokenizar(leer(os.path.join(RAIZ, archivo)))
     defs = set()
     for i in range(len(toks)):
         t = toks[i]
@@ -162,7 +271,7 @@ def llamadas():
 
     todas = []
     for a in comps:
-        toks = tokenizar(leer_fuente(os.path.join(RAIZ, a)), a)
+        toks = tokenizar(leer(os.path.join(RAIZ, a)))
 
         # los alias de los `usar`, igual que en grafo()
         alias = {}
