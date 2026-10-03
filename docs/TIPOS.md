@@ -43,6 +43,16 @@ fuente se lee (`leer_tipo`) y donde el C se escribe (`escribir_tipo`).
 `Mundo` y `Contexto` guardan `Tipo`, no `str`. Ningún `empieza_con(t, "&")`
 ni `rebanar` de un tipo fuera de `tipos.t`.
 
+**El almacén del camino caliente es la excepción.** Las firmas de función
+(`Param.tipo`, `Funcion.retorno`) y la tabla de símbolos del comprobador
+(`Simbolo.tipo`) se quedan en `str`: se leen en cada llamada y en cada
+referencia a variable, y `Tipo` no es copiable (lleva `lista<Tipo>`), así que
+guardarlo ahí obligaría a una copia profunda en cada lectura. Ahí la frontera
+`str` es legítima por rendimiento: se decide con `forma_de` (que no reserva)
+y se llama `leer_tipo` solo cuando hace falta el árbol, que es la regla del
+riesgo 1. El registro global (`st_tipos`, `en_formas`, `anotados`) sí guarda
+`Tipo`.
+
 ## Las etapas (cada una, C idéntico)
 
 La garantía de que no se rompe nada es la misma que ha funcionado todo el
