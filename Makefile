@@ -108,17 +108,16 @@ paquete:
 probar-paquete:
 	@$(PY) tests/paquete.py --probar
 
-# La version vive en tres sitios, y la suite (SALIDA) exige que digan lo
-# mismo: `VERSION`, lo que imprime `tcodec --version` y el compilador de
-# Python. Cambiarla cambia el C de tcodec, asi que la semilla se pone al dia.
+# La version vive en dos sitios, y la suite (SALIDA) exige que digan lo
+# mismo: `VERSION` y lo que imprime `tcodec --version`. Cambiarla cambia el
+# C de tcodec, asi que la semilla se pone al dia.
 version:
 	@test -n "$(NUEVA)" || { echo "uso: make version NUEVA=1.0.0"; exit 1; }
 	@echo "$(NUEVA)" > VERSION
 	@sed -i 's/imprimir("tcodec [^"]*\\n");/imprimir("tcodec $(NUEVA)\\n");/' \
 	    ejemplos/compilador/tcodec.t
-	@sed -i 's/^VERSION = "[^"]*"$$/VERSION = "$(NUEVA)"/' tcode/cli.py
 	@$(MAKE) -s --no-print-directory tcodec semilla
-	@echo "version $(NUEVA): VERSION, tcodec y tcode/cli.py, y la semilla"
+	@echo "version $(NUEVA): VERSION, tcodec y la semilla"
 
 fuzz:
 	@$(PY) tests/fuzz.py --segundos $(FUZZ_SEGUNDOS)
@@ -218,7 +217,7 @@ limpiar:
 	@grep -rl --include='*.c' 'Generado por el compilador de Tcode' ejemplos bench std 2>/dev/null \
 	    | xargs rm -f
 	@rm -f bench/*_c
-	@rm -rf tcode/__pycache__ tests/__pycache__ .cache
+	@rm -rf tests/__pycache__ .cache
 	@rm -f tcodec
 
 # Sin opciones: hay un estilo y es este.
