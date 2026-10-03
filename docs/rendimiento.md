@@ -59,3 +59,20 @@ de todo el compilador, no un ajuste puntual.
 
 Cada paso se mide con `make bench-comprobar` y se valida con `make check`
 (punto fijo + suite), que es la red de seguridad.
+
+## Progreso de la migración
+
+La unidad de medida fiable es el **perfil** (`gprof`), que cuenta las llamadas
+de forma determinista; el tiempo de pared del `bench` tiene ±3 % de ruido y
+solo sirve para confirmar el efecto acumulado.
+
+| commit | qué se quitó | `ss_copia_Tipo` |
+|---|---|---:|
+| base | — | 1,67 M |
+| `2a94738` | `escribir_de_mapa`: escribir el préstamo sin copiar | 1,39 M |
+| `4bdb8ba` | `escribir_de_mapa_tipos`: lo mismo para `lista<Tipo>` | 1,28 M |
+
+Lo que queda son las **copias profundas del parser** (`preparar_con_error`):
+`ss_copia_lista_str` 1,67 M, `ss_copia_Simbolo` 362 K, `ss_copia_Funcion`
+387 K, `ss_copia_Token` 355 K — copiar tokens, símbolos y firmas al construir
+el AST. Son inherentes al valor por copia del compilador, no un ajuste puntual.
