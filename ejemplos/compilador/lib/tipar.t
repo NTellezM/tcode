@@ -23,7 +23,7 @@ struct Contexto {
     campos: mapa<str, lista<str>>,
     nombres: mapa<str, lista<str>>,
     // Funcion -> lo que devuelve.
-    retornos: mapa<str, str>,
+    retornos: mapa<str, T.Tipo>,
     // Funcion generica -> sus parametros de tipo, y los tipos de sus
     // argumentos. Hacen falta para elegir la copia: `primeras(xs, 8)` con
     // `xs: lista<str>` devuelve `lista<str>`, no `lista<T>`.
@@ -558,7 +558,7 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
         let t = T.apuntado_si(local);
         let de_cierre = funcion_de_cierre(t);
         if de_cierre.largo() > 0 {
-            return nuevo(obtener(c.retornos, de_cierre) sino "");
+            return T.escribir_tipo(T.tipo_de_mapa(c.retornos, de_cierre) sino T.ninguno());
         }
         if T.es_funcion(t) {
             let partes = T.partes_de_funcion(t);
@@ -572,7 +572,7 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
     var clave = nuevo(nombre);
     if tiene(c.retornos, n.texto) { clave = copiar(n.texto); }
     if !tiene(c.retornos, clave) { return vacio(); }
-    let retorno = nuevo(obtener(c.retornos, clave) sino "");
+    let retorno = T.escribir_tipo(T.tipo_de_mapa(c.retornos, clave) sino T.ninguno());
     if !tiene(c.tipo_params, clave) { return retorno; }
 
     // Generica: se eligen los tipos mirando los argumentos, igual que hace
@@ -627,7 +627,7 @@ fn firma_de_funcion(c: &Contexto, nombre: view) -> str {
         i = i + 1;
     }
     t.empujar(")");
-    let retorno = obtener(c.retornos, nombre) sino "";
+    let retorno = T.escribir_tipo(T.tipo_de_mapa(c.retornos, nombre) sino T.ninguno());
     if retorno.largo() > 0 && retorno != "()" {
         t.empujar(" -> ");
         t.empujar(retorno);

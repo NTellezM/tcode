@@ -144,7 +144,7 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
             if tiene(c.retornos, n.texto) {
                 poner(c.repetidas, vista(n.texto), 1);
             }
-            poner(c.retornos, vista(n.texto), retorno);
+            poner(c.retornos, vista(n.texto), T.leer_tipo(retorno));
             poner(c.params, vista(n.texto), tipos_param);
             poner(c.params_marcados, vista(n.texto), marcados);
             if sueltos.largo() > 0 { poner(c.tipo_params, vista(n.texto), sueltos); }
@@ -199,7 +199,7 @@ fn recoger_de_modulo(m: &P.Usado, c: mut I.Contexto) {
 }
 
 fn copiar_firma(de: &I.Contexto, a: mut I.Contexto, suyo: view, como: view) {
-    poner(a.retornos, como, nuevo(obtener(de.retornos, suyo) sino ""));
+    poner(a.retornos, como, T.tipo_de_mapa(de.retornos, suyo) sino T.ninguno());
     let ps = I.lista_de(de.params, suyo) sino [];
     poner(a.params, como, ps);
     let ms = I.lista_de(de.params_marcados, suyo) sino [];

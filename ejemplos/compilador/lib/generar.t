@@ -4681,7 +4681,7 @@ fn tipo_si_va_bien(n: &P.Nodo, tipos: &I.Contexto) -> str {
         // El retorno escrito de una generica puede ser `T`; el tipo de esta
         // llamada ya contiene las ligaduras deducidas de sus argumentos.
         if tiene(tipos.tipo_params, llamado) { return T.escribir_tipo(I.tipo_de(tipos, n)); }
-        return nuevo(obtener(tipos.retornos, llamado) sino "");
+        return T.escribir_tipo(T.tipo_de_mapa(tipos.retornos, llamado) sino T.ninguno());
     }
     // Escribir sale bien o no, sin valor.
     if llamado == "escribir_archivo" { return nuevo("()"); }
@@ -5319,7 +5319,7 @@ fn tipo_suelto(n: &P.Nodo, tipos: &I.Contexto) -> str {
         return tipo_si_va_bien(n.hijos[0], tipos);
     }
     if clase == Clase.Llamada && tiene(tipos.retornos, n.texto) {
-        return nuevo(obtener(tipos.retornos, n.texto) sino "");
+        return T.escribir_tipo(T.tipo_de_mapa(tipos.retornos, n.texto) sino T.ninguno());
     }
     return T.escribir_tipo(I.tipo_de(tipos, n));
 }

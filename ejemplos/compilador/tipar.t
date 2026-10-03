@@ -200,7 +200,7 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
                 for _m en marcados { prestados.anadir(nuevo("&")); }
                 marcados = prestados;
             }
-            poner(c.retornos, vista(n.texto), retorno);
+            poner(c.retornos, vista(n.texto), T.leer_tipo(retorno));
             poner(c.params, vista(n.texto), tipos_param);
             poner(c.params_marcados, vista(n.texto), marcados);
             if sueltos.largo() > 0 {

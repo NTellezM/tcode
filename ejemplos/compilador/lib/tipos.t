@@ -223,6 +223,13 @@ fn conocido(t: &Tipo) -> bool {
     return t.forma != Forma.Nombre || t.nombre.largo() > 0;
 }
 
+// El `Tipo` que guarda un mapa bajo `clave`, ya con duenio: `obtener` presta
+// y `sino` no puede devolver un prestamo, asi que se copia. Los lectores de
+// los mapas de tipos lo usan en vez de `obtener ... sino`.
+fn tipo_de_mapa(m: &mapa<str, Tipo>, clave: view) -> Tipo ! {
+    return copiar(try obtener(m, clave));
+}
+
 // La forma de un tipo escrito, sin leer lo de dentro. Es lo unico que
 // preguntan `posee` y `tipo_existe` antes de bajar, y no reserva nada: leer
 // el arbol entero para eso era la mayor parte de lo que se leian tipos.

@@ -9,6 +9,7 @@
 
 usar "lib/generar.t" como G;
 usar "lib/tipar.t" como I;
+usar "lib/tipos.t" como T;
 usar "../lexer/lib/lexico.t";
 usar "../lexer/lib/sintaxis.t" como P;
 usar "std/texto";
@@ -120,7 +121,7 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
             for _m en marcados { prestados.anadir(nuevo("&")); }
             marcados = prestados;
         }
-        poner(c.retornos, vista(n.texto), retorno);
+        poner(c.retornos, vista(n.texto), T.leer_tipo(retorno));
         poner(c.params, vista(n.texto), tipos_param);
         poner(c.params_marcados, vista(n.texto), marcados);
         if sueltos.largo() > 0 { poner(c.tipo_params, vista(n.texto), sueltos); }
