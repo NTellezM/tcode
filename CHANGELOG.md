@@ -58,6 +58,14 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   `programas/base64.t` ahora la usa y solo le queda el formato de fichero
   (lineas de 76), asi que el oraculo contra el `base64` del sistema la
   ejercita.
+- `std/fecha`: fechas y horas en UTC desde `ahora_ms` —`a_partes`, `a_ms`,
+  `formatear` (ISO 8601), `a_fecha`, `a_hora` y `dia_de_semana`—, con el
+  calendario gregoriano de Howard Hinnant. Comprobado contra `datetime`.
+- `std/toml`: lee TOML —comentarios, tablas `[a.b]`, claves punteadas, texto
+  (con comillas dobles o simples), enteros (con `_`), decimales (con `e`),
+  booleanos y listas, tambien partidas en varias lineas— a un
+  `mapa<str, Valor>` con la ruta entera, y accessors por tipo. Comprobado
+  contra `tomllib`.
 
 ### Corregido
 
