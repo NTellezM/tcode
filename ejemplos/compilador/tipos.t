@@ -75,6 +75,11 @@ fn main() -> usize ! {
     var tipos: lista<str> = [];
     recoger(arbol, campos, tipos);
 
+    var campos_t: mapa<str, lista<T.Tipo>> = [];
+    for k en claves(campos) {
+        poner(campos_t, vista(k), T.leer_tipos(copiar(try obtener(campos, k))));
+    }
+
     // En orden y sin repetir, para que la comparacion sea estable.
     var vistos: mapa<str, usize> = [];
     var unicos: lista<str> = [];
@@ -87,13 +92,13 @@ fn main() -> usize ! {
     ordenar(unicos);
 
     for t en unicos {
-        let duenio = posee_de(campos, vista(t));
+        let leido = T.leer_tipo(t);
+        let duenio = posee_de(campos_t, leido);
         let existe = T.tipo_existe(campos, vista(t));
         imprimir($"{t}\t{duenio}\t{existe}\n");
         // Leido como arbol y vuelto a escribir, el tipo es el mismo texto; y
         // montado de nuevo con sus propias partes, tambien. Si no, la linea
         // de mas hace fallar la comparacion.
-        let leido = T.leer_tipo(t);
         let vuelta = T.escribir_tipo(leido);
         if !igual(vuelta, t) { imprimir($"{t}\tida y vuelta\t{vuelta}\n"); }
         let montado = T.con_partes(t, T.partes(t));
@@ -103,8 +108,9 @@ fn main() -> usize ! {
 }
 
 // Aqui solo hay structs: sin genericas ni enums.
-fn posee_de(campos: &mapa<str, lista<str>>, t: view) -> bool {
-    var nada: mapa<str, lista<str>> = [];
+fn posee_de(campos: &mapa<str, lista<T.Tipo>>, t: &T.Tipo) -> bool {
+    var nada_s: mapa<str, lista<str>> = [];
+    var nada_t: mapa<str, lista<T.Tipo>> = [];
     var vistos: mapa<str, usize> = [];
-    return T.posee_en(t, campos, nada, nada, nada, vistos);
+    return T.posee_en(t, campos, nada_s, nada_s, nada_t, vistos);
 }
