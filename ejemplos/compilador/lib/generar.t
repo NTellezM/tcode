@@ -2256,12 +2256,12 @@ fn cuantos_bytes(crudo: view) -> usize {
 fn reservar_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
     tipos: &I.Contexto) -> str {
     if n.hijos.largo() != 1 { return no_se(); }
-    var t = nuevo(esperado);
-    if !T.es_bloque(esperado) { t = T.escribir_tipo(I.tipo_de(tipos, n)); }
-    if !T.es_bloque(t) { t = nuevo("bloque<usize>"); }
+    var t = T.leer_tipo(esperado);
+    if !T.es_bloque(esperado) { t = I.tipo_de(tipos, n); }
+    if t.forma != T.Forma.Bloque { t = T.leer_tipo("bloque<usize>"); }
     let cuantos = expresion_c(b, s, n.hijos[0], "usize", tipos);
     if es_desconocido(cuantos) { return no_se(); }
-    let m = mangle(t);
+    let m = mangle(T.escribir_tipo(t));
     return $"ss_lang_bloque_nuevo_{m}({cuantos}, \"{s.archivo}\", {n.linea})";
 }
 

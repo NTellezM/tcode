@@ -214,7 +214,7 @@ comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
 Sobre los <!--c:lexer_archivos-->71<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
-**<!--c:tokens-->216.574<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+**<!--c:tokens-->216.580<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -243,7 +243,7 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 `ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.802<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->71<!--/c--> archivos que
-el parser del compilador, y sobre ellos produce <!--c:nodos-->115.194<!--/c--> nodos:
+el parser del compilador, y sobre ellos produce <!--c:nodos-->115.195<!--/c--> nodos:
 
 <!--c:bloque:parser-->
 ```
@@ -356,7 +356,7 @@ error: roto.t:3: se esperaba ';', se encontro ')'
 Y como siete casos no bastan para fiarse de un parser, la suite rompe cada
 archivo del repositorio de varias formas —un token de menos o de más, un
 símbolo fuera de sitio, una cadena sin cerrar, un carácter que no existe— y
-exige el mismo primer error en todos: **<!--c:rotos_iguales-->336<!--/c--> de <!--c:rotos-->336<!--/c-->**. Y el otro lado, que
+exige el mismo primer error en todos: **<!--c:rotos_iguales-->338<!--/c--> de <!--c:rotos-->338<!--/c-->**. Y el otro lado, que
 importa más: **ninguno de los <!--c:correctos-->214<!--/c--> programas correctos** —los del repositorio
 y los de la suite— se rechaza. `tcodec --solo-comprobar` hace sólo esta
 parte.
@@ -817,7 +817,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-4403 casos, 0 fallas
+4405 casos, 0 fallas
 2754 comprobaciones sobre 60 programas, 0 fallas
 ```
 
