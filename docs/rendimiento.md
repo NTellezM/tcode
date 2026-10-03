@@ -66,26 +66,22 @@ La unidad de medida fiable es el **perfil** (`gprof`), que cuenta las llamadas
 de forma determinista; el tiempo de pared del `bench` tiene ±3 % de ruido y
 solo sirve para confirmar el efecto acumulado.
 
-| commit | qué se quitó | `ss_copia_Tipo` |
+| commit | qué se quitó | `ss_clone` |
 |---|---|---:|
-| base | — | 1,67 M |
-| `2a94738` | `escribir_de_mapa`: escribir el préstamo sin copiar | 1,39 M |
-| `4bdb8ba` | `escribir_de_mapa_tipos`: lo mismo para `lista<Tipo>` | 1,28 M |
+| base | — | ~9,9 M |
+| `2a94738` + `4bdb8ba` | `escribir_de_mapa(_tipos)`: escribir el préstamo | ~9,7 M |
+| `92b074b` | `truncar` + rollback de `probar_juego` sin copiar listas | ~8,7 M |
 
-Lo que queda, en dos frentes:
+`92b074b` añade el builtin **`truncar(xs: mut lista<T>, n: usize)`** y lo usa
+en `probar_juego` para deshacer la comprobación especulativa recordando el
+largo de las listas y truncándolas (los mapas siguen copiándose). El perfil:
+`ss_copia_lista_str` 1,67 M → 529 K, `ss_copia_Funcion` 387 K → 8 K. El
+`bench` baja a ~10,8 unidades (base 11,23). Punto fijo byte a byte.
 
-- **La instanciación de genéricas** (`preparar_instancias`) es el mayor foco:
-  `probar_juego` hace un **snapshot + rollback del `Mundo` entero** por cada
-  combinación de tipos —copia `ss_copia_lista_str` 1,67 M, `ss_copia_mapa_str_usize`
-  802 K, `ss_copia_Funcion` 387 K— para deshacer la comprobación especulativa.
-  El arreglo natural (recordar el largo y **recortar** las listas) está
-  **bloqueado**: `lista<T>` es solo-append (no hay `quitar`/`truncar`), así que
-  el rollback exige la copia profunda. Desbloquearlo pide un builtin
-  `truncar(lista, n)` en el runtime y el compilador.
-- **El parser** (`preparar_con_error`) copia `ss_copia_Simbolo` 362 K,
-  `ss_copia_Funcion` 387 K, `ss_copia_Token` 355 K al construir el AST:
-  inherente al valor por copia.
+Lo que queda:
 
-Lo que queda de «ajuste puntual» ya está hecho. El siguiente salto es el
-builtin de recorte de listas (y luego usarlo en `probar_juego`); el resto es
-cambiar la representación (listas por préstamos, o `Tipo`/`Nodo` copiables).
+- **Los mapas** del rollback (`indice`, `st_tipos`, `st_nombres`, `bonitos`…)
+  siguen copiándose: no se pueden truncar. Un `truncar` de mapas sería el
+  siguiente ahorro, ya marginal.
+- **El parser** (`preparar_con_error`) copia `ss_copia_Simbolo` y
+  `ss_copia_Token` al construir el AST: inherente al valor por copia.
