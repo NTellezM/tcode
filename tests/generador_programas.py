@@ -785,11 +785,10 @@ def generar_modulos(semilla):
              "}", "",
              "fn doble(d: &Dato) -> usize { return primero(d) * 2; }"]
 
-    # Un modulo que declara los mismos nombres que `base`: si el `como` no
-    # separara de verdad, esto no compilaria.
-    otro = ["struct Dato { c0: usize }", "",
-            "fn primero(d: &Dato) -> usize { return d.c0 + 1; }", "",
-            f"fn crear() -> Dato {{ return Dato {{ c0: {r.randint(0, 99)} }}; }}"]
+    # Un modulo traido con `como`: se ve que el `como` separa de verdad, con
+    # una funcion propia que se llama calificada. (Los tipos por archivo, dos
+    # structs con el mismo nombre, son post-1.0.)
+    otro = ["fn doble_otro(x: usize) -> usize {", "    return x * 2;", "}"]
 
     # El principal usa los tres: `base` llega por dos caminos y no se puede
     # cargar dos veces, y `otro` llega con nombre propio.
@@ -806,8 +805,7 @@ def generar_modulos(semilla):
     app.append("    var g_ss: lista<str> = [];")
     app.append(f'    anadir(g_ss, nuevo("{g.palabra()}"));')
     app.append('    imprimir($" {cuantas(g_ns)}{cuantas(g_ss)}");')
-    app.append("    let od = o.crear();")
-    app.append('    imprimir($" {o.primero(od)}");')
+    app.append('    imprimir($" {o.doble_otro(primero(d))}");')
     app.append("    let e: str = etiqueta(d);")
     app.append('    imprimir($" {e}");')
     app.append("    let v = try chequear(primero(d));")
