@@ -237,6 +237,13 @@ fn tipo_de_mapa(m: &mapa<str, Tipo>, clave: view) -> Tipo ! {
     return copiar(try obtener(m, clave));
 }
 
+// El `Tipo` escrito, sin copiarlo: `tipo_de_mapa` lo copiaba en profundo y
+// enseguida se volvia a escribir —una copia que no valia la pena—.
+fn escribir_de_mapa(m: &mapa<str, Tipo>, clave: view) -> str ! {
+    let t = try obtener(m, clave);
+    return escribir_tipo(t);
+}
+
 // La lista de `Tipo` que guarda un mapa bajo `clave`, con duenio: la pareja
 // de `tipo_de_mapa` para los campos que llevan varios tipos.
 fn tipos_de_mapa(m: &mapa<str, lista<Tipo>>, clave: view) -> lista<Tipo> ! {

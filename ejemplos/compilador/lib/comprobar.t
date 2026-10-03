@@ -2741,7 +2741,7 @@ fn fijar_literal(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) {
     var antes = nuevo(literal());
     if n.id > 0 {
         let clave = clave_anotada(c, n);
-        antes = T.escribir_tipo(T.tipo_de_mapa(m.anotados[c.modulo], clave) sino T.marcador(literal()));
+        antes = T.escribir_de_mapa(m.anotados[c.modulo], clave) sino T.escribir_tipo(T.marcador(literal()));
     }
     fijar_literal_sin_contar(c, m, n, tipo);
     if igual(antes, literal()) && es_tipo_entero(tipo)
@@ -2754,7 +2754,7 @@ fn fijar_literal_sin_contar(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: vi
     if c.modulo >= m.anotados.largo() { return; }
     if n.id > 0 {
         let clave = clave_anotada(c, n);
-        let actual = T.escribir_tipo(T.tipo_de_mapa(m.anotados[c.modulo], clave) sino T.marcador(literal()));
+        let actual = T.escribir_de_mapa(m.anotados[c.modulo], clave) sino T.escribir_tipo(T.marcador(literal()));
         if !igual(actual, literal()) && !igual(actual, literal_decimal()) { return; }
     }
     if largo(I.literal_de(n)) == 0 { return; }
@@ -2888,7 +2888,7 @@ fn contar_pendientes(c: mut Comprobacion, m: mut Mundo, desde: usize) {
         let clave = clave_anotada(c, n);
         var actual = nuevo(literal());
         if c.modulo < m.anotados.largo() {
-            actual = T.escribir_tipo(T.tipo_de_mapa(m.anotados[c.modulo], clave) sino T.marcador(literal()));
+            actual = T.escribir_de_mapa(m.anotados[c.modulo], clave) sino T.escribir_tipo(T.marcador(literal()));
         }
         if igual(actual, literal()) { contar_escrita(c, m, n, "usize"); }
         c.dueno = dueno_antes;

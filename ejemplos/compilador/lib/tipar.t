@@ -103,7 +103,7 @@ fn buscar(c: &Contexto, nombre: view) -> str {
     while i > 0 {
         i = i - 1;
         if tiene(c.ambitos[i], nombre) {
-            return T.escribir_tipo(T.tipo_de_mapa(c.ambitos[i], nombre) sino T.ninguno());
+            return T.escribir_de_mapa(c.ambitos[i], nombre) sino T.escribir_tipo(T.ninguno());
         }
     }
     return vacio();
@@ -312,7 +312,7 @@ fn tipo_anotado(c: &Contexto, n: &P.Nodo) -> str {
 fn anotado_crudo(c: &Contexto, n: &P.Nodo) -> str {
     if n.id == 0 || c.dueno.largo() == 0 { return vacio(); }
     let clave = $"{c.dueno}#{n.id}";
-    return T.escribir_tipo(T.tipo_de_mapa(c.anotados, clave) sino T.ninguno());
+    return T.escribir_de_mapa(c.anotados, clave) sino T.escribir_tipo(T.ninguno());
 }
 
 fn es_numero(t: view) -> bool {
@@ -558,7 +558,7 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
         let t = T.apuntado_si(local);
         let de_cierre = funcion_de_cierre(t);
         if de_cierre.largo() > 0 {
-            return T.escribir_tipo(T.tipo_de_mapa(c.retornos, de_cierre) sino T.ninguno());
+            return T.escribir_de_mapa(c.retornos, de_cierre) sino T.escribir_tipo(T.ninguno());
         }
         if T.es_funcion(t) {
             let partes = T.partes_de_funcion(t);
@@ -572,7 +572,7 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
     var clave = nuevo(nombre);
     if tiene(c.retornos, n.texto) { clave = copiar(n.texto); }
     if !tiene(c.retornos, clave) { return vacio(); }
-    let retorno = T.escribir_tipo(T.tipo_de_mapa(c.retornos, clave) sino T.ninguno());
+    let retorno = T.escribir_de_mapa(c.retornos, clave) sino T.escribir_tipo(T.ninguno());
     if !tiene(c.tipo_params, clave) { return retorno; }
 
     // Generica: se eligen los tipos mirando los argumentos, igual que hace
@@ -626,7 +626,7 @@ fn firma_de_funcion(c: &Contexto, nombre: view) -> str {
         i = i + 1;
     }
     t.empujar(")");
-    let retorno = T.escribir_tipo(T.tipo_de_mapa(c.retornos, nombre) sino T.ninguno());
+    let retorno = T.escribir_de_mapa(c.retornos, nombre) sino T.escribir_tipo(T.ninguno());
     if retorno.largo() > 0 && retorno != "()" {
         t.empujar(" -> ");
         t.empujar(retorno);

@@ -323,6 +323,7 @@ graph TD
         compilador_lib_tipos__es_rango["es_rango"]
         compilador_lib_tipos__es_referencia["es_referencia"]
         compilador_lib_tipos__es_referencia_mutable["es_referencia_mutable"]
+        compilador_lib_tipos__escribir_de_mapa["escribir_de_mapa"]
         compilador_lib_tipos__escribir_tipo["escribir_tipo"]
         compilador_lib_tipos__escribir_tipos["escribir_tipos"]
         compilador_lib_tipos__forma_de["forma_de"]
@@ -585,9 +586,9 @@ graph TD
     compilador_lib_comprobar__comprobar_programa --> std_texto__contiene
     compilador_lib_comprobar__comprobar_restricciones --> std_texto__empieza_con
     compilador_lib_comprobar__con_signo --> std_texto__empieza_con
+    compilador_lib_comprobar__contar_pendientes --> compilador_lib_tipos__escribir_de_mapa
     compilador_lib_comprobar__contar_pendientes --> compilador_lib_tipos__escribir_tipo
     compilador_lib_comprobar__contar_pendientes --> compilador_lib_tipos__marcador
-    compilador_lib_comprobar__contar_pendientes --> compilador_lib_tipos__tipo_de_mapa
     compilador_lib_comprobar__declarar_patron --> compilador_lib_tipar__tras_el_punto
     compilador_lib_comprobar__declarar_patron --> compilador_lib_tipos__hacer_prestado
     compilador_lib_comprobar__desenvolver --> compilador_lib_tipar__sin_modulo
@@ -613,13 +614,13 @@ graph TD
     compilador_lib_comprobar__es_struct_aplicado --> compilador_lib_tipos__base_de_aplicacion
     compilador_lib_comprobar__es_struct_aplicado --> compilador_lib_tipos__es_aplicacion
     compilador_lib_comprobar__fijar_literal --> compilador_lib_tipar__literal_de
+    compilador_lib_comprobar__fijar_literal --> compilador_lib_tipos__escribir_de_mapa
     compilador_lib_comprobar__fijar_literal --> compilador_lib_tipos__escribir_tipo
     compilador_lib_comprobar__fijar_literal --> compilador_lib_tipos__marcador
-    compilador_lib_comprobar__fijar_literal --> compilador_lib_tipos__tipo_de_mapa
     compilador_lib_comprobar__fijar_literal_sin_contar --> compilador_lib_tipar__literal_de
+    compilador_lib_comprobar__fijar_literal_sin_contar --> compilador_lib_tipos__escribir_de_mapa
     compilador_lib_comprobar__fijar_literal_sin_contar --> compilador_lib_tipos__escribir_tipo
     compilador_lib_comprobar__fijar_literal_sin_contar --> compilador_lib_tipos__marcador
-    compilador_lib_comprobar__fijar_literal_sin_contar --> compilador_lib_tipos__tipo_de_mapa
     compilador_lib_comprobar__firma_valida --> compilador_lib_tipos__sustituir
     compilador_lib_comprobar__formas_de --> compilador_lib_tipos__escribir_tipos
     compilador_lib_comprobar__formas_de --> compilador_lib_tipos__tipos_de_mapa
@@ -1156,13 +1157,13 @@ graph TD
     compilador_lib_generar__tipo_c_prestamo --> compilador_lib_tipos__es_referencia
     compilador_lib_generar__tipo_escrito --> std_texto__recortar
     compilador_lib_generar__tipo_si_va_bien --> compilador_lib_tipar__tipo_de
+    compilador_lib_generar__tipo_si_va_bien --> compilador_lib_tipos__escribir_de_mapa
     compilador_lib_generar__tipo_si_va_bien --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__tipo_si_va_bien --> compilador_lib_tipos__ninguno
-    compilador_lib_generar__tipo_si_va_bien --> compilador_lib_tipos__tipo_de_mapa
     compilador_lib_generar__tipo_suelto --> compilador_lib_tipar__tipo_de
+    compilador_lib_generar__tipo_suelto --> compilador_lib_tipos__escribir_de_mapa
     compilador_lib_generar__tipo_suelto --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__tipo_suelto --> compilador_lib_tipos__ninguno
-    compilador_lib_generar__tipo_suelto --> compilador_lib_tipos__tipo_de_mapa
     compilador_lib_generar__unaria_c --> compilador_lib_tipar__literal_de
     compilador_lib_generar__unaria_c --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__unaria_c --> compilador_lib_tipos__escribir_tipo
@@ -1261,16 +1262,16 @@ graph TD
     compilador_lib_propiedad__se_lo_queda --> compilador_lib_tipos__sustituir
     compilador_lib_propiedad__se_lo_queda --> std_texto__empieza_con
     compilador_lib_propiedad__tiene_duenio --> compilador_lib_tipar__posee_con_formas
+    compilador_lib_tipar__anotado_crudo --> compilador_lib_tipos__escribir_de_mapa
     compilador_lib_tipar__anotado_crudo --> compilador_lib_tipos__escribir_tipo
     compilador_lib_tipar__anotado_crudo --> compilador_lib_tipos__ninguno
-    compilador_lib_tipar__anotado_crudo --> compilador_lib_tipos__tipo_de_mapa
+    compilador_lib_tipar__buscar --> compilador_lib_tipos__escribir_de_mapa
     compilador_lib_tipar__buscar --> compilador_lib_tipos__escribir_tipo
     compilador_lib_tipar__buscar --> compilador_lib_tipos__ninguno
-    compilador_lib_tipar__buscar --> compilador_lib_tipos__tipo_de_mapa
     compilador_lib_tipar__declarar --> compilador_lib_tipos__leer_tipo
+    compilador_lib_tipar__firma_de_funcion --> compilador_lib_tipos__escribir_de_mapa
     compilador_lib_tipar__firma_de_funcion --> compilador_lib_tipos__escribir_tipo
     compilador_lib_tipar__firma_de_funcion --> compilador_lib_tipos__ninguno
-    compilador_lib_tipar__firma_de_funcion --> compilador_lib_tipos__tipo_de_mapa
     compilador_lib_tipar__firma_de_funcion --> compilador_lib_tipos__tipos_de_mapa
     compilador_lib_tipar__funcion_de_cierre --> std_texto__empieza_con
     compilador_lib_tipar__nombre_resuelto --> compilador_lib_tipos__base_de_aplicacion
@@ -1307,6 +1308,7 @@ graph TD
     compilador_lib_tipar__tipo_de_campo --> compilador_lib_tipos__escribir_tipo
     compilador_lib_tipar__tipo_de_llamada --> compilador_lib_tipos__apuntado_si
     compilador_lib_tipar__tipo_de_llamada --> compilador_lib_tipos__es_funcion
+    compilador_lib_tipar__tipo_de_llamada --> compilador_lib_tipos__escribir_de_mapa
     compilador_lib_tipar__tipo_de_llamada --> compilador_lib_tipos__escribir_tipo
     compilador_lib_tipar__tipo_de_llamada --> compilador_lib_tipos__hacer_lista
     compilador_lib_tipar__tipo_de_llamada --> compilador_lib_tipos__hacer_prestado
@@ -1316,7 +1318,6 @@ graph TD
     compilador_lib_tipar__tipo_de_llamada --> compilador_lib_tipos__partes
     compilador_lib_tipar__tipo_de_llamada --> compilador_lib_tipos__partes_de_funcion
     compilador_lib_tipar__tipo_de_llamada --> compilador_lib_tipos__sustituir
-    compilador_lib_tipar__tipo_de_llamada --> compilador_lib_tipos__tipo_de_mapa
     compilador_lib_tipar__tipo_de_llamada --> compilador_lib_tipos__tipos_de_mapa
     compilador_lib_tipar__tipos_de_aplicacion --> compilador_lib_tipos__base_de_aplicacion
     compilador_lib_tipar__tipos_de_aplicacion --> compilador_lib_tipos__escribir_tipo
