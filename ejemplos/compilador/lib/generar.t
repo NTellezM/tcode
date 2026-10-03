@@ -834,10 +834,10 @@ fn literal_lista_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     }
     // `[a, b, c]` de tamaño fijo: un literal compuesto de C, de una vez.
     if !T.es_mapa(esperado) && n.hijos.largo() > 0 {
-        var t = nuevo(esperado);
-        if !T.es_arreglo(esperado) { t = T.escribir_tipo(I.tipo_de(tipos, n)); }
-        if !T.es_arreglo(t) { return no_se(); }
-        let elem = T.elemento(t);
+        var t = T.leer_tipo(esperado);
+        if !T.es_arreglo(esperado) { t = I.tipo_de(tipos, n); }
+        if t.forma != T.Forma.Arreglo { return no_se(); }
+        let elem = T.elemento(T.escribir_tipo(t));
         var piezas = vacio();
         var previos: lista<str> = [];
         abrir_marco(b);
@@ -853,8 +853,8 @@ fn literal_lista_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         }
         let marco_e = cerrar_marco(b);
         escribir_argumentos(marco_e, piezas, previos, ", ");
-        apuntar_arreglo(b, t);
-        let tc = tipo_c(t);
+        apuntar_arreglo(b, T.escribir_tipo(t));
+        let tc = tipo_c(T.escribir_tipo(t));
         let literal = $"({tc}){{{{ {piezas} }}}}";
         if previos.largo() > 0 {
             b.ultima_linea = 0;
