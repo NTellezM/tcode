@@ -49,6 +49,10 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 - `std/csv` y `std/azar`: dos mas. `csv` lee y escribe CSV (comillas, escapes
   y saltos de linea); `azar` da un entero entre dos, un indice valido, y baraja
   con Fisher-Yates. Igual que las anteriores, en forma libre.
+- `std/ini`: lee y escribe INI (`[seccion]`, `clave = valor`, y `;`/`#`),
+  a `mapa<str, mapa<str, str>>`, con `valor`/`valor_o` para consultar. La
+  seccion sin nombre se escribe primero, que si no sus claves caen en la
+  anterior al releer.
 
 ### Corregido
 

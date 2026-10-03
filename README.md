@@ -148,7 +148,7 @@ compilar en cualquier sitio donde haya un compilador de C17.
 | `ejemplos/lexer/lib/` | lexer, parser y el árbol, con la clase de cada nodo como `enum Clase` |
 | `bootstrap/tcodec.c` | la semilla: el C que `tcodec` escribe de sí mismo, con el que se construye |
 | `tcode/` | el compilador de Python, congelado: el oráculo de la suite |
-| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->18<!--/c--> módulos, <!--c:std_lineas-->1.604<!--/c--> líneas |
+| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->19<!--/c--> módulos, <!--c:std_lineas-->1.688<!--/c--> líneas |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
 ### Dos compiladores, una regla
@@ -213,8 +213,8 @@ es esta:
 comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
-Sobre los <!--c:lexer_archivos-->57<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
-**<!--c:tokens-->208.134<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+Sobre los <!--c:lexer_archivos-->58<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
+**<!--c:tokens-->208.692<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -242,8 +242,8 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 
 `ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.748<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
-de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->57<!--/c--> archivos que
-el parser del compilador, y sobre ellos produce <!--c:nodos-->110.845<!--/c--> nodos:
+de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->58<!--/c--> archivos que
+el parser del compilador, y sobre ellos produce <!--c:nodos-->111.078<!--/c--> nodos:
 
 <!--c:bloque:parser-->
 ```
@@ -254,25 +254,25 @@ ejemplos/lexer/parser.t: 79 nodos, hondura 10
 Y dos capas más del comprobador, en `ejemplos/compilador/`:
 
 - `lib/tipos.t` responde las dos preguntas de las que cuelga todo —¿este tipo
-  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **<!--c:tipos_archivos-->57<!--/c--> archivos, <!--c:tipos-->464<!--/c-->
+  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **<!--c:tipos_archivos-->58<!--/c--> archivos, <!--c:tipos-->470<!--/c-->
   tipos**, las mismas respuestas que el comprobador de Python. Es también
   el único sitio que lee y construye tipos: los lee como árbol (`Tipo`, con
   su `Forma` como enum) y los vuelve a escribir, y cada uno de esos tipos
   tiene que dar, leído y escrito, el mismo texto.
 - `lib/tipar.t` dice **de qué tipo es cada variable de cada función**, con
-  llamadas, campos, índices, préstamos y genéricas instanciadas: **<!--c:tipar_archivos-->57<!--/c-->
-  archivos, <!--c:tipar_variables-->6.855<!--/c--> variables**, los mismos tipos.
+  llamadas, campos, índices, préstamos y genéricas instanciadas: **<!--c:tipar_archivos-->58<!--/c-->
+  archivos, <!--c:tipar_variables-->6.887<!--/c--> variables**, los mismos tipos.
 - `lib/propiedad.t` dice **qué le pasa a cada valor con dueño** —se presta,
   se entrega en la línea N, se mueve en la línea N, o se libera al cerrar su
-  bloque—, que es lo único que de verdad separa a Tcode de C: **<!--c:propiedad_archivos-->57<!--/c--> archivos,
-  <!--c:propiedad_variables-->6.855<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
+  bloque—, que es lo único que de verdad separa a Tcode de C: **<!--c:propiedad_archivos-->58<!--/c--> archivos,
+  <!--c:propiedad_variables-->6.887<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
 - `lib/generar.t` es **el generador**: cómo se llama cada tipo en C, cómo
-  queda la firma de cada función —**<!--c:firmas_archivos-->57<!--/c--> archivos, <!--c:firmas-->976<!--/c--> firmas**— y el C de cada
-  expresión que se devuelve: **<!--c:expresiones_iguales-->3.684<!--/c--> de <!--c:expresiones-->3.965<!--/c--> expresiones, carácter por
+  queda la firma de cada función —**<!--c:firmas_archivos-->58<!--/c--> archivos, <!--c:firmas-->982<!--/c--> firmas**— y el C de cada
+  expresión que se devuelve: **<!--c:expresiones_iguales-->3.689<!--/c--> de <!--c:expresiones-->3.970<!--/c--> expresiones, carácter por
   carácter**, las mismas que emite el generador de Python. Lo que aún no
   cubre sale marcado y no se compara; la suite exige un mínimo en vez de
   hacer como que están todas. Y **la función entera** —firma, cuerpo, y los
-  `ss_free` puestos solos donde tocan—: **<!--c:cuerpos-->951<!--/c--> funciones idénticas**, línea por
+  `ss_free` puestos solos donde tocan—: **<!--c:cuerpos-->957<!--/c--> funciones idénticas**, línea por
   línea, normalizando sólo los números de temporal.
 
 Las dos se comparan contra el comprobador de Python en cada ejecución de la
@@ -356,8 +356,8 @@ error: roto.t:3: se esperaba ';', se encontro ')'
 Y como siete casos no bastan para fiarse de un parser, la suite rompe cada
 archivo del repositorio de varias formas —un token de menos o de más, un
 símbolo fuera de sitio, una cadena sin cerrar, un carácter que no existe— y
-exige el mismo primer error en todos: **<!--c:rotos_iguales-->271<!--/c--> de <!--c:rotos-->271<!--/c-->**. Y el otro lado, que
-importa más: **ninguno de los <!--c:correctos-->200<!--/c--> programas correctos** —los del repositorio
+exige el mismo primer error en todos: **<!--c:rotos_iguales-->276<!--/c--> de <!--c:rotos-->276<!--/c-->**. Y el otro lado, que
+importa más: **ninguno de los <!--c:correctos-->201<!--/c--> programas correctos** —los del repositorio
 y los de la suite— se rechaza. `tcodec --solo-comprobar` hace sólo esta
 parte.
 
@@ -489,7 +489,7 @@ $ make formato
 Sin opciones, como `gofmt`: hay un estilo y es este. Pero **no mueve tokens
 de línea** — no decide dónde parte una expresión larga. Por eso no puede
 estropear nada: la salida lexea exactamente a los mismos tokens que la
-entrada, y la suite lo comprueba sobre los <!--c:formato_archivos-->69<!--/c--> `.t` del repositorio, junto con
+entrada, y la suite lo comprueba sobre los <!--c:formato_archivos-->70<!--/c--> `.t` del repositorio, junto con
 que formatear dos veces da lo mismo y que el repositorio ya está formateado.
 
 ## Depurar
@@ -682,7 +682,7 @@ structs (`&T` y `mut T`), `lista<T>` dinámica, `mapa<str, V>` con tabla hash,
 argumentos de la línea de órdenes, `ordenar` y `menor`, salida de error y
 escritura de archivos, `for`/`break`/`continue`, `mapa<str, V>` con `obtener` prestado y `&T` y `&mut T` como tipos, cadenas interpoladas, módulos y fallos como valores.
 
-Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/archivo`, `std/azar`, `std/bytes`, `std/caracter`, `std/cli`, `std/conjunto`, `std/csv`, `std/cuenta`, `std/formato`, `std/iterador`, `std/json`, `std/lista`, `std/mapa`, `std/numero`, `std/par`, `std/prueba`, `std/texto` y `std/vector`<!--/c-->—, <!--c:std_lineas-->1.604<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
+Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/archivo`, `std/azar`, `std/bytes`, `std/caracter`, `std/cli`, `std/conjunto`, `std/csv`, `std/cuenta`, `std/formato`, `std/ini`, `std/iterador`, `std/json`, `std/lista`, `std/mapa`, `std/numero`, `std/par`, `std/prueba`, `std/texto` y `std/vector`<!--/c-->—, <!--c:std_lineas-->1.688<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
 queda una sola función duplicada entre `ejemplos/` y `std/`.
 
 Y **`copiar(x)`**: copia profunda de cualquier valor —número, `str`, struct,
@@ -817,7 +817,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-4139 casos, 0 fallas
+4158 casos, 0 fallas
 2754 comprobaciones sobre 60 programas, 0 fallas
 ```
 
