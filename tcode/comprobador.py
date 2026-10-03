@@ -2160,7 +2160,10 @@ class Comprobador:
             if elem is not None:
                 sim = self.declarar(s, s.variable, elem, False, decl=s)
                 # Se recibe prestado del contenedor: ni se mueve ni se modifica.
+                # Y presta de donde preste el contenedor: de un parametro si
+                # es campo suyo, del propio bucle si es un temporal.
                 sim.prestado = True
+                sim.procedencia = self.procedencia_de(s.coleccion)
                 sim.leida = True
             if tipo_valor is not None and s.valor is not None:
                 sv = self.declarar(s, s.valor, tipo_valor, False, decl=s)
@@ -2168,6 +2171,7 @@ class Comprobador:
                 # Un valor escalar llega por copia; uno duenio, prestado.
                 if self.posee(tipo_valor):
                     sv.prestado = True
+                    sv.procedencia = self.procedencia_de(s.coleccion)
             self.cuerpo_de_bucle(s.cuerpo)
             self.en_condicional -= 1
             self.en_bucle -= 1
@@ -2325,11 +2329,21 @@ class Comprobador:
         if isinstance(e, Campo):
             raiz = self.variable_base(e)
             sim = self.buscar(raiz) if raiz else None
-            if sim is not None and self.presta(self._tipo_simple(e)):
+            if sim is not None:
+                # Un campo de lo que llego prestado es parte de lo prestado:
+                # da igual que el campo en si no preste. La memoria es de
+                # quien presto la raiz.
                 if sim.prestado or es_referencia(sim.tipo):
                     return PARAMETRO
-                if self.es_prestado_st(sim.tipo):
+                if self.presta(self._tipo_simple(e)) and self.es_prestado_st(sim.tipo):
                     return sim.procedencia or LOCAL
+            return LOCAL
+
+        if isinstance(e, Indice):
+            raiz = self.variable_base(e)
+            sim = self.buscar(raiz) if raiz else None
+            if sim is not None and (sim.prestado or es_referencia(sim.tipo)):
+                return PARAMETRO
             return LOCAL
 
         if isinstance(e, Llamada):
@@ -2345,20 +2359,12 @@ class Comprobador:
             # llamo, asi que sobrevive a la funcion igual que un parametro
             # `view`. Solo es local si el duenio es local.
             if n == "vista" and e.args:
-                base = self.variable_base(e.args[0])
-                sim_base = self.buscar(base) if base else None
-                if sim_base is not None and sim_base.prestado:
-                    return PARAMETRO
-                return LOCAL
+                return self._procedencia_de_base(e.args[0])
 
             # La vista que devuelve `obtener` vive dentro del mapa; sobrevive
             # solo si el mapa tambien.
             if n in ("obtener", "obtener_mut") and e.args:
-                base = self.variable_base(e.args[0])
-                sim_base = self.buscar(base) if base else None
-                if sim_base is not None and sim_base.prestado:
-                    return PARAMETRO
-                return LOCAL
+                return self._procedencia_de_base(e.args[0])
 
             if n in ("nuevo", "vacio"):
                 return LOCAL
@@ -2411,11 +2417,23 @@ class Comprobador:
         if isinstance(arg, (Variable, Campo, Indice)):
             t = self.tipo_de_lugar(arg) or ""
             if sin_prestamo(t) == "str":
-                base = self.variable_base(arg)
-                sim_base = self.buscar(base) if base else None
-                return (PARAMETRO if sim_base is not None and sim_base.prestado
-                        else LOCAL)
+                return self._procedencia_de_base(arg)
         return self.procedencia_de(arg)
+
+    def _procedencia_de_base(self, arg):
+        """De donde presta la memoria a la que apunta `arg` visto como
+        contenedor: la de su raiz. Una variable de `for` ya lleva la de su
+        coleccion; un `&T` es la unica prestada sin procedencia, y presta del
+        que llamo."""
+        base = self.variable_base(arg)
+        sim_base = self.buscar(base) if base else None
+        if sim_base is None:
+            return LOCAL
+        if sim_base.procedencia is not None:
+            return sim_base.procedencia
+        if sim_base.prestado:
+            return PARAMETRO   # un `&T`
+        return LOCAL
 
     def _origen_de(self, expr):
         """De que variable duenia proviene una vista, si es que proviene de

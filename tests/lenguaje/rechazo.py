@@ -719,6 +719,13 @@ RECHAZO = [
      ' fn b() -> view { var s: str = nuevo("x"); return a(vista(s)); }',
      "no se puede devolver una vista"),
 
+    ("el elemento de un `for` sobre un temporal no sobrevive al bucle",
+     'fn recortar(v: view) -> view { return rebanar(v, 0, largo(v)); }'
+     ' fn lineas(v: view) -> lista<str> { return [nuevo(v)]; }'
+     ' fn f(texto: view) -> view {'
+     ' for linea en lineas(texto) { return recortar(linea); } return ""; }',
+     "no se puede devolver una vista de `linea`"),
+
     ("el prestamo atraviesa la llamada",
      'fn primero(v: view) -> view { return rebanar(v, 0, 1); }'
      ' fn main() -> usize { var s: str = nuevo("hola");'

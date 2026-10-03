@@ -1367,14 +1367,26 @@ fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
         Clase.Campo -> {
             let raiz = variable_base(n);
             let i = buscar_simbolo(c, raiz);
-            let tc = tipo_simple(c, m, n);
-            if raiz.largo() > 0 && existe(c, i) && presta_tipo(m, tc) {
+            if raiz.largo() > 0 && existe(c, i) {
                 let t = copiar(c.simbolos[i].tipo);
+                // Un campo de lo que llego prestado es parte de lo prestado:
+                // da igual que el campo en si no preste. La memoria es de
+                // quien presto la raiz.
                 if c.simbolos[i].prestado || T.es_referencia(t) { return nuevo("parametro"); }
-                if es_prestado_st(m, t) {
+                let tc = tipo_simple(c, m, n);
+                if presta_tipo(m, tc) && es_prestado_st(m, t) {
                     if c.simbolos[i].procedencia.largo() > 0 { return copiar(c.simbolos[i].procedencia); }
                     return nuevo("local");
                 }
+            }
+            return nuevo("local");
+        }
+        Clase.Indice -> {
+            let raiz = variable_base(n);
+            let i = buscar_simbolo(c, raiz);
+            if raiz.largo() > 0 && existe(c, i) {
+                let t = copiar(c.simbolos[i].tipo);
+                if c.simbolos[i].prestado || T.es_referencia(t) { return nuevo("parametro"); }
             }
             return nuevo("local");
         }
@@ -1386,8 +1398,16 @@ fn procedencia_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
             && n.hijos.largo() > 0 {
                 let base = variable_base(n.hijos[0]);
                 let i = buscar_simbolo(c, base);
-                if base.largo() > 0 && existe(c, i) && c.simbolos[i].prestado {
-                    return nuevo("parametro");
+                if base.largo() > 0 && existe(c, i) {
+                    if c.simbolos[i].procedencia.largo() > 0 {
+                        return copiar(c.simbolos[i].procedencia);
+                    }
+                    // Prestado, pero no todo lo prestado viene del que llama:
+                    // la variable de un `for` presta de su coleccion, que puede
+                    // ser un temporal. Solo un parametro presta de fuera.
+                    if c.simbolos[i].prestado && c.simbolos[i].es_param {
+                        return nuevo("parametro");
+                    }
                 }
                 return nuevo("local");
             }
@@ -5435,14 +5455,19 @@ fn sentencia_para(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.N
     if elem.largo() > 0 {
         let i = declarar_simbolo(c, m, s.linea, variable, elem, false);
         // El numero de un rango es suyo; el elemento de una coleccion se
-        // presta de ella.
+        // presta de ella. Y presta de donde preste la coleccion: de un
+        // parametro si es campo suyo, del propio bucle si es un temporal.
         c.simbolos[i].prestado = !es_rango;
+        c.simbolos[i].procedencia = procedencia_de(c, m, s.hijos[0]);
         c.simbolos[i].leida = true;
     }
     if tipo_valor.largo() > 0 && valor.largo() > 0 {
         let j = declarar_simbolo(c, m, s.linea, valor, tipo_valor, false);
         c.simbolos[j].leida = true;
-        if posee_memoria(m, tipo_valor) { c.simbolos[j].prestado = true; }
+        if posee_memoria(m, tipo_valor) {
+            c.simbolos[j].prestado = true;
+            c.simbolos[j].procedencia = procedencia_de(c, m, s.hijos[0]);
+        }
     }
     cuerpo_de_bucle(c, m, tipos, s.hijos[1]);
     c.en_condicional = c.en_condicional - 1;

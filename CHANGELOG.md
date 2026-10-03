@@ -79,6 +79,13 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   parámetro `view`, mira el argumento como `vista(...)` —igual que `tcodec`— y
   acepta lo que debe. Lo destapó `std/ini`; es un arreglo de corrección, no
   cambia la superficie del oráculo congelado.
+- Devolver una vista del elemento de un `for` sobre un temporal —`return
+  recortar(linea)` con `linea` de `lineas(texto)`— dejaba un puntero colgante
+  (use-after-free, confirmado con ASan). Ahora la variable del `for` presta de
+  donde presta su coleccion: de un parametro si es campo suyo, del propio
+  bucle si es un temporal. Con esto el arreglo de la procedencia queda
+  completo: se acepta la vista de un parametro prestado y se rechaza la de un
+  temporal. Prueba de regresion en RECHAZO.
 
 ### Documentado
 
