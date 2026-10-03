@@ -250,6 +250,13 @@ fn tipos_de_mapa(m: &mapa<str, lista<Tipo>>, clave: view) -> lista<Tipo> ! {
     return copiar(try obtener(m, clave));
 }
 
+// La lista escrita, sin copiarla: como `escribir_de_mapa`, para los campos
+// que llevan varios tipos.
+fn escribir_de_mapa_tipos(m: &mapa<str, lista<Tipo>>, clave: view) -> lista<str> ! {
+    let ts = try obtener(m, clave);
+    return escribir_tipos(ts);
+}
+
 // Una lista de textos de tipo, leidos a sus `Tipo`. La usan los que guardan
 // una firma recien leida: el texto entra, la estructura se guarda.
 fn leer_tipos(escritos: &lista<str>) -> lista<Tipo> {

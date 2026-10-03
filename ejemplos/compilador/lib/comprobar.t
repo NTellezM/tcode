@@ -496,7 +496,7 @@ fn campos_tipos(m: &Mundo, t: view) -> lista<str> {
         for x en crudos { salida.anadir(T.escribir_tipo(T.sustituir_tipo(x, lig))); }
         return salida;
     }
-    return T.escribir_tipos(T.tipos_de_mapa(m.st_tipos, t) sino []);
+    return T.escribir_de_mapa_tipos(m.st_tipos, t) sino [];
 }
 
 fn campos_nombres(m: &Mundo, t: view) -> lista<str> {
@@ -520,7 +520,7 @@ fn campo_tipo(m: &Mundo, t: view, campo: view) -> str {
 
 fn formas_de(m: &Mundo, en_t: view, forma: view) -> lista<str> {
     let clave = $"{en_t}.{forma}";
-    return T.escribir_tipos(T.tipos_de_mapa(m.en_formas, vista(clave)) sino []);
+    return T.escribir_de_mapa_tipos(m.en_formas, vista(clave)) sino [];
 }
 
 fn tiene_forma(m: &Mundo, en_t: view, forma: view) -> bool {

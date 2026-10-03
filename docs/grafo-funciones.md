@@ -324,6 +324,7 @@ graph TD
         compilador_lib_tipos__es_referencia["es_referencia"]
         compilador_lib_tipos__es_referencia_mutable["es_referencia_mutable"]
         compilador_lib_tipos__escribir_de_mapa["escribir_de_mapa"]
+        compilador_lib_tipos__escribir_de_mapa_tipos["escribir_de_mapa_tipos"]
         compilador_lib_tipos__escribir_tipo["escribir_tipo"]
         compilador_lib_tipos__escribir_tipos["escribir_tipos"]
         compilador_lib_tipos__forma_de["forma_de"]
@@ -546,8 +547,8 @@ graph TD
     compilador_lib_comprobar__campos_nombres --> compilador_lib_tipos__base_de_aplicacion
     compilador_lib_comprobar__campos_tipos --> compilador_lib_tipar__lista_de
     compilador_lib_comprobar__campos_tipos --> compilador_lib_tipos__base_de_aplicacion
+    compilador_lib_comprobar__campos_tipos --> compilador_lib_tipos__escribir_de_mapa_tipos
     compilador_lib_comprobar__campos_tipos --> compilador_lib_tipos__escribir_tipo
-    compilador_lib_comprobar__campos_tipos --> compilador_lib_tipos__escribir_tipos
     compilador_lib_comprobar__campos_tipos --> compilador_lib_tipos__partes
     compilador_lib_comprobar__campos_tipos --> compilador_lib_tipos__sustituir_tipo
     compilador_lib_comprobar__campos_tipos --> compilador_lib_tipos__tipos_de_mapa
@@ -622,8 +623,7 @@ graph TD
     compilador_lib_comprobar__fijar_literal_sin_contar --> compilador_lib_tipos__escribir_tipo
     compilador_lib_comprobar__fijar_literal_sin_contar --> compilador_lib_tipos__marcador
     compilador_lib_comprobar__firma_valida --> compilador_lib_tipos__sustituir
-    compilador_lib_comprobar__formas_de --> compilador_lib_tipos__escribir_tipos
-    compilador_lib_comprobar__formas_de --> compilador_lib_tipos__tipos_de_mapa
+    compilador_lib_comprobar__formas_de --> compilador_lib_tipos__escribir_de_mapa_tipos
     compilador_lib_comprobar__formas_legibles --> compilador_lib_tipar__lista_de
     compilador_lib_comprobar__funcion_de --> compilador_lib_tipos__sin_alias_tipo
     compilador_lib_comprobar__funcion_vista --> compilador_lib_tipar__sin_modulo
