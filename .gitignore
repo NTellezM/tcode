@@ -88,3 +88,4 @@ programas/*.c
 # Los paquetes de `make paquete`
 /dist/
 .aider*
+gmon.out
