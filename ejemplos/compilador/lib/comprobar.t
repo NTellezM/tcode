@@ -27,6 +27,23 @@ fn literal() -> view { return "{entero}"; }
 fn literal_decimal() -> view { return "{decimal}"; }
 fn unidad() -> view { return "()"; }
 
+// Los marcadores de un literal sin fijar, ya como `Tipo`: `{entero}` y
+// `{decimal}` no pasan por `leer_tipo`, asi que se preguntan por el nombre.
+fn es_literal(t: &T.Tipo) -> bool {
+    return es_literal_entero(t) || es_literal_decimal_t(t);
+}
+fn es_literal_entero(t: &T.Tipo) -> bool {
+    return t.forma == T.Forma.Nombre && t.args.largo() == 0 && igual(t.nombre, literal());
+}
+fn es_literal_decimal_t(t: &T.Tipo) -> bool {
+    return t.forma == T.Forma.Nombre && t.args.largo() == 0 && igual(t.nombre, literal_decimal());
+}
+// Un texto de tipo (real o marcador) leido a `Tipo`.
+fn tipo_de_escrito(v: view) -> T.Tipo {
+    if igual(v, literal()) || igual(v, literal_decimal()) { return T.marcador(v); }
+    return T.leer_tipo(v);
+}
+
 fn es_sin_signo(t: view) -> bool {
     return t == "u8" || t == "u16" || t == "u32"
     || t == "u64" || t == "usize";
@@ -1904,8 +1921,8 @@ fn prestar_sitio(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.No
     let base = variable_base(valor);
     let ib = buscar_simbolo(c, base);
     let quiere = T.apuntado(escrito);
-    let dado = sin_prestamo(t);
-    if t.largo() > 0 && !igual(dado, quiere) {
+    let dado = sin_prestamo(T.escribir_tipo(t));
+    if T.conocido(t) && !igual(dado, quiere) {
         error(c, m, s.linea, $"`{nombre}` se declaro `{escrito}` pero el valor es `{dado}`");
     }
     if base.largo() > 0 && existe(c, ib) && T.es_referencia_mutable(escrito) {
@@ -2119,40 +2136,40 @@ fn funcion_llamada(m: &Mundo, tipos: &I.Contexto, nombre: view) -> usize {
     return buscar_funcion(m, dentro) sino m.funciones.largo();
 }
 
-fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let clase = n.clase;
     match clase {
         Clase.Variable -> {
             let i = buscar_simbolo(c, n.texto);
-            if existe(c, i) { return copiar(c.simbolos[i].tipo); }
+            if existe(c, i) { return T.leer_tipo(c.simbolos[i].tipo); }
             let k = funcion_llamada(m, tipos, n.texto);
             if k < m.funciones.largo() && !tiene_sueltos(m.funciones[k]) && !m.funciones[k].falible {
-                return firma_de(m.funciones[k]);
+                return tipo_de_escrito(firma_de(m.funciones[k]));
             }
-            return vacio();
+            return T.ninguno();
         }
         Clase.Cierre -> { return cierre(c, m, tipos, n); }
-        Clase.Cadena -> { return nuevo("view"); }
-        Clase.Entero -> { return nuevo("usize"); }
-        Clase.Decimal -> { return nuevo("f64"); }
-        Clase.Booleano -> { return nuevo("bool"); }
-        Clase.Interpolada -> { return nuevo("str"); }
-        Clase.LiteralStruct -> { return I.sin_modulo(n.texto); }
+        Clase.Cadena -> { return T.leer_tipo("view"); }
+        Clase.Entero -> { return T.leer_tipo("usize"); }
+        Clase.Decimal -> { return T.leer_tipo("f64"); }
+        Clase.Booleano -> { return T.leer_tipo("bool"); }
+        Clase.Interpolada -> { return T.leer_tipo("str"); }
+        Clase.LiteralStruct -> { return tipo_de_escrito(I.sin_modulo(n.texto)); }
         Clase.Unaria -> {
             if n.hijos.largo() > 0 {
-                if n.texto == "!" { return nuevo("bool"); }
+                if n.texto == "!" { return T.leer_tipo("bool"); }
                 if n.texto == "-" && I.literal_de(n.hijos[0]) == "entero" {
-                    return nuevo("i64");
+                    return T.leer_tipo("i64");
                 }
                 let t = tipo_probable(c, m, tipos, n.hijos[0]);
-                if igual(t, literal()) { return nuevo("i64"); }
+                if es_literal_entero(t) { return T.leer_tipo("i64"); }
                 return t;
             }
         }
         Clase.Conversion -> {
             let destino = vista(n.texto);
-            if empieza_con(destino, "?") { return nuevo(rebanar(destino, 1, destino.largo())); }
-            return nuevo(destino);
+            if empieza_con(destino, "?") { return tipo_de_escrito(rebanar(destino, 1, destino.largo())); }
+            return tipo_de_escrito(destino);
         }
         // Una rama que es un numero escrito toma el tipo de la otra.
         Clase.SiExpr -> {
@@ -2163,8 +2180,8 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
                     return tipo_probable(c, m, tipos, n.hijos[2]);
                 }
                 if lit_a.largo() > 0 {
-                    if lit_a == "decimal" || lit_b == "decimal" { return nuevo("f64"); }
-                    return nuevo("usize");
+                    if lit_a == "decimal" || lit_b == "decimal" { return T.leer_tipo("f64"); }
+                    return T.leer_tipo("usize");
                 }
                 return tipo_probable(c, m, tipos, n.hijos[1]);
             }
@@ -2174,21 +2191,21 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
                 let op = vista(n.texto);
                 if op == "&&" || op == "||" || op == "==" || op == "!="
                 || op == "<" || op == "<=" || op == ">" || op == ">=" {
-                    return nuevo("bool");
+                    return T.leer_tipo("bool");
                 }
                 // Un numero escrito no decide nada por su cuenta: toma el tipo del
                 // otro lado.
                 let lit_i = I.literal_de(n.hijos[0]);
                 let lit_d = I.literal_de(n.hijos[1]);
                 if lit_i.largo() > 0 && lit_d.largo() > 0 {
-                    if lit_i == "decimal" || lit_d == "decimal" { return nuevo("f64"); }
-                    return nuevo("usize");
+                    if lit_i == "decimal" || lit_d == "decimal" { return T.leer_tipo("f64"); }
+                    return T.leer_tipo("usize");
                 }
                 if lit_i.largo() > 0 { return tipo_probable(c, m, tipos, n.hijos[1]); }
                 let a = tipo_probable(c, m, tipos, n.hijos[0]);
                 let b = tipo_probable(c, m, tipos, n.hijos[1]);
-                if a.largo() == 0 || igual(a, literal()) {
-                    if igual(b, literal()) { return nuevo("usize"); }
+                if !T.conocido(a) || es_literal_entero(a) {
+                    if es_literal_entero(b) { return T.leer_tipo("usize"); }
                     return b;
                 }
                 return a;
@@ -2201,25 +2218,25 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
                 || nombre == "techo" || nombre == "redondear") && n.hijos.largo() == 1 {
                 let lit = I.literal_de(n.hijos[0]);
                 if lit.largo() > 0 {
-                    if lit == "entero" && nombre == "absoluto" { return nuevo("i64"); }
-                    return nuevo("f64");
+                    if lit == "entero" && nombre == "absoluto" { return T.leer_tipo("i64"); }
+                    return T.leer_tipo("f64");
                 }
                 let t_a = tipo_probable(c, m, tipos, n.hijos[0]);
-                return T.apuntado_si(t_a);
+                return tipo_de_escrito(T.apuntado_si(T.escribir_tipo(t_a)));
             }
             let fi = firma_interna(nombre);
-            if fi.existe { return copiar(fi.retorno); }
+            if fi.existe { return tipo_de_escrito(fi.retorno); }
             let k = funcion_llamada(m, tipos, n.texto);
-            if k >= m.funciones.largo() { return vacio(); }
-            if !tiene_sueltos(m.funciones[k]) { return copiar(m.funciones[k].retorno); }
+            if k >= m.funciones.largo() { return T.ninguno(); }
+            if !tiene_sueltos(m.funciones[k]) { return tipo_de_escrito(m.funciones[k].retorno); }
             // Para saber que devuelve hay que elegir la copia, en silencio.
             let antes = c.errores.largo();
             let inst = instanciar(c, m, tipos, n, k);
             if !inst.ok || c.errores.largo() > antes {
                 truncar_errores(c, antes);
-                return vacio();
+                return T.ninguno();
             }
-            return copiar(inst.retorno);
+            return tipo_de_escrito(inst.retorno);
         }
         _ -> {
             if (clase == Clase.Try || clase == Clase.Sino) && n.hijos.largo() > 0 {
@@ -2230,7 +2247,7 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
             }
         }
     }
-    return vacio();
+    return T.ninguno();
 }
 
 fn truncar_errores(c: mut Comprobacion, cuantos: usize) {
@@ -2268,7 +2285,7 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         var i = 0;
         while i < f.params.largo() {
             var dado = tipo_probable(c, m, tipos, n.hijos[i]);
-            if T.es_referencia(dado) { dado = nuevo(T.apuntado(dado)); }
+            if T.es_referencia(T.escribir_tipo(dado)) { dado = tipo_de_escrito(T.apuntado(T.escribir_tipo(dado))); }
             var antes: mapa<str, str> = [];
             for x en claves(lig) {
                 if x == "\t" { continue; }
@@ -2276,7 +2293,7 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 poner(antes, vista(x), nuevo(v));
             }
             let pt = vista(f.params[i].tipo);
-            if !unificar_tipo(pt, dado, sueltos, lig) {
+            if !unificar_tipo(pt, T.escribir_tipo(dado), sueltos, lig) {
                 var choca = vacio();
                 for tp en sueltos {
                     if choca.largo() == 0 && tiene(antes, tp) && contiene(pt, tp) {
@@ -2286,9 +2303,9 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 let pn = vista(f.params[i].nombre);
                 if choca.largo() > 0 {
                     let ya = obtener(antes, choca) sino "";
-                    error(c, m, n.linea, $"`{choca}` en `{nombre}` ya quedo en `{ya}` por un argumento anterior, y `{pn}` pide `{dado}`. Un mismo parametro de tipo es un solo tipo en toda la llamada");
+                    error(c, m, n.linea, $"`{choca}` en `{nombre}` ya quedo en `{ya}` por un argumento anterior, y `{pn}` pide `{T.escribir_tipo(dado)}`. Un mismo parametro de tipo es un solo tipo en toda la llamada");
                 } else {
-                    let visto = texto_o_none(dado);
+                    let visto = texto_o_none(T.escribir_tipo(dado));
                     error(c, m, n.linea, $"`{pn}` de `{nombre}` es `{pt}` y recibio `{visto}`");
                 }
                 return fallo;
@@ -2673,11 +2690,11 @@ fn texto_o_none(t: view) -> str {
 }
 
 // Escribir en `x` no es leer `x`: la variable suelta se resuelve sin usarla.
-fn tipo_de_lugar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn tipo_de_lugar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     if n.clase == Clase.Variable {
         let i = buscar_simbolo(c, n.texto);
-        if existe(c, i) { return copiar(c.simbolos[i].tipo); }
-        return vacio();
+        if existe(c, i) { return T.leer_tipo(c.simbolos[i].tipo); }
+        return T.ninguno();
     }
     return comprobar_expresion(c, m, tipos, n, "", false);
 }
@@ -2689,14 +2706,14 @@ fn tipo_de_lugar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
 // El tipo de `n`, comprobandola. Queda anotado para el generador, que lo lee
 // en vez de deducirlo otra vez por su cuenta, que es como se equivocaba.
 fn comprobar_expresion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    destino: view, mover_variables: bool) -> str {
+    destino: view, mover_variables: bool) -> T.Tipo {
     let t = comprobar_expresion_sin_anotar(c, m, tipos, n, destino, mover_variables);
     anotar(c, m, n, t);
     let destino_p = sin_prestamo(destino);
-    if (igual(t, literal()) || igual(t, literal_decimal()))
+    if (es_literal_entero(t) || es_literal_decimal_t(t))
     && es_numerico(destino_p) {
         fijar_literal(c, m, n, destino_p);
-    } else if igual(t, literal()) && n.clase != Clase.Entero && n.id > 0 {
+    } else if es_literal_entero(t) && n.clase != Clase.Entero && n.id > 0 {
         // Una cuenta que todavia no sabe su tipo: se lo dira quien la use, o
         // al acabar la sentencia sera `usize`.
         c.escritas.anadir(copiar(n));
@@ -2709,14 +2726,10 @@ fn clave_anotada(c: &Comprobacion, n: &P.Nodo) -> str {
     return $"{c.dueno}#{n.id}";
 }
 
-fn anotar(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, t: view) {
+fn anotar(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, t: &T.Tipo) {
     if n.id == 0 || c.modulo >= m.anotados.largo() { return; }
     let clave = clave_anotada(c, n);
-    if igual(t, literal()) || igual(t, literal_decimal()) {
-        poner(m.anotados[c.modulo], vista(clave), T.marcador(t));
-    } else {
-        poner(m.anotados[c.modulo], vista(clave), T.leer_tipo(t));
-    }
+    poner(m.anotados[c.modulo], vista(clave), copiar(t));
 }
 
 // Un numero escrito ya sabe su tipo: se lo dice el otro lado de la operacion,
@@ -2745,7 +2758,7 @@ fn fijar_literal_sin_contar(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: vi
         if !igual(actual, literal()) && !igual(actual, literal_decimal()) { return; }
     }
     if largo(I.literal_de(n)) == 0 { return; }
-    anotar(c, m, n, tipo);
+    anotar(c, m, n, tipo_de_escrito(tipo));
     let clase = n.clase;
     if clase == Clase.Binaria && n.hijos.largo() == 2 {
         fijar_literal_sin_contar(c, m, n.hijos[0], tipo);
@@ -2996,14 +3009,14 @@ fn valor_escrito(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) -> E
 }
 
 fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
-    n: &P.Nodo, destino: view, mover_variables: bool) -> str {
+    n: &P.Nodo, destino: view, mover_variables: bool) -> T.Tipo {
     if es_numerico(destino) { comprobar_literal(c, m, n, destino); }
     let clase = n.clase;
     match clase {
-        Clase.Entero -> { return nuevo(literal()); }
-        Clase.Decimal -> { return nuevo(literal_decimal()); }
-        Clase.Cadena -> { return nuevo("view"); }
-        Clase.Booleano -> { return nuevo("bool"); }
+        Clase.Entero -> { return T.marcador(literal()); }
+        Clase.Decimal -> { return T.marcador(literal_decimal()); }
+        Clase.Cadena -> { return T.leer_tipo("view"); }
+        Clase.Booleano -> { return T.leer_tipo("bool"); }
         Clase.Expresion -> {
             if n.hijos.largo() == 1 {
                 return comprobar_expresion(c, m, tipos, n.hijos[0], destino, mover_variables);
@@ -3012,14 +3025,14 @@ fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         Clase.Interpolada -> {
             for x en n.hijos {
                 let t = comprobar_expresion(c, m, tipos, x, "", false);
-                if t.largo() == 0 { continue; }
-                if !se_muestra(t) {
-                    let limpio = sin_prestamo(t);
-                    let pista = if es_enum(m, limpio) { $": {como_mostrar(m, t)}" } else { vacio() };
-                    error(c, m, n.linea, $"dentro de `{{}}` va un escalar o texto, y `{t}` no lo es{pista}");
+                if !T.conocido(t) { continue; }
+                if !se_muestra(T.escribir_tipo(t)) {
+                    let limpio = sin_prestamo(T.escribir_tipo(t));
+                    let pista = if es_enum(m, limpio) { $": {como_mostrar(m, T.escribir_tipo(t))}" } else { vacio() };
+                    error(c, m, n.linea, $"dentro de `{{}}` va un escalar o texto, y `{T.escribir_tipo(t)}` no lo es{pista}");
                 }
             }
-            return nuevo("str");
+            return T.leer_tipo("str");
         }
         Clase.Variable -> {
             return variable(c, m, tipos, n, mover_variables, false);
@@ -3044,11 +3057,11 @@ fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
                 error(c, m, n.linea, "`sino` no puede ir en la condicion de un `while`: se evaluaria una sola vez");
             }
             let t = desenvolver(c, m, tipos, n, n.hijos[0], "sino");
-            let alt = comprobar_expresion(c, m, tipos, n.hijos[1], t, true);
-            if t.largo() > 0 && T.es_referencia(t) {
-                error(c, m, n.linea, $"`sino` no vale aqui: la llamada devuelve un prestamo (`{t}`) y no hay nada que prestar cuando falla. Usa `try`, o pregunta antes con `tiene(...)`");
-            } else if t.largo() > 0 && alt.largo() > 0 && !encaja(t, alt) {
-                error(c, m, n.linea, $"la llamada da `{t}` y el valor de despues de `sino` es `{alt}`");
+            let alt = comprobar_expresion(c, m, tipos, n.hijos[1], T.escribir_tipo(t), true);
+            if T.conocido(t) && T.es_referencia(T.escribir_tipo(t)) {
+                error(c, m, n.linea, $"`sino` no vale aqui: la llamada devuelve un prestamo (`{T.escribir_tipo(t)}`) y no hay nada que prestar cuando falla. Usa `try`, o pregunta antes con `tiene(...)`");
+            } else if T.conocido(t) && T.conocido(alt) && !encaja(T.escribir_tipo(t), T.escribir_tipo(alt)) {
+                error(c, m, n.linea, $"la llamada da `{T.escribir_tipo(t)}` y el valor de despues de `sino` es `{T.escribir_tipo(alt)}`");
             }
             return t;
         }
@@ -3061,18 +3074,18 @@ fn comprobar_expresion_sin_anotar(c: mut Comprobacion, m: mut Mundo, tipos: &I.C
         Clase.Rango -> { return rango(c, m, tipos, n); }
         _ -> { }
     }
-    return vacio();
+    return T.ninguno();
 }
 
 // `a..b`, lo que recorre un `for`: los dos extremos son el mismo entero, y
 // un numero escrito toma el tipo del otro, o `usize` si los dos lo son.
-fn rango(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
-    if n.hijos.largo() != 2 { return vacio(); }
+fn rango(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
+    if n.hijos.largo() != 2 { return T.ninguno(); }
     let crudo_a = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
     let crudo_b = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-    if crudo_a.largo() == 0 || crudo_b.largo() == 0 { return vacio(); }
-    var a = sin_prestamo(crudo_a);
-    var b = sin_prestamo(crudo_b);
+    if !T.conocido(crudo_a) || !T.conocido(crudo_b) { return T.ninguno(); }
+    var a = sin_prestamo(T.escribir_tipo(crudo_a));
+    var b = sin_prestamo(T.escribir_tipo(crudo_b));
     if igual(a, literal()) && igual(b, literal()) {
         a = nuevo("usize");
         b = nuevo("usize");
@@ -3080,20 +3093,20 @@ fn rango(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> s
     if igual(a, literal()) && es_tipo_entero(b) { a = copiar(b); }
     if igual(b, literal()) && es_tipo_entero(a) { b = copiar(a); }
     if !es_tipo_entero(a) || !es_tipo_entero(b) {
-        let de = extremo_dicho(crudo_a);
-        let a_ = extremo_dicho(crudo_b);
+        let de = extremo_dicho(T.escribir_tipo(crudo_a));
+        let a_ = extremo_dicho(T.escribir_tipo(crudo_b));
         error(c, m, n.linea, $"un rango va de un entero a otro, y este va de {de} a {a_}");
-        return vacio();
+        return T.ninguno();
     }
     if !igual(a, b) {
         error(c, m, n.linea, $"los dos extremos de un rango son del mismo tipo, y aqui son `{a}` y `{b}`");
-        return vacio();
+        return T.ninguno();
     }
     comprobar_literal(c, m, n.hijos[0], a);
     fijar_literal(c, m, n.hijos[0], a);
     comprobar_literal(c, m, n.hijos[1], a);
     fijar_literal(c, m, n.hijos[1], a);
-    return T.hacer_rango(a);
+    return tipo_de_escrito(T.hacer_rango(a));
 }
 
 // Un extremo de rango en un mensaje: su tipo, o que es un numero escrito.
@@ -3104,7 +3117,7 @@ fn extremo_dicho(t: view) -> str {
 }
 
 fn variable(c: mut Comprobacion, m: &Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    mover_variables: bool, directo: bool) -> str {
+    mover_variables: bool, directo: bool) -> T.Tipo {
     let nombre = vista(n.texto);
     let i = buscar_simbolo(c, nombre);
     if !existe(c, i) {
@@ -3113,16 +3126,16 @@ fn variable(c: mut Comprobacion, m: &Mundo, tipos: &I.Contexto, n: &P.Nodo,
         if k < m.funciones.largo() && !tiene_sueltos(m.funciones[k]) {
             if m.funciones[k].falible {
                 error(c, m, n.linea, $"`{nombre}` puede fallar, y una funcion que se pasa como valor no puede: quitale el `!` o envuelvela");
-                return vacio();
+                return T.ninguno();
             }
-            return firma_de(m.funciones[k]);
+            return tipo_de_escrito(firma_de(m.funciones[k]));
         }
         if k < m.funciones.largo() {
             error(c, m, n.linea, $"`{nombre}` es generica: hay una funcion por cada juego de tipos, y aqui no se sabe cual. Envuelvela en una funcion normal");
-            return vacio();
+            return T.ninguno();
         }
         error(c, m, n.linea, $"`{nombre}` no esta declarada");
-        return vacio();
+        return T.ninguno();
     }
     let t = copiar(c.simbolos[i].tipo);
     if mover_variables && posee_memoria(m, t) {
@@ -3130,30 +3143,30 @@ fn variable(c: mut Comprobacion, m: &Mundo, tipos: &I.Contexto, n: &P.Nodo,
     } else {
         let _leida = leer(c, m, n.linea, i);
     }
-    return t;
+    return tipo_de_escrito(t);
 }
 
 fn unaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    destino: view) -> str {
+    destino: view) -> T.Tipo {
     let t = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
     let op = vista(n.texto);
     if op == "~" {
-        if igual(t, literal()) {
+        if es_literal_entero(t) {
             fijar_literal(c, m, n.hijos[0], "usize");
-            return nuevo("usize");
+            return tipo_de_escrito("usize");
         }
-        if t.largo() > 0 && !es_tipo_entero(t) {
-            error(c, m, n.linea, $"`~` da la vuelta a los bits de un entero, recibio `{t}`");
+        if T.conocido(t) && !es_tipo_entero(T.escribir_tipo(t)) {
+            error(c, m, n.linea, $"`~` da la vuelta a los bits de un entero, recibio `{T.escribir_tipo(t)}`");
         }
         return t;
     }
     if op == "!" {
-        if t.largo() > 0 && t != "bool" {
-            error(c, m, n.linea, $"`!` necesita un `bool`, recibio `{t}`");
+        if T.conocido(t) && t.nombre != "bool" {
+            error(c, m, n.linea, $"`!` necesita un `bool`, recibio `{T.escribir_tipo(t)}`");
         }
-        return nuevo("bool");
+        return tipo_de_escrito("bool");
     }
-    if igual(t, literal()) {
+    if es_literal_entero(t) {
         // Un `-3` suelto ya lo dice `comprobar_literal`: no cabe. Una cuenta,
         // `-(3 + 4)`, no la mira nadie mas.
         if es_sin_signo(destino) && n.hijos[0].clase != Clase.Entero {
@@ -3161,28 +3174,28 @@ fn unaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         }
         if es_numerico(destino) {
             fijar_literal(c, m, n.hijos[0], destino);
-            return nuevo(destino);
+            return tipo_de_escrito(destino);
         }
         comprobar_literal(c, m, n, "i64");
         fijar_literal(c, m, n.hijos[0], "i64");
-        return nuevo("i64");
+        return tipo_de_escrito("i64");
     }
-    if igual(t, literal_decimal()) { return t; }
-    if es_decimal(t) { return t; }
-    if t.largo() > 0 && !es_tipo_entero(t) {
-        error(c, m, n.linea, $"`-` necesita un entero, recibio `{t}`");
+    if es_literal_decimal_t(t) { return t; }
+    if es_decimal(T.escribir_tipo(t)) { return t; }
+    if T.conocido(t) && !es_tipo_entero(T.escribir_tipo(t)) {
+        error(c, m, n.linea, $"`-` necesita un entero, recibio `{T.escribir_tipo(t)}`");
     }
-    if es_sin_signo(t) {
-        error(c, m, n.linea, $"`{t}` no tiene signo: no se puede negar");
+    if es_sin_signo(T.escribir_tipo(t)) {
+        error(c, m, n.linea, $"`{T.escribir_tipo(t)}` no tiene signo: no se puede negar");
     }
     return t;
 }
 
 fn si_expr(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    destino: view, mover_variables: bool) -> str {
+    destino: view, mover_variables: bool) -> T.Tipo {
     let tc = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-    if tc.largo() > 0 && tc != "bool" {
-        error(c, m, n.linea, $"la condicion de un `if` tiene que ser `bool`, y es `{tc}`");
+    if T.conocido(tc) && tc.nombre != "bool" {
+        error(c, m, n.linea, $"la condicion de un `if` tiene que ser `bool`, y es `{T.escribir_tipo(tc)}`");
     }
     let antes = foto(c);
     c.en_condicional = c.en_condicional + 1;
@@ -3195,29 +3208,29 @@ fn si_expr(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     juntar_ramas(c, tras_a, tras_b);
     // Una rama que es un numero escrito toma el tipo de la otra, y tiene que
     // caber en el.
-    let tb_p = T.apuntado_si(tb);
-    let ta_p = T.apuntado_si(ta);
-    if (igual(ta, literal()) || igual(ta, literal_decimal()))
+    let tb_p = T.apuntado_si(T.escribir_tipo(tb));
+    let ta_p = T.apuntado_si(T.escribir_tipo(ta));
+    if (es_literal_entero(ta) || es_literal_decimal_t(ta))
     && es_numerico(tb_p) {
         comprobar_literal(c, m, n.hijos[1], tb_p);
         fijar_literal(c, m, n.hijos[1], tb_p);
-    } else if (igual(tb, literal()) || igual(tb, literal_decimal()))
+    } else if (es_literal_entero(tb) || es_literal_decimal_t(tb))
     && es_numerico(ta_p) {
         comprobar_literal(c, m, n.hijos[2], ta_p);
         fijar_literal(c, m, n.hijos[2], ta_p);
-    } else if igual(ta, literal()) && igual(tb, literal_decimal()) {
+    } else if es_literal_entero(ta) && es_literal_decimal_t(tb) {
         fijar_literal(c, m, n.hijos[1], literal_decimal());
-        return copiar(tb);
-    } else if igual(tb, literal()) && igual(ta, literal_decimal()) {
+        return tb;
+    } else if es_literal_entero(tb) && es_literal_decimal_t(ta) {
         fijar_literal(c, m, n.hijos[2], literal_decimal());
-        return copiar(ta);
+        return ta;
     }
-    if ta.largo() > 0 && tb.largo() > 0 && !encaja(ta, tb)
-    && !encaja(tb, ta) {
-        error(c, m, n.linea, $"las dos ramas de un `if` tienen que dar el mismo tipo, y dan `{ta}` y `{tb}`");
+    if T.conocido(ta) && T.conocido(tb) && !encaja(T.escribir_tipo(ta), T.escribir_tipo(tb))
+    && !encaja(T.escribir_tipo(tb), T.escribir_tipo(ta)) {
+        error(c, m, n.linea, $"las dos ramas de un `if` tienen que dar el mismo tipo, y dan `{T.escribir_tipo(ta)}` y `{T.escribir_tipo(tb)}`");
     }
-    if ta.largo() == 0 || igual(ta, literal()) || igual(ta, literal_decimal()) {
-        if tb.largo() > 0 { return tb; }
+    if !T.conocido(ta) || es_literal_entero(ta) || es_literal_decimal_t(ta) {
+        if T.conocido(tb) { return tb; }
         return ta;
     }
     return ta;
@@ -3228,36 +3241,36 @@ fn cuantos_valores(n: usize) -> str {
     return $"{n} valores";
 }
 
-fn enum_lit(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn enum_lit(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let crudo = I.antes_del_punto(n.texto);
     let en_t = I.sin_modulo(crudo);
     let forma = I.tras_el_punto(n.texto);
     if !es_enum(m, en_t) {
         error(c, m, n.linea, $"`{en_t}` no es un enum");
-        return vacio();
+        return T.ninguno();
     }
     if !tiene_forma(m, en_t, forma) {
         let cuales = formas_legibles(m, en_t);
         error(c, m, n.linea, $"`{en_t}` no tiene la forma `{forma}`; tiene {cuales}");
-        return vacio();
+        return T.ninguno();
     }
     let lleva = formas_de(m, en_t, forma);
     if n.hijos.largo() != lleva.largo() {
         let cuantos = cuantos_valores(lleva.largo());
         let dados = n.hijos.largo();
         error(c, m, n.linea, $"`{en_t}.{forma}` lleva {cuantos}, y se le dieron {dados}");
-        return vacio();
+        return T.ninguno();
     }
     var i = 0;
     while i < lleva.largo() {
         let t = vista(lleva[i]);
         let ta = comprobar_expresion(c, m, tipos, n.hijos[i], t, posee_memoria(m, t));
-        if ta.largo() > 0 && !encaja(t, ta) {
-            error(c, m, n.linea, $"`{en_t}.{forma}` lleva un `{t}` y se le dio un `{ta}`");
+        if T.conocido(ta) && !encaja(t, T.escribir_tipo(ta)) {
+            error(c, m, n.linea, $"`{en_t}.{forma}` lleva un `{t}` y se le dio un `{T.escribir_tipo(ta)}`");
         }
         i = i + 1;
     }
-    return en_t;
+    return tipo_de_escrito(en_t);
 }
 
 fn formas_legibles(m: &Mundo, en_t: view) -> str {
@@ -3267,9 +3280,9 @@ fn formas_legibles(m: &Mundo, en_t: view) -> str {
     return con_comas(todas);
 }
 
-fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let dado = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-    let t = sin_prestamo(dado);
+    let t = sin_prestamo(T.escribir_tipo(dado));
     // `300 como u8` es una cuenta de numeros escritos: lo que en marcha
     // pararia el programa es un error aqui, como `let x: u8 = 256;`. Se
     // cuenta antes de fijarle el tipo, que tambien la contaria.
@@ -3327,12 +3340,12 @@ fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n
     } else if igual(t, a) {
         aviso(c, m, n.linea, $"`como {a}` sobre algo que ya es `{a}`: no hace nada");
     }
-    return a;
+    return tipo_de_escrito(a);
 }
 
 // Lo que sigue a `try` o `sino` tiene que poder fallar.
 fn desenvolver(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, nodo: &P.Nodo,
-    dentro: &P.Nodo, palabra: view) -> str {
+    dentro: &P.Nodo, palabra: view) -> T.Tipo {
     var falible = false;
     if dentro.clase == Clase.Llamada {
         let k = funcion_llamada(m, tipos, dentro.texto);
@@ -3344,7 +3357,7 @@ fn desenvolver(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, nodo: &P.N
     if !falible {
         error(c, m, nodo.linea, $"`{palabra}` va delante de una llamada a una funcion declarada con `!`");
         let _t = comprobar_expresion(c, m, tipos, dentro, "", false);
-        return vacio();
+        return T.ninguno();
     }
     return llamada(c, m, tipos, dentro, true, "");
 }
@@ -3411,7 +3424,7 @@ fn sacar_campo(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, base: view, raiz: vie
 }
 
 fn campo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    mover_variables: bool) -> str {
+    mover_variables: bool) -> T.Tipo {
     let camino = ruta_de_campo(n);
     let raiz = antes_de_tab(camino);
     let ruta = despues_de_tab(camino);
@@ -3438,11 +3451,11 @@ fn campo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     if encadenado { c.por_campo = c.por_campo + 1; }
     let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
     if encadenado { c.por_campo = c.por_campo - 1; }
-    if crudo.largo() == 0 { return vacio(); }
-    let base = sin_prestamo(crudo);
+    if !T.conocido(crudo) { return T.ninguno(); }
+    let base = sin_prestamo(T.escribir_tipo(crudo));
     if !es_struct(m, base) {
         error(c, m, n.linea, $"`{base}` no es un struct, no tiene campos");
-        return vacio();
+        return T.ninguno();
     }
     let nombre = vista(n.texto);
     let ns = campos_nombres(m, base);
@@ -3454,27 +3467,27 @@ fn campo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             && !ya_sacado {
                 sacar_campo(c, m, n, base, raiz, ruta, ir);
             }
-            return copiar(ts[i]);
+            return tipo_de_escrito(copiar(ts[i]));
         }
         i = i + 1;
     }
     error(c, m, n.linea, $"`{base}` no tiene un campo `{nombre}`");
-    return vacio();
+    return T.ninguno();
 }
 
 fn indice(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    mover_variables: bool) -> str {
+    mover_variables: bool) -> T.Tipo {
     let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
     let ti = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-    if ti.largo() > 0 && !encaja("usize", ti) {
-        error(c, m, n.linea, $"un indice tiene que ser `usize`, es `{ti}`");
+    if T.conocido(ti) && !encaja("usize", T.escribir_tipo(ti)) {
+        error(c, m, n.linea, $"un indice tiene que ser `usize`, es `{T.escribir_tipo(ti)}`");
     }
-    if crudo.largo() == 0 { return vacio(); }
-    let base = sin_prestamo(crudo);
+    if !T.conocido(crudo) { return T.ninguno(); }
+    let base = sin_prestamo(T.escribir_tipo(crudo));
     let b = vista(base);
     if !T.es_arreglo(b) && !T.es_lista(b) && !T.es_bloque(b) {
         error(c, m, n.linea, $"`{base}` no es un arreglo, no se puede indexar");
-        return vacio();
+        return T.ninguno();
     }
     var elem = vacio();
     if T.es_arreglo(b) { elem = T.elemento(b); }
@@ -3486,20 +3499,20 @@ fn indice(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         else if T.es_lista(b) { que = nuevo("una lista"); }
         error(c, m, n.linea, $"no se puede sacar un elemento de {que} y dejar el hueco sin duenio. Si solo quieres leerlo, prestalo: `let x: &{elem} = ...`; si lo necesitas tuyo, `copiar(...)`; si quieres sacarlo, di que dejas en su sitio: `intercambiar(...)`");
     }
-    return elem;
+    return tipo_de_escrito(elem);
 }
 
 // `Par { a: 7, b: nuevo("x") }` no dice sus tipos: salen de donde va, o de
 // lo que hay en los campos.
 fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
-    n: &P.Nodo, base: view, destino: view) -> str {
+    n: &P.Nodo, base: view, destino: view) -> T.Tipo {
     let sueltos = I.lista_de(m.st_params, base) sino [];
     if destino.largo() > 0 && T.es_aplicacion(destino) {
         let bd = T.base_de_aplicacion(destino);
         let args = T.partes(destino);
         if igual(bd, base) && args.largo() == sueltos.largo() {
             registrar_tipo(m, destino);
-            return nuevo(destino);
+            return tipo_de_escrito(destino);
         }
     }
     var lig: mapa<str, str> = [];
@@ -3510,9 +3523,9 @@ fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Context
         while k < ns.largo() && !igual(ns[k], h.texto) { k = k + 1; }
         if k >= ns.largo() || k >= ts.largo() || h.hijos.largo() == 0 { continue; }
         var dado = tipo_probable(c, m, tipos, h.hijos[0]);
-        if igual(dado, literal()) { dado = nuevo("usize"); }
-        if T.es_referencia(dado) { dado = nuevo(T.apuntado(dado)); }
-        let _u = unificar_tipo(T.escribir_tipo(ts[k]), dado, sueltos, lig);
+        if es_literal_entero(dado) { dado = T.leer_tipo("usize"); }
+        if T.es_referencia(T.escribir_tipo(dado)) { dado = tipo_de_escrito(T.apuntado(T.escribir_tipo(dado))); }
+        let _u = unificar_tipo(T.escribir_tipo(ts[k]), T.escribir_tipo(dado), sueltos, lig);
     }
     var faltan: lista<str> = [];
     for tp en sueltos {
@@ -3521,7 +3534,7 @@ fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Context
     if faltan.largo() > 0 {
         let cuales = con_comas(faltan);
         error(c, m, n.linea, $"no se puede deducir {cuales} en `{base} {{ ... }}`: ni los campos ni el sitio donde va lo dicen. Escribe el tipo en la declaracion: `let x: {base}<...> = ...`");
-        return vacio();
+        return T.ninguno();
     }
     var t = nuevo(base);
     t.empujar("<");
@@ -3534,28 +3547,28 @@ fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Context
     }
     t.empujar(">");
     registrar_tipo(m, t);
-    return t;
+    return tipo_de_escrito(t);
 }
 
 fn literal_struct(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    destino: view) -> str {
+    destino: view) -> T.Tipo {
     var tipo = I.sin_modulo(n.texto);
     if tiene(m.st_params, tipo) {
         let resuelto = tipo_de_literal_generico(c, m, tipos, n, tipo, destino);
-        if resuelto.largo() == 0 {
+        if !T.conocido(resuelto) {
             for h en n.hijos {
                 if h.hijos.largo() > 0 { let _t = comprobar_expresion(c, m, tipos, h.hijos[0], "", false); }
             }
-            return vacio();
+            return T.ninguno();
         }
-        tipo = resuelto;
+        tipo = T.escribir_tipo(resuelto);
     }
     if !es_struct(m, tipo) {
         error(c, m, n.linea, $"`{tipo}` no es un struct conocido");
         for h en n.hijos {
             if h.hijos.largo() > 0 { let _t = comprobar_expresion(c, m, tipos, h.hijos[0], "", false); }
         }
-        return vacio();
+        return T.ninguno();
     }
     var dados: lista<str> = [];
     for h en n.hijos {
@@ -3563,7 +3576,7 @@ fn literal_struct(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.N
         let def = campo_tipo(m, tipo, nombre);
         var mueve = false;
         if def.largo() > 0 { mueve = posee_memoria(m, def); }
-        var t = vacio();
+        var t = T.ninguno();
         if h.hijos.largo() > 0 { t = comprobar_expresion(c, m, tipos, h.hijos[0], def, mueve); }
         if def.largo() == 0 {
             error(c, m, n.linea, $"`{tipo}` no tiene un campo `{nombre}`");
@@ -3573,8 +3586,8 @@ fn literal_struct(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.N
             error(c, m, n.linea, $"el campo `{nombre}` se da dos veces");
         }
         dados.anadir(nuevo(nombre));
-        if t.largo() > 0 && !encaja(def, t) {
-            error(c, m, n.linea, $"`{tipo}.{nombre}` es `{def}` y recibio `{t}`");
+        if T.conocido(t) && !encaja(def, T.escribir_tipo(t)) {
+            error(c, m, n.linea, $"`{tipo}.{nombre}` es `{def}` y recibio `{T.escribir_tipo(t)}`");
         }
     }
     var faltan: lista<str> = [];
@@ -3585,16 +3598,16 @@ fn literal_struct(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.N
         let cuales = con_comas(faltan);
         error(c, m, n.linea, $"a `{tipo}` le faltan campos: {cuales}");
     }
-    return tipo;
+    return tipo_de_escrito(tipo);
 }
 
 fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    esperado: view) -> str {
+    esperado: view) -> T.Tipo {
     if esperado.largo() > 0 && T.es_mapa(esperado) {
         if n.hijos.largo() > 0 {
             error(c, m, n.linea, "un mapa se llena con `poner`; el unico literal que admite es `[]`");
         }
-        return nuevo(esperado);
+        return tipo_de_escrito(esperado);
     }
     let es_lista_esperada = esperado.largo() > 0 && T.es_lista(esperado);
     if n.hijos.largo() == 0 && !es_lista_esperada {
@@ -3603,7 +3616,7 @@ fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         } else {
             error(c, m, n.linea, "un arreglo tiene que tener al menos un elemento");
         }
-        return vacio();
+        return T.ninguno();
     }
     var elem_esperado = vacio();
     if es_lista_esperada {
@@ -3616,7 +3629,7 @@ fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
             error(c, m, n.linea, $"el tipo dice {cuantos} elemento(s) y el literal tiene {hay}");
         }
     }
-    var tipos_e: lista<str> = [];
+    var tipos_e: lista<T.Tipo> = [];
     var mueve = false;
     if elem_esperado.largo() > 0 { mueve = posee_memoria(m, elem_esperado); }
     for x en n.hijos {
@@ -3625,29 +3638,29 @@ fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     if elem_esperado.largo() > 0 {
         var i = 0;
         while i < tipos_e.largo() {
-            let t = vista(tipos_e[i]);
+            let t = T.escribir_tipo(tipos_e[i]);
             if t.largo() > 0 && !encaja(elem_esperado, t) {
                 let k = i + 1;
                 error(c, m, n.linea, $"el elemento {k} deberia ser `{elem_esperado}` y es `{t}`");
             }
             i = i + 1;
         }
-        if es_lista_esperada { return nuevo(esperado); }
+        if es_lista_esperada { return tipo_de_escrito(esperado); }
         let hay = n.hijos.largo();
-        return T.hacer_arreglo(elem_esperado, $"{hay}");
+        return tipo_de_escrito(T.hacer_arreglo(elem_esperado, $"{hay}"));
     }
     var conocidos: lista<str> = [];
     for t en tipos_e {
-        if t.largo() > 0 { conocidos.anadir(copiar(t)); }
+        if T.conocido(t) { conocidos.anadir(T.escribir_tipo(t)); }
     }
-    if conocidos.largo() == 0 { return vacio(); }
+    if conocidos.largo() == 0 { return T.ninguno(); }
     var elem = copiar(conocidos[0]);
     for t en conocidos {
         if !igual(t, literal()) { elem = copiar(t); break; }
     }
     var i = 0;
     while i < tipos_e.largo() {
-        let t = vista(tipos_e[i]);
+        let t = T.escribir_tipo(tipos_e[i]);
         if t.largo() > 0 && !encaja(elem, t) {
             let k = i + 1;
             error(c, m, n.linea, $"los elementos de un arreglo tienen que ser del mismo tipo: el 1 es `{elem}` y el {k} es `{t}`");
@@ -3656,7 +3669,7 @@ fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     }
     let final = concreto(elem);
     let hay = n.hijos.largo();
-    return T.hacer_arreglo(final, $"{hay}");
+    return tipo_de_escrito(T.hacer_arreglo(final, $"{hay}"));
 }
 
 // Un texto: con duenio o prestado.
@@ -3664,10 +3677,10 @@ fn es_texto(t: view) -> bool {
     return t == "str" || t == "view";
 }
 
-fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let op = vista(n.texto);
     let crudo_i = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-    var crudo_d = vacio();
+    var crudo_d = T.ninguno();
     let logico = op == "&&" || op == "||";
     if logico {
         c.en_condicional = c.en_condicional + 1;
@@ -3677,17 +3690,17 @@ fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) ->
         crudo_d = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
     }
     if logico {
-        if crudo_i.largo() > 0 && crudo_i != "bool" {
-            error(c, m, n.linea, $"`{op}` necesita `bool`, el lado izquierdo es `{crudo_i}`");
+        if T.conocido(crudo_i) && crudo_i.nombre != "bool" {
+            error(c, m, n.linea, $"`{op}` necesita `bool`, el lado izquierdo es `{T.escribir_tipo(crudo_i)}`");
         }
-        if crudo_d.largo() > 0 && crudo_d != "bool" {
-            error(c, m, n.linea, $"`{op}` necesita `bool`, el lado derecho es `{crudo_d}`");
+        if T.conocido(crudo_d) && crudo_d.nombre != "bool" {
+            error(c, m, n.linea, $"`{op}` necesita `bool`, el lado derecho es `{T.escribir_tipo(crudo_d)}`");
         }
-        return nuevo("bool");
+        return tipo_de_escrito("bool");
     }
-    if crudo_i.largo() == 0 || crudo_d.largo() == 0 { return vacio(); }
-    var ti = sin_prestamo(crudo_i);
-    var td = sin_prestamo(crudo_d);
+    if !T.conocido(crudo_i) || !T.conocido(crudo_d) { return T.ninguno(); }
+    var ti = sin_prestamo(T.escribir_tipo(crudo_i));
+    var td = sin_prestamo(T.escribir_tipo(crudo_d));
     let li = igual(ti, literal()) || igual(ti, literal_decimal());
     let ld = igual(td, literal()) || igual(td, literal_decimal());
     let desplaza = op == "<<" || op == ">>";
@@ -3715,7 +3728,7 @@ fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) ->
     if op == "==" || op == "!=" {
         // Dos textos se comparan por lo que dicen, sea cual sea su forma: el
         // generador lo escribe como `igual(a, b)`.
-        if es_texto(a) && es_texto(b) { return nuevo("bool"); }
+        if es_texto(a) && es_texto(b) { return tipo_de_escrito("bool"); }
         if !igual(a, b) {
             error(c, m, n.linea, $"no se pueden comparar `{ti}` y `{td}`");
         } else {
@@ -3725,7 +3738,7 @@ fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) ->
         if es_decimal(a) {
             aviso(c, m, n.linea, $"`{op}` entre decimales compara bit a bit: `0.1 + 0.2` no es `0.3`. Si querias 'aproximadamente', usa `cerca(a, b, tolerancia)` de `std/numero`");
         }
-        return nuevo("bool");
+        return tipo_de_escrito("bool");
     }
     if op == "<" || op == "<=" || op == ">" || op == ">=" {
         if !igual(a, literal()) && !igual(a, literal_decimal())
@@ -3734,19 +3747,19 @@ fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) ->
         } else if !igual(a, b) {
             error(c, m, n.linea, $"`{ti}` y `{td}` no se mezclan sin conversion explicita");
         }
-        return nuevo("bool");
+        return tipo_de_escrito("bool");
     }
     if op == "&" || op == "|" || op == "^" || op == "<<" || op == ">>" {
-        if igual(a, literal()) && igual(b, literal()) { return nuevo(literal()); }
+        if igual(a, literal()) && igual(b, literal()) { return tipo_de_escrito(nuevo(literal())); }
         if !es_tipo_entero(a) || !es_tipo_entero(b) {
             error(c, m, n.linea, $"`{op}` trabaja sobre los bits de un entero, recibio `{ti}` y `{td}`");
-            return vacio();
+            return T.ninguno();
         }
-        if op == "<<" || op == ">>" { return nuevo(a); }
+        if op == "<<" || op == ">>" { return tipo_de_escrito(a); }
         if !igual(a, b) {
             error(c, m, n.linea, $"`{ti}` y `{td}` no se mezclan sin conversion explicita");
         }
-        return nuevo(a);
+        return tipo_de_escrito(a);
     }
     // aritmetica
     if op == "/?" && !igual(a, literal_decimal()) && !igual(b, literal_decimal())
@@ -3754,39 +3767,39 @@ fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) ->
         // Entre enteros no hay IEEE que pedir: dividir por cero o `MIN / -1`
         // no tienen un resultado al que volver.
         error(c, m, n.linea, "`/?` es la division IEEE de los decimales; entre enteros no hay vuelta que dar. Usa `/`, que se detiene al dividir por cero");
-        return vacio();
+        return T.ninguno();
     }
     let lit_a = igual(a, literal()) || igual(a, literal_decimal());
     let lit_b = igual(b, literal()) || igual(b, literal_decimal());
     if lit_a && lit_b {
         if igual(a, literal_decimal()) || igual(b, literal_decimal()) {
-            return nuevo(literal_decimal());
+            return tipo_de_escrito(nuevo(literal_decimal()));
         }
-        return nuevo(literal());
+        return tipo_de_escrito(nuevo(literal()));
     }
     if op == "%" && (es_decimal(a) || es_decimal(b)) {
         error(c, m, n.linea, "`%` es el resto de una division entera; con decimales no tiene un significado unico");
-        return vacio();
+        return T.ninguno();
     }
     if !es_numerico(a) || !es_numerico(b) {
         error(c, m, n.linea, $"`{op}` necesita enteros, recibio `{ti}` y `{td}`");
-        return vacio();
+        return T.ninguno();
     }
     if !igual(a, b) {
         error(c, m, n.linea, $"`{ti}` y `{td}` no se mezclan sin conversion explicita");
     }
-    return nuevo(a);
+    return tipo_de_escrito(a);
 }
 
 // `match`: exhaustivo, lo que atrapa se presta, y cada brazo es un camino.
 fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    destino: view, mover_variables: bool) -> str {
+    destino: view, mover_variables: bool) -> T.Tipo {
     let tv = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-    if tv.largo() == 0 { return vacio(); }
-    let base = sin_prestamo(tv);
+    if !T.conocido(tv) { return T.ninguno(); }
+    let base = sin_prestamo(T.escribir_tipo(tv));
     if !es_enum(m, base) {
-        error(c, m, n.linea, $"`match` mira las formas de un enum, y `{tv}` no es uno");
-        return vacio();
+        error(c, m, n.linea, $"`match` mira las formas de un enum, y `{T.escribir_tipo(tv)}` no es uno");
+        return T.ninguno();
     }
     let antes = foto(c);
     var fotos: lista<lista<usize>> = [];
@@ -3848,11 +3861,11 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
             c.en_guarda = c.en_guarda + 1;
             let tg = comprobar_expresion(c, m, tipos, g.hijos[0], "", false);
             c.en_guarda = c.en_guarda - 1;
-            if tg.largo() > 0 && tg != "bool" {
-                error(c, m, n.linea, $"la guarda de un brazo tiene que ser `bool`, es `{tg}`");
+            if T.conocido(tg) && tg.nombre != "bool" {
+                error(c, m, n.linea, $"la guarda de un brazo tiene que ser `bool`, es `{T.escribir_tipo(tg)}`");
             }
         }
-        var t = vacio();
+        var t = T.ninguno();
         var es_expresion = false;
         for h en b.hijos {
             if h.clase == Clase.Retorno { es_expresion = true; }
@@ -3861,7 +3874,7 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
             let hc = h.clase;
             if hc == Clase.Retorno && h.hijos.largo() > 0 {
                 t = comprobar_expresion(c, m, tipos, h.hijos[0], destino, mover_variables);
-                if igual(t, literal()) || igual(t, literal_decimal()) {
+                if es_literal_entero(t) || es_literal_decimal_t(t) {
                     escritos.anadir(copiar(h.hijos[0]));
                 }
             } else if hc == Clase.Bloque {
@@ -3871,12 +3884,12 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         c.en_condicional = c.en_condicional - 1;
         cerrar_ambito(c);
         fotos.anadir(foto(c));
-        if es_expresion && t.largo() > 0 && !igual(t, literal())
-        && !igual(t, literal_decimal()) {
+        if es_expresion && T.conocido(t) && !es_literal_entero(t)
+        && !es_literal_decimal_t(t) {
             if comun.largo() == 0 {
-                comun = copiar(t);
-            } else if !encaja(t, comun) && !encaja(comun, t) {
-                error(c, m, n.linea, $"los brazos de un `match` tienen que dar el mismo tipo, y dan `{comun}` y `{t}`");
+                comun = T.escribir_tipo(t);
+            } else if !encaja(T.escribir_tipo(t), comun) && !encaja(comun, T.escribir_tipo(t)) {
+                error(c, m, n.linea, $"los brazos de un `match` tienen que dar el mismo tipo, y dan `{comun}` y `{T.escribir_tipo(t)}`");
             }
         }
     }
@@ -3916,7 +3929,7 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
             fijar_literal(c, m, v, comun_p);
         }
     }
-    return comun;
+    return tipo_de_escrito(comun);
 }
 
 // Lo que va en cada posicion de un patron, en orden: hojas `atrapa` y ramas
@@ -4076,11 +4089,11 @@ fn etiquetar_cierres(n: mut P.Nodo, cuenta: mut usize) {
 // Una clausura es su struct con lo capturado mas su funcion, que nace y se
 // comprueba aqui, en mitad de quien la escribe, como en el original: por eso
 // cada copia de una generica tiene las suyas.
-fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let clave = $"{c.dueno}{n.texto}";
     if tiene(m.numeracion, clave) {
         let ya = obtener(m.numeracion, clave) sino 0;
-        return $"Cierre_{ya}";
+        return tipo_de_escrito($"Cierre_{ya}");
     }
     let numero = m.n_cierres + 1;
     m.n_cierres = numero;
@@ -4173,7 +4186,7 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
             aviso(c, m, n.linea, $"`{nombre}` se captura con `mut` y nunca se modifica; puede ir sin `mut`");
         }
     }
-    return st;
+    return tipo_de_escrito(st);
 }
 
 // ------------------------------------------------------------------
@@ -4181,7 +4194,7 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
 // ------------------------------------------------------------------
 
 fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    desenvuelta: bool, destino: view) -> str {
+    desenvuelta: bool, destino: view) -> T.Tipo {
     let escrito = vista(n.texto);
     let corto = I.sin_modulo(escrito);
     let fi = firma_interna(corto);
@@ -4214,7 +4227,7 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     if k >= m.funciones.largo() {
         error(c, m, n.linea, $"`{escrito}` no es una funcion conocida");
         for h en n.hijos { let _t = comprobar_expresion(c, m, tipos, h, "", false); }
-        return vacio();
+        return T.ninguno();
     }
     var f = copiar(m.funciones[k]);
     // A quien se entrega lo que se mueve: la copia, si es una generica.
@@ -4223,7 +4236,7 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let inst = instanciar(c, m, tipos, n, k);
         if !inst.ok {
             for h en n.hijos { let _t = comprobar_expresion(c, m, tipos, h, "", false); }
-            return vacio();
+            return T.ninguno();
         }
         f.params = copiar(inst.params);
         f.retorno = copiar(inst.retorno);
@@ -4251,8 +4264,8 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             let is = buscar_simbolo(c, base);
             if base.largo() == 0 || !existe(c, is) {
                 let t_arg = comprobar_expresion(c, m, tipos, arg, "", false);
-                if t_arg.largo() > 0 && !encaja(p.tipo, t_arg) {
-                    error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `{p.tipo}` y recibio `{t_arg}`");
+                if T.conocido(t_arg) && !encaja(p.tipo, T.escribir_tipo(t_arg)) {
+                    error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `{p.tipo}` y recibio `{T.escribir_tipo(t_arg)}`");
                 } else if p.mutable {
                     error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `mut`: modificar algo recien hecho no le sirve a nadie, pasale una variable");
                 }
@@ -4261,10 +4274,10 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             let tipo_arg = tipo_de_lugar(c, m, tipos, arg);
             // Un prestamo que ya se tiene —lo que da `obtener`, lo que
             // atrapa un `match`— se pasa tal cual: es el mismo puntero.
-            let ya_prestado = tipo_arg.largo() > 0 && T.es_referencia(tipo_arg)
-            && igual(T.apuntado(tipo_arg), p.tipo);
-            if tipo_arg.largo() > 0 && !igual(tipo_arg, p.tipo) && !ya_prestado {
-                error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `{p.tipo}` y recibio `{tipo_arg}`");
+            let ya_prestado = T.conocido(tipo_arg) && T.es_referencia(T.escribir_tipo(tipo_arg))
+            && igual(T.apuntado(T.escribir_tipo(tipo_arg)), p.tipo);
+            if T.conocido(tipo_arg) && !igual(T.escribir_tipo(tipo_arg), p.tipo) && !ya_prestado {
+                error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `{p.tipo}` y recibio `{T.escribir_tipo(tipo_arg)}`");
             }
             let camino = camino_de(arg);
             let choque = choque_prestamo(hechos, camino, p.mutable);
@@ -4297,7 +4310,7 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         // `g(s, vista(s))` con `a: mut str` dejaria a `g` modificando por un
         // lado lo que lee por el otro. Es el fallo 2 de la especificacion.
         if presta_tipo(m, p.tipo) && !f.externa {
-            for camino en prestados_por(c, m, arg, t) {
+            for camino en prestados_por(c, m, arg, T.escribir_tipo(t)) {
                 let choque = choque_prestamo(hechos, camino, false);
                 if choque.largo() == 2 {
                     var dos: lista<str> = [];
@@ -4309,25 +4322,25 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 apuntar_prestamo(hechos, camino, p.nombre, false);
             }
         }
-        if p.tipo == "view" && t == "str" { continue; }
-        if t.largo() > 0 && !encaja(p.tipo, t) {
-            if largo(I.funcion_de_cierre(t)) > 0 && T.es_funcion(p.tipo) {
+        if p.tipo == "view" && t.nombre == "str" { continue; }
+        if T.conocido(t) && !encaja(p.tipo, T.escribir_tipo(t)) {
+            if largo(I.funcion_de_cierre(T.escribir_tipo(t))) > 0 && T.es_funcion(p.tipo) {
                 error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `{p.tipo}`, un puntero a funcion, y recibio una clausura. Una clausura lleva dentro lo que capturo, asi que no cabe en un puntero: haz el parametro generico (`{p.nombre}: F`) y valdra para las dos");
             } else {
-                error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `{p.tipo}` y recibio `{t}`");
+                error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `{p.tipo}` y recibio `{T.escribir_tipo(t)}`");
             }
         }
     }
     if f.retorno.largo() > 0 {
-        if f.cadena_c { return nuevo("str"); }
-        return copiar(f.retorno);
+        if f.cadena_c { return tipo_de_escrito("str"); }
+        return tipo_de_escrito(copiar(f.retorno));
     }
-    return nuevo("()");
+    return tipo_de_escrito(nuevo("()"));
 }
 
 // Una variable que guarda una funcion se llama como cualquier otra.
 fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    iv: usize) -> str {
+    iv: usize) -> T.Tipo {
     let _l = leer(c, m, n.linea, iv);
     let tv = copiar(c.simbolos[iv].tipo);
     let nombre = vista(n.texto);
@@ -4372,7 +4385,7 @@ fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &
                 }
             }
         } else if presta_tipo(m, dentro) {
-            for camino en prestados_por(c, m, n.hijos[k], t) {
+            for camino en prestados_por(c, m, n.hijos[k], T.escribir_tipo(t)) {
                 let choque = choque_prestamo(hechos, camino, false);
                 if choque.largo() == 2 {
                     error(c, m, n.linea, $"`{choque[0]}` se presta dos veces en la misma llamada a `{nombre}` ({choque[1]} y {cual}), y al menos uno de los dos puede modificarlo");
@@ -4380,16 +4393,16 @@ fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &
                 apuntar_prestamo(hechos, camino, cual, false);
             }
         }
-        let limpio = sin_prestamo(t);
-        if t.largo() > 0 && !encaja(dentro, limpio) {
+        let limpio = sin_prestamo(T.escribir_tipo(t));
+        if T.conocido(t) && !encaja(dentro, limpio) {
             if !(dentro == "view" && limpio == "str") {
-                error(c, m, n.linea, $"`{nombre}` toma `{esperado}` ahi y recibio `{t}`");
+                error(c, m, n.linea, $"`{nombre}` toma `{esperado}` ahi y recibio `{T.escribir_tipo(t)}`");
             }
         }
         k = k + 1;
     }
-    if partes.largo() == 0 { return vacio(); }
-    return copiar(partes[partes.largo() - 1]);
+    if partes.largo() == 0 { return T.ninguno(); }
+    return tipo_de_escrito(copiar(partes[partes.largo() - 1]));
 }
 
 // ------------------------------------------------------------------
@@ -4401,7 +4414,7 @@ fn evaluar_todos(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
 }
 
 fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    nombre: view, destino: view) -> str {
+    nombre: view, destino: view) -> T.Tipo {
     let fi = firma_interna(nombre);
     let dados = n.hijos.largo();
 
@@ -4435,7 +4448,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let pide = fi.params.largo();
         error(c, m, n.linea, $"`{nombre}` espera {pide} argumento(s) y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return copiar(fi.retorno);
+        return tipo_de_escrito(copiar(fi.retorno));
     }
 
     // Paso 1: los argumentos, y los prestamos que duran lo que la llamada.
@@ -4455,7 +4468,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 continue;
             }
             let crudo = tipo_de_lugar(c, m, tipos, arg);
-            let t_presta = sin_prestamo(crudo);
+            let t_presta = sin_prestamo(T.escribir_tipo(crudo));
             if t_presta != "str" {
                 error(c, m, n.linea, $"`{nombre}` presta de un `str`");
                 continue;
@@ -4465,14 +4478,14 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             continue;
         }
         let t = comprobar_expresion(c, m, tipos, arg, "", false);
-        if t.largo() > 0 && esperado != "@cualquiera" && !encaja(esperado, t) {
-            let limpio = sin_prestamo(t);
+        if T.conocido(t) && esperado != "@cualquiera" && !encaja(esperado, T.escribir_tipo(t)) {
+            let limpio = sin_prestamo(T.escribir_tipo(t));
             if !(esperado == "view" && limpio == "str") {
-                error(c, m, n.linea, $"el argumento {k} de `{nombre}` debe ser `{esperado}` y es `{t}`");
+                error(c, m, n.linea, $"el argumento {k} de `{nombre}` debe ser `{esperado}` y es `{T.escribir_tipo(t)}`");
             }
         }
-        if esperado == "@cualquiera" && t.largo() > 0 && !se_muestra(t) {
-            error(c, m, n.linea, $"`{nombre}` no sabe mostrar un `{t}`: {como_mostrar(m, t)}");
+        if esperado == "@cualquiera" && T.conocido(t) && !se_muestra(T.escribir_tipo(t)) {
+            error(c, m, n.linea, $"`{nombre}` no sabe mostrar un `{T.escribir_tipo(t)}`: {como_mostrar(m, T.escribir_tipo(t))}");
         }
         if esperado == "view" {
             // Todos los duenios posibles, no el primero: con
@@ -4481,7 +4494,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             for o en origenes_de(c, m, arg) {
                 if o != "<temporal>" { origenes.anadir(copiar(o)); }
             }
-            if origenes.largo() == 0 && arg.clase == Clase.Variable && t == "str" {
+            if origenes.largo() == 0 && arg.clase == Clase.Variable && t.nombre == "str" {
                 origenes.anadir(copiar(arg.texto));
             }
             for o en origenes { prestados.anadir(copiar(o)); }
@@ -4504,7 +4517,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             continue;
         }
         let crudo = tipo_de_lugar(c, m, tipos, arg);
-        let t_lugar = sin_prestamo(crudo);
+        let t_lugar = sin_prestamo(T.escribir_tipo(crudo));
         if t_lugar != "str" {
             error(c, m, n.linea, $"`{nombre}` opera sobre `str`");
             continue;
@@ -4517,30 +4530,30 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         || T.es_referencia(c.simbolos[is].tipo);
         mutar(c, m, arg, arg.linea, is, por_ref);
     }
-    return copiar(fi.retorno);
+    return tipo_de_escrito(copiar(fi.retorno));
 }
 fn interna_comparar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
-    n: &P.Nodo, nombre: view) -> str {
+    n: &P.Nodo, nombre: view) -> T.Tipo {
     let dados = n.hijos.largo();
     if dados != 2 {
         error(c, m, n.linea, $"`{nombre}` espera 2 argumentos y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return nuevo("bool");
+        return tipo_de_escrito("bool");
     }
     let a0 = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-    let ta = sin_prestamo(a0);
+    let ta = sin_prestamo(T.escribir_tipo(a0));
     let a1 = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-    let tb = sin_prestamo(a1);
+    let tb = sin_prestamo(T.escribir_tipo(a1));
     var validos = comparables();
     if nombre == "igual" { validos = igualables(); }
     let cuales = con_comas(validos);
     if ta.largo() > 0 && !igual(ta, literal()) && !esta_entre(validos, ta) {
         error(c, m, n.linea, $"`{nombre}` compara {cuales}, y recibio `{ta}`");
-        return nuevo("bool");
+        return tipo_de_escrito("bool");
     }
     if tb.largo() > 0 && !igual(tb, literal()) && !esta_entre(validos, tb) {
         error(c, m, n.linea, $"`{nombre}` compara {cuales}, y recibio `{tb}`");
-        return nuevo("bool");
+        return tipo_de_escrito("bool");
     }
     let texto_a = ta == "str" || ta == "view";
     let texto_b = tb == "str" || tb == "view";
@@ -4553,164 +4566,164 @@ fn interna_comparar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
             error(c, m, n.linea, $"`{nombre}` compara dos valores del mismo tipo, y recibio `{ta}` y `{tb}`");
         }
     }
-    return nuevo("bool");
+    return tipo_de_escrito("bool");
 }
 
 fn interna_numeros(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
-    n: &P.Nodo, nombre: view) -> str {
+    n: &P.Nodo, nombre: view) -> T.Tipo {
     let dados = n.hijos.largo();
     if dados != 1 {
         error(c, m, n.linea, $"`{nombre}` espera 1 argumento y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return vacio();
+        return T.ninguno();
     }
     let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-    let t = sin_prestamo(crudo);
-    if igual(t, literal_decimal()) { return nuevo("f64"); }
+    let t = sin_prestamo(T.escribir_tipo(crudo));
+    if igual(t, literal_decimal()) { return tipo_de_escrito("f64"); }
     if nombre == "absoluto" {
-        if igual(t, literal()) { return nuevo("i64"); }
+        if igual(t, literal()) { return tipo_de_escrito("i64"); }
         if !es_decimal(t) && !es_con_signo(t) {
             error(c, m, n.linea, $"`absoluto` necesita un numero con signo, recibio `{t}`");
-            return vacio();
+            return T.ninguno();
         }
-        return t;
+        return tipo_de_escrito(t);
     }
-    if igual(t, literal()) { return nuevo("f64"); }
+    if igual(t, literal()) { return tipo_de_escrito("f64"); }
     if !es_decimal(t) {
         error(c, m, n.linea, $"`{nombre}` trabaja sobre decimales, recibio `{t}`");
-        return vacio();
+        return T.ninguno();
     }
-    return t;
+    return tipo_de_escrito(t);
 }
 
 fn interna_reservar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
-    n: &P.Nodo, destino: view) -> str {
+    n: &P.Nodo, destino: view) -> T.Tipo {
     let dados = n.hijos.largo();
     if dados != 1 {
         error(c, m, n.linea, $"`reservar` espera 1 argumento (cuantos) y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return vacio();
+        return T.ninguno();
     }
     let t = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-    if t.largo() > 0 && !encaja("usize", t) {
-        error(c, m, n.linea, $"`reservar` espera cuantos elementos, un `usize`, y recibio `{t}`");
+    if T.conocido(t) && !encaja("usize", T.escribir_tipo(t)) {
+        error(c, m, n.linea, $"`reservar` espera cuantos elementos, un `usize`, y recibio `{T.escribir_tipo(t)}`");
     }
     if destino.largo() == 0 || !T.es_bloque(destino) {
         error(c, m, n.linea, "`reservar(n)` necesita saber de que: escribelo en la declaracion, `var b: bloque<str> = reservar(4);`");
-        return vacio();
+        return T.ninguno();
     }
-    return nuevo(destino);
+    return tipo_de_escrito(destino);
 }
 
-fn interna_redimensionar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn interna_redimensionar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let dados = n.hijos.largo();
     if dados != 2 {
         error(c, m, n.linea, $"`redimensionar` espera 2 argumentos y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return nuevo("()");
+        return tipo_de_escrito(nuevo("()"));
     }
     let base = variable_base(n.hijos[0]);
     let is = buscar_simbolo(c, base);
     let sitio = tipo_de_lugar(c, m, tipos, n.hijos[0]);
-    let t_sitio = sin_prestamo(sitio);
+    let t_sitio = sin_prestamo(T.escribir_tipo(sitio));
     if base.largo() == 0 || !existe(c, is) || !T.es_bloque(t_sitio) {
         error(c, m, n.linea, "`redimensionar` cambia el tamaño de un bloque, y necesita un sitio que lo sea: una variable, un campo o un elemento");
         let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-        return nuevo("()");
+        return tipo_de_escrito(nuevo("()"));
     }
     let por_ref = T.es_referencia(c.simbolos[is].tipo);
     mutar(c, m, n.hijos[0], n.hijos[0].linea, is, por_ref);
     c.simbolos[is].prestamos.anadir(nuevo("redimensionar"));
     let t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
     soltar_prestamo(c, is, "redimensionar");
-    if t.largo() > 0 && !encaja("usize", t) {
-        error(c, m, n.linea, $"`redimensionar` espera el tamaño nuevo, un `usize`, y recibio `{t}`");
+    if T.conocido(t) && !encaja("usize", T.escribir_tipo(t)) {
+        error(c, m, n.linea, $"`redimensionar` espera el tamaño nuevo, un `usize`, y recibio `{T.escribir_tipo(t)}`");
     }
-    return nuevo("()");
+    return tipo_de_escrito(nuevo("()"));
 }
 
-fn interna_intercambiar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn interna_intercambiar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let dados = n.hijos.largo();
     if dados != 2 {
         error(c, m, n.linea, $"`intercambiar` espera 2 argumentos y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return vacio();
+        return T.ninguno();
     }
     let base = variable_base(n.hijos[0]);
     let is = buscar_simbolo(c, base);
     if base.largo() == 0 || !existe(c, is) {
         error(c, m, n.linea, "`intercambiar` necesita un sitio: una variable, un campo o un elemento, no una expresion suelta");
         let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-        return vacio();
+        return T.ninguno();
     }
     let t = tipo_de_lugar(c, m, tipos, n.hijos[0]);
-    if t.largo() > 0 && presta_tipo(m, t) {
-        error(c, m, n.linea, $"`intercambiar` no cambia prestamos: `{t}` apunta a memoria de otro. Asigna con `=`");
+    if T.conocido(t) && presta_tipo(m, T.escribir_tipo(t)) {
+        error(c, m, n.linea, $"`intercambiar` no cambia prestamos: `{T.escribir_tipo(t)}` apunta a memoria de otro. Asigna con `=`");
     }
     let por_ref = T.es_referencia(c.simbolos[is].tipo);
     mutar(c, m, n.hijos[0], n.hijos[0].linea, is, por_ref);
     c.simbolos[is].prestamos.anadir(nuevo("intercambiar"));
     var mueve = false;
-    if t.largo() > 0 { mueve = posee_memoria(m, t); }
-    let tv = comprobar_expresion(c, m, tipos, n.hijos[1], t, mueve);
+    if T.conocido(t) { mueve = posee_memoria(m, T.escribir_tipo(t)); }
+    let tv = comprobar_expresion(c, m, tipos, n.hijos[1], T.escribir_tipo(t), mueve);
     soltar_prestamo(c, is, "intercambiar");
-    if t.largo() > 0 && tv.largo() > 0 && !encaja(t, tv) {
-        error(c, m, n.linea, $"`intercambiar` pone y saca lo mismo: el sitio es `{t}` y el valor es `{tv}`");
+    if T.conocido(t) && T.conocido(tv) && !encaja(T.escribir_tipo(t), T.escribir_tipo(tv)) {
+        error(c, m, n.linea, $"`intercambiar` pone y saca lo mismo: el sitio es `{T.escribir_tipo(t)}` y el valor es `{T.escribir_tipo(tv)}`");
     }
     return t;
 }
 
-fn interna_copiar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn interna_copiar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let dados = n.hijos.largo();
     if dados != 1 {
         error(c, m, n.linea, $"`copiar` espera 1 argumento y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return vacio();
+        return T.ninguno();
     }
     let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-    if crudo.largo() == 0 { return vacio(); }
-    let t = sin_prestamo(crudo);
+    if !T.conocido(crudo) { return T.ninguno(); }
+    let t = sin_prestamo(T.escribir_tipo(crudo));
     if t == "view" {
         error(c, m, n.linea, "una vista no es duenia de nada que copiar: si quieres el texto, `nuevo(v)` te da un `str`");
-        return nuevo("str");
+        return tipo_de_escrito("str");
     }
-    if igual(t, literal()) { return nuevo("usize"); }
+    if igual(t, literal()) { return tipo_de_escrito("usize"); }
     if !almacenable(m, t) {
         error(c, m, n.linea, $"`copiar` no sabe copiar un `{t}`");
-        return t;
+        return tipo_de_escrito(t);
     }
-    return t;
+    return tipo_de_escrito(t);
 }
 
-fn interna_largo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn interna_largo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let dados = n.hijos.largo();
     if dados != 1 {
         error(c, m, n.linea, $"`largo` espera 1 argumento y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return nuevo("usize");
+        return tipo_de_escrito("usize");
     }
     let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-    let t = sin_prestamo(crudo);
+    let t = sin_prestamo(T.escribir_tipo(crudo));
     let x = vista(t);
-    if crudo.largo() > 0 && x != "view" && x != "str" && !T.es_arreglo(x)
+    if T.conocido(crudo) && x != "view" && x != "str" && !T.es_arreglo(x)
     && !T.es_lista(x) && !T.es_mapa(x) && !T.es_bloque(x) {
         error(c, m, n.linea, $"`largo` opera sobre texto, arreglos, listas o mapas, recibio `{t}`");
     }
-    return nuevo("usize");
+    return tipo_de_escrito("usize");
 }
 
-fn interna_anadir(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn interna_anadir(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let dados = n.hijos.largo();
     if dados != 2 {
         error(c, m, n.linea, $"`anadir` espera 2 argumentos y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return nuevo("()");
+        return tipo_de_escrito(nuevo("()"));
     }
     let base = variable_base(n.hijos[0]);
     let is = buscar_simbolo(c, base);
     var tipo_lista = vacio();
     let hay = base.largo() > 0 && existe(c, is);
-    if hay { tipo_lista = sin_prestamo(tipo_de_lugar(c, m, tipos, n.hijos[0])); }
+    if hay { tipo_lista = sin_prestamo(T.escribir_tipo(tipo_de_lugar(c, m, tipos, n.hijos[0]))); }
     if !hay {
         error(c, m, n.linea, "el primer argumento de `anadir` tiene que ser una variable, un campo o un elemento");
     } else if !T.es_lista(tipo_lista) {
@@ -4719,31 +4732,31 @@ fn interna_anadir(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.N
     } else {
         let elem = T.elemento(tipo_lista);
         let t = comprobar_expresion(c, m, tipos, n.hijos[1], elem, posee_memoria(m, elem));
-        if t.largo() > 0 && !encaja(elem, t) {
-            error(c, m, n.linea, $"la lista guarda `{elem}` y se intento agregar `{t}`");
+        if T.conocido(t) && !encaja(elem, T.escribir_tipo(t)) {
+            error(c, m, n.linea, $"la lista guarda `{elem}` y se intento agregar `{T.escribir_tipo(t)}`");
         }
         // Por un `&mut lista<T>` —de `obtener_mut`, o un parametro— se
         // modifica; por un `&` no, y el error lo dice.
         mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
             T.es_referencia(c.simbolos[is].tipo));
-        return nuevo("()");
+        return tipo_de_escrito(nuevo("()"));
     }
     let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-    return nuevo("()");
+    return tipo_de_escrito(nuevo("()"));
 }
 
-fn interna_ordenar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn interna_ordenar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let dados = n.hijos.largo();
     if dados != 1 {
         error(c, m, n.linea, $"`ordenar` espera 1 argumento y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return nuevo("()");
+        return tipo_de_escrito(nuevo("()"));
     }
     let base = variable_base(n.hijos[0]);
     let is = buscar_simbolo(c, base);
     let hay = base.largo() > 0 && existe(c, is);
     var t = vacio();
-    if hay { t = sin_prestamo(tipo_de_lugar(c, m, tipos, n.hijos[0])); }
+    if hay { t = sin_prestamo(T.escribir_tipo(tipo_de_lugar(c, m, tipos, n.hijos[0]))); }
     if !hay {
         error(c, m, n.linea, "`ordenar` necesita una variable, un campo o un elemento");
     } else if !T.es_lista(t) {
@@ -4760,29 +4773,29 @@ fn interna_ordenar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
                 T.es_referencia(c.simbolos[is].tipo));
         }
     }
-    return nuevo("()");
+    return tipo_de_escrito(nuevo("()"));
 }
 
-fn interna_texto(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> str {
+fn interna_texto(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
     let dados = n.hijos.largo();
     if dados != 1 {
         error(c, m, n.linea, $"`texto` espera 1 argumento y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return nuevo("str");
+        return tipo_de_escrito("str");
     }
     let crudo = comprobar_expresion(c, m, tipos, n.hijos[0], "", false);
-    let t = sin_prestamo(crudo);
+    let t = sin_prestamo(T.escribir_tipo(crudo));
     let x = vista(t);
     if t.largo() > 0 && !es_tipo_entero(x) && !igual(x, literal()) && x != "bool"
     && x != "view" && x != "str" {
         error(c, m, n.linea, $"`texto` convierte escalares o texto, recibio `{t}`");
     }
-    return nuevo("str");
+    return tipo_de_escrito("str");
 }
 
 // `poner`, `obtener`, `tiene`, `claves`, `quitar` y `obtener_mut`.
 fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
-    nombre: view) -> str {
+    nombre: view) -> T.Tipo {
     var esperados = 2;
     if nombre == "poner" { esperados = 3; }
     if nombre == "claves" { esperados = 1; }
@@ -4793,12 +4806,12 @@ fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nod
     if dados != esperados {
         error(c, m, n.linea, $"`{nombre}` espera {esperados} argumento(s) y recibio {dados}");
         evaluar_todos(c, m, tipos, n);
-        return si_falla;
+        return tipo_de_escrito(si_falla);
     }
     let base = variable_base(n.hijos[0]);
     let is = buscar_simbolo(c, base);
     let hay = base.largo() > 0 && existe(c, is);
-    var tipo_mapa = vacio();
+    var tipo_mapa = T.ninguno();
     if hay { tipo_mapa = tipo_de_lugar(c, m, tipos, n.hijos[0]); }
     if !hay {
         error(c, m, n.linea, $"el primer argumento de `{nombre}` tiene que ser una variable, un campo o un elemento");
@@ -4807,59 +4820,59 @@ fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nod
             let _t = comprobar_expresion(c, m, tipos, n.hijos[r], "", false);
             r = r + 1;
         }
-        return si_falla;
+        return tipo_de_escrito(si_falla);
     }
-    if !T.es_mapa(tipo_mapa) {
-        let visto = texto_o_none(tipo_mapa);
+    if !T.es_mapa(T.escribir_tipo(tipo_mapa)) {
+        let visto = texto_o_none(T.escribir_tipo(tipo_mapa));
         error(c, m, n.linea, $"`{nombre}` opera sobre `mapa<K, V>`, recibio `{visto}`");
         var r = 1;
         while r < dados {
             let _t = comprobar_expresion(c, m, tipos, n.hijos[r], "", false);
             r = r + 1;
         }
-        return si_falla;
+        return tipo_de_escrito(si_falla);
     }
-    let partes = T.partes(tipo_mapa);
+    let partes = T.partes(T.escribir_tipo(tipo_mapa));
     let kt = copiar(partes[0]);
     let vt = copiar(partes[1]);
     let linea_m = n.hijos[0].linea;
     if nombre == "claves" {
         let _l = leer(c, m, linea_m, is);
-        return T.hacer_lista(kt);
+        return tipo_de_escrito(T.hacer_lista(kt));
     }
     let tc = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
-    if tc.largo() > 0 && !encaja(kt, tc)
-    && !(kt == "str" && tc == "view") {
-        error(c, m, n.linea, $"la clave del mapa es `{kt}` y se paso `{tc}`");
+    if T.conocido(tc) && !encaja(kt, T.escribir_tipo(tc))
+    && !(kt == "str" && tc.nombre == "view") {
+        error(c, m, n.linea, $"la clave del mapa es `{kt}` y se paso `{T.escribir_tipo(tc)}`");
     }
     if nombre == "tiene" {
         let _l = leer(c, m, linea_m, is);
-        return nuevo("bool");
+        return tipo_de_escrito("bool");
     }
     if nombre == "obtener_mut" {
         if !es_compuesto(m, vt) {
             error(c, m, n.linea, $"`obtener_mut` presta para modificar algo que vive en el mapa; `{vt}` es un escalar, asi que usa `obtener` y vuelve a `poner`");
-            return vt;
+            return tipo_de_escrito(vt);
         }
         mutar(c, m, n.hijos[0], linea_m, is, false);
-        return T.hacer_prestado_mut(vt);
+        return tipo_de_escrito(T.hacer_prestado_mut(vt));
     }
     if nombre == "quitar" {
         mutar(c, m, n.hijos[0], linea_m, is, false);
-        return nuevo("bool");
+        return tipo_de_escrito("bool");
     }
     if nombre == "obtener" {
         let _l = leer(c, m, linea_m, is);
-        if !posee_memoria(m, vt) { return vt; }
-        if vt == "str" { return nuevo("view"); }
-        return T.hacer_prestado(vt);
+        if !posee_memoria(m, vt) { return tipo_de_escrito(vt); }
+        if vt == "str" { return tipo_de_escrito("view"); }
+        return tipo_de_escrito(T.hacer_prestado(vt));
     }
     let tv = comprobar_expresion(c, m, tipos, n.hijos[2], vt, posee_memoria(m, vt));
-    if tv.largo() > 0 && !encaja(vt, tv) {
-        error(c, m, n.linea, $"el mapa guarda `{vt}` y se intento poner `{tv}`");
+    if T.conocido(tv) && !encaja(vt, T.escribir_tipo(tv)) {
+        error(c, m, n.linea, $"el mapa guarda `{vt}` y se intento poner `{T.escribir_tipo(tv)}`");
     }
     mutar(c, m, n.hijos[0], linea_m, is, false);
-    return nuevo("()");
+    return tipo_de_escrito(nuevo("()"));
 }
 
 // ------------------------------------------------------------------
@@ -5219,8 +5232,8 @@ fn sentencia_declaracion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, 
     var tipo = vacio();
     if escrito.largo() == 0 {
         let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", true);
-        if t.largo() == 0 { return; }
-        tipo = copiar(t);
+        if !T.conocido(t) { return; }
+        tipo = T.escribir_tipo(t);
         if igual(tipo, literal()) {
             comprobar_literal(c, m, s.hijos[0], "usize");
             tipo = nuevo("usize");
@@ -5244,8 +5257,8 @@ fn sentencia_declaracion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, 
             }
         }
         let t = comprobar_expresion(c, m, tipos, s.hijos[0], tipo, true);
-        if t.largo() > 0 && !encaja(tipo, t) {
-            error(c, m, s.linea, $"`{nombre}` se declaro `{tipo}` pero el valor es `{t}`");
+        if T.conocido(t) && !encaja(tipo, T.escribir_tipo(t)) {
+            error(c, m, s.linea, $"`{nombre}` se declaro `{tipo}` pero el valor es `{T.escribir_tipo(t)}`");
         }
     }
     let i = declarar_simbolo(c, m, s.linea, nombre, tipo, mutable);
@@ -5273,7 +5286,7 @@ fn sentencia_asignacion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s
     c.escribiendo = c.escribiendo + 1;
     let destino = tipo_de_lugar(c, m, tipos, lugar);
     c.escribiendo = c.escribiendo - 1;
-    let tipo = comprobar_expresion(c, m, tipos, s.hijos[1], destino, true);
+    let tipo = comprobar_expresion(c, m, tipos, s.hijos[1], T.escribir_tipo(destino), true);
     if escribe_en_captura(c, m, lugar) { return; }
     c.simbolos[i].mutada = true;
     let st = copiar(c.simbolos[i].tipo);
@@ -5289,13 +5302,13 @@ fn sentencia_asignacion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s
         let por = ocupada(vivos);
         error(c, m, s.linea, $"no se puede modificar `{base}`: {por}");
     }
-    if destino.largo() > 0 && tipo.largo() > 0 && !encaja(destino, tipo) {
-        error(c, m, s.linea, $"el destino es `{destino}` y se le asigna un `{tipo}`");
+    if T.conocido(destino) && T.conocido(tipo) && !encaja(T.escribir_tipo(destino), T.escribir_tipo(tipo)) {
+        error(c, m, s.linea, $"el destino es `{T.escribir_tipo(destino)}` y se le asigna un `{T.escribir_tipo(tipo)}`");
     }
     // Una vista guardada en un campo: el struct de la raiz presta tambien
     // de ella. Si la raiz llego prestada, quien la presto no sabria de
     // donde presta ahora, salvo que sea un literal.
-    if lugar.clase == Clase.Campo && presta_tipo(m, tipo) {
+    if lugar.clase == Clase.Campo && presta_tipo(m, T.escribir_tipo(tipo)) {
         let de_raiz = copiar(c.simbolos[i].tipo);
         if c.simbolos[i].prestado || T.es_referencia(de_raiz) {
             if procedencia_de(c, m, s.hijos[1]) != "estatico" {
@@ -5359,8 +5372,8 @@ fn sentencia_asignacion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s
 
 fn sentencia_si(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nodo) {
     let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
-    if t.largo() > 0 && t != "bool" {
-        error(c, m, s.linea, $"la condicion de `if` debe ser `bool`, es `{t}`");
+    if T.conocido(t) && t.nombre != "bool" {
+        error(c, m, s.linea, $"la condicion de `if` debe ser `bool`, es `{T.escribir_tipo(t)}`");
     }
     c.en_condicional = c.en_condicional + 1;
     let antes = foto(c);
@@ -5416,7 +5429,7 @@ fn sentencia_si(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nod
 
 fn sentencia_para(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nodo) {
     let crudo = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
-    let tipo = sin_prestamo(crudo);
+    let tipo = sin_prestamo(T.escribir_tipo(crudo));
     var elem = vacio();
     var tipo_valor = vacio();
     var variable = vacio();
@@ -5490,8 +5503,8 @@ fn sentencia_mientras(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: 
     c.en_bucle = c.en_bucle + 1;
     let vacia: lista<usize> = [];
     c.movidas_en_bucle.anadir(vacia);
-    if t.largo() > 0 && t != "bool" {
-        error(c, m, s.linea, $"la condicion de `while` debe ser `bool`, es `{t}`");
+    if T.conocido(t) && t.nombre != "bool" {
+        error(c, m, s.linea, $"la condicion de `while` debe ser `bool`, es `{T.escribir_tipo(t)}`");
     }
     c.en_condicional = c.en_condicional + 1;
     cuerpo_de_bucle(c, m, tipos, s.hijos[1]);
@@ -5512,7 +5525,7 @@ fn sentencia_retorno(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &
         comprobar_vista_devuelta(c, m, s);
     }
     c.en_retorno = c.en_retorno + 1;
-    var tipo = vacio();
+    var tipo = T.ninguno();
     if s.hijos[0].clase == Clase.Variable {
         tipo = variable(c, m, tipos, s.hijos[0], true, true);
     } else {
@@ -5521,8 +5534,8 @@ fn sentencia_retorno(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &
     c.en_retorno = c.en_retorno - 1;
     if r.largo() == 0 {
         error(c, m, s.linea, "esta funcion no declara tipo de retorno");
-    } else if tipo.largo() > 0 && !encaja(r, tipo) {
-        error(c, m, s.linea, $"esta funcion devuelve `{r}` y aqui se devuelve `{tipo}`");
+    } else if T.conocido(tipo) && !encaja(r, T.escribir_tipo(tipo)) {
+        error(c, m, s.linea, $"esta funcion devuelve `{r}` y aqui se devuelve `{T.escribir_tipo(tipo)}`");
     }
     return;
 }
