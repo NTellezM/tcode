@@ -328,7 +328,7 @@ struct Mundo {
     // El tipo de cada expresion, por modulo: `dueno#id` -> tipo, con los
     // numeros escritos ya decididos por su contexto. El generador lo lee de
     // aqui en vez de deducirlo otra vez.
-    anotados: lista<mapa<str, str>>,
+    anotados: lista<mapa<str, T.Tipo>>,
     // Las copias de genericas y las clausuras, en el orden en que nacen: una
     // clausura al verla, una copia despues de comprobar su cuerpo. Es el
     // orden en que el generador las escribe.
@@ -2712,7 +2712,11 @@ fn clave_anotada(c: &Comprobacion, n: &P.Nodo) -> str {
 fn anotar(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, t: view) {
     if n.id == 0 || c.modulo >= m.anotados.largo() { return; }
     let clave = clave_anotada(c, n);
-    poner(m.anotados[c.modulo], vista(clave), nuevo(t));
+    if igual(t, literal()) || igual(t, literal_decimal()) {
+        poner(m.anotados[c.modulo], vista(clave), T.marcador(t));
+    } else {
+        poner(m.anotados[c.modulo], vista(clave), T.leer_tipo(t));
+    }
 }
 
 // Un numero escrito ya sabe su tipo: se lo dice el otro lado de la operacion,
@@ -2724,7 +2728,7 @@ fn fijar_literal(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: view) {
     var antes = nuevo(literal());
     if n.id > 0 {
         let clave = clave_anotada(c, n);
-        antes = nuevo(obtener(m.anotados[c.modulo], clave) sino literal());
+        antes = T.escribir_tipo(T.tipo_de_mapa(m.anotados[c.modulo], clave) sino T.marcador(literal()));
     }
     fijar_literal_sin_contar(c, m, n, tipo);
     if igual(antes, literal()) && es_tipo_entero(tipo)
@@ -2737,7 +2741,7 @@ fn fijar_literal_sin_contar(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, tipo: vi
     if c.modulo >= m.anotados.largo() { return; }
     if n.id > 0 {
         let clave = clave_anotada(c, n);
-        let actual = obtener(m.anotados[c.modulo], clave) sino literal();
+        let actual = T.escribir_tipo(T.tipo_de_mapa(m.anotados[c.modulo], clave) sino T.marcador(literal()));
         if !igual(actual, literal()) && !igual(actual, literal_decimal()) { return; }
     }
     if largo(I.literal_de(n)) == 0 { return; }
@@ -2871,7 +2875,7 @@ fn contar_pendientes(c: mut Comprobacion, m: mut Mundo, desde: usize) {
         let clave = clave_anotada(c, n);
         var actual = nuevo(literal());
         if c.modulo < m.anotados.largo() {
-            actual = nuevo(obtener(m.anotados[c.modulo], clave) sino literal());
+            actual = T.escribir_tipo(T.tipo_de_mapa(m.anotados[c.modulo], clave) sino T.marcador(literal()));
         }
         if igual(actual, literal()) { contar_escrita(c, m, n, "usize"); }
         c.dueno = dueno_antes;
@@ -5939,7 +5943,7 @@ struct Revision {
     // Los campos sacados de su struct: `archivo\tlinea\tp.a.b`.
     sacados: lista<str>,
     // El tipo de cada expresion, por modulo, para el generador.
-    anotados: lista<mapa<str, str>>,
+    anotados: lista<mapa<str, T.Tipo>>,
     // Las copias y las clausuras, en el orden en que se escriben.
     orden_copias: lista<str>,
     // Las copias de structs genericos, en el orden en que nacen: tambien
@@ -5959,7 +5963,7 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         contextos: copiar(contextos), copias: [], orden_structs: [], tipo_de_struct: [],
         anotados: [], orden_copias: [] };
     for _a en arboles {
-        let vacio_m: mapa<str, str> = [];
+        let vacio_m: mapa<str, T.Tipo> = [];
         m.anotados.anadir(vacio_m);
     }
     var c = estado("", 0);

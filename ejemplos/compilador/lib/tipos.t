@@ -219,6 +219,13 @@ fn ninguno() -> Tipo {
     return nuevo_tipo(Forma.Nombre, "");
 }
 
+// Un marcador que no es un tipo de verdad: el comprobador guarda `{entero}` y
+// `{decimal}` para las expresiones numericas aun sin fijar. Vive en los mapas
+// de tipos, asi que se monta a mano (no pasa por `leer_tipo`).
+fn marcador(s: view) -> Tipo {
+    return nuevo_tipo(Forma.Nombre, s);
+}
+
 fn conocido(t: &Tipo) -> bool {
     return t.forma != Forma.Nombre || t.nombre.largo() > 0;
 }

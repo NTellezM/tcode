@@ -52,7 +52,7 @@ struct Contexto {
     // expresion, con los numeros escritos ya decididos por su contexto.
     // `dueno` es la funcion que se esta escribiendo, con el nombre que le da
     // el comprobador; vacio, no se mira nada y el tipo se deduce aqui.
-    anotados: mapa<str, str>,
+    anotados: mapa<str, T.Tipo>,
     dueno: str,
 }
 
@@ -312,7 +312,7 @@ fn tipo_anotado(c: &Contexto, n: &P.Nodo) -> str {
 fn anotado_crudo(c: &Contexto, n: &P.Nodo) -> str {
     if n.id == 0 || c.dueno.largo() == 0 { return vacio(); }
     let clave = $"{c.dueno}#{n.id}";
-    return nuevo(obtener(c.anotados, clave) sino "");
+    return T.escribir_tipo(T.tipo_de_mapa(c.anotados, clave) sino T.ninguno());
 }
 
 fn es_numero(t: view) -> bool {
