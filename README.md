@@ -214,7 +214,7 @@ comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
 Sobre los <!--c:lexer_archivos-->71<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
-**<!--c:tokens-->217.514<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+**<!--c:tokens-->217.566<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -243,7 +243,7 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 `ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.802<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->71<!--/c--> archivos que
-el parser del compilador, y sobre ellos produce <!--c:nodos-->115.459<!--/c--> nodos:
+el parser del compilador, y sobre ellos produce <!--c:nodos-->115.511<!--/c--> nodos:
 
 <!--c:bloque:parser-->
 ```
@@ -254,18 +254,18 @@ ejemplos/lexer/parser.t: 79 nodos, hondura 10
 Y dos capas más del comprobador, en `ejemplos/compilador/`:
 
 - `lib/tipos.t` responde las dos preguntas de las que cuelga todo —¿este tipo
-  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **<!--c:tipos_archivos-->71<!--/c--> archivos, <!--c:tipos-->540<!--/c-->
+  es dueño de memoria?, ¿se puede guardar un valor suyo?—: **<!--c:tipos_archivos-->71<!--/c--> archivos, <!--c:tipos-->539<!--/c-->
   tipos**, las mismas respuestas que el comprobador de Python. Es también
   el único sitio que lee y construye tipos: los lee como árbol (`Tipo`, con
   su `Forma` como enum) y los vuelve a escribir, y cada uno de esos tipos
   tiene que dar, leído y escrito, el mismo texto.
 - `lib/tipar.t` dice **de qué tipo es cada variable de cada función**, con
   llamadas, campos, índices, préstamos y genéricas instanciadas: **<!--c:tipar_archivos-->71<!--/c-->
-  archivos, <!--c:tipar_variables-->7.216<!--/c--> variables**, los mismos tipos.
+  archivos, <!--c:tipar_variables-->7.212<!--/c--> variables**, los mismos tipos.
 - `lib/propiedad.t` dice **qué le pasa a cada valor con dueño** —se presta,
   se entrega en la línea N, se mueve en la línea N, o se libera al cerrar su
   bloque—, que es lo único que de verdad separa a Tcode de C: **<!--c:propiedad_archivos-->71<!--/c--> archivos,
-  <!--c:propiedad_variables-->7.216<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
+  <!--c:propiedad_variables-->7.212<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
 - `lib/generar.t` es **el generador**: cómo se llama cada tipo en C, cómo
   queda la firma de cada función —**<!--c:firmas_archivos-->71<!--/c--> archivos, <!--c:firmas-->1.072<!--/c--> firmas**— y el C de cada
   expresión que se devuelve: **<!--c:expresiones_iguales-->3.783<!--/c--> de <!--c:expresiones-->4.108<!--/c--> expresiones, carácter por
@@ -284,7 +284,7 @@ suite, sobre el código real del repositorio.
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.683<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.690<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa) y el resultado se compara byte a
 byte con el del generador de Python: **los <!--c:programas_enteros-->25<!--/c--> programas del repositorio, idénticos**,
 entre ellos el lexer, el parser y el propio `tcodec`, y también **los
@@ -356,7 +356,7 @@ error: roto.t:3: se esperaba ';', se encontro ')'
 Y como siete casos no bastan para fiarse de un parser, la suite rompe cada
 archivo del repositorio de varias formas —un token de menos o de más, un
 símbolo fuera de sitio, una cadena sin cerrar, un carácter que no existe— y
-exige el mismo primer error en todos: **<!--c:rotos_iguales-->337<!--/c--> de <!--c:rotos-->337<!--/c-->**. Y el otro lado, que
+exige el mismo primer error en todos: **<!--c:rotos_iguales-->338<!--/c--> de <!--c:rotos-->338<!--/c-->**. Y el otro lado, que
 importa más: **ninguno de los <!--c:correctos-->214<!--/c--> programas correctos** —los del repositorio
 y los de la suite— se rechaza. `tcodec --solo-comprobar` hace sólo esta
 parte.
@@ -817,7 +817,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-4404 casos, 0 fallas
+4405 casos, 0 fallas
 2754 comprobaciones sobre 60 programas, 0 fallas
 ```
 

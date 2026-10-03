@@ -2671,8 +2671,7 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         var k = 0;
         while k < firmados.largo() && k < n.hijos.largo() {
             let dado = I.tipo_de(tipos, n.hijos[k]);
-            let limpio = T.apuntado_si(T.escribir_tipo(dado));
-            I.unificar(T.escribir_tipo(firmados[k]), limpio, sueltos, ligaduras);
+            T.ligar_tipo(firmados[k], dado, sueltos, ligaduras);
             k = k + 1;
         }
         en_c.empujar("__");

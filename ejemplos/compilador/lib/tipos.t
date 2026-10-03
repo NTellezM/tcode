@@ -670,6 +670,42 @@ fn sustituir_tipo(t: &Tipo, ligaduras: &mapa<str, str>) -> Tipo {
     return salida;
 }
 
+// Empareja un patron generico con un tipo dado, llenando las ligaduras, sobre
+// el arbol: `T` liga con lo que venga, y las partes se comparan por dentro.
+// Las ligaduras siguen en str porque las lee quien las escribe en C.
+fn ligar_tipo(patron: &Tipo, dado: &Tipo, sueltos: &lista<str>,
+    ligaduras: mut mapa<str, str>) {
+    if !conocido(dado) { return; }
+    if patron.forma == Forma.Presta || patron.forma == Forma.PrestaMut {
+        ligar_tipo(patron.args[0], dado, sueltos, ligaduras);
+        return;
+    }
+    if dado.forma == Forma.Presta || dado.forma == Forma.PrestaMut {
+        ligar_tipo(patron, dado.args[0], sueltos, ligaduras);
+        return;
+    }
+    for s en sueltos {
+        if patron.forma == Forma.Nombre && patron.args.largo() == 0
+        && igual(patron.nombre, s) {
+            if !tiene(ligaduras, patron.nombre) {
+                poner(ligaduras, patron.nombre, escribir_tipo(dado));
+            }
+            return;
+        }
+    }
+    if patron.forma == Forma.Funcion || patron.forma == Forma.Arreglo
+    || dado.forma == Forma.Funcion || dado.forma == Forma.Arreglo { return; }
+    if patron.args.largo() == 0 || dado.args.largo() == 0 { return; }
+    if patron.args.largo() != dado.args.largo() { return; }
+    var i = 0;
+    while i < patron.args.largo() {
+        let a: &Tipo = patron.args[i];
+        let b: &Tipo = dado.args[i];
+        ligar_tipo(a, b, sueltos, ligaduras);
+        i = i + 1;
+    }
+}
+
 // `lista<P.Nodo>` -> `lista<Nodo>`: el alias de un modulo es de quien lo
 // escribe, y los tipos se apuntan por su nombre.
 fn sin_alias_tipo(t: view) -> str {

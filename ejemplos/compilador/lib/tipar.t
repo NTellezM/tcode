@@ -583,9 +583,8 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
     var ligaduras: mapa<str, str> = [];
     var i = 0;
     while i < declarados.largo() && i < n.hijos.largo() {
-        let dado = T.escribir_tipo(tipo_de(c, n.hijos[i]));
-        let limpio = T.apuntado_si(dado);
-        unificar(T.escribir_tipo(declarados[i]), limpio, sueltos, ligaduras);
+        let dado = tipo_de(c, n.hijos[i]);
+        T.ligar_tipo(declarados[i], dado, sueltos, ligaduras);
         i = i + 1;
     }
     return T.sustituir(retorno, ligaduras);
@@ -637,31 +636,4 @@ fn firma_de_funcion(c: &Contexto, nombre: view) -> str {
 
 fn lista_de(m: &mapa<str, lista<str>>, clave: view) -> lista<str> ! {
     return copiar(try obtener(m, clave));
-}
-
-// `lista<T>` contra `lista<str>` liga `T` a `str`. Con la forma justa que
-// hace falta: los tipos de Tcode son cadenas y se comparan por su borde.
-fn unificar(patron: view, dado: view, sueltos: &lista<str>,
-    ligaduras: mut mapa<str, str>) {
-    if dado.largo() == 0 { return; }
-    for s en sueltos {
-        if igual(patron, s) {
-            if !tiene(ligaduras, patron) { poner(ligaduras, patron, nuevo(dado)); }
-            return;
-        }
-    }
-    let p = T.apuntado_si(patron);
-    let d = T.apuntado_si(dado);
-    // Se unifican los argumentos entre angulos: los de una lista, un mapa,
-    // un bloque o una aplicacion. Una funcion o un arreglo no ligan nada.
-    if T.es_funcion(p) || T.es_arreglo(p) || T.es_funcion(d) || T.es_arreglo(d) { return; }
-    let pp = T.partes(p);
-    let dd = T.partes(d);
-    if pp.largo() == 0 || dd.largo() == 0 { return; }
-    if pp.largo() != dd.largo() { return; }
-    var i = 0;
-    while i < pp.largo() {
-        unificar(pp[i], dd[i], sueltos, ligaduras);
-        i = i + 1;
-    }
 }
