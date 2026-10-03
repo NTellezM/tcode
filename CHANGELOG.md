@@ -53,6 +53,11 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   a `mapa<str, mapa<str, str>>`, con `valor`/`valor_o` para consultar. La
   seccion sin nombre se escribe primero, que si no sus claves caen en la
   anterior al releer.
+- `std/base64`: codifica y decodifica base64 (RFC 4648) —`codificar` da una
+  sola linea; `decodificar` ignora saltos y `\r`—, en forma libre.
+  `programas/base64.t` ahora la usa y solo le queda el formato de fichero
+  (lineas de 76), asi que el oraculo contra el `base64` del sistema la
+  ejercita.
 
 ### Corregido
 
