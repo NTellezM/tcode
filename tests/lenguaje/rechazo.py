@@ -25,6 +25,9 @@ _MEDIO = ("struct P { nombre: str, edad: usize, sub: Q } struct Q { t: str } "
 _FORMAS = "enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) } "
 
 RECHAZO = [
+    ("un hexadecimal que no cabe en u64",
+     'fn main() { let a: usize = $1FFFFFFFFFFFFFFFF; }',
+     "el hexadecimal no cabe en u64"),
     # Un sitio prestado con `let x: &T = ...` no se modifica ni se mueve
     # mientras `x` se use; por un `&T` no se modifica nada.
     ("modificar la lista de la que se presto un elemento",

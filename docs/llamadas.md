@@ -789,11 +789,13 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 - `empieza_nombre` ← `tokens_de_todo` (lexico.t)
 - `es_espacio` ← `tokens_de_todo` (lexico.t)
 - `es_hex` ← `fin_de_cadena_en` (lexico.t)
+- `es_hex_digito` ← `tokens_de_todo` (lexico.t)
 - `es_reservada` ← `tokens_de_todo` (lexico.t)
 - `es_simbolo` ← `tokens_de_todo` (lexico.t)
 - `fin_de_cadena` ← `tokens_de_todo` (lexico.t)
 - `fin_de_cadena_en` ← `fin_de_cadena` (lexico.t), `fin_de_cadena_en` (lexico.t)
 - `fin_de_texto` ← `cierre_de_hueco` (lexico.t), `fin_de_texto` (lexico.t)
+- `hex_decimal` ← `tokens_de_todo` (lexico.t)
 - `largo_utf8` ← `punto_utf8` (lexico.t), `tokens_de_todo` (lexico.t)
 - `lineas_hasta` ← `tokens_de_todo` (lexico.t)
 - `minuscula_hex` ← `repr_texto` (lexico.t)
@@ -806,6 +808,7 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 - `tokens_de` ← `analizar` (lexico.t)
 - `tokens_de_todo` ← `tokens_de` (lexico.t), `tokens_desde` (lexico.t)
 - `utf8_invalido` ← `tokens_de_todo` (lexico.t)
+- `valor_hex_digito` ← `hex_decimal` (lexico.t)
 
 ## lexer/lib/sintaxis.t
 - `acepta` ← `argumentos_de_tipo` (sintaxis.t), `conversion` (sintaxis.t), `cuerpo_literal_struct` (sintaxis.t), `cuerpo_llamada` (sintaxis.t), `declaracion` (sintaxis.t), `lista_tipo_params` (sintaxis.t), `match_` (sintaxis.t), `parametros` (sintaxis.t), `posicion_patron` (sintaxis.t), `posiciones_patron` (sintaxis.t), `postfijo` (sintaxis.t), `primario` (sintaxis.t), `programa` (sintaxis.t), `sentencia` (sintaxis.t), `tipo` (sintaxis.t)

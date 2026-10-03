@@ -385,6 +385,27 @@ fn hexadecimal(n: usize) -> str {
     return cifras;
 }
 
+fn es_hex_digito(b: usize) -> bool {
+    return (b >= 48 && b <= 57) || (b >= 97 && b <= 102) || (b >= 65 && b <= 70);
+}
+
+fn valor_hex_digito(b: usize) -> usize {
+    if b >= 48 && b <= 57 { return b - 48; }
+    if b >= 97 && b <= 102 { return b - 87; }
+    return b - 55;
+}
+
+// Los digitos hexadecimales, a su valor en decimal: `FF` -> "255".
+fn hex_decimal(v: view) -> str {
+    var n = 0;
+    var k = 0;
+    while k < v.largo() {
+        n = n * 16 + valor_hex_digito(byte(v, k));
+        k = k + 1;
+    }
+    return $"{n}";
+}
+
 // Donde empieza el primer control bidireccional de `fuente`, o su largo si
 // no hay ninguno. En UTF-8 son E2 80 AA..AE (U+202A..U+202E) y E2 81 A6..A9
 // (U+2066..U+2069).
@@ -518,6 +539,32 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
             let fin = try fin_de_cadena(fuente, i + 1, false, archivo, linea, error);
             agregar(salida, "cadena", rebanar(fuente, i + 1, fin), linea);
             i = fin + 1;
+            continue;
+        }
+
+        // hexadecimal: `$FF`, `$1a2b`. Sin digito detras, `$` sigue siendo
+        // un simbolo (hoy no se usa para nada mas).
+        if b == 36 && i + 1 < fuente.largo() && es_hex_digito(byte(fuente, i + 1)) {
+            var j = i + 1;
+            while j < fuente.largo() && es_hex_digito(byte(fuente, j)) {
+                j = j + 1;
+            }
+            if comentarios {
+                agregar(salida, "entero", rebanar(fuente, i, j), linea);
+            } else {
+                // Sin ceros delante: 16 digitos caben en u64, uno mas no.
+                let digitos = rebanar(fuente, i + 1, j);
+                var desde = 0;
+                while desde + 1 < digitos.largo() && byte(digitos, desde) == 48 {
+                    desde = desde + 1;
+                }
+                if digitos.largo() - desde > 16 {
+                    error = $"{archivo}:{linea}: el hexadecimal no cabe en u64";
+                    falla "numero mal formado";
+                }
+                agregar(salida, "entero", hex_decimal(digitos), linea);
+            }
+            i = j;
             continue;
         }
 

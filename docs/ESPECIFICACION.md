@@ -718,10 +718,12 @@ números.
 anidan. Un `/*` sin cerrar es un error.
 
 **Números.** Un entero son dígitos, con `_` donde ayude a leerlo (`1_000`);
-un cero delante no cambia la base (`010` es diez). Un decimal lleva dígitos a
-los dos lados del punto (`1.5`, no `1.` ni `.5`) y puede llevar exponente
-(`1.5e2`, `2E-3`). Un número pegado a una letra (`12abc`) es un error. El
-signo no es parte del número: `-1` es `-` aplicado a `1`.
+un cero delante no cambia la base (`010` es diez). Un hexadecimal es `$`
+seguido de dígitos hexadecimales (`$FF`, `$1a2b`, `$0`); cabe en `u64`, así
+que hasta dieciséis dígitos, y mayúsculas y minúsculas valen igual. Un decimal
+lleva dígitos a los dos lados del punto (`1.5`, no `1.` ni `.5`) y puede
+llevar exponente (`1.5e2`, `2E-3`). Un número pegado a una letra (`12abc`) es
+un error. El signo no es parte del número: `-1` es `-` aplicado a `1`.
 
 **Cadenas**: `"..."`, con los escapes `\n`, `\t`, `\0`, `\\`, `\"` y
 `\xNN` (un byte en hexadecimal; no un carácter Unicode). Cualquier otro

@@ -11,6 +11,15 @@ from .comun import (
 )
 
 ACEPTA = [
+    ("literales hexadecimales",
+     '''fn main() {
+            let a: usize = $FF;
+            let b: usize = $1a2b;
+            let c: u8 = $0;
+            let d: u8 = $ff;
+            imprimir($"{a} {b} {c} {d}\\n");
+        }''',
+     "255 6699 0 255\n"),
     # Prestar un sitio: un elemento, un campo o una variable se leen o se
     # modifican por un `&T`/`&mut T` sin copiarlos. Antes habia que
     # `copiar(...)` el elemento entero.
