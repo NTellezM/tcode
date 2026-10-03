@@ -75,14 +75,17 @@ solo sirve para confirmar el efecto acumulado.
 Lo que queda, en dos frentes:
 
 - **La instanciación de genéricas** (`preparar_instancias`) es el mayor foco:
-  copia `ss_copia_lista_str` 1,67 M y `ss_copia_mapa_str_usize` 802 K. Son
-  copias **inherentes**: `resolver_reg`/`descubrir` mutan las listas
-  (`st_tipos`) mientras iteran sus elementos, y el comprobador de préstamos
-  exige iterar una copia. No se puede quitar con un ajuste.
+  `probar_juego` hace un **snapshot + rollback del `Mundo` entero** por cada
+  combinación de tipos —copia `ss_copia_lista_str` 1,67 M, `ss_copia_mapa_str_usize`
+  802 K, `ss_copia_Funcion` 387 K— para deshacer la comprobación especulativa.
+  El arreglo natural (recordar el largo y **recortar** las listas) está
+  **bloqueado**: `lista<T>` es solo-append (no hay `quitar`/`truncar`), así que
+  el rollback exige la copia profunda. Desbloquearlo pide un builtin
+  `truncar(lista, n)` en el runtime y el compilador.
 - **El parser** (`preparar_con_error`) copia `ss_copia_Simbolo` 362 K,
   `ss_copia_Funcion` 387 K, `ss_copia_Token` 355 K al construir el AST:
-  también inherente al valor por copia.
+  inherente al valor por copia.
 
-Lo que queda de «ajuste puntual» ya está hecho. Lo demás pide cambiar la
-representación (listas por préstamos, o `Tipo`/`Nodo` copiables), que es un
-refactor de otro orden, no un ahorro suelto.
+Lo que queda de «ajuste puntual» ya está hecho. El siguiente salto es el
+builtin de recorte de listas (y luego usarlo en `probar_juego`); el resto es
+cambiar la representación (listas por préstamos, o `Tipo`/`Nodo` copiables).
