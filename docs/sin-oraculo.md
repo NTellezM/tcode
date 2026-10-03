@@ -25,28 +25,33 @@ compilador de Python y pasa a ser la semilla `bootstrap/tcodec.c`.
 
 Cada una termina con `make check` verde y se commitea sola.
 
-1. **El punto fijo como única garantía.** Confirmar que `make semilla` corre
-   sin Python (solo `tcodec` + `cc`) y dejarlo escrito como la red de
-   seguridad que sustituye al DDC. *(este documento)*
+1. **El punto fijo como única garantía.** Confirmado: `make semilla` corre
+   sin Python (solo `tcodec` + `cc`) y es la red de seguridad que sustituye
+   al DDC. *(hecho)*
 
-2. **Portar la suite a solo-`tcodec`.** Las secciones de `test_lenguaje.py`
-   que aceptan, rechazan y comparan salida se corren con `tcodec` a secas
-   (compilar + ejecutar + comparar, o esperar el rechazo con el mensaje
-   exacto), sin compilarlo dos veces.
+2. **Portar la suite a solo-`tcodec`.** Hecho: SALIDA y FORMATO dejaron de
+   usar Python, y se quitaron las 9 secciones de comparación interna más
+   `ddc` y `cobertura`. *(hecho)*
 
 3. **Decidir qué capas se van.** `ddc`, `cobertura`, `mutar` y las capas
    aisladas (`expresiones`, `firmas`, `cuerpos`) comparan contra Python: se
    eliminan o se reescriben sobre `tcodec`.
 
-4. **Borrar `tcode/*.py`** y los objetivos del Makefile que lo usan.
+4. **Borrar `tcode/*.py`.** Hecho: `test_propiedades.py` se reescribió para
+   compilar con `tcodec`, y `tcode/*.py` entero se borró. *(hecho)*
 
-5. **Ya sin oráculo**, retomar la representación interna de tipos con
-   libertad —y solo entonces optimizar el camino caliente, si hay un
-   objetivo medible—.
+5. **Ya sin oráculo**: retomar la representación interna de tipos con
+   libertad, y optimizar el camino caliente (el siguiente trabajo).
+
+## Estado: cerrado
+
+El oráculo de Python ya no existe. `tcodec` es el único compilador: se
+construye desde su semilla y su garantía es el punto fijo. La suite corre
+entera con `tcodec`.
 
 ## Nota sobre el camino caliente
 
 El camino caliente del comprobador ya es `str` + `forma_de` (no reserva para
-decidir), que es la regla de `TIPOS.md`. Quitar el oráculo no acelera eso
-directamente: acelera la verificación (no se corre todo dos veces) y
-desbloquea cambios futuros de representación.
+decidir), que es la regla de `TIPOS.md`. Quitar el oráculo no aceleró eso
+directamente: aceleró la verificación (no se corre todo dos veces) y
+desbloqueó cambios futuros de representación, que es el siguiente trabajo.
