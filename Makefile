@@ -171,10 +171,9 @@ check:
 	@$(PY) tests/cifras.py --comprobar
 	@$(PY) tests/grafo.py --comprobar
 
-# Las secciones que prueban el lenguaje con `tcodec`; las que tardan son las
-# que comparan sus capas con las del compilador de Python. Una sola se pide
-# por su nombre: `python3 tests/test_lenguaje.py ACEPTA`.
-RAPIDAS = RECHAZO AVISA ACEPTA SALIDA ARCHIVOS ABORTA MODULOS FORMATO LINEAS EJEMPLOS CONGELADO ESPECIFICACION
+# Las secciones rapidas de la suite del lenguaje. Una sola se pide por su
+# nombre: `python3 tests/test_lenguaje.py ACEPTA`.
+RAPIDAS = RECHAZO AVISA ACEPTA SALIDA ARCHIVOS ABORTA MODULOS FORMATO LINEAS EJEMPLOS ESPECIFICACION
 
 rapido:
 	@$(PY) tests/test_lenguaje.py $(RAPIDAS)
