@@ -72,7 +72,17 @@ solo sirve para confirmar el efecto acumulado.
 | `2a94738` | `escribir_de_mapa`: escribir el préstamo sin copiar | 1,39 M |
 | `4bdb8ba` | `escribir_de_mapa_tipos`: lo mismo para `lista<Tipo>` | 1,28 M |
 
-Lo que queda son las **copias profundas del parser** (`preparar_con_error`):
-`ss_copia_lista_str` 1,67 M, `ss_copia_Simbolo` 362 K, `ss_copia_Funcion`
-387 K, `ss_copia_Token` 355 K — copiar tokens, símbolos y firmas al construir
-el AST. Son inherentes al valor por copia del compilador, no un ajuste puntual.
+Lo que queda, en dos frentes:
+
+- **La instanciación de genéricas** (`preparar_instancias`) es el mayor foco:
+  copia `ss_copia_lista_str` 1,67 M y `ss_copia_mapa_str_usize` 802 K. Son
+  copias **inherentes**: `resolver_reg`/`descubrir` mutan las listas
+  (`st_tipos`) mientras iteran sus elementos, y el comprobador de préstamos
+  exige iterar una copia. No se puede quitar con un ajuste.
+- **El parser** (`preparar_con_error`) copia `ss_copia_Simbolo` 362 K,
+  `ss_copia_Funcion` 387 K, `ss_copia_Token` 355 K al construir el AST:
+  también inherente al valor por copia.
+
+Lo que queda de «ajuste puntual» ya está hecho. Lo demás pide cambiar la
+representación (listas por préstamos, o `Tipo`/`Nodo` copiables), que es un
+refactor de otro orden, no un ahorro suelto.
