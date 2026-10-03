@@ -13,13 +13,13 @@
 
 usar "std/texto";
 
-enum Valor {
+enum ValorToml {
     Texto(str),
     Entero(i64),
     Decimal(f64),
     Cierto,
     Falso,
-    Lista(lista<Valor>),
+    Lista(lista<ValorToml>),
 }
 
 // ---------- leer ----------
@@ -150,23 +150,23 @@ fn trozos(s: view) -> lista<str> ! {
     return salida;
 }
 
-fn valor_de(s: view) -> Valor ! {
+fn valor_de(s: view) -> ValorToml ! {
     let t = recortar(s);
     if largo(t) == 0 { falla "un valor vacio"; }
     let b = byte(t, 0);
-    if b == 34 { return Valor.Texto(try cadena_doble(t)); }
-    if b == 39 { return Valor.Texto(try cadena_simple(t)); }
+    if b == 34 { return ValorToml.Texto(try cadena_doble(t)); }
+    if b == 39 { return ValorToml.Texto(try cadena_simple(t)); }
     if b == 91 {
         let fin = largo(t);
         if byte(t, fin - 1) != 93 { falla "una lista sin cerrar"; }
-        var xs: lista<Valor> = [];
+        var xs: lista<ValorToml> = [];
         for trozo en try trozos(rebanar(t, 1, fin - 1)) {
             anadir(xs, try valor_de(trozo));
         }
-        return Valor.Lista(xs);
+        return ValorToml.Lista(xs);
     }
-    if igual(t, "true") { return Valor.Cierto; }
-    if igual(t, "false") { return Valor.Falso; }
+    if igual(t, "true") { return ValorToml.Cierto; }
+    if igual(t, "false") { return ValorToml.Falso; }
     // Entero si no hay punto ni exponente; decimal si los hay.
     var hay = false;
     var i = 0;
@@ -175,8 +175,8 @@ fn valor_de(s: view) -> Valor ! {
         if c == 46 || c == 101 || c == 69 { hay = true; }
         i = i + 1;
     }
-    if hay { return Valor.Decimal(try lee_decimal(t)); }
-    return Valor.Entero(try lee_entero(t));
+    if hay { return ValorToml.Decimal(try lee_decimal(t)); }
+    return ValorToml.Entero(try lee_entero(t));
 }
 
 // Cuenta corchetes de fuera, para saber si una lista ya cerro.
@@ -194,8 +194,8 @@ fn corchetes_cierran(s: view) -> bool {
     return hondo <= 0;
 }
 
-fn leer(texto: view) -> mapa<str, Valor> ! {
-    var t: mapa<str, Valor> = [];
+fn leer(texto: view) -> mapa<str, ValorToml> ! {
+    var t: mapa<str, ValorToml> = [];
     let ls = lineas(texto);
     var prefijo = vacio();
     var i = 0;
@@ -233,18 +233,18 @@ fn leer(texto: view) -> mapa<str, Valor> ! {
 
 // ---------- consultar ----------
 
-fn tiene_clave(t: &mapa<str, Valor>, clave: view) -> bool {
+fn tiene_clave(t: &mapa<str, ValorToml>, clave: view) -> bool {
     for k, v en t {
         if igual(k, clave) { return true; }
     }
     return false;
 }
 
-fn texto_de(t: &mapa<str, Valor>, clave: view, alterno: view) -> str {
+fn texto_de(t: &mapa<str, ValorToml>, clave: view, alterno: view) -> str {
     for k, v en t {
         if igual(k, clave) {
             match v {
-                Valor.Texto(s) -> { return nuevo(s); }
+                ValorToml.Texto(s) -> { return nuevo(s); }
                 _ -> { return nuevo(alterno); }
             }
         }
@@ -252,11 +252,11 @@ fn texto_de(t: &mapa<str, Valor>, clave: view, alterno: view) -> str {
     return nuevo(alterno);
 }
 
-fn entero_de(t: &mapa<str, Valor>, clave: view, alterno: i64) -> i64 {
+fn entero_de(t: &mapa<str, ValorToml>, clave: view, alterno: i64) -> i64 {
     for k, v en t {
         if igual(k, clave) {
             match v {
-                Valor.Entero(n) -> { return n; }
+                ValorToml.Entero(n) -> { return n; }
                 _ -> { return alterno; }
             }
         }
@@ -264,12 +264,12 @@ fn entero_de(t: &mapa<str, Valor>, clave: view, alterno: i64) -> i64 {
     return alterno;
 }
 
-fn decimal_de(t: &mapa<str, Valor>, clave: view, alterno: f64) -> f64 {
+fn decimal_de(t: &mapa<str, ValorToml>, clave: view, alterno: f64) -> f64 {
     for k, v en t {
         if igual(k, clave) {
             match v {
-                Valor.Decimal(x) -> { return x; }
-                Valor.Entero(n) -> { return n como f64; }
+                ValorToml.Decimal(x) -> { return x; }
+                ValorToml.Entero(n) -> { return n como f64; }
                 _ -> { return alterno; }
             }
         }
@@ -277,12 +277,12 @@ fn decimal_de(t: &mapa<str, Valor>, clave: view, alterno: f64) -> f64 {
     return alterno;
 }
 
-fn cierto_de(t: &mapa<str, Valor>, clave: view, alterno: bool) -> bool {
+fn cierto_de(t: &mapa<str, ValorToml>, clave: view, alterno: bool) -> bool {
     for k, v en t {
         if igual(k, clave) {
             match v {
-                Valor.Cierto -> { return true; }
-                Valor.Falso -> { return false; }
+                ValorToml.Cierto -> { return true; }
+                ValorToml.Falso -> { return false; }
                 _ -> { return alterno; }
             }
         }
@@ -290,11 +290,28 @@ fn cierto_de(t: &mapa<str, Valor>, clave: view, alterno: bool) -> bool {
     return alterno;
 }
 
-fn lista_de(t: &mapa<str, Valor>, clave: view) -> lista<Valor> ! {
+// El valor crudo de `clave`, para volcarlo o mirarlo por su tipo.
+fn crudo_de(t: &mapa<str, ValorToml>, clave: view) -> ValorToml ! {
     for k, v en t {
         if igual(k, clave) {
             match v {
-                Valor.Lista(xs) -> { return copiar(xs); }
+                ValorToml.Lista(xs) -> { return ValorToml.Lista(copiar(xs)); }
+                ValorToml.Texto(s) -> { return ValorToml.Texto(nuevo(s)); }
+                ValorToml.Entero(n) -> { return ValorToml.Entero(n); }
+                ValorToml.Decimal(x) -> { return ValorToml.Decimal(x); }
+                ValorToml.Cierto -> { return ValorToml.Cierto; }
+                ValorToml.Falso -> { return ValorToml.Falso; }
+            }
+        }
+    }
+    falla "no esta esa clave";
+}
+
+fn lista_de(t: &mapa<str, ValorToml>, clave: view) -> lista<ValorToml> ! {
+    for k, v en t {
+        if igual(k, clave) {
+            match v {
+                ValorToml.Lista(xs) -> { return copiar(xs); }
                 _ -> { falla "esa clave no es una lista"; }
             }
         }

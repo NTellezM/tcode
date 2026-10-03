@@ -61,6 +61,22 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 - `std/fecha`: fechas y horas en UTC desde `ahora_ms` —`a_partes`, `a_ms`,
   `formatear` (ISO 8601), `a_fecha`, `a_hora` y `dia_de_semana`—, con el
   calendario gregoriano de Howard Hinnant. Comprobado contra `datetime`.
+- `std/camino`: rutas de archivo (`nombre_de`, `carpeta_de`, `extension`,
+  `sin_extension`, `unir_ruta` y `normalizar`), con vistas donde se puede.
+- `std/glob`: `coincide` con `*` y `?` (la regla de `fnmatch`), y
+  `coincidentes` para filtrar una lista.
+- `std/hash`: FNV-1a y djb2 de 32 bits, con `a_hex` para enseñarlos. La
+  multiplicacion se corta con `%`: la aritmetica de Tcode comprueba el
+  desbordamiento, y aqui se quiere envolver.
+- `std/uuid`: UUID v4 sobre `azar`, con `sembrar_del_reloj` para que dos
+  ejecuciones no repitan.
+- `std/log`: avisos con nivel (0..3) y marca UTC; los `ERROR` van a la salida
+  de error.
+- `programas/tc-config.t`: lee un config TOML y lo vuelca a JSON, o consulta
+  una clave con `--clave=a.b`. Junta `cli`, `toml` y `json`.
+- `std/toml`: se anade `crudo_de`, el valor crudo de una clave, para volcarlo.
+  Su enum pasa a llamarse `ValorToml`: tcodec no admite dos enums con el mismo
+  nombre entre modulos, y `std/json` ya tiene un `Valor`.
 - `std/toml`: lee TOML —comentarios, tablas `[a.b]`, claves punteadas, texto
   (con comillas dobles o simples), enteros (con `_`), decimales (con `e`),
   booleanos y listas, tambien partidas en varias lineas— a un
