@@ -208,6 +208,9 @@ fn firma_interna(nombre: view) -> Interna {
     else if nombre == "anadir" {
         ps.anadir(nuevo("@lista_mut")); ps.anadir(nuevo("@elemento")); r = nuevo("()");
     }
+    else if nombre == "truncar" {
+        ps.anadir(nuevo("@lista_mut")); ps.anadir(nuevo("usize")); r = nuevo("()");
+    }
     else if nombre == "texto" { ps.anadir(nuevo("@escalar")); r = nuevo("str"); }
     else if nombre == "copiar" { ps.anadir(nuevo("@copiable")); }
     else if nombre == "intercambiar" {
@@ -985,7 +988,7 @@ fn despues_de_tab(t: view) -> str {
 }
 
 fn es_reserva(n: view) -> bool {
-    return n == "intercambiar" || n == "redimensionar";
+    return n == "intercambiar" || n == "redimensionar" || n == "truncar";
 }
 
 // Por que no se puede tocar: prestamos vivos, o una reserva.
@@ -1003,6 +1006,9 @@ fn ocupada(vivos: &lista<str>) -> str {
     let n = vista(reservas[0]);
     if n == "intercambiar" {
         return nuevo("esta reservada por `intercambiar` mientras se calcula el reemplazo");
+    }
+    if n == "truncar" {
+        return nuevo("esta reservada por `truncar` mientras se calcula el recorte");
     }
     return nuevo("esta reservada por `redimensionar` mientras se calcula el tamaño nuevo");
 }
@@ -2546,15 +2552,25 @@ fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>)
     let inst = Instancia { ok: true, params: ps, retorno: T.sustituir(f.retorno, lig),
         ligadas: ligadas, clave: copiar(clave), copia: copia };
     let c_antes = copiar(c);
-    let m_antes = Mundo { funciones: copiar(m.funciones), indice: copiar(m.indice),
-        st_tipos: copiar(m.st_tipos), st_nombres: copiar(m.st_nombres),
-        st_params: copiar(m.st_params), en_variantes: copiar(m.en_variantes),
-        en_formas: copiar(m.en_formas), bonitos: copiar(m.bonitos), cierres: copiar(m.cierres),
-        cierres_mod: copiar(m.cierres_mod), n_cierres: m.n_cierres,
-        cierres_mut: copiar(m.cierres_mut), numeracion: copiar(m.numeracion), arboles: [],
-        modulos: [], contextos: [], copias: copiar(m.copias),
-        orden_structs: copiar(m.orden_structs), tipo_de_struct: copiar(m.tipo_de_struct),
-        anotados: [], orden_copias: copiar(m.orden_copias) };
+    // Los mapas no se pueden recortar: se copian. Las listas solo se anaden
+    // al comprobar, asi que basta recordar su largo y truncarlas.
+    let indice_antes = copiar(m.indice);
+    let st_tipos_antes = copiar(m.st_tipos);
+    let st_nombres_antes = copiar(m.st_nombres);
+    let st_params_antes = copiar(m.st_params);
+    let en_variantes_antes = copiar(m.en_variantes);
+    let en_formas_antes = copiar(m.en_formas);
+    let bonitos_antes = copiar(m.bonitos);
+    let numeracion_antes = copiar(m.numeracion);
+    let n_cierres_antes = m.n_cierres;
+    let n_funciones = m.funciones.largo();
+    let n_copias = m.copias.largo();
+    let n_orden_copias = m.orden_copias.largo();
+    let n_orden_structs = m.orden_structs.largo();
+    let n_tipo_de_struct = m.tipo_de_struct.largo();
+    let n_cierres = m.cierres.largo();
+    let n_cierres_mod = m.cierres_mod.largo();
+    let n_cierres_mut = m.cierres_mut.largo();
     let antes = c.errores.largo();
     m.copias.anadir(copiar(clave));
     let nodo = copiar(m.arboles[f.modulo].hijos[f.posicion]);
@@ -2569,23 +2585,23 @@ fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>)
     }
     c = c_antes;
     c.archivo = archivo_antes;
-    m.funciones = copiar(m_antes.funciones);
-    m.indice = copiar(m_antes.indice);
-    m.st_tipos = copiar(m_antes.st_tipos);
-    m.st_nombres = copiar(m_antes.st_nombres);
-    m.st_params = copiar(m_antes.st_params);
-    m.en_variantes = copiar(m_antes.en_variantes);
-    m.en_formas = copiar(m_antes.en_formas);
-    m.bonitos = copiar(m_antes.bonitos);
-    m.cierres = copiar(m_antes.cierres);
-    m.cierres_mod = copiar(m_antes.cierres_mod);
-    m.n_cierres = m_antes.n_cierres;
-    m.cierres_mut = copiar(m_antes.cierres_mut);
-    m.numeracion = copiar(m_antes.numeracion);
-    m.copias = copiar(m_antes.copias);
-    m.orden_copias = copiar(m_antes.orden_copias);
-    m.orden_structs = copiar(m_antes.orden_structs);
-    m.tipo_de_struct = copiar(m_antes.tipo_de_struct);
+    truncar(m.funciones, n_funciones);
+    m.indice = copiar(indice_antes);
+    m.st_tipos = copiar(st_tipos_antes);
+    m.st_nombres = copiar(st_nombres_antes);
+    m.st_params = copiar(st_params_antes);
+    m.en_variantes = copiar(en_variantes_antes);
+    m.en_formas = copiar(en_formas_antes);
+    m.bonitos = copiar(bonitos_antes);
+    truncar(m.cierres, n_cierres);
+    truncar(m.cierres_mod, n_cierres_mod);
+    m.n_cierres = n_cierres_antes;
+    truncar(m.cierres_mut, n_cierres_mut);
+    m.numeracion = copiar(numeracion_antes);
+    truncar(m.copias, n_copias);
+    truncar(m.orden_copias, n_orden_copias);
+    truncar(m.orden_structs, n_orden_structs);
+    truncar(m.tipo_de_struct, n_tipo_de_struct);
     for x en nuevos {
         if !esta_entre(c.errores, x) { c.errores.anadir(copiar(x)); }
     }
@@ -4435,6 +4451,8 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
 
     if nombre == "anadir" { return interna_anadir(c, m, tipos, n); }
 
+    if nombre == "truncar" { return interna_truncar(c, m, tipos, n); }
+
     if nombre == "ordenar" { return interna_ordenar(c, m, tipos, n); }
 
     if nombre == "poner" || nombre == "obtener" || nombre == "obtener_mut"
@@ -4739,6 +4757,39 @@ fn interna_anadir(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.N
         // modifica; por un `&` no, y el error lo dice.
         mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
             T.es_referencia(c.simbolos[is].tipo));
+        return tipo_de_escrito(nuevo("()"));
+    }
+    let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
+    return tipo_de_escrito(nuevo("()"));
+}
+
+fn interna_truncar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
+    let dados = n.hijos.largo();
+    if dados != 2 {
+        error(c, m, n.linea, $"`truncar` espera 2 argumentos y recibio {dados}");
+        evaluar_todos(c, m, tipos, n);
+        return tipo_de_escrito(nuevo("()"));
+    }
+    let base = variable_base(n.hijos[0]);
+    let is = buscar_simbolo(c, base);
+    var tipo_lista = vacio();
+    let hay = base.largo() > 0 && existe(c, is);
+    if hay { tipo_lista = sin_prestamo(T.escribir_tipo(tipo_de_lugar(c, m, tipos, n.hijos[0]))); }
+    if !hay {
+        error(c, m, n.linea, "el primer argumento de `truncar` tiene que ser una variable, un campo o un elemento");
+    } else if !T.es_lista(tipo_lista) {
+        let visto = texto_o_none(tipo_lista);
+        error(c, m, n.linea, $"`truncar` opera sobre `lista<T>`, recibio `{visto}`");
+    } else {
+        // Como `anadir`: por un `&mut lista<T>` se recorta; por un `&` no.
+        mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
+            T.es_referencia(c.simbolos[is].tipo));
+        c.simbolos[is].prestamos.anadir(nuevo("truncar"));
+        let t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);
+        soltar_prestamo(c, is, "truncar");
+        if T.conocido(t) && !encaja("usize", T.escribir_tipo(t)) {
+            error(c, m, n.linea, $"`truncar` espera el nuevo largo, un `usize`, y recibio `{T.escribir_tipo(t)}`");
+        }
         return tipo_de_escrito(nuevo("()"));
     }
     let _t = comprobar_expresion(c, m, tipos, n.hijos[1], "", false);

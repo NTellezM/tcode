@@ -998,6 +998,7 @@ sección que se nombra.
 | `imprimir(x)` |  | a la salida | 11. Salida, escritura y orden |
 | `imprimir_error(x)` |  | a la salida de error | 11. Salida, escritura y orden |
 | `anadir(xs: mut lista<T>, x: T)` |  | añade al final; mueve `x` si tiene dueño | Listas dinámicas |
+| `truncar(xs: mut lista<T>, n: usize)` |  | recorta a `n`; lo que sobra se libera antes de soltar | Listas dinámicas |
 | `ordenar(xs: mut lista<T>)` |  | ordena en el sitio: `usize`, `i64`, `bool` o `str` | 12. Recorridos |
 | `copiar(x: &T) -> T` |  | copia profunda de cualquier valor | `copiar`: copia profunda, explícita, sin anotar nada |
 | `reservar(n: usize) -> bloque<T>` |  | `n` ranuras, todas a ceros | Memoria propia: `bloque<T>`, `reservar` e `intercambiar` |

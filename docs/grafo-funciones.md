@@ -78,6 +78,7 @@ graph TD
         compilador_lib_comprobar__interna_redimensionar["interna_redimensionar"]
         compilador_lib_comprobar__interna_reservar["interna_reservar"]
         compilador_lib_comprobar__interna_texto["interna_texto"]
+        compilador_lib_comprobar__interna_truncar["interna_truncar"]
         compilador_lib_comprobar__legible["legible"]
         compilador_lib_comprobar__literal_arreglo["literal_arreglo"]
         compilador_lib_comprobar__literal_struct["literal_struct"]
@@ -242,6 +243,7 @@ graph TD
         compilador_lib_generar__tipo_resultado["tipo_resultado"]
         compilador_lib_generar__tipo_si_va_bien["tipo_si_va_bien"]
         compilador_lib_generar__tipo_suelto["tipo_suelto"]
+        compilador_lib_generar__truncar_c["truncar_c"]
         compilador_lib_generar__unaria_c["unaria_c"]
         compilador_lib_generar__variable_c["variable_c"]
     end
@@ -686,6 +688,10 @@ graph TD
     compilador_lib_comprobar__interna_reservar --> compilador_lib_tipos__escribir_tipo
     compilador_lib_comprobar__interna_reservar --> compilador_lib_tipos__ninguno
     compilador_lib_comprobar__interna_texto --> compilador_lib_tipos__escribir_tipo
+    compilador_lib_comprobar__interna_truncar --> compilador_lib_tipos__conocido
+    compilador_lib_comprobar__interna_truncar --> compilador_lib_tipos__es_lista
+    compilador_lib_comprobar__interna_truncar --> compilador_lib_tipos__es_referencia
+    compilador_lib_comprobar__interna_truncar --> compilador_lib_tipos__escribir_tipo
     compilador_lib_comprobar__legible --> compilador_lib_generar__escrito
     compilador_lib_comprobar__legible --> compilador_lib_tipar__funcion_de_cierre
     compilador_lib_comprobar__legible --> compilador_lib_tipos__es_de_nombre
@@ -1164,6 +1170,11 @@ graph TD
     compilador_lib_generar__tipo_suelto --> compilador_lib_tipos__escribir_de_mapa
     compilador_lib_generar__tipo_suelto --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__tipo_suelto --> compilador_lib_tipos__ninguno
+    compilador_lib_generar__truncar_c --> compilador_lib_tipar__tipo_de
+    compilador_lib_generar__truncar_c --> compilador_lib_tipos__apuntado_si
+    compilador_lib_generar__truncar_c --> compilador_lib_tipos__elemento
+    compilador_lib_generar__truncar_c --> compilador_lib_tipos__es_lista
+    compilador_lib_generar__truncar_c --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__unaria_c --> compilador_lib_tipar__literal_de
     compilador_lib_generar__unaria_c --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__unaria_c --> compilador_lib_tipos__escribir_tipo

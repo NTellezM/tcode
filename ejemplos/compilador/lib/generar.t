@@ -4006,6 +4006,10 @@ fn expresion_sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         apagar_las_de(b, s, n, tipos);
         return true;
     }
+    if truncar_c(b, s, n.hijos[0], tipos) {
+        apagar_las_de(b, s, n, tipos);
+        return true;
+    }
     if empujar_c(b, s, n.hijos[0], tipos) {
         apagar_las_de(b, s, n, tipos);
         return true;
@@ -4860,6 +4864,54 @@ fn anadir_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     l.empujar(")");
     b.ultima_linea = 0;
     marcar(b, s, n.linea);
+    l.empujar(";");
+    emitir(b, l);
+    return true;
+}
+
+fn truncar_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
+    if n.clase != Clase.Llamada { return false; }
+    if n.texto != "truncar" { return false; }
+    if n.hijos.largo() != 2 { return false; }
+    let suya = I.tipo_de(tipos, n.hijos[0]);
+    let sobre = T.apuntado_si(T.escribir_tipo(suya));
+    if !T.es_lista(sobre) { return false; }
+    let elem = T.elemento(sobre);
+    let donde = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(donde) { return false; }
+    let ptr = nuevo_temporal(b);
+    let tc = tipo_c(sobre);
+    emitir(b, $"{tc}* {ptr} = {donde};");
+    let nuevo_largo = expresion_c(b, s, n.hijos[1], "usize", tipos);
+    if es_desconocido(nuevo_largo) { return false; }
+    b.ultima_linea = 0;
+    marcar(b, s, n.linea);
+    b.bucle = b.bucle + 1;
+    let i = nombre_de_bucle(b.bucle);
+    var f = nuevo("for (size_t ");
+    f.empujar(i);
+    f.empujar(" = ");
+    f.empujar(nuevo_largo);
+    f.empujar("; ");
+    f.empujar(i);
+    f.empujar(" < ");
+    f.empujar(ptr);
+    f.empujar("->length; ");
+    f.empujar(i);
+    f.empujar("++)");
+    emitir(b, f);
+    emitir(b, "{");
+    b.sangria = b.sangria + 1;
+    var dentro = nuevo(ptr);
+    dentro.empujar("->e[");
+    dentro.empujar(i);
+    dentro.empujar("]");
+    liberacion(b, tipos, dentro, elem);
+    b.sangria = b.sangria - 1;
+    emitir(b, "}");
+    var l = nuevo(ptr);
+    l.empujar("->length = ");
+    l.empujar(nuevo_largo);
     l.empujar(";");
     emitir(b, l);
     return true;
