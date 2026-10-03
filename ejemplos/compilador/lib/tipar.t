@@ -18,7 +18,7 @@ usar "../../lexer/lib/clase.t";
 // Lo que se sabe mientras se recorre un archivo.
 struct Contexto {
     // Pila de ambitos: nombre -> tipo. El de dentro manda.
-    ambitos: lista<mapa<str, str>>,
+    ambitos: lista<mapa<str, T.Tipo>>,
     // Struct -> tipos de sus campos, y sus nombres, en el mismo orden.
     campos: mapa<str, lista<str>>,
     nombres: mapa<str, lista<str>>,
@@ -64,7 +64,7 @@ fn contexto() -> Contexto {
 }
 
 fn abrir(c: mut Contexto) {
-    let nuevo_ambito: mapa<str, str> = [];
+    let nuevo_ambito: mapa<str, T.Tipo> = [];
     c.ambitos.anadir(nuevo_ambito);
 }
 
@@ -76,13 +76,13 @@ fn cerrar(c: mut Contexto) {
 
 // Quitar el ultimo ambito: se copian los de delante y se deja fuera el final.
 fn redimensionar_ambitos(c: mut Contexto, cuantos: usize) {
-    var quedan: lista<mapa<str, str>> = [];
+    var quedan: lista<mapa<str, T.Tipo>> = [];
     var i = 0;
     while i < cuantos {
-        var copia: mapa<str, str> = [];
+        var copia: mapa<str, T.Tipo> = [];
         for k en claves(c.ambitos[i]) {
-            let v = obtener(c.ambitos[i], k) sino "";
-            poner(copia, vista(k), nuevo(v));
+            let v = T.tipo_de_mapa(c.ambitos[i], k) sino T.ninguno();
+            poner(copia, vista(k), v);
         }
         quedan.anadir(copia);
         i = i + 1;
@@ -93,7 +93,7 @@ fn redimensionar_ambitos(c: mut Contexto, cuantos: usize) {
 fn declarar(c: mut Contexto, nombre: view, tipo: view) {
     if c.ambitos.largo() == 0 { abrir(c); }
     let ultimo = c.ambitos.largo() - 1;
-    poner(c.ambitos[ultimo], nombre, nuevo(tipo));
+    poner(c.ambitos[ultimo], nombre, T.leer_tipo(tipo));
 }
 
 // El tipo de un nombre, o "" si no se conoce. Del ambito mas de dentro
@@ -103,7 +103,7 @@ fn buscar(c: &Contexto, nombre: view) -> str {
     while i > 0 {
         i = i - 1;
         if tiene(c.ambitos[i], nombre) {
-            return nuevo(obtener(c.ambitos[i], nombre) sino "");
+            return T.escribir_tipo(T.tipo_de_mapa(c.ambitos[i], nombre) sino T.ninguno());
         }
     }
     return vacio();
