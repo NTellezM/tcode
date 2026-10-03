@@ -41,6 +41,19 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   `view` contra `str`, genéricos, enums y fallos— con todos los ejemplos
   compilados y verificados. Es por donde entra un recién llegado.
 
+- `std/json` y `std/cli`: dos bibliotecas nuevas. `json` lee y escribe JSON
+  (un `Valor` recursivo, escapes `\uXXXX`); `cli` lee los argumentos
+  (`--bandera`, `--opcion=valor`, y los sueltos). `programas/json.t` ahora las
+  usa, asi que el oraculo de ida y vuelta contra el `json` de Python las
+  ejercita (280 casos).
+
+### Corregido
+
+- `ejemplos/compilador/tipar.t`: al tipar `for clave, valor en mapa` con el
+  mapa prestado (`&mapa<...>`), `valor_de` no quitaba el préstamo y el `valor`
+  salía sin tipo. Lo destapó `std/json` al entrar al corpus; ahora la clave y
+  el valor salen bien.
+
 ### Documentado
 
 - `docs/TIPOS.md`: el plan del modelo de tipos (de `str` a `Tipo`), en tres

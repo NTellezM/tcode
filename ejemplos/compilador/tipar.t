@@ -480,10 +480,12 @@ fn try_partir(texto: view) -> lista<str> {
     return salida;
 }
 
-// El tipo del valor de un mapa, para `for clave, valor en m`.
+// El tipo del valor de un mapa, para `for clave, valor en m`. El mapa puede
+// llegar prestado (`&mapa<...>`), y entonces hay que mirar a lo que presta.
 fn valor_de(t: view) -> str {
-    if empieza_con(t, "mapa<") {
-        let partes = partir_angulos(t);
+    let sin = quitar_prestamo(t);
+    if empieza_con(sin, "mapa<") {
+        let partes = partir_angulos(sin);
         if partes.largo() == 2 { return copiar(partes[1]); }
     }
     return vacio();
