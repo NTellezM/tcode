@@ -148,7 +148,7 @@ compilar en cualquier sitio donde haya un compilador de C17.
 | `ejemplos/lexer/lib/` | lexer, parser y el árbol, con la clase de cada nodo como `enum Clase` |
 | `bootstrap/tcodec.c` | la semilla: el C que `tcodec` escribe de sí mismo, con el que se construye |
 | `tcode/` | el compilador de Python, congelado: el oráculo de la suite |
-| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->19<!--/c--> módulos, <!--c:std_lineas-->1.688<!--/c--> líneas |
+| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->19<!--/c--> módulos, <!--c:std_lineas-->1.686<!--/c--> líneas |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
 ### Dos compiladores, una regla
@@ -214,7 +214,7 @@ comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
 Sobre los <!--c:lexer_archivos-->58<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
-**<!--c:tokens-->208.692<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+**<!--c:tokens-->208.689<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -243,7 +243,7 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 `ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.748<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->58<!--/c--> archivos que
-el parser del compilador, y sobre ellos produce <!--c:nodos-->111.078<!--/c--> nodos:
+el parser del compilador, y sobre ellos produce <!--c:nodos-->111.077<!--/c--> nodos:
 
 <!--c:bloque:parser-->
 ```
@@ -682,7 +682,7 @@ structs (`&T` y `mut T`), `lista<T>` dinámica, `mapa<str, V>` con tabla hash,
 argumentos de la línea de órdenes, `ordenar` y `menor`, salida de error y
 escritura de archivos, `for`/`break`/`continue`, `mapa<str, V>` con `obtener` prestado y `&T` y `&mut T` como tipos, cadenas interpoladas, módulos y fallos como valores.
 
-Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/archivo`, `std/azar`, `std/bytes`, `std/caracter`, `std/cli`, `std/conjunto`, `std/csv`, `std/cuenta`, `std/formato`, `std/ini`, `std/iterador`, `std/json`, `std/lista`, `std/mapa`, `std/numero`, `std/par`, `std/prueba`, `std/texto` y `std/vector`<!--/c-->—, <!--c:std_lineas-->1.688<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
+Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/archivo`, `std/azar`, `std/bytes`, `std/caracter`, `std/cli`, `std/conjunto`, `std/csv`, `std/cuenta`, `std/formato`, `std/ini`, `std/iterador`, `std/json`, `std/lista`, `std/mapa`, `std/numero`, `std/par`, `std/prueba`, `std/texto` y `std/vector`<!--/c-->—, <!--c:std_lineas-->1.686<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
 queda una sola función duplicada entre `ejemplos/` y `std/`.
 
 Y **`copiar(x)`**: copia profunda de cualquier valor —número, `str`, struct,

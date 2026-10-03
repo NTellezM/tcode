@@ -2381,8 +2381,12 @@ class Comprobador:
             # vistas que le pasamos nosotros.
             peor = ESTATICO
             for arg, param in zip(e.args, f.params):
-                if param.tipo == "view" or (not param.prestado
-                                            and self.es_prestado_st(param.tipo)):
+                if param.tipo == "view":
+                    # Como `prestado_como_vista` en Tcode: un lugar de tipo
+                    # `str` se mira como `vista(arg)`, y entonces presta del
+                    # que presto su raiz, no de este argumento por si solo.
+                    p = self._procedencia_como_vista(arg)
+                elif (not param.prestado and self.es_prestado_st(param.tipo)):
                     p = self.procedencia_de(arg)
                 elif param.prestado:
                     base = self.variable_base(arg)
@@ -2398,6 +2402,20 @@ class Comprobador:
             return peor
 
         return LOCAL
+
+    def _procedencia_como_vista(self, arg):
+        """La procedencia de un argumento que una funcion recibe como `view`.
+        Es el espejo de `prestado_como_vista` en Tcode: un lugar de tipo `str`
+        se mira como `vista(arg)` —presta del que presto su raiz, como un
+        `&T`—; una vista o una llamada se miran tal cual."""
+        if isinstance(arg, (Variable, Campo, Indice)):
+            t = self.tipo_de_lugar(arg) or ""
+            if sin_prestamo(t) == "str":
+                base = self.variable_base(arg)
+                sim_base = self.buscar(base) if base else None
+                return (PARAMETRO if sim_base is not None and sim_base.prestado
+                        else LOCAL)
+        return self.procedencia_de(arg)
 
     def _origen_de(self, expr):
         """De que variable duenia proviene una vista, si es que proviene de

@@ -60,6 +60,12 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   mapa prestado (`&mapa<...>`), `valor_de` no quitaba el préstamo y el `valor`
   salía sin tipo. Lo destapó `std/json` al entrar al corpus; ahora la clave y
   el valor salen bien.
+- El compilador de Python rechazaba devolver una vista sacada de un campo, un
+  elemento o un `&T` de un parámetro —`sin_ceros(n.texto)`, `sin_ceros(xs[0])`,
+  `sin_ceros(s)`— cuando la memoria es de quien llama. Ahora, para un
+  parámetro `view`, mira el argumento como `vista(...)` —igual que `tcodec`— y
+  acepta lo que debe. Lo destapó `std/ini`; es un arreglo de corrección, no
+  cambia la superficie del oráculo congelado.
 
 ### Documentado
 

@@ -13,9 +13,7 @@ fn leer(texto: view) -> mapa<str, mapa<str, str>> {
     var seccion = nuevo("");
     var dentro: mapa<str, str> = [];
     for linea en lineas(texto) {
-        // Copia propia: una vista sobre la variable del bucle ata la
-        // procedencia al temporal, y el compilador la explica distinto.
-        let r = nuevo(recortar(linea));
+        let r = recortar(linea);
         if largo(r) == 0 { continue; }
         let b = byte(r, 0);
         if b == 59 || b == 35 { continue; }
