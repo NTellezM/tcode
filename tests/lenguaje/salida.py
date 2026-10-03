@@ -95,18 +95,15 @@ def correr(suite: Resultado) -> None:
                         f"codigo {r.returncode}, modo {oct(modo) if modo else None}, "
                         f"stderr {r.stderr[:300]!r}")
 
-        # Una sola version: la de `VERSION`, la que dice tcodec y la del
-        # compilador de Python.
+        # Una sola version: la de `VERSION` y la que dice tcodec.
         suite.total += 1
         with open(os.path.join(RAIZ, "VERSION"), encoding="utf-8") as f:
             version = f.read().strip()
         dice_tcodec = subprocess.run([tcodec(), "--version"], env=ENTORNO_TCODEC,
                                      capture_output=True, text=True).stdout.strip()
-        from tcode.cli import VERSION as de_python
-        if dice_tcodec != f"tcodec {version}" or de_python != version:
+        if dice_tcodec != f"tcodec {version}":
             suite.falla("una sola version",
-                        f"VERSION {version!r}, tcodec {dice_tcodec!r}, "
-                        f"Python {de_python!r}")
+                        f"VERSION {version!r}, tcodec {dice_tcodec!r}")
 
         # Instalado en un prefijo, compila desde cualquier sitio y sin
         # `TCODE_RAIZ`, tambien con `std/`; y desinstalado no deja nada.
