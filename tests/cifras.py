@@ -115,6 +115,8 @@ def medidas():
     orden_lexer = "./ejemplos/lexer/lexer ejemplos/lexer/lib/lexico.t --contar"
     orden_parser = "./ejemplos/lexer/parser ejemplos/lexer/parser.t --callado"
     return {
+        "punto_fijo_bytes": os.path.getsize(
+            os.path.join(RAIZ, "bootstrap", "tcodec.c")),
         "lineas_tcodec": lineas(*compilador_en_tcode()),
         "lineas_sintaxis": lineas(os.path.join("ejemplos", "lexer", "lib", "sintaxis.t")),
         "lineas_comprobar": lineas(os.path.join("ejemplos", "compilador", "lib",

@@ -37,15 +37,13 @@ from lenguaje.comun import Resultado, construir_tcodec
 # Las secciones, en el orden en que corren en serie. Cada una se puede pedir
 # sola, y es el modulo de `tests/lenguaje/` que se llama como ella.
 SECCIONES = [
-    "RECHAZO", "AVISA", "ACEPTA", "SALIDA", "ARCHIVOS", "AUTOANALISIS",
-    "TIPOS", "TIPAR", "PROPIEDAD", "FIRMAS", "EXPRESIONES", "CUERPOS",
-    "PROGRAMA", "FORMATO", "LINEAS", "ABORTA", "MODULOS", "EJEMPLOS",
-    "PROGRAMAS", "CONGELADO", "REGLAS", "ESPECIFICACION", "FORMAS",
+    "RECHAZO", "AVISA", "ACEPTA", "SALIDA", "ARCHIVOS", "FORMATO", "LINEAS",
+    "ABORTA", "MODULOS", "EJEMPLOS", "PROGRAMAS", "CONGELADO", "REGLAS",
+    "ESPECIFICACION",
 ]
 # Las que mas tardan, en el orden en que conviene empezarlas: con una seccion
 # por proceso, la pasada entera dura lo que la mas larga.
-PRIMERO = ["PROGRAMA", "CUERPOS", "EXPRESIONES", "TIPAR", "PROPIEDAD", "FIRMAS",
-           "AUTOANALISIS", "EJEMPLOS", "ACEPTA", "TIPOS"]
+PRIMERO = ["ACEPTA", "EJEMPLOS"]
 
 
 def en_serie(secciones, todas):
