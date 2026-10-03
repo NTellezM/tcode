@@ -61,6 +61,16 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 - `std/fecha`: fechas y horas en UTC desde `ahora_ms` —`a_partes`, `a_ms`,
   `formatear` (ISO 8601), `a_fecha`, `a_hora` y `dia_de_semana`—, con el
   calendario gregoriano de Howard Hinnant. Comprobado contra `datetime`.
+- `std/color`: colores y estilos ANSI (`rojo`, `verde`, `negrita`, `color_256`).
+  No pregunta si la salida es una terminal; eso lo decide quien llama.
+- `std/tabla`: `dibujar(cabecera, filas)` da una tabla alineada, sobre los
+  anchos de `std/formato`.
+- `std/plantilla`: `rellenar("hola, {nombre}", datos)` sustituye `{clave}` por
+  su valor en un `mapa<str, str>`; las llaves se escapan doblandolas.
+- `std/bit`: `prueba`, `pon`, `quita`, `alterna`, `cuenta` y `a_binario`.
+- `std/pila`: una pila LIFO sobre una `lista<T>` y un tope, que reutiliza los
+  huecos de lo ya sacado. No hay `nueva`: `T` no se deduce sin argumentos, asi
+  que se construye con el literal del struct, como `std/vector`.
 - `std/camino`: rutas de archivo (`nombre_de`, `carpeta_de`, `extension`,
   `sin_extension`, `unir_ruta` y `normalizar`), con vistas donde se puede.
 - `std/glob`: `coincide` con `*` y `?` (la regla de `fnmatch`), y
