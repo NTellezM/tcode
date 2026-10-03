@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """
-Rompe una regla en los DOS compiladores, y mira si la suite lo nota.
+Rompe una regla en `tcodec`, y mira si la suite lo nota.
 
-La comparación diferencial no puede ver un fallo que los dos compiladores
-comparten: escriben el mismo C malo, y comparar dos copias de lo mismo no dice
-nada. Solo lo pueden ver los oráculos independientes —REGLAS (pares mínimos),
+Solo lo pueden ver los oráculos independientes —REGLAS (pares mínimos),
 RECHAZO (programas que no deben compilar) y ACEPTA (programas que tienen que
 correr limpios bajo ASan)—; el replay de `tests/fuzz.py` también guarda
 codegen —el hallazgo del `const const T**` es uno—, pero queda fuera por
-tiempo, que son minutos más por mutación. Aquí se rompe una regla a la vez en `comprobar.t`
-y en `comprobador.py` (o en `generar.t` y `generador.py`), y la suite tiene
-que fallar. Si no falla, ese camino no lo prueba nadie.
+tiempo, que son minutos más por mutación. Aquí se rompe una regla a la vez en
+`comprobar.t` o en `generar.t`, y la suite tiene que fallar. Si no falla, ese
+camino no lo prueba nadie.
 
     python3 tests/mutar.py            todas las mutaciones de la lista
     python3 tests/mutar.py --lista    y qué debería cazar cada una
@@ -29,7 +27,7 @@ import tempfile
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NO_SE_COPIA = {".git", ".cache", "dist", ".mypy_cache", ".ruff_cache", ".github"}
-# Las tres que traen oráculo propio, sin comparar con el otro compilador.
+# Las tres con oráculo propio.
 SECCIONES = ["REGLAS", "RECHAZO", "ACEPTA"]
 
 MUTACIONES = [
@@ -50,23 +48,6 @@ MUTACIONES = [
              "        return e != \"view\" && !T.es_arreglo(e)\n"
              "        && !es_prestado_st(m, e) && almacenable(m, e);\n"
              "    }"),
-            ("tcode/comprobador.py",
-             "        if es_lista(t):\n"
-             "            elem = elem_lista(t)\n"
-             "            # Guardar una vista o un prestamo en una coleccion exigiria\n"
-             "            # expresar cuanto vive lo que apuntan.\n"
-             "            return (elem != \"view\" and not es_referencia(elem)\n"
-             "                    and not es_arreglo(elem)\n"
-             "                    and not self.es_prestado_st(elem) "
-             "and self.tipo_existe(elem))",
-             "        if es_lista(t):\n"
-             "            elem = elem_lista(t)\n"
-             "            # Guardar una vista o un prestamo en una coleccion exigiria\n"
-             "            # expresar cuanto vive lo que apuntan.\n"
-             "            return (elem != \"view\"\n"
-             "                    and not es_arreglo(elem)\n"
-             "                    and not self.es_prestado_st(elem) "
-             "and self.tipo_existe(elem))"),
         ],
     },
     {
@@ -76,9 +57,6 @@ MUTACIONES = [
             ("ejemplos/compilador/lib/comprobar.t",
              "                if T.es_referencia(ct) {",
              "                if false {"),
-            ("tcode/comprobador.py",
-             "                if es_referencia(c.tipo):",
-             "                if False:"),
         ],
     },
     {
@@ -88,9 +66,6 @@ MUTACIONES = [
             ("ejemplos/compilador/lib/generar.t",
              "    if T.es_referencia(t) { return $\"{base} const*\"; }",
              "    if false { return $\"{base} const*\"; }"),
-            ("tcode/generador.py",
-             "        if es_referencia(t):\n            return f\"{base} const*\"",
-             "        if False:\n            return f\"{base} const*\""),
         ],
     },
 ]
@@ -174,10 +149,8 @@ def main():
             print(f"  {m['nombre']}\n      debería cazarlo: {m['caza']}")
         return 0
 
-    print("=== MUTAR: una regla rota en los DOS compiladores, a ver quién se "
-          "queja ===")
-    print(f"    secciones: {', '.join(SECCIONES)} (sin comparar con el otro "
-          f"compilador)")
+    print("=== MUTAR: una regla rota en tcodec, a ver quién se queja ===")
+    print(f"    secciones: {', '.join(SECCIONES)}")
     sin_cazar = []
     for m in MUTACIONES:
         print(f"\n  {m['nombre']}")

@@ -11,14 +11,11 @@
 #   make bench-comprobar  y falla si algo pasa de `bench/limites.json`
 #   make formato      deja todo el codigo Tcode en el formato canonico
 #   make lint         revisa el codigo Python con ruff y mypy
-#   make cobertura    que caminos del oraculo de Python no se pisan nunca
-#   make mutar        rompe una regla en los dos compiladores, y exige que la
-#                     suite lo note
+#   make mutar        rompe una regla en tcodec, y exige que la suite lo note
 #   make compiladores la semilla, el punto fijo y `rapido` con cada compilador de C
 #   make paquete      dist/tcode-VERSION.tar.gz, reproducible (arbol limpio)
 #   make probar-paquete  y desde el, sin Python, tcodec y un programa
 #   make version NUEVA=x.y.z  la version en todos sus sitios, y la semilla
-#   make ddc          la semilla y Python construyen el mismo tcodec
 #   make fuzz         rompe el codigo del repositorio al azar (FUZZ_SEGUNDOS=60)
 #   make limpiar      borra lo que genera todo lo anterior
 #   make instalar     tcodec, std/ y runtime/ en PREFIJO (/usr/local)
@@ -26,7 +23,7 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras grafo bench ejemplos limpiar formato lint cobertura mutar semilla compiladores con-un-cc punto-fijo-cc fuzz fuzz-safestr bench-comprobar instalar desinstalar ddc paquete probar-paquete version
+.PHONY: all check rapido propiedades cifras grafo bench ejemplos limpiar formato lint mutar semilla compiladores con-un-cc punto-fijo-cc fuzz fuzz-safestr bench-comprobar instalar desinstalar paquete probar-paquete version
 
 all: tcodec
 
@@ -123,11 +120,6 @@ version:
 	@$(MAKE) -s --no-print-directory tcodec semilla
 	@echo "version $(NUEVA): VERSION, tcodec y tcode/cli.py, y la semilla"
 
-# Compilacion doble diversa: el tcodec de la semilla y el que construye
-# Python sin ella escriben el mismo C. Ver `tests/ddc.py`.
-ddc:
-	@$(PY) tests/ddc.py
-
 fuzz:
 	@$(PY) tests/fuzz.py --segundos $(FUZZ_SEGUNDOS)
 
@@ -177,7 +169,6 @@ check:
 	@$(PY) tests/test_lenguaje.py
 	@$(PY) tests/test_propiedades.py
 	@$(PY) tests/fuzz.py --repetir
-	@$(PY) tests/ddc.py
 	@$(PY) tests/cifras.py --comprobar
 	@$(PY) tests/grafo.py --comprobar
 
@@ -242,16 +233,6 @@ formato: tcodec
 lint:
 	@ruff check
 	@mypy
-
-# La cobertura del compilador de Python: que caminos del oraculo congelado no
-# se pisan nunca. Necesita `coverage` (pip install coverage), como `lint`
-# necesita ruff y mypy. `FALTAN=6` anade las lineas sin ejecutar de los 6
-# peores, y `MINIMO=80` falla si el total baja de ahi.
-FALTAN ?=
-MINIMO ?=
-
-cobertura:
-	@$(PY) tests/cobertura.py $(if $(FALTAN),--faltan $(FALTAN),) $(if $(MINIMO),--minimo $(MINIMO),)
 
 # El mutador: rompe a proposito una regla en los DOS compiladores --un fallo
 # compartido, que la comparacion diferencial no puede ver-- y exige que REGLAS,
