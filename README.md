@@ -341,7 +341,7 @@ error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
 ```
 
 La suite pasa por los dos compiladores cada programa que tiene que
-rechazarse: **los <!--c:rechazos_iguales-->267<!--/c--> dan el mismo primer error, carácter por carácter**,
+rechazarse: **los <!--c:rechazos_iguales-->268<!--/c--> dan el mismo primer error, carácter por carácter**,
 también los de sintaxis, que salen del lexer y el parser en Tcode con su
 archivo, su línea y lo que encontraron. Los que faltan hasta el total están
 escritos con lo que el Python congelado no conoce —llamadas con punto,
@@ -817,7 +817,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-4215 casos, 0 fallas
+4217 casos, 0 fallas
 2754 comprobaciones sobre 60 programas, 0 fallas
 ```
 

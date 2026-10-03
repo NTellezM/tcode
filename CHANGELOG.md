@@ -86,6 +86,10 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   bucle si es un temporal. Con esto el arreglo de la procedencia queda
   completo: se acepta la vista de un parametro prestado y se rechaza la de un
   temporal. Prueba de regresion en RECHAZO.
+- `tcode/generador.py`: en la capa aislada —sin los locales declarados— un
+  operando desconocido se inventaba como `usize` en vez de respetar el tipo
+  esperado, y `return local * local` salia `usize` y no `i64`. Ahora un
+  operando que no se conoce se deja sin tipo y manda el `esperado`.
 
 ### Documentado
 

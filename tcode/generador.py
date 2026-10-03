@@ -2654,6 +2654,14 @@ class Generador:
             return e.a_tipo
         return "usize"
 
+    def _tipo_operando(self, e):
+        """El tipo de un operando de una cuenta, o None si no se sabe. Una
+        variable que no esta declarada —en la capa aislada, un local— no se
+        inventa como `usize`: se deja sin tipo para que mande el `esperado`."""
+        if isinstance(e, Variable):
+            return self.tipo_var(e.nombre)
+        return self._tipo_de(e)
+
     def _tipo_cuenta(self, e, esperado=None):
         """El tipo en que se hace la cuenta de una binaria: el mismo que
         decide el comprobador. `1 + x` se hace en el tipo de `x`, y `1 + 2`
@@ -2673,12 +2681,12 @@ class Generador:
                 return esperado
             return "f64" if "decimal" in (izq, der) else "usize"
         if izq:
-            t = self._tipo_de(e.der)
+            t = self._tipo_operando(e.der)
             if t in ARITMETICA or t in DECIMALES:
                 return t
-        t = self._tipo_de(e.izq)
+        t = self._tipo_operando(e.izq)
         if t not in ARITMETICA and t not in DECIMALES:
-            t = self._tipo_de(e.der)
+            t = self._tipo_operando(e.der)
         if t not in ARITMETICA and t not in DECIMALES:
             if esperado in ARITMETICA or esperado in DECIMALES:
                 t = esperado
