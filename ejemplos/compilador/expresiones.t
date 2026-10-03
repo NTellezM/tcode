@@ -122,7 +122,7 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
             marcados = prestados;
         }
         poner(c.retornos, vista(n.texto), T.leer_tipo(retorno));
-        poner(c.params, vista(n.texto), tipos_param);
+        poner(c.params, vista(n.texto), T.leer_tipos(tipos_param));
         poner(c.params_marcados, vista(n.texto), marcados);
         if sueltos.largo() > 0 { poner(c.tipo_params, vista(n.texto), sueltos); }
     }

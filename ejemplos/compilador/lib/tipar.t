@@ -28,7 +28,7 @@ struct Contexto {
     // argumentos. Hacen falta para elegir la copia: `primeras(xs, 8)` con
     // `xs: lista<str>` devuelve `lista<str>`, no `lista<T>`.
     tipo_params: mapa<str, lista<str>>,
-    params: mapa<str, lista<str>>,
+    params: mapa<str, lista<T.Tipo>>,
     // Los mismos parametros pero con su marca (`&`, `mut`): hace falta para
     // saber si una llamada se queda con el valor o solo lo mira.
     params_marcados: mapa<str, lista<str>>,
@@ -579,13 +579,13 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
     // el comprobador, y se ponen en el tipo de retorno.
     let sueltos = lista_de(c.tipo_params, vista(clave)) sino [];
     if sueltos.largo() == 0 { return retorno; }
-    let declarados = lista_de(c.params, vista(clave)) sino [];
+    let declarados = T.tipos_de_mapa(c.params, vista(clave)) sino [];
     var ligaduras: mapa<str, str> = [];
     var i = 0;
     while i < declarados.largo() && i < n.hijos.largo() {
         let dado = T.escribir_tipo(tipo_de(c, n.hijos[i]));
         let limpio = T.apuntado_si(dado);
-        unificar(declarados[i], limpio, sueltos, ligaduras);
+        unificar(T.escribir_tipo(declarados[i]), limpio, sueltos, ligaduras);
         i = i + 1;
     }
     return T.sustituir(retorno, ligaduras);
@@ -611,7 +611,7 @@ fn funcion_de_cierre(t: view) -> str {
 fn firma_de_funcion(c: &Contexto, nombre: view) -> str {
     if !tiene(c.retornos, nombre) { return vacio(); }
     if tiene(c.tipo_params, nombre) || tiene(c.externas, nombre) { return vacio(); }
-    let tipos = lista_de(c.params, nombre) sino [];
+    let tipos = T.tipos_de_mapa(c.params, nombre) sino [];
     let marcas = lista_de(c.params_marcados, nombre) sino [];
     var t = nuevo("fn(");
     var i = 0;
@@ -623,7 +623,7 @@ fn firma_de_funcion(c: &Contexto, nombre: view) -> str {
                 t.empujar("&mut ");
             }
         }
-        t.empujar(tipos[i]);
+        t.empujar(T.escribir_tipo(tipos[i]));
         i = i + 1;
     }
     t.empujar(")");

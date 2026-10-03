@@ -2267,7 +2267,7 @@ fn reservar_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
 
 fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     let nombre = vista(n.texto);
-    let firmados = I.lista_de(tipos.params, nombre) sino [];
+    let firmados = T.tipos_de_mapa(tipos.params, nombre) sino [];
     if firmados.largo() != n.hijos.largo() { return no_se(); }
     var v = I.sin_modulo(nombre);
     v.empujar("(");
@@ -2278,7 +2278,7 @@ fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -
     for h en n.hijos {
         var arg = vacio();
         var tc = vacio();
-        if firmados[i] == "str" {
+        if firmados[i].nombre == "str" {
             let sitio = sitio_c(b, s, h, tipos);
             if es_desconocido(sitio) {
                 let _m = cerrar_marco(b);
@@ -2287,12 +2287,12 @@ fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -
             arg = $"ss_lang_cstr_(&{sitio}, \"{s.archivo}\", {n.linea})";
             tc = nuevo("const char*");
         } else {
-            arg = expresion_c(b, s, h, firmados[i], tipos);
+            arg = expresion_c(b, s, h, T.escribir_tipo(firmados[i]), tipos);
             if es_desconocido(arg) {
                 let _m = cerrar_marco(b);
                 return no_se();
             }
-            tc = tipo_c(firmados[i]);
+            tc = tipo_c(T.escribir_tipo(firmados[i]));
         }
         var p_arg = operando(h, arg, tc);
         if secuenciar {
@@ -2647,7 +2647,7 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if tiene(tipos.externas, nombre) { return llamada_externa_c(b, s, n, tipos); }
     if tiene(tipos.repetidas, nombre) { return no_se(); }
 
-    var firmados = I.lista_de(tipos.params, nombre) sino [];
+    var firmados = T.tipos_de_mapa(tipos.params, nombre) sino [];
     let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];
     // En C no queda el alias del modulo: `I.tipo_de` se llama `tipo_de`.
     var en_c = I.sin_modulo(nombre);
@@ -2672,7 +2672,7 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
         while k < firmados.largo() && k < n.hijos.largo() {
             let dado = I.tipo_de(tipos, n.hijos[k]);
             let limpio = T.apuntado_si(T.escribir_tipo(dado));
-            I.unificar(firmados[k], limpio, sueltos, ligaduras);
+            I.unificar(T.escribir_tipo(firmados[k]), limpio, sueltos, ligaduras);
             k = k + 1;
         }
         en_c.empujar("__");
@@ -2701,10 +2701,10 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             pedido.empujar(sin_alias);
         }
         var puestos: lista<str> = [];
-        for f en firmados { puestos.anadir(T.sustituir(f, ligaduras)); }
-        firmados = puestos;
+        for f en firmados { puestos.anadir(T.sustituir(T.escribir_tipo(f), ligaduras)); }
+        firmados = T.leer_tipos(puestos);
     }
-    return llamada_con_firma(b, s, n, tipos, vista(en_c), firmados, marcados,
+    return llamada_con_firma(b, s, n, tipos, vista(en_c), T.escribir_tipos(firmados), marcados,
         vista(pedido));
 }
 
@@ -2759,9 +2759,9 @@ fn presta_argumento(tipos: &I.Contexto, nombre: view, i: usize) -> bool {
     if nombre == "poner" { return i < 2; }
     if es_interna(nombre) { return true; }
     // Un parametro `view` mira el texto, no se lo queda.
-    let firmados = I.lista_de(tipos.params, nombre) sino [];
+    let firmados = T.tipos_de_mapa(tipos.params, nombre) sino [];
     if i < firmados.largo() {
-        if firmados[i] == "view" { return true; }
+        if firmados[i].nombre == "view" { return true; }
     }
     let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];
     if i >= marcados.largo() { return true; }

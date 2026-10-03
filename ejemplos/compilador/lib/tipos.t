@@ -230,6 +230,28 @@ fn tipo_de_mapa(m: &mapa<str, Tipo>, clave: view) -> Tipo ! {
     return copiar(try obtener(m, clave));
 }
 
+// La lista de `Tipo` que guarda un mapa bajo `clave`, con duenio: la pareja
+// de `tipo_de_mapa` para los campos que llevan varios tipos.
+fn tipos_de_mapa(m: &mapa<str, lista<Tipo>>, clave: view) -> lista<Tipo> ! {
+    return copiar(try obtener(m, clave));
+}
+
+// Una lista de textos de tipo, leidos a sus `Tipo`. La usan los que guardan
+// una firma recien leida: el texto entra, la estructura se guarda.
+fn leer_tipos(escritos: &lista<str>) -> lista<Tipo> {
+    var salida: lista<Tipo> = [];
+    for e en escritos { salida.anadir(leer_tipo(e)); }
+    return salida;
+}
+
+// El camino inverso: la lista de `Tipo`, escrita a texto. La usan los que
+// aun hablan en `str` con el generador de C.
+fn escribir_tipos(tipos: &lista<Tipo>) -> lista<str> {
+    var salida: lista<str> = [];
+    for t en tipos { salida.anadir(escribir_tipo(t)); }
+    return salida;
+}
+
 // La forma de un tipo escrito, sin leer lo de dentro. Es lo unico que
 // preguntan `posee` y `tipo_existe` antes de bajar, y no reserva nada: leer
 // el arbol entero para eso era la mayor parte de lo que se leian tipos.
