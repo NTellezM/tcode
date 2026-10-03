@@ -95,7 +95,7 @@ fn es_referencia(t: view) -> bool {
 }
 
 fn apuntado(t: view) -> view {
-    if empieza(t, "&mut ") { return rebanar(t, 5, t.largo()); }
+    if forma_de(t) == Forma.PrestaMut { return rebanar(t, 5, t.largo()); }
     return rebanar(t, 1, t.largo());
 }
 
@@ -131,7 +131,10 @@ fn partes_de_funcion(t: view) -> lista<str> {
 
 // Quita el prestamo si lo hay: `&Cosa` -> `Cosa`, `usize` -> `usize`.
 fn apuntado_si(t: view) -> str {
-    if es_referencia(t) { return nuevo(apuntado(t)); }
+    let forma = forma_de(t);
+    if forma == Forma.Presta || forma == Forma.PrestaMut {
+        return nuevo(apuntado(t));
+    }
     return nuevo(t);
 }
 
