@@ -65,22 +65,14 @@ fn partir_tipos(dentro: view) -> lista<str> {
     return salida;
 }
 
-fn es_lista(t: view) -> bool {
-    return empieza(t, "lista<") && termina_con(t, ">");
-}
+fn es_lista(t: view) -> bool { return forma_de(t) == Forma.Lista; }
 
-fn es_bloque(t: view) -> bool {
-    return empieza(t, "bloque<") && termina_con(t, ">");
-}
+fn es_bloque(t: view) -> bool { return forma_de(t) == Forma.Bloque; }
 
-fn es_mapa(t: view) -> bool {
-    return empieza(t, "mapa<") && termina_con(t, ">");
-}
+fn es_mapa(t: view) -> bool { return forma_de(t) == Forma.Mapa; }
 
 // Lo que recorre `for i en a..b`: los enteros de `a` a `b`, sin `b`.
-fn es_rango(t: view) -> bool {
-    return empieza(t, "rango<") && termina_con(t, ">");
-}
+fn es_rango(t: view) -> bool { return forma_de(t) == Forma.Rango; }
 
 fn es_funcion(t: view) -> bool {
     return empieza(t, "fn(");
@@ -226,15 +218,15 @@ fn con_varios(forma: Forma, nombre: view, dentro: view) -> Tipo {
 fn forma_de(t: view) -> Forma {
     if empieza(t, "&mut ") { return Forma.PrestaMut; }
     if empieza(t, "&") { return Forma.Presta; }
-    if es_arreglo(t) && termina_con(t, "]") && contiene(t, ";") { return Forma.Arreglo; }
-    if es_funcion(t) {
+    if empieza(t, "[") && termina_con(t, "]") && contiene(t, ";") { return Forma.Arreglo; }
+    if empieza(t, "fn(") {
         if partes_de_funcion(t).largo() == 0 { return Forma.Nombre; }
         return Forma.Funcion;
     }
-    if es_lista(t) { return Forma.Lista; }
-    if es_bloque(t) { return Forma.Bloque; }
-    if es_rango(t) { return Forma.Rango; }
-    if es_mapa(t) { return Forma.Mapa; }
+    if empieza(t, "lista<") && termina_con(t, ">") { return Forma.Lista; }
+    if empieza(t, "bloque<") && termina_con(t, ">") { return Forma.Bloque; }
+    if empieza(t, "rango<") && termina_con(t, ">") { return Forma.Rango; }
+    if empieza(t, "mapa<") && termina_con(t, ">") { return Forma.Mapa; }
     return Forma.Nombre;
 }
 

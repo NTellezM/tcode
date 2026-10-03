@@ -214,7 +214,7 @@ comentarios, cadenas normales e interpoladas, números, identificadores,
 palabras reservadas y símbolos de uno y dos caracteres.
 
 Sobre los <!--c:lexer_archivos-->71<!--/c--> `.t` del repositorio —incluido el suyo propio— produce
-**<!--c:tokens-->216.088<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
+**<!--c:tokens-->216.108<!--/c--> tokens idénticos** a los del lexer del compilador, uno a uno. Eso
 está en la suite, así que si alguna vez deja de coincidir, se sabe. Y ha
 pasado: al reescribir `ejemplos/texto.t` con cadenas anidadas dentro de una
 interpolación, el de Tcode dio siete tokens de más y la suite lo señaló al
@@ -243,7 +243,7 @@ archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 `ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.802<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba. Acepta y rechaza **exactamente** los mismos <!--c:parser_archivos-->71<!--/c--> archivos que
-el parser del compilador, y sobre ellos produce <!--c:nodos-->115.091<!--/c--> nodos:
+el parser del compilador, y sobre ellos produce <!--c:nodos-->115.101<!--/c--> nodos:
 
 <!--c:bloque:parser-->
 ```
@@ -268,7 +268,7 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
   <!--c:propiedad_variables-->7.199<!--/c--> variables**, el mismo destino, sin ningún archivo pendiente.
 - `lib/generar.t` es **el generador**: cómo se llama cada tipo en C, cómo
   queda la firma de cada función —**<!--c:firmas_archivos-->71<!--/c--> archivos, <!--c:firmas-->1.064<!--/c--> firmas**— y el C de cada
-  expresión que se devuelve: **<!--c:expresiones_iguales-->3.800<!--/c--> de <!--c:expresiones-->4.098<!--/c--> expresiones, carácter por
+  expresión que se devuelve: **<!--c:expresiones_iguales-->3.804<!--/c--> de <!--c:expresiones-->4.098<!--/c--> expresiones, carácter por
   carácter**, las mismas que emite el generador de Python. Lo que aún no
   cubre sale marcado y no se compara; la suite exige un mínimo en vez de
   hacer como que están todas. Y **la función entera** —firma, cuerpo, y los
@@ -284,7 +284,7 @@ suite, sobre el código real del repositorio.
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.622<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.614<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa) y el resultado se compara byte a
 byte con el del generador de Python: **los <!--c:programas_enteros-->25<!--/c--> programas del repositorio, idénticos**,
 entre ellos el lexer, el parser y el propio `tcodec`, y también **los
