@@ -765,7 +765,7 @@ fn vistas_en_sentencia(st: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
         if t == "view" { prestar_si_str(st.hijos[0], tipos, cambio); }
     }
     if clase == Clase.Asignacion && st.hijos.largo() == 2 {
-        let destino = I.tipo_de(tipos, st.hijos[0]);
+        let destino = T.escribir_tipo(I.tipo_de(tipos, st.hijos[0]));
         if destino == "view" { prestar_si_str(st.hijos[1], tipos, cambio); }
     }
     if clase == Clase.Retorno && st.hijos.largo() == 1 && retorno == "view" {
@@ -786,7 +786,7 @@ fn vistas_en_sentencia(st: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
     if es_declaracion {
         let nombre = G.nombre_declarado(st.texto);
         var tipo = G.tipo_escrito(st.texto);
-        if tipo.largo() == 0 { tipo = I.tipo_de(tipos, st.hijos[0]); }
+        if tipo.largo() == 0 { tipo = T.escribir_tipo(I.tipo_de(tipos, st.hijos[0])); }
         I.declarar(tipos, nombre, tipo);
     }
 }
@@ -811,7 +811,7 @@ fn vistas_en_hijo(h: mut P.Nodo, tipos: mut I.Contexto, retorno: view,
 }
 
 fn declarar_de_para(st: &P.Nodo, tipos: mut I.Contexto) {
-    let suyo = I.tipo_de(tipos, st.hijos[0]);
+    let suyo = T.escribir_tipo(I.tipo_de(tipos, st.hijos[0]));
     let sobre = T.apuntado_si(suyo);
     let uno = G.primer_nombre(st.texto);
     let dos = G.segundo_nombre(st.texto);
@@ -832,7 +832,7 @@ fn declarar_de_para(st: &P.Nodo, tipos: mut I.Contexto) {
 // Si `n` es un `str` con nombre, pasa a ser `vista(n)`.
 fn prestar_si_str(n: mut P.Nodo, tipos: &I.Contexto, cambio: mut bool) {
     if !P.es_lugar(n) { return; }
-    let t = I.tipo_de(tipos, n);
+    let t = T.escribir_tipo(I.tipo_de(tipos, n));
     let sin = T.apuntado_si(t);
     if sin != "str" { return; }
     var envuelto = P.rama(Clase.Llamada, n.linea);

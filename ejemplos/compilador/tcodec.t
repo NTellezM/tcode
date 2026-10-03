@@ -1128,7 +1128,7 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
                 if st.hijos.largo() == 1 {
                     let nombre = G.nombre_declarado(st.texto);
                     var escrito = G.tipo_escrito(st.texto);
-                    if escrito.largo() == 0 { escrito = I.tipo_de(tipos, st.hijos[0]); }
+                    if escrito.largo() == 0 { escrito = T.escribir_tipo(I.tipo_de(tipos, st.hijos[0])); }
                     let t = escrito;
                     if bien { bien = mirar_tipo(t, reg, global, structs); }
                     I.declarar(tipos, nombre, t);

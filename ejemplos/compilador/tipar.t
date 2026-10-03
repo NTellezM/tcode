@@ -227,7 +227,7 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
             if escrito.largo() > 0 {
                 tipo = escrito;
             } else {
-                if n.hijos.largo() > 0 { tipo = I.tipo_de(c, n.hijos[0]); }
+                if n.hijos.largo() > 0 { tipo = T.escribir_tipo(I.tipo_de(c, n.hijos[0])); }
             }
             for h en n.hijos { recorrer(h, c, quien, salida, lineas); }
             let nombre = nombre_declarado(n.texto);
@@ -243,7 +243,7 @@ fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
         Clase.Para -> {
             // `for x en xs`: la variable toma el tipo del elemento.
             if n.hijos.largo() > 0 {
-                let sobre = I.tipo_de(c, n.hijos[0]);
+                let sobre = T.escribir_tipo(I.tipo_de(c, n.hijos[0]));
                 let base = elemento_de(sobre);
                 I.abrir(c);
                 let partes = try_partir(n.texto);

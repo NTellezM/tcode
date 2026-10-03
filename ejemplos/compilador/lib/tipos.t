@@ -212,6 +212,17 @@ fn con_varios(forma: Forma, nombre: view, dentro: view) -> Tipo {
     return t;
 }
 
+// Un tipo que no se sabe. `tipo_de` lo devuelve cuando no conoce el tipo de
+// una expresion, y quien lo lee pregunta `conocido` antes de mirarlo. Es un
+// `Nombre` con el nombre vacio, que es justo lo que da `leer_tipo("")`.
+fn ninguno() -> Tipo {
+    return nuevo_tipo(Forma.Nombre, "");
+}
+
+fn conocido(t: &Tipo) -> bool {
+    return t.forma != Forma.Nombre || t.nombre.largo() > 0;
+}
+
 // La forma de un tipo escrito, sin leer lo de dentro. Es lo unico que
 // preguntan `posee` y `tipo_existe` antes de bajar, y no reserva nada: leer
 // el arbol entero para eso era la mayor parte de lo que se leian tipos.

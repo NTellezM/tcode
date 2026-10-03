@@ -113,90 +113,90 @@ fn buscar(c: &Contexto, nombre: view) -> str {
 // El tipo de una expresion
 // ------------------------------------------------------------------
 
-fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
+fn tipo_de(c: &Contexto, n: &P.Nodo) -> T.Tipo {
     let anotado = tipo_anotado(c, n);
-    if anotado.largo() > 0 { return anotado; }
+    if anotado.largo() > 0 { return T.leer_tipo(anotado); }
     let clase = n.clase;
 
     match clase {
-        Clase.Entero -> { return nuevo("usize"); }
-        Clase.Decimal -> { return nuevo("f64"); }
-        Clase.Cadena -> { return nuevo("view"); }
-        Clase.Interpolada -> { return nuevo("str"); }
-        Clase.Booleano -> { return nuevo("bool"); }
+        Clase.Entero -> { return T.leer_tipo("usize"); }
+        Clase.Decimal -> { return T.leer_tipo("f64"); }
+        Clase.Cadena -> { return T.leer_tipo("view"); }
+        Clase.Interpolada -> { return T.leer_tipo("str"); }
+        Clase.Booleano -> { return T.leer_tipo("bool"); }
         Clase.Variable -> {
             let local = buscar(c, n.texto);
-            if local.largo() > 0 { return local; }
+            if local.largo() > 0 { return T.leer_tipo(local); }
             // El nombre de una funcion sin parentesis detras es un valor: el
             // puntero a esa funcion, con su firma por tipo.
-            return firma_de_funcion(c, n.texto);
+            return T.leer_tipo(firma_de_funcion(c, n.texto));
         }
         // Una clausura ya numerada lleva el nombre de su struct.
-        Clase.Cierre -> { return copiar(n.texto); }
+        Clase.Cierre -> { return T.leer_tipo(n.texto); }
         // `a..b` en un `for`: los dos extremos son del mismo entero.
         Clase.Rango -> {
             if n.hijos.largo() == 2 {
                 let t = tipo_de(c, n.hijos[0]);
-                return T.hacer_rango(t);
+                return T.leer_tipo(T.hacer_rango(T.escribir_tipo(t)));
             }
         }
         // `if c { a } else { b }` vale lo que valga su primera rama: el
         // comprobador ya exige que las dos den lo mismo.
         Clase.SiExpr -> {
             if n.hijos.largo() == 3 { return tipo_de(c, n.hijos[1]); }
-            return vacio();
+            return T.ninguno();
             // La condicion es el primer hijo; el valor, el segundo.
             if n.hijos.largo() > 1 { return tipo_de(c, n.hijos[1]); }
-            return vacio();
+            return T.ninguno();
         }
         // `Color.Rojo` es un `Color`.
-        Clase.EnumLit -> { return sin_modulo(antes_del_punto(n.texto)); }
+        Clase.EnumLit -> { return T.leer_tipo(sin_modulo(antes_del_punto(n.texto))); }
         // Un `match` vale lo que valgan sus brazos, y eso lo dijo el comprobador.
         // Sin lo que dijo, basta con el primer brazo que de algo que se sepa
         // tipar: todos dan lo mismo. Uno que de lo atrapado no se sabe desde
         // aqui, porque lo atrapado solo se declara dentro del brazo.
         Clase.Match -> {
             let dicho = anotado_crudo(c, n);
-            if dicho.largo() > 0 && !empieza_con(dicho, "{") { return dicho; }
+            if dicho.largo() > 0 && !empieza_con(dicho, "{") { return T.leer_tipo(dicho); }
             for h en n.hijos {
                 if h.clase == Clase.Brazo {
                     for x en h.hijos {
                         if x.clase == Clase.Retorno && x.hijos.largo() > 0 {
                             let t = tipo_de(c, x.hijos[0]);
-                            if t.largo() > 0 { return t; }
+                            if T.conocido(t) { return t; }
                         }
                     }
                 }
             }
-            return vacio();
+            return T.ninguno();
         }
         Clase.Expresion -> {
             if n.hijos.largo() > 0 { return tipo_de(c, n.hijos[0]); }
-            return vacio();
+            return T.ninguno();
         }
         Clase.Conversion -> {
             // El texto lleva el tipo destino, con `?` delante si es envolvente.
             let t = vista(n.texto);
-            if empieza_con(t, "?") { return nuevo(rebanar(t, 1, t.largo())); }
-            return nuevo(t);
+            if empieza_con(t, "?") { return T.leer_tipo(rebanar(t, 1, t.largo())); }
+            return T.leer_tipo(t);
         }
         Clase.Unaria -> {
-            if n.texto == "!" { return nuevo("bool"); }
+            if n.texto == "!" { return T.leer_tipo("bool"); }
             // Un numero escrito con `-` delante solo cabe en uno con signo: sin
             // mas contexto es un `i64`, como en el comprobador.
             if n.texto == "-" && n.hijos.largo() > 0
             && literal_de(n.hijos[0]) == "entero" {
-                return nuevo("i64");
+                return T.leer_tipo("i64");
             }
             if n.hijos.largo() > 0 { return tipo_de(c, n.hijos[0]); }
-            return vacio();
+            return T.ninguno();
         }
         Clase.Binaria -> {
             let op = vista(n.texto);
-            if es_comparacion(op) { return nuevo("bool"); }
-            if n.hijos.largo() == 0 { return vacio(); }
+            if es_comparacion(op) { return T.leer_tipo("bool"); }
+            if n.hijos.largo() == 0 { return T.ninguno(); }
             if n.hijos.largo() == 1 { return tipo_de(c, n.hijos[0]); }
-            return tipo_cuenta(c, n, "");
+            return T.leer_tipo(tipo_cuenta(c, n, ""));
         }
         Clase.LiteralStruct -> {
             // `P.Estado { ... }` es un `Estado`: el modulo es de quien escribe.
@@ -206,41 +206,41 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> str {
                 let dicho = anotado_crudo(c, n);
                 if T.es_aplicacion(dicho) {
                     let base = T.base_de_aplicacion(dicho);
-                    if igual(base, escrito) { return dicho; }
+                    if igual(base, escrito) { return T.leer_tipo(dicho); }
                 }
             }
-            return escrito;
+            return T.leer_tipo(escrito);
         }
         Clase.LiteralLista -> {
             // `[a, b, c]` sin tipo escrito es un arreglo de tamaño fijo. Un `[]`
             // vacio no dice de que es: eso lo pone la anotacion.
-            if n.hijos.largo() == 0 { return vacio(); }
+            if n.hijos.largo() == 0 { return T.ninguno(); }
             let elem = tipo_de(c, n.hijos[0]);
-            if elem.largo() == 0 { return vacio(); }
-            return T.hacer_arreglo(elem, texto(n.hijos.largo()));
+            if !T.conocido(elem) { return T.ninguno(); }
+            return T.leer_tipo(T.hacer_arreglo(T.escribir_tipo(elem), texto(n.hijos.largo())));
         }
         Clase.Campo -> {
-            if n.hijos.largo() == 0 { return vacio(); }
+            if n.hijos.largo() == 0 { return T.ninguno(); }
             let crudo = tipo_de(c, n.hijos[0]);
-            let base = T.apuntado_si(crudo);
-            return tipo_de_campo(c, base, n.texto);
+            let base = T.apuntado_si(T.escribir_tipo(crudo));
+            return T.leer_tipo(tipo_de_campo(c, base, n.texto));
         }
         Clase.Indice -> {
-            if n.hijos.largo() == 0 { return vacio(); }
+            if n.hijos.largo() == 0 { return T.ninguno(); }
             let crudo = tipo_de(c, n.hijos[0]);
-            let base = T.apuntado_si(crudo);
-            return T.elemento(base);
+            let base = T.apuntado_si(T.escribir_tipo(crudo));
+            return T.leer_tipo(T.elemento(base));
         }
-        Clase.Llamada -> { return tipo_de_llamada(c, n); }
+        Clase.Llamada -> { return T.leer_tipo(tipo_de_llamada(c, n)); }
         _ -> {
             if clase == Clase.Try || clase == Clase.Sino {
                 if n.hijos.largo() > 0 { return tipo_de(c, n.hijos[0]); }
-                return vacio();
+                return T.ninguno();
             }
         }
     }
 
-    return vacio();
+    return T.ninguno();
 }
 
 // `obtener` sobre un mapa de listas devuelve un prestamo, y un prestamo no
@@ -344,12 +344,12 @@ fn tipo_cuenta(c: &Contexto, n: &P.Nodo, esperado: view) -> str {
         return nuevo("usize");
     }
     if izq.largo() > 0 {
-        let t = tipo_de(c, n.hijos[1]);
+        let t = T.escribir_tipo(tipo_de(c, n.hijos[1]));
         if es_numero(t) { return t; }
     }
-    let a = tipo_de(c, n.hijos[0]);
+    let a = T.escribir_tipo(tipo_de(c, n.hijos[0]));
     if es_numero(a) { return a; }
-    let otro = tipo_de(c, n.hijos[1]);
+    let otro = T.escribir_tipo(tipo_de(c, n.hijos[1]));
     if es_numero(otro) { return otro; }
     if es_numero(esperado) { return nuevo(esperado); }
     return nuevo("usize");
@@ -519,7 +519,7 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
 
     // Las que devuelven algo sacado de su primer argumento.
     if n.hijos.largo() > 0 {
-        let crudo = tipo_de(c, n.hijos[0]);
+        let crudo = T.escribir_tipo(tipo_de(c, n.hijos[0]));
         let primero = T.apuntado_si(crudo);
         if nombre == "copiar" { return copiar(primero); }
         if nombre == "intercambiar" { return copiar(primero); }
@@ -583,7 +583,7 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
     var ligaduras: mapa<str, str> = [];
     var i = 0;
     while i < declarados.largo() && i < n.hijos.largo() {
-        let dado = tipo_de(c, n.hijos[i]);
+        let dado = T.escribir_tipo(tipo_de(c, n.hijos[i]));
         let limpio = T.apuntado_si(dado);
         unificar(declarados[i], limpio, sueltos, ligaduras);
         i = i + 1;
