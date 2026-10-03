@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="text/x-tcode">
+    <comment>Tcode source code</comment>
+    <comment xml:lang="es">código fuente de Tcode</comment>
+    <sub-class-of type="text/plain"/>
+    <glob pattern="*.t"/>
+    <icon name="text-x-tcode"/>
+  </mime-type>
+</mime-info>

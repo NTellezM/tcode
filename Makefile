@@ -23,7 +23,7 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras grafo bench ejemplos limpiar formato lint mutar semilla compiladores con-un-cc punto-fijo-cc fuzz fuzz-safestr bench-comprobar instalar desinstalar paquete probar-paquete version
+.PHONY: all check rapido propiedades cifras grafo bench ejemplos limpiar formato lint mutar semilla compiladores con-un-cc punto-fijo-cc fuzz fuzz-safestr bench-comprobar instalar desinstalar paquete probar-paquete version icono
 
 all: tcodec
 
@@ -139,6 +139,18 @@ fuzz-safestr:
 # `TCODE_RAIZ`. `DESTDIR` es para quien empaqueta.
 PREFIJO ?= /usr/local
 INSTALADO = $(DESTDIR)$(PREFIJO)/lib/tcode
+
+# El icono y el tipo MIME de `*.t` en el escritorio (Cinnamon/Nemo y GTK en
+# general): una "T" como la de los archivos de C. Se pone en el usuario, no en
+# el sistema, porque es gusto de quien escribe. `nemo -q` reinicia el gestor
+# para que se vea sin cerrar sesion.
+icono:
+	@mkdir -p $(HOME)/.local/share/mime/packages \
+	    $(HOME)/.local/share/icons/hicolor/scalable/mimetypes
+	@cp extras/text-x-tcode.xml $(HOME)/.local/share/mime/packages/
+	@cp extras/text-x-tcode.svg $(HOME)/.local/share/icons/hicolor/scalable/mimetypes/
+	@update-mime-database $(HOME)/.local/share/mime/ 2>/dev/null || true
+	@echo "icono de *.t puesto; si no lo ves, cierra y abre Nemo (nemo -q)"
 
 instalar: tcodec
 	@install -d $(INSTALADO)/std $(INSTALADO)/runtime/sistema $(DESTDIR)$(PREFIJO)/bin
