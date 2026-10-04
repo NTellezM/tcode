@@ -616,6 +616,32 @@ fn presta_tipo(m: &Mundo, t: view) -> bool {
     return t == "view" || T.es_referencia(t) || es_prestado_st(m, t);
 }
 
+// Si el tipo lleva una `view` dentro, a cualquier hondura: el `dato: T` de
+// un `Caja<view>`, el `list<Rama<view>>` de un `Arbol<view>`, o la propia
+// `view`. `presta_tipo` no basta: se para en las listas, y por dentro de una
+// lista tambien hay una vista. Los `vistos` cortan los structs que se
+// contienen a si mismos.
+fn lleva_vista(m: &Mundo, t: view) -> bool {
+    var vistos: list<str> = [];
+    return lleva_vista_en(m, t, vistos);
+}
+
+fn lleva_vista_en(m: &Mundo, t: view, vistos: mut list<str>) -> bool {
+    if t == "view" { return true; }
+    if esta_entre(vistos, t) { return false; }
+    vistos.anadir(nuevo(t));
+    if es_struct(m, t) {
+        for ct en campos_tipos(m, t) {
+            if lleva_vista_en(m, ct, vistos) { return true; }
+        }
+        return false;
+    }
+    for x en T.partes(t) {
+        if lleva_vista_en(m, x, vistos) { return true; }
+    }
+    return false;
+}
+
 fn error_enum_prestado(c: mut Comprobacion, m: &Mundo, linea: usize, en_n: view, forma: view,
     t: view) {
     error(c, m, linea, $"`{en_n}.{forma}` lleva un `{t}`, que presta: un enum no guarda prestamos, porque al mirarlo nadie sabria de quien presta. Usa `str`, o un struct con duenio");
@@ -2511,14 +2537,20 @@ fn ligaduras_de_juego(f: &Funcion, juego: &list<str>) -> map<str, str> {
 
 // Si con estos tipos la firma tiene sentido. Un `T = view` sobre un
 // `&list<T>` no lo tiene: nadie podria llamarla asi, y el cuerpo no tiene
-// que valer para lo que no se puede escribir.
+// que valer para lo que no se puede escribir. Tampoco lo tiene un tipo que
+// lleve una `view` dentro por culpa de `T` —un `Caja<view>`, un
+// `Arbol<view>`—: ahi el cuerpo recibe algo que no es suyo y `copiar` no
+// vale, asi que no se le puede exigir que compile para esa instanciacion.
+// Un `view` escrito a mano, sin `T` de por medio, no invalida el juego.
 fn firma_valida(m: &Mundo, f: &Funcion, juego: &list<str>) -> bool {
     let lig = ligaduras_de_juego(f, juego);
     for p en f.params {
         let t = T.sustituir(p.tipo, lig);
         if !almacenable(m, t) || (prestado(p) && t == "view") { return false; }
+        if !igual(p.tipo, t) && lleva_vista(m, t) { return false; }
     }
     let r = T.sustituir(f.retorno, lig);
+    if r.largo() > 0 && !igual(f.retorno, r) && lleva_vista(m, r) { return false; }
     return r.largo() == 0 || r == "()" || almacenable(m, r);
 }
 

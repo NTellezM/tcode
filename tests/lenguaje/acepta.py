@@ -1450,6 +1450,24 @@ fn main() {
         }''',
      "10 comprobaciones, todo bien\n"),
 
+    ("una restriccion de tipo no invalida el copiar de un campo",
+     '''use "std/prueba";
+        struct Caja<T> { dato: T }
+        fn saca<T: ordenable>(c: &Caja<T>) -> T ! {
+            return copiar(c.dato);
+        }
+        fn por_valor<T: ordenable>(c: Caja<T>) -> T ! {
+            return copiar(c.dato);
+        }
+        fn main() -> usize {
+            var p = pruebas();
+            let c: Caja<usize> = Caja { dato: 7 };
+            afirmar_igual_numero(p, "por prestamo", saca(c) sino 0, 7);
+            afirmar_igual_numero(p, "por valor", por_valor(c) sino 0, 7);
+            return terminar(p);
+        }''',
+     "2 comprobaciones, todo bien\n"),
+
     ("un contenedor propio, escrito en Tcode y no en el compilador",
      '''struct Pila<T> { cosas: list<T> }
 

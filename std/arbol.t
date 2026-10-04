@@ -278,13 +278,13 @@ fn en_orden_desde<T>(a: &Arbol<T>, enlace: usize, salida: mut list<T>) {
 // El menor y el mayor son las ramas que se alcanzan bajando siempre por un
 // lado: el de mas a la izquierda y el de mas a la derecha. Falla en vez de
 // devolver algo inventado, como `minimo` y `maximo` de `std/lista`.
-fn minimo_del_arbol<T>(a: &Arbol<T>) -> T ! {
+fn minimo_del_arbol<T: ordenable>(a: &Arbol<T>) -> T ! {
     if a.raiz == 0 { fail "un arbol vacio no tiene minimo"; }
     let enlace = enlace_minimo_en_arbol(a, a.raiz);
     return copiar(a.ramas[enlace - 1].dato);
 }
 
-fn maximo_del_arbol<T>(a: &Arbol<T>) -> T ! {
+fn maximo_del_arbol<T: ordenable>(a: &Arbol<T>) -> T ! {
     if a.raiz == 0 { fail "un arbol vacio no tiene maximo"; }
     let enlace = enlace_maximo_en_arbol(a, a.raiz);
     return copiar(a.ramas[enlace - 1].dato);

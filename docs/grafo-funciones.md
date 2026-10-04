@@ -173,6 +173,7 @@ graph TD
         compilador_lib_comprobar__llamada_a_puntero["llamada_a_puntero"]
         compilador_lib_comprobar__lleva_partes["lleva_partes"]
         compilador_lib_comprobar__lleva_suelto["lleva_suelto"]
+        compilador_lib_comprobar__lleva_vista_en["lleva_vista_en"]
         compilador_lib_comprobar__mutar["mutar"]
         compilador_lib_comprobar__nodo_de_cierre["nodo_de_cierre"]
         compilador_lib_comprobar__origenes_de["origenes_de"]
@@ -496,6 +497,7 @@ graph TD
     compilador_lib_comprobar__lleva_partes --> compilador_lib_tipos__es_mapa
     compilador_lib_comprobar__lleva_partes --> compilador_lib_tipos__es_referencia
     compilador_lib_comprobar__lleva_suelto --> compilador_lib_tipos__es_de_nombre
+    compilador_lib_comprobar__lleva_vista_en --> compilador_lib_tipos__partes
     compilador_lib_comprobar__mutar --> compilador_lib_tipos__es_referencia
     compilador_lib_comprobar__mutar --> compilador_lib_tipos__es_referencia_mutable
     compilador_lib_comprobar__nodo_de_cierre --> lexer_lib_sintaxis__rama
