@@ -4,7 +4,7 @@
 // cada uno con su tamaño y su liberador, como las plantillas de C++ o los
 // genericos de Rust. No hay `void*` ni tamaños pasados a mano como en C.
 
-use "std/par";
+#importar "par.t";
 
 struct Caja<T> { dentro: T, cuantas: usize }
 

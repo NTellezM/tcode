@@ -6,8 +6,8 @@
 //
 //     ./contar README.md
 
-use "std/texto";
-use "std/caracter";
+#importar "texto.t";
+#importar "caracter.t";
 
 fn main() -> usize ! {
     if n_argumentos() < 2 {

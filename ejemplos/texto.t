@@ -4,7 +4,7 @@
 // Ahora vienen de `std/texto`, y lo que queda es lo que este archivo de
 // verdad ensena: vistas que no reservan memoria, y prestamos mutables.
 
-use "std/texto";
+#importar "texto.t";
 
 // Estas dos devuelven una vista atada a su parametro: no reservan un solo
 // byte. El compilador comprueba que el texto al que apuntan sobrevive a la

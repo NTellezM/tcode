@@ -6,7 +6,7 @@
 // mayusculas de minusculas en las letras ASCII. Sale con 0 si alguna linea
 // salio y con 1 si ninguna, como `grep`.
 
-use "std/texto" como t;
+#importar "texto.t" como t;
 
 fn main() -> usize ! {
     var numerar = false;

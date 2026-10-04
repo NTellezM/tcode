@@ -3,8 +3,8 @@
 // Una variable con duenio se entrega por un camino y por el otro no. C no
 // sabe por cual se vino, asi que Tcode le pone un `bool` y lo apaga solo.
 
-use "std/texto";
-use "std/lista";
+#importar "texto.t";
+#importar "lista.t";
 
 fn guardar(xs: mut list<str>, s: str) {
     anadir(xs, s);

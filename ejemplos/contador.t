@@ -1,5 +1,5 @@
-use "std/texto";
-use "std/caracter";
+#importar "texto.t";
+#importar "caracter.t";
 
 // Palabras: las separadas por blancos, sin contar el de delante ni el de detras.
 fn contador_palabras(texto: view) -> usize {

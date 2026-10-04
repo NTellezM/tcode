@@ -2,8 +2,8 @@
 //
 //     ./frecuencia README.md
 
-use "std/cuenta";
-use "std/texto";
+#importar "cuenta.t";
+#importar "texto.t";
 
 fn main() -> usize ! {
     let texto = try leer_archivo(argumento(1));

@@ -6,9 +6,9 @@
 // Junta las bibliotecas: `cli` para los argumentos, `toml` para leer, `json`
 // para escribir. Sale con 2 si faltan argumentos, y con 1 si la clave no esta.
 
-use "std/cli" como cli;
-use "std/toml" como toml;
-use "std/json" como json;
+#importar "cli.t" como cli;
+#importar "toml.t" como toml;
+#importar "json.t" como json;
 
 fn a_json(v: &toml.ValorToml) -> json.Valor {
     match v {

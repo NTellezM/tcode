@@ -5,7 +5,7 @@
 // La rejilla es un rectangulo de `.` (muerta) y `#` (viva), una fila por
 // linea. Imprime la rejilla tras las generaciones pedidas.
 
-use "std/texto" como t;
+#importar "texto.t" como t;
 
 struct Rejilla {
     ancho: usize,

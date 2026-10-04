@@ -6,9 +6,9 @@
 //
 //     ./ordenar README.md
 
-use "std/texto";
-use "std/lista";
-use "std/cuenta";
+#importar "texto.t";
+#importar "lista.t";
+#importar "cuenta.t";
 
 fn main() -> usize ! {
     if n_argumentos() < 2 {

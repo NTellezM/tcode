@@ -30,8 +30,8 @@
 //     quiera quedarse con lo de dentro escribe `copiar(...)`, que es la
 //     misma regla explicita del resto del lenguaje.
 
-use "std/texto";
-use "std/lista";
+#importar "texto.t";
+#importar "lista.t";
 
 enum Json {
     Nulo,

@@ -4,7 +4,7 @@
 // limite. `std/vector` crece sobre el sin que el compilador sepa nada de
 // vectores, que es lo que en C pide `realloc` a mano y en Rust `unsafe`.
 
-use "std/vector";
+#importar "vector.t";
 
 fn main() -> usize ! {
     var b: bloque<usize> = reservar(4);

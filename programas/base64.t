@@ -6,7 +6,7 @@
 // Lee y escribe bytes: un cero en medio pasa igual que cualquier otro. La
 // codificacion vive en `std/base64`; aqui solo queda el formato de fichero.
 
-use "std/base64" como b64;
+#importar "base64.t" como b64;
 
 // El de fichero: lineas de 76, y un salto final.
 fn envolver(v: view) -> str {

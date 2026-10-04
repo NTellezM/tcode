@@ -26,8 +26,8 @@
 //     rango, los primeros valores saldrian mas veces. Se descarta el
 //     sobrante, como en Rust y en Go.
 
-use "std/texto";
-use "std/lista";
+#importar "texto.t";
+#importar "lista.t";
 
 fn main() -> usize ! {
     // ---- el entorno ----

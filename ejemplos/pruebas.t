@@ -6,17 +6,17 @@
 //
 //     ./pruebas
 
-use "std/prueba";
-use "std/texto";
-use "std/lista";
-use "std/numero";
-use "std/mapa";
-use "std/conjunto";
-use "std/formato";
-use "std/bytes";
-use "std/vector";
-use "std/par";
-use "std/iterador";
+#importar "prueba.t";
+#importar "texto.t";
+#importar "lista.t";
+#importar "numero.t";
+#importar "mapa.t";
+#importar "conjunto.t";
+#importar "formato.t";
+#importar "bytes.t";
+#importar "vector.t";
+#importar "par.t";
+#importar "iterador.t";
 
 fn corto(x: &str) -> bool { return largo(x) < 5; }
 

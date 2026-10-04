@@ -1,4 +1,4 @@
-use "std/texto";
+#importar "texto.t";
 
 fn fila(spaces: usize, bricks: usize) {
     for _i en 0..spaces { imprimir(" "); }

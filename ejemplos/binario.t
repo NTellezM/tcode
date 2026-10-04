@@ -7,7 +7,7 @@
 //
 //     ./binario
 
-use "std/bytes";
+#importar "bytes.t";
 
 struct Cabecera {
     version: u16,
