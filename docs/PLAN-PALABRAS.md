@@ -133,7 +133,7 @@ Así que se canoniza **hacia las viejas**:
 escribir `list<str>`, `map<K,V>`, `use` y `fail` — y las cinco reservadas de
 antemano con su nombre nuevo.
 
-### Fase B — el barrido
+### Fase B — el barrido (hecha la parte del código)
 
 **NO puede ser un `sed` a lo bruto.** `lista`, `mapa`, `usar` y `falla` son
 palabras españolas corrientes y salen mucho en la prosa de los comentarios:
@@ -150,28 +150,37 @@ espera». La sustitución tiene que ser **consciente de los tokens**: sólo la
 palabra que el lexer marca como `palabra`, nunca la que va dentro de un
 comentario o de una cadena.
 
-La herramienta la tiene el propio proyecto: el lexer ya distingue las tres
-cosas. Dos caminos:
+La herramienta es `tcodec --formatear --renombrar [--escribir]`: el formateador
+de siempre más `nueva()` del lexer —la inversa de `canonica()`—, que en vez de
+dejar la palabra como se escribió la cambia por su nombre nuevo. Como el
+repositorio ya está en formato canónico, el diff es **sólo la palabra**: 76
+ficheros, ni un espacio de más.
 
-- un programa corto que use `lexico.t`, recorra los tokens y reescriba sólo los
-  `palabra`; o
-- el formateador con la canonización de la fase A puesta **también** en modo
-  `comentarios`: reescribe las palabras y deja los comentarios intactos. Tiene
-  el inconveniente de que además reajusta los espacios, así que el diff sale
-  más grande.
+Barrido: `ejemplos/compilador/*.t` y `lib/*.t`, `ejemplos/lexer/lib/*.t`,
+`std/*.t`, `tests/**/*.t` (los hallazgos del fuzzing incluidos), `programas/*.t`
+y los ejemplos. Los `.mut_fuzz_*.t` **se borraron** (20 restos de las pruebas).
 
-Los ficheros a barrer:
+Lo que **no** se barre aquí, y por qué:
 
-1. `ejemplos/compilador/*.t` y `lib/*.t`
-2. `ejemplos/lexer/lib/*.t`
-3. `std/*.t`
-4. `tests/**/*.t` y los fragmentos de `tests/lenguaje/*.py`
-5. `docs/ESPECIFICACION.md`, `docs/GUIA.md`, `docs/AUDITORIA.md`
-6. Las gramáticas de editor: `contrib/lsp/vscode/syntaxes/tcode.tmLanguage.json`
-   y `contrib/linguist/tcode.tmLanguage.json`
-7. Los `.mut_fuzz_*.t` **no se tocan: se borran** (restos de las pruebas)
+| qué | por qué |
+|---|---|
+| los fragmentos de `tests/lenguaje/*.py` | el mismo fichero lleva el programa de entrada **y la salida esperada**, y la salida esperada cita las palabras viejas hasta que el compilador cambie de idioma |
+| `docs/ESPECIFICACION.md`, `docs/GUIA.md` y `docs/AUDITORIA.md` | `especificacion.py` comprueba que la especificación diga lo que hace el compilador: cambian juntos o el test falla |
 
-Luego `make check` completo y `make semilla`, byte a byte.
+Las gramáticas del editor sí se tocan, porque el editor tiene que entender las
+dos mientras dure el transbordo: resaltan las dos formas y el completado ya
+propone las nuevas.
+
+Y hay un sitio que **no** se podía dejar para después aunque lo pareciera:
+`tests/grafo.py` lleva su propia lista de palabras reservadas para distinguir
+`palabra` de `ident`, y con el código ya renombrado dejó de reconocer los tipos.
+El grafo salió **vacío** —de 94 flechas a 0— y `make check` ni se inmutó, porque
+solo comprueba que el documento coincida con lo que dice la herramienta, no que
+la herramienta siga viendo algo. Se arregló ahí mismo, aceptando las dos formas.
+Es el fallo a buscar a mano en un cambio así: una herramienta que analiza el
+código por su cuenta y se queda ciega sin decirlo.
+
+`make tcodec && make semilla`, y `make check` en verde.
 
 ### Fase C — quitar las viejas
 
@@ -185,7 +194,13 @@ nuevas (que es lo que hace la fase B):
    las nombran.
 2. Lexer: fuera `canonica`, fuera las viejas de `es_reservada`, y el token se
    emite tal cual se escribió.
-3. `make semilla` y verificar.
+3. Lo que la fase B dejó para aquí, porque va con los mensajes:
+   - los fragmentos de `tests/lenguaje/*.py` **y sus salidas esperadas**, en la
+     misma pasada;
+   - las listas de palabras de las herramientas (`grafo.py` y compañía);
+   - `docs/ESPECIFICACION.md`, `docs/GUIA.md` y `docs/AUDITORIA.md`.
+4. Fuera `nueva()` y el flag `--renombrar`, que sólo existían para el barrido.
+5. `make semilla` y verificar.
 
 A partir de aquí, `lista`/`mapa`/`usar`/`falla` vuelven a ser palabras normales
 del idioma, y se puede escribir `var lista: list<str> = [];`.
