@@ -80,11 +80,11 @@
     },
     "tipos": {
       "name": "storage.type.tcode",
-      "match": "\\b(str|view|usize|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64|bool|mapa|lista|bloque|cadena_c)\\b"
+      "match": "\\b(str|view|usize|u8|u16|u32|u64|i8|i16|i32|i64|f32|f64|bool|mapa|lista|map|list|bloque|cadena_c)\\b"
     },
     "palabras_clave": {
       "name": "keyword.control.tcode",
-      "match": "\\b(fn|if|else|while|for|match|return|falla|break|continue|let|var|mut|try|sino|en|usar|struct|enum|externo|como|ancla|soltar|extiende|protocolo|implementa)\\b"
+      "match": "\\b(fn|if|else|while|for|match|return|falla|fail|break|continue|let|var|mut|try|sino|en|usar|use|struct|enum|externo|como|ancla|anchor|soltar|drop|extiende|extends|protocolo|protocol|implementa|implements)\\b"
     },
     "constantes": {
       "name": "constant.language.tcode",

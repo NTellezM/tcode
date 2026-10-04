@@ -87,7 +87,7 @@
       "patterns": [
         {
           "name": "storage.type.tcode",
-          "match": "\\b(?:u8|u16|u32|u64|usize|i8|i16|i32|i64|f32|f64|str|bool|view|lista|mapa|bloque|cadena_c)\\b"
+          "match": "\\b(?:u8|u16|u32|u64|usize|i8|i16|i32|i64|f32|f64|str|bool|view|lista|mapa|list|map|bloque|cadena_c)\\b"
         }
       ]
     },
@@ -99,11 +99,11 @@
         },
         {
           "name": "keyword.control.exception.tcode",
-          "match": "\\b(?:try|sino|falla)\\b"
+          "match": "\\b(?:try|sino|falla|fail)\\b"
         },
         {
           "name": "keyword.declaration.tcode",
-          "match": "\\b(?:fn|let|var|struct|enum|usar|externo|protocolo|extiende|implementa|como|soltar)\\b"
+          "match": "\\b(?:fn|let|var|struct|enum|usar|use|externo|protocolo|protocol|extiende|extends|implementa|implements|como|soltar|drop)\\b"
         },
         {
           "name": "storage.modifier.tcode",

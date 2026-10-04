@@ -201,7 +201,7 @@ const INTERNAS = [
     ['obtener_mut(m, clave)', '&mut V!', 'presta para modificar lo guardado'],
     ['tiene(m, clave)', 'bool', 'si la clave está en el mapa'],
     ['quitar(m, clave)', 'bool', 'borra la clave; dice si había algo'],
-    ['claves(m)', 'lista<K>', 'copias de las claves, para recorrerlo'],
+    ['claves(m)', 'list<K>', 'copias de las claves, para recorrerlo'],
     ['raiz(x)', 'f32|f64', 'raíz cuadrada'],
     ['piso(x)', 'f32|f64', 'el mayor entero por debajo'],
     ['techo(x)', 'f32|f64', 'el menor entero por encima'],
@@ -221,13 +221,13 @@ const INTERNAS = [
     ['sembrar(s)', '', 'fija la semilla de `azar`'],
 ];
 
-const PALABRAS = ['fn', 'if', 'else', 'while', 'for', 'match', 'return', 'falla',
+const PALABRAS = ['fn', 'if', 'else', 'while', 'for', 'match', 'return', 'fail',
                   'break', 'continue', 'let', 'var', 'mut', 'try', 'sino', 'en',
-                  'usar', 'struct', 'enum', 'externo', 'como', 'ancla', 'soltar',
-                  'extiende', 'protocolo', 'implementa'];
+                  'use', 'struct', 'enum', 'externo', 'como', 'anchor', 'drop',
+                  'extends', 'protocol', 'implements'];
 
 const TIPOS = ['str', 'view', 'usize', 'u8', 'u16', 'u32', 'u64', 'i8', 'i16',
-               'i32', 'i64', 'f32', 'f64', 'bool', 'mapa', 'lista', 'bloque', 'cadena_c'];
+               'i32', 'i64', 'f32', 'f64', 'bool', 'map', 'list', 'bloque', 'cadena_c'];
 
 const CONSTANTES = ['true', 'false'];
 
