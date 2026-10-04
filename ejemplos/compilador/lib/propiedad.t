@@ -62,7 +62,7 @@ fn vigilar(nombre: view, tipo: view, prestado: bool,
 fn destino_de(c: &I.Contexto, v: &Vigilada) -> str {
     if v.tipo == "view" { return nuevo("presta"); }
     // `prestado` conserva el origen, no se deduce solo del tipo. Por ejemplo,
-    // un patron de `match` puede exponer un `&lista<T>` sin que el informe lo
+    // un patron de `match` puede exponer un `&list<T>` sin que el informe lo
     // cuente como una variable recibida en prestamo.
     if v.prestado { return nuevo("prestado"); }
     if !tiene_duenio(c, vista(v.tipo)) { return nuevo("nada"); }
@@ -175,7 +175,7 @@ fn restaurar(vs: mut list<Vigilada>, f: &Foto) {
     }
 }
 
-// `return`, `falla`, `break` y `continue` hacen que este bloque no llegue al
+// `return`, `fail`, `break` y `continue` hacen que este bloque no llegue al
 // codigo posterior. Es la misma definicion directa que usa el comprobador de
 // Python al juntar las dos ramas de un `if`.
 fn termina(n: &P.Nodo) -> bool {

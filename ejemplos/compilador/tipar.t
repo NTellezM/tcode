@@ -15,7 +15,7 @@ use "std/texto";
 use "std/lista";
 use "../lexer/lib/clase.t";
 
-// De `nombre: &lista<str>` saca `nombre` y `lista<str>`: el prestamo se
+// De `nombre: &list<str>` saca `nombre` y `list<str>`: el prestamo se
 // guarda aparte, igual que en el comprobador de Python.
 fn nombre_de(texto: view) -> str {
     var i = 0;
@@ -26,7 +26,7 @@ fn nombre_de(texto: view) -> str {
     return nuevo(texto);
 }
 
-// `P.Nodo` es `Nodo`, y `lista<P.Nodo>` es `lista<Nodo>`: el nombre del
+// `P.Nodo` es `Nodo`, y `list<P.Nodo>` es `list<Nodo>`: el nombre del
 // modulo no forma parte del tipo, este donde este.
 fn sin_alias_de_modulo(t: view) -> str {
     var salida = vacio();
@@ -64,7 +64,7 @@ fn de_nombre(b: usize) -> bool {
     return b == 95;
 }
 
-// Como `tipo_desnudo` pero conservando la marca: `&Cosa`, `mut lista<str>`.
+// Como `tipo_desnudo` pero conservando la marca: `&Cosa`, `mut list<str>`.
 // Sirve para saber si una llamada se queda con lo que le dan.
 fn tipo_con_marca(texto: view) -> str {
     var i = 0;
@@ -481,10 +481,10 @@ fn try_partir(texto: view) -> list<str> {
 }
 
 // El tipo del valor de un mapa, para `for clave, valor en m`. El mapa puede
-// llegar prestado (`&mapa<...>`), y entonces hay que mirar a lo que presta.
+// llegar prestado (`&map<...>`), y entonces hay que mirar a lo que presta.
 fn valor_de(t: view) -> str {
     let sin = quitar_prestamo(t);
-    if empieza_con(sin, "mapa<") {
+    if empieza_con(sin, "map<") {
         let partes = partir_angulos(sin);
         if partes.largo() == 2 { return copiar(partes[1]); }
     }
@@ -504,12 +504,12 @@ fn quitar_prestamo(t: view) -> str {
 }
 
 fn elemento_de_bruto(t: view) -> str {
-    if empieza_con(t, "mapa<") {
+    if empieza_con(t, "map<") {
         let partes = partir_angulos(t);
         if partes.largo() == 2 { return copiar(partes[0]); }
         return vacio();
     }
-    if empieza_con(t, "lista<") || empieza_con(t, "bloque<") {
+    if empieza_con(t, "list<") || empieza_con(t, "bloque<") {
         return dentro_angulos(t);
     }
     if empieza_con(t, "[") {
@@ -558,14 +558,14 @@ fn partir_angulos(t: view) -> list<str> {
     return salida;
 }
 
-// Lo que declaran los modulos que trae un `usar`. El comprobador de Python
+// Lo que declaran los modulos que trae un `use`. El comprobador de Python
 // lo recibe del cargador; aqui se leen las dependencias directas, igual que
 // hace el parser con los nombres de struct.
 fn recoger_de_usados(ruta: view, toks: &list<Token>, c: mut I.Contexto) {
     let dir = carpeta(ruta);
     var i = 0;
     while i + 1 < toks.largo() {
-        if toks[i].valor == "usar" {
+        if toks[i].valor == "use" {
             if toks[i + 1].tipo == "cadena" {
                 let pedido = nuevo(toks[i + 1].valor);
                 var candidatos: list<str> = [];

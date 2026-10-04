@@ -1,6 +1,6 @@
 // std/conjunto.t — un conjunto de textos.
 //
-// Por dentro es un `mapa<str, usize>` donde el valor no importa. Se separa
+// Por dentro es un `map<str, usize>` donde el valor no importa. Se separa
 // porque la intencion se lee: `tiene(vistos, x)` dice si ya paso, y
 // `poner(vistos, x, 1)` no dice nada del `1`.
 

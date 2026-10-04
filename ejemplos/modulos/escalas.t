@@ -1,6 +1,6 @@
 // escalas.t — dos modulos que declaran lo mismo, en el mismo programa.
 //
-// `usar` a secas trae los nombres tal cual; `como` les pone delante el del
+// `use` a secas trae los nombres tal cual; `como` les pone delante el del
 // modulo. Traer los dos a secas seria un error, y el compilador diria como
 // arreglarlo.
 //

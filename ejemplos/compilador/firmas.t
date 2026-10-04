@@ -28,7 +28,7 @@ fn tras_dos_puntos(texto: view) -> str {
     return vacio();
 }
 
-// `nombre: mut lista<str>` da `lista<str>`: la marca se pasa aparte.
+// `nombre: mut list<str>` da `list<str>`: la marca se pasa aparte.
 fn tipo_pelado(marcado: view) -> str {
     let t = tras_dos_puntos(marcado);
     if empieza_con(t, "mut ") {

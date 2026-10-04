@@ -1,6 +1,6 @@
 // std/cli.t — leer los argumentos del programa.
 //
-//     usar "std/cli" as cli;
+//     use "std/cli" as cli;
 //     let a = cli.leer();
 //     if cli.tiene_bandera(a, "ayuda") { ... }   // --ayuda o -h
 //     let salida = cli.opcion(a, "salida");      // --salida=archivo

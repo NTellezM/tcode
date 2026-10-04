@@ -276,7 +276,7 @@ fn error_aqui(e: mut Estado, mensaje: view) {
 }
 
 fn espera(e: mut Estado, tipo: view, valor: view) -> str ! {
-    // `lista<lista<str>>` acaba en dos `>` pegados, que el lexer lee como el
+    // `list<list<str>>` acaba en dos `>` pegados, que el lexer lee como el
     // desplazamiento `>>`. Donde se espera cerrar un tipo, se parte en dos.
     if valor == ">" {
         if es(e, "simbolo", ">>") {
@@ -409,14 +409,14 @@ fn tipo(e: mut Estado) -> str ! {
         if acepta(e, "simbolo", "<") { return try argumentos_de_tipo(e, v); }
         return v;
     }
-    if es(e, "palabra", "mapa") {
+    if es(e, "palabra", "map") {
         avanzar(e);
         try espera(e, "simbolo", "<");
         let clave = try tipo(e);
         try espera(e, "simbolo", ",");
         let valor = try tipo(e);
         try espera(e, "simbolo", ">");
-        return $"mapa<{clave}, {valor}>";
+        return $"map<{clave}, {valor}>";
     }
     // `bloque<T>`: no es palabra reservada, se reconoce por el `<`.
     if es(e, "ident", "bloque") && valor_en(e, 1) == "<" {
@@ -426,12 +426,12 @@ fn tipo(e: mut Estado) -> str ! {
         try espera(e, "simbolo", ">");
         return $"bloque<{dentro}>";
     }
-    if es(e, "palabra", "lista") {
+    if es(e, "palabra", "list") {
         avanzar(e);
         try espera(e, "simbolo", "<");
         let dentro = try tipo(e);
         try espera(e, "simbolo", ">");
-        return $"lista<{dentro}>";
+        return $"list<{dentro}>";
     }
     // Un arreglo de tamaño fijo: `[usize; 5]`.
     if acepta(e, "simbolo", "[") {
@@ -447,7 +447,7 @@ fn tipo(e: mut Estado) -> str ! {
         }
         return $"[{dentro}; {n}]";
     }
-    error_aqui(e, "se esperaba un tipo (str, view, usize, i64, bool, lista<tipo>, mapa<clave, valor>, un struct, o [tipo; N])");
+    error_aqui(e, "se esperaba un tipo (str, view, usize, i64, bool, list<tipo>, map<clave, valor>, un struct, o [tipo; N])");
     fail "sintaxis";
 }
 
@@ -1284,12 +1284,12 @@ fn sentencia(e: mut Estado) -> Nodo ! {
         return n;
     }
 
-    if es(e, "palabra", "falla") {
+    if es(e, "palabra", "fail") {
         avanzar(e);
         if es(e, "simbolo", "(") {
             // Aqui Python no dice lo que encontro: dice como se escribe.
             if e.error.largo() == 0 {
-                e.error = $"{e.archivo}:{l}: `falla` no lleva parentesis; se escribe `falla \"el motivo\";`";
+                e.error = $"{e.archivo}:{l}: `fail` no lleva parentesis; se escribe `fail \"el motivo\";`";
             }
             fail "sintaxis";
         }
@@ -1558,13 +1558,13 @@ fn carpeta(ruta: view) -> str {
     return nuevo(rebanar(ruta, 0, corte));
 }
 
-// Los structs que ve un archivo: los suyos y los de lo que trae con `usar`.
+// Los structs que ve un archivo: los suyos y los de lo que trae con `use`.
 //
 // El parser de Python los recibe del cargador de modulos; aqui se leen las
 // dependencias directamente. Con una vuelta basta: un struct que llega de
 // tercera mano no se usa como literal sin nombrarlo antes.
 // Un modulo que este archivo usa, ya leido, con el alias que le dio quien
-// lo usa: `usar "lib/tipar.t" como I;` -> alias `I`, y sus funciones se
+// lo usa: `use "lib/tipar.t" como I;` -> alias `I`, y sus funciones se
 // llaman `I.algo` desde aqui.
 struct Usado {
     alias: str,
@@ -1614,7 +1614,7 @@ fn leido(ruta: view, l: mut Leidos) -> usize {
     return k;
 }
 
-// Donde se busca lo que pide un `usar`, como el cargador de Python: `std/`
+// Donde se busca lo que pide un `use`, como el cargador de Python: `std/`
 // en la raiz de Tcode, y lo demas junto al archivo que lo pide; con `.t` y
 // sin el. Nunca desde donde se ejecuta: el mismo programa se lee igual desde
 // cualquier sitio.
@@ -1644,7 +1644,7 @@ fn modulos_usados_con(ruta: view, toks: &list<Token>, l: mut Leidos) -> list<Usa
     let dir = carpeta(ruta);
     var i = 0;
     while i + 1 < toks.largo() {
-        if toks[i].valor == "usar" {
+        if toks[i].valor == "use" {
             if toks[i + 1].tipo == "cadena" {
                 let pedido = nuevo(toks[i + 1].valor);
                 var alias = vacio();
@@ -1676,7 +1676,7 @@ fn modulos_usados_con(ruta: view, toks: &list<Token>, l: mut Leidos) -> list<Usa
     return salida;
 }
 
-// Igual que `modulos_usados_con`, pero con el cierre transitivo: cada `usar`
+// Igual que `modulos_usados_con`, pero con el cierre transitivo: cada `use`
 // trae tambien lo que ese modulo usa, como el cargador completo. `preparar`
 // lo usa para manglear una colision de segunda mano igual que la compilacion.
 fn modulos_usados_transitivos(ruta: view, toks: &list<Token>, l: mut Leidos) -> list<Usado> {
@@ -1694,7 +1694,7 @@ fn recoger_usados(ruta: view, toks: &list<Token>, l: mut Leidos,
     let dir = carpeta(ruta);
     var i = 0;
     while i + 1 < toks.largo() {
-        if toks[i].valor == "usar" {
+        if toks[i].valor == "use" {
             if toks[i + 1].tipo == "cadena" {
                 let pedido = nuevo(toks[i + 1].valor);
                 var alias = vacio();
@@ -1751,7 +1751,7 @@ fn visibles_con(ruta: view, toks: &list<Token>, palabra: view,
 
     var i = 0;
     while i + 1 < toks.largo() {
-        if toks[i].valor == "usar" {
+        if toks[i].valor == "use" {
             if toks[i + 1].tipo == "cadena" {
                 for c en candidatos_de(dir, toks[i + 1].valor, l.raiz) {
                     let k = leido(c, l);
@@ -1772,9 +1772,9 @@ fn visibles_con(ruta: view, toks: &list<Token>, palabra: view,
 
 fn programa(e: mut Estado) -> Nodo ! {
     var raiz = rama(Clase.Programa, 1);
-    while acepta(e, "palabra", "usar") {
+    while acepta(e, "palabra", "use") {
         let ruta = try espera(e, "cadena", "");
-        // `usar "x" como a;`: `como` no es palabra reservada, es un ident.
+        // `use "x" como a;`: `como` no es palabra reservada, es un ident.
         if es(e, "ident", "como") {
             avanzar(e);
             let a = try espera(e, "ident", "");
@@ -1785,8 +1785,8 @@ fn programa(e: mut Estado) -> Nodo ! {
         raiz.hijos.anadir(hoja(Clase.Usar, ruta, linea_actual(e)));
     }
     while tipo_en(e, 0) != "fin" {
-        if es(e, "palabra", "usar") {
-            error_aqui(e, "los `usar` van todos al principio del archivo");
+        if es(e, "palabra", "use") {
+            error_aqui(e, "los `use` van todos al principio del archivo");
             fail "sintaxis";
         }
         let d = try declaracion(e);

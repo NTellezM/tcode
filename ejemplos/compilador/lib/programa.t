@@ -383,7 +383,7 @@ fn preparar(ruta: view, tipos: mut I.Contexto) -> P.Nodo ! {
 // es un literal aunque `Caja` venga de un modulo que este no usa. En
 // `leidos` va lo que ya se leyo de otros archivos en esta compilacion.
 // Los tipos se escriben como los ve quien los escribe —`Q.Caja`,
-// `lista<H.Nombre>`, `Q.Sobre.Con`—, pero en el compilador se apuntan por su
+// `list<H.Nombre>`, `Q.Sobre.Con`—, pero en el compilador se apuntan por su
 // nombre: el alias de un modulo solo dice de donde viene, y dos modulos no
 // declaran el mismo tipo. Se quita una vez, al leer —despues de mirar que
 // cada archivo pide lo que usa, que eso si depende de como se escribio—, en

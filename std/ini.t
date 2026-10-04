@@ -1,6 +1,6 @@
 // std/ini.t — leer y escribir INI (el formato de configuracion clasico).
 //
-//     let ini = ini.leer(texto);      // a mapa<str, mapa<str, str>>
+//     let ini = ini.leer(texto);      // a map<str, map<str, str>>
 //     let texto = ini.escribir(ini);  // de vuelta
 //
 // Una linea es `clave = valor`, una seccion es `[nombre]`, y `;` o `#`

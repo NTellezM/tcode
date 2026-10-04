@@ -2,7 +2,7 @@
 //
 //     plantilla.rellenar("hola, {nombre}", datos)   // "hola, Ana"
 //
-// `datos` es un `mapa<str, str>`. Una clave que no esta se rellena con nada.
+// `datos` es un `map<str, str>`. Una clave que no esta se rellena con nada.
 // Las llaves se escapan doblandolas: `{{` y `}}`.
 
 fn rellenar(patron: view, datos: &map<str, str>) -> str {

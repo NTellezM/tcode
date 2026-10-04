@@ -4,7 +4,7 @@
 // Es el caso por el que existen los tipos suma. Sin ellos hay que fingirlos
 // con una etiqueta de texto y un puñado de campos que solo valen a veces:
 //
-//     struct Json { clase: str, numero: i64, texto: str, hijos: lista<Json> }
+//     struct Json { clase: str, numero: i64, texto: str, hijos: list<Json> }
 //
 // y entonces `clase` puede decir "numero" mientras alguien lee `texto`,
 // nadie avisa de que falta tratar una clase nueva, y un "numro" mal escrito

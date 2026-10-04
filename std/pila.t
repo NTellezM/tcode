@@ -4,7 +4,7 @@
 //     pila.apilar(p, 1);
 //     let x = pila.desapilar(p, 0) sino 0;
 //
-// Por debajo es una `lista<T>` y un tope. Los huecos de lo ya sacado se
+// Por debajo es una `list<T>` y un tope. Los huecos de lo ya sacado se
 // reutilizan, asi que no crece sin freno al llenar y vaciar.
 //
 // No hay `nueva`: `T` no se deduce sin argumentos, asi que se construye con el

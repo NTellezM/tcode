@@ -14,7 +14,7 @@ use "std/texto";
 use "std/lista";
 use "../lexer/lib/clase.t";
 
-// De `nombre: &lista<str>` se queda con `&lista<str>`. El parser escribe
+// De `nombre: &list<str>` se queda con `&list<str>`. El parser escribe
 // `mut T` donde el comprobador dice `&mut T`, asi que se iguala aqui.
 fn tras_dos_puntos(texto: view) -> str {
     var i = 0;

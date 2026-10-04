@@ -464,7 +464,7 @@ struct Sitio {
 
 // Que nombres son un puntero en el C generado: los parametros prestados, y
 // tambien un local cuyo tipo es un prestamo. `let xs = try obtener(m, k)` da
-// un `&lista<str>`, y eso en C es un puntero como cualquier otro.
+// un `&list<str>`, y eso en C es un puntero como cualquier otro.
 fn es_puntero(s: &Sitio, tipos: &I.Contexto, nombre: view) -> bool {
     if tiene(s.punteros, nombre) { return true; }
     let t = I.buscar(tipos, nombre);

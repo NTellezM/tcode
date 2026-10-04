@@ -26,70 +26,37 @@ fn es_espacio(b: usize) -> bool {
 // Si `t` es una palabra reservada. Por su largo primero: el lexer lo
 // pregunta por cada nombre, tambien en el hueco de cada cadena interpolada,
 // y hacer una tabla cada vez costaba mas que leer el hueco.
-// Las palabras que estan cambiando de idioma, y su forma de siempre. Durante
-// el transbordo valen las dos y por dentro manda la vieja: asi el analizador
-// —y los nombres que salen en los mensajes, como `Clase.Usar -> "usar"`— siguen
-// leyendo lo de siempre, mientras quien escribe puede usar ya la nueva.
-// Cuando la fase C cierre el cambio, esto se borra y las de abajo se quedan con
-// los nombres nuevos.
-fn canonica(t: view) -> view {
-    if t == "list" { return "lista"; }
-    if t == "map" { return "mapa"; }
-    if t == "use" { return "usar"; }
-    if t == "fail" { return "falla"; }
-    if t == "drop" { return "soltar"; }
-    if t == "extends" { return "extiende"; }
-    if t == "protocol" { return "protocolo"; }
-    if t == "implements" { return "implementa"; }
-    if t == "anchor" { return "ancla"; }
-    return t;
-}
-
-// Y al reves: la forma nueva de una palabra de siempre. Solo la usa el
-// formateador cuando se le pide renombrar (`--formatear --renombrar`), que es
-// el barrido de la fase B y que desaparece con ella.
-fn nueva(t: view) -> view {
-    if t == "lista" { return "list"; }
-    if t == "mapa" { return "map"; }
-    if t == "usar" { return "use"; }
-    if t == "falla" { return "fail"; }
-    if t == "soltar" { return "drop"; }
-    if t == "extiende" { return "extends"; }
-    if t == "protocolo" { return "protocol"; }
-    if t == "implementa" { return "implements"; }
-    if t == "ancla" { return "anchor"; }
-    return t;
-}
-
+// Las palabras reservadas. `list`, `map`, `use` y `fail` son las que antes
+// robaban palabras del idioma —`lista`, `mapa`, `usar`, `falla`—: desde la
+// fase C esas vuelven a ser palabras normales, y por eso se pueden usar como
+// nombre de variable o en mitad de un comentario.
 fn es_reservada(t: view) -> bool {
-    let c = canonica(t);
-    let n = c.largo();
+    let n = t.largo();
     if n == 2 {
-        return c == "fn" || c == "if" || c == "en" || c == "u8"
-        || c == "i8";
+        return t == "fn" || t == "if" || t == "en" || t == "u8"
+        || t == "i8";
     }
     if n == 3 {
-        return c == "let" || c == "var" || c == "mut"
-        || c == "for" || c == "try" || c == "str"
-        || c == "u16" || c == "u32" || c == "u64"
-        || c == "i16" || c == "i32" || c == "i64"
-        || c == "f32" || c == "f64";
+        return t == "let" || t == "var" || t == "mut"
+        || t == "for" || t == "try" || t == "str"
+        || t == "u16" || t == "u32" || t == "u64"
+        || t == "i16" || t == "i32" || t == "i64"
+        || t == "f32" || t == "f64" || t == "map"
+        || t == "use";
     }
     if n == 4 {
-        return c == "else" || c == "usar" || c == "sino"
-        || c == "mapa" || c == "view" || c == "bool"
-        || c == "enum" || c == "true";
+        return t == "else" || t == "sino" || t == "view"
+        || t == "bool" || t == "true" || t == "enum"
+        || t == "fail" || t == "list" || t == "drop";
     }
     if n == 5 {
-        return c == "while" || c == "break" || c == "falla"
-        || c == "lista" || c == "match" || c == "false"
-        || c == "usize" || c == "ancla";
+        return t == "while" || t == "break" || t == "match"
+        || t == "false" || t == "usize";
     }
-    if n == 6 { return c == "return" || c == "struct" || c == "soltar"; }
-    if n == 7 { return c == "externo"; }
-    if n == 8 { return c == "continue" || c == "extiende"; }
-    if n == 9 { return c == "protocolo"; }
-    if n == 10 { return c == "implementa"; }
+    if n == 6 { return t == "return" || t == "struct" || t == "anchor"; }
+    if n == 7 { return t == "externo" || t == "extends"; }
+    if n == 8 { return t == "continue" || t == "protocol"; }
+    if n == 10 { return t == "implements"; }
     return false;
 }
 
@@ -678,13 +645,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
             }
             let texto_pieza = rebanar(fuente, i, j);
             if es_reservada(texto_pieza) {
-                // Mientras dure el transbordo: con `comentarios`, que es el
-                // formateador, la palabra se guarda como se escribio, para que
-                // `--formatear` no traduzca nada por su cuenta; el compilador
-                // ve siempre la forma de siempre.
-                var palabra = texto_pieza;
-                if !comentarios { palabra = canonica(texto_pieza); }
-                agregar(salida, "palabra", palabra, linea);
+                agregar(salida, "palabra", texto_pieza, linea);
             } else {
                 agregar(salida, "ident", texto_pieza, linea);
             }

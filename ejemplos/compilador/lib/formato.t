@@ -86,7 +86,7 @@ fn es_generico(toks: &list<Token>, i: usize) -> bool {
     if i == 0 { return false; }
     let ant = valor_py(toks[i - 1]);
     let av = vista(ant);
-    if av == "lista" || av == "mapa" || av == "list" || av == "map"
+    if av == "list" || av == "map"
     || av == "bloque" || av == "fn" {
         return true;
     }
@@ -294,20 +294,11 @@ fn juntar(indices: &list<usize>, desde: usize, hasta: usize, toks: &list<Token>,
 }
 
 // Formatea un archivo. Si no se puede leer como Tcode, `error` dice por que.
-// Con `renombrar`, ademas cambia cada palabra reservada por su nombre nuevo:
-// es el barrido de la fase B. Los comentarios y los textos son otros tokens,
-// asi que «la lista de espera» se queda como esta.
-fn formatear(fuente: view, archivo: view, error: mut str, renombrar: bool) -> str ! {
+fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
     let todos = try tokens_de_todo(fuente, archivo, true, 1, error);
     var toks: list<Token> = [];
     for t en todos {
-        if t.tipo != "fin" {
-            var c = copiar(t);
-            if renombrar && c.tipo == "palabra" {
-                c.valor = nuevo(nueva(vista(c.valor)));
-            }
-            toks.anadir(c);
-        }
+        if t.tipo != "fin" { toks.anadir(copiar(t)); }
     }
 
     // Que `<` y `>` son de un tipo y cuales son comparaciones.

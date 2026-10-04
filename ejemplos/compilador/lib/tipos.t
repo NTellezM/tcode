@@ -1,7 +1,7 @@
 // lib/tipos.t — la capa de tipos del comprobador, escrita en Tcode.
 //
-// Un tipo en Tcode viaja como cadena: `usize`, `lista<str>`,
-// `mapa<str, Cosa>`, `bloque<T>`, `[usize; 4]`, `&Cosa`, `fn(&T, &T) -> bool`.
+// Un tipo en Tcode viaja como cadena: `usize`, `list<str>`,
+// `map<str, Cosa>`, `bloque<T>`, `[usize; 4]`, `&Cosa`, `fn(&T, &T) -> bool`.
 // Es como sale en los mensajes y en los nombres de C. Aqui se lee como arbol
 // (`leer_tipo`, `Tipo`, `Forma`) y se vuelve a escribir (`escribir_tipo`), y el
 // resto del compilador pregunta y construye tipos solo a traves de este modulo.
@@ -36,7 +36,7 @@ fn entre_angulos(t: view) -> view {
     return rebanar(t, desde + 1, t.largo() - 1);
 }
 
-// Parte por las comas de fuera: `str, lista<usize>` da dos trozos.
+// Parte por las comas de fuera: `str, list<usize>` da dos trozos.
 fn partir_tipos(dentro: view) -> list<str> {
     var salida: list<str> = [];
     var hondura = 0;
@@ -284,10 +284,10 @@ fn forma_de(t: view) -> Forma {
         if partes_de_funcion(t).largo() == 0 { return Forma.Nombre; }
         return Forma.Funcion;
     }
-    if empieza(t, "lista<") && termina_con(t, ">") { return Forma.Lista; }
+    if empieza(t, "list<") && termina_con(t, ">") { return Forma.Lista; }
     if empieza(t, "bloque<") && termina_con(t, ">") { return Forma.Bloque; }
     if empieza(t, "rango<") && termina_con(t, ">") { return Forma.Rango; }
-    if empieza(t, "mapa<") && termina_con(t, ">") { return Forma.Mapa; }
+    if empieza(t, "map<") && termina_con(t, ">") { return Forma.Mapa; }
     return Forma.Nombre;
 }
 
@@ -377,9 +377,9 @@ fn escribir_tipo(t: &Tipo) -> str {
             if n == 0 { return copiar(t.nombre); }
             return $"{t.nombre}<{escritos(t.args, 0, n)}>";
         }
-        Forma.Lista -> { return $"lista<{escritos(t.args, 0, n)}>"; }
+        Forma.Lista -> { return $"list<{escritos(t.args, 0, n)}>"; }
         Forma.Bloque -> { return $"bloque<{escritos(t.args, 0, n)}>"; }
-        Forma.Mapa -> { return $"mapa<{escritos(t.args, 0, n)}>"; }
+        Forma.Mapa -> { return $"map<{escritos(t.args, 0, n)}>"; }
         Forma.Rango -> { return $"rango<{escritos(t.args, 0, n)}>"; }
         Forma.Arreglo -> { return $"[{escritos(t.args, 0, n)}; {t.cuantos}]"; }
         Forma.Presta -> { return $"&{escritos(t.args, 0, n)}"; }
@@ -459,7 +459,7 @@ fn lleva_bloque_o_arreglo_en(t: &Tipo) -> bool {
     return false;
 }
 
-fn hacer_lista(e: view) -> str { return $"lista<{e}>"; }
+fn hacer_lista(e: view) -> str { return $"list<{e}>"; }
 fn hacer_rango(e: view) -> str { return $"rango<{e}>"; }
 fn hacer_arreglo(e: view, n: view) -> str { return $"[{e}; {n}]"; }
 fn hacer_prestado(t: view) -> str { return $"&{t}"; }
@@ -536,7 +536,7 @@ fn escalar(t: view) -> bool {
 // - `formas`: `Enum.Forma` -> lo que lleva.
 //
 // Un tipo de otro modulo se escribe `Q.Nombre`, pero se apunta por su
-// nombre. `vistos` corta la recursion: un `Nodo` con un campo `lista<Nodo>`
+// nombre. `vistos` corta la recursion: un `Nodo` con un campo `list<Nodo>`
 // se contiene a si mismo de forma finita, y preguntarle dos veces no aporta.
 fn posee_en(t: &Tipo, campos: &map<str, list<Tipo>>, parametros: &map<str, list<str>>,
     variantes: &map<str, list<str>>, formas: &map<str, list<Tipo>>,
@@ -613,8 +613,8 @@ fn posee_desde(t: &Tipo, campos: &map<str, list<Tipo>>, parametros: &map<str, li
     return false;
 }
 
-// `Par<str, usize>`: un struct generico aplicado a sus tipos. `lista<...>`,
-// `mapa<...>`, `bloque<...>` y `fn(...)` no, que esos los pone el lenguaje.
+// `Par<str, usize>`: un struct generico aplicado a sus tipos. `list<...>`,
+// `map<...>`, `bloque<...>` y `fn(...)` no, que esos los pone el lenguaje.
 fn es_aplicacion(t: view) -> bool {
     if t.largo() == 0 || !termina_con(t, ">") { return false; }
     var i = 0;
@@ -624,7 +624,7 @@ fn es_aplicacion(t: view) -> bool {
     }
     if i == 0 || i == t.largo() { return false; }
     let base = rebanar(t, 0, i);
-    if base == "lista" || base == "mapa" || base == "bloque" {
+    if base == "list" || base == "map" || base == "bloque" {
         return false;
     }
     let primero = byte(t, 0);
@@ -720,7 +720,7 @@ fn ligar_tipo(patron: &Tipo, dado: &Tipo, sueltos: &list<str>,
     }
 }
 
-// `lista<P.Nodo>` -> `lista<Nodo>`: el alias de un modulo es de quien lo
+// `list<P.Nodo>` -> `list<Nodo>`: el alias de un modulo es de quien lo
 // escribe, y los tipos se apuntan por su nombre.
 fn sin_alias_tipo(t: view) -> str {
     var r = vacio();

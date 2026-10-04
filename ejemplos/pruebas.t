@@ -88,7 +88,7 @@ fn main() -> usize ! {
     afirmar_igual_numero(p, "porcentaje", try porcentaje(1, 8), 12);
     afirmar_igual_numero(p, "acotar", acotar(99, 0, 10), 10);
     afirmar(p, "cerca", cerca(0.1 + 0.2, 0.3, 0.000001));
-    afirmar(p, "dividir entre cero falla", (dividir(1, 0) sino 999) == 999);
+    afirmar(p, "dividir entre cero fail", (dividir(1, 0) sino 999) == 999);
 
     // ---- mapa y conjunto ----
     var m: map<str, usize> = [];

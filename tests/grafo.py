@@ -6,8 +6,8 @@ Cada nodo es un archivo `.t`; una flecha `A --> B` dice que `A` usa algo de
 `B`:
 
   * una llamada calificada `I.tipo_de(...)` (o una referencia `I.Contexto`)
-    se resuelve por el alias del `usar "tipar.t" como I;` del archivo, y
-  * lo que se trae sin calificar de la biblioteca (`usar "std/texto";`) se
+    se resuelve por el alias del `use "tipar.t" como I;` del archivo, y
+  * lo que se trae sin calificar de la biblioteca (`use "std/texto";`) se
     dibuja como una flecha al modulo de `std`.
 
 Se lee con el lexer, no a mano: las cadenas interpoladas son un solo token,
@@ -25,13 +25,11 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # identificador que sea una de estas es `palabra`, no `ident`.
 PALABRAS = {
     "fn", "let", "var", "mut", "if", "else", "while", "return",
-    "true", "false", "str", "view", "bool", "lista", "struct",
-    "usar", "try", "sino", "falla", "mapa", "enum", "match", "externo",
+    "true", "false", "str", "view", "bool", "list", "struct",
+    "use", "try", "sino", "fail", "map", "enum", "match", "externo",
     "for", "en", "break", "continue",
     "u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64", "f32", "f64",
-    # Los nombres nuevos: mientras dure el transbordo valen las dos formas.
-    "list", "map", "use", "fail", "drop", "extends", "protocol",
-    "implements", "anchor",
+    "drop", "extends", "protocol", "implements", "anchor",
 }
 
 
@@ -211,7 +209,7 @@ def grafo():
         i = 0
         while i < len(toks):
             t = toks[i]
-            if t.tipo == "palabra" and t.valor in ("usar", "use"):
+            if t.tipo == "palabra" and t.valor in ("use", "use"):
                 ruta = toks[i + 1].valor
                 j = i + 2
                 al = None
@@ -280,7 +278,7 @@ def llamadas():
         alias = {}
         i = 0
         while i < len(toks):
-            if toks[i].tipo == "palabra" and toks[i].valor in ("usar", "use"):
+            if toks[i].tipo == "palabra" and toks[i].valor in ("use", "use"):
                 ruta = toks[i + 1].valor
                 j = i + 2
                 if j < len(toks) and toks[j].tipo == "ident" \

@@ -1,6 +1,6 @@
 // std/vector.t — una lista dinamica escrita en Tcode.
 //
-// `lista<T>` la pone el compilador. Esto hace lo mismo sin que el compilador
+// `list<T>` la pone el compilador. Esto hace lo mismo sin que el compilador
 // sepa nada: sobre `bloque<T>`, que es memoria reservada de una pieza con su
 // tamaño al lado.
 //

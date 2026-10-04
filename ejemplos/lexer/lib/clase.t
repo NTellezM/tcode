@@ -72,7 +72,7 @@ fn nombre_de_clase(c: Clase) -> view {
     match c {
         Clase.Vacio -> { nombre = "vacio"; }
         Clase.Programa -> { nombre = "programa"; }
-        Clase.Usar -> { nombre = "usar"; }
+        Clase.Usar -> { nombre = "use"; }
         Clase.Alias -> { nombre = "alias"; }
         Clase.Fn -> { nombre = "fn"; }
         Clase.Param -> { nombre = "param"; }
@@ -92,7 +92,7 @@ fn nombre_de_clase(c: Clase) -> view {
         Clase.Asignacion -> { nombre = "asignacion"; }
         Clase.Expresion -> { nombre = "expresion"; }
         Clase.Retorno -> { nombre = "retorno"; }
-        Clase.Falla -> { nombre = "falla"; }
+        Clase.Falla -> { nombre = "fail"; }
         Clase.Si -> { nombre = "si"; }
         Clase.Sino -> { nombre = "sino"; }
         Clase.Mientras -> { nombre = "mientras"; }

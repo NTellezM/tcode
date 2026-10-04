@@ -1,6 +1,6 @@
 // std/csv.t — leer y escribir CSV (lo esencial de RFC 4180).
 //
-//     let filas = csv.leer(texto);     // a lista<lista<str>>
+//     let filas = csv.leer(texto);     // a list<list<str>>
 //     let texto = csv.escribir(filas); // de vuelta, con comillas si hacen falta
 //
 // Un campo lleva comillas cuando tiene coma, comillas o un salto de linea;

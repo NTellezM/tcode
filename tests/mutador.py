@@ -18,12 +18,9 @@ import re
 PUNTUACION = list("(){}[]<>,;:.=+-*/%!&|\"")
 PALABRAS_SUELTAS = [
     "fn", "let", "var", "if", "else", "while", "return", "str", "view",
-    "usize", "i64", "bool", "struct", "lista", "mapa", "mut", "try", "sino",
-    "falla", "usar", "true", "false", "x", "0", "1",
-    # Los nombres nuevos, mientras dure el transbordo: el mutador tambien
-    # tiene que romper programas escritos con ellos.
-    "list", "map", "use", "fail", "drop", "extends", "protocol",
-    "implements", "anchor",
+    "usize", "i64", "bool", "struct", "list", "map", "mut", "try", "sino",
+    "fail", "use", "true", "false", "x", "0", "1",
+    "drop", "extends", "protocol", "implements", "anchor",
 ]
 
 

@@ -26,7 +26,7 @@ struct Contexto {
     retornos: map<str, T.Tipo>,
     // Funcion generica -> sus parametros de tipo, y los tipos de sus
     // argumentos. Hacen falta para elegir la copia: `primeras(xs, 8)` con
-    // `xs: lista<str>` devuelve `lista<str>`, no `lista<T>`.
+    // `xs: list<str>` devuelve `list<str>`, no `list<T>`.
     tipo_params: map<str, list<str>>,
     params: map<str, list<T.Tipo>>,
     // Los mismos parametros pero con su marca (`&`, `mut`): hace falta para
@@ -478,8 +478,8 @@ fn tras_el_punto(t: view) -> str {
 }
 
 // El tipo con cada struct generico aplicado cambiado por el nombre de su
-// copia, a cualquier hondura: `lista<Par<str, usize>>` ->
-// `lista<Par__str_usize>`. Es lo que hace el comprobador de Python antes de
+// copia, a cualquier hondura: `list<Par<str, usize>>` ->
+// `list<Par__str_usize>`. Es lo que hace el comprobador de Python antes de
 // generar; aqui el tipo escrito se queda como estaba y esto se usa al
 // escribirlo.
 fn nombre_resuelto(t: view) -> str {

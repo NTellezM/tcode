@@ -1207,7 +1207,7 @@ fn juntar_ramas(c: mut Comprobacion, a: &list<usize>, b: &list<usize>) {
     }
 }
 
-// El bloque no continua: sale por `return`, `falla`, `break` o `continue`.
+// El bloque no continua: sale por `return`, `fail`, `break` o `continue`.
 fn bloque_termina(n: &P.Nodo) -> bool {
     if n.hijos.largo() == 0 { return false; }
     let ultima = n.hijos[n.hijos.largo() - 1].clase;
@@ -2049,7 +2049,7 @@ fn comprobar_literal(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, destino: view) 
 
 fn es_param_de_tipo(sueltos: &list<str>, t: view) -> bool { return esta_entre(sueltos, t); }
 
-// `lista<T>` contra `lista<str>` liga `T` a `str`. Falso si contradice lo que
+// `list<T>` contra `list<str>` liga `T` a `str`. Falso si contradice lo que
 // ya estaba ligado.
 fn unificar_tipo(patron: view, dado: view, sueltos: &list<str>,
     lig: mut map<str, str>) -> bool {
@@ -2510,7 +2510,7 @@ fn ligaduras_de_juego(f: &Funcion, juego: &list<str>) -> map<str, str> {
 }
 
 // Si con estos tipos la firma tiene sentido. Un `T = view` sobre un
-// `&lista<T>` no lo tiene: nadie podria llamarla asi, y el cuerpo no tiene
+// `&list<T>` no lo tiene: nadie podria llamarla asi, y el cuerpo no tiene
 // que valer para lo que no se puede escribir.
 fn firma_valida(m: &Mundo, f: &Funcion, juego: &list<str>) -> bool {
     let lig = ligaduras_de_juego(f, juego);
@@ -3628,7 +3628,7 @@ fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     let es_lista_esperada = esperado.largo() > 0 && T.es_lista(esperado);
     if n.hijos.largo() == 0 && !es_lista_esperada {
         if esperado.largo() == 0 {
-            error(c, m, n.linea, "`[]` vacio no dice si es una lista, un arreglo o un mapa: escribe el tipo, como `let xs: lista<usize> = [];`");
+            error(c, m, n.linea, "`[]` vacio no dice si es una lista, un arreglo o un mapa: escribe el tipo, como `let xs: list<usize> = [];`");
         } else {
             error(c, m, n.linea, "un arreglo tiene que tener al menos un elemento");
         }
@@ -4752,14 +4752,14 @@ fn interna_anadir(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.N
         error(c, m, n.linea, "el primer argumento de `anadir` tiene que ser una variable, un campo o un elemento");
     } else if !T.es_lista(tipo_lista) {
         let visto = texto_o_none(tipo_lista);
-        error(c, m, n.linea, $"`anadir` opera sobre `lista<T>`, recibio `{visto}`");
+        error(c, m, n.linea, $"`anadir` opera sobre `list<T>`, recibio `{visto}`");
     } else {
         let elem = T.elemento(tipo_lista);
         let t = comprobar_expresion(c, m, tipos, n.hijos[1], elem, posee_memoria(m, elem));
         if T.conocido(t) && !encaja(elem, T.escribir_tipo(t)) {
             error(c, m, n.linea, $"la lista guarda `{elem}` y se intento agregar `{T.escribir_tipo(t)}`");
         }
-        // Por un `&mut lista<T>` —de `obtener_mut`, o un parametro— se
+        // Por un `&mut list<T>` —de `obtener_mut`, o un parametro— se
         // modifica; por un `&` no, y el error lo dice.
         mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
             T.es_referencia(c.simbolos[is].tipo));
@@ -4785,9 +4785,9 @@ fn interna_truncar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         error(c, m, n.linea, "el primer argumento de `truncar` tiene que ser una variable, un campo o un elemento");
     } else if !T.es_lista(tipo_lista) {
         let visto = texto_o_none(tipo_lista);
-        error(c, m, n.linea, $"`truncar` opera sobre `lista<T>`, recibio `{visto}`");
+        error(c, m, n.linea, $"`truncar` opera sobre `list<T>`, recibio `{visto}`");
     } else {
-        // Como `anadir`: por un `&mut lista<T>` se recorta; por un `&` no.
+        // Como `anadir`: por un `&mut list<T>` se recorta; por un `&` no.
         mutar(c, m, n.hijos[0], n.hijos[0].linea, is,
             T.es_referencia(c.simbolos[is].tipo));
         c.simbolos[is].prestamos.anadir(nuevo("truncar"));
@@ -4818,7 +4818,7 @@ fn interna_ordenar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         error(c, m, n.linea, "`ordenar` necesita una variable, un campo o un elemento");
     } else if !T.es_lista(t) {
         let visto = texto_o_none(t);
-        error(c, m, n.linea, $"`ordenar` opera sobre `lista<T>`, recibio `{visto}`");
+        error(c, m, n.linea, $"`ordenar` opera sobre `list<T>`, recibio `{visto}`");
     } else {
         let e = T.elemento(t);
         let ords = ordenables();
@@ -4881,7 +4881,7 @@ fn interna_mapa(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nod
     }
     if !T.es_mapa(T.escribir_tipo(tipo_mapa)) {
         let visto = texto_o_none(T.escribir_tipo(tipo_mapa));
-        error(c, m, n.linea, $"`{nombre}` opera sobre `mapa<K, V>`, recibio `{visto}`");
+        error(c, m, n.linea, $"`{nombre}` opera sobre `map<K, V>`, recibio `{visto}`");
         var r = 1;
         while r < dados {
             let _t = comprobar_expresion(c, m, tipos, n.hijos[r], "", false);
@@ -5513,7 +5513,7 @@ fn sentencia_para(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.N
             error(c, m, s.linea, "los dos nombres de `for k, v en ...` son para un mapa; una lista solo da el elemento");
         }
     } else if tipo.largo() > 0 {
-        error(c, m, s.linea, $"`for` recorre una `lista<T>`, un arreglo o un `mapa<K, V>`, y `{tipo}` no lo es");
+        error(c, m, s.linea, $"`for` recorre una `list<T>`, un arreglo o un `map<K, V>`, y `{tipo}` no lo es");
     }
     // El bucle presta la coleccion mientras dura.
     let base = variable_base(s.hijos[0]);
@@ -6268,7 +6268,7 @@ fn validar_formas(c: mut Comprobacion, m: mut Mundo, arboles: &list<P.Nodo>, mod
                     }
                     var vistos: list<str> = [];
                     if se_contiene(m, t, nombre, vistos) {
-                        error(c, m, d.linea, $"`{nombre}.{v.texto}` contiene un `{nombre}`: el tamaño no seria finito. Metelo en una `lista`, que guarda un puntero");
+                        error(c, m, d.linea, $"`{nombre}.{v.texto}` contiene un `{nombre}`: el tamaño no seria finito. Metelo en una `list`, que guarda un puntero");
                     }
                     // Tampoco un struct que presta.
                     if es_prestado_st(m, t) {

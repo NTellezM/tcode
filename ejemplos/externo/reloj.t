@@ -11,7 +11,7 @@
 //     No hay `unsafe` por llamada como en Rust, porque no hace falta: desde
 //     Tcode no se puede escribir una llamada que rompa la memoria.
 //   - En el borde solo caben los tipos que significan EXACTAMENTE lo mismo
-//     a los dos lados: numeros, `bool` y `str`. Una `lista`, un `mapa` o un
+//     a los dos lados: numeros, `bool` y `str`. Una `list`, un `map` o un
 //     struct no; para eso se envuelve en C, como en `sistema.c`.
 //   - Un `str` entra como `const char*` porque el runtime garantiza el `\0`
 //     final. Una `view` NO: puede apuntar a la mitad de una cadena. Es la

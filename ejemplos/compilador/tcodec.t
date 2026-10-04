@@ -197,7 +197,7 @@ fn resolver(pedido: view, dir: view, raiz: view) -> str ! {
     return F.normalizar(candidatos[0]);
 }
 
-// Los `usar` del principio de un archivo, en orden.
+// Los `use` del principio de un archivo, en orden.
 fn usar_de(fuente: view) -> list<str> ! {
     // Si no se puede leer, no pide nada: el error de verdad lo dice despues
     // `preparar`, con su archivo y su linea.
@@ -205,9 +205,9 @@ fn usar_de(fuente: view) -> list<str> ! {
     var salida: list<str> = [];
     var i = 0;
     while i + 1 < toks.largo() {
-        if toks[i].valor != "usar" { break; }
+        if toks[i].valor != "use" { break; }
         if toks[i + 1].tipo != "cadena" { break; }
-        // `ruta\tlinea`: la linea es la del `usar`, para decir donde se pidio
+        // `ruta\tlinea`: la linea es la del `use`, para decir donde se pidio
         // un modulo que no esta.
         salida.anadir($"{toks[i + 1].valor}\t{toks[i].linea}");
         i = i + 2;
@@ -219,14 +219,14 @@ fn usar_de(fuente: view) -> list<str> ! {
     return salida;
 }
 
-// Los `usar` del principio con su alias: `ruta\talias\tlinea`, alias vacio
+// Los `use` del principio con su alias: `ruta\talias\tlinea`, alias vacio
 // si no lleva.
 fn usar_con_alias(fuente: view) -> list<str> ! {
     let toks = try analizar(fuente);
     var salida: list<str> = [];
     var i = 0;
     while i + 1 < toks.largo() {
-        if toks[i].valor != "usar" { break; }
+        if toks[i].valor != "use" { break; }
         if toks[i + 1].tipo != "cadena" { break; }
         var junto = copiar(toks[i + 1].valor);
         junto.empujar("\t");
@@ -245,7 +245,7 @@ fn usar_con_alias(fuente: view) -> list<str> ! {
 }
 
 // Si el archivo declara `fn main` fuera de toda llave. Se mira en los
-// tokens, antes de analizar nada: el error es del `usar` que lo trae.
+// tokens, antes de analizar nada: el error es del `use` que lo trae.
 fn tiene_main(fuente: view) -> bool {
     let toks = analizar(fuente) sino [];
     var hondo = 0;
@@ -266,7 +266,7 @@ fn tiene_main(fuente: view) -> bool {
     return false;
 }
 
-// Primero las dependencias, en el orden de los `usar`, y cada modulo una sola
+// Primero las dependencias, en el orden de los `use`, y cada modulo una sola
 // vez: el mismo recorrido que el cargador, que es el orden en que salen las
 // funciones en el C. Si algo falla, `error` lo dice como el cargador de
 // Python: un ciclo, o un modulo que no esta y quien lo pedia.
@@ -331,7 +331,7 @@ fn visitar(ruta: view, raiz: view, hechos: mut list<str>,
 // Que ve cada archivo
 // ------------------------------------------------------------------
 //
-// Cada archivo ve lo suyo y lo que trae cada `usar`, y nada mas. Como en el
+// Cada archivo ve lo suyo y lo que trae cada `use`, y nada mas. Como en el
 // cargador de Python, un nombre que llega de dos sitios distintos es un
 // error, y tambien usar algo de un modulo que este archivo no pidio aunque
 // lo pida otro.
@@ -591,7 +591,7 @@ fn revisar_nombres(arboles: &list<P.Nodo>, modulos: &list<str>, raiz: view,
                     let pb = F.prefijo_unico(modulos[jm], suyos);
                     if varios && !igual(pa, pb) {
                         let dicho = G.legible_c(clave);
-                        error = $"{modulos[k]}:{texto_linea}: `{dicho}` llega de dos sitios, {previo} y {modulos[jm]}. Dale un nombre a uno de los dos: `usar \"...\" como algo;` y luego `algo.{dicho}`";
+                        error = $"{modulos[k]}:{texto_linea}: `{dicho}` llega de dos sitios, {previo} y {modulos[jm]}. Dale un nombre a uno de los dos: `use \"...\" como algo;` y luego `algo.{dicho}`";
                         return false;
                     }
                 }
@@ -611,7 +611,7 @@ fn revisar_nombres(arboles: &list<P.Nodo>, modulos: &list<str>, raiz: view,
                     let linea = campo_pedido(hallado, 1);
                     let donde = obtener(duenios, nombre) sino "";
                     let dicho = G.escrito(nombre);
-                    error = $"{modulos[k]}:{linea}: `{dicho}` esta en {donde}, que este archivo no usa. Se veia porque lo usa otro modulo, pero cada archivo tiene que pedir lo suyo: añade `usar \"...\";`";
+                    error = $"{modulos[k]}:{linea}: `{dicho}` esta en {donde}, que este archivo no usa. Se veia porque lo usa otro modulo, pero cada archivo tiene que pedir lo suyo: añade `use \"...\";`";
                     return false;
                 }
             }
@@ -997,7 +997,7 @@ fn rechazo(sitio_fallo: view, que: view) -> usize {
 // Listas
 // ------------------------------------------------------------------
 //
-// Cada `lista<T>` concreta lleva su typedef y sus funciones propias: no hay
+// Cada `list<T>` concreta lleva su typedef y sus funciones propias: no hay
 // `void*` ni tamanios pasados a mano. Los typedefs salen ordenados por
 // nombre; las funciones, en el orden en que el original registro cada tipo,
 // que es el de su recorrido previo: campos de struct, retorno, parametros y
@@ -1151,7 +1151,7 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
                 }
             }
             // Lo que se declara dentro de un `for` o de un brazo de `match`
-            // tambien pide sus listas: sin esto, `let xs: lista<usize>` en un
+            // tambien pide sus listas: sin esto, `let xs: list<usize>` en un
             // brazo se usaba y nadie la declaraba.
             Clase.Para -> {
                 let ultimo = st.hijos.largo();
@@ -1318,7 +1318,7 @@ fn lineas_liberacion(global: &I.Contexto, donde: view, tipo: view,
     cta.etiquetas = b.etiquetas;
 }
 
-// Un juego de funciones por cada `mapa<K, V>` concreto: tabla de
+// Un juego de funciones por cada `map<K, V>` concreto: tabla de
 // direccionamiento abierto con sondeo lineal, y borrado sin lapidas.
 fn funcion_mapa(t: view, global: &I.Contexto, structs: &map<str, usize>,
     cta: mut F.Cuenta, salida: mut list<str>) {
@@ -2728,7 +2728,6 @@ struct Opciones {
     modo: str,
     sin_avisos: bool,
     escribir: bool,
-    renombrar: bool,
     avisos_como_errores: bool,
     terminar: bool,
     codigo: usize,
@@ -2737,7 +2736,7 @@ struct Opciones {
 fn leer_opciones() -> Opciones {
     var o = Opciones { fuente: vacio(), salida: vacio(), nivel: nuevo("2"),
         cc: variable_entorno("CC") sino nuevo("cc"), modo: nuevo("binario"),
-        sin_avisos: false, escribir: false, renombrar: false,
+        sin_avisos: false, escribir: false,
         avisos_como_errores: false,
         terminar: false, codigo: 0 };
     var ia = 1;
@@ -2777,8 +2776,6 @@ fn leer_opciones() -> Opciones {
             o.modo = nuevo("explicar");
         } else if a == "--formatear" {
             o.modo = nuevo("formatear");
-        } else if a == "--renombrar" {
-            o.renombrar = true;
         } else if a == "--escribir" {
             o.escribir = true;
         } else if a == "--sin-avisos" {
@@ -2804,7 +2801,7 @@ fn leer_opciones() -> Opciones {
         }
     }
     if o.fuente.largo() == 0 {
-        imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--sin-avisos] [--avisos-como-errores] [--formatear [--renombrar] [--escribir]] [--explicar]\n");
+        imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--sin-avisos] [--avisos-como-errores] [--formatear [--escribir]] [--explicar]\n");
         o.terminar = true;
         o.codigo = 2;
     } else if tcodec_es_archivo(copiar(o.fuente)) == 0 {
@@ -2815,10 +2812,10 @@ fn leer_opciones() -> Opciones {
     return o;
 }
 
-fn formatear_archivo(fuente: view, escribir_en_su_sitio: bool, renombrar: bool) -> usize {
+fn formatear_archivo(fuente: view, escribir_en_su_sitio: bool) -> usize {
     let original = leer_archivo(fuente) sino vacio();
     var error_f = vacio();
-    let salida_f = FMT.formatear(original, fuente, error_f, renombrar) sino vacio();
+    let salida_f = FMT.formatear(original, fuente, error_f) sino vacio();
     if error_f.largo() > 0 {
         imprimir_error($"error: {error_f}\n");
         return 1;
@@ -4093,7 +4090,7 @@ fn main() -> usize ! {
     let opciones = leer_opciones();
     if opciones.terminar { return opciones.codigo; }
     if opciones.modo == "formatear" {
-        return formatear_archivo(opciones.fuente, opciones.escribir, opciones.renombrar);
+        return formatear_archivo(opciones.fuente, opciones.escribir);
     }
     let fuente = copiar(opciones.fuente);
     let salida = copiar(opciones.salida);
@@ -4208,7 +4205,7 @@ fn main() -> usize ! {
                 }
             }
             if d.clase == Clase.Enum {
-                // Lo que lleva una forma tambien: `Lista(lista<Json>)` pedia
+                // Lo que lleva una forma tambien: `Lista(list<Json>)` pedia
                 // su lista y nadie la declaraba si el programa no la
                 // escribia en otro sitio.
                 for v en d.hijos {
