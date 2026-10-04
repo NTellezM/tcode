@@ -40,6 +40,7 @@ def mutar(fuente, semilla):
     cual = r.choice([
         "borrar", "borrar", "duplicar", "intercambiar", "sustituir",
         "sustituir", "insertar_signo", "cortar_final", "borrar_linea",
+        "agregado",
     ])
 
     if cual == "borrar":
@@ -78,6 +79,33 @@ def mutar(fuente, semilla):
         # Un archivo truncado a la mitad: bloques y cadenas sin cerrar.
         corte = r.randrange(len(fuente) // 2, len(fuente)) if len(fuente) > 2 else 1
         return fuente[:corte], f"cortado en el byte {corte}"
+
+    if cual == "agregado":
+        # Un literal de lista que se lleva dentro una variable con duenio: es
+        # la forma que dejo pasar un use-after-free (el literal movia el valor
+        # sin marcar la variable como movida, y la limpieza la liberaba). Se
+        # inyecta codigo VALIDO a proposito, que es justo lo que faltaba: los
+        # mutantes rotos no llegan al generador de codigo, que es donde estaba
+        # el fallo. Las variables llevan un numero para no chocar con las del
+        # programa, y se usan para que no sobren.
+        n = r.randrange(100000)
+        lineas = fuente.split("\n")
+        for i, linea in enumerate(lineas):
+            m = re.match(r"^(\s*)fn\s+\w+\([^)]*\)[^{]*\{\s*$", linea)
+            if not m:
+                continue
+            sangria = m.group(1) + "    "
+            dentro = [
+                f'{sangria}let t{n} = nuevo("hola");',
+                f'{sangria}let u{n} = nuevo("adios");',
+                f'{sangria}let a{n}: list<str> = [t{n}];',
+                f'{sangria}let b{n}: list<str> = [nuevo("fijo"), u{n}];',
+                f'{sangria}imprimir(a{n}[0]);',
+                f'{sangria}imprimir(b{n}[1]);',
+            ]
+            return ("\n".join(lineas[:i + 1] + dentro + lineas[i + 1:]),
+                    f"inyectado un literal con la variable t{n}")
+        return fuente, "sin cambios"
 
     lineas = fuente.split("\n")
     if len(lineas) < 2:
