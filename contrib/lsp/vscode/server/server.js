@@ -40,7 +40,7 @@ connection.onInitialize((params) => {
             completionProvider: {
                 resolveProvider: false,
                 // `#` trae los módulos de `std/`; `"` los trae al abrir el
-                // texto de un `use`.
+                // texto de un `#importar` o de un `use`.
                 triggerCharacters: ['#', '"'],
             },
             documentSymbolProvider: true,
@@ -238,10 +238,11 @@ const CONSTANTES = ['true', 'false'];
 
 // ---------- la biblioteca estándar ----------
 //
-// `use "#texto";` es lo mismo que `use "std/texto";`. Al escribir `#` salen
-// los módulos y se inserta el importe entero; dentro de un `use "` solo se
-// inserta `#módulo`. Los módulos que el documento ya importa aportan además
-// sus funciones, para no tener que saberse los nombres.
+// `#importar "texto.t"` es lo mismo que `use "std/texto"`. Al escribir `#`
+// salen los módulos y se inserta la directiva entera; dentro de
+// `#importar "` solo falta el fichero, y dentro de un `use "` la ruta de
+// `std/`. Los módulos que el documento ya importa aportan además sus
+// funciones, para no tener que saberse los nombres.
 //
 // Cada módulo es `[nombre, qué es, [firmas...]]`, con la firma tal cual está
 // en `std/*.t`: de ahí salen la etiqueta (sin tipos), lo que devuelve y la
@@ -595,11 +596,11 @@ function sin_tipos(cabecera) {
 }
 
 // Los módulos que el documento ya importa, en orden y sin repetir. Valen las
-// dos grafías: `use "std/texto"` y `use "#texto"`.
+// dos grafías: `use "std/texto"` y `#importar "texto.t"`.
 function modulos_importados(texto) {
     const salida = [];
     const visto = new Set();
-    const patron = /use\s+"#?([A-Za-z0-9_\/]+)"/g;
+    const patron = /(?:use|#importar)\s+"([A-Za-z0-9_\/]+?)(?:\.t)?"/g;
     let encajado;
     while ((encajado = patron.exec(texto)) !== null) {
         const nombre = encajado[1].replace(/^std\//, '');
@@ -614,6 +615,12 @@ function modulos_importados(texto) {
 // comillas, o `null` si no es el caso.
 function dentro_de_use(antes) {
     const encajado = antes.match(/(?:^|\n)[^\S\n]*use[^\S\n]+"([^"\n]*)$/);
+    return encajado ? encajado[1] : null;
+}
+
+// ¿Y dentro de un `#importar "`? Igual, lo que ya se escribió del fichero.
+function dentro_de_importar(antes) {
+    const encajado = antes.match(/(?:^|\n)[^\S\n]*#importar[^\S\n]+"([^"\n]*)$/);
     return encajado ? encajado[1] : null;
 }
 
@@ -652,23 +659,40 @@ connection.onCompletion((params) => {
     const offset = documento.offsetAt(params.position);
     const antes = texto.slice(0, offset);
 
-    // Un `#` (o estar dentro de un `use "`) abre la lista de módulos. Fuera se
-    // inserta la sentencia entera; dentro solo lo que falta del nombre.
-    const dentro = dentro_de_use(antes);
-    const almohadilla = dentro === null && !dentro_de_texto(antes)
+    // Un `#`, o estar dentro de un importe, abre la lista de módulos. Con el
+    // `#` se inserta la directiva entera; dentro de `#importar "` el fichero
+    // con su `.t`, y dentro de un `use "` la ruta de `std/`.
+    const en_use = dentro_de_use(antes);
+    const en_importar = dentro_de_importar(antes);
+    const almohadilla = en_use === null && en_importar === null && !dentro_de_texto(antes)
         ? antes.match(/#[A-Za-z0-9_\/]*$/) : null;
-    if (dentro !== null || almohadilla !== null) {
-        const prefijo = dentro !== null ? dentro : almohadilla[0];
+    if (en_use !== null || en_importar !== null || almohadilla !== null) {
         for (const [nombre, que] of MODULOS) {
-            const inserta = dentro !== null ? '#' + nombre : 'use "#' + nombre + '";';
+            let inserta;
+            let etiqueta;
+            let prefijo;
+            if (en_use !== null) {
+                inserta = 'std/' + nombre;
+                etiqueta = inserta;
+                prefijo = en_use;
+            } else if (en_importar !== null) {
+                inserta = nombre + '.t';
+                etiqueta = inserta;
+                prefijo = en_importar;
+            } else {
+                inserta = '#importar "' + nombre + '.t";';
+                etiqueta = '#' + nombre;
+                prefijo = almohadilla[0];
+            }
             salida.push({
-                label: '#' + nombre,
+                label: etiqueta,
                 kind: CompletionItemKind.Module,
                 detail: inserta,
-                documentation: que + '  (use "#' + nombre + '"; es use "std/' + nombre + '";)',
-                // El cliente filtra por lo que se reemplaza: que encajen las
-                // dos grafías y el `#`.
-                filterText: '#' + nombre + ' std/' + nombre,
+                documentation: que + '  (`#importar "' + nombre + '.t";` es `use "std/'
+                    + nombre + '";`)',
+                // El cliente filtra por lo que se reemplaza: que encajen la
+                // directiva, el fichero y la ruta de `std/`.
+                filterText: '#' + nombre + ' ' + nombre + '.t std/' + nombre,
                 textEdit: TextEdit.replace({
                     start: documento.positionAt(offset - prefijo.length),
                     end: documento.positionAt(offset),

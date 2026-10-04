@@ -6,23 +6,25 @@ símbolos**, y el **LSP** (diagnósticos, formato e ir a la definición).
 
 ## La biblioteca estándar sin saberse las rutas
 
-Al escribir `#` sale la lista de módulos de `std/` y el completado inserta el
-importe entero, con el cursor después del punto y coma:
+Al escribir `#` sale la lista de módulos de `std/` y el completado inserta la
+directiva entera, con el cursor después del punto y coma:
 
 ```tcode
-#            ->  use "#texto";
+#            ->  #importar "texto.t";
 ```
 
-Dentro de un `use "` solo falta el nombre, y también se completa:
+Dentro de un `#importar "` solo falta el fichero, y dentro de un `use "` la
+ruta de `std/`; en los dos se completa:
 
 ```tcode
-use "#"      ->  use "#texto";
+#importar "tex"  ->  #importar "texto.t";
+use "std/tex"    ->  use "std/texto";
 ```
 
-Y un módulo ya importado (por cualquiera de las dos grafías, `use "#texto"` o
-`use "std/texto"`) aporta además sus funciones a la lista: `partir`, `unir`,
-`minusculas`... de `std/texto`; `compilar`, `buscar`... de `std/regex`;
-`cuantos`, `trozo`... de `std/utf8` y compañía.
+Y un módulo ya importado (con `#importar "texto.t"` o con `use "std/texto"`)
+aporta además sus funciones a la lista: `partir`, `unir`, `minusculas`... de
+`std/texto`; `compilar`, `buscar`... de `std/regex`; `cuantos`, `trozo`... de
+`std/utf8` y compañía.
 
 ## Instalar
 
@@ -31,7 +33,7 @@ La extensión lleva dentro el servidor y el árbol de sintaxis
 `.vsix`:
 
 ```sh
-code --install-extension tcode-0.3.0.vsix
+code --install-extension tcode-0.4.0.vsix
 ```
 
 Recarga VS Code. Los archivos `.t` se resaltan solos y el LSP arranca si
