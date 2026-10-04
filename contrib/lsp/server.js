@@ -9,13 +9,23 @@
 // eso vendrá cuando el compilador exponga su análisis.
 //
 // Configuración (por `initializationOptions` o variables de entorno):
-//   tcodec  -> ruta del binario (por defecto `tcodec`, o `$TCODEC`)
+//   tcodec  -> ruta del binario (por defecto `tcodec`, o `$TCODEC`). Si va
+//              suelto: el `PATH` y, si no está, junto al proyecto del fichero
+//              (`<raiz>/tcodec`) y en la instalación por defecto
+//              (`~/.local/bin`), que es la que deja `instalar.sh`.
 //   raiz    -> raíz del proyecto, donde está `std/`. Se resuelve en este
 //              orden: `$TCODE_RAIZ`, la raíz que manda el cliente (el
-//              proyecto abierto) y, si no hay ninguna, la instalación que se
-//              descubre desde el propio binario —en el `PATH` si va suelto,
-//              subiendo hasta `runtime/cabecera.inc`—, igual que el
-//              `raiz_instalada()` del compilador.
+//              proyecto abierto) si de verdad tiene `std/`, el proyecto del
+//              propio fichero —subiendo por sus directorios—, y la instalación
+//              que se descubre desde el propio binario —en el `PATH` si va
+//              suelto, subiendo hasta `runtime/cabecera.inc`—, igual que el
+//              `raiz_instalada()` del compilador. Si no hay ninguna, no se le
+//              impone ninguna: ya la descubre él.
+//
+// Una carpeta que no es una raíz no se le pasa nunca al compilador. Ponerla en
+// `TCODE_RAIZ` desactiva su descubrimiento, así que un `#importar` correcto
+// acabaría en «no encuentro el modulo»: es lo que pasaba al abrir VS Code en
+// la carpeta padre de los proyectos y editar un fichero de dentro.
 
 const path = require('path');
 const fs = require('fs');
@@ -32,16 +42,15 @@ const connection = createConnection(ProposedFeatures.all);
 const documents = new TextDocuments(TextDocument);
 
 let tcodec = process.env.TCODEC || 'tcodec';
-let raiz = process.env.TCODE_RAIZ || process.cwd();
+// La raíz que manda el cliente: el proyecto abierto (o el ajuste
+// `tcode.lsp.raiz`). Se guarda tal cual y se comprueba en cada uso; ver
+// `raiz_para`.
+let raiz_del_cliente = '';
 
 connection.onInitialize((params) => {
     const opciones = params.initializationOptions || {};
     if (opciones.tcodec) tcodec = opciones.tcodec;
-    // La raíz, en el orden que pide el compilador: `TCODE_RAIZ`, el proyecto
-    // abierto y, si no hay ninguna, la instalación que se descubre desde el
-    // binario. Si no se encuentra nada, el directorio de trabajo, lo de
-    // siempre.
-    raiz = process.env.TCODE_RAIZ || opciones.raiz || raiz_instalada() || process.cwd();
+    raiz_del_cliente = opciones.raiz || '';
     return {
         capabilities: {
             textDocumentSync: TextDocumentSyncKind.Full,
@@ -73,6 +82,44 @@ function raiz_instalada() {
         binario = padre === binario ? '' : padre;
     }
     return '';
+}
+
+// Un directorio es la raíz de un proyecto Tcode si tiene `std/` dentro: es lo
+// único que necesita el compilador para resolver un `#importar` o un `use`.
+function es_raiz(directorio) {
+    if (!directorio) return false;
+    try {
+        return fs.statSync(path.join(directorio, 'std')).isDirectory();
+    } catch (_) {
+        return false;
+    }
+}
+
+// El proyecto al que pertenece de verdad `fichero`: se sube por sus
+// directorios hasta dar con un `std/`. Es la raíz buena cuando el espacio de
+// trabajo abierto es una carpeta padre (o cualquier otra cosa) y no lo es.
+// "" si no se encuentra ninguna.
+function raiz_del_proyecto(fichero) {
+    let directorio = fichero ? path.dirname(fichero) : process.cwd();
+    while (directorio) {
+        if (es_raiz(directorio)) return directorio;
+        const padre = path.dirname(directorio);
+        directorio = padre === directorio ? '' : padre;
+    }
+    return '';
+}
+
+// La raíz que se le da al compilador para `fichero`. `$TCODE_RAIZ` manda, como
+// en el compilador. Después, la del cliente solo si tiene `std/`: una carpeta
+// que no lo tiene no es una raíz, y `TCODE_RAIZ` desactiva el descubrimiento
+// del propio compilador (`raiz_instalada()`), de modo que imponérsela
+// convierte un `#importar` correcto en «no encuentro el modulo». Si no hay
+// ninguna raíz de verdad se devuelve "": mejor no decirle nada y que la
+// descubra él, igual que en la terminal.
+function raiz_para(fichero) {
+    if (process.env.TCODE_RAIZ) return process.env.TCODE_RAIZ;
+    if (es_raiz(raiz_del_cliente)) return raiz_del_cliente;
+    return raiz_del_proyecto(fichero) || raiz_instalada() || '';
 }
 
 // La ruta de verdad del binario `nombre`: si va suelto, el primero que
@@ -112,6 +159,57 @@ function es_archivo(ruta) {
     }
 }
 
+// El binario que se ejecuta para `fichero`, ya resuelto. Si `tcodec` trae
+// ruta, esa. Si va suelto: primero el `PATH`, como lo habría resuelto el
+// shell; y si ahí no está —un VS Code abierto desde el menú no hereda el
+// `PATH` del terminal—, junto al proyecto del fichero (`<raiz>/tcodec`, y
+// `<raiz>/bin/tcodec`, como `instalar.sh` deja el envoltorio) y, como último
+// recurso, en la instalación por defecto (`~/.local/bin`). "" si no aparece
+// por ningún lado.
+function binario_para(fichero) {
+    if (tcodec.includes('/') || tcodec.includes('\\')) return ruta_del_binario(tcodec);
+    const en_el_path = ruta_del_binario(tcodec);
+    if (en_el_path) return en_el_path;
+    const base = raiz_para(fichero);
+    const candidatos = [];
+    if (base) {
+        candidatos.push(path.join(base, tcodec));
+        candidatos.push(path.join(base, 'bin', tcodec));
+    }
+    if (process.env.HOME) {
+        candidatos.push(path.join(process.env.HOME, '.local', 'bin', tcodec));
+    }
+    for (const candidato of candidatos) {
+        const real = resolver(candidato);
+        if (real) return real;
+    }
+    return '';
+}
+
+// La raíz y el entorno con los que se lanza el compilador para `fichero`.
+// `TCODE_RAIZ` solo se pone cuando hay una raíz de verdad; si no, se quita del
+// entorno para que el compilador descubra la suya.
+function entorno_para(fichero) {
+    const base = raiz_para(fichero);
+    const entorno = Object.assign({}, process.env);
+    if (base) entorno.TCODE_RAIZ = base;
+    else delete entorno.TCODE_RAIZ;
+    return { cwd: base || path.dirname(fichero), env: entorno };
+}
+
+// Ejecuta el compilador para `fichero`, con el binario y la raíz ya
+// resueltos. Si no hay binario no se lanza nada y se dice, que si no el editor
+// se queda mudo y parece que todo compila.
+function ejecutar(argumentos, fichero, cuando_termina) {
+    const binario = binario_para(fichero);
+    if (!binario) {
+        cuando_termina({ code: 'ENOENT' }, '', '');
+        return;
+    }
+    const como = entorno_para(fichero);
+    execFile(binario, argumentos, { cwd: como.cwd, env: como.env }, cuando_termina);
+}
+
 // Un re-chequeo por documento, con un respiro para no compilar a cada tecla.
 const pendientes = new Map();
 
@@ -147,15 +245,37 @@ function diagnosticos_de(stderr, documento) {
     return salida;
 }
 
+// El compilador no está (o no se puede ejecutar): se dice tal cual, en vez de
+// dejar el fichero sin diagnósticos —que parece que compila— o de dejar que el
+// compilador le eche la culpa al `#importar` de turno.
+function aviso_sin_compilador(documento) {
+    return {
+        severity: DiagnosticSeverity.Error,
+        range: {
+            start: { line: 0, character: 0 },
+            end: {
+                line: 0,
+                character: documento.getText({
+                    start: { line: 0, character: 0 },
+                    end: { line: 1, character: 0 },
+                }).length,
+            },
+        },
+        message: 'no encuentro el compilador `' + tcodec + '`: no está en el PATH ni junto al ' +
+            'proyecto. Pon su ruta en el ajuste `tcode.lsp.tcodec`, o abre el editor desde un ' +
+            'terminal que lo tenga en el PATH.',
+        source: 'tcode',
+    };
+}
+
 function comprobar(documento) {
     const ruta = ruta_de(documento.uri);
-    execFile(tcodec, ['--solo-comprobar', ruta], {
-        cwd: raiz,
-        env: Object.assign({}, process.env, { TCODE_RAIZ: raiz }),
-    }, (_error, _stdout, stderr) => {
+    ejecutar(['--solo-comprobar', ruta], ruta, (error, _stdout, stderr) => {
         connection.sendDiagnostics({
             uri: documento.uri,
-            diagnostics: diagnosticos_de(stderr, documento),
+            diagnostics: error && error.code === 'ENOENT'
+                ? [aviso_sin_compilador(documento)]
+                : diagnosticos_de(stderr || '', documento),
         });
     });
 }
@@ -178,10 +298,7 @@ connection.onDocumentFormatting((params) => {
     if (!documento) return [];
     const ruta = ruta_de(params.textDocument.uri);
     return new Promise((resolver) => {
-        execFile(tcodec, ['--formatear', ruta], {
-            cwd: raiz,
-            env: Object.assign({}, process.env, { TCODE_RAIZ: raiz }),
-        }, (error, stdout) => {
+        ejecutar(['--formatear', ruta], ruta, (error, stdout) => {
             if (error || stdout === documento.getText()) {
                 resolver([]);
                 return;
@@ -810,20 +927,23 @@ function items_de_modulo(modulo, puestos) {
     return salida;
 }
 
-// Los módulos que hay de verdad en `std/`, bajo la raíz que se descubrió. Los
-// que no estén en la tabla de arriba se ofrecen igual, sin firmas: la lista de
-// módulos sale de la biblioteca, no de la tabla. Se lee una vez por raíz.
+// Los módulos que hay de verdad en `std/`, bajo la raíz que le toca a un
+// fichero. Los que no estén en la tabla de arriba se ofrecen igual, sin
+// firmas: la lista de módulos sale de la biblioteca, no de la tabla. Se lee
+// una vez por raíz.
 let en_disco = null;
 
-function nombres_en_disco() {
-    if (en_disco && en_disco.raiz === raiz) return en_disco.nombres;
+function nombres_en_disco(base) {
+    if (en_disco && en_disco.raiz === base) return en_disco.nombres;
     const nombres = [];
-    try {
-        for (const fichero of fs.readdirSync(path.join(raiz, 'std'))) {
-            if (fichero.endsWith('.t')) nombres.push(fichero.slice(0, -2));
-        }
-    } catch (_) { /* sin `std/` a la vista: queda la tabla */ }
-    en_disco = { raiz: raiz, nombres: nombres };
+    if (base) {
+        try {
+            for (const fichero of fs.readdirSync(path.join(base, 'std'))) {
+                if (fichero.endsWith('.t')) nombres.push(fichero.slice(0, -2));
+            }
+        } catch (_) { /* sin `std/` a la vista: queda la tabla */ }
+    }
+    en_disco = { raiz: base, nombres: nombres };
     return nombres;
 }
 
@@ -897,7 +1017,7 @@ connection.onCompletion((params) => {
     if (en_use !== null || en_importar !== null || almohadilla !== null) {
         // La tabla de arriba más lo que haya en `std/` de la raíz descubierta.
         const nombres = MODULOS.map((m) => m[0]);
-        for (const nombre of nombres_en_disco()) {
+        for (const nombre of nombres_en_disco(raiz_para(ruta_de(params.textDocument.uri)))) {
             if (!nombres.includes(nombre)) nombres.push(nombre);
         }
         for (const nombre of nombres) {

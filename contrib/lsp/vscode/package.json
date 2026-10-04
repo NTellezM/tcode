@@ -2,7 +2,7 @@
   "name": "tcode",
   "displayName": "Tcode",
   "description": "Soporte de lenguaje para Tcode: resaltado, completado (con la biblioteca estándar), diagnósticos, formato, ir a la definición y la firma de la función al pasar por encima",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "publisher": "tcode",
   "license": "MIT",
   "engines": {
@@ -54,12 +54,12 @@
         "tcode.lsp.tcodec": {
           "type": "string",
           "default": "tcodec",
-          "description": "Ruta del binario tcodec."
+          "description": "Ruta del binario tcodec. Por defecto se busca en el PATH y, si no está, junto al proyecto y en ~/.local/bin."
         },
         "tcode.lsp.raiz": {
           "type": "string",
           "default": "",
-          "description": "Raíz del proyecto (donde está std/). Vacío = la carpeta del espacio de trabajo."
+          "description": "Raíz del proyecto (donde está std/). Vacío = la carpeta del espacio de trabajo si tiene std/; si no, se busca desde el propio fichero."
         }
       }
     }

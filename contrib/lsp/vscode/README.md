@@ -35,11 +35,18 @@ enseña su firma entera, con sus tipos.
 
 Con un fichero suelto, sin carpeta de proyecto abierta y sin `TCODE_RAIZ`, la
 raíz se descubre desde el propio `tcodec`: se busca en el `PATH` —o se toma la
-ruta que digas en `tcode.lsp.tcodec`—, se siguen sus enlaces y se sube hasta
-`runtime/cabecera.inc`. De ahí sale `std/`, así que un `tcodec` instalado basta
-para tener diagnósticos y completado en cualquier `.t`, esté donde esté. El
-orden completo es: `TCODE_RAIZ`, la carpeta del proyecto y, si no hay ninguna,
-esa instalación.
+ruta que digas en `tcode.lsp.tcodec`— y, si ahí no está, junto al proyecto del
+fichero; se siguen sus enlaces y se sube hasta `runtime/cabecera.inc`. De ahí
+sale `std/`, así que un `tcodec` instalado basta para tener diagnósticos y
+completado en cualquier `.t`, esté donde esté. El orden completo es:
+`TCODE_RAIZ`, la carpeta del proyecto si tiene `std/`, el proyecto del propio
+fichero y, si no hay ninguna, esa instalación.
+
+Una carpeta que no tiene `std/` nunca se le impone al compilador: `TCODE_RAIZ`
+desactiva su descubrimiento, así que abrir el editor en la carpeta padre de los
+proyectos y editar un fichero de dentro acababa en «no encuentro el modulo
+`bytes.t`» sobre un `#importar` correcto. Si no aparece `tcodec` por ningún
+lado, el aviso lo dice tal cual, en vez de dejar el fichero sin diagnósticos.
 
 ## Instalar
 
@@ -48,19 +55,20 @@ La extensión lleva dentro el servidor y el árbol de sintaxis
 `.vsix`:
 
 ```sh
-code --install-extension tcode-0.5.1.vsix
+code --install-extension tcode-0.5.2.vsix
 ```
 
 Recarga VS Code. Los archivos `.t` se resaltan solos y el LSP arranca si
-`tcodec` está en el `PATH` (o lo configuras en `tcode.lsp.tcodec`); con eso ya
-encuentra `std/` aunque el fichero esté suelto y no haya proyecto abierto.
+`tcodec` está en el `PATH`, junto al proyecto, o lo configuras en
+`tcode.lsp.tcodec`; con eso ya encuentra `std/` aunque el fichero esté suelto y
+no haya proyecto abierto.
 
 ## Qué necesita cada pieza
 
 | pieza | qué necesita |
 |---|---|
 | resaltado, icono, completado y contorno | nada (va todo incluido) |
-| diagnósticos y formato | `tcodec` en el PATH |
+| diagnósticos y formato | `tcodec` (en el PATH, junto al proyecto, o en `tcode.lsp.tcodec`) |
 | ir a la definición y la firma al pasar por encima | nada (va incluido el árbol de sintaxis) |
 
 ## Empaquetar
