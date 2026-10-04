@@ -182,28 +182,47 @@ código por su cuenta y se queda ciega sin decirlo.
 
 `make tcodec && make semilla`, y `make check` en verde.
 
-### Fase C — quitar las viejas
+### Fase C — quitar las viejas (hecha)
 
 Aquí se renombra **por dentro**, todo a la vez, con el código ya escrito en las
-nuevas (que es lo que hace la fase B):
+nuevas (que es lo que hace la fase B). Lo que salió, y que el plan no tenía
+contado:
 
-1. Los seis ficheros de la fase A: las comparaciones pasan a las palabras
-   nuevas (`sintaxis.t`, `tipos.t`, `tcodec.t`, `tipar.t`), `es_generico` se
-   queda sólo con las nuevas, y `clase.t` cambia los nombres de los mensajes
-   —`Clase.Usar -> "use"`, `Clase.Falla -> "fail"`— junto con los textos que
-   las nombran.
-2. Lexer: fuera `canonica`, fuera las viejas de `es_reservada`, y el token se
-   emite tal cual se escribió.
-3. Lo que la fase B dejó para aquí, porque va con los mensajes:
-   - los fragmentos de `tests/lenguaje/*.py` **y sus salidas esperadas**, en la
-     misma pasada;
-   - las listas de palabras de las herramientas (`grafo.py` y compañía);
-   - `docs/ESPECIFICACION.md`, `docs/GUIA.md` y `docs/AUDITORIA.md`.
-4. Fuera `nueva()` y el flag `--renombrar`, que sólo existían para el barrido.
-5. `make semilla` y verificar.
+1. **Los siete sitios de la fase A** pasan a las nuevas: las comparaciones de
+   `sintaxis.t`, `tipos.t`, `tcodec.t` y `tipar.t`, `es_generico`, y los nombres
+   de los mensajes (`clase.t`).
 
-A partir de aquí, `lista`/`mapa`/`usar`/`falla` vuelven a ser palabras normales
-del idioma, y se puede escribir `var lista: list<str> = [];`.
+2. **La representación interna del tipo** también hablaba en viejo: el
+   analizador construía `lista<...>`/`mapa<...>` y `tipos.t`/`tipar.t` los
+   comparaban por prefijo con `empieza(t, "lista<")`. Como los mensajes
+   incrustan esa cadena, el usuario habría visto `lista<usize>` donde escribe
+   `list<usize>`. Van los dos lados a la vez —el que la construye y el que la
+   compara—, o el compilador no reconoce sus propios tipos.
+
+3. **Los textos que nombran la palabra**: los que van entre backticks (`` `usar
+   \"...\";` ``) y los que listan tipos (`se esperaba un tipo (..., list<tipo>,
+   map<clave, valor>, ...)`). El prosa se queda: «la clave no esta en el mapa»
+   sigue diciendo mapa, que es español, no la palabra clave.
+
+4. **Lexer**: fuera `canonica` y `nueva`, fuera las viejas de `es_reservada`, y
+   el token se emite tal cual se escribió. Fuera también el `--renombrar` del
+   formateador, que sólo existía para el barrido.
+
+5. **Los tests**, que fue lo más pesado: los fragmentos de `tests/lenguaje/*.py`
+   van en tuplas `(nombre, programa, salida)` y en llamadas `Regla(...)`, y las
+   herramientas (`generador_programas.py`, `reglas.py`) generan programas con
+   las palabras dentro. Se renombró con `ast` —para no tocar ni los nombres ni
+   el código Python del propio test— y quedó un detalle que hay que mirar a
+   mano: `acepta.py` tiene una salida esperada que **es** `lista<` porque el
+   programa rebana los seis primeros caracteres de `"lista<P.Nodo>"`.
+
+6. **Los documentos** y las listas de las herramientas, que se quedan sólo con
+   las nuevas para no arrastrar las viejas.
+
+`make tcodec && make semilla`, y `make check` en verde.
+
+**Lo que se gana**: `lista`, `mapa`, `usar` y `falla` vuelven a ser palabras
+normales del idioma. `var lista: list<str> = [];` compila.
 
 ## 4. ¿Y `pokered-tcode`?
 
