@@ -15,7 +15,7 @@ Para todo programa que **`tcodec` acepta**, compilado con un compilador de
    desplazamientos del ancho o más, ni aliasing roto.
 2. **No hay uso de memoria liberada, doble liberación ni fugas.** Todo valor
    con dueño se libera exactamente una vez, por cualquier camino: `return`,
-   `falla`, `try`, `sino`, `break`, `continue`, brazos de `match`.
+   `fail`, `try`, `sino`, `break`, `continue`, brazos de `match`.
 3. **Lo que no se puede hacer seguro, para el programa** con archivo y línea
    (un índice fuera de rango, una cuenta que se desborda, un `como` que no
    cabe), y sale con un código distinto de cero. Nunca sigue con un valor

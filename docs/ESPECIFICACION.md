@@ -138,7 +138,7 @@ imprimir(t);
 ```
 
 Vale igual para lo que llega prestado con `&T` o `mut T`: `vista(p.nombre)`
-de un `p: &Persona`, `vista(xs[0])` de un `xs: &lista<str>`, o la de un
+de un `p: &Persona`, `vista(xs[0])` de un `xs: &list<str>`, o la de un
 `s: mut str` después de modificarlo. La memoria es de quien llama.
 
 En quien llama, **la vista presta de todo lo que se le prestó a la
@@ -254,7 +254,7 @@ Ahí hay propiedad, un préstamo y una liberación automática, y no se menciona
 ninguna. Tres cosas lo hacen posible:
 
 **El tipo se deduce del valor.** `let n = 42;` en vez de `let n: usize = 42;`.
-Se escribe sólo cuando dice algo que el valor no dice: `let xs: lista<usize> =
+Se escribe sólo cuando dice algo que el valor no dice: `let xs: list<usize> =
 [];`, donde `[]` no revela si es lista, arreglo o mapa. Al quitar las
 redundantes de los once ejemplos quedaron **3 de 55**.
 
@@ -279,7 +279,7 @@ tres funciones más allá.
 
 ### Prometer un valor obliga a devolverlo
 
-Una función que declara tipo de retorno tiene que salir por `return` o `falla`
+Una función que declara tipo de retorno tiene que salir por `return` o `fail`
 en **todos** los caminos. Un `while` no cuenta: puede no dar ni una vuelta.
 
 ```
@@ -373,7 +373,7 @@ El envoltorio le devuelve la semántica de valor que el lenguaje promete.
   de lo mismo; no vive más que sus dueños, y no sale de la función si presta
   de algo local. Una función que lo devuelve presta de todo lo que se le
   prestó, igual que una que devuelve `view`. Y no se guarda donde nadie
-  sabría cuánto vive: ni en una `lista`, un arreglo fijo, un `mapa` o un
+  sabría cuánto vive: ni en una `list`, un arreglo fijo, un `map` o un
   `bloque`, ni en un enum, ni en lo que captura una clausura. Tampoco se
   guarda una vista en un struct que llegó prestado: quien lo prestó no sabría
   de dónde presta ahora. Un campo `&T` no vale —tampoco `&mut T`—: no dice de
@@ -409,15 +409,15 @@ El envoltorio le devuelve la semántica de valor que el lenguaje promete.
   error: no se puede modificar `inv`: esta prestada por `x`
   ```
 - **Recursión directa por valor.** `struct Nodo { hijo: Nodo }` no tiene tamaño
-  finito y da error; la recursión mediante `lista<Nodo>` sí está permitida.
+  finito y da error; la recursión mediante `list<Nodo>` sí está permitida.
 
 #### Listas dinámicas
 
-`lista<T>` es una colección dueña cuyo largo se decide en ejecución:
+`list<T>` es una colección dueña cuyo largo se decide en ejecución:
 
 ```tcode
-var numeros: lista<usize> = [];
-var nombres: lista<str> = [nuevo("Ana"), nuevo("Beto")];
+var numeros: list<usize> = [];
+var nombres: list<str> = [nuevo("Ana"), nuevo("Beto")];
 anadir(numeros, 10);
 anadir(nombres, nuevo("Cielo"));
 imprimir(nombres[2]);
@@ -429,7 +429,7 @@ generado. Al cerrar el bloque se liberan primero los elementos dueños y luego
 el buffer. La indexación usa la misma comprobación que los arreglos fijos.
 
 Una lista introduce indirección, por lo que permite estructuras recursivas de
-tamaño finito (`struct Nodo { hijos: lista<Nodo> }`). No se puede guardar
+tamaño finito (`struct Nodo { hijos: list<Nodo> }`). No se puede guardar
 `view` —ni un struct que presta— en listas ni en arreglos fijos: cada
 elemento podría prestar de un dueño distinto, y saber cuál necesitaría vidas
 útiles en el tipo. Tampoco se usa un arreglo fijo como elemento de lista.
@@ -504,8 +504,8 @@ clausura; entonces el mensaje nombra los argumentos por su posición.
 ### 7. Módulos: un archivo es un módulo
 
 ```tcode
-usar "lib/texto.t";
-usar "lib/calculo.t";
+use "lib/texto.t";
+use "lib/calculo.t";
 ```
 
 Las rutas son relativas al archivo que las escribe. Cada módulo se carga una
@@ -516,7 +516,7 @@ se explican:
 error: dependencia circular entre modulos: a.t -> b.t -> a.t
 ```
 
-`usar "std/texto"` busca en la biblioteca que viene con el compilador, no
+`use "std/texto"` busca en la biblioteca que viene con el compilador, no
 junto al programa. La extensión `.t` es opcional: se escribe el nombre del
 módulo, no el del archivo.
 
@@ -527,12 +527,12 @@ importa, y nada más. Dos módulos pueden declarar `contar` sin estorbarse.
 
 Lo que importa un módulo importado **no** se ve: si `contar.t` usa
 `std/texto`, y `std/texto` usa `std/caracter`, `contar.t` no puede llamar a
-`es_blanco` sin su propio `usar "std/caracter"`.
+`es_blanco` sin su propio `use "std/caracter"`.
 
 ```
 error: contar.t:29: `es_blanco` esta en std/caracter.t, que este archivo no
        usa. Se veia porque lo usa otro modulo, pero cada archivo tiene que
-       pedir lo suyo: añade `usar "...";`
+       pedir lo suyo: añade `use "...";`
 ```
 
 Es la regla de Python, Go y Rust. C hace lo contrario: un `#include` arrastra
@@ -541,20 +541,20 @@ tercero deja de incluirlo. Medido al introducir la regla, tres ejemplos del
 repositorio dependían de ese arrastre sin saberlo.
 
 ```tcode
-usar "lib/celsius.t" como c;
-usar "lib/fahrenheit.t" como f;
+use "lib/celsius.t" como c;
+use "lib/fahrenheit.t" como f;
 
 imprimir(c.nombre());        // "Celsius"
 imprimir(f.nombre());        // "Fahrenheit"
 ```
 
-`usar` a secas trae los nombres tal cual. Sólo choca si **un mismo archivo**
+`use` a secas trae los nombres tal cual. Sólo choca si **un mismo archivo**
 trae dos iguales de forma llana, y entonces el error dice de dónde vienen los
 dos y cómo arreglarlo:
 
 ```
 error: app.t:2: `contar` llega de dos sitios, uno.t y dos.t. Dale un nombre
-                a uno de los dos: `usar "..." como algo;` y luego
+                a uno de los dos: `use "..." como algo;` y luego
                 `algo.contar`
 ```
 
@@ -563,7 +563,7 @@ Vale también para los tipos y las formas de un enum: `t.Caja`,
 `t.Resultado.Valor(x)`.
 
 `como` **no es palabra reservada**: sólo significa eso detrás de una ruta de
-`usar`, así que sigue valiendo como nombre de variable.
+`use`, así que sigue valiendo como nombre de variable.
 
 #### Qué se tomó de dónde
 
@@ -597,12 +597,12 @@ de C a propósito.
 ### 8. Fallos: no se pueden ignorar
 
 Una función que puede fallar lo declara con `!` después del tipo de retorno,
-y sale con `falla`:
+y sale con `fail`:
 
 ```tcode
 fn dividir(a: usize, b: usize) -> usize ! {
     if b == 0 {
-        falla "division por cero";
+        fail "division por cero";
     }
     return a / b;
 }
@@ -627,7 +627,7 @@ distinto de cero, para que no se pierda al salir.
 
 **Un fallo libera lo que ya se había reservado.** Es la parte que cuesta
 hacer bien a mano en C, y es donde estaba el problema: una variable que un
-`return` posterior entrega no está movida todavía en el `falla` de antes. El
+`return` posterior entrega no está movida todavía en el `fail` de antes. El
 compilador lleva una bandera en tiempo de ejecución para las variables que se
 mueven en algún camino, y libera según el camino que se tomó de verdad.
 
@@ -646,11 +646,11 @@ Del lado del generador, quien abre un camino de ejecución lo hace con un
 `with camino():` que apaga dentro de esa rama lo que se haya entregado en
 ella. Se hizo así a propósito: una construcción nueva no puede olvidarse del
 apagado porque no hay nada que recordar. Es la diferencia entre una regla y
-una costumbre — y esa diferencia costó tres fugas (`falla`, `try` y `sino`),
+una costumbre — y esa diferencia costó tres fugas (`fail`, `try` y `sino`),
 cada una encontrada corriendo, no leyendo.
 
 `try` y `sino` no van en la condición de un `while` —se evaluarían una
-sola vez—, y el motivo de `falla` es una cadena escrita, no un texto
+sola vez—, y el motivo de `fail` es una cadena escrita, no un texto
 construido.
 
 ### 9. Entrada de archivos y texto construido
@@ -732,14 +732,14 @@ además `\{` y `\}`, y `{{` y `}}` para una llave escrita; dentro de las
 llaves va cualquier expresión.
 
 **Palabras reservadas**: `fn`, `let`, `var`, `mut`, `if`, `else`, `while`,
-`for`, `en`, `break`, `continue`, `return`, `true`, `false`, `usar`, `try`,
-`sino`, `falla`, `struct`, `enum`, `match`, `externo`, `lista`, `mapa`, y
+`for`, `en`, `break`, `continue`, `return`, `true`, `false`, `use`, `try`,
+`sino`, `fail`, `struct`, `enum`, `match`, `externo`, `list`, `map`, y
 los tipos `str`, `view`, `bool`, `u8`, `u16`, `u32`, `u64`, `usize`, `i8`,
 `i16`, `i32`, `i64`, `f32` y `f64`. `como`, `bloque`, `cadena_c` y `_` no lo
 son: son nombres con significado en su sitio, y fuera de él se pueden usar.
 
-**Reservadas de antemano**: `protocolo`, `implementa`, `extiende`, `ancla` y
-`soltar`. Todavía no significan nada, pero ya no valen como nombre: se
+**Reservadas de antemano**: `protocol`, `implements`, `extends`, `anchor` y
+`drop`. Todavía no significan nada, pero ya no valen como nombre: se
 reservan para poder añadir anclajes en 1.x sin romper programas después.
 Usarlas como nombre es un error de sintaxis, como cualquier otra reservada.
 
@@ -752,12 +752,12 @@ caracteres `-> == != <= >= && || << >> .. +? -? *? /?`. El más largo gana:
 `X?` es opcional, `X*` cero o más, `X+` una o más. Las palabras entre
 comillas son literales. `NOMBRE` es un nombre; `CADENA`, `ENTERO`,
 `DECIMAL` e `INTERPOLADA`, los literales de arriba. `ALIAS` es un nombre
-dado con `usar ... como`; `STRUCT`, `ENUM` y `PARAM_T`, nombres declarados
+dado con `use ... como`; `STRUCT`, `ENUM` y `PARAM_T`, nombres declarados
 como struct, enum o parámetro de tipo de la función en curso.
 
 ```
 programa    := usar* declaracion*
-usar        := "usar" CADENA ("como" NOMBRE)? ";"
+usar        := "use" CADENA ("como" NOMBRE)? ";"
 declaracion := struct | enum | externo | funcion
 
 struct      := "struct" NOMBRE params_tipo? "{" (campo ("," campo)* ","?)? "}"
@@ -790,7 +790,7 @@ sentencia   := ("let" | "var") NOMBRE (":" tipo)? "=" expr ";"
              | "for" NOMBRE ("," NOMBRE)? "en" expr (".." expr)? bloque
              | "break" ";" | "continue" ";"
              | "return" expr? ";"
-             | "falla" CADENA ";"
+             | "fail" CADENA ";"
              | match
              | lugar "=" expr ";"
              | expr ";"
@@ -851,20 +851,20 @@ Lo que la gramática sola no dice:
   declarado; si no, `Nombre {` es un nombre seguido de un bloque.
 - **A la izquierda de `=`** sólo puede ir un `lugar`: una variable, un campo
   o un elemento.
-- **Los `usar`** van todos al principio del archivo.
+- **Los `use`** van todos al principio del archivo.
 
 Este programa usa cada producción. La suite lo compila y lo corre bajo
 AddressSanitizer: si la gramática deja de describir el lenguaje, se nota.
 
 ```tcode muestra
-usar "std/texto" como t;
+use "std/texto" como t;
 
 /* Un comentario de bloque. */
 externo "math.h" { fn sqrt(x: f64) -> f64; }
 
 struct Par<A, B> { a: A, b: B, }
 enum Forma { Punto, Circulo(f64), Rect(i64, i64), }
-enum Arbol { Hoja(i64), Nodo(lista<Arbol>) }
+enum Arbol { Hoja(i64), Nodo(list<Arbol>) }
 
 fn mayor<T: ordenable>(x: T, y: T) -> T {
     if menor(x, y) { return y; } else { return x; }
@@ -890,7 +890,7 @@ fn suma(a: &Arbol) -> i64 {
 }
 
 fn mitad(n: usize) -> usize ! {
-    if n % 2 != 0 { falla "impar"; }
+    if n % 2 != 0 { fail "impar"; }
     return n / 2;
 }
 
@@ -909,11 +909,11 @@ fn main() -> usize ! {
     let grande = 1_000 + (300 como? u8 como usize);
     let exponente: f64 = 1.5e2 /? 2.0;
     let resta: u8 = 0 -? 1;
-    var xs: lista<usize> = [3, 1, 2];
+    var xs: list<usize> = [3, 1, 2];
     xs.anadir(4);
     ordenar(xs);
     let arr: [u8; 3] = [1, 2, 3];
-    var m: mapa<str, usize> = [];
+    var m: map<str, usize> = [];
     poner(m, "k", xs[0]);
     let k = obtener(m, "k") sino 0;
     let cuadrado = fn[k](x: usize) -> usize { return x * x + k; };
@@ -964,7 +964,7 @@ le corresponde.
 | `igual(a: view, b: view) -> bool` | `sv_equals` | solo lee |
 | `rebanar(v: view, a, b) -> view` | `sv_slice`, con límites comprobados | hereda el préstamo de `v` |
 | `imprimir(x)` | `fwrite` / `printf` | solo lee |
-| `anadir(xs: mut lista<T>, x: T)` | `realloc` + asignación comprobada | **muta** `xs`, mueve `x` si es dueño |
+| `anadir(xs: mut list<T>, x: T)` | `realloc` + asignación comprobada | **muta** `xs`, mueve `x` si es dueño |
 | `leer_archivo(ruta: view) -> str !` | `fopen` / `fread` / `fclose` | crea un dueño; el fallo es explícito |
 | `leer_parte_archivo(ruta: view, desde, cuantos) -> str !` | `fseek` / `fread` / `fclose` | crea un dueño de tamaño acotado; vacío indica fin |
 | `byte(texto: view, i) -> usize` | acceso con límite comprobado | solo lee |
@@ -980,7 +980,7 @@ mi.t:3: rebanar(2, 9) fuera de rango (el texto tiene 4 bytes)
 
 ### Índice de funciones internas
 
-Todas las que trae el lenguaje, sin `usar` nada. Las que **fallan** van con
+Todas las que trae el lenguaje, sin `use` nada. Las que **fallan** van con
 `try` o `sino`, como cualquier función `!`. El detalle de cada una está en la
 sección que se nombra.
 
@@ -999,19 +999,19 @@ sección que se nombra.
 | `menor(a, b) -> bool` |  | orden de dos valores sin partes; los textos, byte a byte | `igual` y `menor` sobre cualquier tipo sin partes |
 | `imprimir(x)` |  | a la salida | 11. Salida, escritura y orden |
 | `imprimir_error(x)` |  | a la salida de error | 11. Salida, escritura y orden |
-| `anadir(xs: mut lista<T>, x: T)` |  | añade al final; mueve `x` si tiene dueño | Listas dinámicas |
-| `truncar(xs: mut lista<T>, n: usize)` |  | recorta a `n`; lo que sobra se libera antes de soltar | Listas dinámicas |
-| `ordenar(xs: mut lista<T>)` |  | ordena en el sitio: `usize`, `i64`, `bool` o `str` | 12. Recorridos |
+| `anadir(xs: mut list<T>, x: T)` |  | añade al final; mueve `x` si tiene dueño | Listas dinámicas |
+| `truncar(xs: mut list<T>, n: usize)` |  | recorta a `n`; lo que sobra se libera antes de soltar | Listas dinámicas |
+| `ordenar(xs: mut list<T>)` |  | ordena en el sitio: `usize`, `i64`, `bool` o `str` | 12. Recorridos |
 | `copiar(x: &T) -> T` |  | copia profunda de cualquier valor | `copiar`: copia profunda, explícita, sin anotar nada |
 | `reservar(n: usize) -> bloque<T>` |  | `n` ranuras, todas a ceros | Memoria propia: `bloque<T>`, `reservar` e `intercambiar` |
 | `redimensionar(b: mut bloque<T>, n: usize)` |  | cambia el tamaño; lo nuevo, a ceros | Memoria propia: `bloque<T>`, `reservar` e `intercambiar` |
 | `intercambiar(sitio, valor: T) -> T` |  | deja `valor` en `sitio` y devuelve lo que había | `intercambiar` |
-| `poner(m: mut mapa<K, V>, clave, valor)` |  | inserta o reemplaza | 10. Mapas y argumentos |
+| `poner(m: mut map<K, V>, clave, valor)` |  | inserta o reemplaza | 10. Mapas y argumentos |
 | `obtener(m, clave) -> V` | sí | una copia, una `view` o un `&V`, según `V` | 10. Mapas y argumentos |
-| `obtener_mut(m: mut mapa<K, V>, clave) -> &mut V` | sí | presta para modificar lo guardado | `&mut T`: préstamos que sí escriben |
+| `obtener_mut(m: mut map<K, V>, clave) -> &mut V` | sí | presta para modificar lo guardado | `&mut T`: préstamos que sí escriben |
 | `tiene(m, clave) -> bool` |  | si la clave está | 10. Mapas y argumentos |
-| `quitar(m: mut mapa<K, V>, clave) -> bool` |  | borra; dice si había algo | Borrado en los mapas |
-| `claves(m) -> lista<K>` |  | copias de las claves | 10. Mapas y argumentos |
+| `quitar(m: mut map<K, V>, clave) -> bool` |  | borra; dice si había algo | Borrado en los mapas |
+| `claves(m) -> list<K>` |  | copias de las claves | 10. Mapas y argumentos |
 | `raiz(x), piso(x), techo(x), redondear(x)` |  | de `f32` o `f64`, en su tipo; `redondear` lleva el `.5` lejos de cero | Lo que trae `std` |
 | `absoluto(x)` |  | de un entero con signo; el del mínimo para el programa | Lo que trae `std` |
 | `n_argumentos() -> usize` |  | cuántos argumentos, el programa incluido | Argumentos de la línea de órdenes |
@@ -1029,20 +1029,20 @@ sección que se nombra.
 
 ### 10. Mapas y argumentos
 
-`mapa<K, V>` es una tabla hash dueña de sus claves:
+`map<K, V>` es una tabla hash dueña de sus claves:
 
 ```tcode
-var cuenta: mapa<str, usize> = [];
+var cuenta: map<str, usize> = [];
 poner(cuenta, "hola", 1);
 let n: usize = obtener(cuenta, "hola") sino 0;
 ```
 
 | operación | qué hace |
 |---|---|
-| `poner(m: mut mapa<K,V>, clave, valor)` | inserta o reemplaza; el mapa **copia** la clave |
+| `poner(m: mut map<K,V>, clave, valor)` | inserta o reemplaza; el mapa **copia** la clave |
 | `obtener(m, clave) -> V !` | falible: una clave ausente no es un caso especial, es un fallo |
 | `tiene(m, clave) -> bool` | sin construir el valor |
-| `claves(m) -> lista<K>` | copias, para poder recorrerlo |
+| `claves(m) -> list<K>` | copias, para poder recorrerlo |
 | `largo(m) -> usize` | cuántas entradas |
 | `obtener_mut(m, clave) -> &mut V !` | presta para modificar lo guardado (ver `&mut T`) |
 | `quitar(m, clave) -> bool` | borra, y dice si había algo (ver *Borrado en los mapas*) |
@@ -1067,7 +1067,7 @@ para un `str`, **una vista prestada del texto que ya vive dentro de la
 tabla**, así que no se saca al dueño ni se copia nada:
 
   ```tcode
-  var cfg: mapa<str, str> = [];
+  var cfg: map<str, str> = [];
   poner(cfg, "host", nuevo("localhost"));
   let h: view = obtener(cfg, "host") sino "(sin valor)";
   ```
@@ -1089,7 +1089,7 @@ tabla**, así que no se saca al dueño ni se copia nada:
   ```tcode
   struct Simbolo { tipo: str, mutable: bool, usos: usize }
 
-  var tabla: mapa<str, Simbolo> = [];
+  var tabla: map<str, Simbolo> = [];
   poner(tabla, "n", Simbolo { tipo: nuevo("usize"), mutable: false, usos: 3 });
   let s: &Simbolo = try obtener(tabla, "n");
   imprimir($"{s.tipo} usado {s.usos} veces");
@@ -1133,7 +1133,7 @@ Para el orden hay dos piezas:
 | | |
 |---|---|
 | `menor(a: view, b: view) -> bool` | orden lexicográfico sobre texto |
-| `ordenar(xs: mut lista<T>)` | ordena en el sitio |
+| `ordenar(xs: mut list<T>)` | ordena en el sitio |
 
 `ordenar` sólo funciona sobre `usize`, `i64`, `bool` y `str`, que son los
 tipos con un orden evidente. **Un struct no lo tiene**: cuál de sus campos
@@ -1142,7 +1142,7 @@ en vez de inventarse uno.
 
 ### Borrado en los mapas
 
-`quitar(m: mut mapa<K,V>, clave) -> bool` devuelve si había algo que quitar,
+`quitar(m: mut map<K,V>, clave) -> bool` devuelve si había algo que quitar,
 para poder distinguir *lo borré* de *no estaba* sin consultar antes.
 
 Por dentro cierra el hueco arrastrando hacia atrás las entradas del mismo
@@ -1159,7 +1159,7 @@ for x en xs {
 }
 ```
 
-Recorre una `lista<T>`, un arreglo o un `mapa<K, V>`. Sobre un mapa se
+Recorre una `list<T>`, un arreglo o un `map<K, V>`. Sobre un mapa se
 pueden pedir los dos:
 
 ```tcode
@@ -1286,7 +1286,7 @@ Las reglas son las de cualquier préstamo, y se comprueban igual:
   `ver(s)` le da el mismo puntero. Lo que atrapa un `match` es igual. Un
   `&mut T` también va a un parámetro `mut T`; un `&T`, no, y el error lo
   dice.
-- Un mapa guarda valores, no préstamos: `mapa<str, &T>` es un error.
+- Un mapa guarda valores, no préstamos: `map<str, &T>` es un error.
 
 En C sale como `const T*`, así que el propio compilador de C también
 impide escribir a través de él.
@@ -1336,14 +1336,14 @@ cualquier otra.
 | `std/texto` | `palabras`, `terminos`, `lineas`, `partir`, `unir`, `recortar`, `rellenar`, `alinear`, `minusculas`, `mayusculas`, `apariciones`, `repetir`, `reemplazar`, `empieza_con`, `termina_con`, `contiene`, `indice_de`, `a_entero` |
 | `std/iterador` | recorridos de una pasada: `para_cada`, `todas`, `alguna`, `primera_que`, `plegar`, `transformar` |
 | `std/archivo` | `por_partes` con memoria acotada y `partes_de_archivo` |
-| `std/lista` | `suma`, `maximo`, `minimo`, `media`, `invertir` sobre `lista<usize>`; `incluye`, `posicion`, `primeras`, `invertida` sobre `lista<str>` |
+| `std/lista` | `suma`, `maximo`, `minimo`, `media`, `invertir` sobre `list<usize>`; `incluye`, `posicion`, `primeras`, `invertida` sobre `list<str>` |
 | `std/numero` | `dividir`, `resto`, `porcentaje`, `menor_de`, `mayor_de`, `acotar` |
 | `std/cuenta` | `contar` y `mayores` — lo que en Python es `Counter` y `most_common` |
 | `std/mapa` | `acumular`, `obtener_o`, `claves_ordenadas`, `valores_ordenados`, `actualizar`, `completar`, `cuantas_claves` |
 | `std/conjunto` | `Conjunto` sobre un mapa: `union`, `interseccion`, `diferencia` |
 | `std/par` | `Par<A, B>`: dos valores juntos, para cuando uno no basta |
 | `std/bytes` | enteros en orden de red, `a_hex`, `de_hex` |
-| `std/vector` | `Vector<T>` sobre `bloque<T>`, con conversión a `lista<T>` |
+| `std/vector` | `Vector<T>` sobre `bloque<T>`, con conversión a `list<T>` |
 | `std/formato` | `con_decimales`, `con_millares`, tablas alineadas |
 | `std/prueba` | afirmaciones y resumen: probar Tcode desde Tcode |
 
@@ -1360,7 +1360,7 @@ es lo que cuesta no tener genéricos todavía, y se ve.
 Lo que gana el programa que las usa se ve mejor que se explica:
 
 ```tcode
-usar "std/cuenta";
+use "std/cuenta";
 
 fn main() -> usize ! {
     let texto = try leer_archivo(argumento(1));
@@ -1373,7 +1373,7 @@ fn main() -> usize ! {
 ```
 
 Eso mismo eran **107 líneas** antes de que existiera `std/`. En Python son 5.
-Las cuatro de diferencia son el `usar`, el `try` al leer el archivo, y que
+Las cuatro de diferencia son el `use`, el `try` al leer el archivo, y que
 `obtener` devuelve un fallo en vez de un cero disfrazado: es decir, justo lo
 que compra las garantías.
 
@@ -1385,8 +1385,8 @@ de `rellenar` antes de salir, no después.
 
 ## Genéricas
 
-Una función puede dejar tipos sin decidir: `fn primeras<T>(xs: &lista<T>,
-n: usize) -> lista<T>`. Dentro de la firma y del cuerpo, `T` es un tipo más.
+Una función puede dejar tipos sin decidir: `fn primeras<T>(xs: &list<T>,
+n: usize) -> list<T>`. Dentro de la firma y del cuerpo, `T` es un tipo más.
 
 No hay borrado de tipos ni casts escondidos: de cada genérica sale **una
 copia por cada juego de tipos con que se use**, y esa copia se comprueba
@@ -1394,8 +1394,8 @@ entera con los tipos ya puestos. Eso tiene una consecuencia que conviene ver
 antes de escribir la primera:
 
 ```tcode
-fn primeras<T>(xs: &lista<T>) -> lista<T> {
-    var salida: lista<T> = [];
+fn primeras<T>(xs: &list<T>) -> list<T> {
+    var salida: list<T> = [];
     for x en xs { anadir(salida, x); }
     return salida;
 }
@@ -1438,7 +1438,7 @@ elemento. Tampoco hay structs genéricos.
 ## `copiar`: copia profunda, explícita, sin anotar nada
 
 `copiar(x)` da una copia independiente de cualquier valor: un número, un
-`str`, un struct, una `lista<lista<str>>`, un `mapa<str, V>`. Tocar el
+`str`, un struct, una `list<list<str>>`, un `map<str, V>`. Tocar el
 original después no toca la copia.
 
 ```tcode
@@ -1477,8 +1477,8 @@ en la forma. Lo único que lo delata es que es una llamada y no una asignación.
 lo sea de verdad:
 
 ```tcode
-fn primeras<T>(xs: &lista<T>, cuantas: usize) -> lista<T> {
-    var salida: lista<T> = [];
+fn primeras<T>(xs: &list<T>, cuantas: usize) -> list<T> {
+    var salida: list<T> = [];
     var i = 0;
     for x en xs {
         if i == cuantas { break; }
@@ -1501,9 +1501,9 @@ restricciones.
 Lo que el cuerpo necesita del elemento va escrito en la firma:
 
 ```tcode
-fn suma<T: numero>(ns: &lista<T>) -> T
-fn incluye<T: igualable>(xs: &lista<T>, aguja: &T) -> bool
-fn maximo<T: ordenable>(xs: &lista<T>) -> T !
+fn suma<T: numero>(ns: &list<T>) -> T
+fn incluye<T: igualable>(xs: &list<T>, aguja: &T) -> bool
+fn maximo<T: ordenable>(xs: &list<T>) -> T !
 ```
 
 Hay cuatro, y son **conjuntos de tipos con nombre**:
@@ -1534,7 +1534,7 @@ traits: el cuerpo se comprueba con **cada tipo del conjunto**, también con los
 que nadie usa, y también si la genérica no se llama nunca.
 
 ```
-fn primera<T: igualable>(xs: &lista<T>) -> T { let t = xs[0]; return t; }
+fn primera<T: igualable>(xs: &list<T>) -> T { let t = xs[0]; return t; }
 
 error: f.t:1: no se puede sacar un elemento de una lista y dejar el hueco
               sin duenio. ...
@@ -1543,7 +1543,7 @@ error: f.t:1: no se puede sacar un elemento de una lista y dejar el hueco
 ```
 
 aunque el programa solo la use con `usize`. Se saltan los tipos que dejan la
-firma sin sentido —`T = view` sobre un `&lista<T>`: nadie podría llamarla
+firma sin sentido —`T = view` sobre un `&list<T>`: nadie podría llamarla
 así—. Un parámetro sin restricción no tiene conjunto: se prueba con los tipos
 con que se usó.
 
@@ -1552,7 +1552,7 @@ error:
 
 ```
 $ cat sin.t
-fn suma<T>(ns: &lista<T>) -> T { var t = ns[0]; return t; }
+fn suma<T>(ns: &list<T>) -> T { var t = ns[0]; return t; }
 
 error: sin.t:1: no se puede sacar un elemento de una lista y dejar el hueco
                 sin duenio. Si solo quieres leerlo, prestalo:
@@ -1563,7 +1563,7 @@ error: sin.t:1: no se puede sacar un elemento de una lista y dejar el hueco
 
 ```
 $ cat con.t
-fn suma<T: numero>(ns: &lista<T>) -> T { ... }
+fn suma<T: numero>(ns: &list<T>) -> T { ... }
 
 error: con.t:6: `suma` pide que `T` sea `numero`, y aqui `T` es `str`.
                 `numero` son: `f32`, `f64`, `i16`, `i32`, `i64`, `i8`,
@@ -1586,9 +1586,9 @@ eso no se decide en silencio por quien escribe el programa.
 ## Structs genéricos
 
 ```tcode
-struct Pila<T> { cosas: lista<T> }
+struct Pila<T> { cosas: list<T> }
 struct Par<A, B> { primero: A, segundo: B }
-struct Nodo<T> { valor: T, hijos: lista<Nodo<T>> }
+struct Nodo<T> { valor: T, hijos: list<Nodo<T>> }
 ```
 
 Igual que las funciones: una copia por cada juego de tipos, y cada copia es
@@ -1612,7 +1612,7 @@ reglas de propiedad que cualquier otro, y si `A` o `B` poseen memoria, el par
 la posee y se libera solo.
 
 Eso es lo que separa "un lenguaje con dos colecciones" de un lenguaje:
-`lista<T>` y `mapa<K, V>` siguen dentro del compilador, pero ya no hacen
+`list<T>` y `map<K, V>` siguen dentro del compilador, pero ya no hacen
 falta para escribir un contenedor.
 
 ## Enteros de ancho fijo, bits y bytes
@@ -1680,7 +1680,7 @@ Desplazar más que el ancho del tipo **detiene el programa** en vez de ser
 comportamiento indefinido, y desplazar un negativo a la izquierda se hace
 sobre los bits, no sobre el valor.
 
-Un efecto de todo esto: `lista<lista<str>>` acaba en dos `>` pegados, que el
+Un efecto de todo esto: `list<list<str>>` acaba en dos `>` pegados, que el
 lexer lee como `>>`. Donde toca cerrar un tipo, el token se parte en dos. Es
 lo mismo que hizo C++11 después de veinte años obligando a escribir `> >`
 con un espacio en medio.
@@ -1723,7 +1723,7 @@ escribe como su firma:
 ```tcode
 fn por_n(a: &Cosa, b: &Cosa) -> bool { return a.n < b.n; }
 
-fn ordenadas_por<T>(xs: &lista<T>, antes: fn(&T, &T) -> bool) -> lista<T>
+fn ordenadas_por<T>(xs: &list<T>, antes: fn(&T, &T) -> bool) -> list<T>
 ```
 
 Eso es un puntero a función: **coste cero, y no posee nada**, así que se
@@ -1931,7 +1931,7 @@ error: f.t:2: `v` es `view`, un prestamo: una clausura captura por valor, y
 Cada clausura tiene su propio tipo, así que quien la recibe es **genérico**:
 
 ```tcode
-fn filtradas<T, F>(xs: &lista<T>, cumple: F) -> lista<T>
+fn filtradas<T, F>(xs: &list<T>, cumple: F) -> list<T>
 ```
 
 Y ese mismo `F` acepta también una función con nombre, así que una sola
@@ -1990,7 +1990,7 @@ En `std/lista` lo usan `filtradas`, `cuantas_cumplen` y `ordenadas_por`.
 
 ## Memoria propia: `bloque<T>`, `reservar` e `intercambiar`
 
-`lista<T>` y `mapa<K, V>` los pone el compilador. Debajo de ellos no había
+`list<T>` y `map<K, V>` los pone el compilador. Debajo de ellos no había
 nada: no se podía escribir una colección propia en Tcode porque no había
 forma de reservar memoria. Ahora sí.
 
@@ -2033,7 +2033,7 @@ let viejo = intercambiar(xs[i], vacio());
 Pone un valor en un sitio y devuelve el que había. Es lo que permite **sacar
 algo de una colección sin dejar un hueco sin dueño**, que es justo lo que el
 compilador no dejaba hacer de ninguna otra forma. Con esto, dar la vuelta a
-una `lista<str>` en el sitio —imposible hasta ahora— son seis líneas.
+una `list<str>` en el sitio —imposible hasta ahora— son seis líneas.
 
 El sitio y cada índice que lo identifica se evalúan una sola vez. Mientras se
 calcula el reemplazo, el destino queda reservado: se puede leer o copiar, pero
@@ -2056,7 +2056,7 @@ Crece al doble, encoge cuando se lo pides, y libera lo que le sobra. Eso es
 lo que separa "un lenguaje con dos colecciones dentro del compilador" de uno
 en el que las colecciones se escriben en el propio lenguaje.
 
-`lista<T>` sigue siendo la que trae de serie, por ergonomía —literales `[]`,
+`list<T>` sigue siendo la que trae de serie, por ergonomía —literales `[]`,
 `for`, `anadir`— pero ya no es la única posible, que era el punto.
 
 ## Depurar: el C generado apunta al `.t`
@@ -2142,7 +2142,7 @@ enum Json {
     Verdad(bool),
     Numero(i64),
     Texto(str),
-    Lista(lista<Json>),
+    Lista(list<Json>),
 }
 
 fn escribir(v: &Json) -> str {
@@ -2329,7 +2329,7 @@ un `grep`.
 | `str` | sí, como `const char*` | no |
 | `cadena_c` | no | sí, Tcode copia |
 | nada (`()`) | — | sí |
-| `view`, `lista`, `mapa`, structs, enums | no | no |
+| `view`, `list`, `map`, structs, enums | no | no |
 
 Un **`str` entra como `const char*`** porque el runtime garantiza el `\0`
 final. Una **`view` no**: puede apuntar a la mitad de una cadena y no termina
@@ -2540,7 +2540,7 @@ Todo esto lo rechaza el compilador con un error que lo dice, en su línea.
 
 **Control**
 - Patrones sobre rangos en un `match`.
-- `try` o `sino` en la condición de un `while`, y un motivo de `falla` que
+- `try` o `sino` en la condición de un `while`, y un motivo de `fail` que
   no sea una cadena escrita.
 - Excepciones: un fallo es un valor, y se trata o se sube.
 

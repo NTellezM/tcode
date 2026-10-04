@@ -114,12 +114,12 @@ puntero colgante esperando a explotar. Aquí ni compila.
 La misma función, para lo que sea:
 
 ```tcode
-fn esta_vacia<T>(xs: &lista<T>) -> bool {
+fn esta_vacia<T>(xs: &list<T>) -> bool {
     return largo(xs) == 0;
 }
 
 fn main() {
-    var xs: lista<usize> = [];
+    var xs: list<usize> = [];
     xs.anadir(1);
     imprimir($"vacia: {esta_vacia(xs)}\n");   // false
 }
@@ -152,7 +152,7 @@ compilador te obliga a cubrir todas las variantes (o poner `_`).
 
 ```tcode
 fn dividir(a: usize, b: usize) -> usize ! {
-    if b == 0 { falla "division por cero"; }
+    if b == 0 { fail "division por cero"; }
     return a / b;
 }
 
@@ -170,7 +170,7 @@ deja subir el fallo al que llama (y solo se puede usar dentro de otra función
 
 - **`docs/ESPECIFICACION.md`** — la referencia completa (tipos, reglas de
   préstamo, restricciones).
-- **`std/`** — la biblioteca estándar: `texto`, `mapa`, `lista`, `caracter`,
+- **`std/`** — la biblioteca estándar: `texto`, `map`, `list`, `caracter`,
   `bytes`, `numero`, `par`, `iterador`… Es corta y se lee entera en una tarde.
 - **`programas/`** — programas reales y pequeños: `wc`, `calc`, `base64`,
   `buscar`, `ordenar`, `json`. Son el mejor curso avanzado.
