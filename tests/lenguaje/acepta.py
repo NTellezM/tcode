@@ -2548,6 +2548,317 @@ fn main() {
             imprimir($"{mira(p)}\\n");
         }''',
      "7\n"),
+
+    # ---- std/cola ----
+    ("std/cola: una FIFO por delante y una doble por los dos lados",
+     '''use "std/cola";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            var c: Cola<usize> = Cola { datos: [], cabeza: 0 };
+            afirmar(p, "la cola nace vacia", cola_vacia(c));
+            afirmar_igual_numero(p, "cuantos al principio", cuantos_en_cola(c), 0);
+
+            encolar(c, 5);
+            encolar(c, 1);
+            encolar(c, 9);
+            afirmar(p, "con tres no esta vacia", !cola_vacia(c));
+            afirmar_igual_numero(p, "cuantos con tres", cuantos_en_cola(c), 3);
+            afirmar_igual_numero(p, "el frente es el primero", frente(c) sino 0, 5);
+            afirmar_igual_numero(p, "sale en orden 1", desencolar(c) sino 0, 5);
+            afirmar_igual_numero(p, "sale en orden 2", desencolar(c) sino 0, 1);
+            afirmar_igual_numero(p, "cuantos tras dos", cuantos_en_cola(c), 1);
+            afirmar_igual_numero(p, "el frente ya es el otro", frente(c) sino 0, 9);
+
+            var i = 0;
+            while i < 100 {
+                encolar(c, i);
+                i = i + 1;
+            }
+            afirmar_igual_numero(p, "sale el 9 tras compactar", desencolar(c) sino 0, 9);
+            afirmar_igual_numero(p, "y luego el 0", desencolar(c) sino 0, 0);
+
+            var d: Doble<usize> = Doble { datos: [], cabeza: 0 };
+            afirmar(p, "la doble nace vacia", doble_vacia(d));
+            meter_detras(d, 2);
+            meter_detras(d, 3);
+            meter_delante(d, 1);
+            afirmar_igual_numero(p, "cuantos en la doble", cuantos_en_doble(d), 3);
+            afirmar_igual_numero(p, "primero de la doble", primero(d) sino 0, 1);
+            afirmar_igual_numero(p, "ultimo de la doble", ultimo(d) sino 0, 3);
+            afirmar_igual_numero(p, "saca por delante", sacar_delante(d) sino 0, 1);
+            afirmar_igual_numero(p, "saca por detras", sacar_detras(d) sino 0, 3);
+            afirmar_igual_numero(p, "queda el del medio", sacar_delante(d) sino 0, 2);
+            afirmar(p, "y ya esta vacia", doble_vacia(d));
+            return terminar(p);
+        }''',
+     "19 comprobaciones, todo bien\n"),
+
+    # ---- std/url ----
+    ("std/url: las ocho partes, el ida y vuelta y el escape",
+     '''use "std/url";
+        use "std/prueba";
+        fn main() -> usize ! {
+            var p = pruebas();
+            let u = analizar("https://usuario:secreta@ejemplo.com:8443/a/b?x=1&y=2#tope");
+            afirmar(p, "esquema", igual(u.esquema, "https"));
+            afirmar(p, "usuario", igual(u.usuario, "usuario"));
+            afirmar(p, "contrasena", igual(u.contrasena, "secreta"));
+            afirmar(p, "host", igual(u.host, "ejemplo.com"));
+            afirmar_igual_numero(p, "puerto", u.puerto como usize, 8443);
+            afirmar(p, "ruta", igual(u.ruta, "/a/b"));
+            afirmar(p, "consulta", igual(u.consulta, "x=1&y=2"));
+            afirmar(p, "fragmento", igual(u.fragmento, "tope"));
+            afirmar(p, "vuelve a juntarse", igual(construir(u), "https://usuario:secreta@ejemplo.com:8443/a/b?x=1&y=2#tope"));
+
+            let s = analizar("/solo/ruta");
+            afirmar(p, "sin esquema queda vacio", igual(s.esquema, ""));
+            afirmar(p, "sin host queda vacio", igual(s.host, ""));
+            afirmar(p, "una ruta suelta es ruta", igual(s.ruta, "/solo/ruta"));
+            afirmar_igual_numero(p, "sin puerto es cero", s.puerto como usize, 0);
+            afirmar(p, "mailto se rearma igual", igual(construir(analizar("mailto:a@b.c")), "mailto:a@b.c"));
+
+            afirmar(p, "codifica lo que no es seguro", igual(codificar_componente("a b/c"), "a%20b%2Fc"));
+            afirmar(p, "deja lo seguro quieto", igual(codificar_componente("Az-9._~"), "Az-9._~"));
+            afirmar(p, "decodifica el componente", igual(try decodificar_componente("a%20b%2Fc"), "a b/c"));
+            afirmar(p, "el mas es espacio en un formulario", igual(try decodificar_formulario("a+b"), "a b"));
+            afirmar(p, "pero no en una url", igual(try decodificar_componente("a+b"), "a+b"));
+
+            let ps = parametros("a=1&&b=2&c");
+            afirmar_igual_numero(p, "dos parametros con valor y uno sin el", largo(ps), 3);
+            afirmar(p, "el primero crudo", igual(ps[0].primero, "a") && igual(ps[0].segundo, "1"));
+            afirmar(p, "el tercero sin igual", igual(ps[2].primero, "c") && igual(ps[2].segundo, ""));
+            afirmar(p, "valor_de desescapa", igual(try valor_de("x=1&y=2", "y"), "2"));
+            afirmar(p, "el nombre tambien se desescapa", igual(try valor_de("a%20b=7", "a b"), "7"));
+            return terminar(p);
+        }''',
+     "24 comprobaciones, todo bien\n"),
+
+    # ---- std/sha256 ----
+    ("std/sha256: los vectores conocidos y el resumen por trozos",
+     '''use "std/sha256";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            afirmar(p, "el vacio", igual(resumen_hex(""), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+            afirmar(p, "abc", igual(resumen_hex("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
+            afirmar(p, "el bloque largo", igual(resumen_hex("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"), "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"));
+            afirmar_igual_numero(p, "resumen son 32 bytes", largo(resumen("abc")), 32);
+
+            var r = nuevo_resumen();
+            anadir_al_resumen(r, "ab");
+            anadir_al_resumen(r, "c");
+            afirmar(p, "por trozos da lo mismo", igual(terminar_resumen_hex(r), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
+            afirmar_igual_numero(p, "terminar_resumen son 32 bytes", largo(terminar_resumen(r)), 32);
+
+            afirmar(p, "hmac", igual(hmac_sha256("clave", "El veloz murcielago hindu comia feliz cardillo y kiwi."), "893db7db4e5e30a449671db13c265a82bf8e57a7c7da7d8054ca0adb3baf3ebf"));
+            return terminar(p);
+        }''',
+     "7 comprobaciones, todo bien\n"),
+
+    # ---- std/crc ----
+    ("std/crc: el vector de zlib y el encadenado por trozos",
+     '''use "std/crc";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            afirmar_igual_numero(p, "el vector de siempre", crc32("123456789") como usize, 3421780262);
+            afirmar_igual_numero(p, "el vacio es cero", crc32("") como usize, 0);
+            afirmar_igual_numero(p, "una sola letra", crc32("a") como usize, 3904355907);
+
+            var suma: u32 = 0;
+            suma = crc32_continuar(suma, "1234");
+            suma = crc32_continuar(suma, "56789");
+            afirmar_igual_numero(p, "por trozos da lo mismo", suma como usize, 3421780262);
+
+            suma = 0;
+            suma = crc32_continuar(suma, "");
+            suma = crc32_continuar(suma, "123456789");
+            afirmar_igual_numero(p, "un trozo vacio no cambia nada", suma como usize, 3421780262);
+            return terminar(p);
+        }''',
+     "5 comprobaciones, todo bien\n"),
+
+    # ---- std/compresion ----
+    ("std/compresion: adler32, ida y vuelta y flujos de fuera",
+     '''use "std/compresion";
+        use "std/bytes";
+        use "std/prueba";
+        fn main() -> usize ! {
+            var p = pruebas();
+            afirmar_igual_numero(p, "adler32 del vacio es 1", adler32("") como usize, 1);
+            afirmar_igual_numero(p, "adler32 de hola", adler32("hola") como usize, 69861797);
+
+            afirmar(p, "ida y vuelta por bloques guardados", igual(try inflar_zlib(deflar_guardado("hola mundo")), "hola mundo"));
+            afirmar(p, "el flujo guardado es un zlib de verdad", igual(a_hex(deflar_guardado("hola")), "7801010400fbff686f6c61042a01a5"));
+
+            let z = "\\x78\\x9c\\xcb\\xc8\\xcf\\x49\\x54\\xc8\\x18\\x25\\x46\\x89\\x51\\x62\\x38\\x13\\x00\\x0a\\xe5\\x61\\x30";
+            afirmar_igual_numero(p, "zlib de python mide 1000", largo(try inflar_zlib(z)), 1000);
+            afirmar(p, "y empieza como el original", igual(rebanar(try inflar_zlib(z), 0, 10), "hola hola "));
+
+            let d = "\\xcb\\xc8\\xcf\\x49\\x54\\xc8\\x18\\x25\\x46\\x89\\x51\\x62\\x38\\x13\\x00";
+            afirmar_igual_numero(p, "deflate crudo de python", largo(try inflar_deflate(d)), 1000);
+
+            let g = "\\x1f\\x8b\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x03\\xcb\\xc8\\xcf\\x49\\x54\\xc8\\x18\\x25\\x46\\x89\\x51\\x62\\x38\\x13\\x00\\x33\\xa2\\x50\\x64\\xe8\\x03\\x00\\x00";
+            afirmar_igual_numero(p, "gzip de python", largo(try inflar_gzip(g)), 1000);
+            return terminar(p);
+        }''',
+     "8 comprobaciones, todo bien\n"),
+
+    # ---- std/prioridad ----
+    ("std/prioridad: el monticulo devuelve el minimo primero",
+     '''use "std/prioridad";
+        use "std/lista";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            var c: Prioridad<usize> = Prioridad { datos: [] };
+            afirmar(p, "nace vacia", prioridad_vacia(c));
+            afirmar_igual_numero(p, "cuantos al principio", cuantos_en_prioridad(c), 0);
+
+            meter_con_prioridad(c, 5);
+            meter_con_prioridad(c, 1);
+            meter_con_prioridad(c, 9);
+            meter_con_prioridad(c, 3);
+            afirmar(p, "con cuatro no esta vacia", !prioridad_vacia(c));
+            afirmar_igual_numero(p, "cuantos con cuatro", cuantos_en_prioridad(c), 4);
+            afirmar_igual_numero(p, "el mas pequeno arriba", ver_el_primero(c) sino 0, 1);
+            afirmar_igual_numero(p, "y sigue estando tras mirarlo", ver_el_primero(c) sino 0, 1);
+            afirmar_igual_numero(p, "sale el 1", sacar_el_primero(c) sino 0, 1);
+            afirmar_igual_numero(p, "sale el 3", sacar_el_primero(c) sino 0, 3);
+            afirmar_igual_numero(p, "sale el 5", sacar_el_primero(c) sino 0, 5);
+            afirmar_igual_numero(p, "sale el 9", sacar_el_primero(c) sino 0, 9);
+            afirmar(p, "queda vacia", prioridad_vacia(c));
+
+            let muchos: list<usize> = [7, 2, 8, 1, 5, 3, 9, 0, 6, 4];
+            for x en muchos { meter_con_prioridad(c, x); }
+            afirmar_igual_numero(p, "diez dentro", cuantos_en_prioridad(c), 10);
+            var orden: list<usize> = [];
+            while !prioridad_vacia(c) {
+                anadir(orden, sacar_el_primero(c) sino 99);
+            }
+            afirmar_igual_numero(p, "salen ordenados, primero", orden[0], 0);
+            afirmar_igual_numero(p, "salen ordenados, ultimo", orden[9], 9);
+            afirmar_igual_numero(p, "suman lo mismo", suma(orden), 45);
+            return terminar(p);
+        }''',
+     "15 comprobaciones, todo bien\n"),
+
+    # ---- std/regex ----
+    ("std/regex: casar, buscar, capturar y reemplazar",
+     '''use "std/regex" como re;
+        use "std/prueba";
+        fn main() -> usize ! {
+            var p = pruebas();
+            let digitos = try re.compilar("[0-9]+");
+            afirmar(p, "el texto entero casa", re.casamenta(digitos, "123"));
+            afirmar(p, "pero no si sobra algo", !re.casamenta(digitos, "12a"));
+            afirmar(p, "casa en medio", re.busca(digitos, "a1b"));
+            afirmar(p, "y no si no hay cifras", !re.busca(digitos, "abc"));
+
+            let r = try re.buscar(digitos, "a12b");
+            afirmar_igual_numero(p, "donde empieza", r.desde, 1);
+            afirmar_igual_numero(p, "donde acaba", r.hasta, 3);
+            afirmar(p, "lo pillado", igual(rebanar("a12b", r.desde, r.hasta), "12"));
+
+            afirmar(p, "reemplaza la primera", igual(re.reemplazar(digitos, "a1b22c", "#"), "a#b22c"));
+            afirmar(p, "reemplaza todas", igual(re.reemplazar_todo(digitos, "a1b22c", "#"), "a#b#c"));
+
+            let trozos = re.partir(digitos, "a1b22c");
+            afirmar_igual_numero(p, "parte en tres", largo(trozos), 3);
+            afirmar(p, "trozo 0", igual(trozos[0], "a"));
+            afirmar(p, "trozo 1", igual(trozos[1], "b"));
+            afirmar(p, "trozo 2", igual(trozos[2], "c"));
+
+            let con_grupos = try re.compilar("(a+)(b+)");
+            let cs = try re.capturas(con_grupos, "xxaabbbzz");
+            afirmar_igual_numero(p, "tres capturas, con la entera", largo(cs), 3);
+            afirmar(p, "captura entera", igual(cs[0], "aabbb"));
+            afirmar(p, "captura 1", igual(cs[1], "aa"));
+            afirmar(p, "captura 2", igual(cs[2], "bbb"));
+            afirmar(p, "los grupos se reordenan", igual(re.reemplazar(con_grupos, "aabbb", "$2$1"), "bbbaa"));
+
+            let ancla = try re.compilar("^ab$");
+            afirmar(p, "ancla al texto entero", re.casamenta(ancla, "ab"));
+            afirmar(p, "y no a un trozo", !re.busca(ancla, "xab"));
+            return terminar(p);
+        }''',
+     "20 comprobaciones, todo bien\n"),
+
+    # ---- std/terminal ----
+    ("std/terminal: lo que se ve no son los bytes de escape",
+     '''use "std/terminal";
+        use "std/color";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+
+            afirmar(p, "subir dos lineas", igual(subir(2), "\\x1b[2A"));
+            afirmar(p, "a la columna 7", igual(a_columna(7), "\\x1b[7G"));
+            afirmar(p, "al principio de la linea", igual(a_inicio_de_linea(), "\\x1b[G"));
+            afirmar(p, "ocultar el cursor", igual(ocultar_cursor(), "\\x1b[?25l"));
+
+            let con_color = pintar("31", "hola");
+            afirmar_igual_numero(p, "los bytes son mas que las letras", largo(con_color), 13);
+            afirmar_igual_numero(p, "lo que se ve son cuatro columnas", ancho_visible(con_color), 4);
+            afirmar(p, "sin los codigos queda el texto", igual(sin_codigos(con_color), "hola"));
+            afirmar_igual_numero(p, "sin codigos tampoco hay columnas de mas", ancho_visible("camión"), 6);
+
+            afirmar(p, "la barra al 30%", igual(barra(3, 10, 10), "[###.......] 30%"));
+            afirmar(p, "la barra llena no se pasa", igual(barra(20, 10, 4), "[####] 100%"));
+            afirmar(p, "la barra a cero", igual(barra(0, 7, 3), "[...] 0%"));
+
+            afirmar(p, "el giro 0", igual(giro(0), "|"));
+            afirmar(p, "el giro 2", igual(giro(2), "-"));
+            afirmar(p, "el giro da la vuelta", igual(giro(5), "/"));
+
+            var lineas: list<str> = [];
+            anadir(lineas, pintar("31", "hola"));
+            anadir(lineas, nuevo("adios"));
+            let caja = marco(lineas);
+            afirmar_igual_numero(p, "el marco tiene cuatro filas", largo(caja), 4);
+            afirmar(p, "el borde de arriba", igual(caja[0], "+-------+"));
+            afirmar(p, "la fila con color se alinea por lo que se ve", igual(sin_codigos(caja[1]), "| hola  |"));
+            afirmar(p, "la fila corta", igual(caja[2], "| adios |"));
+            afirmar(p, "el borde de abajo", igual(caja[3], "+-------+"));
+            afirmar_igual_numero(p, "el marco mide lo que el borde", ancho_visible(caja[1]), 9);
+            return terminar(p);
+        }''',
+     "20 comprobaciones, todo bien\n"),
+
+    # ---- std/utf8 ----
+    ("std/utf8: los indices de cada caracter y su valor",
+     '''use "std/utf8";
+        use "std/prueba";
+        fn main() -> usize ! {
+            var p = pruebas();
+            let v = "aé€";
+            afirmar_igual_numero(p, "bytes del texto", largo(v), 6);
+            afirmar_igual_numero(p, "caracteres del texto", cuantos(v), 3);
+
+            let donde = indices(v);
+            afirmar_igual_numero(p, "cuantos indices", largo(donde), 3);
+            afirmar_igual_numero(p, "empieza en 0", donde[0], 0);
+            afirmar_igual_numero(p, "la e en 1", donde[1], 1);
+            afirmar_igual_numero(p, "el euro en 3", donde[2], 3);
+
+            afirmar_igual_numero(p, "caracter 0", try caracter(v, 0) como usize, 97);
+            afirmar_igual_numero(p, "caracter 1", try caracter(v, 1) como usize, 233);
+            afirmar_igual_numero(p, "caracter 3", try caracter(v, 3) como usize, 8364);
+            let fuera = caracter("a", 5) sino 0;
+            afirmar_igual_numero(p, "fuera de rango no hay caracter", fuera como usize, 0);
+
+            afirmar(p, "de_caracter vuelve", igual(try de_caracter(8364), "€"));
+            afirmar(p, "de_caracter de un ascii", igual(try de_caracter(97), "a"));
+
+            afirmar_igual_numero(p, "siguiente de 0", siguiente(v, 0), 1);
+            afirmar_igual_numero(p, "siguiente de 1", siguiente(v, 1), 3);
+            afirmar_igual_numero(p, "siguiente de 3", siguiente(v, 3), 6);
+            afirmar_igual_numero(p, "sobre un byte roto avanza uno", siguiente("a\\xffb", 1), 2);
+            return terminar(p);
+        }''',
+     "16 comprobaciones, todo bien\n"),
+
 ]
 
 
