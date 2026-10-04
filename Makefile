@@ -182,6 +182,7 @@ check:
 	@$(PY) tests/fuzz.py --repetir
 	@$(PY) tests/cifras.py --comprobar
 	@$(PY) tests/grafo.py --comprobar
+	@$(MAKE) --no-print-directory lint
 
 # Las secciones rapidas de la suite del lenguaje. Una sola se pide por su
 # nombre: `python3 tests/test_lenguaje.py ACEPTA`.
@@ -241,6 +242,12 @@ formato: tcodec
 # El codigo Python —el compilador de arranque y las suites— pasa `ruff` y
 # `mypy`, con lo que dice `pyproject.toml`.
 lint:
+	@command -v ruff >/dev/null 2>&1 || { \
+		echo "lint: falta ruff. Instalalo con:  pipx install ruff"; \
+		echo "      y ten ~/.local/bin en el PATH."; exit 1; }
+	@command -v mypy >/dev/null 2>&1 || { \
+		echo "lint: falta mypy. Instalalo con:  pipx install mypy"; \
+		echo "      y ten ~/.local/bin en el PATH."; exit 1; }
 	@ruff check
 	@mypy
 

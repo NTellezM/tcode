@@ -980,21 +980,50 @@ fn sitio(archivo: view, linea: usize) -> str {
     return $"{archivo}:{linea}";
 }
 
-// Donde se declaro un struct, un enum o una funcion con este nombre. Si no
-// aparece se dice el archivo principal: solo pasa si el nombre lo invento el
-// propio compilador.
-fn sitio_de_nombre(arboles: &list<P.Nodo>, modulos: &list<str>,
-    nombre: view) -> str {
+// Todos los sitios donde se declara un nombre, en el orden de los modulos.
+// Para un choque no basta el primero: hay que decir los dos, o quien lo lea
+// los busca a mano.
+fn sitios_de_nombre(arboles: &list<P.Nodo>, modulos: &list<str>,
+    nombre: view) -> list<str> {
+    var salida: list<str> = [];
     var i = 0;
     while i < arboles.largo() {
         for d en arboles[i].hijos {
             if d.clase == Clase.Fn || d.clase == Clase.Struct
             || d.clase == Clase.Enum {
-                if igual(d.texto, nombre) { return sitio(modulos[i], d.linea); }
+                if igual(d.texto, nombre) {
+                    let s = sitio(modulos[i], d.linea);
+                    if !esta_en(salida, s) { salida.anadir(s); }
+                }
             }
         }
         i = i + 1;
     }
+    return salida;
+}
+
+// "a.t:1 y b.t:2"; con mas, "a.t:1, b.t:2 y c.t:3".
+fn sitios_juntos(sitios: &list<str>) -> str {
+    var r = vacio();
+    var i = 0;
+    while i < sitios.largo() {
+        if i > 0 {
+            if i == sitios.largo() - 1 { r.empujar(" y "); }
+            else { r.empujar(", "); }
+        }
+        r.empujar(sitios[i]);
+        i = i + 1;
+    }
+    return r;
+}
+
+// Donde se declaro un struct, un enum o una funcion con este nombre. Si no
+// aparece se dice el archivo principal: solo pasa si el nombre lo invento el
+// propio compilador.
+fn sitio_de_nombre(arboles: &list<P.Nodo>, modulos: &list<str>,
+    nombre: view) -> str {
+    let sitios = sitios_de_nombre(arboles, modulos, nombre);
+    if sitios.largo() > 0 { return copiar(sitios[0]); }
     return sitio(modulos[0], 1);
 }
 
@@ -1002,6 +1031,14 @@ fn sitio_de_nombre(arboles: &list<P.Nodo>, modulos: &list<str>,
 // lo pidio: sin el no hay forma ni de esquivarlo ni de arreglarlo.
 fn rechazo(sitio_fallo: view, que: view) -> usize {
     imprimir_error($"error: {sitio_fallo}: tcodec {que}\n");
+    return 1;
+}
+
+// Un nombre de tipo que ya declaro otro modulo. Van los dos sitios: los
+// nombres de struct y enum son globales, asi que el arreglo es renombrar uno,
+// y para eso hay que saber cual y donde.
+fn rechazo_tipo_repetido(sitio_fallo: view, que: view, antes: view) -> usize {
+    imprimir_error($"error: {sitio_fallo}: {que} ya esta definido en {antes}: los nombres de struct y enum son globales entre modulos; ponle otro nombre a uno\n");
     return 1;
 }
 
@@ -3352,8 +3389,9 @@ fn ajustar_contextos(arboles: &list<P.Nodo>, modulos: &list<str>, raiz: view,
     }
     for g en claves(plantillas) {
         if tiene(global.repetidas, g) {
+            let sitios = sitios_de_nombre(arboles, modulos, g);
             let _r = rechazo(sitio_de_nombre(arboles, modulos, g),
-                "no admite una generica repetida entre modulos");
+                $"no admite una generica repetida entre modulos: `{g}` esta en {sitios_juntos(sitios)}");
             return false;
         }
     }
@@ -3447,8 +3485,11 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
     var st_campos: list<list<str>> = [];
     var st_tipos: list<list<str>> = [];
     var st_indice: map<str, usize> = [];
+    // Donde se declaro cada uno, para poder decir los dos modulos del choque.
+    var st_donde: map<str, str> = [];
     var stp_nombres: list<str> = [];
     var stp_indice: map<str, usize> = [];
+    var stp_donde: map<str, str> = [];
     var stp_params: list<list<str>> = [];
     var stp_campos: list<list<str>> = [];
     var stp_tipos: list<list<str>> = [];
@@ -3457,6 +3498,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
     var ext_protos: list<str> = [];
     var en_nombres: list<str> = [];
     var en_indice: map<str, usize> = [];
+    var en_donde: map<str, str> = [];
     var en_variantes: list<list<str>> = [];
     var en_lleva: list<list<str>> = [];
     var plantillas: map<str, usize> = [];
@@ -3501,8 +3543,9 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                 Clase.Struct -> {
                     if tiene_tipo_param(d) {
                         if tiene(stp_indice, d.texto) {
-                            let _r = rechazo(sitio(m, d.linea),
-                                "no admite un struct generico repetido entre modulos");
+                            let antes = obtener(stp_donde, d.texto) sino "";
+                            let _r = rechazo_tipo_repetido(sitio(m, d.linea),
+                                $"el struct generico `{d.texto}`", antes);
                             return programa_no_leido();
                         }
                         var tps: list<str> = [];
@@ -3517,6 +3560,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                             }
                         }
                         poner(stp_indice, vista(d.texto), stp_nombres.largo());
+                        poner(stp_donde, vista(d.texto), sitio(m, d.linea));
                         stp_nombres.anadir(nuevo(d.texto));
                         stp_params.anadir(tps);
                         stp_campos.anadir(cs);
@@ -3524,8 +3568,9 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                         continue;
                     }
                     if tiene(st_indice, d.texto) {
-                        let _r = rechazo(sitio(m, d.linea),
-                            "no admite un struct repetido entre modulos");
+                        let antes = obtener(st_donde, d.texto) sino "";
+                        let _r = rechazo_tipo_repetido(sitio(m, d.linea),
+                            $"el struct `{d.texto}`", antes);
                         return programa_no_leido();
                     }
                     var campos: list<str> = [];
@@ -3538,6 +3583,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                         }
                     }
                     poner(st_indice, vista(d.texto), st_nombres.largo());
+                    poner(st_donde, vista(d.texto), sitio(m, d.linea));
                     st_nombres.anadir(nuevo(d.texto));
                     st_campos.anadir(campos);
                     st_tipos.anadir(tipos_campo);
@@ -3565,8 +3611,12 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                 }
                 Clase.Enum -> {
                     if tiene(en_indice, d.texto) || tiene(st_indice, d.texto) {
-                        let _r = rechazo(sitio(m, d.linea),
-                            "no admite un enum repetido entre modulos");
+                        var antes = obtener(en_donde, d.texto) sino "";
+                        if antes.largo() == 0 {
+                            antes = obtener(st_donde, d.texto) sino "";
+                        }
+                        let _r = rechazo_tipo_repetido(sitio(m, d.linea),
+                            $"el enum `{d.texto}`", antes);
                         return programa_no_leido();
                     }
                     var vs: list<str> = [];
@@ -3591,6 +3641,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                         ls.anadir(junto);
                     }
                     poner(en_indice, vista(d.texto), en_nombres.largo());
+                    poner(en_donde, vista(d.texto), sitio(m, d.linea));
                     en_nombres.anadir(nuevo(d.texto));
                     en_variantes.anadir(vs);
                     en_lleva.anadir(ls);

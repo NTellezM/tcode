@@ -257,7 +257,7 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.981<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->22.032<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa).
 
 Y hace el último paso él solo: llama al compilador de C, enlaza lo que
@@ -284,7 +284,7 @@ igual
 ```
 
 El `tcodec` construido por sí mismo vuelve a escribir exactamente los mismos
-bytes (<!--c:punto_fijo_bytes-->6,38<!--/c--> MB), y el construido desde su propio C también, bajo
+bytes (<!--c:punto_fijo_bytes-->6,40<!--/c--> MB), y el construido desde su propio C también, bajo
 AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
 El compilador ya no necesita a Python para existir: se construye desde su
 semilla, que es el paso que dieron Go en la 1.5 y Rust con su primer `rustc`
@@ -503,7 +503,9 @@ make                # construye ./tcodec, el compilador, desde su semilla
 ./tcodec --version
 make check          # la suite completa
 make ejemplos       # compila y corre los ejemplos
-make lint           # ruff y mypy sobre el codigo Python (pip install ruff mypy)
+make lint           # ruff y mypy sobre el codigo Python
+#                    los instala `pipx install ruff mypy` (van a ~/.local/bin)
+#                    `make check` tambien los ejecuta, al final
 ```
 
 Tu primer programa:
@@ -778,7 +780,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1507 casos, 0 fallas
+1511 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 

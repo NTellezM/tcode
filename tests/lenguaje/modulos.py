@@ -195,6 +195,39 @@ MODULOS = [
                   ' let c: usize = a + b; }',
       "a.t": 'use "roto.t";\nfn main() -> usize { return 0; }'},
      "a.t", "roto.t:1", None),
+
+    # Los nombres de struct y enum son globales entre modulos: el choque tiene
+    # que decir los dos sitios, que si no hay que buscarlos a mano. Antes solo
+    # decia «no admite un struct repetido entre modulos», sin decir cuales.
+    ("dos modulos con el mismo struct dicen los dos sitios",
+     {"partes.t": 'struct Partes { n: usize }',
+      "a.t": 'use "partes.t";\n'
+             'struct Partes { m: i64 }\n'
+             'fn main() -> usize { return 0; }'},
+     "a.t", "a.t:2: el struct `Partes` ya esta definido en partes.t:1", None),
+
+    ("dos modulos con el mismo enum dicen los dos sitios",
+     {"color.t": 'enum Color { Rojo }',
+      "a.t": 'use "color.t";\n'
+             'enum Color { Azul }\n'
+             'fn main() -> usize { return 0; }'},
+     "a.t", "a.t:2: el enum `Color` ya esta definido en color.t:1", None),
+
+    ("dos modulos con el mismo struct generico dicen los dos sitios",
+     {"caja.t": 'struct Caja<T> { v: T }',
+      "a.t": 'use "caja.t";\n'
+             'struct Caja<T> { w: T }\n'
+             'fn main() -> usize { return 0; }'},
+     "a.t", "a.t:2: el struct generico `Caja` ya esta definido en caja.t:1", None),
+
+    # Dos genericas con el mismo nombre que no se ven entre si (cada modulo
+    # trae la otra con alias): el choque tambien las nombra a las dos.
+    ("dos modulos con la misma generica dicen los dos sitios",
+     {"base.t": 'fn id<T>(x: T) -> T { return x; }',
+      "mid.t": 'use "base.t" como B;\nfn id<T>(x: T) -> T { return x; }',
+      "a.t": 'use "mid.t";\nuse "base.t" como B;\n'
+             'fn main() -> usize { return 0; }'},
+     "a.t", "`id` esta en base.t:1 y mid.t:2", None),
 ]
 
 

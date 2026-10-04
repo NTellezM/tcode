@@ -569,6 +569,21 @@ Vale también para los tipos y las formas de un enum: `t.Caja`,
 `como` **no es palabra reservada**: sólo significa eso detrás de una ruta de
 `use`, así que sigue valiendo como nombre de variable.
 
+Con una excepción: los nombres de **struct y enum son globales**, como si
+todos los módulos vivieran en el mismo archivo. Dos módulos no pueden declarar
+el mismo `struct` ni el mismo `enum` —genérico o no—, y el error dice los dos
+sitios, con su línea:
+
+```
+error: a.t:2: el struct `Partes` ya esta definido en b.t:1: los nombres de
+              struct y enum son globales entre modulos; ponle otro nombre a uno
+```
+
+Así que un nombre de tipo se elige pensando en el programa entero, no en el
+módulo: `Valor`, `Partes` o `Nodo` a secas los quiere más de una biblioteca, y
+uno de los dos acaba renombrado (`ValorToml`, `PartesUrl`). Las funciones, en
+cambio, sí se resuelven por archivo y el cargador las renombra cuando chocan.
+
 #### Qué se tomó de dónde
 
 | lenguaje | cómo lo hace | qué nos llevamos |
