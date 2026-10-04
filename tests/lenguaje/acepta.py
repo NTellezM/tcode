@@ -1328,6 +1328,43 @@ fn main() {
         }''',
      "deadbeef02010100000000000000\n3735928559 513 72057594037927936 4 0\n"),
 
+    ("UTF-8 cuenta caracteres, no bytes",
+     '''use "std/utf8";
+        fn main() -> usize {
+            let v = "camión";
+            imprimir($"{largo(v)} {cuantos(v)} {ancho(v)}\\n");
+            imprimir($"[{trozo(v, 0, 3)}][{trozo(v, 4, 6)}][{trozo(v, 1, 1)}]\\n");
+            imprimir($"{valido(v)} {es_inicio(195)} {es_inicio(179)}\\n");
+        }''',
+     "7 6 6\n[cam][ón][]\ntrue true false\n"),
+
+    ("UTF-8: el euro y un emoji van y vuelven",
+     '''use "std/bytes";
+        use "std/utf8";
+        fn main() -> usize ! {
+            var s = vacio();
+            try codificar(s, 99);
+            try codificar(s, 233);
+            try codificar(s, 8364);
+            try codificar(s, 128512);
+            imprimir($"{largo(s)} {cuantos(s)} {ancho(s)}\\n");
+            imprimir($"{caracter_o(s, 0, 0)} {caracter_o(s, 1, 0)}");
+            imprimir($" {caracter_o(s, 3, 0)} {caracter_o(s, 6, 0)}\\n");
+            imprimir($"{a_hex(s)}\\n");
+        }''',
+     "10 4 5\n99 233 8364 128512\n63c3a9e282acf09f9880\n"),
+
+    ("UTF-8: lo que ocupa cada caracter",
+     '''use "std/utf8";
+        fn main() -> usize {
+            imprimir($"{ancho_de(97)} {ancho_de(233)} {ancho_de(8364)}\\n");
+            imprimir($"{ancho_de(128512)} {ancho_de(769)} {ancho_de(44032)}\\n");
+            imprimir($"[{recortar_a_ancho("camión", 4)}]");
+            imprimir($" [{recortar_a_ancho("日本語", 5)}]\\n");
+            imprimir($"{valido("a\\xffb")} {cuantos("a\\xffb")}\\n");
+        }''',
+     "1 1 1\n2 0 2\n[cami] [日本]\nfalse 3\n"),
+
     ("un contenedor propio, escrito en Tcode y no en el compilador",
      '''struct Pila<T> { cosas: list<T> }
 
