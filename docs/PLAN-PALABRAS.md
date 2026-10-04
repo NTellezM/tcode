@@ -1,0 +1,209 @@
+# Plan: devolver las palabras robadas
+
+## El criterio
+
+No es «pasar todo a inglés». Es esto:
+
+> El lenguaje tiene dos mitades, y las dos están bien donde están.
+>
+> - La **gramática** (`fn`, `if`, `for`, `let`, `return`) está en inglés: son
+>   palabras cortas, estructurales, que el ojo salta como salta las llaves, y
+>   que cualquier hispanohablante lee sin traducir. Además tienen la misma
+>   forma que en C y en Rust.
+> - El **vocabulario** (los nombres, el `std`) está en español: `es_blanco`,
+>   `largo`, `imprimir`, `contador_palabras`. Eso es lo que hace que el código
+>   se lea como una frase y no como una traducción.
+>
+> El problema no es la mezcla. El problema es que **seis palabras reservadas
+> roban palabras comunes del español**: no puedes llamar `mapa` a un mapa ni
+> `lista` a una lista. Eso es un impuesto que paga cada programa, para siempre.
+
+Así que se cambian **sólo las que roban**, y se queda todo lo demás — incluido
+lo que hace bello el código.
+
+## 1. Lo que se cambia
+
+### Las que roban una palabra que de verdad usas
+
+| español | inglés | tcode | pokered | total |
+|---|---|---:|---:|---:|
+| `lista` | `list` | 3.414 | 294 | 3.708 |
+| `mapa` | `map` | 1.142 | 225 | 1.367 |
+| `usar` | `use` | 402 | 614 | 1.016 |
+| `falla` | `fail` | 208 | 251 | 459 |
+| | | | | **6.550** |
+
+Las cuatro inglesas son términos técnicos que cualquier hispano lee de
+corrido, y a cambio se recuperan cuatro palabras del idioma. `list` y `map`
+son además las dos que más duelen: nombrar `lista` a una lista es lo más
+natural del mundo.
+
+### Las reservadas de antemano (gratis)
+
+`soltar`, `extiende`, `protocolo`, `implementa` y `ancla` están reservadas
+pero **no significan nada todavía** (la especificación lo dice: se guardan
+«para poder añadir anclajes en 1.x sin romper programas después»). Sólo están
+en la tabla del lexer: **renombrarlas no toca ni una línea de código**.
+
+| español | inglés |
+|---|---|
+| `soltar` | `drop` |
+| `extiende` | `extends` |
+| `protocolo` | `protocol` |
+| `implementa` | `implements` |
+| `ancla` | `anchor` |
+
+También roban palabras (`protocolo`, `soltar` son nombres plausibles), así que
+entran en el mismo criterio — y salen gratis.
+
+## 2. Lo que se queda
+
+| palabra | tcode | pokered | por qué se queda |
+|---|---:|---:|---|
+| `en` | 3.519 | 1.383 | `for i en 0..largo(texto)` es lo que mejor se lee, y casi nadie llama `en` a una variable |
+| `sino` | 614 | 185 | tampoco es nombre de nada: «lo que queda a la derecha de un sino» |
+| `como` | 867 | 1.695 | **no está reservada** (es contextual): no roba nada |
+| `externo` | 50 | 2 | es vocabulario —un concepto—, no pegamento |
+| todo el `std` | — | — | `imprimir`, `largo`, `es_letra`… es el encanto y no choca con nada |
+
+Con esto, el bucle más común del lenguaje queda intacto:
+
+```tcodec
+for i en 0..largo(texto) {
+    if !es_blanco(byte(texto, i)) {
+```
+
+Y lo que cambia queda en sitios que **no se leen como prosa**: una anotación de
+tipo (`xs: list<str>`), una directiva de cabecera (`use "std/texto"`).
+
+## 3. El transbordo (por qué hay fases)
+
+La cadena de construcción es:
+
+```
+bootstrap/tcodec.c  →  .cache/tcodec0  →  compila  ejemplos/compilador/tcodec.t  →  tcodec
+   (C congelado)        (etapa 0)                    (la fuente)
+```
+
+El compilador congelado **sólo conoce las palabras viejas**. Si se renombra la
+fuente de golpe, la etapa 0 no la sabe leer y no hay forma de arrancar. Por eso
+el renombrado va en **tres fases**, y cada una deja el punto fijo cerrado.
+
+### Fase A — el compilador entiende los dos idiomas
+
+Objetivo: que acepte las viejas **y** las nuevas, y que por dentro hable ya en
+las nuevas.
+
+1. **Lexer** (`ejemplos/lexer/lib/lexico.t`):
+   - `es_reservada` acepta las nuevas además de las viejas.
+   - El texto del token se **canoniza a la nueva** (`lista` → `"list"`), para
+     que el analizador tenga que conocer un solo idioma.
+   - Con `comentarios` (el formateador) se guarda lo escrito, como ya se hace
+     con los números: así `--formatear` no «traduce» nada por su cuenta.
+2. **Analizador** (`ejemplos/lexer/lib/sintaxis.t`): las comparaciones de
+   `lista`, `mapa`, `usar` y `falla` pasan al texto nuevo.
+   (`como` NO se toca: es `ident` contextual y se queda como está.)
+3. Las cinco reservadas de antemano: sólo la tabla del lexer.
+4. `make tcodec && make semilla` — la etapa 0 vieja compila la fuente nueva
+   (que sigue escrita con las palabras viejas, así que la lee), y la semilla
+   resultante ya entiende las dos.
+5. Verificar: `make check` en verde y el punto fijo.
+
+**Al acabar la fase A, nada cambia para quien escribe Tcode.**
+
+### Fase B — el barrido
+
+**NO puede ser un `sed` a lo bruto.** `lista`, `mapa`, `usar` y `falla` son
+palabras españolas corrientes y salen mucho en la prosa de los comentarios:
+
+| palabra | este repo | en comentarios | pokered | en comentarios |
+|---|---:|---:|---:|---:|
+| `lista` | 3.414 | 196 | 294 | 37 |
+| `mapa` | 1.142 | 117 | 225 | 170 |
+| `usar` | 402 | 71 | 614 | 7 |
+| `falla` | 208 | 27 | 251 | 15 |
+
+Un `sed 's/\blista\b/list/g'` convertiría «la lista de espera» en «la list de
+espera». La sustitución tiene que ser **consciente de los tokens**: sólo la
+palabra que el lexer marca como `palabra`, nunca la que va dentro de un
+comentario o de una cadena.
+
+La herramienta la tiene el propio proyecto: el lexer ya distingue las tres
+cosas. Dos caminos:
+
+- un programa corto que use `lexico.t`, recorra los tokens y reescriba sólo los
+  `palabra`; o
+- el formateador con la canonización de la fase A puesta **también** en modo
+  `comentarios`: reescribe las palabras y deja los comentarios intactos. Tiene
+  el inconveniente de que además reajusta los espacios, así que el diff sale
+  más grande.
+
+Los ficheros a barrer:
+
+1. `ejemplos/compilador/*.t` y `lib/*.t`
+2. `ejemplos/lexer/lib/*.t`
+3. `std/*.t`
+4. `tests/**/*.t` y los fragmentos de `tests/lenguaje/*.py`
+5. `docs/ESPECIFICACION.md`, `docs/GUIA.md`, `docs/AUDITORIA.md`
+6. Las gramáticas de editor: `contrib/lsp/vscode/syntaxes/tcode.tmLanguage.json`
+   y `contrib/linguist/tcode.tmLanguage.json`
+7. Los `.mut_fuzz_*.t` **no se tocan: se borran** (restos de las pruebas)
+
+Luego `make check` completo y `make semilla`, byte a byte.
+
+### Fase C — quitar las viejas
+
+1. Lexer: fuera las viejas de `es_reservada` y fuera la canonización.
+2. `make semilla` y verificar.
+3. A partir de aquí, `lista`/`mapa`/`usar`/`falla` vuelven a ser palabras
+   normales del idioma, y podrás escribir `var lista: list<str> = [];`.
+
+## 4. ¿Y `pokered-tcode`?
+
+Usa el compilador por ruta (`TCODEC ?= ../tcode/tcodec`), así que:
+
+| fase | ¿hay que tocar pokered? |
+|---|---|
+| **A** | **No.** Sigue compilando tal cual |
+| **B** | **No.** Nada suyo cambia |
+| **C** | **Sí**, o deja de compilar: ~1.400 sitios |
+
+Y hay una tercera salida: **no hacer la fase C**. Si el lexer se queda
+aceptando las dos, pokered no se toca nunca. El precio es que las palabras
+viejas quedan aceptadas para siempre.
+
+El renombrado de pokered es **puramente léxico**: el C generado sale idéntico y
+las pruebas contra la ROM (las trazas, los `fixtures` byte a byte) tienen que
+dar lo mismo. Aun así hay que **volver a correrlas**, que es la única garantía.
+
+**Ojo con la coordinación**: pokered tiene trabajo sin commitear ahora mismo
+(`lib/poke/audio.t`, el bloque D del audio). El renombrado hay que hacerlo
+**cuando esa rama esté cerrada**, no en paralelo, o se pisan.
+
+## 5. Verificación en cada fase
+
+- `make check` — la suite entera (0 fallas) y las cifras del README al día.
+- `make semilla` — el **punto fijo byte a byte**; es el seguro de que el
+  renombrado no cambió el significado de nada.
+- `make grafo` — los grafos y `docs/llamadas.md` al día.
+- `tests/lenguaje/especificacion.py` comprueba que **lo que dice la
+  especificación es lo que hace el compilador**: si se renombra el código y no
+  la spec, esa prueba falla — y es justo lo que queremos que pase.
+
+## 6. Riesgos
+
+| riesgo | cómo se cubre |
+|---|---|
+| La etapa 0 no lee la fuente nueva | Las fases A/B/C: nunca se renombra antes de que acepte las dos |
+| El `sed` destroza los comentarios | Barrido consciente de tokens (el lexer), no `sed` |
+| El formateador «traduce» el código | En la fase A se guarda lo escrito cuando `comentarios` está puesto |
+| La spec y el código se separan | `especificacion.py` lo detecta |
+| Colisión con identificadores | `list`/`map`/`use`/`fail` no se usan hoy como nombre (comprobado) |
+| Nombres que empiezan igual | El barrido va por palabra completa (`\blista\b`), no por prefijo |
+
+## 7. Orden recomendado
+
+1. Fase A, un commit. `make semilla` verde.
+2. Fase B, un commit. `make check` + `make semilla`.
+3. Fase C, un commit.
+4. `pokered-tcode`, cuando la rama del audio esté cerrada.
