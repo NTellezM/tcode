@@ -295,7 +295,7 @@ fn juntar(indices: &list<usize>, desde: usize, hasta: usize, toks: &list<Token>,
 
 // Formatea un archivo. Si no se puede leer como Tcode, `error` dice por que.
 fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
-    let todos = try tokens_de_todo(fuente, archivo, true, 1, error);
+    let todos = try tokens_de_todo(sin_bom(fuente), archivo, true, 1, error);
     var toks: list<Token> = [];
     for t en todos {
         if t.tipo != "fin" { toks.anadir(copiar(t)); }

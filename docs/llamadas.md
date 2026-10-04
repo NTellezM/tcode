@@ -804,6 +804,7 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 - `repr_texto` ← `tokens_de_todo` (lexico.t)
 - `sigue_nombre` ← `importar_en` (lexico.t), `tokens_de_todo` (lexico.t)
 - `simbolo_doble` ← `tokens_de_todo` (lexico.t)
+- `sin_bom` ← `tokens_de` (lexico.t)
 - `tokens_de` ← `analizar` (lexico.t)
 - `tokens_de_todo` ← `tokens_de` (lexico.t), `tokens_desde` (lexico.t)
 - `utf8_invalido` ← `tokens_de_todo` (lexico.t)

@@ -285,10 +285,24 @@ fn analizar(fuente: view) -> list<Token> ! {
     return try tokens_de(fuente, "<entrada>", error);
 }
 
+// La marca de orden de bytes —`U+FEFF`, `EF BB BF` en UTF-8— que muchos
+// editores escriben al guardar y que no se ve. Solo vale como primer
+// caracter del archivo: se quita de la vista antes de lexear, asi el primer
+// token queda en la linea 1 y en la columna que le toca, como si no
+// estuviera. En cualquier otro sitio sigue siendo un caracter inesperado, y
+// un segundo BOM detras del primero tambien.
+fn sin_bom(fuente: view) -> view {
+    if fuente.largo() >= 3 && byte(fuente, 0) == 239
+    && byte(fuente, 1) == 187 && byte(fuente, 2) == 191 {
+        return rebanar(fuente, 3, fuente.largo());
+    }
+    return fuente;
+}
+
 // Los tokens de un archivo. Si no se puede, `error` dice por que y donde,
 // con las mismas palabras que el lexer de Python.
 fn tokens_de(fuente: view, archivo: view, error: mut str) -> list<Token> ! {
-    return try tokens_de_todo(fuente, archivo, false, 1, error);
+    return try tokens_de_todo(sin_bom(fuente), archivo, false, 1, error);
 }
 
 // Lo mismo para un texto que empieza en la linea `linea`: el hueco de una

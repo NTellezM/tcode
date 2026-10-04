@@ -209,14 +209,14 @@ palabras reservadas y símbolos de uno y dos caracteres.
 <!--c:bloque:lexer-->
 ```
 $ ./ejemplos/lexer/lexer ejemplos/lexer/lib/lexico.t --contar
-ejemplos/lexer/lib/lexico.t: 4960 tokens
+ejemplos/lexer/lib/lexico.t: 5028 tokens
   cadena  100
-  entero  389
+  entero  397
   fin  1
-  ident  1297
+  ident  1313
   interpolada  16
-  palabra  598
-  simbolo  2559
+  palabra  604
+  simbolo  2597
 ```
 
 Es el primer programa grande del lenguaje y su primera prueba de fuego: usa
@@ -257,7 +257,7 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->22.152<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->22.166<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa).
 
 Y hace el último paso él solo: llama al compilador de C, enlaza lo que
@@ -284,7 +284,7 @@ igual
 ```
 
 El `tcodec` construido por sí mismo vuelve a escribir exactamente los mismos
-bytes (<!--c:punto_fijo_bytes-->6,46<!--/c--> MB), y el construido desde su propio C también, bajo
+bytes (<!--c:punto_fijo_bytes-->6,47<!--/c--> MB), y el construido desde su propio C también, bajo
 AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
 El compilador ya no necesita a Python para existir: se construye desde su
 semilla, que es el paso que dieron Go en la 1.5 y Rust con su primer `rustc`
@@ -780,7 +780,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1519 casos, 0 fallas
+1522 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 

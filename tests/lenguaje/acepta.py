@@ -3087,6 +3087,27 @@ fn main() {
         }''',
      "3 comprobaciones, todo bien\n"),
 
+    # ---- el texto del programa ----
+    #
+    # La marca de orden de bytes: `U+FEFF`, que muchos editores escriben al
+    # guardar y que no se ve. Vale solo como primer caracter del archivo, y
+    # el lexer la salta sin mover la linea ni la columna del primer token.
+    # `#importar` lo nota: la directiva solo vale al principio de la linea, y
+    # con el BOM por delante ya no lo estaria.
+    ("un fuente que empieza con la marca de orden de bytes",
+     '''\ufeff#importar "texto.t";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            let xs: list<str> = [nuevo("a"), nuevo("b")];
+            afirmar_igual_texto(p, "la directiva entra desde la primera linea",
+                unir(xs, ","), "a,b");
+            afirmar_igual_texto(p, "y el modulo trae lo suyo",
+                repetir("ab", 2), "abab");
+            return terminar(p);
+        }''',
+     "2 comprobaciones, todo bien\n"),
+
 ]
 
 

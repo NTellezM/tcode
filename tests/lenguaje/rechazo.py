@@ -82,6 +82,18 @@ RECHAZO = [
      'fn main() { let x = \u00b2; }',
      "caracter inesperado U+00B2"),
 
+    # La marca de orden de bytes solo vale como primer caracter del archivo.
+    # Al principio se salta, y el resto conserva sus lineas: el error de
+    # abajo esta en la 3, no en la 4. En medio, o repetida, sigue siendo un
+    # caracter inesperado.
+    ("un U+FEFF en medio del fichero no es legal",
+     '\ufefffn main() {\n    let x = 1;\n    let y = x\ufeff;\n}\n',
+     "p.t:3: caracter inesperado U+FEFF"),
+
+    ("solo se salta la primera marca de orden de bytes",
+     '\ufeff\ufefffn main() {}\n',
+     "p.t:1: caracter inesperado U+FEFF"),
+
     ("un numero pegado a una letra no ASCII",
      'fn main() { let x = 1\u00f1; }',
      "numero mal formado cerca de '1\u00f1'"),
