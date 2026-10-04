@@ -98,12 +98,21 @@ def mutar(fuente, semilla):
             dentro = [
                 f'{sangria}let t{n} = nuevo("hola");',
                 f'{sangria}let u{n} = nuevo("adios");',
+                f'{sangria}let c{n} = nuevo("caja");',
+                f'{sangria}let d{n} = nuevo("dentro");',
                 f'{sangria}let a{n}: list<str> = [t{n}];',
                 f'{sangria}let b{n}: list<str> = [nuevo("fijo"), u{n}];',
+                f'{sangria}let s{n} = S{n} {{ dentro: [c{n}] }};',
+                f'{sangria}let f{n} = fn[d{n}]() -> str {{ return copiar(d{n}); }};',
                 f'{sangria}imprimir(a{n}[0]);',
                 f'{sangria}imprimir(b{n}[1]);',
+                f'{sangria}imprimir(s{n}.dentro[0]);',
+                f'{sangria}imprimir(f{n}());',
             ]
-            return ("\n".join(lineas[:i + 1] + dentro + lineas[i + 1:]),
+            # El struct va al nivel de arriba, antes de la funcion donde se usa.
+            arriba = [f'struct S{n} {{ dentro: list<str> }}', '']
+            return ("\n".join(lineas[:i] + arriba + lineas[i:i + 1] + dentro
+                              + lineas[i + 1:]),
                     f"inyectado un literal con la variable t{n}")
         return fuente, "sin cambios"
 
