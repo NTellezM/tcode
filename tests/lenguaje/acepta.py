@@ -1387,6 +1387,69 @@ fn main() {
         }''',
      "hola\n"),
 
+    ("std/difuso: la distancia de edicion cuenta caracteres, no bytes",
+     '''use "std/difuso";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            afirmar_igual_numero(p, "casa y caza, una letra", distancia("casa", "caza"), 1);
+            afirmar_igual_numero(p, "un texto consigo mismo", distancia("igual", "igual"), 0);
+            afirmar_igual_numero(p, "contra el vacio son sus caracteres", distancia("", "abc"), 3);
+            afirmar_igual_numero(p, "los acentos no cuentan", distancia("camion", "camión"), 0);
+            afirmar_igual_numero(p, "el parecido de casa y caza", parecido("casa", "caza"), 75);
+            return terminar(p);
+        }''',
+     "5 comprobaciones, todo bien\n"),
+
+    ("std/grafo: camino mas corto, orden topologico y componentes",
+     '''use "std/grafo";
+        use "std/prueba";
+        fn main() -> usize ! {
+            var p = pruebas();
+            var g = nuevo_grafo();
+            poner_nodo(g, "a");
+            poner_nodo(g, "b");
+            poner_nodo(g, "c");
+            poner_nodo(g, "suelta");
+            poner_arista(g, "a", "b", 1);
+            poner_arista(g, "b", "c", 2);
+            afirmar_igual_numero(p, "alcanzables, sin el origen", largo(alcanzables(g, "a")), 2);
+            let c = try camino_mas_corto(g, "a", "c");
+            afirmar_igual_numero(p, "el camino lleva tres nodos", largo(c), 3);
+            afirmar(p, "y pasa por el de en medio", igual(c[1], "b"));
+            afirmar_igual_numero(p, "el orden, cuatro", largo(try orden_topologico(g)), 4);
+            afirmar_igual_numero(p, "hay dos componentes", largo(componentes(g)), 2);
+            afirmar(p, "hay arista de a a b", hay_arista(g, "a", "b"));
+            afirmar(p, "y no al reves", !hay_arista(g, "b", "a"));
+            return terminar(p);
+        }''',
+     "7 comprobaciones, todo bien\n"),
+
+    ("std/arbol: ordena, no duplica y sabe su forma",
+     '''use "std/arbol";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            var a: Arbol<usize> = Arbol { ramas: [], raiz: 0, cuantas: 0, libres: [] };
+            meter_en_arbol(a, 5);
+            meter_en_arbol(a, 1);
+            meter_en_arbol(a, 9);
+            meter_en_arbol(a, 5);
+            let xs = en_orden(a);
+            afirmar_igual_numero(p, "tres nodos, el repetido no entra", largo(xs), 3);
+            afirmar(p, "el primero es el menor", xs[0] == 1);
+            afirmar_igual_numero(p, "el del medio", xs[1], 5);
+            afirmar(p, "el ultimo es el mayor", xs[2] == 9);
+            afirmar_igual_numero(p, "cuantos", cuantos_en_arbol(a), 3);
+            afirmar_igual_numero(p, "altura", altura_del_arbol(a), 2);
+            afirmar_igual_numero(p, "minimo", minimo_del_arbol(a) sino 0, 1);
+            afirmar_igual_numero(p, "maximo", maximo_del_arbol(a) sino 0, 9);
+            afirmar(p, "esta el cinco", esta_en_arbol(a, 5));
+            afirmar(p, "no esta el siete", !esta_en_arbol(a, 7));
+            return terminar(p);
+        }''',
+     "10 comprobaciones, todo bien\n"),
+
     ("un contenedor propio, escrito en Tcode y no en el compilador",
      '''struct Pila<T> { cosas: list<T> }
 
