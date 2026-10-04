@@ -89,3 +89,6 @@ programas/*.c
 /dist/
 .aider*
 gmon.out
+
+# Los paquetes de npm, si se empaquetan en el arbol
+*.tgz

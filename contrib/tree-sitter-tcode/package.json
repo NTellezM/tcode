@@ -1,6 +1,6 @@
 {
   "name": "tree-sitter-tcode",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Gramática de Tcode para tree-sitter",
   "license": "MIT",
   "tree-sitter": [
