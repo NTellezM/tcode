@@ -70,6 +70,8 @@ jobs:
           path: .cache/herramientas
           key: herramientas-${{ runner.os }}-${{ github.sha }}
           restore-keys: herramientas-${{ runner.os }}-
+      - name: ruff y mypy
+        run: pip install ruff==0.15.8 mypy==1.19.1
       - name: make check
         run: make check
       # Razones, no segundos: Tcode / C en cada caso, y el compilador en
