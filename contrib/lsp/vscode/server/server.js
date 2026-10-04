@@ -299,6 +299,14 @@ function ficha_de_funcion(nombre, texto, desde, arbol) {
     return null;
 }
 
+// Las dos grafías de verdad de un módulo de la biblioteca, tal cual se
+// escriben: la ruta con `std/` dentro de un `use "`, y el fichero con su `.t`
+// dentro de un `#importar "` (docs/ESPECIFICACION.md). Un `std/x` suelto no se
+// escribe en ninguna parte: `#importar` ya implica `std/`.
+function grafias_de_modulo(nombre) {
+    return '`use "std/' + nombre + '"` o `#importar "' + nombre + '.t";`';
+}
+
 // La ficha de `nombre` dentro de un módulo, o `null` si no está. La firma tal
 // cual está en `std/*.t`, con sus tipos.
 function ficha_en_modulo(nombre, modulo) {
@@ -308,7 +316,7 @@ function ficha_en_modulo(nombre, modulo) {
         return {
             firma: firma,
             devuelve: devuelve,
-            que: 'std/' + modulo[0] + ' · ' + modulo[1],
+            que: grafias_de_modulo(modulo[0]) + ' · ' + modulo[1],
         };
     }
     return null;
@@ -794,7 +802,7 @@ function items_de_modulo(modulo, puestos) {
             label: etiqueta,
             kind: CompletionItemKind.Function,
             detail: devuelve ? '-> ' + devuelve : '',
-            documentation: 'std/' + modulo[0] + ' · ' + firma,
+            documentation: grafias_de_modulo(modulo[0]) + ' · ' + firma,
             insertText: clave + '(',
             filterText: clave,
         });
@@ -897,6 +905,10 @@ connection.onCompletion((params) => {
             let inserta;
             let etiqueta;
             let prefijo;
+            // Lo que se inserta es lo que hay que escribir en cada sitio, no
+            // una ruta interna: dentro de `use "` va la ruta con `std/`;
+            // dentro de `#importar "` el fichero con su `.t` y sin `std/`,
+            // que la directiva ya lo implica; con el `#` la directiva entera.
             if (en_use !== null) {
                 inserta = 'std/' + nombre;
                 etiqueta = inserta;
@@ -914,10 +926,10 @@ connection.onCompletion((params) => {
                 label: etiqueta,
                 kind: CompletionItemKind.Module,
                 detail: inserta,
-                documentation: que + '  (`#importar "' + nombre + '.t";` es `use "std/'
-                    + nombre + '";`)',
-                // El cliente filtra por lo que se reemplaza: que encajen la
-                // directiva, el fichero y la ruta de `std/`.
+                documentation: que + '  (' + grafias_de_modulo(nombre) + ')',
+                // El cliente filtra por lo que se reemplaza: aquí van las tres
+                // formas que se pueden teclear (`#módulo`, `módulo.t` y
+                // `std/módulo`); es el índice del filtro, no se inserta.
                 filterText: '#' + nombre + ' ' + nombre + '.t std/' + nombre,
                 textEdit: TextEdit.replace({
                     start: documento.positionAt(offset - prefijo.length),
