@@ -2,7 +2,7 @@
   "name": "tcode",
   "displayName": "Tcode",
   "description": "Soporte de lenguaje para Tcode: resaltado, completado (con la biblioteca estándar), diagnósticos, formato, ir a la definición y la firma de la función al pasar por encima",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publisher": "tcode",
   "license": "MIT",
   "engines": {

@@ -48,7 +48,7 @@ La extensión lleva dentro el servidor y el árbol de sintaxis
 `.vsix`:
 
 ```sh
-code --install-extension tcode-0.5.0.vsix
+code --install-extension tcode-0.5.1.vsix
 ```
 
 Recarga VS Code. Los archivos `.t` se resaltan solos y el LSP arranca si
