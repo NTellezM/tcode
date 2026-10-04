@@ -1,0 +1,23 @@
+# Lo que no hace falta dentro de la extensión.
+#
+# `vsce` ya deja fuera el `.git` y el `.vsix`; esto es lo demás.
+
+# Los mapas de fuentes: solo sirven para depurar el paquete empaquetado.
+**/*.map
+
+# El build de depuración de web-tree-sitter duplica el paquete (~2,8 MB) y
+# solo vale para diagnosticar problemas del árbol.
+node_modules/web-tree-sitter/debug/**
+
+# Las definiciones de tipos: el servidor es JavaScript y no compila TypeScript
+# en marcha, así que los `.d.ts` solo ocupan.
+**/*.d.ts
+
+# Las fuentes TypeScript de las dependencias, por lo mismo.
+node_modules/**/*.ts
+
+# Los ficheros de andamiaje de las dependencias.
+node_modules/**/.npmignore
+node_modules/**/.eslintrc*
+node_modules/**/tsconfig.json
+node_modules/**/package-lock.json
