@@ -24,7 +24,7 @@ ABORTA = [
      "rango vacio"),
 
     ("un cero en medio de un `str` no va a C cortado",
-     'usar "std/texto";'
+     'use "std/texto";'
      ' externo "string.h" { fn strlen(s: str) -> usize; }'
      ' fn main() -> usize { var s = nuevo("HO"); empujar_byte(s, 0);'
      ' empujar(s, "LA"); imprimir(strlen(s)); return 0; }',

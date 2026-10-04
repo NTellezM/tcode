@@ -31,7 +31,7 @@ RECHAZO = [
     # Un sitio prestado con `let x: &T = ...` no se modifica ni se mueve
     # mientras `x` se use; por un `&T` no se modifica nada.
     ("modificar la lista de la que se presto un elemento",
-     'struct N { s: str } fn main() { var l: lista<N> = []; '
+     'struct N { s: str } fn main() { var l: list<N> = []; '
      'anadir(l, N { s: nuevo("a") }); let x: &N = l[0]; '
      'anadir(l, N { s: nuevo("b") }); imprimir(largo(x.s)); }',
      "no se puede modificar `l`: esta prestada por `x`"),
@@ -48,7 +48,7 @@ RECHAZO = [
      'let w: &mut N = p; empujar(w.s, "z"); }',
      "`p` se declaro con `let` y no se puede modificar"),
     ("sacar un elemento sugiere prestarlo",
-     'struct N { s: str } fn main() { var l: lista<N> = []; '
+     'struct N { s: str } fn main() { var l: list<N> = []; '
      'anadir(l, N { s: nuevo("a") }); let x = l[0]; imprimir(largo(x.s)); }',
      "Si solo quieres leerlo, prestalo: `let x: &N = ...`"),
 
@@ -56,15 +56,15 @@ RECHAZO = [
     # de solo lectura no se pasa a una que modifica.
     ("pasar un `&T` a un parametro `mut`",
      'struct N { s: str } fn cambiar(x: mut N) { empujar(x.s, "!"); } '
-     'fn main() -> usize ! { var m: mapa<str, N> = []; '
+     'fn main() -> usize ! { var m: map<str, N> = []; '
      'poner(m, "a", N { s: nuevo("a") }); let r = try obtener(m, "a"); '
      'cambiar(r); return 0; }',
      "`r` es un prestamo de solo lectura (`&N`): para modificar lo que apunta "
      "hace falta `&mut N`"),
 
     ("anadir por un prestamo de solo lectura",
-     'fn main() -> usize ! { var m: mapa<str, lista<usize>> = []; '
-     'poner(m, "a", [3]); let l: &lista<usize> = try obtener(m, "a"); '
+     'fn main() -> usize ! { var m: map<str, list<usize>> = []; '
+     'poner(m, "a", [3]); let l: &list<usize> = try obtener(m, "a"); '
      'anadir(l, 2); return 0; }',
      "`l` es un prestamo de solo lectura"),
 
@@ -115,7 +115,7 @@ RECHAZO = [
      "`n` de `doble` es `usize` y recibio `str`"),
 
     ("con punto, modificar pide `var`",
-     'fn main() { let xs: lista<usize> = []; xs.anadir(1); }',
+     'fn main() { let xs: list<usize> = []; xs.anadir(1); }',
      "`xs` se declaro con `let` y no se puede modificar"),
 
     ("un texto no se compara con un numero",
@@ -150,8 +150,8 @@ RECHAZO = [
      "`==` no compara `P`, que tiene partes: compara las que te importen"),
 
     ("== no compara listas",
-     'fn main() { let x: lista<usize> = []; let y: lista<usize> = []; imprimir(x != y); }',
-     "`==` no compara `lista<usize>`, que tiene partes"),
+     'fn main() { let x: list<usize> = []; let y: list<usize> = []; imprimir(x != y); }',
+     "`==` no compara `list<usize>`, que tiene partes"),
 
     ("un rango va de un entero a otro",
      'fn main() { for i en 0.."a" { imprimir(i); } }',
@@ -269,7 +269,7 @@ RECHAZO = [
      "puede apuntar a la mitad de una cadena"),
 
     ("una coleccion no significa lo mismo en C",
-     'externo "x.h" { fn f(xs: lista<usize>) -> usize; } fn main() { }',
+     'externo "x.h" { fn f(xs: list<usize>) -> usize; } fn main() { }',
      "no significa lo mismo en C"),
 
     ("un struct tampoco",
@@ -398,8 +398,8 @@ RECHAZO = [
 
     # ---- una generica con restriccion vale para todo su conjunto ----
     ("el cuerpo de una generica se comprueba con todo lo que admite",
-     'fn primera<T: igualable>(xs: &lista<T>) -> T { let t = xs[0]; return t; }'
-     ' fn main() { var xs: lista<usize> = []; anadir(xs, 1);'
+     'fn primera<T: igualable>(xs: &list<T>) -> T { let t = xs[0]; return t; }'
+     ' fn main() { var xs: list<usize> = []; anadir(xs, 1);'
      ' imprimir(primera(xs)); }',
      "al comprobar `primera` con T = str: la restriccion lo admite"),
 
@@ -436,11 +436,11 @@ RECHAZO = [
      "esta prestada por `p` y `v`"),
 
     ("una lista no guarda structs que prestan",
-     _PALABRA + 'fn main() { var xs: lista<Palabra> = []; imprimir(largo(xs)); }',
+     _PALABRA + 'fn main() { var xs: list<Palabra> = []; imprimir(largo(xs)); }',
      "no es un tipo almacenable"),
 
     ("un mapa tampoco guarda vistas",
-     'fn main() { var m: mapa<str, view> = []; imprimir(largo(m)); }',
+     'fn main() { var m: map<str, view> = []; imprimir(largo(m)); }',
      "no es un tipo almacenable"),
 
     # Un `&T` dentro de un contenedor tampoco: no habria donde anotar cuanto
@@ -448,7 +448,7 @@ RECHAZO = [
     # arreglo y el bloque se colaban, y en un campo o en una firma se colaba
     # hasta el mapa.
     ("una lista no guarda prestamos con `&`",
-     'fn main() { var l: lista<&str> = []; imprimir(largo(l)); }',
+     'fn main() { var l: list<&str> = []; imprimir(largo(l)); }',
      "no es un tipo almacenable"),
 
     ("un bloque tampoco",
@@ -456,15 +456,15 @@ RECHAZO = [
      "no es un tipo almacenable"),
 
     ("ni un campo de struct",
-     'struct S { l: lista<&str> } fn main() { }',
-     "usa el tipo `lista<&str>`"),
+     'struct S { l: list<&str> } fn main() { }',
+     "usa el tipo `list<&str>`"),
 
     ("ni el valor de un mapa, dentro de un struct",
-     'struct S { m: mapa<str, &str> } fn main() { }',
-     "usa el tipo `mapa<str, &str>`"),
+     'struct S { m: map<str, &str> } fn main() { }',
+     "usa el tipo `map<str, &str>`"),
 
     ("ni el retorno de una funcion",
-     'fn g() -> lista<&str> { return []; } fn main() { imprimir(largo(g())); }',
+     'fn g() -> list<&str> { return []; } fn main() { imprimir(largo(g())); }',
      "que no se puede almacenar"),
 
     ("un enum no lleva vistas",
@@ -593,7 +593,7 @@ RECHAZO = [
      "trabaja sobre los bits de un entero"),
 
     ("una funcion falible no se puede pasar como valor",
-     'fn r(n: usize) -> usize ! { if n == 0 { falla "cero"; } return n; }'
+     'fn r(n: usize) -> usize ! { if n == 0 { fail "cero"; } return n; }'
      ' fn f(g: fn(usize) -> usize) -> usize { return g(1); }'
      ' fn main() -> usize { return f(r); }',
      "no puede: quitale el `!`"),
@@ -624,7 +624,7 @@ RECHAZO = [
 
     ("un literal de struct generico cuyos campos no dicen el tipo",
      'struct Par<A, B> { a: A, b: B }'
-     ' fn vacia<T>() -> lista<T> { var s: lista<T> = []; return s; }'
+     ' fn vacia<T>() -> list<T> { var s: list<T> = []; return s; }'
      ' fn main() -> usize { let p = Par { a: vacia(), b: 2 }; return 0; }',
      "Escribe el tipo en la declaracion"),
 
@@ -635,8 +635,8 @@ RECHAZO = [
      "toma 2 tipo(s) y se le dieron 1"),
 
     ("una restriccion falla en la llamada, no dentro del cuerpo",
-     'fn suma<T: numero>(ns: &lista<T>) -> T { var t: T = 0; return t; }'
-     ' fn main() -> usize { var ss: lista<str> = [];'
+     'fn suma<T: numero>(ns: &list<T>) -> T { var t: T = 0; return t; }'
+     ' fn main() -> usize { var ss: list<str> = [];'
      ' anadir(ss, nuevo("a")); imprimir(suma(ss)); return 0; }',
      "pide que `T` sea `numero`, y aqui `T` es `str`"),
 
@@ -658,7 +658,7 @@ RECHAZO = [
 
     # ---- genericas ----
     ("una generica sin argumentos que digan el tipo",
-     'fn vacia<T>() -> lista<T> { var s: lista<T> = []; return s; }'
+     'fn vacia<T>() -> list<T> { var s: list<T> = []; return s; }'
      ' fn main() -> usize { let x = vacia(); return 0; }',
      "no se puede deducir `T`"),
 
@@ -669,10 +669,10 @@ RECHAZO = [
      "ya quedo en `usize`"),
 
     ("el cuerpo de una generica se comprueba con los tipos puestos",
-     'fn primeras<T>(xs: &lista<T>) -> lista<T> {'
-     ' var salida: lista<T> = []; for x en xs { anadir(salida, x); }'
+     'fn primeras<T>(xs: &list<T>) -> list<T> {'
+     ' var salida: list<T> = []; for x en xs { anadir(salida, x); }'
      ' return salida; }'
-     ' fn main() -> usize { var ss: lista<str> = [];'
+     ' fn main() -> usize { var ss: list<str> = [];'
      ' anadir(ss, nuevo("a")); let d = primeras(ss); return 0; }',
      "al usar `primeras` con T = str"),
 
@@ -681,7 +681,7 @@ RECHAZO = [
      "se esperaba 'ident'"),
 
     ("`falla` con parentesis: el error dice como se escribe",
-     'fn f() -> usize ! { falla("roto"); }',
+     'fn f() -> usize ! { fail("roto"); }',
      "no lleva parentesis"),
 
     # ---- las cuatro clases de la auditoria de safestr.c ----
@@ -724,7 +724,7 @@ RECHAZO = [
 
     ("el elemento de un `for` sobre un temporal no sobrevive al bucle",
      'fn recortar(v: view) -> view { return rebanar(v, 0, largo(v)); }'
-     ' fn lineas(v: view) -> lista<str> { return [nuevo(v)]; }'
+     ' fn lineas(v: view) -> list<str> { return [nuevo(v)]; }'
      ' fn f(texto: view) -> view {'
      ' for linea en lineas(texto) { return recortar(linea); } return ""; }',
      "no se puede devolver una vista de `linea`"),
@@ -841,24 +841,24 @@ RECHAZO = [
      "no es un arreglo"),
 
     ("una lista no puede guardar vistas sin vidas utiles",
-     'fn f() { let xs: lista<view> = ["a"]; }',
+     'fn f() { let xs: list<view> = ["a"]; }',
      "no es un tipo almacenable"),
 
     ("anadir exige una lista mutable",
-     'fn f() { let xs: lista<usize> = []; anadir(xs, 1); }',
+     'fn f() { let xs: list<usize> = []; anadir(xs, 1); }',
      "se declaro con `let`"),
 
     ("anadir comprueba el tipo del elemento",
-     'fn f() { var xs: lista<usize> = []; anadir(xs, true); }',
+     'fn f() { var xs: list<usize> = []; anadir(xs, true); }',
      "la lista guarda `usize`"),
 
     ("sacar un duenio de una lista dejaria un hueco",
-     'fn f() { var xs: lista<str> = [nuevo("a")]; let s: str = xs[0]; }',
+     'fn f() { var xs: list<str> = [nuevo("a")]; let s: str = xs[0]; }',
      "no se puede sacar un elemento"),
 
     # ---- fallos ----
     ("ignorar que una llamada puede fallar",
-     'fn f() -> usize ! { falla "x"; }  fn g() -> usize { return f(); }',
+     'fn f() -> usize ! { fail "x"; }  fn g() -> usize { return f(); }',
      "puede fallar"),
 
     ("ignorar que leer un archivo puede fallar",
@@ -866,11 +866,11 @@ RECHAZO = [
      "puede fallar"),
 
     ("`try` en una funcion que no esta declarada con `!`",
-     'fn f() -> usize ! { falla "x"; }  fn g() -> usize { return try f(); }',
+     'fn f() -> usize ! { fail "x"; }  fn g() -> usize { return try f(); }',
      "no esta declarada con `!`"),
 
     ("`falla` en una funcion que no esta declarada con `!`",
-     'fn f() -> usize { falla "x"; }',
+     'fn f() -> usize { fail "x"; }',
      "no esta declarada con `!`"),
 
     ("`try` sobre algo que no puede fallar",
@@ -878,36 +878,36 @@ RECHAZO = [
      "va delante de una llamada"),
 
     ("el valor de `sino` tiene que ser del mismo tipo",
-     'fn f() -> usize ! { falla "x"; }  fn g() -> usize { return f() sino true; }',
+     'fn f() -> usize ! { fail "x"; }  fn g() -> usize { return f() sino true; }',
      "es `bool`"),
 
     ("`try` en la condicion de un while",
-     'fn f() -> usize ! { falla "x"; }'
+     'fn f() -> usize ! { fail "x"; }'
      ' fn g() -> usize ! { while try f() > 0 { } return 0; }',
      "se evaluaria una sola vez"),
 
     # ---- mapas ----
     ("la clave de un mapa tiene que ser `str`",
-     'fn f() { var m: mapa<usize, usize> = []; imprimir(largo(m)); }',
+     'fn f() { var m: map<usize, usize> = []; imprimir(largo(m)); }',
      "la clave de un mapa tiene que ser `str`"),
 
     ("un mapa guarda valores, no prestamos",
-     'struct S { a: str } fn f() { var m: mapa<str, &S> = []; imprimir(largo(m)); }',
+     'struct S { a: str } fn f() { var m: map<str, &S> = []; imprimir(largo(m)); }',
      "no puede ser ni clave ni valor"),
 
     ("`sino` no puede dar un prestamo por defecto",
-     'struct S { a: str } fn f() { var m: mapa<str, S> = [];'
+     'struct S { a: str } fn f() { var m: map<str, S> = [];'
      ' let s: &S = obtener(m, "x") sino S { a: vacio() }; imprimir(s.a); }',
      "no hay nada que prestar"),
 
     ("modificar un mapa con un `&T` suyo vivo",
-     'struct S { a: str } fn f() -> usize ! { var m: mapa<str, S> = [];'
+     'struct S { a: str } fn f() -> usize ! { var m: map<str, S> = [];'
      ' let s: &S = try obtener(m, "x"); poner(m, "z", S { a: nuevo("w") });'
      ' imprimir(s.a); return 0; }',
      "esta prestada por `s`"),
 
     ("devolver un `&T` de un mapa local",
-     'struct S { a: str } fn f() -> &S ! { var m: mapa<str, S> = [];'
+     'struct S { a: str } fn f() -> &S ! { var m: map<str, S> = [];'
      ' return try obtener(m, "x"); }',
      "muere al cerrar la funcion"),
 
@@ -916,47 +916,47 @@ RECHAZO = [
      "solo para leer"),
 
     ("`poner` con un `&mut` vivo",
-     'struct S { n: usize } fn f() -> usize ! { var m: mapa<str, S> = [];'
+     'struct S { n: usize } fn f() -> usize ! { var m: map<str, S> = [];'
      ' let s: &mut S = try obtener_mut(m, "k"); poner(m, "z", S { n: 1 });'
      ' s.n = 2; return 0; }',
      "esta prestada por `s`"),
 
     ("dos `&mut` del mismo mapa a la vez",
-     'struct S { n: usize } fn f() -> usize ! { var m: mapa<str, S> = [];'
+     'struct S { n: usize } fn f() -> usize ! { var m: map<str, S> = [];'
      ' let a: &mut S = try obtener_mut(m, "k");'
      ' let b: &mut S = try obtener_mut(m, "j"); a.n = 1; return 0; }',
      "esta prestada por `a`"),
 
     ("`obtener_mut` sobre un mapa inmutable",
-     'struct S { n: usize } fn f() -> usize ! { let m: mapa<str, S> = [];'
+     'struct S { n: usize } fn f() -> usize ! { let m: map<str, S> = [];'
      ' let s: &mut S = try obtener_mut(m, "k"); return 0; }',
      "se declaro con `let`"),
 
     ("de un prestamo no se saca un `str`",
      'struct S { a: str } fn f() -> usize ! {'
-     ' var m: mapa<str, S> = []; let r: &S = try obtener(m, "x");'
+     ' var m: map<str, S> = []; let r: &S = try obtener(m, "x");'
      ' let sacado: S = r; return 0; }',
      "pero el valor es `&S`"),
 
     ("un `&T` no se puede mover",
      'struct S { a: str } fn g(x: S) {} fn f() -> usize ! {'
-     ' var m: mapa<str, S> = []; let s: &S = try obtener(m, "x");'
+     ' var m: map<str, S> = []; let s: &S = try obtener(m, "x");'
      ' g(s); return 0; }',
      "recibio `&S`"),
 
     ("modificar un mapa con una vista de `obtener` viva",
-     'fn f() { var m: mapa<str, str> = [];'
+     'fn f() { var m: map<str, str> = [];'
      ' let v: view = obtener(m, "a") sino "?"; poner(m, "b", nuevo("y"));'
      ' imprimir(v); }',
      "esta prestada por `v`"),
 
     ("devolver la vista que presta un mapa local",
-     'fn f() -> view { var m: mapa<str, str> = [];'
+     'fn f() -> view { var m: map<str, str> = [];'
      ' return obtener(m, "a") sino "?"; }',
      "no se puede devolver una vista"),
 
     ("dentro de `{}` no cabe una coleccion",
-     'fn f() { var xs: lista<usize> = []; let m: str = $"{xs}"; imprimir(m); }',
+     'fn f() { var xs: list<usize> = []; let m: str = $"{xs}"; imprimir(m); }',
      "va un escalar o texto"),
 
     # `imprimir` y `{}` escriben numeros, `bool` y texto. Lo demas pasaba el
@@ -980,8 +980,8 @@ RECHAZO = [
      "va un escalar o texto, y `fn(usize) -> usize` no lo es"),
 
     ("imprimir no muestra una lista",
-     'fn main() { let xs: lista<usize> = [1]; imprimir(xs); }',
-     "`imprimir` no sabe mostrar un `lista<usize>`: muestra sus campos o elementos"),
+     'fn main() { let xs: list<usize> = [1]; imprimir(xs); }',
+     "`imprimir` no sabe mostrar un `list<usize>`: muestra sus campos o elementos"),
 
     ("imprimir no muestra un struct prestado",
      'struct P { a: usize }\nfn g(p: &P) { imprimir(p); }\n'
@@ -1000,36 +1000,36 @@ RECHAZO = [
      'fn f() { let m: str = $"hola {n"; imprimir(m); }',
      "falta `}` en algun hueco"),
     ("`obtener` puede fallar y hay que decirlo",
-     'fn f() { var m: mapa<str, usize> = []; imprimir(obtener(m, "x")); }',
+     'fn f() { var m: map<str, usize> = []; imprimir(obtener(m, "x")); }',
      "puede fallar"),
 
     ("poner sobre un `let`",
-     'fn f() { let m: mapa<str, usize> = []; poner(m, "a", 1); }',
+     'fn f() { let m: map<str, usize> = []; poner(m, "a", 1); }',
      "se declaro con `let`"),
 
     ("el valor tiene que ser del tipo del mapa",
-     'fn f() { var m: mapa<str, usize> = []; poner(m, "a", true); }',
+     'fn f() { var m: map<str, usize> = []; poner(m, "a", true); }',
      "se intento poner `bool`"),
 
     ("un mapa no admite literal con contenido",
-     'fn f() { var m: mapa<str, usize> = [1, 2]; imprimir(largo(m)); }',
+     'fn f() { var m: map<str, usize> = [1, 2]; imprimir(largo(m)); }',
      "se llena con `poner`"),
 
     # ---- orden y salida ----
     ("un struct no tiene orden natural",
-     'struct P { a: usize } fn f() { var xs: lista<P> = []; ordenar(xs); }',
+     'struct P { a: usize } fn f() { var xs: list<P> = []; ordenar(xs); }',
      "no tiene un orden natural"),
 
     ("`ordenar` necesita una lista",
      'fn f() { var s: str = nuevo("a"); ordenar(s); }',
-     "opera sobre `lista<T>`"),
+     "opera sobre `list<T>`"),
 
     ("`ordenar` sobre un `let`",
-     'fn f() { let xs: lista<usize> = []; ordenar(xs); }',
+     'fn f() { let xs: list<usize> = []; ordenar(xs); }',
      "se declaro con `let`"),
 
     ("`quitar` sobre un `let`",
-     'fn f() { let m: mapa<str, usize> = []; imprimir(quitar(m, "a")); }',
+     'fn f() { let m: map<str, usize> = []; imprimir(quitar(m, "a")); }',
      "se declaro con `let`"),
 
     ("`escribir_archivo` puede fallar y hay que decirlo",
@@ -1038,32 +1038,32 @@ RECHAZO = [
 
     # ---- recorridos ----
     ("modificar una coleccion mientras se recorre",
-     'fn f() { var xs: lista<usize> = []; for x en xs { anadir(xs, 1); } }',
+     'fn f() { var xs: list<usize> = []; for x en xs { anadir(xs, 1); } }',
      "esta prestada por `<el for"),
 
     ("mover el elemento que llego prestado",
-     'fn g(s: str) {} fn f() { var xs: lista<str> = []; for s en xs { g(s); } }',
+     'fn g(s: str) {} fn f() { var xs: list<str> = []; for s en xs { g(s); } }',
      "llego prestado"),
 
     ("modificar el elemento que llego prestado",
-     'fn f() { var xs: lista<str> = []; for s en xs { empujar(s, "x"); } }',
+     'fn f() { var xs: list<str> = []; for s en xs { empujar(s, "x"); } }',
      "solo para leer"),
 
     ("modificar un mapa mientras se recorre",
-     'fn f() { var m: mapa<str, usize> = []; for k, v en m { poner(m, "x", 1); } }',
+     'fn f() { var m: map<str, usize> = []; for k, v en m { poner(m, "x", 1); } }',
      "esta prestada por `<el for"),
 
     ("quitar de un mapa mientras se recorre",
-     'fn f() { var m: mapa<str, usize> = []; for k, v en m { quitar(m, "x"); } }',
+     'fn f() { var m: map<str, usize> = []; for k, v en m { quitar(m, "x"); } }',
      "esta prestada por `<el for"),
 
     ("mover una clave prestada por el recorrido",
-     'fn g(s: str) {} fn f() { var m: mapa<str, usize> = [];'
+     'fn g(s: str) {} fn f() { var m: map<str, usize> = [];'
      ' for k, v en m { g(k); } }',
      "llego prestado"),
 
     ("dos nombres solo valen para un mapa",
-     'fn f() { var xs: lista<usize> = []; for a, b en xs { imprimir(a); } }',
+     'fn f() { var xs: list<usize> = []; for a, b en xs { imprimir(a); } }',
      "son para un mapa"),
 
     ("`for` no recorre un texto",
@@ -1182,7 +1182,7 @@ RECHAZO = [
      "recibio `Q`"),
 
     ("redimensionar por &mut no invalida una vista viva",
-     'fn main() -> usize ! { var m: mapa<str, bloque<str>> = [];'
+     'fn main() -> usize ! { var m: map<str, bloque<str>> = [];'
      ' var b: bloque<str> = reservar(1); b[0] = nuevo("a");'
      ' poner(m, "x", b);'
      ' let p: &mut bloque<str> = try obtener_mut(m, "x");'
@@ -1196,7 +1196,7 @@ RECHAZO = [
      "esta reservada por `redimensionar` mientras se calcula el tamaño"),
 
     ("intercambiar por &mut no invalida una vista viva",
-     'fn main() -> usize ! { var m: mapa<str, bloque<str>> = [];'
+     'fn main() -> usize ! { var m: map<str, bloque<str>> = [];'
      ' var b: bloque<str> = reservar(1); b[0] = nuevo("a");'
      ' poner(m, "x", b);'
      ' let p: &mut bloque<str> = try obtener_mut(m, "x");'
@@ -1246,7 +1246,7 @@ RECHAZO = [
     ("dos elementos de una lista pueden ser el mismo",
      'struct P { a: str, b: str }'
      ' fn g(a: mut str, b: view) { empujar(a, "x"); imprimir(b); }'
-     ' fn main() { var v: lista<P> = []; g(v[0].a, vista(v[1].b)); }',
+     ' fn main() { var v: list<P> = []; g(v[0].a, vista(v[1].b)); }',
      "`v` se presta dos veces en la misma llamada a `g`"),
 
     ("un puntero a funcion mira los caminos igual",
@@ -1256,9 +1256,9 @@ RECHAZO = [
      "`p.a` se presta dos veces en la misma llamada a `f` (el argumento 1 y el argumento 2)"),
 
     ("un puntero a funcion no se salta los prestamos dobles",
-     'fn g(a: &mut lista<str>, b: &str) { anadir(a, nuevo("x")); imprimir(b); }'
-     ' fn main() { var xs: lista<str> = [nuevo("hola")];'
-     ' let f: fn(&mut lista<str>, &str) = g; f(xs, xs[0]); }',
+     'fn g(a: &mut list<str>, b: &str) { anadir(a, nuevo("x")); imprimir(b); }'
+     ' fn main() { var xs: list<str> = [nuevo("hola")];'
+     ' let f: fn(&mut list<str>, &str) = g; f(xs, xs[0]); }',
      "`xs` se presta dos veces en la misma llamada a `f`"),
 
     ("la vista que devuelve un puntero a funcion presta de su argumento",
@@ -1381,19 +1381,19 @@ RECHAZO = [
      ' imprimir(match e { E.A -> 300, E.B -> x }); }',
      "el literal `300` no cabe en `u8`"),
     ("`protocolo` no es un nombre",
-     'fn main() -> usize { let protocolo = 1; return 0; }',
+     'fn main() -> usize { let protocol = 1; return 0; }',
      "se esperaba 'ident'"),
     ("`implementa` no es un nombre",
-     'fn main() -> usize { let implementa = 1; return 0; }',
+     'fn main() -> usize { let implements = 1; return 0; }',
      "se esperaba 'ident'"),
     ("`extiende` no es un nombre",
-     'fn main() -> usize { let extiende = 1; return 0; }',
+     'fn main() -> usize { let extends = 1; return 0; }',
      "se esperaba 'ident'"),
     ("`ancla` no es un nombre",
-     'fn main() -> usize { let ancla = 1; return 0; }',
+     'fn main() -> usize { let anchor = 1; return 0; }',
      "se esperaba 'ident'"),
     ("`soltar` no es un nombre",
-     'fn main() -> usize { let soltar = 1; return 0; }',
+     'fn main() -> usize { let drop = 1; return 0; }',
      "se esperaba 'ident'"),
 ]
 

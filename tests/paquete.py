@@ -89,7 +89,7 @@ def probar(ruta, suma):
             fallas.append("el PATH de la prueba tiene Python")
         prefijo = os.path.join(tmp, "prefijo")
         with open(os.path.join(tmp, "hola.t"), "w", encoding="utf-8") as f:
-            f.write('usar "std/texto";\n'
+            f.write('use "std/texto";\n'
                     'fn main() { imprimir($"{mayusculas("hola")}\\n"); }\n')
         pasos = [
             (["make", "-s", "tcodec", "PY=false"], dentro),

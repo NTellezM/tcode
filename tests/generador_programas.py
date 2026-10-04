@@ -159,7 +159,7 @@ class Generador:
         if self.r.random() < 0.7:
             v = nombre("l")
             cuantos = self.r.randint(1, 8)
-            lineas.append(f"{s}var {v}: lista<usize> = [];")
+            lineas.append(f"{s}var {v}: list<usize> = [];")
             for _ in range(cuantos):
                 lineas.append(
                     f"{s}anadir({v}, {self.expr_usize(vars_usize)});")
@@ -185,7 +185,7 @@ class Generador:
         if self.r.random() < 0.5:
             v = nombre("ls")
             cuantos = self.r.randint(1, 5)
-            lineas.append(f"{s}var {v}: lista<str> = [];")
+            lineas.append(f"{s}var {v}: list<str> = [];")
             for _ in range(cuantos):
                 if self.r.random() < 0.5:
                     lineas.append(f'{s}anadir({v}, nuevo("{self.palabra()}"));')
@@ -213,7 +213,7 @@ class Generador:
         # porque ejercitan el reemplazo, que no reserva clave nueva.
         if self.r.random() < 0.6:
             v = nombre("mp")
-            lineas.append(f"{s}var {v}: mapa<str, usize> = [];")
+            lineas.append(f"{s}var {v}: map<str, usize> = [];")
             usadas = [self.palabra() for _ in range(self.r.randint(1, 6))]
             for k in usadas + [self.r.choice(usadas)]:
                 lineas.append(f'{s}poner({v}, "{k}", '
@@ -240,7 +240,7 @@ class Generador:
                 lineas.append(f"{s}for {ck} en {v} {{ imprimir(largo(vista({ck}))); }}")
 
             ks = nombre("ks")
-            lineas.append(f"{s}var {ks}: lista<str> = claves({v});")
+            lineas.append(f"{s}var {ks}: list<str> = claves({v});")
             lineas.append(f"{s}ordenar({ks});")
             lineas.append(f"{s}imprimir(largo({ks}));")
             if self.r.random() < 0.5:
@@ -347,7 +347,7 @@ class Generador:
         if self.structs and self.r.random() < 0.5:
             st = self.r.choice(self.structs)
             ms = nombre("ms")
-            lineas.append(f"{s}var {ms}: mapa<str, {st['nombre']}> = [];")
+            lineas.append(f"{s}var {ms}: map<str, {st['nombre']}> = [];")
             usadas_mapa = []
             for _ in range(self.r.randint(1, 3)):
                 campos = ", ".join(f"{c}: {self.expr_usize(vars_usize)}"
@@ -391,7 +391,7 @@ class Generador:
         # Mapa de textos: valor duenio, prestado al leerlo.
         if self.r.random() < 0.5:
             mt = nombre("mt")
-            lineas.append(f"{s}var {mt}: mapa<str, str> = [];")
+            lineas.append(f"{s}var {mt}: map<str, str> = [];")
             usadas_texto = []
             for _ in range(self.r.randint(1, 4)):
                 k = self.palabra()
@@ -496,7 +496,7 @@ class Generador:
         # una que puede fallar: prueba try y sino
         partes.append(
             "fn mitad(n: usize) -> usize ! {\n"
-            "    if n == 0 { falla \"cero\"; }\n"
+            "    if n == 0 { fail \"cero\"; }\n"
             "    return n / 2;\n"
             "}")
 
@@ -504,7 +504,7 @@ class Generador:
         # `sino` cuando la alternativa es duenia de su memoria.
         partes.append(
             "fn puede_fallar(n: usize) -> str ! {\n"
-            "    if n != 0 { falla \"pedido\"; }\n"
+            "    if n != 0 { fail \"pedido\"; }\n"
             "    return nuevo(\"logrado\");\n"
             "}")
 
@@ -524,16 +524,16 @@ class Generador:
             "}")
         partes.append(
             "fn envuelto_falible(n: usize) -> str ! {\n"
-            "    if n > 900 { falla \"grande\"; }\n"
+            "    if n > 900 { fail \"grande\"; }\n"
             "    let dentro = try puede_fallar(0);\n"
             "    return $\"<{copia(n)}|{dentro}>\";\n"
             "}")
         # Un struct generico, usado con un tipo que posee memoria y con uno
         # que no: la copia del struct se hace por cada juego de tipos, y
         # liberar la de `str` no se parece a liberar la de `usize`.
-        partes.append("struct Caja<T> { dentro: lista<T> }")
+        partes.append("struct Caja<T> { dentro: list<T> }")
         partes.append(
-            "fn en_caja<T>(xs: &lista<T>) -> Caja<T> {\n"
+            "fn en_caja<T>(xs: &list<T>) -> Caja<T> {\n"
             "    return Caja { dentro: copiar(xs) };\n"
             "}")
         partes.append(
@@ -551,7 +551,7 @@ class Generador:
             "    return a > b;\n"
             "}")
         partes.append(
-            "fn con_criterio_gen<F>(xs: &lista<usize>, antes: F) -> usize {\n"
+            "fn con_criterio_gen<F>(xs: &list<usize>, antes: F) -> usize {\n"
             "    var mejor = 0;\n"
             "    var i = 1;\n"
             "    while i < largo(xs) {\n"
@@ -561,13 +561,13 @@ class Generador:
             "    return mejor;\n"
             "}")
         partes.append(
-            "fn cuantas_cumplen<T, F>(xs: &lista<T>, cumple: F) -> usize {\n"
+            "fn cuantas_cumplen<T, F>(xs: &list<T>, cumple: F) -> usize {\n"
             "    var n = 0;\n"
             "    for x en xs { if cumple(x) { n = n + 1; } }\n"
             "    return n;\n"
             "}")
         partes.append(
-            "fn con_criterio(xs: &lista<usize>, antes: fn(&usize, &usize) -> bool)\n"
+            "fn con_criterio(xs: &list<usize>, antes: fn(&usize, &usize) -> bool)\n"
             "        -> usize {\n"
             "    var mejor = 0;\n"
             "    var i = 1;\n"
@@ -582,28 +582,28 @@ class Generador:
         # con un tipo que posee memoria y con uno que no, que es donde las
         # reglas de propiedad cambian de respuesta con el mismo cuerpo.
         partes.append(
-            "fn cuantas<T>(xs: &lista<T>) -> usize {\n"
+            "fn cuantas<T>(xs: &list<T>) -> usize {\n"
             "    return largo(xs);\n"
             "}")
         partes.append(
-            "fn sin_nada<T>(xs: &lista<T>) -> bool {\n"
+            "fn sin_nada<T>(xs: &list<T>) -> bool {\n"
             "    return cuantas(xs) == 0;\n"
             "}")
         # Con restriccion: el cuerpo suma y compara, y la firma lo declara.
         partes.append(
-            "fn total<T: numero>(ns: &lista<T>) -> T {\n"
+            "fn total<T: numero>(ns: &list<T>) -> T {\n"
             "    var t: T = 0;\n"
             "    for n en ns { t = t +? n; }\n"
             "    return t;\n"
             "}")
         partes.append(
-            "fn esta<T: igualable>(xs: &lista<T>, aguja: &T) -> bool {\n"
+            "fn esta<T: igualable>(xs: &list<T>, aguja: &T) -> bool {\n"
             "    for x en xs { if igual(x, aguja) { return true; } }\n"
             "    return false;\n"
             "}")
         partes.append(
-            "fn ultimo_sitio<T>(xs: &lista<T>) -> usize ! {\n"
-            "    if sin_nada(xs) { falla \"vacia\"; }\n"
+            "fn ultimo_sitio<T>(xs: &list<T>) -> usize ! {\n"
+            "    if sin_nada(xs) { fail \"vacia\"; }\n"
             "    return largo(xs) - 1;\n"
             "}")
 
@@ -629,9 +629,9 @@ class Generador:
             lineas.append(f"    imprimir(consumir({str_vivo}));")
         lineas.append(f"    imprimir(mitad({self.r.randint(1, 50)}) sino 0);")
         # La misma generica con `usize` y con `str`.
-        lineas.append("    var g_ns: lista<usize> = [];")
+        lineas.append("    var g_ns: list<usize> = [];")
         lineas.append(f"    anadir(g_ns, {self.r.randint(0, 99)});")
-        lineas.append("    var g_ss: lista<str> = [];")
+        lineas.append("    var g_ss: list<str> = [];")
         lineas.append(f'    anadir(g_ss, nuevo("{self.palabra()}"));')
         # Copia profunda: de una lista de textos, de una anidada y de un
         # escalar. Cada copia es memoria nueva que alguien tiene que soltar.
@@ -682,7 +682,7 @@ class Generador:
         lineas.append('    empujar(w_buf, "\\x00\\xff");')
         lineas.append("    imprimir(largo(w_buf));")
         lineas.append("    let g_copia = copiar(g_ss);")
-        lineas.append("    var g_hondo: lista<lista<str>> = [];")
+        lineas.append("    var g_hondo: list<list<str>> = [];")
         lineas.append("    anadir(g_hondo, copiar(g_ss));")
         lineas.append("    let g_hondo2 = copiar(g_hondo);")
         lineas.append("    imprimir(largo(g_copia));")
@@ -765,12 +765,12 @@ def generar_modulos(semilla):
     # Una generica declarada aqui y usada alla, con dos tipos distintos: la
     # copia se crea en el modulo que la usa, no donde esta la plantilla.
     base.append("")
-    base.append("fn cuantas<T>(xs: &lista<T>) -> usize {")
+    base.append("fn cuantas<T>(xs: &list<T>) -> usize {")
     base.append("    return largo(xs);")
     base.append("}")
     base.append("")
     base.append("fn chequear(n: usize) -> usize ! {")
-    base.append(f"    if n > {r.randint(900, 1200)} {{ falla \"muy grande\"; }}")
+    base.append(f"    if n > {r.randint(900, 1200)} {{ fail \"muy grande\"; }}")
     base.append("    return n;")
     base.append("}")
 
@@ -779,7 +779,7 @@ def generar_modulos(semilla):
         valores += f', t: nuevo("{g.palabra()}")'
 
     # Un modulo intermedio que usa el de base: la carga es en cadena.
-    medio = ['usar "base.t";', "",
+    medio = ['use "base.t";', "",
              "fn crear() -> Dato {",
              f"    return Dato {{ {valores} }};",
              "}", "",
@@ -792,17 +792,17 @@ def generar_modulos(semilla):
 
     # El principal usa los tres: `base` llega por dos caminos y no se puede
     # cargar dos veces, y `otro` llega con nombre propio.
-    app = ['usar "lib/medio.t";', 'usar "lib/base.t";',
-           'usar "lib/otro.t" como o;', "",
+    app = ['use "lib/medio.t";', 'use "lib/base.t";',
+           'use "lib/otro.t" como o;', "",
            "fn main() -> usize ! {",
            "    var d = crear();",
            f"    subir(d, {r.randint(1, 50)});",
            '    imprimir($"{primero(d)} {doble(d)}");']
     if con_texto:
         app.append('    imprimir($" {d.t}");')
-    app.append("    var g_ns: lista<usize> = [];")
+    app.append("    var g_ns: list<usize> = [];")
     app.append(f"    anadir(g_ns, {r.randint(0, 99)});")
-    app.append("    var g_ss: lista<str> = [];")
+    app.append("    var g_ss: list<str> = [];")
     app.append(f'    anadir(g_ss, nuevo("{g.palabra()}"));')
     app.append('    imprimir($" {cuantas(g_ns)}{cuantas(g_ss)}");')
     app.append('    imprimir($" {o.doble_otro(primero(d))}");')

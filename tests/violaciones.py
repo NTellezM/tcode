@@ -31,7 +31,7 @@ fn primero(v: view) -> view {{ return v; }}
 fn id<T>(x: T) -> T {{ return x; }}
 fn crecer(x: mut str) {{ empujar(x, {OTRO}); }}
 fn consumir(x: str) -> usize {{ return largo(x); }}
-fn sin_vista() -> view ! {{ falla "no"; }}
+fn sin_vista() -> view ! {{ fail "no"; }}
 fn g(a: mut str, b: view) {{ empujar(a, {OTRO}); imprimir(byte(b, 0)); }}
 fn palabra(t: view) -> Palabra {{ return Palabra {{ t: t }}; }}
 fn eco(p: Palabra) -> Palabra {{ return p; }}
@@ -79,11 +79,11 @@ FORMAS = [
     ("match", f"var e = E.A(nuevo({LARGO}));",
      'match e { E.A(t) -> t, E.B -> "z" }', "view",
      {"reasigna": "e = E.B;"}),
-    ("mapa", f'var m: mapa<str, str> = []; poner(m, "k", nuevo({LARGO}));',
+    ("mapa", f'var m: map<str, str> = []; poner(m, "k", nuevo({LARGO}));',
      'obtener(m, "k") sino "z"', "view",
      {"pone": f'poner(m, "k", nuevo({OTRO}));',
       "quita": 'imprimir(quitar(m, "k"));'}),
-    ("str_prestado", f"var xs: lista<str> = [nuevo({LARGO})];",
+    ("str_prestado", f"var xs: list<str> = [nuevo({LARGO})];",
      "xs[0]", "&str", INVALIDAN_XS),
     # El struct que presta es la otra cara del prestamo: se trata como una
     # vista, y esa vista es su campo. Antes habia una sola forma (el literal);

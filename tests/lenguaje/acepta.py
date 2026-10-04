@@ -25,10 +25,10 @@ ACEPTA = [
     # `copiar(...)` el elemento entero.
     ("prestar un elemento, un campo o una variable",
      '''struct H { t: str }
-        struct N { s: str, hijo: H, hijos: lista<N> }
+        struct N { s: str, hijo: H, hijos: list<N> }
         fn nuevo_n(t: view) -> N { return N { s: nuevo(t), hijo: H { t: nuevo("h") }, hijos: [] }; }
         fn main() {
-            var l: lista<N> = [];
+            var l: list<N> = [];
             anadir(l, nuevo_n("hola"));
             anadir(l, nuevo_n("adios!"));
             let x: &N = l[1];
@@ -51,9 +51,9 @@ ACEPTA = [
     # es a la funcion, tambien cuando su resultado se guarda y hay que saber
     # su tipo. `tcodec` tomaba el tipo del local y no sabia escribir el `let`.
     ("un local que no se llama no tapa a la funcion de su nombre",
-     '''fn partes(t: view) -> lista<str> { return [nuevo(t), nuevo("b")]; }
+     '''fn partes(t: view) -> list<str> { return [nuevo(t), nuevo("b")]; }
         fn junta(x: view) -> usize {
-            var partes: lista<str> = [];
+            var partes: list<str> = [];
             let de_x = partes(x);
             for p en de_x { anadir(partes, copiar(p)); }
             return largo(partes);
@@ -72,7 +72,7 @@ ACEPTA = [
         fn cambiar(x: mut N) { empujar(x.s, "!"); }
         fn mirar(e: &E) -> usize { return match e { E.Nada -> 0, E.Con(y) -> ver(y) }; }
         fn main() -> usize ! {
-            var m: mapa<str, N> = [];
+            var m: map<str, N> = [];
             poner(m, "a", N { s: nuevo("hola") });
             let w = try obtener_mut(m, "a");
             cambiar(w);
@@ -113,14 +113,14 @@ ACEPTA = [
         }''',
      "42 4\n"),
 
-    # `anadir` y `ordenar` por un `&mut lista<T>` de `obtener_mut`, como por
-    # un parametro `&mut lista<T>`. Se rechazaban diciendo que no era una
+    # `anadir` y `ordenar` por un `&mut list<T>` de `obtener_mut`, como por
+    # un parametro `&mut list<T>`. Se rechazaban diciendo que no era una
     # lista; lo encontro revisar la especificacion para 1.0.
     ("anadir y ordenar por un prestamo para modificar",
      '''fn main() -> usize ! {
-            var m: mapa<str, lista<usize>> = [];
+            var m: map<str, list<usize>> = [];
             poner(m, "a", [3, 1]);
-            let l: &mut lista<usize> = try obtener_mut(m, "a");
+            let l: &mut list<usize> = try obtener_mut(m, "a");
             anadir(l, 2);
             anadir(l, 0);
             ordenar(l);
@@ -139,11 +139,11 @@ ACEPTA = [
         fn main() {
             let k = C.U;
             match k {
-                C.U -> { let xs: lista<usize> = [1, 2]; imprimir(xs[1]); }
+                C.U -> { let xs: list<usize> = [1, 2]; imprimir(xs[1]); }
                 C.D -> { }
             }
             let zs = [1, 2];
-            for z en zs { let ys: lista<bool> = [z == 2]; imprimir(ys[0]); }
+            for z en zs { let ys: list<bool> = [z == 2]; imprimir(ys[0]); }
             imprimir("\\n");
         }''',
      "2falsetrue\n"),
@@ -166,7 +166,7 @@ ACEPTA = [
     # declararla, y `tcodec` se negaba sin decir donde. Lo encontro
     # `tests/fuzz.py`, cortando `ejemplos/json.t`.
     ("una lista dentro de una forma de enum",
-     '''enum J { Nada, Lista(lista<J>), Num(usize) }
+     '''enum J { Nada, Lista(list<J>), Num(usize) }
         fn cuenta(v: &J) -> usize {
             match v {
                 J.Lista(xs) -> {
@@ -204,10 +204,10 @@ ACEPTA = [
             var s = nuevo("t");
             s = s;
             if largo(s) > 0 { s = s; }
-            var xs: lista<usize> = [3];
+            var xs: list<usize> = [3];
             xs[0] = xs[0];
             xs = xs;
-            var ts: lista<str> = [nuevo("z")];
+            var ts: list<str> = [nuevo("z")];
             ts = ts;
             imprimir($"{u} {b} {p.x} {p.s} {s} {xs[0]} {ts[0]}\\n");
         }''',
@@ -241,7 +241,7 @@ ACEPTA = [
     # la funcion.
     ("entregar dentro de un brazo de match",
      '''enum C { A, B, D }
-        fn junta(r: str, xs: lista<str>) -> str {
+        fn junta(r: str, xs: list<str>) -> str {
             var s = r;
             for x en xs { empujar(s, x); }
             return s;
@@ -251,7 +251,7 @@ ACEPTA = [
             match c {
                 C.A -> {
                     var r = nuevo("a");
-                    var previos: lista<str> = [];
+                    var previos: list<str> = [];
                     anadir(previos, nuevo("x"));
                     var i = 0;
                     while i < 3 {
@@ -317,12 +317,12 @@ ACEPTA = [
     # `x.f(a)` es `f(x, a)`: lo de delante del punto va primero. Vale con las
     # internas y con las funciones de cualquiera, y encadenado.
     ("la llamada con punto",
-     '''struct Caja { n: usize, xs: lista<usize> }
+     '''struct Caja { n: usize, xs: list<usize> }
         fn doble(n: usize) -> usize { return n * 2; }
         fn suma(a: usize, b: usize) -> usize { return a + b; }
         fn main() {
             let x: usize = 3;
-            var xs: lista<usize> = [];
+            var xs: list<usize> = [];
             xs.anadir(x.doble());
             xs.anadir(x.suma(4).doble());
             var s = nuevo("ab");
@@ -340,10 +340,10 @@ ACEPTA = [
      '''struct Persona { nombre: str, edad: usize }
         struct Palabra { texto: view, n: usize }
         fn nombre_de(p: &Persona) -> view { return p.nombre; }
-        fn primera(xs: &lista<str>) -> view { return xs[0]; }
+        fn primera(xs: &list<str>) -> view { return xs[0]; }
         fn main() {
             let p = Persona { nombre: nuevo("Ana"), edad: 3 };
-            var xs: lista<str> = [];
+            var xs: list<str> = [];
             xs.anadir(nuevo("uno"));
             xs.anadir(nuevo("dos"));
             var v: view = "nada";
@@ -366,12 +366,12 @@ ACEPTA = [
             return rebanar(v, i, largo(v));
         }
         fn digitos(n: &Nodo) -> view { return sin_ceros(n.texto); }
-        fn primero(xs: &lista<str>) -> view { return sin_ceros(xs[0]); }
+        fn primero(xs: &list<str>) -> view { return sin_ceros(xs[0]); }
         fn de_param(s: &str) -> view { return sin_ceros(s); }
         fn main() {
             let n = Nodo { texto: nuevo("0042"), n: 1 };
             let d = sin_ceros(n.texto);
-            var xs: lista<str> = [];
+            var xs: list<str> = [];
             xs.anadir(nuevo("007"));
             imprimir($"{digitos(n)} {d} {primero(xs)} {de_param(n.texto)}\\n");
         }''',
@@ -410,7 +410,7 @@ ACEPTA = [
             var m = 2;
             for i en 0..m { m = m + 1; imprimir($"{i}/{m} "); }
             for k en 5..2 { imprimir("nunca"); }
-            var xs: lista<str> = [];
+            var xs: list<str> = [];
             for i en 0..3 {
                 let p = $"p{i}";
                 if i == 1 { continue; }
@@ -614,7 +614,7 @@ ACEPTA = [
     # el C no compilaba, o se perdia la de un bloque al mover la del otro.
     ("dos bloques hermanos con el mismo nombre, movido solo en uno",
      '''fn f(c: bool) -> usize {
-            var xs: lista<str> = [];
+            var xs: list<str> = [];
             if c {
                 let t = nuevo("uno");
                 if largo(xs) == 0 { anadir(xs, t); }
@@ -657,7 +657,7 @@ ACEPTA = [
     # compilaba, cuando se salia de una sentencia antes de su limpieza de fin.
     ("un return dentro de un if suelta el temporal de la condicion",
      '''fn f() -> usize {
-            var m: mapa<str, usize> = [];
+            var m: map<str, usize> = [];
             poner(m, "a", 1);
             poner(m, "b", 2);
             if largo(claves(m)) > 0 {
@@ -670,7 +670,7 @@ ACEPTA = [
 
     ("y un return dentro de dos if suelta los de las dos condiciones",
      '''fn f() -> usize {
-            var m: mapa<str, usize> = [];
+            var m: map<str, usize> = [];
             poner(m, "a", 1);
             if largo(claves(m)) > 0 {
                 if largo(claves(m)) < 10 {
@@ -684,7 +684,7 @@ ACEPTA = [
 
     ("un break dentro de un if suelta el temporal de la condicion",
      '''fn f() -> usize {
-            var m: mapa<str, usize> = [];
+            var m: map<str, usize> = [];
             poner(m, "a", 1);
             var n = 0;
             while n < 3 {
@@ -700,7 +700,7 @@ ACEPTA = [
 
     ("un continue lo suelta en cada vuelta",
      '''fn f() -> usize {
-            var m: mapa<str, usize> = [];
+            var m: map<str, usize> = [];
             poner(m, "a", 1);
             var n = 0;
             while n < 3 {
@@ -720,7 +720,7 @@ ACEPTA = [
 
     ("la condicion de un while con temporal propio se suelta en cada vuelta",
      '''fn f() -> usize {
-            var m: mapa<str, usize> = [];
+            var m: map<str, usize> = [];
             poner(m, "a", 1);
             var n = 0;
             while largo(claves(m)) > n {
@@ -745,8 +745,8 @@ ACEPTA = [
      "lista< ola\n"),
 
     ("la inferencia atraviesa una llamada a una generica",
-     '''usar "std/par";
-        struct Caja<T> { dentro: lista<T> }
+     '''use "std/par";
+        struct Caja<T> { dentro: list<T> }
         fn cuantos<T>(c: &Caja<T>) -> usize { return largo(c.dentro); }
         fn main() -> usize {
             var c: Caja<str> = Caja { dentro: [] };
@@ -759,7 +759,7 @@ ACEPTA = [
      "1 fin\n"),
 
     ("una lista dinamica escrita entera en Tcode, sobre `bloque<T>`",
-     '''usar "std/vector";
+     '''use "std/vector";
         fn main() -> usize ! {
             var v: Vector<str> = Vector { datos: reservar(0), largo: 0 };
             agregar(v, nuevo("uno"));
@@ -792,7 +792,7 @@ ACEPTA = [
      "3 [] | 5 hola mundo [] | 1 hola\n"),
 
     ("`intercambiar` saca de un sitio sin dejar hueco",
-     '''fn invertir_texto(xs: mut lista<str>) {
+     '''fn invertir_texto(xs: mut list<str>) {
             if largo(xs) == 0 { return; }
             var i = 0;
             var j = largo(xs) - 1;
@@ -805,7 +805,7 @@ ACEPTA = [
             }
         }
         fn main() -> usize {
-            var xs: lista<str> = [];
+            var xs: list<str> = [];
             anadir(xs, nuevo("a")); anadir(xs, nuevo("b")); anadir(xs, nuevo("c"));
             invertir_texto(xs);
             for x en xs { imprimir($"{x} "); }
@@ -834,7 +834,7 @@ ACEPTA = [
             return antes;
         }
         fn main() {
-            var xs: lista<bloque<usize>> = [];
+            var xs: list<bloque<usize>> = [];
             var b: bloque<usize> = reservar(1);
             b[0] = 7;
             anadir(xs, b);
@@ -851,7 +851,7 @@ ACEPTA = [
             return antes;
         }
         fn main() {
-            var xs: lista<bloque<usize>> = [];
+            var xs: list<bloque<usize>> = [];
             var b: bloque<usize> = reservar(1);
             anadir(xs, b);
             var i = 0;
@@ -867,7 +867,7 @@ ACEPTA = [
             return antes;
         }
         fn main() {
-            var xs: lista<bloque<usize>> = [];
+            var xs: list<bloque<usize>> = [];
             var a: bloque<usize> = reservar(2);
             var b: bloque<usize> = reservar(3);
             anadir(xs, a);
@@ -880,13 +880,13 @@ ACEPTA = [
 
     ("listas de bloques y mapas registran sus tipos interiores",
      '''fn main() -> usize ! {
-            var bloques: lista<bloque<usize>> = [];
+            var bloques: list<bloque<usize>> = [];
             var b: bloque<usize> = reservar(2);
             b[1] = 7;
             anadir(bloques, b);
 
-            var mapas: lista<mapa<str, usize>> = [];
-            var m: mapa<str, usize> = [];
+            var mapas: list<map<str, usize>> = [];
+            var m: map<str, usize> = [];
             poner(m, "x", 9);
             anadir(mapas, m);
             imprimir($"{bloques[0][1]} {try obtener(mapas[0], "x")}\\n");
@@ -896,7 +896,7 @@ ACEPTA = [
 
     ("un bloque guardado en un mapa se presta para modificar",
      '''fn main() -> usize ! {
-            var m: mapa<str, bloque<usize>> = [];
+            var m: map<str, bloque<usize>> = [];
             var b: bloque<usize> = reservar(1);
             b[0] = 4;
             poner(m, "x", b);
@@ -909,13 +909,13 @@ ACEPTA = [
      "2 4 8\n"),
 
     ("una clausura captura por valor, incluso lo que tiene duenio",
-     '''usar "std/lista";
-        usar "std/texto";
+     '''use "std/lista";
+        use "std/texto";
 
         fn por_largo(a: &str, b: &str) -> bool { return largo(a) < largo(b); }
 
         fn main() -> usize {
-            var xs: lista<str> = [];
+            var xs: list<str> = [];
             anadir(xs, nuevo("arandano"));
             anadir(xs, nuevo("pera"));
             anadir(xs, nuevo("aguacate"));
@@ -938,7 +938,7 @@ ACEPTA = [
      "arandano aguacate | 2 | pera arandano aguacate \n"),
 
     ("`&&` y `||` no evaluan la derecha si la izquierda ya decide",
-     '''fn nombre(xs: &lista<str>) -> str {
+     '''fn nombre(xs: &list<str>) -> str {
     imprimir("[se evaluo] ");
     return copiar(xs[0]);
 }
@@ -946,7 +946,7 @@ ACEPTA = [
 fn corto(v: view) -> bool { return largo(v) < 3; }
 
 fn main() {
-    var xs: lista<str> = [];
+    var xs: list<str> = [];
     // Con la lista vacia, la derecha no se puede evaluar: el `&&` corta.
     if largo(xs) == 1 && corto(nombre(xs)) { imprimir("no\\n"); }
     if largo(xs) == 0 || corto(nombre(xs)) { imprimir("corta el ||\\n"); }
@@ -977,7 +977,7 @@ fn describir(f: &Figura) -> str {
 }
 
 fn main() {
-    var fs: lista<Figura> = [];
+    var fs: list<Figura> = [];
     anadir(fs, Figura.Nada);
     anadir(fs, Figura.Punto(Punto { x: 1, y: -2 }));
     anadir(fs, Figura.Con(Color.Otro(nuevo("azul")), Punto { x: 3, y: 4 }));
@@ -1018,7 +1018,7 @@ fn main() {
 
     ("sacar un campo de su struct, y reponerlo",
      '''struct Interior { texto: str, n: usize }
-struct P { nombre: str, edad: usize, tags: lista<str>, dentro: Interior }
+struct P { nombre: str, edad: usize, tags: list<str>, dentro: Interior }
 
 fn usa(s: str) -> usize { return largo(s); }
 
@@ -1084,7 +1084,7 @@ fn describir(f: &Forma) -> str {
 
 fn main() {
     var i: usize = 0;
-    var fs: lista<Forma> = [];
+    var fs: list<Forma> = [];
     anadir(fs, Forma.Punto);
     anadir(fs, Forma.Circulo(0));
     anadir(fs, Forma.Circulo(-1));
@@ -1113,7 +1113,7 @@ fn main() {
      '''struct Persona { nombre: str, apellido: str }
 
         fn nombre_de(p: &Persona) -> view { return vista(p.nombre); }
-        fn primera(xs: &lista<str>) -> view { return vista(xs[0]); }
+        fn primera(xs: &list<str>) -> view { return vista(xs[0]); }
         fn inicial(s: &str) -> view { return rebanar(vista(s), 0, 1); }
         fn la_larga(a: &str, b: &str) -> view {
             if largo(a) >= largo(b) { return vista(a); }
@@ -1127,7 +1127,7 @@ fn main() {
 
         fn main() {
             let p = Persona { nombre: nuevo("Ada"), apellido: nuevo("Lovelace") };
-            var xs: lista<str> = [];
+            var xs: list<str> = [];
             anadir(xs, nuevo("uno"));
             let a = nuevo("corto");
             let b = nuevo("larguisimo");
@@ -1189,7 +1189,7 @@ fn main() {
      "1 grande 10 si\n"),
 
     ("decimales, con lo que sale de los numeros parando el programa",
-     '''usar "std/numero";
+     '''use "std/numero";
         fn main() -> usize ! {
             let a: f64 = 3.5;
             let b: f64 = 1.5;
@@ -1221,8 +1221,8 @@ fn main() {
      "9.0072e+15\n"),
 
     ("indexar lo que devuelve una llamada no la evalua dos veces ni filtra",
-     '''fn hacer() -> lista<usize> {
-            var xs: lista<usize> = [];
+     '''fn hacer() -> list<usize> {
+            var xs: list<usize> = [];
             anadir(xs, 7); anadir(xs, 9);
             return xs;
         }
@@ -1234,7 +1234,7 @@ fn main() {
      "9 hola\n"),
 
     ("una funcion es un valor: se pasa, se guarda y se llama",
-     '''usar "std/lista";
+     '''use "std/lista";
 
         struct Cosa { nombre: str, n: usize }
 
@@ -1242,19 +1242,19 @@ fn main() {
         fn al_reves(a: &usize, b: &usize) -> bool { return a > b; }
         fn doble(n: usize) -> usize { return n * 2; }
 
-        fn aplicar(xs: &lista<usize>, f: fn(usize) -> usize) -> lista<usize> {
-            var salida: lista<usize> = [];
+        fn aplicar(xs: &list<usize>, f: fn(usize) -> usize) -> list<usize> {
+            var salida: list<usize> = [];
             for x en xs { anadir(salida, f(x)); }
             return salida;
         }
 
         fn main() -> usize {
-            var cs: lista<Cosa> = [];
+            var cs: list<Cosa> = [];
             anadir(cs, Cosa { nombre: nuevo("c"), n: 9 });
             anadir(cs, Cosa { nombre: nuevo("a"), n: 2 });
             for c en ordenadas_por(cs, por_n) { imprimir($"{c.n}"); }
 
-            var ns: lista<usize> = [];
+            var ns: list<usize> = [];
             anadir(ns, 3); anadir(ns, 9); anadir(ns, 1);
             imprimir(" ");
             for n en ordenadas_por(ns, al_reves) { imprimir($"{n}"); }
@@ -1302,7 +1302,7 @@ fn main() {
      "-128 -56 127 -64 0 -127 -127 0 -5\n"),
 
     ("un `str` guarda bytes, no texto",
-     '''usar "std/bytes";
+     '''use "std/bytes";
         fn main() -> usize {
             let crudo = "\\xde\\xad\\xbe\\xef";
             let acentos = "camión";
@@ -1313,7 +1313,7 @@ fn main() {
      "4 deadbeef 7 camión 3 610062\n"),
 
     ("enteros que van y vuelven de un buffer",
-     '''usar "std/bytes";
+     '''use "std/bytes";
         fn main() -> usize ! {
             var buf = vacio();
             poner_u32(buf, 3735928559);
@@ -1329,17 +1329,17 @@ fn main() {
      "deadbeef02010100000000000000\n3735928559 513 72057594037927936 4 0\n"),
 
     ("un contenedor propio, escrito en Tcode y no en el compilador",
-     '''struct Pila<T> { cosas: lista<T> }
+     '''struct Pila<T> { cosas: list<T> }
 
         fn vacia<T>(p: &Pila<T>) -> bool { return largo(p.cosas) == 0; }
         fn apilar<T>(p: mut Pila<T>, x: T) { anadir(p.cosas, x); }
         fn cima<T>(p: &Pila<T>) -> T ! {
-            if vacia(p) { falla "la pila esta vacia"; }
+            if vacia(p) { fail "la pila esta vacia"; }
             return copiar(p.cosas[largo(p.cosas) - 1]);
         }
 
         // Un tipo generico que se contiene a si mismo a traves de una lista.
-        struct Nodo<T> { valor: T, hijos: lista<Nodo<T>> }
+        struct Nodo<T> { valor: T, hijos: list<Nodo<T>> }
 
         fn hojas<T>(n: &Nodo<T>) -> usize {
             if largo(n.hijos) == 0 { return 1; }
@@ -1367,9 +1367,9 @@ fn main() {
      "b 42 false 2\n"),
 
     ("`std/par`: devolver dos valores, sin que el compilador sepa nada",
-     '''usar "std/par";
+     '''use "std/par";
         fn dividir_con_resto(a: usize, b: usize) -> Par<usize, usize> ! {
-            if b == 0 { falla "division por cero"; }
+            if b == 0 { fail "division por cero"; }
             return par(a / b, a % b);
         }
         fn main() -> usize ! {
@@ -1382,15 +1382,15 @@ fn main() {
      "3 2 clave clave\n"),
 
     ("restricciones: el cuerpo dice lo que necesita del elemento",
-     '''usar "std/lista";
+     '''use "std/lista";
         fn main() -> usize ! {
-            var ns: lista<usize> = [];
+            var ns: list<usize> = [];
             anadir(ns, 3); anadir(ns, 9); anadir(ns, 5);
-            var ss: lista<str> = [];
+            var ss: list<str> = [];
             anadir(ss, nuevo("pera")); anadir(ss, nuevo("uva"));
             let buscado = nuevo("uva");
             invertir(ns);
-            let vacia: lista<usize> = [];
+            let vacia: list<usize> = [];
             imprimir($"{suma(ns)} {try maximo(ns)} {try minimo(ns)} {suma(vacia)}");
             imprimir($" {try maximo(ss)} {incluye(ss, buscado)}");
             imprimir($" {try posicion(ss, buscado)} {ns[0]}\\n");
@@ -1409,12 +1409,12 @@ fn main() {
     ("`copiar` es copia profunda: tocar el original no toca la copia",
      '''struct Cosa { nombre: str, n: usize }
         fn main() -> usize {
-            var xs: lista<str> = [];
+            var xs: list<str> = [];
             anadir(xs, nuevo("hola"));
             let copia_xs = copiar(xs);
             empujar(xs[0], "!!");
 
-            var dentro: lista<lista<str>> = [];
+            var dentro: list<list<str>> = [];
             anadir(dentro, copiar(xs));
             let copia_dentro = copiar(dentro);
             empujar(dentro[0][0], "??");
@@ -1422,7 +1422,7 @@ fn main() {
             let c = Cosa { nombre: nuevo("a"), n: 1 };
             let c2 = copiar(c);
 
-            var m: mapa<str, str> = [];
+            var m: map<str, str> = [];
             poner(m, "k", nuevo("v"));
             let m2 = copiar(m);
 
@@ -1434,27 +1434,27 @@ fn main() {
     ("una generica se copia una vez por cada juego de tipos",
      '''struct Punto { x: usize, y: usize }
 
-        fn primero<T>(xs: &lista<T>) -> T ! {
-            if largo(xs) == 0 { falla "lista vacia"; }
+        fn primero<T>(xs: &list<T>) -> T ! {
+            if largo(xs) == 0 { fail "lista vacia"; }
             return xs[0];
         }
 
-        fn cuantos<K, V>(m: &mapa<K, V>) -> usize { return largo(m); }
+        fn cuantos<K, V>(m: &map<K, V>) -> usize { return largo(m); }
 
         // una generica que llama a otra generica
-        fn primero_o<T>(xs: &lista<T>, alterno: T) -> T {
+        fn primero_o<T>(xs: &list<T>, alterno: T) -> T {
             return primero(xs) sino alterno;
         }
 
         fn main() -> usize ! {
-            var ns: lista<usize> = [];
+            var ns: list<usize> = [];
             anadir(ns, 7);
-            var ps: lista<Punto> = [];
+            var ps: list<Punto> = [];
             anadir(ps, Punto { x: 1, y: 2 });
             let p = try primero(ps);
 
-            let vacia: lista<usize> = [];
-            var m: mapa<str, usize> = [];
+            let vacia: list<usize> = [];
+            var m: map<str, usize> = [];
             poner(m, "a", 1);
 
             imprimir($"{try primero(ns)} {p.y} {primero_o(vacia, 99)} {cuantos(m)}\\n");
@@ -1463,11 +1463,11 @@ fn main() {
      "7 2 99 1\n"),
 
     ("la misma generica vale para un tipo que posee y para uno que no",
-     '''usar "std/lista";
+     '''use "std/lista";
         fn main() -> usize ! {
-            var ns: lista<usize> = [];
+            var ns: list<usize> = [];
             anadir(ns, 3); anadir(ns, 9);
-            var xs: lista<str> = [];
+            var xs: list<str> = [];
             imprimir($"{esta_vacia(ns)} {esta_vacia(xs)} {try ultima_posicion(ns)}\\n");
             return 0;
         }''',
@@ -1491,10 +1491,10 @@ fn main() {
      "ok\n"),
 
     ("un temporal dentro de lo que se devuelve no se filtra",
-     '''usar "std/texto";
+     '''use "std/texto";
         fn etiqueta(v: view) -> str { return $"[{rellenar(v, 8)}]"; }
         fn marcar(v: view) -> str ! {
-            if largo(v) == 0 { falla "vacio"; }
+            if largo(v) == 0 { fail "vacio"; }
             return $"<{rellenar(v, 4)}>";
         }
         fn ambas(v: view) -> str ! {
@@ -1507,7 +1507,7 @@ fn main() {
     ("de un prestamo si se copia un escalar",
      '''struct S { a: str, n: usize }
         fn f() -> usize ! {
-            var m: mapa<str, S> = [];
+            var m: map<str, S> = [];
             poner(m, "x", S { a: nuevo("hola"), n: 7 });
             let r: &S = try obtener(m, "x");
             let copia: usize = r.n;
@@ -1660,7 +1660,7 @@ fn main() {
 
     ("fallos: propagar con try, sustituir con sino",
      '''fn dividir(a: usize, b: usize) -> usize ! {
-            if b == 0 { falla "division por cero"; }
+            if b == 0 { fail "division por cero"; }
             return a / b;
         }
         fn media(a: usize, b: usize, n: usize) -> usize ! {
@@ -1677,7 +1677,7 @@ fn main() {
      '''fn cargar(nombre: view) -> str ! {
             var s: str = nuevo("dato de ");
             empujar(s, nombre);
-            if largo(nombre) == 0 { falla "nombre vacio"; }
+            if largo(nombre) == 0 { fail "nombre vacio"; }
             return s;
         }
         fn envolver(nombre: view) -> str ! {
@@ -1858,7 +1858,7 @@ fn main() {
         }
         fn main() {
             var n: usize = 0;
-            var listas: lista<lista<usize>> = [];
+            var listas: list<list<usize>> = [];
             anadir(listas, []); anadir(listas, []); anadir(listas, []);
             anadir(listas[siguiente(n)], siguiente(n));
             imprimir(listas[1][0]); imprimir(" ");
@@ -1871,7 +1871,7 @@ fn main() {
 
     ("un arreglo puede contener listas con su typedef declarado antes",
      '''fn main() {
-            var xs: [lista<usize>; 2] = [[], []];
+            var xs: [list<usize>; 2] = [[], []];
             anadir(xs[1], 7);
             imprimir(xs[1][0]); imprimir("\\n");
         }''',
@@ -1888,7 +1888,7 @@ fn main() {
         }
         fn main() {
             var n: usize = 0;
-            var ms: [mapa<str, usize>; 4] = [[], [], [], []];
+            var ms: [map<str, usize>; 4] = [[], [], [], []];
             poner(ms[siguiente(n)], siguiente_clave(n), siguiente(n));
             imprimir(obtener(ms[1], "2") sino 0); imprimir("\\n");
         }''',
@@ -1896,7 +1896,7 @@ fn main() {
 
     ("mapa: poner, reemplazar, consultar y contar",
      '''fn main() -> usize {
-            var m: mapa<str, usize> = [];
+            var m: map<str, usize> = [];
             poner(m, "uno", 1);
             poner(m, "dos", 2);
             poner(m, "uno", 11);
@@ -1917,7 +1917,7 @@ fn main() {
             return k;
         }
         fn main() -> usize {
-            var m: mapa<str, usize> = [];
+            var m: map<str, usize> = [];
             var i: usize = 0;
             while i < 200 {
                 let k: str = clave_de(i);
@@ -1933,7 +1933,7 @@ fn main() {
                 }
                 i = i + 1;
             }
-            let ks: lista<str> = claves(m);
+            let ks: list<str> = claves(m);
             imprimir(largo(m)); imprimir(" ");
             imprimir(malas); imprimir(" ");
             imprimir(largo(ks)); imprimir("\\n");
@@ -1951,12 +1951,12 @@ fn main() {
 
     ("ordenar numeros y textos",
      '''fn main() -> usize {
-            var n: lista<usize> = [];
+            var n: list<usize> = [];
             anadir(n, 30); anadir(n, 4); anadir(n, 17); anadir(n, 4);
             ordenar(n);
             var i: usize = 0;
             while i < largo(n) { imprimir(n[i]); imprimir(" "); i = i + 1; }
-            var p: lista<str> = [];
+            var p: list<str> = [];
             anadir(p, nuevo("pera")); anadir(p, nuevo("ana"));
             anadir(p, nuevo("kiwi"));
             ordenar(p);
@@ -1976,7 +1976,7 @@ fn main() {
             return k;
         }
         fn main() -> usize {
-            var m: mapa<str, usize> = [];
+            var m: map<str, usize> = [];
             var i: usize = 0;
             while i < 200 { let k: str = clave_de(i); poner(m, vista(k), i); i = i + 1; }
             i = 0;
@@ -2002,7 +2002,7 @@ fn main() {
 
     ("for con break y continue sobre escalares y duenios",
      '''fn main() -> usize {
-            var xs: lista<usize> = [];
+            var xs: list<usize> = [];
             anadir(xs, 5); anadir(xs, 12); anadir(xs, 7);
             anadir(xs, 30); anadir(xs, 1);
             for x en xs {
@@ -2010,7 +2010,7 @@ fn main() {
                 if x > 20 { break; }
                 imprimir(x); imprimir(" ");
             }
-            var ns: lista<str> = [];
+            var ns: list<str> = [];
             anadir(ns, nuevo("ana")); anadir(ns, nuevo("beto"));
             anadir(ns, nuevo("cielo"));
             for n en ns {
@@ -2027,7 +2027,7 @@ fn main() {
 
     ("salir de un `for` libera lo de dentro de la vuelta",
      '''fn main() -> usize {
-            var ns: lista<str> = [];
+            var ns: list<str> = [];
             var i: usize = 0;
             while i < 50 { anadir(ns, nuevo("dato")); i = i + 1; }
             var vueltas: usize = 0;
@@ -2044,7 +2044,7 @@ fn main() {
 
     ("recorrer un mapa prestando clave y valor",
      '''fn main() -> usize {
-            var m: mapa<str, usize> = [];
+            var m: map<str, usize> = [];
             poner(m, "uno", 1); poner(m, "dos", 2); poner(m, "tres", 3);
             poner(m, "cuatro", 4); poner(m, "cinco", 5);
             quitar(m, "tres");
@@ -2067,7 +2067,7 @@ fn main() {
             return k;
         }
         fn main() -> usize {
-            var m: mapa<str, usize> = [];
+            var m: map<str, usize> = [];
             var i: usize = 0;
             while i < 300 { let k: str = clave_de(i); poner(m, vista(k), i); i = i + 1; }
             var suma: usize = 0;
@@ -2080,7 +2080,7 @@ fn main() {
 
     ("mapa de textos: reemplazo, prestamo y recorrido",
      '''fn main() -> usize {
-            var cfg: mapa<str, str> = [];
+            var cfg: map<str, str> = [];
             poner(cfg, "host", nuevo("localhost"));
             poner(cfg, "puerto", nuevo("8080"));
             poner(cfg, "host", nuevo("127.0.0.1"));
@@ -2117,7 +2117,7 @@ fn main() {
     ("tabla de simbolos: mapa de structs con prestamo",
      '''struct Simbolo { tipo: str, mutable: bool, usos: usize }
         fn main() -> usize ! {
-            var tabla: mapa<str, Simbolo> = [];
+            var tabla: map<str, Simbolo> = [];
             poner(tabla, "n", Simbolo { tipo: nuevo("usize"), mutable: false,
                                         usos: 3 });
             poner(tabla, "s", Simbolo { tipo: nuevo("str"), mutable: true,
@@ -2140,7 +2140,7 @@ fn main() {
     ("modificar en el sitio lo que guarda un mapa",
      '''struct Simbolo { tipo: str, usos: usize }
         fn main() -> usize ! {
-            var tabla: mapa<str, Simbolo> = [];
+            var tabla: map<str, Simbolo> = [];
             poner(tabla, "n", Simbolo { tipo: nuevo("usize"), usos: 0 });
             poner(tabla, "s", Simbolo { tipo: nuevo("str"), usos: 0 });
             var i: usize = 0;
@@ -2150,7 +2150,7 @@ fn main() {
                 empujar(s.tipo, ".");
                 i = i + 1;
             }
-            var claves_ord: lista<str> = claves(tabla);
+            var claves_ord: list<str> = claves(tabla);
             ordenar(claves_ord);
             for c en claves_ord {
                 let s: &Simbolo = try obtener(tabla, vista(c));
@@ -2198,9 +2198,9 @@ fn main() {
             empujar(s, "!");
             return s;
         }
-        fn cuantos(xs: &lista<str>) -> usize { return largo(xs); }
-        fn tres() -> lista<str> {
-            var xs: lista<str> = [];
+        fn cuantos(xs: &list<str>) -> usize { return largo(xs); }
+        fn tres() -> list<str> {
+            var xs: list<str> = [];
             anadir(xs, nuevo("a")); anadir(xs, nuevo("bb"));
             anadir(xs, nuevo("ccc"));
             return xs;
@@ -2218,7 +2218,7 @@ fn main() {
      "5 3 6\n"),
 
     ("la biblioteca estandar: texto",
-     '''usar "std/texto";
+     '''use "std/texto";
         fn main() -> usize ! {
             let linea = nuevo("   hola, mundo cruel   ");
             imprimir($"[{recortar(linea)}] ");
@@ -2235,8 +2235,8 @@ fn main() {
      "[hola, mundo cruel] true true true 9 4 [a|b||c] ----- bbb 42\n"),
 
     ("la biblioteca estandar: contar y mayores",
-     '''usar "std/cuenta";
-        usar "std/texto";
+     '''use "std/cuenta";
+        use "std/texto";
         fn main() {
             let texto = nuevo("uno dos uno tres dos uno");
             let cuenta = contar(palabras(minusculas(texto)));
@@ -2258,14 +2258,14 @@ fn main() {
      "cde\n"),
 
     ("listas dinamicas: crecer, indexar y medir",
-     '''fn suma(xs: &lista<usize>) -> usize {
+     '''fn suma(xs: &list<usize>) -> usize {
             var total: usize = 0;
             var i: usize = 0;
             while i < largo(xs) { total = total + xs[i]; i = i + 1; }
             return total;
         }
         fn main() -> usize {
-            var xs: lista<usize> = [];
+            var xs: list<usize> = [];
             var i: usize = 0;
             while i < 1000 { anadir(xs, i); i = i + 1; }
             imprimir(largo(xs)); imprimir(" "); imprimir(suma(xs));
@@ -2275,7 +2275,7 @@ fn main() {
 
     ("una lista de duenios libera y mueve cada elemento",
      '''fn main() -> usize {
-            var xs: lista<str> = [nuevo("uno"), nuevo("dos")];
+            var xs: list<str> = [nuevo("uno"), nuevo("dos")];
             let tercero: str = nuevo("tres");
             anadir(xs, tercero);
             var i: usize = 0;
@@ -2305,7 +2305,7 @@ fn main() {
 
     ("sino mueve su alternativa solo en el camino de fallo",
      '''fn elegir(falla_ahora: bool) -> str ! {
-            if falla_ahora { falla "pedido"; }
+            if falla_ahora { fail "pedido"; }
             return nuevo("resultado");
         }
         fn caso(falla_ahora: bool) -> str {
@@ -2319,17 +2319,17 @@ fn main() {
      "resultado respaldo\n"),
 
     ("listas vacias usan el tipo de retorno y de argumento",
-     '''fn vacia() -> lista<usize> { return []; }
-        fn contar(xs: lista<usize>) -> usize { return largo(xs); }
+     '''fn vacia() -> list<usize> { return []; }
+        fn contar(xs: list<usize>) -> usize { return largo(xs); }
         fn main() -> usize {
-            let xs: lista<usize> = vacia();
+            let xs: list<usize> = vacia();
             imprimir(largo(xs)); imprimir(" "); imprimir(contar([]));
             imprimir("\\n"); return 0;
         }''',
      "0 0\n"),
 
     ("listas recursivas tienen tamano finito",
-     '''struct Nodo { valor: usize, hijos: lista<Nodo> }
+     '''struct Nodo { valor: usize, hijos: list<Nodo> }
         fn hoja(n: usize) -> Nodo { return Nodo { valor: n, hijos: [] }; }
         fn main() -> usize {
             var raiz: Nodo = hoja(1);
@@ -2366,12 +2366,12 @@ fn main() {
     # Un `match` suelto con brazos que dan un valor no hacia nada.
     ("un `match` suelto hace lo de sus brazos",
      '''enum E { A, B }
-        fn efecto(xs: mut lista<usize>) -> usize { anadir(xs, 1); return 0; }
+        fn efecto(xs: mut list<usize>) -> usize { anadir(xs, 1); return 0; }
         fn texto_de(e: &E) -> str {
             return match e { E.A -> nuevo("una cadena en el heap"), E.B -> nuevo("b") };
         }
         fn main() {
-            var xs: lista<usize> = [];
+            var xs: list<usize> = [];
             let e = E.A;
             match e { E.A -> imprimir("A\\n"), E.B -> imprimir("B\\n") }
             match e { E.A -> efecto(xs), E.B -> 0 }
@@ -2397,7 +2397,7 @@ fn main() {
             match e { E.free -> imprimir("f\\n"), E.otra(NAN) -> imprimir($"{NAN}\\n") }
             let p = tm { log: 1, EOF: 2 };
             let stdout = 3;
-            var m: mapa<str, usize> = [];
+            var m: map<str, usize> = [];
             poner(m, "k", 4);
             for k, argc en m { imprimir($"{k}={argc}\\n"); }
             let size_t: usize = 5;
@@ -2492,7 +2492,7 @@ fn main() {
 
     ("prestar un texto y usarlo como vista",
      '''fn main() {
-            var xs: lista<str> = [nuevo("xxxx")];
+            var xs: list<str> = [nuevo("xxxx")];
             let x: &str = xs[0];
             imprimir(byte(x, 0));
             imprimir("\\n");

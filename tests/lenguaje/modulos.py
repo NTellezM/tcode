@@ -18,16 +18,16 @@ from .comun import (
 MODULOS = [
     ("un `usar` en rombo carga el modulo una sola vez",
      {"lib/base.t": 'fn doble(n: usize) -> usize { return n * 2; }',
-      "lib/medio.t": 'usar "base.t";\n'
+      "lib/medio.t": 'use "base.t";\n'
                        'fn cuadruple(n: usize) -> usize { return doble(doble(n)); }',
-      "app.t": 'usar "lib/medio.t";\nusar "lib/base.t";\n'
+      "app.t": 'use "lib/medio.t";\nuse "lib/base.t";\n'
                  'fn main() -> usize { imprimir(cuadruple(3)); imprimir("\\n");'
                  ' imprimir(doble(5)); imprimir("\\n"); return 0; }'},
      "app.t", None, "12\n10\n"),
 
     ("dependencia circular",
-     {"a.t": 'usar "b.t";\nfn a() {}',
-      "b.t": 'usar "a.t";\nfn b() {}'},
+     {"a.t": 'use "b.t";\nfn a() {}',
+      "b.t": 'use "a.t";\nfn b() {}'},
      "a.t", "dependencia circular", None),
 
     # Un modulo que se usa no puede tener `main`. `tcodec` lo rechazaba sin
@@ -35,19 +35,19 @@ MODULOS = [
     # usaba no tenia su propio `main`. Lo encontro `tests/fuzz.py`.
     ("un modulo con `main`",
      {"lib/m.t": 'fn main() { imprimir("m"); }',
-      "a.t": 'usar "lib/m.t";\nfn main() -> usize { return 0; }'},
+      "a.t": 'use "lib/m.t";\nfn main() -> usize { return 0; }'},
      "a.t", "a.t:1: `lib/m.t` tiene `fn main`", None),
 
     ("un modulo con `main`, y quien lo usa sin el suyo",
      {"m.t": 'fn main() { imprimir("m"); }',
-      "a.t": 'usar "m.t" como m;\nfn f() -> usize { return 0; }'},
+      "a.t": 'use "m.t" como m;\nfn f() -> usize { return 0; }'},
      "a.t", "a.t:1: `m.t` tiene `fn main`", None),
 
     # La ruta llega a funciones de C: con un cero en medio, Python se
     # escapaba con un `ValueError` y `tcodec` abortaba. Lo encontro
     # `tests/fuzz.py`.
     ("la ruta de un modulo con un byte cero",
-     {"a.t": 'usar "a\0b.t";\nfn main() -> usize { return 0; }'},
+     {"a.t": 'use "a\0b.t";\nfn main() -> usize { return 0; }'},
      "a.t", "a.t:1: la ruta de un modulo no puede llevar un byte cero", None),
 
     # `lib/m.t/` no es un archivo. Python lo aceptaba —`realpath` quita la
@@ -55,14 +55,14 @@ MODULOS = [
     # escribir las llamadas. Lo encontro `tests/fuzz.py`.
     ("la ruta de un modulo con `/` al final",
      {"lib/m.t": 'fn doble(n: usize) -> usize { return n * 2; }',
-      "a.t": 'usar "lib/m.t/" como m;\nfn main() -> usize { return m.doble(0); }'},
+      "a.t": 'use "lib/m.t/" como m;\nfn main() -> usize { return m.doble(0); }'},
      "a.t", "a.t:1: `lib/m.t/` termina en `/`", None),
 
     # La funcion de otro modulo, llamada desde donde una variable se llama
     # igual: en C la variable la tapaba.
     ("una variable con el nombre de una funcion de otro modulo",
      {"m.t": 'fn cuadro(x: usize) -> usize { return x + 1; }',
-      "a.t": 'usar "m.t" como M;\nusar "m.t";\n'
+      "a.t": 'use "m.t" como M;\nuse "m.t";\n'
              'fn main() -> usize { let cuadro = 41; imprimir(M.cuadro(cuadro));'
              ' imprimir(cuadro(cuadro)); return 0; }'},
      "a.t", None, "4242"),
@@ -70,57 +70,57 @@ MODULOS = [
     # Un struct con un campo `Q.Tipo` de otro modulo que posee: tcodec no
     # veia el prefijo y no lo liberaba. Lo encontro ASan en el Tamagotchi.
     ("un campo de otro modulo que posee se libera",
-     {"q.t": 'struct Hoja { nombres: lista<str> }\n'
+     {"q.t": 'struct Hoja { nombres: list<str> }\n'
              'enum Talvez { No, Si(str) }',
-      "m.t": 'usar "q.t" como Q;\n'
+      "m.t": 'use "q.t" como Q;\n'
              'struct Lamina { hoja: Q.Hoja, marca: Q.Talvez, id: i64 }\n'
              'fn hacer() -> Lamina { var h = Q.Hoja { nombres: [] };'
              ' anadir(h.nombres, nuevo("a")); return Lamina { hoja: h,'
              ' marca: Q.Talvez.Si(nuevo("b")), id: 7 }; }',
-      "a.t": 'usar "m.t" como M;\n'
+      "a.t": 'use "m.t" como M;\n'
              'fn main() -> usize { let l = M.hacer(); imprimir(l.id); return 0; }'},
      "a.t", None, "7"),
 
     # `T.partes(x)` es la funcion de `T` aunque haya un local `partes`.
     ("una funcion de otro modulo con el nombre de un local",
-     {"m.t": 'fn partes(t: view) -> lista<str> { return [nuevo(t), nuevo("b")]; }',
-      "a.t": 'usar "m.t" como T;\n'
-             'fn junta(x: view) -> usize { var partes: lista<str> = [];'
+     {"m.t": 'fn partes(t: view) -> list<str> { return [nuevo(t), nuevo("b")]; }',
+      "a.t": 'use "m.t" como T;\n'
+             'fn junta(x: view) -> usize { var partes: list<str> = [];'
              ' let de_x = T.partes(x); for p en de_x { anadir(partes, copiar(p)); }'
              ' return largo(partes); }\n'
              'fn main() -> usize { imprimir(junta("a")); return 0; }'},
      "a.t", None, "2"),
 
     ("modulo que no existe",
-     {"a.t": 'usar "fantasma.t";\nfn main() -> usize { return 0; }'},
+     {"a.t": 'use "fantasma.t";\nfn main() -> usize { return 0; }'},
      "a.t", "no encuentro el modulo", None),
 
     ("el mismo nombre desde dos sitios, y como arreglarlo",
      {"x.t": 'fn dos() -> usize { return 2; }',
-      "a.t": 'usar "x.t";\nfn dos() -> usize { return 3; }\n'
+      "a.t": 'use "x.t";\nfn dos() -> usize { return 3; }\n'
                'fn main() -> usize { return dos(); }'},
      "a.t", "llega de dos sitios", None),
 
     ("lo que usa un modulo usado no se ve sin pedirlo",
      {"hondo.t": 'fn doble(n: usize) -> usize { return n * 2; }',
-      "medio.t": 'usar "hondo.t"; fn cuatro(n: usize) -> usize { return doble(doble(n)); }',
-      "app.t": 'usar "medio.t"; fn main() { imprimir($"{doble(cuatro(1))}\\n"); }'},
+      "medio.t": 'use "hondo.t"; fn cuatro(n: usize) -> usize { return doble(doble(n)); }',
+      "app.t": 'use "medio.t"; fn main() { imprimir($"{doble(cuatro(1))}\\n"); }'},
      "app.t", "que este archivo no usa", None),
 
     ("una variable local con el nombre de una funcion de otro modulo",
      {"hondo.t": 'fn doble(n: usize) -> usize { return n * 2; }',
-      "medio.t": 'usar "hondo.t"; fn cuatro(n: usize) -> usize { return doble(doble(n)); }',
-      "app.t": 'usar "medio.t"; fn main() { let doble = fn(n: usize) -> usize { return n + n; };'
+      "medio.t": 'use "hondo.t"; fn cuatro(n: usize) -> usize { return doble(doble(n)); }',
+      "app.t": 'use "medio.t"; fn main() { let doble = fn(n: usize) -> usize { return n + n; };'
                ' imprimir($"{doble(cuatro(1))}\\n"); }'},
      "app.t", None, "8\n"),
 
     ("dos modulos con el mismo nombre no se estorban si no se cruzan",
-     {"uno.t": 'fn contar(xs: &lista<str>) -> usize { return largo(xs); }',
-      "dos.t": 'fn contar(xs: &lista<usize>) -> usize { return largo(xs) * 2; }',
-      "a.t": 'usar "uno.t";\nusar "dos.t" como d;\n'
+     {"uno.t": 'fn contar(xs: &list<str>) -> usize { return largo(xs); }',
+      "dos.t": 'fn contar(xs: &list<usize>) -> usize { return largo(xs) * 2; }',
+      "a.t": 'use "uno.t";\nuse "dos.t" como d;\n'
                'fn main() -> usize {\n'
-               '    var ss: lista<str> = []; anadir(ss, nuevo("a"));\n'
-               '    var ns: lista<usize> = []; anadir(ns, 1); anadir(ns, 2);\n'
+               '    var ss: list<str> = []; anadir(ss, nuevo("a"));\n'
+               '    var ns: list<usize> = []; anadir(ns, 1); anadir(ns, 2);\n'
                '    imprimir($"{contar(ss)} {d.contar(ns)}\\n");\n'
                '    return 0;\n}'},
      "a.t", None, "1 4\n"),
@@ -130,20 +130,20 @@ MODULOS = [
     ("dos modulos con el mismo nombre de archivo en carpetas distintas",
      {"x.t": 'fn f() -> usize { return 1; }',
       "lib/x.t": 'fn f() -> usize { return 2; }',
-      "a.t": 'usar "x.t";\nusar "lib/x.t" como otra;\n'
+      "a.t": 'use "x.t";\nuse "lib/x.t" como otra;\n'
                'fn main() { imprimir($"{f()} {otra.f()}\\n"); }'},
      "a.t", None, "1 2\n"),
 
     ("sin alias, el mismo nombre de archivo en dos carpetas choca y lo dice",
      {"x.t": 'fn f() -> usize { return 1; }',
       "lib/x.t": 'fn f() -> usize { return 2; }',
-      "a.t": 'usar "x.t";\nusar "lib/x.t";\nfn main() { imprimir(f()); }'},
+      "a.t": 'use "x.t";\nuse "lib/x.t";\nfn main() { imprimir(f()); }'},
      "a.t", "llega de dos sitios", None),
 
     ("un struct que llega con nombre de modulo",
      {"tipos.t": 'struct Caja { n: usize }\n'
                    'fn hacer(n: usize) -> Caja { return Caja { n: n }; }',
-      "a.t": 'usar "tipos.t" como t;\n'
+      "a.t": 'use "tipos.t" como t;\n'
                'fn leer(c: &t.Caja) -> usize { return c.n; }\n'
                'fn main() -> usize {\n'
                '    let c: t.Caja = t.Caja { n: 7 };\n'
@@ -157,7 +157,7 @@ MODULOS = [
                    'enum Exterior { Vacio, Dentro(Interior) }\n'
                    'fn hacer(n: usize) -> Exterior {'
                    ' return Exterior.Dentro(Interior.Numero(n)); }',
-      "a.t": 'usar "tipos.t" como t;\n'
+      "a.t": 'use "tipos.t" como t;\n'
                'fn leer(e: &t.Exterior) -> usize { return match e {\n'
                '    t.Exterior.Vacio -> 0,\n'
                '    t.Exterior.Dentro(t.Interior.Nada) -> 1,\n'
@@ -174,7 +174,7 @@ MODULOS = [
     ("un error dentro de un modulo dice de que archivo es",
      {"roto.t": 'fn r() { let a: usize = 1; let b: i64 = 2;'
                   ' let c: usize = a + b; }',
-      "a.t": 'usar "roto.t";\nfn main() -> usize { return 0; }'},
+      "a.t": 'use "roto.t";\nfn main() -> usize { return 0; }'},
      "a.t", "roto.t:1", None),
 ]
 

@@ -112,7 +112,7 @@ def correr(suite: Resultado) -> None:
         fuera = os.path.join(tmp, "fuera")
         os.makedirs(fuera)
         with open(os.path.join(fuera, "h.t"), "w", encoding="utf-8") as f:
-            f.write('usar "std/texto";\n'
+            f.write('use "std/texto";\n'
                     'fn main() { imprimir($"{mayusculas("hola")}\\n"); }\n')
         sin_raiz = {k: v for k, v in os.environ.items() if k != "TCODE_RAIZ"}
         pasos = [

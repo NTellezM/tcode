@@ -503,7 +503,7 @@ def probar_errores(tmp):
         'struct P { v: view }\nfn f() -> P { let s: str = nuevo("h");\n'
         ' return P { v: vista(s) }; }',
         'fn f() -> view { var s: str = nuevo("h");\n return vista(s); }',
-        'fn f() -> usize ! { falla "x"; }\nfn g() -> usize { return f(); }',
+        'fn f() -> usize ! { fail "x"; }\nfn g() -> usize { return f(); }',
         'fn f() { let a: [usize; 2] = [1,2];\n let b: bool = true;\n'
         ' imprimir(a[b]); }',
         'struct P { n: str } fn g(p: P) {}\nfn f(p: &P) { g(p); }',

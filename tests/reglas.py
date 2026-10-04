@@ -25,7 +25,7 @@ LARGO = '"' + "x" * 40 + '"'
 OTRO = '"' + "y" * 60 + '"'
 
 # Lo que todos los casos pueden usar.
-PRELUDIO = """fn puede(n: usize) -> usize ! { if n > 5 { falla "no"; } return n; }
+PRELUDIO = """fn puede(n: usize) -> usize ! { if n > 5 { fail "no"; } return n; }
 fn dos(a: usize, b: usize) -> usize { return a + b; }
 fn consumir(x: str) -> usize { return largo(x); }
 fn g(a: mut str, b: mut str) { empujar(a, b); }
@@ -101,7 +101,7 @@ REGLAS = [
           [],
           ["le faltan formas: `E.C`"]),
     Regla("un indice que no es usize",
-          ["let xs: lista<usize> = [1, 2];", "let i: i64 = 0;"],
+          ["let xs: list<usize> = [1, 2];", "let i: i64 = 0;"],
           ["imprimir(xs[i como usize]);"], [("imprimir(xs[i]);", "error")],
           [],
           ["un indice tiene que ser `usize`"]),
@@ -259,7 +259,7 @@ REGLAS = [
           [],
           ["`u8` no tiene signo"]),
     Regla("interpolar lo que no se muestra",
-          ["let xs: lista<usize> = [1, 2];"],
+          ["let xs: list<usize> = [1, 2];"],
           ['imprimir($"{xs[0]}");'], [('imprimir($"{xs}");', "error")],
           [],
           ["dentro de `{{}}` va un escalar o texto"]),
@@ -275,7 +275,7 @@ REGLAS = [
           ["el argumento 2 de `byte` debe ser `usize`"]),
     Regla("una palabra reservada de antemano no es un nombre",
           [], ["let x = 1;"],
-          [("let protocolo = 1;", "error")],
+          [("let protocol = 1;", "error")],
           [],
           ["se esperaba 'ident'"]),
     # Guardar un prestamo pediria expresar cuanto vive lo que apunta, y el
@@ -283,7 +283,7 @@ REGLAS = [
     # bloque no.
     Regla("un prestamo guardado en una lista",
           [],
-          ["var l: lista<str> = [];"], [("var l: lista<&str> = [];", "error")],
+          ["var l: list<str> = [];"], [("var l: list<&str> = [];", "error")],
           ["imprimir(largo(l));"],
           ["no es un tipo almacenable"]),
 ]

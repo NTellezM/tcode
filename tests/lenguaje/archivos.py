@@ -37,7 +37,7 @@ def correr(suite: Resultado) -> None:
 
         # Lectura acotada: posiciones, fin normal y el cero binario sobreviven.
         suite.total += 1
-        fuente = f'''usar "std/archivo";
+        fuente = f'''use "std/archivo";
     fn mostrar(v: view) {{ imprimir($"{{largo(v)}}:{{byte(v, 0)}} "); }}
     fn main() -> usize ! {{
         let a = try leer_parte_archivo("{ruta}", 0, 3);
