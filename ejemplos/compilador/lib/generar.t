@@ -104,6 +104,9 @@ fn cuantos_de_arreglo(t: view) -> str {
 // promete.
 fn tipo_c(t: view) -> str {
     if t == "str" { return nuevo("SafeString"); }
+    // Un `buffer` es el `char*` crudo de C: el unico sitio donde a un `str`
+    // se le quita el `const`, porque ahi C va a escribir.
+    if t == "buffer" { return nuevo("char*"); }
     if t == "view" { return nuevo("SafeView"); }
     if t == "bool" { return nuevo("bool"); }
     if t == "usize" { return nuevo("size_t"); }
@@ -2286,6 +2289,18 @@ fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -
             }
             arg = $"ss_lang_cstr_(&{sitio}, \"{s.archivo}\", {n.linea})";
             tc = nuevo("const char*");
+        } else if firmados[i].nombre == "buffer" {
+            // `buffer` es un `str` del que C va a escribir: se le da el mismo
+            // buffer, pero sin el `const`, que es lo que pide el parametro
+            // `char*` de la funcion. La comprobacion del cero en medio sigue
+            // siendo la de `ss_lang_cstr_`.
+            let sitio = sitio_c(b, s, h, tipos);
+            if es_desconocido(sitio) {
+                let _m = cerrar_marco(b);
+                return no_se();
+            }
+            arg = $"(char*) ss_lang_cstr_(&{sitio}, \"{s.archivo}\", {n.linea})";
+            tc = nuevo("char*");
         } else {
             arg = expresion_c(b, s, h, T.escribir_tipo(firmados[i]), tipos);
             if es_desconocido(arg) {

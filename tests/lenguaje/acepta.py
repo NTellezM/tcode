@@ -1468,6 +1468,22 @@ fn main() {
         }''',
      "2 comprobaciones, todo bien\n"),
 
+    ("std/proceso y std/entorno: lanzar ordenes y leer el entorno",
+     '''#importar "proceso.t";
+        #importar "entorno.t";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            afirmar_igual_numero(p, "una que va bien", (ejecutar("true") sino 0) como usize, 0);
+            afirmar_igual_numero(p, "una que va mal", (ejecutar("false") sino 0) como usize, 1);
+            afirmar_igual_numero(p, "y su codigo", (ejecutar("exit 7") sino 0) como usize, 7);
+            afirmar(p, "va_bien lo dice", va_bien("true") sino false);
+            afirmar(p, "con valor por defecto", igual(variable_o("TC_NO_ESTA", "otro"), "otro"));
+            afirmar(p, "y el temporal no viene vacio", largo(directorio_temporal()) > 0);
+            return terminar(p);
+        }''',
+     "6 comprobaciones, todo bien\n"),
+
     ("un contenedor propio, escrito en Tcode y no en el compilador",
      '''struct Pila<T> { cosas: list<T> }
 

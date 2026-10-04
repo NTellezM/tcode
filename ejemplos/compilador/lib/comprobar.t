@@ -72,6 +72,8 @@ fn es_copiable(t: view) -> bool {
 // Un valor de tipo `dado` sirve donde se pide `esperado`.
 fn encaja(esperado: view, dado: view) -> bool {
     if igual(esperado, dado) { return true; }
+    // Un `buffer` es un `str` que ademas C puede escribir: se le da un `str`.
+    if igual(esperado, "buffer") && igual(dado, "str") { return true; }
     if igual(dado, literal()) && es_numerico(esperado) { return true; }
     if igual(dado, literal_decimal()) && es_decimal(esperado) { return true; }
     if T.es_referencia(dado) && !T.es_referencia(esperado) && es_copiable(esperado) {
@@ -4353,13 +4355,41 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             }
             continue;
         }
+        // Un `buffer` es una salida: C va a escribir ahi. Pide una variable
+        // —y `var`, porque se modifica— y la llamada cuenta como modificarla.
+        if igual(p.tipo, "buffer") {
+            let base = variable_base(arg);
+            let is = buscar_simbolo(c, base);
+            if base.largo() == 0 || !existe(c, is) {
+                let t_arg = comprobar_expresion(c, m, tipos, arg, "str", false);
+                if T.conocido(t_arg) && !encaja("str", T.escribir_tipo(t_arg)) {
+                    error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `buffer` y recibio `{T.escribir_tipo(t_arg)}`");
+                } else {
+                    error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `buffer`: C va a escribir ahi, pasale una variable");
+                }
+                continue;
+            }
+            let tipo_arg = tipo_de_lugar(c, m, tipos, arg);
+            if T.conocido(tipo_arg) && !igual(T.escribir_tipo(tipo_arg), "str") {
+                error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `buffer` y recibio `{T.escribir_tipo(tipo_arg)}`");
+                continue;
+            }
+            let por_puntero = T.es_referencia(c.simbolos[is].tipo);
+            mutar(c, m, arg, arg.linea, is, por_puntero);
+            c.simbolos[is].leida = true;
+            continue;
+        }
         // Una funcion de C mira la cadena, no se la queda.
         let mueve = posee_memoria(m, p.tipo) && !f.externa;
         if mueve && arg.clase == Clase.Variable {
             let ia = buscar_simbolo(c, arg.texto);
             if existe(c, ia) { c.simbolos[ia].movida_a = copiar(destinataria); }
         }
-        let t = comprobar_expresion(c, m, tipos, arg, p.tipo, mueve);
+        // Un `buffer` no es un tipo de valor: por dentro es un `str`, y asi se
+        // comprueba el argumento. El `const` se lo quita el generador.
+        var esperado = copiar(p.tipo);
+        if igual(esperado, "buffer") { esperado = nuevo("str"); }
+        let t = comprobar_expresion(c, m, tipos, arg, esperado, mueve);
         // Una vista que se pasa tambien presta, aunque no tenga nombre:
         // `g(s, vista(s))` con `a: mut str` dejaria a `g` modificando por un
         // lado lo que lee por el otro. Es el fallo 2 de la especificacion.
@@ -5995,8 +6025,9 @@ fn avisar_sin_usar(c: mut Comprobacion, m: &Mundo, f: &Funcion) {
     }
 }
 
-// Lo que va a un lado y otro del borde con C: numeros, `bool` y `str` de
-// entrada; numeros, `bool`, `cadena_c` y nada de salida.
+// Lo que va a un lado y otro del borde con C: numeros, `bool`, `str` y
+// `buffer` de entrada; numeros, `bool`, `cadena_c` y nada de salida. Un
+// `buffer` es un `str` del que C ademas puede escribir, y solo vale ahi.
 fn comprobar_externa(c: mut Comprobacion, m: &Mundo, f: &Funcion) {
     let nombre = vista(f.nombre);
     for p en f.params {
@@ -6005,8 +6036,8 @@ fn comprobar_externa(c: mut Comprobacion, m: &Mundo, f: &Funcion) {
             error(c, m, f.linea, $"`{nombre}` es de C: sus parametros no se prestan ni se mutan, se pasan por valor");
         } else if t == "view" {
             error(c, m, f.linea, $"`{nombre}.{p.nombre}` es una `view`, y una vista puede apuntar a la mitad de una cadena: no acaba en `\\0` y C leeria de mas. Pasa un `str`, que si acaba, o haz `nuevo(v)` antes");
-        } else if !es_numerico(t) && t != "bool" && t != "str" {
-            error(c, m, f.linea, $"`{nombre}.{p.nombre}` es `{t}`, y eso no significa lo mismo en C. En el borde caben los numeros, `bool` y `str`; para lo demas, envuelvelo en una funcion de C tuya");
+        } else if !es_numerico(t) && t != "bool" && t != "str" && t != "buffer" {
+            error(c, m, f.linea, $"`{nombre}.{p.nombre}` es `{t}`, y eso no significa lo mismo en C. En el borde caben los numeros, `bool`, `str` y `buffer`; para lo demas, envuelvelo en una funcion de C tuya");
         }
     }
     var r = copiar(f.retorno);

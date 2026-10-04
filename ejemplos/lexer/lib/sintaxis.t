@@ -451,6 +451,20 @@ fn tipo(e: mut Estado) -> str ! {
     fail "sintaxis";
 }
 
+// El tipo de un parametro de `externo`. Ademas de los tipos de siempre, ahi
+// vale `buffer`: un `char*` en el que la funcion de C va a ESCRIBIR, que por
+// eso no puede ser `const`. Solo se reconoce en la firma de un `externo`; en
+// el resto del lenguaje `buffer` no es un tipo. Lo que se le pasa es un `str`
+// —acaba en `\0` y su buffer es del heap—, y el generador le quita el `const`
+// a proposito, porque C va a escribir dentro.
+fn tipo_de_externo(e: mut Estado) -> str ! {
+    if es(e, "ident", "buffer") {
+        avanzar(e);
+        return nuevo("buffer");
+    }
+    return try tipo(e);
+}
+
 // ------------------------------------------------------------------
 // Expresiones, de menor a mayor precedencia
 // ------------------------------------------------------------------
@@ -1434,7 +1448,7 @@ fn declaracion(e: mut Estado) -> Nodo ! {
                 while true {
                     let pn = try espera(e, "ident", "");
                     try espera(e, "simbolo", ":");
-                    let pt = try tipo(e);
+                    let pt = try tipo_de_externo(e);
                     var pp = rama(Clase.Param, fl);
                     pp.texto.empujar(pn);
                     pp.texto.empujar(": ");

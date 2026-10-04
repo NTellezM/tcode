@@ -2725,7 +2725,7 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
     }
 
     var orden = para_la_shell(cc);
-    let piezas_fijas = $" -std=c17 -O{nivel} -Wall -Wextra ";
+    let piezas_fijas = $" -std=c17 -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=700 -O{nivel} -Wall -Wextra ";
     orden.empujar(piezas_fijas);
     let incluir = $"-I{raiz}/runtime";
     orden.empujar(para_la_shell(incluir));
@@ -3022,6 +3022,17 @@ fn ensamblar_c(raiz: view, ext_cabeceras: &list<str>, ext_protos: &list<str>,
     cuerpos: &list<str>) -> str ! {
     let cabecera = try leer_archivo($"{raiz}/runtime/cabecera.inc");
     var todas: list<str> = [];
+    // El C generado dice de si mismo lo que le pide a la libc. Las funciones
+    // POSIX —`realpath`, `mkstemp`, `clock_gettime`, `setenv`— solo se
+    // declaran con `_DEFAULT_SOURCE`, y con `-std=c17` la libc las esconde.
+    // Poniendolo aqui, antes de cualquier `#include`, el archivo vale con
+    // cualquier `cc` y con las banderas que sean: no depende de que quien lo
+    // compile se acuerde de pasar la macro.
+    todas.anadir(nuevo("/* Lo que este archivo le pide a la libc. Va antes de"));
+    todas.anadir(nuevo("   cualquier `#include`, que es cuando la libc decide que"));
+    todas.anadir(nuevo("   declara y que no. */"));
+    todas.anadir(nuevo("#define _DEFAULT_SOURCE 1"));
+    todas.anadir(vacio());
     todas.anadir(cabecera);
     var incluidas: list<str> = [];
     for h en ext_cabeceras {

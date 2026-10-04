@@ -35,6 +35,16 @@ fn carpeta_de(ruta: view) -> view {
     return rebanar(ruta, 0, b);
 }
 
+// La carpeta de una ruta, o `.` si la ruta no trae ninguna. Es la carpeta
+// que hay que darle a una funcion del sistema cuando se le pide trabajar
+// «al lado de» algo: `carpeta_de("a.t")` esta vacia, pero el directorio de
+// `a.t` es el actual, y `.` lo dice sin ambiguedad.
+fn carpeta_o_actual(ruta: view) -> str {
+    let c = carpeta_de(ruta);
+    if largo(c) == 0 { return nuevo("."); }
+    return nuevo(c);
+}
+
 // El punto de la extension, o `largo(n)` si no tiene. Un punto al principio
 // —`.gitignore`— no cuenta como extension.
 fn punto_extension(n: view) -> usize {

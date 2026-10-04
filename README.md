@@ -148,7 +148,7 @@ compilar en cualquier sitio donde haya un compilador de C17.
 | `ejemplos/lexer/lib/` | lexer, parser y el árbol, con la clase de cada nodo como `enum Clase` |
 | `bootstrap/tcodec.c` | la semilla: el C que `tcodec` escribe de sí mismo, con el que se construye |
 | `tcode/` | el compilador de Python, congelado: el oráculo de la suite |
-| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->44<!--/c--> módulos, <!--c:std_lineas-->6.558<!--/c--> líneas |
+| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->46<!--/c--> módulos, <!--c:std_lineas-->7.117<!--/c--> líneas |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
 ### Dos compiladores, una regla
@@ -226,7 +226,7 @@ interpoladas para los mensajes, y lectura de archivos con argumentos. Corre
 limpio bajo ASan y UBSan, y ante una entrada rota —una cadena sin cerrar, un
 archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 
-`ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.824<!--/c--> líneas más: descenso recursivo con la
+`ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.838<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba:
 
@@ -257,7 +257,7 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->22.032<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->22.103<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa).
 
 Y hace el último paso él solo: llama al compilador de C, enlaza lo que
@@ -284,7 +284,7 @@ igual
 ```
 
 El `tcodec` construido por sí mismo vuelve a escribir exactamente los mismos
-bytes (<!--c:punto_fijo_bytes-->6,40<!--/c--> MB), y el construido desde su propio C también, bajo
+bytes (<!--c:punto_fijo_bytes-->6,42<!--/c--> MB), y el construido desde su propio C también, bajo
 AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
 El compilador ya no necesita a Python para existir: se construye desde su
 semilla, que es el paso que dieron Go en la 1.5 y Rust con su primer `rustc`
@@ -297,7 +297,7 @@ otro programa.
 ### Y también sabe decir que no
 
 Un compilador no es sólo lo que escribe: es lo que se niega a escribir.
-`lib/comprobar.t` son <!--c:lineas_comprobar-->6.387<!--/c--> líneas con las reglas del comprobador de Python
+`lib/comprobar.t` son <!--c:lineas_comprobar-->6.418<!--/c--> líneas con las reglas del comprobador de Python
 —tipos, propiedad, préstamos, mutabilidad, fallos, literales, genéricas
 comprobadas en cada copia, clausuras— y los **mismos mensajes, en el mismo
 orden**. `tcodec` lo pasa antes de escribir nada:
@@ -450,7 +450,7 @@ $ make formato
 Sin opciones, como `gofmt`: hay un estilo y es este. Pero **no mueve tokens
 de línea** — no decide dónde parte una expresión larga. Por eso no puede
 estropear nada: la salida lexea exactamente a los mismos tokens que la
-entrada, y la suite lo comprueba sobre los <!--c:formato_archivos-->98<!--/c--> `.t` del repositorio, junto con
+entrada, y la suite lo comprueba sobre los <!--c:formato_archivos-->100<!--/c--> `.t` del repositorio, junto con
 que formatear dos veces da lo mismo y que el repositorio ya está formateado.
 
 ## Depurar
@@ -645,7 +645,7 @@ structs (`&T` y `mut T`), `list<T>` dinámica, `map<str, V>` con tabla hash,
 argumentos de la línea de órdenes, `ordenar` y `menor`, salida de error y
 escritura de archivos, `for`/`break`/`continue`, `map<str, V>` con `obtener` prestado y `&T` y `&mut T` como tipos, cadenas interpoladas, módulos y fallos como valores.
 
-Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/arbol`, `std/archivo`, `std/azar`, `std/base64`, `std/bit`, `std/bytes`, `std/camino`, `std/caracter`, `std/cli`, `std/cola`, `std/color`, `std/compresion`, `std/conjunto`, `std/crc`, `std/csv`, `std/cuenta`, `std/difuso`, `std/fecha`, `std/formato`, `std/glob`, `std/grafo`, `std/hash`, `std/ini`, `std/iterador`, `std/json`, `std/lista`, `std/log`, `std/mapa`, `std/numero`, `std/par`, `std/pila`, `std/plantilla`, `std/prioridad`, `std/prueba`, `std/regex`, `std/sha256`, `std/tabla`, `std/terminal`, `std/texto`, `std/toml`, `std/url`, `std/utf8`, `std/uuid` y `std/vector`<!--/c-->—, <!--c:std_lineas-->6.558<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
+Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/arbol`, `std/archivo`, `std/azar`, `std/base64`, `std/bit`, `std/bytes`, `std/camino`, `std/caracter`, `std/cli`, `std/cola`, `std/color`, `std/compresion`, `std/conjunto`, `std/crc`, `std/csv`, `std/cuenta`, `std/difuso`, `std/entorno`, `std/fecha`, `std/formato`, `std/glob`, `std/grafo`, `std/hash`, `std/ini`, `std/iterador`, `std/json`, `std/lista`, `std/log`, `std/mapa`, `std/numero`, `std/par`, `std/pila`, `std/plantilla`, `std/prioridad`, `std/proceso`, `std/prueba`, `std/regex`, `std/sha256`, `std/tabla`, `std/terminal`, `std/texto`, `std/toml`, `std/url`, `std/utf8`, `std/uuid` y `std/vector`<!--/c-->—, <!--c:std_lineas-->7.117<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
 queda una sola función duplicada entre `ejemplos/` y `std/`.
 
 Y **`copiar(x)`**: copia profunda de cualquier valor —número, `str`, struct,
@@ -780,7 +780,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1513 casos, 0 fallas
+1516 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 
