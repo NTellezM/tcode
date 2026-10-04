@@ -148,7 +148,7 @@ compilar en cualquier sitio donde haya un compilador de C17.
 | `ejemplos/lexer/lib/` | lexer, parser y el árbol, con la clase de cada nodo como `enum Clase` |
 | `bootstrap/tcodec.c` | la semilla: el C que `tcodec` escribe de sí mismo, con el que se construye |
 | `tcode/` | el compilador de Python, congelado: el oráculo de la suite |
-| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->41<!--/c--> módulos, <!--c:std_lineas-->5.432<!--/c--> líneas |
+| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->44<!--/c--> módulos, <!--c:std_lineas-->6.558<!--/c--> líneas |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
 ### Dos compiladores, una regla
@@ -450,7 +450,7 @@ $ make formato
 Sin opciones, como `gofmt`: hay un estilo y es este. Pero **no mueve tokens
 de línea** — no decide dónde parte una expresión larga. Por eso no puede
 estropear nada: la salida lexea exactamente a los mismos tokens que la
-entrada, y la suite lo comprueba sobre los <!--c:formato_archivos-->95<!--/c--> `.t` del repositorio, junto con
+entrada, y la suite lo comprueba sobre los <!--c:formato_archivos-->98<!--/c--> `.t` del repositorio, junto con
 que formatear dos veces da lo mismo y que el repositorio ya está formateado.
 
 ## Depurar
@@ -643,7 +643,7 @@ structs (`&T` y `mut T`), `list<T>` dinámica, `map<str, V>` con tabla hash,
 argumentos de la línea de órdenes, `ordenar` y `menor`, salida de error y
 escritura de archivos, `for`/`break`/`continue`, `map<str, V>` con `obtener` prestado y `&T` y `&mut T` como tipos, cadenas interpoladas, módulos y fallos como valores.
 
-Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/archivo`, `std/azar`, `std/base64`, `std/bit`, `std/bytes`, `std/camino`, `std/caracter`, `std/cli`, `std/cola`, `std/color`, `std/compresion`, `std/conjunto`, `std/crc`, `std/csv`, `std/cuenta`, `std/fecha`, `std/formato`, `std/glob`, `std/hash`, `std/ini`, `std/iterador`, `std/json`, `std/lista`, `std/log`, `std/mapa`, `std/numero`, `std/par`, `std/pila`, `std/plantilla`, `std/prioridad`, `std/prueba`, `std/regex`, `std/sha256`, `std/tabla`, `std/terminal`, `std/texto`, `std/toml`, `std/url`, `std/utf8`, `std/uuid` y `std/vector`<!--/c-->—, <!--c:std_lineas-->5.432<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
+Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/arbol`, `std/archivo`, `std/azar`, `std/base64`, `std/bit`, `std/bytes`, `std/camino`, `std/caracter`, `std/cli`, `std/cola`, `std/color`, `std/compresion`, `std/conjunto`, `std/crc`, `std/csv`, `std/cuenta`, `std/difuso`, `std/fecha`, `std/formato`, `std/glob`, `std/grafo`, `std/hash`, `std/ini`, `std/iterador`, `std/json`, `std/lista`, `std/log`, `std/mapa`, `std/numero`, `std/par`, `std/pila`, `std/plantilla`, `std/prioridad`, `std/prueba`, `std/regex`, `std/sha256`, `std/tabla`, `std/terminal`, `std/texto`, `std/toml`, `std/url`, `std/utf8`, `std/uuid` y `std/vector`<!--/c-->—, <!--c:std_lineas-->6.558<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
 queda una sola función duplicada entre `ejemplos/` y `std/`.
 
 Y **`copiar(x)`**: copia profunda de cualquier valor —número, `str`, struct,
@@ -778,7 +778,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1500 casos, 0 fallas
+1503 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 
