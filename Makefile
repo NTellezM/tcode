@@ -176,10 +176,16 @@ bench: tcodec
 bench-comprobar: tcodec
 	@$(PY) bench/medir.py --comprobar
 
-check:
+# Mide lo que la suite mide y deja el resultado en `.cifras.json`. Lo usan
+# `check`, que ademas comprueba que el README dice lo mismo, y `cifras`, que lo
+# escribe: asi `make cifras` no puede escribir una medida que no corresponda al
+# arbol de ahora, que es la trampa que hacia fallar el check una y otra vez.
+medir:
 	@$(PY) tests/test_lenguaje.py
 	@$(PY) tests/test_propiedades.py
 	@$(PY) tests/fuzz.py --repetir
+
+check: medir
 	@$(PY) tests/cifras.py --comprobar
 	@$(PY) tests/grafo.py --comprobar
 	@$(MAKE) --no-print-directory lint
@@ -191,7 +197,7 @@ RAPIDAS = RECHAZO AVISA ACEPTA SALIDA ARCHIVOS ABORTA MODULOS FORMATO LINEAS EJE
 rapido:
 	@$(PY) tests/test_lenguaje.py $(RAPIDAS)
 
-cifras:
+cifras: medir
 	@$(PY) tests/cifras.py
 
 grafo:
