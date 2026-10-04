@@ -1375,6 +1375,18 @@ fn main() {
         }''',
      "6 6 true ababab\n"),
 
+    ("un literal de lista se queda el valor que le dan",
+     '''fn envuelve(x: str) -> list<str> {
+            var v: list<str> = [x];
+            return v;
+        }
+        fn main() -> usize {
+            var l = envuelve(nuevo("hola"));
+            imprimir($"{l[0]}\\n");
+            return 0;
+        }''',
+     "hola\n"),
+
     ("un contenedor propio, escrito en Tcode y no en el compilador",
      '''struct Pila<T> { cosas: list<T> }
 

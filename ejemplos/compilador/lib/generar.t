@@ -2833,6 +2833,15 @@ fn movidas_en(punteros: &map<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
                 }
             }
         }
+        // Un literal de lista se queda con lo que le den: meter una variable
+        // con duenio dentro es entregarla, igual que capturarla en un cierre.
+        Clase.LiteralLista -> {
+            for h en n.hijos {
+                if entrega_suelta(punteros, h, tipos) {
+                    apuntar_movida(salida, h.texto);
+                }
+            }
+        }
         Clase.Llamada -> {
             var i = 0;
             for h en n.hijos {
