@@ -89,27 +89,49 @@ El compilador congelado **sólo conoce las palabras viejas**. Si se renombra la
 fuente de golpe, la etapa 0 no la sabe leer y no hay forma de arrancar. Por eso
 el renombrado va en **tres fases**, y cada una deja el punto fijo cerrado.
 
-### Fase A — el compilador entiende los dos idiomas
+### Fase A — el compilador entiende los dos idiomas (hecha)
 
-Objetivo: que acepte las viejas **y** las nuevas, y que por dentro hable ya en
-las nuevas.
+Objetivo: aceptar las viejas **y** las nuevas.
 
-1. **Lexer** (`ejemplos/lexer/lib/lexico.t`):
-   - `es_reservada` acepta las nuevas además de las viejas.
-   - El texto del token se **canoniza a la nueva** (`lista` → `"list"`), para
-     que el analizador tenga que conocer un solo idioma.
-   - Con `comentarios` (el formateador) se guarda lo escrito, como ya se hace
-     con los números: así `--formatear` no «traduce» nada por su cuenta.
-2. **Analizador** (`ejemplos/lexer/lib/sintaxis.t`): las comparaciones de
-   `lista`, `mapa`, `usar` y `falla` pasan al texto nuevo.
-   (`como` NO se toca: es `ident` contextual y se queda como está.)
-3. Las cinco reservadas de antemano: sólo la tabla del lexer.
-4. `make tcodec && make semilla` — la etapa 0 vieja compila la fuente nueva
-   (que sigue escrita con las palabras viejas, así que la lee), y la semilla
-   resultante ya entiende las dos.
-5. Verificar: `make check` en verde y el punto fijo.
+Lo primero que salió al hacerlo es que este plan se quedaba corto: no eran «el
+lexer y el analizador», sino **siete sitios en seis ficheros** los que comparan
+contra esas palabras:
 
-**Al acabar la fase A, nada cambia para quien escribe Tcode.**
+| fichero | qué compara |
+|---|---|
+| `ejemplos/lexer/lib/lexico.t` | `es_reservada`, la tabla |
+| `ejemplos/lexer/lib/sintaxis.t` | `mapa`, `lista`, `falla` y `usar` ×5 |
+| `ejemplos/compilador/lib/tipos.t` | `lista`, `mapa` |
+| `ejemplos/compilador/tcodec.t` | `usar` ×2, el cargador de módulos |
+| `ejemplos/compilador/tipar.t` | `usar` |
+| `ejemplos/compilador/lib/formato.t` | `lista`, `mapa` |
+| `ejemplos/lexer/lib/clase.t` | los nombres que salen en los mensajes |
+
+Y el último es el que decide la dirección. `clase.t` da los nombres de los
+errores (`Clase.Usar -> "usar"`, `Clase.Falla -> "falla"`), y hay textos como
+el de `sintaxis.t` («\`falla\` no lleva paréntesis»). Esos nombres tienen que
+decir lo que **escribe quien programa**. Canonizar hacia las nuevas, como decía
+este plan, habría dejado al compilador diciendo «`use`» mientras el código de
+todo el mundo dice `usar`.
+
+Así que se canoniza **hacia las viejas**:
+
+1. **Lexer** (`lexico.t`) — lo único que cambia de verdad:
+   - `canonica` traduce la nueva a la de siempre (`list` → `lista`).
+   - `es_reservada` canoniza antes de mirar, así valen las dos formas.
+   - El token se emite canonizado… salvo con `comentarios` (el formateador),
+     que guarda lo escrito para no traducir nada por su cuenta.
+2. **Formateador** (`formato.t`): `es_generico` conoce las dos formas, porque
+   ve la palabra tal como se escribió. Sin eso, `list<str>` salía formateado
+   como `list < str >`.
+3. **Lo demás no se toca**: el analizador, los tipos, el cargador y el tipado
+   siguen comparando contra las palabras de siempre, y los mensajes también.
+
+`make tcodec && make semilla`, y `make check` en verde.
+
+**Lo que se gana**: el código de siempre sigue compilando igual, y ya se puede
+escribir `list<str>`, `map<K,V>`, `use` y `fail` — y las cinco reservadas de
+antemano con su nombre nuevo.
 
 ### Fase B — el barrido
 
@@ -153,10 +175,20 @@ Luego `make check` completo y `make semilla`, byte a byte.
 
 ### Fase C — quitar las viejas
 
-1. Lexer: fuera las viejas de `es_reservada` y fuera la canonización.
-2. `make semilla` y verificar.
-3. A partir de aquí, `lista`/`mapa`/`usar`/`falla` vuelven a ser palabras
-   normales del idioma, y podrás escribir `var lista: list<str> = [];`.
+Aquí se renombra **por dentro**, todo a la vez, con el código ya escrito en las
+nuevas (que es lo que hace la fase B):
+
+1. Los seis ficheros de la fase A: las comparaciones pasan a las palabras
+   nuevas (`sintaxis.t`, `tipos.t`, `tcodec.t`, `tipar.t`), `es_generico` se
+   queda sólo con las nuevas, y `clase.t` cambia los nombres de los mensajes
+   —`Clase.Usar -> "use"`, `Clase.Falla -> "fail"`— junto con los textos que
+   las nombran.
+2. Lexer: fuera `canonica`, fuera las viejas de `es_reservada`, y el token se
+   emite tal cual se escribió.
+3. `make semilla` y verificar.
+
+A partir de aquí, `lista`/`mapa`/`usar`/`falla` vuelven a ser palabras normales
+del idioma, y se puede escribir `var lista: list<str> = [];`.
 
 ## 4. ¿Y `pokered-tcode`?
 
