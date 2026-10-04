@@ -10,6 +10,16 @@ from .comun import (
 # Programas que compilan pero deben ABORTAR en tiempo de ejecucion.
 ABORTA = [
     # Antes daba una vista vacia, un resultado equivocado que nadie veia.
+    ("un indice fuera de rango en una lista detiene el programa",
+     'fn main() -> usize { let xs: list<usize> = [1, 2, 3];'
+     ' imprimir($"{xs[10]}"); return 0; }',
+     "indice 10 fuera de rango (el arreglo tiene 3 elementos)"),
+
+    ("un byte fuera de rango en un texto detiene el programa",
+     'fn main() -> usize { let s = nuevo("aeiouind");'
+     ' imprimir($"{byte(s, 12)}"); return 0; }',
+     "indice 12 fuera de rango (el arreglo tiene 8 elementos)"),
+
     ("`rebanar` fuera de rango detiene el programa",
      'fn main() { let s = nuevo("hola"); let v = rebanar(vista(s), 3, 10);'
      ' imprimir(largo(v)); }',
