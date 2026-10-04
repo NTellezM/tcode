@@ -1655,7 +1655,7 @@
     "named": false
   },
   {
-    "type": "falla",
+    "type": "fail",
     "named": false
   },
   {
@@ -1703,11 +1703,11 @@
     "named": false
   },
   {
-    "type": "lista",
+    "type": "list",
     "named": false
   },
   {
-    "type": "mapa",
+    "type": "map",
     "named": false
   },
   {
@@ -1759,7 +1759,7 @@
     "named": false
   },
   {
-    "type": "usar",
+    "type": "use",
     "named": false
   },
   {

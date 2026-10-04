@@ -62,7 +62,7 @@
       "members": [
         {
           "type": "STRING",
-          "value": "usar"
+          "value": "use"
         },
         {
           "type": "SYMBOL",
@@ -837,11 +837,11 @@
           "members": [
             {
               "type": "STRING",
-              "value": "mapa"
+              "value": "map"
             },
             {
               "type": "STRING",
-              "value": "lista"
+              "value": "list"
             }
           ]
         },
@@ -1308,7 +1308,7 @@
       "members": [
         {
           "type": "STRING",
-          "value": "falla"
+          "value": "fail"
         },
         {
           "type": "SYMBOL",

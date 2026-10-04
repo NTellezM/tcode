@@ -33,7 +33,7 @@ module.exports = grammar({
     )),
 
     usar: $ => seq(
-      'usar', $.cadena, optional(seq('como', field('alias', $.ident))), ';',
+      'use', $.cadena, optional(seq('como', field('alias', $.ident))), ';',
     ),
 
     // ---------- declaraciones ----------
@@ -120,9 +120,9 @@ module.exports = grammar({
 
     tipo_arreglo: $ => seq('[', $._tipo, ';', $.entero, ']'),
 
-    // `mapa<clave, valor>` y `lista<tipo>`: son palabras reservadas.
+    // `map<clave, valor>` y `list<tipo>`: son palabras reservadas.
     tipo_contenedor: $ => seq(
-      choice('mapa', 'lista'),
+      choice('map', 'list'),
       '<', repeat1(seq($._tipo, optional(','))), '>',
     ),
 
@@ -180,7 +180,7 @@ module.exports = grammar({
 
     retorno: $ => seq('return', optional($.expresion), ';'),
 
-    falla: $ => seq('falla', $.cadena, ';'),
+    falla: $ => seq('fail', $.cadena, ';'),
 
     asignacion: $ => seq($.expresion, '=', $.expresion, ';'),
 

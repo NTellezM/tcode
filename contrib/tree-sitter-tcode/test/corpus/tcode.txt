@@ -2,7 +2,7 @@
 Declaraciones
 ==================
 
-usar "std/texto";
+use "std/texto";
 
 struct Punto {
     x: f64,
@@ -104,7 +104,7 @@ fn main() -> usize ! {
     for i en 0..10 {
         break;
     }
-    falla "algo salio mal";
+    fail "algo salio mal";
     return 0;
 }
 
@@ -323,7 +323,7 @@ fn pruebas() {
     let s = "hola\nmundo";
     let t = $"hola {1 + 2} mundo";
     let lista = [1, 2, 3];
-    let mapa: mapa<str, usize> = [];
+    let mapa: map<str, usize> = [];
     let v = x como u8;
     let r = try f(x) sino 0;
     let b = a && b || c == d && e != f;
