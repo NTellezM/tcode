@@ -1469,6 +1469,7 @@ graph TD
         compilador_tcodec__ensamblar_c["ensamblar_c"]
         compilador_tcodec__envolver_arreglo_c["envolver_arreglo_c"]
         compilador_tcodec__es_compuesto_t["es_compuesto_t"]
+        compilador_tcodec__escribir_de_una_vez["escribir_de_una_vez"]
         compilador_tcodec__formatear_archivo["formatear_archivo"]
         compilador_tcodec__funcion_bloque["funcion_bloque"]
         compilador_tcodec__funcion_mapa["funcion_mapa"]
@@ -1499,6 +1500,7 @@ graph TD
         compilador_tcodec__preparar_instancias["preparar_instancias"]
         compilador_tcodec__programa_no_leido["programa_no_leido"]
         compilador_tcodec__prototipo_externo["prototipo_externo"]
+        compilador_tcodec__raiz_instalada["raiz_instalada"]
         compilador_tcodec__registrar_resultado["registrar_resultado"]
         compilador_tcodec__resolver["resolver"]
         compilador_tcodec__resolver_en_nodo["resolver_en_nodo"]
@@ -1581,6 +1583,14 @@ graph TD
         lexer_lib_sintaxis__carpeta["carpeta · sintaxis.t"]
         lexer_lib_sintaxis__leidos_en["leidos_en · sintaxis.t"]
         lexer_lib_sintaxis__rama["rama · sintaxis.t"]
+        std_archivo__borrar["borrar · std/archivo"]
+        std_archivo__es_archivo["es_archivo · std/archivo"]
+        std_archivo__instalar["instalar · std/archivo"]
+        std_archivo__misma_ruta["misma_ruta · std/archivo"]
+        std_archivo__ruta_real["ruta_real · std/archivo"]
+        std_archivo__temporal_junto["temporal_junto · std/archivo"]
+        std_entorno__directorio_temporal["directorio_temporal · std/entorno"]
+        std_proceso__ejecutar["ejecutar · std/proceso"]
         std_texto__a_entero["a_entero · std/texto"]
         std_texto__contiene["contiene · std/texto"]
         std_texto__empieza_con["empieza_con · std/texto"]
@@ -1603,6 +1613,14 @@ graph TD
     compilador_tcodec__ayudante_leer_archivo --> compilador_lib_generar__tipo_resultado
     compilador_tcodec__ayudante_leer_parte_archivo --> compilador_lib_generar__tipo_resultado
     compilador_tcodec__con_prefijo --> std_texto__empieza_con
+    compilador_tcodec__construir --> std_archivo__borrar
+    compilador_tcodec__construir --> std_archivo__es_archivo
+    compilador_tcodec__construir --> std_archivo__instalar
+    compilador_tcodec__construir --> std_archivo__misma_ruta
+    compilador_tcodec__construir --> std_archivo__ruta_real
+    compilador_tcodec__construir --> std_archivo__temporal_junto
+    compilador_tcodec__construir --> std_entorno__directorio_temporal
+    compilador_tcodec__construir --> std_proceso__ejecutar
     compilador_tcodec__construir --> std_texto__contiene
     compilador_tcodec__construir --> std_texto__recortar
     compilador_tcodec__construir --> std_texto__termina_con
@@ -1647,6 +1665,10 @@ graph TD
     compilador_tcodec__es_compuesto_t --> compilador_lib_tipos__es_bloque
     compilador_tcodec__es_compuesto_t --> compilador_lib_tipos__es_lista
     compilador_tcodec__es_compuesto_t --> compilador_lib_tipos__es_mapa
+    compilador_tcodec__escribir_de_una_vez --> std_archivo__borrar
+    compilador_tcodec__escribir_de_una_vez --> std_archivo__instalar
+    compilador_tcodec__escribir_de_una_vez --> std_archivo__ruta_real
+    compilador_tcodec__escribir_de_una_vez --> std_archivo__temporal_junto
     compilador_tcodec__formatear_archivo --> compilador_lib_formato__formatear
     compilador_tcodec__funcion_bloque --> compilador_lib_generar__mangle
     compilador_tcodec__funcion_bloque --> compilador_lib_generar__tipo_c
@@ -1672,6 +1694,7 @@ graph TD
     compilador_tcodec__generar_soporte --> compilador_lib_programa__cuenta_nueva
     compilador_tcodec__internas_del_sistema --> compilador_lib_generar__tipo_resultado
     compilador_tcodec__internas_del_sistema --> std_texto__reemplazar
+    compilador_tcodec__leer_opciones --> std_archivo__es_archivo
     compilador_tcodec__leer_opciones --> std_texto__empieza_con
     compilador_tcodec__leer_programa --> compilador_lib_programa__es_generica
     compilador_tcodec__leer_programa --> compilador_lib_programa__nombre_de
@@ -1748,8 +1771,11 @@ graph TD
     compilador_tcodec__preparar_instancias --> compilador_lib_tipos__leer_tipos
     compilador_tcodec__programa_no_leido --> compilador_lib_tipar__contexto
     compilador_tcodec__prototipo_externo --> compilador_lib_generar__tipo_c
+    compilador_tcodec__raiz_instalada --> std_archivo__es_archivo
+    compilador_tcodec__raiz_instalada --> std_archivo__ruta_real
     compilador_tcodec__registrar_resultado --> compilador_lib_tipar__nombre_resuelto
     compilador_tcodec__resolver --> compilador_lib_programa__normalizar
+    compilador_tcodec__resolver --> std_archivo__es_archivo
     compilador_tcodec__resolver --> std_texto__empieza_con
     compilador_tcodec__resolver --> std_texto__termina_con
     compilador_tcodec__resolver_en_nodo --> compilador_lib_generar__tipo_escrito
@@ -1795,6 +1821,7 @@ graph TD
     compilador_tcodec__typedef_resultado --> compilador_lib_generar__tipo_c
     compilador_tcodec__typedef_resultado --> compilador_lib_generar__tipo_resultado
     compilador_tcodec__visitar --> lexer_lib_sintaxis__carpeta
+    compilador_tcodec__visitar --> std_archivo__es_archivo
     compilador_tcodec__visitar --> std_texto__a_entero
     compilador_tcodec__visitar --> std_texto__contiene
     compilador_tcodec__visitar --> std_texto__empieza_con

@@ -647,7 +647,7 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 - `definir_tipos` ← `generar_soporte` (tcodec.t)
 - `dependencias_de_agregado` ← `declarar_tipos` (tcodec.t)
 - `descubrir` ← `descubrir` (tcodec.t), `preparar_instancias` (tcodec.t)
-- `directorio_de` ← `construir` (tcodec.t)
+- `directorio_de` ← `construir` (tcodec.t), `raiz_instalada` (tcodec.t)
 - `dueno_de_funcion` ← `generar_funciones` (tcodec.t), `preparar_instancias` (tcodec.t)
 - `dueno_de_pedido` ← `descubrir` (tcodec.t), `nodo_instancia` (tcodec.t), `preparar_instancias` (tcodec.t)
 - `emitir_funcion` ← `generar_funciones` (tcodec.t)
@@ -706,6 +706,7 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 - `programa_no_leido` ← `leer_programa` (tcodec.t)
 - `prototipo_externo` ← `leer_programa` (tcodec.t)
 - `quitar_ultima` ← `visitar` (tcodec.t)
+- `raiz_instalada` ← `main` (tcodec.t)
 - `rechazo` ← `ajustar_contextos` (tcodec.t), `descubrir` (tcodec.t), `generar_copiadores` (tcodec.t), `leer_programa` (tcodec.t), `main` (tcodec.t)
 - `rechazo_tipo_repetido` ← `leer_programa` (tcodec.t)
 - `registrar_resultado` ← `mirar_funcion` (tcodec.t), `mirar_tipo` (tcodec.t), `resultados_de_internas` (tcodec.t)
@@ -728,16 +729,7 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 - `soltar_enums` ← `generar_soporte` (tcodec.t)
 - `soltar_structs` ← `generar_soporte` (tcodec.t)
 - `struct_de_cierre` ← `descubrir` (tcodec.t), `preparar_instancias` (tcodec.t)
-- `tcodec_borrar` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t)
-- `tcodec_directorio_temporal` ← `construir` (tcodec.t)
-- `tcodec_ejecutar` ← `construir` (tcodec.t)
-- `tcodec_es_archivo` ← `construir` (tcodec.t), `leer_opciones` (tcodec.t), `resolver` (tcodec.t), `visitar` (tcodec.t)
-- `tcodec_instalar` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t)
-- `tcodec_misma_ruta` ← `construir` (tcodec.t)
 - `tcodec_pila_honda` ← `main` (tcodec.t)
-- `tcodec_raiz_instalada` ← `main` (tcodec.t)
-- `tcodec_ruta_real` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t)
-- `tcodec_temporal_junto` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t)
 - `tiene_cierre` ← `tiene_cierre` (tcodec.t)
 - `tiene_main` ← `visitar` (tcodec.t)
 - `tiene_tipo_param` ← `leer_programa` (tcodec.t), `main` (tcodec.t)
@@ -885,10 +877,24 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 - `visibles_con` ← `preparar_con_error` (programa.t), `modulos_usados_con` (sintaxis.t), `recoger_usados` (sintaxis.t), `visibles` (sintaxis.t)
 - `visto_en` ← `error_en` (sintaxis.t)
 
+## std/archivo
+- `borrar` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t)
+- `es_archivo` ← `construir` (tcodec.t), `leer_opciones` (tcodec.t), `raiz_instalada` (tcodec.t), `resolver` (tcodec.t), `visitar` (tcodec.t)
+- `instalar` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t)
+- `misma_ruta` ← `construir` (tcodec.t)
+- `ruta_real` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t), `raiz_instalada` (tcodec.t)
+- `temporal_junto` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t)
+
 ## std/caracter
 - `es_digito` ← `sigue_nombre` (lexico.t), `tokens_de_todo` (lexico.t)
 - `es_mayuscula` ← `empieza_nombre` (lexico.t), `sigue_nombre` (lexico.t)
 - `es_minuscula` ← `empieza_nombre` (lexico.t), `sigue_nombre` (lexico.t)
+
+## std/entorno
+- `directorio_temporal` ← `construir` (tcodec.t)
+
+## std/proceso
+- `ejecutar` ← `construir` (tcodec.t)
 
 ## std/texto
 - `a_entero` ← `visitar` (tcodec.t)

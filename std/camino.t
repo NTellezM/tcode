@@ -56,18 +56,23 @@ fn punto_extension(n: view) -> usize {
     return largo(n);
 }
 
+// Las dos rebanan de `ruta`, la vista que entra, y no de `nombre_de(ruta)`,
+// que es una vista local: la que sale de la funcion tiene que ser de algo que
+// siga vivo, y `ruta` lo esta. Por eso llevan la cuenta del trozo que
+// `nombre_de` deja al final.
 fn extension(ruta: view) -> view {
     let n = nombre_de(ruta);
     let p = punto_extension(n);
     if p >= largo(n) { return ""; }
-    return rebanar(n, p + 1, largo(n));
+    return rebanar(ruta, largo(ruta) - largo(n) + p + 1, largo(ruta));
 }
 
 fn sin_extension(ruta: view) -> view {
     let n = nombre_de(ruta);
     let p = punto_extension(n);
-    if p >= largo(n) { return n; }
-    return rebanar(n, 0, p);
+    let desde = largo(ruta) - largo(n);
+    if p >= largo(n) { return rebanar(ruta, desde, largo(ruta)); }
+    return rebanar(ruta, desde, desde + p);
 }
 
 fn unir_ruta(a: view, b: view) -> str {

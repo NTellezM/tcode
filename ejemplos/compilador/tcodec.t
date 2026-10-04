@@ -24,21 +24,19 @@ use "lib/formato.t" como FMT;
 use "std/texto";
 use "std/lista";
 use "../lexer/lib/clase.t";
+use "std/archivo" como archivo;
+use "std/entorno" como entorno;
+use "std/proceso" como proceso;
 
-// Lo que hace falta del sistema para construir el binario, escrito en C al
-// lado: ejecutar el compilador de C, un temporal, y sustituir un archivo de
-// una vez.
+// Lo unico que `tcodec` sigue pidiendo al C: subir el limite de pila antes de
+// analizar, que es recursivo. Todo lo demas —lanzar `cc`, el temporal, las
+// rutas de verdad, instalar la salida— lo pone `std/`, escrito en Tcode.
+//
+// `sistema_tcodec.c` conserva todavia las otras funciones porque la semilla
+// anterior las referencia y con ella se enlaza la etapa 0: se pueden borrar
+// en cuanto este commiteada la semilla de este cambio.
 externo "lib/sistema_tcodec.c" {
     fn tcodec_pila_honda() -> i32;
-    fn tcodec_ejecutar(orden: str) -> i32;
-    fn tcodec_directorio_temporal() -> cadena_c;
-    fn tcodec_ruta_real(ruta: str) -> cadena_c;
-    fn tcodec_misma_ruta(a: str, b: str) -> i32;
-    fn tcodec_es_archivo(ruta: str) -> i32;
-    fn tcodec_temporal_junto(destino: str) -> cadena_c;
-    fn tcodec_instalar(temporal: str, destino: str, ejecutable: i32) -> i32;
-    fn tcodec_borrar(ruta: str);
-    fn tcodec_raiz_instalada() -> cadena_c;
 }
 
 // Donde empieza `que` en `t` a partir de `desde`, o `largo(t)` si no esta.
@@ -192,7 +190,7 @@ fn resolver(pedido: view, dir: view, raiz: view) -> str ! {
         candidatos.anadir(con_t);
     }
     for c en candidatos {
-        if tcodec_es_archivo(copiar(c)) == 1 { return F.normalizar(c); }
+        if archivo.es_archivo(c) { return F.normalizar(c); }
     }
     // La primera, para que el error diga algo reconocible.
     return F.normalizar(candidatos[0]);
@@ -299,7 +297,7 @@ fn visitar(ruta: view, raiz: view, hechos: mut list<str>,
         return false;
     }
     if esta_en(hechos, ruta) { return true; }
-    if tcodec_es_archivo(nuevo(ruta)) == 0 {
+    if !archivo.es_archivo(ruta) {
         var de = vacio();
         if quien.largo() > 0 { de = $"{quien}:{linea}: "; }
         var pista = vacio();
@@ -2601,6 +2599,21 @@ fn directorio_de(ruta: view) -> str {
     return vacio();
 }
 
+// Donde esta Tcode —el directorio con `std/` y `runtime/`— para quien no dice
+// `TCODE_RAIZ`: se sube desde el propio ejecutable, con sus enlaces ya
+// resueltos —la instalacion deja un enlace en `bin/`— hasta dar con
+// `runtime/cabecera.inc`. Sin `TCODE_RAIZ` el caso normal es un `tcodec`
+// instalado, que no cuelga del directorio de trabajo, asi que la ruta sale
+// entera. "" si no se encuentra.
+fn raiz_instalada() -> str {
+    var dir = archivo.ruta_real(argumento(0)) sino vacio();
+    while dir.largo() > 0 {
+        if archivo.es_archivo($"{dir}/runtime/cabecera.inc") { return dir; }
+        dir = directorio_de(dir);
+    }
+    return vacio();
+}
+
 // `escribir_archivo` no da valor: esto da `true` si fue bien, para poder
 // decir que hacer si no con `sino false`.
 fn escribir(ruta: view, contenido: view) -> bool ! {
@@ -2611,19 +2624,18 @@ fn escribir(ruta: view, contenido: view) -> bool ! {
 // Lo escribe entero en un temporal al lado y solo entonces sustituye el
 // destino, siguiendo enlaces y con sus permisos.
 fn escribir_de_una_vez(ruta: view, contenido: view, ejecutable: bool) -> bool {
-    let destino = tcodec_ruta_real(nuevo(ruta));
+    let destino = archivo.ruta_real(ruta) sino vacio();
     if destino.largo() == 0 { return false; }
-    let temporal = tcodec_temporal_junto(copiar(destino));
+    let temporal = archivo.temporal_junto(destino) sino vacio();
     if temporal.largo() == 0 { return false; }
     let bien = escribir(vista(temporal), contenido) sino false;
     if !bien {
-        tcodec_borrar(copiar(temporal));
+        archivo.borrar(temporal);
         return false;
     }
-    var bandera: i32 = 0;
-    if ejecutable { bandera = 1; }
-    if tcodec_instalar(copiar(temporal), copiar(destino), bandera) != 0 {
-        tcodec_borrar(copiar(temporal));
+    let puesto = archivo.instalar(temporal, destino, ejecutable) sino false;
+    if !puesto {
+        archivo.borrar(temporal);
         return false;
     }
     return true;
@@ -2638,7 +2650,7 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
     // no escribio Tcode no se pisa.
     if modo == "emitir" {
         let ruta_c = $"{base}.c";
-        if tcodec_es_archivo(copiar(ruta_c)) == 1 {
+        if archivo.es_archivo(ruta_c) {
             let previo = leer_archivo(ruta_c) sino vacio();
             let marca = "/* Generado por el compilador de Tcode. No editar a mano. */";
             var principio = vista(previo);
@@ -2658,7 +2670,7 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
 
     // `-o fuente.t` y un fuente sin extension harian que el compilador de C
     // pisara el programa original.
-    if tcodec_misma_ruta(copiar(base), nuevo(fuente)) == 1 {
+    if archivo.misma_ruta(base, fuente) {
         imprimir_error($"tcodec: la salida `{base}` es el propio archivo fuente; elige otro nombre con `-o`.\n");
         return 2;
     }
@@ -2684,7 +2696,7 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
             var junto = nuevo(cab);
             if dir.largo() > 0 { junto = $"{dir}/{cab}"; }
             if !esta_en(acompanan, junto) && !esta_en(faltan, junto) {
-                if tcodec_es_archivo(copiar(junto)) == 1 { acompanan.anadir(junto); }
+                if archivo.es_archivo(junto) { acompanan.anadir(junto); }
                 else { faltan.anadir(junto); }
             }
         }
@@ -2697,30 +2709,34 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
         return 2;
     }
 
-    let tmp = tcodec_directorio_temporal();
-    if tmp.largo() == 0 {
-        imprimir_error("tcodec: no se pudo crear un directorio temporal\n");
+    // Los ficheros de trabajo cuelgan de una marca unica en el directorio
+    // temporal del sistema: la crea `temporal_junto` con `mkstemp`, asi que
+    // dos compilaciones a la vez no comparten ni el C ni el stderr.
+    let tmp = entorno.directorio_temporal();
+    let marca = archivo.temporal_junto($"{tmp}/tcodec") sino vacio();
+    if marca.largo() == 0 {
+        imprimir_error("tcodec: no se pudo preparar un temporal\n");
         return 2;
     }
     let nombre_c = nombre_suelto(base);
-    let ruta_c = $"{tmp}/{nombre_c}.c";
-    let ruta_err = $"{tmp}/cc.err";
+    let ruta_c = $"{marca}-{nombre_c}.c";
+    let ruta_err = $"{marca}-{nombre_c}.err";
     let bien = escribir(vista(ruta_c), todo) sino false;
     if !bien {
         imprimir_error($"tcodec: no se pudo escribir `{ruta_c}`\n");
-        tcodec_borrar(copiar(tmp));
+        archivo.borrar(marca);
         return 2;
     }
 
     // El enlazador trabaja sobre un vecino temporal: solo un resultado
     // completo sustituye al binario anterior.
-    let destino_bin = tcodec_ruta_real(copiar(base));
+    let destino_bin = archivo.ruta_real(base) sino vacio();
     var salida_tmp = vacio();
-    if destino_bin.largo() > 0 { salida_tmp = tcodec_temporal_junto(copiar(destino_bin)); }
+    if destino_bin.largo() > 0 { salida_tmp = archivo.temporal_junto(destino_bin) sino vacio(); }
     if salida_tmp.largo() == 0 {
         imprimir_error($"tcodec: no se pudo preparar la salida `{base}`\n");
-        tcodec_borrar(copiar(ruta_c));
-        tcodec_borrar(copiar(tmp));
+        archivo.borrar(ruta_c);
+        archivo.borrar(marca);
         return 2;
     }
 
@@ -2744,13 +2760,15 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
     orden.empujar(" -lm 2> ");
     orden.empujar(para_la_shell(ruta_err));
 
-    let rc = tcodec_ejecutar(orden);
+    // Si ni se pudo lanzar `cc`, no hay binario que instalar: se trata como
+    // una compilacion que no salio.
+    let rc = proceso.ejecutar(orden) sino -1;
     let dijo = leer_archivo(ruta_err) sino vacio();
-    tcodec_borrar(copiar(ruta_c));
-    tcodec_borrar(copiar(ruta_err));
-    tcodec_borrar(copiar(tmp));
+    archivo.borrar(ruta_c);
+    archivo.borrar(ruta_err);
+    archivo.borrar(marca);
     if rc != 0 {
-        tcodec_borrar(copiar(salida_tmp));
+        archivo.borrar(salida_tmp);
         if ext_cabeceras.largo() > 0 {
             imprimir_error("tcodec: el C generado no compilo. Con bloques `externo` de por medio, lo mas probable es que una firma no coincida con la de C.\n");
         } else {
@@ -2760,8 +2778,9 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
         return 1;
     }
     if largo(recortar(dijo)) > 0 { imprimir_error($"{dijo}\n"); }
-    if tcodec_instalar(copiar(salida_tmp), copiar(destino_bin), 1) != 0 {
-        tcodec_borrar(copiar(salida_tmp));
+    let puesto = archivo.instalar(salida_tmp, destino_bin, true) sino false;
+    if !puesto {
+        archivo.borrar(salida_tmp);
         imprimir_error($"tcodec: no se pudo instalar la salida `{base}`\n");
         return 2;
     }
@@ -2853,7 +2872,7 @@ fn leer_opciones() -> Opciones {
         imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--sin-avisos] [--avisos-como-errores] [--formatear [--escribir]] [--explicar]\n");
         o.terminar = true;
         o.codigo = 2;
-    } else if tcodec_es_archivo(copiar(o.fuente)) == 0 {
+    } else if !archivo.es_archivo(o.fuente) {
         imprimir_error($"tcodec: no encuentro {o.fuente}\n");
         o.terminar = true;
         o.codigo = 2;
@@ -4174,7 +4193,7 @@ fn main() -> usize ! {
     let sin_avisos = opciones.sin_avisos;
     let avisos_como_errores = opciones.avisos_como_errores;
 
-    var raiz = variable_entorno("TCODE_RAIZ") sino tcodec_raiz_instalada();
+    var raiz = variable_entorno("TCODE_RAIZ") sino raiz_instalada();
     if raiz.largo() == 0 { raiz = nuevo("."); }
     let leido = try leer_programa(fuente, raiz);
     if !leido.ok { return 1; }

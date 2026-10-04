@@ -120,14 +120,17 @@ fn camino_resuelto(ruta: view) -> str ! {
 
 // La ruta de verdad: `.` y `..` resueltos, los enlaces seguidos, y entera.
 // Si el fichero todavia no existe, la de su carpeta con su nombre detras,
-// que es lo que permite comparar dos rutas antes de crear nada.
+// que es lo que permite comparar dos rutas antes de crear nada. Un nombre
+// suelto —`salida`— cuelga del directorio de trabajo, que es lo que dice
+// `carpeta_o_actual`: `carpeta_de` devolveria "" y no habria nada que
+// resolver.
 fn ruta_real(ruta: view) -> str ! {
     let entera = camino_resuelto(ruta) sino vacio();
     if largo(entera) > 0 { return entera; }
 
-    let carpeta = camino.carpeta_de(ruta);
+    let carpeta = camino.carpeta_o_actual(ruta);
     let nombre = camino.nombre_de(ruta);
-    if largo(carpeta) == 0 || largo(nombre) == 0 {
+    if largo(nombre) == 0 {
         fail "no se pudo resolver la ruta";
     }
     let base = camino_resuelto(carpeta) sino vacio();
