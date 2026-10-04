@@ -1,19 +1,17 @@
 # Extensión de VS Code para Tcode
 
 Trae, en un solo sitio: **resaltado** (gramática TextMate), el **icono** de
-`.t`, y el **LSP** (diagnósticos, formato e ir a la definición).
+`.t`, el **completado** y el **contorno de símbolos**, y el **LSP**
+(diagnósticos, formato e ir a la definición).
 
-## Instalar (a mano, mientras no esté en el Marketplace)
+## Instalar
 
-La extensión espera el servidor LSP en `../server.js`, así que lo más cómodo es
-un enlace al árbol:
+La extensión lleva dentro el servidor y el árbol de sintaxis
+(`server/server.js` y `server/tree-sitter-tcode.wasm`), así que basta con el
+`.vsix`:
 
 ```sh
-# 1. dependencias del servidor (una vez)
-cd contrib/lsp && npm install
-
-# 2. enlaza la extensión donde VS Code la encuentra
-ln -s "$PWD/vscode" ~/.vscode/extensions/tcode
+code --install-extension tcode-0.2.0.vsix
 ```
 
 Recarga VS Code. Los archivos `.t` se resaltan solos y el LSP arranca si
@@ -23,13 +21,22 @@ Recarga VS Code. Los archivos `.t` se resaltan solos y el LSP arranca si
 
 | pieza | qué necesita |
 |---|---|
-| resaltado | nada (va incluida la gramática) |
-| icono | nada (va incluido) |
-| diagnósticos / formato | `tcodec` en el PATH |
-| ir a la definición | `contrib/lsp/tree-sitter-tcode.wasm` |
+| resaltado, icono, completado y contorno | nada (va todo incluido) |
+| diagnósticos y formato | `tcodec` en el PATH |
+| ir a la definición | nada (va incluido el árbol de sintaxis) |
 
-## Empaquetar para el Marketplace (pendiente)
+## Empaquetar
 
-Hoy el servidor vive en `../`; para publicar hay que **empaquetar** `server.js`,
-`tree-sitter-tcode.wasm` y `node_modules` dentro de la extensión (`vsce package`),
-y publicarla. Es el paso «publicar» del peldaño 2.
+```sh
+npm install                    # una vez: las dependencias del servidor
+npx @vscode/vsce package
+```
+
+El servidor es una **copia** de `contrib/lsp/server.js`: si lo tocas, cópialo
+antes de empaquetar (`cp ../server.js server/server.js`), que es lo único que
+no se enlaza solo. Lo mismo con el árbol, que sale de
+`contrib/tree-sitter-tcode/`:
+
+```sh
+cp ../tree-sitter-tcode.wasm server/tree-sitter-tcode.wasm
+```
