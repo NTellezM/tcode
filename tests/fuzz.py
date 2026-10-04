@@ -192,7 +192,7 @@ class Juez:
 
 
 def _escribir_junto(origen, fuente, etiqueta):
-    """Escribe `fuente` junto a `origen` —para que sus `usar` sigan
+    """Escribe `fuente` junto a `origen` —para que sus `use` sigan
     valiendo— con un nombre que `.gitignore` ya ignora."""
     carpeta = os.path.dirname(origen)
     ruta = os.path.join(carpeta, f".mut_fuzz_{os.getpid()}_{etiqueta}.t")

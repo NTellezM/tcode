@@ -87,14 +87,14 @@ error: malo.t:4: no se puede modificar `s`: esta prestada por `v`
    con `!`; quien la llama elige entre `try` (que lo propaga) y `sino`
    (que da un valor). Olvidarse es un error de compilación, y un fallo
    libera lo que ya se había reservado.
-7. **Un archivo es un módulo.** `usar "lib/texto.t";`, rutas relativas,
+7. **Un archivo es un módulo.** `use "lib/texto.t";`, rutas relativas,
    carga única y detección de ciclos.
 8. **Recorrer no invalida ni copia.** `for x en xs` y `for k, v en m` prestan
    la colección mientras dura y prestan cada elemento: modificarla por dentro
    es un error de compilación, no una corrupción en tiempo de ejecución, y
    recorrer un mapa no clona ni una clave.
 9. **Propiedad recursiva y límites comprobados.** Un `struct` posee lo que
-   poseen sus campos; un arreglo o `lista<T>`, lo que poseen sus elementos, y la
+   poseen sus campos; un arreglo o `list<T>`, lo que poseen sus elementos, y la
    liberación se genera sola a cualquier hondura. Todo índice se comprueba:
    salirse detiene el programa en vez de leer memoria ajena.
 
@@ -106,7 +106,7 @@ elementos va a guardar:
 ```tcode
 fn main() -> usize ! {
     let datos: str = try leer_archivo("entrada.txt");
-    var saltos: lista<usize> = [];
+    var saltos: list<usize> = [];
     var i: usize = 0;
     while i < largo(vista(datos)) {
         if byte(vista(datos), i) == 10 { anadir(saltos, i); }
@@ -117,7 +117,7 @@ fn main() -> usize ! {
 }
 ```
 
-`lista<T>` crece de forma amortizada, comprueba cada índice y posee tanto su
+`list<T>` crece de forma amortizada, comprueba cada índice y posee tanto su
 buffer como los elementos que tengan memoria propia. `leer_archivo` es
 falible: no se puede ignorar un error de apertura o lectura. `texto(x)`
 convierte enteros y booleanos a `str`, y `byte(texto, i)` permite hacer
@@ -188,7 +188,7 @@ es esta:
   arreglo, lista, mapa, forma de enum; uno o dos de hondo— en uno, dos o
   tres archivos, y cada programa tiene que dar el mismo C en los dos
   compiladores y correr sin fugas bajo ASan. Los fallos que no estaban en
-  ninguna regla sino en la mezcla salieron ahí: un `mapa` de arreglos que no
+  ninguna regla sino en la mezcla salieron ahí: un `map` de arreglos que no
   compilaba en ninguno de los dos, o un préstamo que no se podía pasar a una
   función que presta.
 - **Después de 1.0 se retira.** El de Python pasa a un archivo y deja de
@@ -220,7 +220,7 @@ ejemplos/lexer/lib/lexico.t: 4796 tokens
 ```
 
 Es el primer programa grande del lenguaje y su primera prueba de fuego: usa
-`lista<Token>` con campos dueños, `mapa<str, usize>` para las palabras
+`list<Token>` con campos dueños, `map<str, usize>` para las palabras
 reservadas, `for` con `break` y `continue`, fallos con `try`, cadenas
 interpoladas para los mensajes, y lectura de archivos con argumentos. Corre
 limpio bajo ASan y UBSan, y ante una entrada rota —una cadena sin cerrar, un
@@ -639,19 +639,19 @@ texto.
 
 Hay también: `struct`, arreglos de tamaño fijo con índices comprobados,
 structs anidados, arreglos de structs, propiedad recursiva, préstamos de
-structs (`&T` y `mut T`), `lista<T>` dinámica, `mapa<str, V>` con tabla hash,
+structs (`&T` y `mut T`), `list<T>` dinámica, `map<str, V>` con tabla hash,
 argumentos de la línea de órdenes, `ordenar` y `menor`, salida de error y
-escritura de archivos, `for`/`break`/`continue`, `mapa<str, V>` con `obtener` prestado y `&T` y `&mut T` como tipos, cadenas interpoladas, módulos y fallos como valores.
+escritura de archivos, `for`/`break`/`continue`, `map<str, V>` con `obtener` prestado y `&T` y `&mut T` como tipos, cadenas interpoladas, módulos y fallos como valores.
 
 Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/archivo`, `std/azar`, `std/base64`, `std/bit`, `std/bytes`, `std/camino`, `std/caracter`, `std/cli`, `std/color`, `std/conjunto`, `std/csv`, `std/cuenta`, `std/fecha`, `std/formato`, `std/glob`, `std/hash`, `std/ini`, `std/iterador`, `std/json`, `std/lista`, `std/log`, `std/mapa`, `std/numero`, `std/par`, `std/pila`, `std/plantilla`, `std/prueba`, `std/tabla`, `std/texto`, `std/toml`, `std/uuid` y `std/vector`<!--/c-->—, <!--c:std_lineas-->2.717<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
 queda una sola función duplicada entre `ejemplos/` y `std/`.
 
 Y **`copiar(x)`**: copia profunda de cualquier valor —número, `str`, struct,
-`lista<lista<str>>`, mapa— con el copiador generado por el compilador, uno
+`list<list<str>>`, mapa— con el copiador generado por el compilador, uno
 por tipo. Explícita como el `Clone` de Rust, pero sin `derive`: todo tipo es
 copiable siempre, porque la estructura del tipo es toda la verdad que hay.
 
-Y **funciones genéricas**: `fn primeras<T>(xs: &lista<T>) -> lista<T>`, con
+Y **funciones genéricas**: `fn primeras<T>(xs: &list<T>) -> list<T>`, con
 una copia por cada juego de tipos, los tipos deducidos de los argumentos, y
 errores que dicen con qué tipos se instanció y desde dónde.
 
@@ -661,7 +661,7 @@ tipos con nombre, sin `impl` y sin coherencia. Sirven para que el error salga
 en la llamada y diga qué se pedía, en vez de salir de tres niveles más
 adentro del cuerpo.
 
-Y **tipos suma**: `enum Json { Nulo, Numero(i64), Texto(str), Lista(lista<Json>) }`
+Y **tipos suma**: `enum Json { Nulo, Numero(i64), Texto(str), Lista(list<Json>) }`
 con `match` **exhaustivo** —si falta una forma, el error la nombra— y sin
 `ref` ni `&` en los patrones, porque un `match` mira y no desmonta: lo que
 atrapa el patrón se presta siempre, y quien quiera quedarse con lo de dentro
@@ -697,7 +697,7 @@ que no cabe en el borde se envuelve en dos líneas de C, sin salir de `tcode`.
 Está en `ejemplos/externo/`.
 
 Y **structs genéricos**: `struct Pila<T>`, `struct Par<A, B>`, y
-`struct Nodo<T> { valor: T, hijos: lista<Nodo<T>> }`, que se contiene a sí
+`struct Nodo<T> { valor: T, hijos: list<Nodo<T>> }`, que se contiene a sí
 mismo. `std/par` es un contenedor escrito en Tcode del que el compilador no
 sabe nada: es lo que separa "un lenguaje con dos colecciones" de un lenguaje.
 
@@ -735,7 +735,7 @@ necesita clippy para eso), `3.7 como usize` para en vez de truncar en
 silencio como hace `as` en Rust, y un `f64` que vale 1 se imprime `1.0`.
 
 Y **funciones como valor**: el nombre de una función es un puntero a
-función, de coste cero y sin dueño. `fn ordenadas_por<T>(xs: &lista<T>,
+función, de coste cero y sin dueño. `fn ordenadas_por<T>(xs: &list<T>,
 antes: fn(&T, &T) -> bool)` ordena con el criterio que se le pase. Un
 puntero a función no captura nada; para eso están las clausuras.
 
@@ -751,7 +751,7 @@ verificación — lo que antes de esto no se podía escribir en Tcode.
 Y **espacios de nombres**: los nombres se resuelven por archivo, como en
 Python. Dos módulos pueden declarar `contar` sin estorbarse; sólo choca si un
 mismo archivo los trae a los dos de forma llana, y entonces el error dice
-cómo arreglarlo con `usar "..." como algo;`. El renombrado interno sólo
+cómo arreglarlo con `use "..." como algo;`. El renombrado interno sólo
 ocurre donde de verdad choca: mientras `palabras` sea de un solo módulo, en
 el C generado se sigue llamando `palabras`.
 
@@ -798,15 +798,15 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 | **P6** | `--explicar` funciona sobre todo programa aceptado y nombra todas sus funciones y variables |
 | **P7** | todo aviso nombra un archivo y una línea que existen, y ningún aviso impide compilar |
 | **P8** | ante un programa **roto a propósito**, el compilador o lo acepta o lo rechaza diciendo dónde: nunca una excepción, nunca un cuelgue |
-| **P9** | un programa repartido en varios archivos, con `usar` en rombo, compila y corre igual: los structs y las funciones cruzan de módulo, y un `str` que nace en uno y muere en otro no se filtra |
+| **P9** | un programa repartido en varios archivos, con `use` en rombo, compila y corre igual: los structs y las funciones cruzan de módulo, y un `str` que nace en uno y muere en otro no se filtra |
 | **P10** | una vista no sobrevive a que su dueño se reasigne, crezca, se mueva o se libere, venga de `vista`, `rebanar`, un `if` o un `match`, una función, un puntero a función, una clausura, una genérica, un struct que presta o un mapa: el programa que la usa después no compila, y su gemelo que la deja morir antes corre limpio bajo ASan |
 | **P11** | un programa de aritmética imprime lo que tiene que imprimir y para donde tiene que parar —con los nueve enteros y los dos decimales, números escritos a cada lado, conversiones, `if` como valor, llamadas, genéricas, campos y arreglos—, y `tcodec` escribe para él el mismo C que Python, byte a byte. Y una cuenta hecha sólo de números escritos que pararía no compila, con el error que dice el oráculo, en los dos compiladores |
 | **P12** | `tcodec`, el compilador escrito en Tcode, escribe byte a byte el mismo C que el de Python para todo programa generado y para cada programa válido de P10 |
 | **P13** | un préstamo dura hasta el último uso de la vista: en programas que toman vistas, modifican a sus dueños y las usan entre `if` y bucles, lo que el compilador acepta corre limpio bajo ASan, y los dos compiladores dicen lo mismo de cada uno |
 
 `tests/generador_programas.py` produce programas válidos por construcción
-—con cadenas propias, structs, arreglos, `lista<usize>` y `lista<str>`,
-`mapa<str, usize>`, préstamos `&T` y `mut T` de structs y de `str`,
+—con cadenas propias, structs, arreglos, `list<usize>` y `list<str>`,
+`map<str, usize>`, préstamos `&T` y `mut T` de structs y de `str`,
 movimientos, fallos, `texto`, `byte`, y las **dos** ramas de un `sino`
 cuya alternativa es dueña de su memoria— y acotados para que no aborten ni
 se cuelguen. `tests/violaciones.py` hace lo contrario, para P10: programas

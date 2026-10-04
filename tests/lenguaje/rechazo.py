@@ -680,7 +680,7 @@ RECHAZO = [
      'fn f<str>(a: str) -> str { return a; } fn main() -> usize { return 0; }',
      "se esperaba 'ident'"),
 
-    ("`falla` con parentesis: el error dice como se escribe",
+    ("`fail` con parentesis: el error dice como se escribe",
      'fn f() -> usize ! { fail("roto"); }',
      "no lleva parentesis"),
 
@@ -869,7 +869,7 @@ RECHAZO = [
      'fn f() -> usize ! { fail "x"; }  fn g() -> usize { return try f(); }',
      "no esta declarada con `!`"),
 
-    ("`falla` en una funcion que no esta declarada con `!`",
+    ("`fail` en una funcion que no esta declarada con `!`",
      'fn f() -> usize { fail "x"; }',
      "no esta declarada con `!`"),
 
@@ -1380,19 +1380,19 @@ RECHAZO = [
      'enum E { A, B } fn main() { let x: u8 = 7; let e = E.A;'
      ' imprimir(match e { E.A -> 300, E.B -> x }); }',
      "el literal `300` no cabe en `u8`"),
-    ("`protocolo` no es un nombre",
+    ("`protocol` no es un nombre",
      'fn main() -> usize { let protocol = 1; return 0; }',
      "se esperaba 'ident'"),
-    ("`implementa` no es un nombre",
+    ("`implements` no es un nombre",
      'fn main() -> usize { let implements = 1; return 0; }',
      "se esperaba 'ident'"),
-    ("`extiende` no es un nombre",
+    ("`extends` no es un nombre",
      'fn main() -> usize { let extends = 1; return 0; }',
      "se esperaba 'ident'"),
-    ("`ancla` no es un nombre",
+    ("`anchor` no es un nombre",
      'fn main() -> usize { let anchor = 1; return 0; }',
      "se esperaba 'ident'"),
-    ("`soltar` no es un nombre",
+    ("`drop` no es un nombre",
      'fn main() -> usize { let drop = 1; return 0; }',
      "se esperaba 'ident'"),
 ]

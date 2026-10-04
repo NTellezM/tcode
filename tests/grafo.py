@@ -164,7 +164,7 @@ def archivos():
 
 
 def resolver(desde, ruta):
-    """De una ruta de `usar`, a la ruta (relativa al repo) que trae.
+    """De una ruta de `use`, a la ruta (relativa al repo) que trae.
 
     `std/...` es desde la raiz; lo demas, desde el directorio del archivo."""
     if ruta.startswith("std/"):
@@ -204,7 +204,7 @@ def grafo():
     for a in sorted(nodos):
         toks = tokenizar(leer(os.path.join(RAIZ, a)))
 
-        # Primero los `usar`: alias -> archivo, y las hojas de std.
+        # Primero los `use`: alias -> archivo, y las hojas de std.
         alias = {}
         i = 0
         while i < len(toks):
@@ -274,7 +274,7 @@ def llamadas():
     for a in comps:
         toks = tokenizar(leer(os.path.join(RAIZ, a)))
 
-        # los alias de los `usar`, igual que en grafo()
+        # los alias de los `use`, igual que en grafo()
         alias = {}
         i = 0
         while i < len(toks):

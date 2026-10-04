@@ -16,7 +16,7 @@ from .comun import (
 )
 
 MODULOS = [
-    ("un `usar` en rombo carga el modulo una sola vez",
+    ("un `use` en rombo carga el modulo una sola vez",
      {"lib/base.t": 'fn doble(n: usize) -> usize { return n * 2; }',
       "lib/medio.t": 'use "base.t";\n'
                        'fn cuadruple(n: usize) -> usize { return doble(doble(n)); }',

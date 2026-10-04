@@ -72,7 +72,7 @@ solo sirve para confirmar el efecto acumulado.
 | `2a94738` + `4bdb8ba` | `escribir_de_mapa(_tipos)`: escribir el préstamo | ~9,7 M |
 | `92b074b` | `truncar` + rollback de `probar_juego` sin copiar listas | ~8,7 M |
 
-`92b074b` añade el builtin **`truncar(xs: mut lista<T>, n: usize)`** y lo usa
+`92b074b` añade el builtin **`truncar(xs: mut list<T>, n: usize)`** y lo usa
 en `probar_juego` para deshacer la comprobación especulativa recordando el
 largo de las listas y truncándolas (los mapas siguen copiándose). El perfil:
 `ss_copia_lista_str` 1,67 M → 529 K, `ss_copia_Funcion` 387 K → 8 K. El

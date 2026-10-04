@@ -732,7 +732,7 @@ def generar(semilla):
 
 
 def generar_modulos(semilla):
-    """Un programa repartido en archivos, con `usar` entre ellos.
+    """Un programa repartido en archivos, con `use` entre ellos.
 
     Devuelve {ruta relativa: contenido}. El principal se llama `app.t`.
     Prueba lo que un archivo suelto no toca: que los structs y las funciones

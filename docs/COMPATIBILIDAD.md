@@ -22,8 +22,8 @@ mismo**, con estas excepciones, que no son opcionales:
    distintas porque nada decía cuál era la buena, se elige una, se escribe en
    `docs/ESPECIFICACION.md` y el `CHANGELOG.md` lo dice. Así pasó con los
    caracteres de un nombre en 0.9.
-3. **Palabras reservadas de antemano.** Las palabras `protocolo`,
-   `implementa`, `extiende`, `ancla` y `soltar` quedan reservadas en
+3. **Palabras reservadas de antemano.** Las palabras `protocol`,
+   `implements`, `extends`, `anchor` y `drop` quedan reservadas en
    1.x aunque todavía no signifiquen nada. Un programa que las use
    como nombre deja de compilar. Se reservan ahora para poder añadir
    anclajes en 1.x sin romper programas después.
@@ -51,13 +51,13 @@ operador, ninguna función interna ni ninguna opción de `tcodec`.
 
 - En 1.x no se quita ninguna función de `std/` ni cambia su firma.
 - **Se pueden añadir funciones.** Ojo: un nombre nuevo en un módulo que tu
-  programa usa con `usar "std/texto";` choca con uno tuyo del mismo nombre
+  programa usa con `use "std/texto";` choca con uno tuyo del mismo nombre
   ("llega de dos sitios"). Para no depender de eso, usa los módulos de `std`
-  con alias: `usar "std/texto" como texto;` y `texto.mayusculas(...)`.
+  con alias: `use "std/texto" como texto;` y `texto.mayusculas(...)`.
 
 ## Módulos
 
-La forma de encontrar un módulo (`usar "ruta"`, relativa al archivo, y
+La forma de encontrar un módulo (`use "ruta"`, relativa al archivo, y
 `std/` junto al compilador) no cambia en 1.x.
 
 ## Lo que marca una versión mayor

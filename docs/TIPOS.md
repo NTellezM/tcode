@@ -9,7 +9,7 @@ quede quieto, y esto es lo contrario de quieto.
 
 Los tipos viven como `str` por todo el compilador: `Contexto.tipo_de` y
 `Mundo` devuelven y guardan texto, y unas ~430 líneas reparten el mismo
-conocimiento —`&mut ` es un préstamo, `lista<...>` es una lista, `Par<A, B>`
+conocimiento —`&mut ` es un préstamo, `list<...>` es una lista, `Par<A, B>`
 es una aplicación— en forma de `empieza_con`, `rebanar`, `partir_tipos` y
 `entre_angulos` desparramados.
 
@@ -17,7 +17,7 @@ es una aplicación— en forma de `empieza_con`, `rebanar`, `partir_tipos` y
 
 - `Forma` (9 casos): `Nombre`, `Lista`, `Bloque`, `Mapa`, `Rango`, `Arreglo`,
   `Presta`, `PrestaMut`, `Funcion`.
-- `Tipo` (árbol): `forma`, `nombre`, `args: lista<Tipo>`, `cuantos`, `devuelve`.
+- `Tipo` (árbol): `forma`, `nombre`, `args: list<Tipo>`, `cuantos`, `devuelve`.
 - `leer_tipo(str) -> Tipo` y `escribir_tipo(Tipo) -> str`, inversas entre sí.
 - `forma_de(str) -> Forma`, la pregunta barata que no reserva nada.
 
@@ -46,7 +46,7 @@ ni `rebanar` de un tipo fuera de `tipos.t`.
 **El almacén del camino caliente es la excepción.** Las firmas de función
 (`Param.tipo`, `Funcion.retorno`) y la tabla de símbolos del comprobador
 (`Simbolo.tipo`) se quedan en `str`: se leen en cada llamada y en cada
-referencia a variable, y `Tipo` no es copiable (lleva `lista<Tipo>`), así que
+referencia a variable, y `Tipo` no es copiable (lleva `list<Tipo>`), así que
 guardarlo ahí obligaría a una copia profunda en cada lectura. Ahí la frontera
 `str` es legítima por rendimiento: se decide con `forma_de` (que no reserva)
 y se llama `leer_tipo` solo cuando hace falta el árbol, que es la regla del
@@ -81,7 +81,7 @@ compilador mismo señala cada sitio que deja de compilar.
 
 ## Los riesgos y su guardarraíl
 
-1. **Rendimiento.** `leer_tipo` reserva (el árbol es `lista<Tipo>`); el camino
+1. **Rendimiento.** `leer_tipo` reserva (el árbol es `list<Tipo>`); el camino
    caliente hoy usa `forma_de`, que no reserva. La regla: `forma_de` para
    decidir, `leer_tipo` solo cuando hace falta el árbol. Guardarraíl:
    `make bench-comprobar`, que falla si algo se pasa del límite.
