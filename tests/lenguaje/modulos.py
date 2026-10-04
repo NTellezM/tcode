@@ -25,6 +25,25 @@ MODULOS = [
                  ' imprimir(doble(5)); imprimir("\\n"); return 0; }'},
      "app.t", None, "12\n10\n"),
 
+    # La directiva de la biblioteca: `#importar "texto.t"` es
+    # `use "std/texto"`, sin escribir la carpeta. Sin alias, con alias, dos a
+    # la vez, y los `use` de siempre —el de `std/` y el relativo— al lado.
+    ("`#importar \"x.t\"` trae de la biblioteca del compilador",
+     {"lib/cuenta.t": 'fn dos() -> usize { return 2; }',
+      "app.t": '#importar "texto.t";\n'
+                 '#importar "utf8.t" como U;\n'
+                 'use "lib/cuenta.t";\n'
+                 'use "std/lista";\n'
+                 'fn main() -> usize {\n'
+                 '    var xs: list<usize> = [];\n'
+                 '    anadir(xs, dos());\n'
+                 '    anadir(xs, dos());\n'
+                 '    imprimir($"{contiene("hola", "ol")} {U.cuantos("camión")}'
+                 ' {suma(xs)} {xs[0]}\\n");\n'
+                 '    return 0;\n'
+                 '}'},
+     "app.t", None, "true 6 4 2\n"),
+
     ("dependencia circular",
      {"a.t": 'use "b.t";\nfn a() {}',
       "b.t": 'use "a.t";\nfn b() {}'},

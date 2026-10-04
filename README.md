@@ -209,14 +209,14 @@ palabras reservadas y símbolos de uno y dos caracteres.
 <!--c:bloque:lexer-->
 ```
 $ ./ejemplos/lexer/lexer ejemplos/lexer/lib/lexico.t --contar
-ejemplos/lexer/lib/lexico.t: 4796 tokens
-  cadena  97
-  entero  375
+ejemplos/lexer/lib/lexico.t: 4960 tokens
+  cadena  100
+  entero  389
   fin  1
-  ident  1259
+  ident  1297
   interpolada  16
-  palabra  572
-  simbolo  2476
+  palabra  598
+  simbolo  2559
 ```
 
 Es el primer programa grande del lenguaje y su primera prueba de fuego: usa
@@ -226,7 +226,7 @@ interpoladas para los mensajes, y lectura de archivos con argumentos. Corre
 limpio bajo ASan y UBSan, y ante una entrada rota —una cadena sin cerrar, un
 archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 
-`ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.809<!--/c--> líneas más: descenso recursivo con la
+`ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.824<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba:
 
@@ -257,7 +257,7 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.894<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.940<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa).
 
 Y hace el último paso él solo: llama al compilador de C, enlaza lo que
@@ -284,7 +284,7 @@ igual
 ```
 
 El `tcodec` construido por sí mismo vuelve a escribir exactamente los mismos
-bytes (<!--c:punto_fijo_bytes-->6,36<!--/c--> MB), y el construido desde su propio C también, bajo
+bytes (<!--c:punto_fijo_bytes-->6,37<!--/c--> MB), y el construido desde su propio C también, bajo
 AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
 El compilador ya no necesita a Python para existir: se construye desde su
 semilla, que es el paso que dieron Go en la 1.5 y Rust con su primer `rustc`
@@ -778,7 +778,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1498 casos, 0 fallas
+1499 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 

@@ -1614,18 +1614,21 @@ fn leido(ruta: view, l: mut Leidos) -> usize {
     return k;
 }
 
+// La ruta que pide una linea de importe: `use "x"` tal cual, y
+// `#importar "x.t"` en la biblioteca que viene con el compilador, `std/x.t`.
+fn ruta_pedida(valor: view, biblioteca: bool) -> str {
+    if !biblioteca { return nuevo(valor); }
+    var r = nuevo("std/");
+    r.empujar(valor);
+    return r;
+}
+
 // Donde se busca lo que pide un `use`, como el cargador de Python: `std/`
 // en la raiz de Tcode, y lo demas junto al archivo que lo pide; con `.t` y
 // sin el. Nunca desde donde se ejecuta: el mismo programa se lee igual desde
 // cualquier sitio.
 fn candidatos_de(dir: view, pedido: view, raiz: view) -> list<str> {
-    // `#texto` es `std/texto`, igual que en el cargador: la carpeta de la
-    // instalacion sin escribirla.
-    var quiere = nuevo(pedido);
-    if quiere.largo() > 0 && byte(quiere, 0) == 35 {
-        quiere = nuevo("std/");
-        quiere.empujar(rebanar(pedido, 1, pedido.largo()));
-    }
+    let quiere = nuevo(pedido);
     var candidatos: list<str> = [];
     var junto = vacio();
     if empieza_con(quiere, "std/") {
@@ -1651,9 +1654,10 @@ fn modulos_usados_con(ruta: view, toks: &list<Token>, l: mut Leidos) -> list<Usa
     let dir = carpeta(ruta);
     var i = 0;
     while i + 1 < toks.largo() {
-        if toks[i].valor == "use" {
+        let biblioteca = toks[i].valor == "#importar";
+        if toks[i].valor == "use" || biblioteca {
             if toks[i + 1].tipo == "cadena" {
-                let pedido = nuevo(toks[i + 1].valor);
+                let pedido = ruta_pedida(toks[i + 1].valor, biblioteca);
                 var alias = vacio();
                 if i + 3 < toks.largo() {
                     if toks[i + 2].valor == "como" {
@@ -1701,9 +1705,10 @@ fn recoger_usados(ruta: view, toks: &list<Token>, l: mut Leidos,
     let dir = carpeta(ruta);
     var i = 0;
     while i + 1 < toks.largo() {
-        if toks[i].valor == "use" {
+        let biblioteca = toks[i].valor == "#importar";
+        if toks[i].valor == "use" || biblioteca {
             if toks[i + 1].tipo == "cadena" {
-                let pedido = nuevo(toks[i + 1].valor);
+                let pedido = ruta_pedida(toks[i + 1].valor, biblioteca);
                 var alias = vacio();
                 if i + 3 < toks.largo() {
                     if toks[i + 2].valor == "como" {
@@ -1758,9 +1763,11 @@ fn visibles_con(ruta: view, toks: &list<Token>, palabra: view,
 
     var i = 0;
     while i + 1 < toks.largo() {
-        if toks[i].valor == "use" {
+        let biblioteca = toks[i].valor == "#importar";
+        if toks[i].valor == "use" || biblioteca {
             if toks[i + 1].tipo == "cadena" {
-                for c en candidatos_de(dir, toks[i + 1].valor, l.raiz) {
+                for c en candidatos_de(dir, ruta_pedida(toks[i + 1].valor, biblioteca),
+                    l.raiz) {
                     let k = leido(c, l);
                     if k >= l.tokens.largo() { continue; }
                     if palabra == "struct" {
@@ -1779,8 +1786,16 @@ fn visibles_con(ruta: view, toks: &list<Token>, palabra: view,
 
 fn programa(e: mut Estado) -> Nodo ! {
     var raiz = rama(Clase.Programa, 1);
-    while acepta(e, "palabra", "use") {
-        let ruta = try espera(e, "cadena", "");
+    while es(e, "palabra", "use") || es(e, "palabra", "#importar") {
+        // `#importar "x.t"` es `use "std/x.t"`: la biblioteca del compilador.
+        let biblioteca = es(e, "palabra", "#importar");
+        avanzar(e);
+        var ruta = try espera(e, "cadena", "");
+        if biblioteca {
+            var completa = nuevo("std/");
+            completa.empujar(ruta);
+            ruta = completa;
+        }
         // `use "x" como a;`: `como` no es palabra reservada, es un ident.
         if es(e, "ident", "como") {
             avanzar(e);
@@ -1792,8 +1807,8 @@ fn programa(e: mut Estado) -> Nodo ! {
         raiz.hijos.anadir(hoja(Clase.Usar, ruta, linea_actual(e)));
     }
     while tipo_en(e, 0) != "fin" {
-        if es(e, "palabra", "use") {
-            error_aqui(e, "los `use` van todos al principio del archivo");
+        if es(e, "palabra", "use") || es(e, "palabra", "#importar") {
+            error_aqui(e, "los `use` y los `#importar` van todos al principio del archivo");
             fail "sintaxis";
         }
         let d = try declaracion(e);

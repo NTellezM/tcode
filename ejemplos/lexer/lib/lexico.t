@@ -376,6 +376,24 @@ fn sigue_nombre(f: view, i: usize) -> bool {
     return xid_sigue(punto_utf8(f, i));
 }
 
+// Si en `i`, que apunta a un `#`, empieza la directiva `#importar`. Vale solo
+// al principio de la linea —donde viven los `use`— y con la palabra entera
+// detras: asi el `#` sigue siendo un caracter inesperado en cualquier otro
+// sitio, y `let x = 1 # 2;` no compila.
+fn importar_en(fuente: view, i: usize) -> bool {
+    if i + 9 > fuente.largo() { return false; }
+    if rebanar(fuente, i + 1, i + 9) != "importar" { return false; }
+    if i + 9 < fuente.largo() && sigue_nombre(fuente, i + 9) { return false; }
+    var j = i;
+    while j > 0 {
+        let b = byte(fuente, j - 1);
+        if b == 10 { return true; }
+        if b != 32 && b != 9 && b != 13 { return false; }
+        j = j - 1;
+    }
+    return true;
+}
+
 // `n` en hexadecimal con mayusculas y al menos cuatro cifras, como `U+00D7`.
 fn hexadecimal(n: usize) -> str {
     var cifras = vacio();
@@ -650,6 +668,14 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
                 agregar(salida, "ident", texto_pieza, linea);
             }
             i = j;
+            continue;
+        }
+
+        // la directiva de la biblioteca del compilador: `#importar "x.t"`,
+        // una sola palabra, para que el formateador la deje como se escribe.
+        if b == 35 && importar_en(fuente, i) {
+            agregar(salida, "palabra", "#importar", linea);
+            i = i + 9;
             continue;
         }
 

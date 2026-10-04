@@ -171,13 +171,7 @@ fn esta_en(xs: &list<str>, x: view) -> bool {
 // Donde esta un modulo pedido. `std/` viene de la instalacion; lo demas es
 // relativo al archivo que lo pide. La extension es opcional.
 fn resolver(pedido: view, dir: view, raiz: view) -> str ! {
-    // `#texto` es `std/texto`: el atajo se abre aqui, que es por donde pasa
-    // todo pedido que llega a buscar un archivo.
-    var quiere = nuevo(pedido);
-    if quiere.largo() > 0 && byte(quiere, 0) == 35 {
-        quiere = nuevo("std/");
-        quiere.empujar(rebanar(pedido, 1, pedido.largo()));
-    }
+    let quiere = nuevo(pedido);
     var base = vacio();
     if empieza_con(quiere, "std/") {
         base.empujar(raiz);
@@ -204,6 +198,15 @@ fn resolver(pedido: view, dir: view, raiz: view) -> str ! {
     return F.normalizar(candidatos[0]);
 }
 
+// La ruta que pide una linea de importe: `use "x"` tal cual, y
+// `#importar "x.t"` en la biblioteca que viene con el compilador, `std/x.t`.
+fn ruta_pedida(valor: view, biblioteca: bool) -> str {
+    if !biblioteca { return nuevo(valor); }
+    var r = nuevo("std/");
+    r.empujar(valor);
+    return r;
+}
+
 // Los `use` del principio de un archivo, en orden.
 fn usar_de(fuente: view) -> list<str> ! {
     // Si no se puede leer, no pide nada: el error de verdad lo dice despues
@@ -212,11 +215,12 @@ fn usar_de(fuente: view) -> list<str> ! {
     var salida: list<str> = [];
     var i = 0;
     while i + 1 < toks.largo() {
-        if toks[i].valor != "use" { break; }
+        let biblioteca = toks[i].valor == "#importar";
+        if toks[i].valor != "use" && !biblioteca { break; }
         if toks[i + 1].tipo != "cadena" { break; }
         // `ruta\tlinea`: la linea es la del `use`, para decir donde se pidio
         // un modulo que no esta.
-        salida.anadir($"{toks[i + 1].valor}\t{toks[i].linea}");
+        salida.anadir($"{ruta_pedida(toks[i + 1].valor, biblioteca)}\t{toks[i].linea}");
         i = i + 2;
         if i + 1 < toks.largo() && toks[i].valor == "como" {
             i = i + 2;
@@ -233,9 +237,10 @@ fn usar_con_alias(fuente: view) -> list<str> ! {
     var salida: list<str> = [];
     var i = 0;
     while i + 1 < toks.largo() {
-        if toks[i].valor != "use" { break; }
+        let biblioteca = toks[i].valor == "#importar";
+        if toks[i].valor != "use" && !biblioteca { break; }
         if toks[i + 1].tipo != "cadena" { break; }
-        var junto = copiar(toks[i + 1].valor);
+        var junto = ruta_pedida(toks[i + 1].valor, biblioteca);
         junto.empujar("\t");
         let linea = toks[i].linea;
         i = i + 2;

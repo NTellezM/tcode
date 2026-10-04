@@ -1365,9 +1365,9 @@ fn main() {
         }''',
      "1 1 1\n2 0 2\n[cami] [日本]\nfalse 3\n"),
 
-    ("`#modulo` es lo mismo que `std/modulo`",
-     '''use "#utf8" como U;
-        use "#texto";
+    ("la directiva `#importar` trae de `std/` sin escribir la carpeta",
+     '''#importar "utf8.t" como U;
+        #importar "texto.t";
         fn main() {
             let v = "camión";
             imprimir($"{U.cuantos(v)} {U.ancho(v)} {contiene(v, "mi")}");
@@ -2626,20 +2626,26 @@ fn main() {
             afirmar(p, "sin host queda vacio", igual(s.host, ""));
             afirmar(p, "una ruta suelta es ruta", igual(s.ruta, "/solo/ruta"));
             afirmar_igual_numero(p, "sin puerto es cero", s.puerto como usize, 0);
-            afirmar(p, "mailto se rearma igual", igual(construir(analizar("mailto:a@b.c")), "mailto:a@b.c"));
+            afirmar(p, "mailto se rearma igual",
+                igual(construir(analizar("mailto:a@b.c")), "mailto:a@b.c"));
 
-            afirmar(p, "codifica lo que no es seguro", igual(codificar_componente("a b/c"), "a%20b%2Fc"));
+            afirmar(p, "codifica lo que no es seguro",
+                igual(codificar_componente("a b/c"), "a%20b%2Fc"));
             afirmar(p, "deja lo seguro quieto", igual(codificar_componente("Az-9._~"), "Az-9._~"));
-            afirmar(p, "decodifica el componente", igual(try decodificar_componente("a%20b%2Fc"), "a b/c"));
-            afirmar(p, "el mas es espacio en un formulario", igual(try decodificar_formulario("a+b"), "a b"));
+            afirmar(p, "decodifica el componente",
+                igual(try decodificar_componente("a%20b%2Fc"), "a b/c"));
+            afirmar(p, "el mas es espacio en un formulario",
+                igual(try decodificar_formulario("a+b"), "a b"));
             afirmar(p, "pero no en una url", igual(try decodificar_componente("a+b"), "a+b"));
 
             let ps = parametros("a=1&&b=2&c");
             afirmar_igual_numero(p, "dos parametros con valor y uno sin el", largo(ps), 3);
             afirmar(p, "el primero crudo", igual(ps[0].primero, "a") && igual(ps[0].segundo, "1"));
-            afirmar(p, "el tercero sin igual", igual(ps[2].primero, "c") && igual(ps[2].segundo, ""));
+            afirmar(p, "el tercero sin igual",
+                igual(ps[2].primero, "c") && igual(ps[2].segundo, ""));
             afirmar(p, "valor_de desescapa", igual(try valor_de("x=1&y=2", "y"), "2"));
-            afirmar(p, "el nombre tambien se desescapa", igual(try valor_de("a%20b=7", "a b"), "7"));
+            afirmar(p, "el nombre tambien se desescapa",
+                igual(try valor_de("a%20b=7", "a b"), "7"));
             return terminar(p);
         }''',
      "24 comprobaciones, todo bien\n"),
@@ -2650,18 +2656,30 @@ fn main() {
         use "std/prueba";
         fn main() -> usize {
             var p = pruebas();
-            afirmar(p, "el vacio", igual(resumen_hex(""), "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
-            afirmar(p, "abc", igual(resumen_hex("abc"), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
-            afirmar(p, "el bloque largo", igual(resumen_hex("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"), "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"));
+            afirmar(p, "el vacio",
+                igual(resumen_hex(""),
+                    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+            afirmar(p, "abc",
+                igual(resumen_hex("abc"),
+                    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
+            afirmar(p, "el bloque largo",
+                igual(resumen_hex("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"),
+                    "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"));
             afirmar_igual_numero(p, "resumen son 32 bytes", largo(resumen("abc")), 32);
 
             var r = nuevo_resumen();
             anadir_al_resumen(r, "ab");
             anadir_al_resumen(r, "c");
-            afirmar(p, "por trozos da lo mismo", igual(terminar_resumen_hex(r), "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
-            afirmar_igual_numero(p, "terminar_resumen son 32 bytes", largo(terminar_resumen(r)), 32);
+            afirmar(p, "por trozos da lo mismo",
+                igual(terminar_resumen_hex(r),
+                    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"));
+            afirmar_igual_numero(p, "terminar_resumen son 32 bytes",
+                largo(terminar_resumen(r)), 32);
 
-            afirmar(p, "hmac", igual(hmac_sha256("clave", "El veloz murcielago hindu comia feliz cardillo y kiwi."), "893db7db4e5e30a449671db13c265a82bf8e57a7c7da7d8054ca0adb3baf3ebf"));
+            afirmar(p, "hmac",
+                igual(hmac_sha256("clave",
+                        "El veloz murcielago hindu comia feliz cardillo y kiwi."),
+                    "893db7db4e5e30a449671db13c265a82bf8e57a7c7da7d8054ca0adb3baf3ebf"));
             return terminar(p);
         }''',
      "7 comprobaciones, todo bien\n"),
@@ -2672,7 +2690,8 @@ fn main() {
         use "std/prueba";
         fn main() -> usize {
             var p = pruebas();
-            afirmar_igual_numero(p, "el vector de siempre", crc32("123456789") como usize, 3421780262);
+            afirmar_igual_numero(p, "el vector de siempre",
+                crc32("123456789") como usize, 3421780262);
             afirmar_igual_numero(p, "el vacio es cero", crc32("") como usize, 0);
             afirmar_igual_numero(p, "una sola letra", crc32("a") como usize, 3904355907);
 
@@ -2699,17 +2718,25 @@ fn main() {
             afirmar_igual_numero(p, "adler32 del vacio es 1", adler32("") como usize, 1);
             afirmar_igual_numero(p, "adler32 de hola", adler32("hola") como usize, 69861797);
 
-            afirmar(p, "ida y vuelta por bloques guardados", igual(try inflar_zlib(deflar_guardado("hola mundo")), "hola mundo"));
-            afirmar(p, "el flujo guardado es un zlib de verdad", igual(a_hex(deflar_guardado("hola")), "7801010400fbff686f6c61042a01a5"));
+            afirmar(p, "ida y vuelta por bloques guardados",
+                igual(try inflar_zlib(deflar_guardado("hola mundo")), "hola mundo"));
+            afirmar(p, "el flujo guardado es un zlib de verdad",
+                igual(a_hex(deflar_guardado("hola")), "7801010400fbff686f6c61042a01a5"));
 
-            let z = "\\x78\\x9c\\xcb\\xc8\\xcf\\x49\\x54\\xc8\\x18\\x25\\x46\\x89\\x51\\x62\\x38\\x13\\x00\\x0a\\xe5\\x61\\x30";
+            let z_a = "\\x78\\x9c\\xcb\\xc8\\xcf\\x49\\x54\\xc8\\x18\\x25";
+            let z_b = "\\x46\\x89\\x51\\x62\\x38\\x13\\x00\\x0a\\xe5\\x61\\x30";
+            let z = $"{z_a}{z_b}";
             afirmar_igual_numero(p, "zlib de python mide 1000", largo(try inflar_zlib(z)), 1000);
-            afirmar(p, "y empieza como el original", igual(rebanar(try inflar_zlib(z), 0, 10), "hola hola "));
+            afirmar(p, "y empieza como el original",
+                igual(rebanar(try inflar_zlib(z), 0, 10), "hola hola "));
 
             let d = "\\xcb\\xc8\\xcf\\x49\\x54\\xc8\\x18\\x25\\x46\\x89\\x51\\x62\\x38\\x13\\x00";
             afirmar_igual_numero(p, "deflate crudo de python", largo(try inflar_deflate(d)), 1000);
 
-            let g = "\\x1f\\x8b\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x03\\xcb\\xc8\\xcf\\x49\\x54\\xc8\\x18\\x25\\x46\\x89\\x51\\x62\\x38\\x13\\x00\\x33\\xa2\\x50\\x64\\xe8\\x03\\x00\\x00";
+            let g_a = "\\x1f\\x8b\\x08\\x00\\x00\\x00\\x00\\x00\\x00\\x03\\xcb";
+            let g_b = "\\xc8\\xcf\\x49\\x54\\xc8\\x18\\x25\\x46\\x89\\x51\\x62";
+            let g_c = "\\x38\\x13\\x00\\x33\\xa2\\x50\\x64\\xe8\\x03\\x00\\x00";
+            let g = $"{g_a}{g_b}{g_c}";
             afirmar_igual_numero(p, "gzip de python", largo(try inflar_gzip(g)), 1000);
             return terminar(p);
         }''',
@@ -2771,8 +2798,10 @@ fn main() {
             afirmar_igual_numero(p, "donde acaba", r.hasta, 3);
             afirmar(p, "lo pillado", igual(rebanar("a12b", r.desde, r.hasta), "12"));
 
-            afirmar(p, "reemplaza la primera", igual(re.reemplazar(digitos, "a1b22c", "#"), "a#b22c"));
-            afirmar(p, "reemplaza todas", igual(re.reemplazar_todo(digitos, "a1b22c", "#"), "a#b#c"));
+            afirmar(p, "reemplaza la primera",
+                igual(re.reemplazar(digitos, "a1b22c", "#"), "a#b22c"));
+            afirmar(p, "reemplaza todas",
+                igual(re.reemplazar_todo(digitos, "a1b22c", "#"), "a#b#c"));
 
             let trozos = re.partir(digitos, "a1b22c");
             afirmar_igual_numero(p, "parte en tres", largo(trozos), 3);
@@ -2786,7 +2815,8 @@ fn main() {
             afirmar(p, "captura entera", igual(cs[0], "aabbb"));
             afirmar(p, "captura 1", igual(cs[1], "aa"));
             afirmar(p, "captura 2", igual(cs[2], "bbb"));
-            afirmar(p, "los grupos se reordenan", igual(re.reemplazar(con_grupos, "aabbb", "$2$1"), "bbbaa"));
+            afirmar(p, "los grupos se reordenan",
+                igual(re.reemplazar(con_grupos, "aabbb", "$2$1"), "bbbaa"));
 
             let ancla = try re.compilar("^ab$");
             afirmar(p, "ancla al texto entero", re.casamenta(ancla, "ab"));
@@ -2810,9 +2840,11 @@ fn main() {
 
             let con_color = pintar("31", "hola");
             afirmar_igual_numero(p, "los bytes son mas que las letras", largo(con_color), 13);
-            afirmar_igual_numero(p, "lo que se ve son cuatro columnas", ancho_visible(con_color), 4);
+            afirmar_igual_numero(p, "lo que se ve son cuatro columnas",
+                ancho_visible(con_color), 4);
             afirmar(p, "sin los codigos queda el texto", igual(sin_codigos(con_color), "hola"));
-            afirmar_igual_numero(p, "sin codigos tampoco hay columnas de mas", ancho_visible("camión"), 6);
+            afirmar_igual_numero(p, "sin codigos tampoco hay columnas de mas",
+                ancho_visible("camión"), 6);
 
             afirmar(p, "la barra al 30%", igual(barra(3, 10, 10), "[###.......] 30%"));
             afirmar(p, "la barra llena no se pasa", igual(barra(20, 10, 4), "[####] 100%"));
@@ -2828,7 +2860,8 @@ fn main() {
             let caja = marco(lineas);
             afirmar_igual_numero(p, "el marco tiene cuatro filas", largo(caja), 4);
             afirmar(p, "el borde de arriba", igual(caja[0], "+-------+"));
-            afirmar(p, "la fila con color se alinea por lo que se ve", igual(sin_codigos(caja[1]), "| hola  |"));
+            afirmar(p, "la fila con color se alinea por lo que se ve",
+                igual(sin_codigos(caja[1]), "| hola  |"));
             afirmar(p, "la fila corta", igual(caja[2], "| adios |"));
             afirmar(p, "el borde de abajo", igual(caja[3], "+-------+"));
             afirmar_igual_numero(p, "el marco mide lo que el borde", ancho_visible(caja[1]), 9);

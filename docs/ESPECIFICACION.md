@@ -520,8 +520,9 @@ error: dependencia circular entre modulos: a.t -> b.t -> a.t
 junto al programa. La extensión `.t` es opcional: se escribe el nombre del
 módulo, no el del archivo.
 
-`#texto` es `std/texto`: el atajo de la carpeta de la instalación, para no
-escribirla. Vale también con alias: `use "#utf8" como U;`.
+`#importar "texto.t"` trae un módulo de la biblioteca que viene con el
+compilador sin escribir la carpeta: se escribe el nombre del archivo, con su
+`.t`. Vale también con alias: `#importar "utf8.t" como U;`.
 
 ### Espacios de nombres
 
