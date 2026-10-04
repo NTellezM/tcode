@@ -76,6 +76,10 @@ ejemplos/genericos
 # El compilador que construye `make`
 /tcodec
 
+# Temporales que deja el compilador si una construccion se corta
+.tcodec-*
+**/.tcodec-*
+
 # binarios y C de programas/
 programas/wc
 programas/base64
