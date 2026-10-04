@@ -1,1 +1,1 @@
-usar"tipos.t"
+use "tipos.t"

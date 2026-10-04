@@ -10,13 +10,13 @@
 // numeradas por quien escribe el C. Lo que todavia no mira: los cuerpos de
 // las genericas, que el original comprueba en cada copia.
 
-usar "tipar.t" como I;
-usar "tipos.t" como T;
-usar "generar.t" como G;
-usar "../../lexer/lib/sintaxis.t" como P;
-usar "std/texto";
-usar "std/lista";
-usar "../../lexer/lib/clase.t";
+use "tipar.t" como I;
+use "tipos.t" como T;
+use "generar.t" como G;
+use "../../lexer/lib/sintaxis.t" como P;
+use "std/texto";
+use "std/lista";
+use "../../lexer/lib/clase.t";
 
 // ------------------------------------------------------------------
 // Los tipos basicos, como en el original
@@ -86,7 +86,7 @@ fn concreto(t: view) -> str {
 }
 
 // `a`, `b` y `c` -> "`a`, `b` y `c`".
-fn lista_legible(nombres: &lista<str>) -> str {
+fn lista_legible(nombres: &list<str>) -> str {
     var r = vacio();
     var i = 0;
     while i < nombres.largo() {
@@ -102,7 +102,7 @@ fn lista_legible(nombres: &lista<str>) -> str {
 }
 
 // "`a`, `b`, `c`": todos con coma, como `", ".join` del original.
-fn con_comas(nombres: &lista<str>) -> str {
+fn con_comas(nombres: &list<str>) -> str {
     var r = vacio();
     var i = 0;
     while i < nombres.largo() {
@@ -115,8 +115,8 @@ fn con_comas(nombres: &lista<str>) -> str {
     return r;
 }
 
-fn numericos() -> lista<str> {
-    var r: lista<str> = [];
+fn numericos() -> list<str> {
+    var r: list<str> = [];
     r.anadir(nuevo("u8")); r.anadir(nuevo("u16")); r.anadir(nuevo("u32"));
     r.anadir(nuevo("u64")); r.anadir(nuevo("usize")); r.anadir(nuevo("i8"));
     r.anadir(nuevo("i16")); r.anadir(nuevo("i32")); r.anadir(nuevo("i64"));
@@ -124,29 +124,29 @@ fn numericos() -> lista<str> {
     return r;
 }
 
-fn igualables() -> lista<str> {
+fn igualables() -> list<str> {
     var r = numericos();
     r.anadir(nuevo("bool")); r.anadir(nuevo("str")); r.anadir(nuevo("view"));
     ordenar(r);
     return r;
 }
 
-fn comparables() -> lista<str> {
+fn comparables() -> list<str> {
     var r = numericos();
     r.anadir(nuevo("str")); r.anadir(nuevo("view"));
     ordenar(r);
     return r;
 }
 
-fn ordenables() -> lista<str> {
+fn ordenables() -> list<str> {
     var r = numericos();
     r.anadir(nuevo("bool")); r.anadir(nuevo("str"));
     ordenar(r);
     return r;
 }
 
-fn restriccion_admite(r: view) -> lista<str> {
-    var s: lista<str> = [];
+fn restriccion_admite(r: view) -> list<str> {
+    var s: list<str> = [];
     if r == "numero" { s = numericos(); }
     if r == "entero" {
         for t en numericos() {
@@ -161,7 +161,7 @@ fn restriccion_admite(r: view) -> lista<str> {
     return s;
 }
 
-fn esta_entre(xs: &lista<str>, x: view) -> bool {
+fn esta_entre(xs: &list<str>, x: view) -> bool {
     for y en xs {
         if igual(y, x) { return true; }
     }
@@ -174,13 +174,13 @@ fn esta_entre(xs: &lista<str>, x: view) -> bool {
 
 struct Interna {
     existe: bool,
-    params: lista<str>,
+    params: list<str>,
     retorno: str,
     falible: bool,
 }
 
 fn firma_interna(nombre: view) -> Interna {
-    var ps: lista<str> = [];
+    var ps: list<str> = [];
     var r = vacio();
     var fal = false;
     var existe = true;
@@ -292,16 +292,16 @@ struct Funcion {
     nombre: str,
     archivo: str,
     linea: usize,
-    params: lista<Param>,
+    params: list<Param>,
     // Vacio si no dice que devuelve.
     retorno: str,
     falible: bool,
     externa: bool,
     // De C, y devuelve `cadena_c`: por dentro es un `str`.
     cadena_c: bool,
-    tipo_params: lista<str>,
+    tipo_params: list<str>,
     // `T=numero`, en el orden en que se escribieron.
-    restricciones: lista<str>,
+    restricciones: list<str>,
     // Donde esta su arbol: el modulo y la posicion, o la clausura.
     modulo: usize,
     posicion: usize,
@@ -309,50 +309,50 @@ struct Funcion {
 }
 
 struct Mundo {
-    funciones: lista<Funcion>,
-    indice: mapa<str, usize>,
+    funciones: list<Funcion>,
+    indice: map<str, usize>,
     // Structs concretos y plantillas: tipos y nombres de sus campos.
-    st_tipos: mapa<str, lista<T.Tipo>>,
-    st_nombres: mapa<str, lista<str>>,
+    st_tipos: map<str, list<T.Tipo>>,
+    st_nombres: map<str, list<str>>,
     // Struct generico -> sus parametros de tipo.
-    st_params: mapa<str, lista<str>>,
+    st_params: map<str, list<str>>,
     // Enum -> sus formas; `Enum.Forma` -> lo que lleva.
-    en_variantes: mapa<str, lista<str>>,
-    en_formas: mapa<str, lista<T.Tipo>>,
+    en_variantes: map<str, list<str>>,
+    en_formas: map<str, list<T.Tipo>>,
     // Nombre por dentro -> el que se escribio, para los mensajes.
-    bonitos: mapa<str, str>,
+    bonitos: map<str, str>,
     // Las funciones de las clausuras, que nacen al comprobarlas: la N-1 es
     // `ss_cierre_N`, escrita en el modulo `cierres_mod[N-1]`.
-    cierres: lista<P.Nodo>,
-    cierres_mod: lista<usize>,
+    cierres: list<P.Nodo>,
+    cierres_mod: list<usize>,
     n_cierres: usize,
     // Los structs de las clausuras que modifican lo que capturaron:
     // llamarlas las modifica.
-    cierres_mut: lista<str>,
+    cierres_mut: list<str>,
     // `dueno#k` -> N: la k-esima clausura del cuerpo de `dueno` (una
     // funcion, `plantilla|T1|T2` para la copia de una generica, o
     // `ss_cierre_M`) es `Cierre_N`.
-    numeracion: mapa<str, usize>,
+    numeracion: map<str, usize>,
     // Lo que hace falta para comprobar la copia de una generica: el arbol de
     // cada modulo y como se ven los nombres desde el.
-    arboles: lista<P.Nodo>,
-    modulos: lista<str>,
-    contextos: lista<I.Contexto>,
+    arboles: list<P.Nodo>,
+    modulos: list<str>,
+    contextos: list<I.Contexto>,
     // Las copias ya creadas: `plantilla|T1|T2`.
-    copias: lista<str>,
+    copias: list<str>,
     // Los structs en el orden en que existen para el original: los escritos,
     // y despues cada copia de un generico y cada clausura segun nacen, con
     // el nombre que les da el original (`Par__str_usize`) y su tipo aqui.
-    orden_structs: lista<str>,
-    tipo_de_struct: lista<str>,
+    orden_structs: list<str>,
+    tipo_de_struct: list<str>,
     // El tipo de cada expresion, por modulo: `dueno#id` -> tipo, con los
     // numeros escritos ya decididos por su contexto. El generador lo lee de
     // aqui en vez de deducirlo otra vez.
-    anotados: lista<mapa<str, T.Tipo>>,
+    anotados: list<map<str, T.Tipo>>,
     // Las copias de genericas y las clausuras, en el orden en que nacen: una
     // clausura al verla, una copia despues de comprobar su cuerpo. Es el
     // orden en que el generador las escribe.
-    orden_copias: lista<str>,
+    orden_copias: list<str>,
 }
 
 fn param_de(texto: view) -> Param {
@@ -381,11 +381,11 @@ fn prestado(p: &Param) -> bool { return p.mutable || p.compartido; }
 // Lo que dice la firma de un nodo `fn`.
 fn funcion_de(d: &P.Nodo, nombre: view, archivo: view, modulo: usize,
     posicion: usize, externa: bool) -> Funcion {
-    var ps: lista<Param> = [];
+    var ps: list<Param> = [];
     var ret = vacio();
     var fal = false;
-    var tps: lista<str> = [];
-    var rs: lista<str> = [];
+    var tps: list<str> = [];
+    var rs: list<str> = [];
     for h en d.hijos {
         let clase = h.clase;
         match clase {
@@ -413,7 +413,7 @@ fn funcion_de(d: &P.Nodo, nombre: view, archivo: view, modulo: usize,
 fn tiene_sueltos(f: &Funcion) -> bool { return f.tipo_params.largo() > 0; }
 
 fn buscar_funcion(m: &Mundo, nombre: view) -> usize ! {
-    if !tiene(m.indice, nombre) { falla "no es una funcion"; }
+    if !tiene(m.indice, nombre) { fail "no es una funcion"; }
     return obtener(m.indice, nombre) sino 0;
 }
 
@@ -482,14 +482,14 @@ fn como_mostrar(m: &Mundo, t: view) -> str {
 }
 
 // Los campos de un struct, con los tipos de una aplicacion ya puestos.
-fn campos_tipos(m: &Mundo, t: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn campos_tipos(m: &Mundo, t: view) -> list<str> {
+    var salida: list<str> = [];
     if es_struct_aplicado(m, t) {
         let base = T.base_de_aplicacion(t);
         let sueltos = I.lista_de(m.st_params, vista(base)) sino [];
         let dados = T.partes(t);
         if dados.largo() != sueltos.largo() { return salida; }
-        var lig: mapa<str, str> = [];
+        var lig: map<str, str> = [];
         var i = 0;
         while i < sueltos.largo() {
             poner(lig, vista(sueltos[i]), copiar(dados[i]));
@@ -502,7 +502,7 @@ fn campos_tipos(m: &Mundo, t: view) -> lista<str> {
     return T.escribir_de_mapa_tipos(m.st_tipos, t) sino [];
 }
 
-fn campos_nombres(m: &Mundo, t: view) -> lista<str> {
+fn campos_nombres(m: &Mundo, t: view) -> list<str> {
     if es_struct_aplicado(m, t) {
         let base = T.base_de_aplicacion(t);
         return I.lista_de(m.st_nombres, vista(base)) sino [];
@@ -521,7 +521,7 @@ fn campo_tipo(m: &Mundo, t: view, campo: view) -> str {
     return vacio();
 }
 
-fn formas_de(m: &Mundo, en_t: view, forma: view) -> lista<str> {
+fn formas_de(m: &Mundo, en_t: view, forma: view) -> list<str> {
     let clave = $"{en_t}.{forma}";
     return T.escribir_de_mapa_tipos(m.en_formas, vista(clave)) sino [];
 }
@@ -534,7 +534,7 @@ fn tiene_forma(m: &Mundo, en_t: view, forma: view) -> bool {
 // Un valor de este tipo es duenio de memoria del heap: la regla de
 // `tipos.t`, con lo que este mundo sabe de structs, genericas y enums.
 fn posee_memoria(m: &Mundo, t: view) -> bool {
-    var vistos: mapa<str, usize> = [];
+    var vistos: map<str, usize> = [];
     return T.posee_en(T.leer_tipo(t), m.st_tipos, m.st_params, m.en_variantes, m.en_formas, vistos);
 }
 
@@ -598,11 +598,11 @@ fn almacenable(m: &Mundo, t: view) -> bool {
 // Un struct que presta: lleva una `view`, o un struct que presta. Se trata
 // como una vista: apunta a memoria de otro.
 fn es_prestado_st(m: &Mundo, t: view) -> bool {
-    var vistos: lista<str> = [];
+    var vistos: list<str> = [];
     return presta_st(m, t, vistos);
 }
 
-fn presta_st(m: &Mundo, t: view, vistos: mut lista<str>) -> bool {
+fn presta_st(m: &Mundo, t: view, vistos: mut list<str>) -> bool {
     if !es_struct(m, t) || esta_entre(vistos, t) { return false; }
     vistos.anadir(nuevo(t));
     for ct en campos_tipos(m, t) {
@@ -622,7 +622,7 @@ fn error_enum_prestado(c: mut Comprobacion, m: &Mundo, linea: usize, en_n: view,
 }
 
 // Un struct o enum que se contiene a si mismo por valor.
-fn se_contiene(m: &Mundo, t: view, buscado: view, vistos: mut lista<str>) -> bool {
+fn se_contiene(m: &Mundo, t: view, buscado: view, vistos: mut list<str>) -> bool {
     if igual(t, buscado) { return true; }
     if T.es_arreglo(t) {
         let e = T.elemento(t);
@@ -665,14 +665,14 @@ struct Simbolo {
     // En cuantos `if`/`match` estaba al declararse, y los campos que se le
     // sacaron, en orden: `ruta\tlinea`, con `nombre` o `a.b` de ruta.
     condicional_al_declarar: usize,
-    sacados: lista<str>,
+    sacados: list<str>,
     // Las vistas vivas que prestan de esta variable, y las reservas.
-    prestamos: lista<str>,
+    prestamos: list<str>,
     // Si es una vista: de quien presta, y de donde sale su memoria. En
     // `origenes`, todos los duenios de los que puede venir, el primero
     // delante.
     origen: str,
-    origenes: lista<str>,
+    origenes: list<str>,
     procedencia: str,
     // Para los avisos: se leyo alguna vez, se modifico alguna vez, donde se
     // declaro, si es un parametro, y su sitio en la historia de la funcion.
@@ -693,9 +693,9 @@ struct Comprobacion {
     modulo: usize,
     // Todos los simbolos vivos, de fuera hacia dentro; `inicios` dice donde
     // empieza cada ambito.
-    simbolos: lista<Simbolo>,
-    inicios: lista<usize>,
-    errores: lista<str>,
+    simbolos: list<Simbolo>,
+    inicios: list<usize>,
+    errores: list<str>,
     retorno: str,
     falible: bool,
     en_condicional: usize,
@@ -706,28 +706,28 @@ struct Comprobacion {
     en_bucle_directo: i64,
     // Por cada bucle abierto: los movimientos de variables de fuera, como
     // pares indice, linea.
-    movidas_en_bucle: lista<lista<usize>>,
+    movidas_en_bucle: list<list<usize>>,
     en_retorno: usize,
     // Las copias de genericas que se estan comprobando, de fuera hacia
     // dentro: `al usar `f` con T = str, desde archivo:linea`.
-    instanciando: lista<str>,
+    instanciando: list<str>,
     // De quien es el cuerpo que se esta mirando, para numerar sus clausuras.
     dueno: str,
     // Los avisos: no impiden compilar.
-    avisos: lista<str>,
+    avisos: list<str>,
     // Cada simbolo que ha declarado la funcion en curso, con su estado final:
     // al cerrar su bloque se guarda aqui como quedo.
-    historia: lista<Simbolo>,
+    historia: list<Simbolo>,
     // Lo que `--explicar` dice de cada funcion comprobada, en orden.
-    informe: lista<str>,
+    informe: list<str>,
     // La clausura que se esta comprobando, si hay una: lo que capturo con
     // `mut` y lo que de eso ha modificado de verdad.
     en_cierre: bool,
-    capturas_mut: lista<str>,
-    modificadas: lista<str>,
+    capturas_mut: list<str>,
+    modificadas: list<str>,
     // La plantilla de cada copia de generica que se esta comprobando, a la
     // par que `instanciando`.
-    plantillas: lista<usize>,
+    plantillas: list<usize>,
     // Dentro de la guarda de un brazo: ahi no se mueve nada, porque se
     // evalua aunque el brazo no llegue a casar.
     en_guarda: usize,
@@ -737,23 +737,23 @@ struct Comprobacion {
     escribiendo: usize,
     // Los campos sacados de su struct en todo el programa, para el
     // generador: `archivo\tlinea\tp.a.b`.
-    sacados: lista<str>,
+    sacados: list<str>,
     // Las cuentas de numeros escritos que esperan su tipo, en el orden en
     // que se comprobaron, con el dueño de cada una; y las ya hechas, por su
     // clave anotada.
-    escritas: lista<P.Nodo>,
-    escritas_duenos: lista<str>,
-    contadas: mapa<str, usize>,
+    escritas: list<P.Nodo>,
+    escritas_duenos: list<str>,
+    contadas: map<str, usize>,
     // Las sentencias que se estan comprobando, de fuera adentro, hasta
     // `hondura`; las de la funcion en curso empiezan en `base`. De cada una:
     // su clase, lo que menciona, lo que mencionan las que la siguen en su
     // bloque, y el bloque. Dicen si una vista se vuelve a usar.
     hondura: usize,
     base: usize,
-    cadena_clases: lista<str>,
-    cadena_propias: lista<mapa<str, usize>>,
-    cadena_despues: lista<mapa<str, usize>>,
-    cadena_bloques: lista<usize>,
+    cadena_clases: list<str>,
+    cadena_propias: list<map<str, usize>>,
+    cadena_despues: list<map<str, usize>>,
+    cadena_bloques: list<usize>,
 }
 
 fn estado(archivo: view, modulo: usize) -> Comprobacion {
@@ -869,7 +869,7 @@ fn buscar_simbolo(c: &Comprobacion, nombre: view) -> usize {
 fn existe(c: &Comprobacion, i: usize) -> bool { return i < c.simbolos.largo(); }
 
 fn soltar_prestamo(c: mut Comprobacion, i: usize, quien: view) {
-    var quedan: lista<str> = [];
+    var quedan: list<str> = [];
     var quitado = false;
     for p en c.simbolos[i].prestamos {
         if !quitado && igual(p, quien) { quitado = true; continue; }
@@ -883,8 +883,8 @@ fn soltar_prestamo(c: mut Comprobacion, i: usize, quien: view) {
 fn cerrar_ambito(c: mut Comprobacion) {
     if c.inicios.largo() == 0 { return; }
     let desde = c.inicios[c.inicios.largo() - 1];
-    var muertos: lista<Simbolo> = [];
-    var vivos: lista<Simbolo> = [];
+    var muertos: list<Simbolo> = [];
+    var vivos: list<Simbolo> = [];
     var i = 0;
     while i < c.simbolos.largo() {
         if i < desde { vivos.anadir(copiar(c.simbolos[i])); }
@@ -895,7 +895,7 @@ fn cerrar_ambito(c: mut Comprobacion) {
     for s en muertos {
         if s.historia < c.historia.largo() { c.historia[s.historia] = copiar(s); }
     }
-    var otros: lista<usize> = [];
+    var otros: list<usize> = [];
     var k = 0;
     while k + 1 < c.inicios.largo() {
         otros.anadir(c.inicios[k]);
@@ -992,9 +992,9 @@ fn es_reserva(n: view) -> bool {
 }
 
 // Por que no se puede tocar: prestamos vivos, o una reserva.
-fn ocupada(vivos: &lista<str>) -> str {
-    var prestamos: lista<str> = [];
-    var reservas: lista<str> = [];
+fn ocupada(vivos: &list<str>) -> str {
+    var prestamos: list<str> = [];
+    var reservas: list<str> = [];
     for p en vivos {
         if es_reserva(p) { reservas.anadir(copiar(p)); }
         else { prestamos.anadir(copiar(p)); }
@@ -1160,8 +1160,8 @@ fn mutar(c: mut Comprobacion, m: &Mundo, lugar: &P.Nodo, linea: usize, i: usize,
 
 // Cuatro numeros por simbolo vivo: movida, en que linea, entregada, y si se
 // le dio otro valor al nivel directo del bucle.
-fn foto(c: &Comprobacion) -> lista<usize> {
-    var f: lista<usize> = [];
+fn foto(c: &Comprobacion) -> list<usize> {
+    var f: list<usize> = [];
     for s en c.simbolos {
         if s.movida { f.anadir(1); } else { f.anadir(0); }
         f.anadir(s.movida_en);
@@ -1171,7 +1171,7 @@ fn foto(c: &Comprobacion) -> lista<usize> {
     return f;
 }
 
-fn restaurar_foto(c: mut Comprobacion, f: &lista<usize>) {
+fn restaurar_foto(c: mut Comprobacion, f: &list<usize>) {
     var i = 0;
     while i < c.simbolos.largo() && 4 * i + 3 < f.largo() {
         c.simbolos[i].movida = f[4 * i] == 1;
@@ -1183,7 +1183,7 @@ fn restaurar_foto(c: mut Comprobacion, f: &lista<usize>) {
 }
 
 // Lo que sobrevive a dos caminos: movido en uno cuenta como movido.
-fn juntar_ramas(c: mut Comprobacion, a: &lista<usize>, b: &lista<usize>) {
+fn juntar_ramas(c: mut Comprobacion, a: &list<usize>, b: &list<usize>) {
     var i = 0;
     while i < c.simbolos.largo() && 4 * i + 3 < a.largo() {
         var mb = a[4 * i];
@@ -1305,9 +1305,9 @@ fn solapan(a: view, b: view) -> bool {
 // prestamos de lo mismo solo conviven si ninguno modifica: si no, el callee
 // tendria dos nombres para la misma memoria.
 struct Prestamos {
-    caminos: lista<str>,
-    quienes: lista<str>,
-    mutables: lista<bool>,
+    caminos: list<str>,
+    quienes: list<str>,
+    mutables: list<bool>,
 }
 
 fn prestamos() -> Prestamos {
@@ -1316,8 +1316,8 @@ fn prestamos() -> Prestamos {
 
 // El prestamo anterior que no convive con este: lo que se presta dos veces y
 // quien lo presto, o nada. Primero uno que modifica.
-fn choque_prestamo(p: &Prestamos, camino: view, mutable: bool) -> lista<str> {
-    var salida: lista<str> = [];
+fn choque_prestamo(p: &Prestamos, camino: view, mutable: bool) -> list<str> {
+    var salida: list<str> = [];
     var vuelta = 0;
     while vuelta < 2 {
         var k = 0;
@@ -1526,7 +1526,7 @@ fn origen_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> str {
     return vacio();
 }
 
-fn juntar_origenes(salida: mut lista<str>, de: &lista<str>) {
+fn juntar_origenes(salida: mut list<str>, de: &list<str>) {
     for x en de {
         if x.largo() > 0 && !esta_entre(salida, x) { salida.anadir(copiar(x)); }
     }
@@ -1535,8 +1535,8 @@ fn juntar_origenes(salida: mut lista<str>, de: &lista<str>) {
 // Todas las variables duenias de las que puede venir una vista, en orden y
 // sin repetir. `<temporal>` si puede venir de un valor sin nombre, recien
 // hecho, que se libera al acabar la sentencia: una vista suya no se guarda.
-fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
-    var salida: lista<str> = [];
+fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> list<str> {
+    var salida: list<str> = [];
     let clase = n.clase;
     match clase {
         Clase.Try -> {
@@ -1590,7 +1590,7 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
                 if de_cierre.largo() > 0 && kc < m.funciones.largo() {
                     let ret = vista(m.funciones[kc].retorno);
                     if presta_tipo(m, ret) && !T.es_referencia(ret) {
-                        var entorno: lista<str> = [];
+                        var entorno: list<str> = [];
                         entorno.anadir(copiar(n.texto));
                         juntar_origenes(salida, entorno);
                         juntar_origenes(salida, origenes_de_args(c, m, n, 1, kc));
@@ -1614,14 +1614,14 @@ fn origenes_de(c: &Comprobacion, m: &Mundo, n: &P.Nodo) -> lista<str> {
             if n.hijos.largo() > 0 {
                 // Lo que da cada brazo; y si da algo que atrapo el patron, el valor
                 // mirado: lo atrapado es un prestamo suyo.
-                var mirado: lista<str> = [];
+                var mirado: list<str> = [];
                 var visto = false;
                 var k = 1;
                 while k < n.hijos.largo() {
                     for h en n.hijos[k].hijos {
                         if h.clase != Clase.Retorno || h.hijos.largo() != 1 { continue; }
                         juntar_origenes(salida, origenes_de(c, m, h.hijos[0]));
-                        var atrapados: lista<str> = [];
+                        var atrapados: list<str> = [];
                         atrapados_de(n.hijos[k], atrapados);
                         if atrapados.largo() > 0 && menciona(h.hijos[0], atrapados) {
                             if !visto {
@@ -1694,7 +1694,7 @@ fn funcion_vista(c: &Comprobacion, m: &Mundo, escrito: view) -> usize {
 }
 
 // Si el tipo `t` nombra alguno de los parametros de tipo `sueltos`.
-fn lleva_suelto(t: view, sueltos: &lista<str>) -> bool {
+fn lleva_suelto(t: view, sueltos: &list<str>) -> bool {
     var i = 0;
     while i < t.largo() {
         if T.es_de_nombre(byte(t, i)) {
@@ -1715,8 +1715,8 @@ fn lleva_suelto(t: view, sueltos: &lista<str>) -> bool {
 // uno suelto: aqui no se sabe con que tipos se copio, salvo que el argumento
 // sea un `str`, que no presta de nada.
 fn origenes_de_args(c: &Comprobacion, m: &Mundo, n: &P.Nodo, desde: usize,
-    k: usize) -> lista<str> {
-    var salida: lista<str> = [];
+    k: usize) -> list<str> {
+    var salida: list<str> = [];
     var i = desde;
     while i < m.funciones[k].params.largo() && i - desde < n.hijos.largo() {
         let pt = vista(m.funciones[k].params[i].tipo);
@@ -1736,7 +1736,7 @@ fn origenes_de_args(c: &Comprobacion, m: &Mundo, n: &P.Nodo, desde: usize,
             juntar_origenes(salida, de_arg);
         } else if prestado(m.funciones[k].params[i]) {
             let base = variable_base(arg);
-            var de_arg: lista<str> = [];
+            var de_arg: list<str> = [];
             if base.largo() > 0 { de_arg.anadir(copiar(base)); } else { de_arg.anadir(nuevo("<temporal>")); }
             juntar_origenes(salida, de_arg);
             // Si lo prestado presta a su vez, tambien de lo suyo.
@@ -1752,8 +1752,8 @@ fn origenes_de_args(c: &Comprobacion, m: &Mundo, n: &P.Nodo, desde: usize,
 
 // Lo que presta el resultado de llamar a una variable que guarda una funcion:
 // su tipo dice lo mismo que una firma.
-fn origenes_de_puntero(c: &Comprobacion, m: &Mundo, n: &P.Nodo, tipo: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn origenes_de_puntero(c: &Comprobacion, m: &Mundo, n: &P.Nodo, tipo: view) -> list<str> {
+    var salida: list<str> = [];
     let partes = T.partes_de_funcion(tipo);
     if partes.largo() == 0 { return salida; }
     if !presta_tipo(m, partes[partes.largo() - 1]) { return salida; }
@@ -1762,7 +1762,7 @@ fn origenes_de_puntero(c: &Comprobacion, m: &Mundo, n: &P.Nodo, tipo: view) -> l
         let pt = vista(partes[i]);
         if T.es_referencia(pt) {
             let base = variable_base(n.hijos[i]);
-            var de_arg: lista<str> = [];
+            var de_arg: list<str> = [];
             if base.largo() > 0 { de_arg.anadir(copiar(base)); } else { de_arg.anadir(nuevo("<temporal>")); }
             juntar_origenes(salida, de_arg);
             let j = buscar_simbolo(c, base);
@@ -1784,8 +1784,8 @@ fn origenes_de_puntero(c: &Comprobacion, m: &Mundo, n: &P.Nodo, tipo: view) -> l
 
 // De que variables es lo que atrapa un patron: de la del valor mirado, y si
 // esa es un prestamo, tambien de lo que presta.
-fn origenes_mirado(c: &Comprobacion, m: &Mundo, valor: &P.Nodo) -> lista<str> {
-    var salida: lista<str> = [];
+fn origenes_mirado(c: &Comprobacion, m: &Mundo, valor: &P.Nodo) -> list<str> {
+    var salida: list<str> = [];
     let base = variable_base(valor);
     let i = buscar_simbolo(c, base);
     if base.largo() == 0 || !existe(c, i) { return salida; }
@@ -1797,7 +1797,7 @@ fn origenes_mirado(c: &Comprobacion, m: &Mundo, valor: &P.Nodo) -> lista<str> {
 }
 
 // Los nombres que atrapa el patron de un brazo, a cualquier hondura.
-fn atrapados_de(b: &P.Nodo, salida: mut lista<str>) {
+fn atrapados_de(b: &P.Nodo, salida: mut list<str>) {
     for h en b.hijos {
         if h.clase == Clase.Atrapa && h.texto != "_" {
             salida.anadir(copiar(h.texto));
@@ -1808,7 +1808,7 @@ fn atrapados_de(b: &P.Nodo, salida: mut lista<str>) {
 }
 
 // Si en `n` se lee alguna de estas variables.
-fn menciona(n: &P.Nodo, nombres: &lista<str>) -> bool {
+fn menciona(n: &P.Nodo, nombres: &list<str>) -> bool {
     if n.clase == Clase.Variable && esta_entre(nombres, n.texto) { return true; }
     for h en n.hijos {
         if menciona(h, nombres) { return true; }
@@ -1820,8 +1820,8 @@ fn menciona(n: &P.Nodo, nombres: &lista<str>) -> bool {
 // cuando va a un sitio que presta (`view`, un struct que presta). Un `str`
 // suelto donde se pide `view` se presta entero; una vista con nombre ya
 // tiene sus prestamos apuntados en sus duenios.
-fn prestados_por(c: &Comprobacion, m: &Mundo, arg: &P.Nodo, t: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn prestados_por(c: &Comprobacion, m: &Mundo, arg: &P.Nodo, t: view) -> list<str> {
+    var salida: list<str> = [];
     let clase = arg.clase;
     if clase == Clase.Variable {
         let i = buscar_simbolo(c, arg.texto);
@@ -1940,7 +1940,7 @@ fn prestar_sitio(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.No
     c.simbolos[i].procedencia = nuevo("local");
     if base.largo() == 0 || !existe(c, ib) { return; }
     // Presta de la variable, y si ella misma presta, de lo suyo.
-    var origenes: lista<str> = [nuevo(base)];
+    var origenes: list<str> = [nuevo(base)];
     if presta_tipo(m, c.simbolos[ib].tipo) {
         for o en c.simbolos[ib].origenes {
             if !esta_entre(origenes, o) { origenes.anadir(copiar(o)); }
@@ -1951,7 +1951,7 @@ fn prestar_sitio(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.No
 
 // La vista del simbolo `i` pasa a apuntar a `nuevos`: cada duenio queda
 // prestado mientras ella viva, y tiene que vivir al menos lo mismo.
-fn apuntar_a(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, nuevos: &lista<str>) {
+fn apuntar_a(c: mut Comprobacion, m: &Mundo, linea: usize, i: usize, nuevos: &list<str>) {
     let nombre = copiar(c.simbolos[i].nombre);
     if esta_entre(nuevos, "<temporal>") {
         error(c, m, linea, $"`{nombre}` apuntaria a un valor temporal, que se libera al acabar esta sentencia: guarda ese valor en una variable y presta de ella");
@@ -2047,12 +2047,12 @@ fn comprobar_literal(c: mut Comprobacion, m: &Mundo, n: &P.Nodo, destino: view) 
 // Genericas: que tipos pone cada llamada
 // ------------------------------------------------------------------
 
-fn es_param_de_tipo(sueltos: &lista<str>, t: view) -> bool { return esta_entre(sueltos, t); }
+fn es_param_de_tipo(sueltos: &list<str>, t: view) -> bool { return esta_entre(sueltos, t); }
 
 // `lista<T>` contra `lista<str>` liga `T` a `str`. Falso si contradice lo que
 // ya estaba ligado.
-fn unificar_tipo(patron: view, dado: view, sueltos: &lista<str>,
-    lig: mut mapa<str, str>) -> bool {
+fn unificar_tipo(patron: view, dado: view, sueltos: &list<str>,
+    lig: mut map<str, str>) -> bool {
     if patron.largo() == 0 || dado.largo() == 0 { return true; }
     if es_param_de_tipo(sueltos, patron) {
         if !tiene(lig, patron) {
@@ -2257,7 +2257,7 @@ fn tipo_probable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.No
 }
 
 fn truncar_errores(c: mut Comprobacion, cuantos: usize) {
-    var quedan: lista<str> = [];
+    var quedan: list<str> = [];
     var i = 0;
     while i < cuantos && i < c.errores.largo() {
         quedan.anadir(copiar(c.errores[i]));
@@ -2269,7 +2269,7 @@ fn truncar_errores(c: mut Comprobacion, cuantos: usize) {
 // Una generica con los tipos que pone una llamada.
 struct Instancia {
     ok: bool,
-    params: lista<Param>,
+    params: list<Param>,
     retorno: str,
     // `T = str, U = usize`, en el orden en que se ligaron.
     ligadas: str,
@@ -2284,7 +2284,7 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     let f = copiar(m.funciones[k]);
     let nombre = vista(f.nombre);
     let sueltos = copiar(f.tipo_params);
-    var lig: mapa<str, str> = [];
+    var lig: map<str, str> = [];
     let fallo = Instancia { ok: false, params: [], retorno: vacio(), ligadas: vacio(),
         clave: vacio(), copia: vacio() };
     if n.hijos.largo() == f.params.largo() {
@@ -2292,7 +2292,7 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         while i < f.params.largo() {
             var dado = tipo_probable(c, m, tipos, n.hijos[i]);
             if T.es_referencia(T.escribir_tipo(dado)) { dado = tipo_de_escrito(T.apuntado(T.escribir_tipo(dado))); }
-            var antes: mapa<str, str> = [];
+            var antes: map<str, str> = [];
             for x en claves(lig) {
                 if x == "\t" { continue; }
                 let v = obtener(lig, x) sino "";
@@ -2319,7 +2319,7 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             i = i + 1;
         }
     }
-    var faltan: lista<str> = [];
+    var faltan: list<str> = [];
     for tp en sueltos {
         if !tiene(lig, tp) { faltan.anadir(copiar(tp)); }
     }
@@ -2341,7 +2341,7 @@ fn instanciar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             return fallo;
         }
     }
-    var ps: lista<Param> = [];
+    var ps: list<Param> = [];
     for p en f.params {
         anadir(ps, Param { nombre: copiar(p.nombre), tipo: T.sustituir(p.tipo, lig),
                 mutable: p.mutable, compartido: p.compartido });
@@ -2401,15 +2401,15 @@ fn comprobar_restricciones(c: mut Comprobacion, m: mut Mundo) {
         if f.de_cierre || f.externa || !tiene_sueltos(f) || f.restricciones.largo() == 0 {
             continue;
         }
-        var restr: mapa<str, str> = [];
+        var restr: map<str, str> = [];
         for r en f.restricciones {
             var corte = 0;
             while corte < r.largo() && byte(r, corte) != 61 { corte = corte + 1; }
             poner(restr, rebanar(r, 0, corte), nuevo(rebanar(r, corte + 1, r.largo())));
         }
         let prefijo = $"{f.nombre}|";
-        var probadas: lista<str> = [];
-        var bases: lista<lista<str>> = [];
+        var probadas: list<str> = [];
+        var bases: list<list<str>> = [];
         for cl en m.copias {
             if empieza_con(cl, prefijo) {
                 probadas.anadir(copiar(cl));
@@ -2422,12 +2422,12 @@ fn comprobar_restricciones(c: mut Comprobacion, m: mut Mundo) {
                 if !tiene(restr, tp) { todos = false; }
             }
             if todos {
-                let ninguna: lista<str> = [];
+                let ninguna: list<str> = [];
                 bases.anadir(ninguna);
             }
         }
         for base en bases {
-            var opciones: lista<lista<str>> = [];
+            var opciones: list<list<str>> = [];
             var i = 0;
             var alguna_vacia = false;
             while i < f.tipo_params.largo() {
@@ -2436,7 +2436,7 @@ fn comprobar_restricciones(c: mut Comprobacion, m: mut Mundo) {
                     let cual = obtener(restr, tp) sino "";
                     opciones.anadir(restriccion_admite(cual));
                 } else {
-                    var una: lista<str> = [];
+                    var una: list<str> = [];
                     if i < base.largo() { una.anadir(copiar(base[i])); }
                     if una.largo() == 0 { alguna_vacia = true; }
                     opciones.anadir(una);
@@ -2445,11 +2445,11 @@ fn comprobar_restricciones(c: mut Comprobacion, m: mut Mundo) {
             }
             if alguna_vacia || opciones.largo() == 0 { continue; }
             // Todas las combinaciones, la ultima posicion la que mas cambia.
-            var cuenta: lista<usize> = [];
+            var cuenta: list<usize> = [];
             for _o en opciones { cuenta.anadir(0); }
             var sigue = true;
             while sigue {
-                var juego: lista<str> = [];
+                var juego: list<str> = [];
                 var clave = copiar(f.nombre);
                 var j = 0;
                 while j < opciones.largo() {
@@ -2480,8 +2480,8 @@ fn comprobar_restricciones(c: mut Comprobacion, m: mut Mundo) {
     }
 }
 
-fn partir_por_barra(t: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn partir_por_barra(t: view) -> list<str> {
+    var salida: list<str> = [];
     var desde = 0;
     var i = 0;
     while i <= t.largo() {
@@ -2495,8 +2495,8 @@ fn partir_por_barra(t: view) -> lista<str> {
 }
 
 // Las ligaduras de `f` para un juego de tipos, en el orden de la plantilla.
-fn ligaduras_de_juego(f: &Funcion, juego: &lista<str>) -> mapa<str, str> {
-    var lig: mapa<str, str> = [];
+fn ligaduras_de_juego(f: &Funcion, juego: &list<str>) -> map<str, str> {
+    var lig: map<str, str> = [];
     var orden = vacio();
     var i = 0;
     while i < f.tipo_params.largo() && i < juego.largo() {
@@ -2512,7 +2512,7 @@ fn ligaduras_de_juego(f: &Funcion, juego: &lista<str>) -> mapa<str, str> {
 // Si con estos tipos la firma tiene sentido. Un `T = view` sobre un
 // `&lista<T>` no lo tiene: nadie podria llamarla asi, y el cuerpo no tiene
 // que valer para lo que no se puede escribir.
-fn firma_valida(m: &Mundo, f: &Funcion, juego: &lista<str>) -> bool {
+fn firma_valida(m: &Mundo, f: &Funcion, juego: &list<str>) -> bool {
     let lig = ligaduras_de_juego(f, juego);
     for p en f.params {
         let t = T.sustituir(p.tipo, lig);
@@ -2524,10 +2524,10 @@ fn firma_valida(m: &Mundo, f: &Funcion, juego: &lista<str>) -> bool {
 
 // Comprueba la copia de `k` para este juego sin quedarsela: lo que cambie
 // al hacerla se deshace, y solo quedan los errores.
-fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>) {
+fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &list<str>) {
     let f = copiar(m.funciones[k]);
     let lig = ligaduras_de_juego(f, juego);
-    var ps: lista<Param> = [];
+    var ps: list<Param> = [];
     for p en f.params {
         anadir(ps, Param { nombre: copiar(p.nombre), tipo: T.sustituir(p.tipo, lig),
                 mutable: p.mutable, compartido: p.compartido });
@@ -2577,7 +2577,7 @@ fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>)
     let archivo_antes = copiar(c.archivo);
     c.archivo = copiar(f.archivo);
     comprobar_copia(c, m, nodo, k, inst, lig, true);
-    var nuevos: lista<str> = [];
+    var nuevos: list<str> = [];
     var q = antes;
     while q < c.errores.largo() {
         nuevos.anadir(copiar(c.errores[q]));
@@ -2609,7 +2609,7 @@ fn probar_juego(c: mut Comprobacion, m: mut Mundo, k: usize, juego: &lista<str>)
 
 // Los tipos puestos en el arbol de una copia: en los parametros, el
 // retorno, las declaraciones y las conversiones.
-fn sustituir_en_arbol(n: mut P.Nodo, lig: &mapa<str, str>) {
+fn sustituir_en_arbol(n: mut P.Nodo, lig: &map<str, str>) {
     let clase = n.clase;
     if clase == Clase.Param || clase == Clase.Declaracion {
         let t = copiar(n.texto);
@@ -2633,7 +2633,7 @@ fn sustituir_en_arbol(n: mut P.Nodo, lig: &mapa<str, str>) {
 // El cuerpo de una generica se comprueba con los tipos puestos, en mitad de
 // quien la llama, como otra funcion entera.
 fn comprobar_copia(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, k: usize,
-    inst: &Instancia, lig: &mapa<str, str>, sin_llamada: bool) {
+    inst: &Instancia, lig: &map<str, str>, sin_llamada: bool) {
     var f = copiar(m.funciones[k]);
     f.params = copiar(inst.params);
     f.retorno = copiar(inst.retorno);
@@ -2678,14 +2678,14 @@ fn comprobar_copia(c: mut Comprobacion, m: mut Mundo, n: &P.Nodo, k: usize,
     comprobar_funcion(c, m, tipos, kc, nodo, inst.clave);
     c.dueno = dueno;
     c.modulo = modulo_antes;
-    var quedan: lista<str> = [];
+    var quedan: list<str> = [];
     var q = 0;
     while q + 1 < c.instanciando.largo() {
         quedan.anadir(copiar(c.instanciando[q]));
         q = q + 1;
     }
     c.instanciando = quedan;
-    var otras: lista<usize> = [];
+    var otras: list<usize> = [];
     var q2 = 0;
     while q2 + 1 < c.plantillas.largo() {
         otras.anadir(c.plantillas[q2]);
@@ -2910,8 +2910,8 @@ fn contar_pendientes(c: mut Comprobacion, m: mut Mundo, desde: usize) {
         c.dueno = dueno_antes;
     }
     if c.escritas.largo() == desde { return; }
-    var quedan: lista<P.Nodo> = [];
-    var quedan_d: lista<str> = [];
+    var quedan: list<P.Nodo> = [];
+    var quedan_d: list<str> = [];
     var j = 0;
     while j < desde {
         quedan.anadir(copiar(c.escritas[j]));
@@ -3291,7 +3291,7 @@ fn enum_lit(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -
 
 fn formas_legibles(m: &Mundo, en_t: view) -> str {
     let vs = I.lista_de(m.en_variantes, en_t) sino [];
-    var todas: lista<str> = [];
+    var todas: list<str> = [];
     for v en vs { todas.anadir($"{en_t}.{v}"); }
     return con_comas(todas);
 }
@@ -3318,7 +3318,7 @@ fn comprobar_conversion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n
             let dentro = valor_escrito(c, m, x.hijos[0], "i64");
             c.contadas = contadas_antes;
             if c.errores.largo() > errores_antes {
-                var quedan: lista<str> = [];
+                var quedan: list<str> = [];
                 var k = 0;
                 while k < errores_antes {
                     quedan.anadir(copiar(c.errores[k]));
@@ -3381,7 +3381,7 @@ fn desenvolver(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, nodo: &P.N
 // `p.a.b` -> `p\ta.b`: la cadena de campos desde una variable. Vacio si
 // por medio hay un indice, una llamada u otra cosa.
 fn ruta_de_campo(n: &P.Nodo) -> str {
-    var nombres: lista<str> = [];
+    var nombres: list<str> = [];
     var x = copiar(n);
     while x.clase == Clase.Campo && x.hijos.largo() > 0 {
         nombres.anadir(copiar(x.texto));
@@ -3531,7 +3531,7 @@ fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Context
             return tipo_de_escrito(destino);
         }
     }
-    var lig: mapa<str, str> = [];
+    var lig: map<str, str> = [];
     let ns = I.lista_de(m.st_nombres, base) sino [];
     let ts = T.tipos_de_mapa(m.st_tipos, base) sino [];
     for h en n.hijos {
@@ -3543,7 +3543,7 @@ fn tipo_de_literal_generico(c: mut Comprobacion, m: mut Mundo, tipos: &I.Context
         if T.es_referencia(T.escribir_tipo(dado)) { dado = tipo_de_escrito(T.apuntado(T.escribir_tipo(dado))); }
         let _u = unificar_tipo(T.escribir_tipo(ts[k]), T.escribir_tipo(dado), sueltos, lig);
     }
-    var faltan: lista<str> = [];
+    var faltan: list<str> = [];
     for tp en sueltos {
         if !tiene(lig, tp) { faltan.anadir(copiar(tp)); }
     }
@@ -3586,7 +3586,7 @@ fn literal_struct(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.N
         }
         return T.ninguno();
     }
-    var dados: lista<str> = [];
+    var dados: list<str> = [];
     for h en n.hijos {
         let nombre = vista(h.texto);
         let def = campo_tipo(m, tipo, nombre);
@@ -3606,7 +3606,7 @@ fn literal_struct(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.N
             error(c, m, n.linea, $"`{tipo}.{nombre}` es `{def}` y recibio `{T.escribir_tipo(t)}`");
         }
     }
-    var faltan: lista<str> = [];
+    var faltan: list<str> = [];
     for x en campos_nombres(m, tipo) {
         if !esta_entre(dados, x) { faltan.anadir(copiar(x)); }
     }
@@ -3645,7 +3645,7 @@ fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
             error(c, m, n.linea, $"el tipo dice {cuantos} elemento(s) y el literal tiene {hay}");
         }
     }
-    var tipos_e: lista<T.Tipo> = [];
+    var tipos_e: list<T.Tipo> = [];
     var mueve = false;
     if elem_esperado.largo() > 0 { mueve = posee_memoria(m, elem_esperado); }
     for x en n.hijos {
@@ -3665,7 +3665,7 @@ fn literal_arreglo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         let hay = n.hijos.largo();
         return tipo_de_escrito(T.hacer_arreglo(elem_esperado, $"{hay}"));
     }
-    var conocidos: lista<str> = [];
+    var conocidos: list<str> = [];
     for t en tipos_e {
         if T.conocido(t) { conocidos.anadir(T.escribir_tipo(t)); }
     }
@@ -3824,13 +3824,13 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         return T.ninguno();
     }
     let antes = foto(c);
-    var fotos: lista<lista<usize>> = [];
+    var fotos: list<list<usize>> = [];
     // Las formas con un brazo que vale para todas ellas, y las que tienen
     // alguno, aunque sea con condiciones.
-    var vistas: lista<str> = [];
-    var con_brazo: lista<str> = [];
+    var vistas: list<str> = [];
+    var con_brazo: list<str> = [];
     var comun = vacio();
-    var escritos: lista<P.Nodo> = [];
+    var escritos: list<P.Nodo> = [];
     var hay_comodin = false;
     var k = 1;
     while k < n.hijos.largo() {
@@ -3925,8 +3925,8 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
         }
     }
     if !hay_comodin {
-        var faltan: lista<str> = [];
-        var a_medias: lista<str> = [];
+        var faltan: list<str> = [];
+        var a_medias: list<str> = [];
         for v en I.lista_de(m.en_variantes, vista(base)) sino [] {
             if !esta_entre(con_brazo, v) {
                 faltan.anadir($"{base}.{v}");
@@ -3956,8 +3956,8 @@ fn comprobar_match(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
 
 // Lo que va en cada posicion de un patron, en orden: hojas `atrapa` y ramas
 // `patron` y `literal`.
-fn posiciones_de(b: &P.Nodo) -> lista<P.Nodo> {
-    var salida: lista<P.Nodo> = [];
+fn posiciones_de(b: &P.Nodo) -> list<P.Nodo> {
+    var salida: list<P.Nodo> = [];
     for h en b.hijos {
         let hc = h.clase;
         if hc == Clase.Atrapa || hc == Clase.Patron || hc == Clase.Literal {
@@ -3970,7 +3970,7 @@ fn posiciones_de(b: &P.Nodo) -> lista<P.Nodo> {
 // Si lo que va en cada posicion de `base.forma(...)` encaja con lo que lleva
 // la forma: el numero, las formas anidadas y los literales.
 fn patron_valido(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma: view,
-    posiciones: &lista<P.Nodo>) -> bool {
+    posiciones: &list<P.Nodo>) -> bool {
     let lleva = formas_de(m, base, forma);
     if posiciones.largo() != lleva.largo() {
         let cuantos = cuantos_valores(lleva.largo());
@@ -4020,7 +4020,7 @@ fn patron_valido(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma
 // Lo que atrapa el patron, prestado: un `match` mira, no desmonta. Un `str`
 // prestado es una `view`, y lo demas con duenio un `&T`.
 fn declarar_patron(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, forma: view,
-    posiciones: &lista<P.Nodo>, mirado: &lista<str>) {
+    posiciones: &list<P.Nodo>, mirado: &list<str>) {
     let lleva = formas_de(m, base, forma);
     var i = 0;
     while i < posiciones.largo() && i < lleva.largo() {
@@ -4056,7 +4056,7 @@ fn declarar_patron(c: mut Comprobacion, m: &Mundo, linea: usize, base: view, for
 // Una clausura es su struct con lo capturado mas su funcion, que se
 // comprueba aqui, en mitad de quien la escribe, como en el original.
 // Dentro del cuerpo, un nombre capturado es un campo del entorno.
-fn renombrar_capturas(n: mut P.Nodo, nombres: &lista<str>, linea: usize) {
+fn renombrar_capturas(n: mut P.Nodo, nombres: &list<str>, linea: usize) {
     var i = 0;
     while i < n.hijos.largo() {
         if n.hijos[i].clase == Clase.Variable
@@ -4076,7 +4076,7 @@ fn renombrar_capturas(n: mut P.Nodo, nombres: &lista<str>, linea: usize) {
 // suyo, con lo capturado leido del entorno. Si algo se capturo con `mut`, el
 // entorno llega para modificar: lo que cambie sigue ahi en la llamada
 // siguiente.
-fn nodo_de_cierre(n: &P.Nodo, numero: usize, capturadas: &lista<str>,
+fn nodo_de_cierre(n: &P.Nodo, numero: usize, capturadas: &list<str>,
     modifica: bool) -> P.Nodo {
     var f = P.rama(Clase.Fn, n.linea);
     f.texto = $"ss_cierre_{numero}";
@@ -4121,10 +4121,10 @@ fn cierre(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> 
     m.n_cierres = numero;
     poner(m.numeracion, vista(clave), numero);
     let st = $"Cierre_{numero}";
-    var nombres: lista<str> = [];
-    var ts: lista<str> = [];
-    var vistos: lista<str> = [];
-    var mutables: lista<str> = [];
+    var nombres: list<str> = [];
+    var ts: list<str> = [];
+    var vistos: list<str> = [];
+    var mutables: list<str> = [];
     for h en n.hijos {
         if h.clase == Clase.Captura && h.hijos.largo() > 0 {
             mutables.anadir(copiar(h.texto));
@@ -4304,7 +4304,7 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             let camino = camino_de(arg);
             let choque = choque_prestamo(hechos, camino, p.mutable);
             if choque.largo() == 2 {
-                var dos: lista<str> = [];
+                var dos: list<str> = [];
                 dos.anadir(copiar(p.nombre));
                 dos.anadir(copiar(choque[1]));
                 ordenar(dos);
@@ -4335,7 +4335,7 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             for camino en prestados_por(c, m, arg, T.escribir_tipo(t)) {
                 let choque = choque_prestamo(hechos, camino, false);
                 if choque.largo() == 2 {
-                    var dos: lista<str> = [];
+                    var dos: list<str> = [];
                     dos.anadir(copiar(p.nombre));
                     dos.anadir(copiar(choque[1]));
                     ordenar(dos);
@@ -4367,7 +4367,7 @@ fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &
     let tv = copiar(c.simbolos[iv].tipo);
     let nombre = vista(n.texto);
     let partes = T.partes_de_funcion(tv);
-    var params: lista<str> = [];
+    var params: list<str> = [];
     var i = 0;
     while i + 1 < partes.largo() {
         params.anadir(copiar(partes[i]));
@@ -4476,7 +4476,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     }
 
     // Paso 1: los argumentos, y los prestamos que duran lo que la llamada.
-    var prestados: lista<str> = [];
+    var prestados: list<str> = [];
     var i = 0;
     while i < dados {
         let esperado = vista(fi.params[i]);
@@ -4514,7 +4514,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         if esperado == "view" {
             // Todos los duenios posibles, no el primero: con
             // `if c { vista(a) } else { vista(b) }` puede ser cualquiera.
-            var origenes: lista<str> = [];
+            var origenes: list<str> = [];
             for o en origenes_de(c, m, arg) {
                 if o != "<temporal>" { origenes.anadir(copiar(o)); }
             }
@@ -5096,7 +5096,7 @@ fn cuerpo_de_bucle(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     // Lo que sigue movido al cerrar la vuelta se moveria otra vez.
     let k = c.movidas_en_bucle.largo() - 1;
     let movidas = copiar(c.movidas_en_bucle[k]);
-    var quedan: lista<lista<usize>> = [];
+    var quedan: list<list<usize>> = [];
     var q = 0;
     while q < k {
         quedan.anadir(copiar(c.movidas_en_bucle[q]));
@@ -5148,7 +5148,7 @@ fn comprobar_mapa_valido(c: mut Comprobacion, m: &Mundo, linea: usize, t: view) 
 
 // Una sentencia suelta, sin nada detras: la rama de un `else if`.
 fn comprobar_sentencia(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nodo) {
-    let nada: mapa<str, usize> = [];
+    let nada: map<str, usize> = [];
     comprobar_sentencia_en(c, m, tipos, s, nada, s.id);
 }
 
@@ -5164,14 +5164,14 @@ fn comprobar_sentencias(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n
 }
 
 fn comprobar_sentencia_en(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nodo,
-    despues: &mapa<str, usize>, bloque: usize) {
+    despues: &map<str, usize>, bloque: usize) {
     let desde = c.escritas.largo();
     var clase = nuevo("otra");
     if s.clase == Clase.Si { clase = nuevo("si"); }
     if s.clase == Clase.Mientras || s.clase == Clase.Para {
         clase = nuevo("bucle");
     }
-    var propias: mapa<str, usize> = [];
+    var propias: map<str, usize> = [];
     mencionados_en(s, propias);
     let k = c.hondura;
     if k < c.cadena_clases.largo() {
@@ -5192,22 +5192,22 @@ fn comprobar_sentencia_en(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
 }
 
 // Los nombres de variable que aparecen en `n`, a cualquier hondura.
-fn mencionados_en(n: &P.Nodo, salida: mut mapa<str, usize>) {
+fn mencionados_en(n: &P.Nodo, salida: mut map<str, usize>) {
     if n.clase == Clase.Variable { poner(salida, vista(n.texto), 1); }
     for h en n.hijos { mencionados_en(h, salida); }
 }
 
 // Por cada sentencia del bloque, los nombres que mencionan las que la siguen.
-fn despues_de_cada(n: &P.Nodo) -> lista<mapa<str, usize>> {
-    var al_reves: lista<mapa<str, usize>> = [];
-    var vistos: mapa<str, usize> = [];
+fn despues_de_cada(n: &P.Nodo) -> list<map<str, usize>> {
+    var al_reves: list<map<str, usize>> = [];
+    var vistos: map<str, usize> = [];
     var k = n.hijos.largo();
     while k > 0 {
         k = k - 1;
         al_reves.anadir(copiar(vistos));
         mencionados_en(n.hijos[k], vistos);
     }
-    var salida: lista<mapa<str, usize>> = [];
+    var salida: list<map<str, usize>> = [];
     var j = al_reves.largo();
     while j > 0 {
         j = j - 1;
@@ -5256,8 +5256,8 @@ fn vive_despues(c: &Comprobacion, nombre: view) -> bool {
 // Los prestamos de `i` que siguen vivos aqui. Los de un `for` y las reservas
 // de `intercambiar` y `redimensionar` viven hasta que acaban; los de una
 // vista, hasta su ultimo uso.
-fn prestamos_vivos(c: &Comprobacion, i: usize) -> lista<str> {
-    var salida: lista<str> = [];
+fn prestamos_vivos(c: &Comprobacion, i: usize) -> list<str> {
+    var salida: list<str> = [];
     for p en c.simbolos[i].prestamos {
         if es_reserva(p) || empieza_con(p, "<") || vive_despues(c, p) {
             salida.anadir(copiar(p));
@@ -5394,7 +5394,7 @@ fn sentencia_asignacion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s
             let camino = ruta_de_campo(lugar);
             if camino.largo() > 0 {
                 let ruta = despues_de_tab(camino);
-                var quedan: lista<str> = [];
+                var quedan: list<str> = [];
                 for x en c.simbolos[i].sacados {
                     let r = antes_de_tab(x);
                     if !igual(r, ruta) && !empieza_con(r, $"{ruta}.") {
@@ -5523,7 +5523,7 @@ fn sentencia_para(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.N
     if hay_duenio { c.simbolos[d].prestamos.anadir(copiar(marca)); }
     abrir_ambito(c);
     c.en_bucle = c.en_bucle + 1;
-    let vacia: lista<usize> = [];
+    let vacia: list<usize> = [];
     c.movidas_en_bucle.anadir(vacia);
     c.en_condicional = c.en_condicional + 1;
     if elem.largo() > 0 {
@@ -5558,7 +5558,7 @@ fn sentencia_mientras(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: 
     let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
     c.en_condicion_bucle = c.en_condicion_bucle - 1;
     c.en_bucle = c.en_bucle + 1;
-    let vacia: lista<usize> = [];
+    let vacia: list<usize> = [];
     c.movidas_en_bucle.anadir(vacia);
     if T.conocido(t) && t.nombre != "bool" {
         error(c, m, s.linea, $"la condicion de `while` debe ser `bool`, es `{T.escribir_tipo(t)}`");
@@ -5641,11 +5641,11 @@ fn comprobar_vista_devuelta(c: mut Comprobacion, m: &Mundo, s: &P.Nodo) {
 // ------------------------------------------------------------------
 
 struct Programa {
-    arboles: lista<P.Nodo>,
-    modulos: lista<str>,
-    contextos: lista<I.Contexto>,
-    cierres: lista<P.Nodo>,
-    cierres_mod: lista<usize>,
+    arboles: list<P.Nodo>,
+    modulos: list<str>,
+    contextos: list<I.Contexto>,
+    cierres: list<P.Nodo>,
+    cierres_mod: list<usize>,
 }
 
 fn comprobar_funcion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, k: usize,
@@ -5819,7 +5819,7 @@ fn destino_de(m: &Mundo, s: &Simbolo) -> str {
     return nuevo("se libera sola al cerrar su bloque");
 }
 
-fn informe_de(m: &Mundo, f: &Funcion, historia: &lista<Simbolo>) -> str {
+fn informe_de(m: &Mundo, f: &Funcion, historia: &list<Simbolo>) -> str {
     let firma = firma_legible(f);
     var t = $"  {firma}\n";
     if f.falible && f.nombre == "main" {
@@ -5868,7 +5868,7 @@ fn informe_de(m: &Mundo, f: &Funcion, historia: &lista<Simbolo>) -> str {
         }
     }
     if duenias > 0 {
-        var trozos: lista<str> = [];
+        var trozos: list<str> = [];
         if solas > 0 {
             if solas > 1 { trozos.anadir($"{solas} se liberan solas"); }
             else { trozos.anadir($"{solas} se libera sola"); }
@@ -5896,7 +5896,7 @@ fn informe_de(m: &Mundo, f: &Funcion, historia: &lista<Simbolo>) -> str {
 }
 
 // El informe entero: los structs, y cada funcion comprobada en su orden.
-fn explicacion(m: &Mundo, informe: &lista<str>, archivo: view) -> str {
+fn explicacion(m: &Mundo, informe: &list<str>, archivo: view) -> str {
     var t = $"{archivo}\n\n";
     if m.orden_structs.largo() == 0 && informe.largo() == 0 {
         t.empujar("  (nada que explicar)");
@@ -6003,29 +6003,29 @@ fn campo_de(texto: view, nombre: mut str, tipo: mut str) {
 // Lo que sale de comprobar: los errores, y si no los hay, las clausuras que
 // nacieron y donde va cada una.
 struct Revision {
-    errores: lista<str>,
-    avisos: lista<str>,
+    errores: list<str>,
+    avisos: list<str>,
     // Lo que dice `--explicar`.
     explicacion: str,
-    cierres: lista<P.Nodo>,
-    cierres_mod: lista<usize>,
-    numeracion: mapa<str, usize>,
+    cierres: list<P.Nodo>,
+    cierres_mod: list<usize>,
+    numeracion: map<str, usize>,
     // Los campos sacados de su struct: `archivo\tlinea\tp.a.b`.
-    sacados: lista<str>,
+    sacados: list<str>,
     // El tipo de cada expresion, por modulo, para el generador.
-    anotados: lista<mapa<str, T.Tipo>>,
+    anotados: list<map<str, T.Tipo>>,
     // Las copias y las clausuras, en el orden en que se escriben.
-    orden_copias: lista<str>,
+    orden_copias: list<str>,
     // Las copias de structs genericos, en el orden en que nacen: tambien
     // las que se deducen de un literal, que no estan escritas en ningun sitio.
-    structs_aplicados: lista<str>,
+    structs_aplicados: list<str>,
     // Todos los structs con su nombre de C —declarados, copias y los de las
     // clausuras— en el orden en que nacen, que es el orden en que se escriben.
-    orden_structs: lista<str>,
+    orden_structs: list<str>,
 }
 
-fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
-    contextos: &lista<I.Contexto>) -> Revision {
+fn comprobar_programa(arboles: &list<P.Nodo>, modulos: &list<str>,
+    contextos: &list<I.Contexto>) -> Revision {
     var m = Mundo { funciones: [], indice: [], st_tipos: [], st_nombres: [],
         st_params: [], en_variantes: [], en_formas: [], bonitos: [],
         cierres: [], cierres_mod: [], n_cierres: 0, cierres_mut: [], numeracion: [],
@@ -6033,7 +6033,7 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         contextos: copiar(contextos), copias: [], orden_structs: [], tipo_de_struct: [],
         anotados: [], orden_copias: [] };
     for _a en arboles {
-        let vacio_m: mapa<str, T.Tipo> = [];
+        let vacio_m: map<str, T.Tipo> = [];
         m.anotados.anadir(vacio_m);
     }
     var c = estado("", 0);
@@ -6056,7 +6056,7 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
     comprobar_cada_funcion(c, m, arboles, contextos);
     comprobar_restricciones(c, m);
     let principal = vista(modulos[modulos.largo() - 1]);
-    var aplicados: lista<str> = [];
+    var aplicados: list<str> = [];
     for t en m.tipo_de_struct {
         if contiene(t, "<") { aplicados.anadir(copiar(t)); }
     }
@@ -6068,8 +6068,8 @@ fn comprobar_programa(arboles: &lista<P.Nodo>, modulos: &lista<str>,
         orden_copias: copiar(m.orden_copias), structs_aplicados: aplicados,
         orden_structs: copiar(m.orden_structs) };
 }
-fn registrar_funciones(m: mut Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>,
-    contextos: &lista<I.Contexto>) {
+fn registrar_funciones(m: mut Mundo, arboles: &list<P.Nodo>, modulos: &list<str>,
+    contextos: &list<I.Contexto>) {
     // Primero se registra todo lo que hay.
     var k = 0;
     while k < arboles.largo() {
@@ -6105,9 +6105,9 @@ fn registrar_funciones(m: mut Mundo, arboles: &lista<P.Nodo>, modulos: &lista<st
     }
 }
 
-fn registrar_enums(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>) {
+fn registrar_enums(c: mut Comprobacion, m: mut Mundo, arboles: &list<P.Nodo>, modulos: &list<str>) {
     // Los enums, antes que los structs: un struct puede llevar uno.
-    var en_donde: mapa<str, str> = [];
+    var en_donde: map<str, str> = [];
     var k = 0;
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
@@ -6119,11 +6119,11 @@ fn registrar_enums(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, m
                 error(c, m, d.linea, $"`{nombre}` ya esta definido en {donde}");
             }
             poner(en_donde, nombre, $"{modulos[k]}:{d.linea}");
-            var formas: lista<str> = [];
+            var formas: list<str> = [];
             for v en d.hijos {
                 if v.clase != Clase.Variante { continue; }
                 formas.anadir(copiar(v.texto));
-                var lleva: lista<str> = [];
+                var lleva: list<str> = [];
                 for x en v.hijos {
                     if x.clase == Clase.Lleva { lleva.anadir(T.sin_alias_tipo(x.texto)); }
                 }
@@ -6135,9 +6135,9 @@ fn registrar_enums(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, m
     }
 }
 
-fn registrar_structs(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>) {
+fn registrar_structs(c: mut Comprobacion, m: mut Mundo, arboles: &list<P.Nodo>, modulos: &list<str>) {
     // Los structs.
-    var st_donde: mapa<str, str> = [];
+    var st_donde: map<str, str> = [];
     var k = 0;
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
@@ -6149,9 +6149,9 @@ fn registrar_structs(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>,
                 error(c, m, d.linea, $"el struct `{nombre}` ya esta definido en {donde}");
             }
             poner(st_donde, nombre, $"{modulos[k]}:{d.linea}");
-            var ns: lista<str> = [];
-            var ts: lista<str> = [];
-            var ps: lista<str> = [];
+            var ns: list<str> = [];
+            var ts: list<str> = [];
+            var ps: list<str> = [];
             for h en d.hijos {
                 if h.clase == Clase.TipoParam { ps.anadir(copiar(h.texto)); }
                 if h.clase == Clase.CampoDef {
@@ -6174,7 +6174,7 @@ fn registrar_structs(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>,
     }
 }
 
-fn validar_tipos_de_campos(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>) {
+fn validar_tipos_de_campos(c: mut Comprobacion, m: mut Mundo, arboles: &list<P.Nodo>, modulos: &list<str>) {
     var k = 0;
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
@@ -6197,7 +6197,7 @@ fn validar_tipos_de_campos(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.
     }
 }
 
-fn validar_campos(c: mut Comprobacion, m: &Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>) {
+fn validar_campos(c: mut Comprobacion, m: &Mundo, arboles: &list<P.Nodo>, modulos: &list<str>) {
     var k = 0;
     while k < arboles.largo() {
         c.archivo = copiar(modulos[k]);
@@ -6209,8 +6209,8 @@ fn validar_campos(c: mut Comprobacion, m: &Mundo, arboles: &lista<P.Nodo>, modul
             }
             if generico { continue; }
             let nombre = vista(d.texto);
-            var vistos_c: lista<str> = [];
-            var tipos_c: lista<str> = [];
+            var vistos_c: list<str> = [];
+            var tipos_c: list<str> = [];
             for h en d.hijos {
                 if h.clase != Clase.CampoDef { continue; }
                 var cn = vacio();
@@ -6235,7 +6235,7 @@ fn validar_campos(c: mut Comprobacion, m: &Mundo, arboles: &lista<P.Nodo>, modul
             }
             var ciclo = false;
             for t en tipos_c {
-                var vistos: lista<str> = [];
+                var vistos: list<str> = [];
                 if se_contiene(m, t, nombre, vistos) { ciclo = true; }
             }
             if ciclo {
@@ -6246,7 +6246,7 @@ fn validar_campos(c: mut Comprobacion, m: &Mundo, arboles: &lista<P.Nodo>, modul
     }
 }
 
-fn validar_formas(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, modulos: &lista<str>) {
+fn validar_formas(c: mut Comprobacion, m: mut Mundo, arboles: &list<P.Nodo>, modulos: &list<str>) {
     // Lo que lleva cada forma. Va despues de los structs: una forma puede
     // llevar uno, y antes no existia.
     var k = 0;
@@ -6266,7 +6266,7 @@ fn validar_formas(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, mo
                     } else if t == "view" || T.es_referencia(t) {
                         error_enum_prestado(c, m, d.linea, nombre, v.texto, t);
                     }
-                    var vistos: lista<str> = [];
+                    var vistos: list<str> = [];
                     if se_contiene(m, t, nombre, vistos) {
                         error(c, m, d.linea, $"`{nombre}.{v.texto}` contiene un `{nombre}`: el tamaño no seria finito. Metelo en una `lista`, que guarda un puntero");
                     }
@@ -6281,7 +6281,7 @@ fn validar_formas(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>, mo
     }
 }
 
-fn validar_tipos_de_funciones(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>) {
+fn validar_tipos_de_funciones(c: mut Comprobacion, m: mut Mundo, arboles: &list<P.Nodo>) {
     // Los tipos escritos en cada funcion que no es generica.
     var e = 0;
     while e < m.funciones.largo() {
@@ -6316,7 +6316,7 @@ fn comprobar_borde_c(c: mut Comprobacion, m: &Mundo) {
 
 fn comprobar_nombres(c: mut Comprobacion, m: &Mundo) {
     // Nombres: ni de una interna, ni repetidos.
-    var vistas: mapa<str, str> = [];
+    var vistas: map<str, str> = [];
     var e = 0;
     while e < m.funciones.largo() {
         if !m.funciones[e].de_cierre {
@@ -6337,8 +6337,8 @@ fn comprobar_nombres(c: mut Comprobacion, m: &Mundo) {
     }
 }
 
-fn comprobar_cada_funcion(c: mut Comprobacion, m: mut Mundo, arboles: &lista<P.Nodo>,
-    contextos: &lista<I.Contexto>) {
+fn comprobar_cada_funcion(c: mut Comprobacion, m: mut Mundo, arboles: &list<P.Nodo>,
+    contextos: &list<I.Contexto>) {
     // Y cada funcion, en orden. Las genericas se comprueban en sus copias,
     // que esta capa todavia no mira; las de C no tienen cuerpo.
     var e = 0;

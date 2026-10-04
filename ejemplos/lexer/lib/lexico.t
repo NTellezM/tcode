@@ -2,8 +2,8 @@
 //
 // Lo usan `lexer.t`, que imprime los tokens, y `parser.t`, que los analiza.
 
-usar "std/caracter";
-usar "xid.t";
+use "std/caracter";
+use "xid.t";
 
 struct Token {
     tipo: str, // palabra, ident, entero, cadena, interpolada, simbolo
@@ -42,6 +42,22 @@ fn canonica(t: view) -> view {
     if t == "protocol" { return "protocolo"; }
     if t == "implements" { return "implementa"; }
     if t == "anchor" { return "ancla"; }
+    return t;
+}
+
+// Y al reves: la forma nueva de una palabra de siempre. Solo la usa el
+// formateador cuando se le pide renombrar (`--formatear --renombrar`), que es
+// el barrido de la fase B y que desaparece con ella.
+fn nueva(t: view) -> view {
+    if t == "lista" { return "list"; }
+    if t == "mapa" { return "map"; }
+    if t == "usar" { return "use"; }
+    if t == "falla" { return "fail"; }
+    if t == "soltar" { return "drop"; }
+    if t == "extiende" { return "extends"; }
+    if t == "protocolo" { return "protocol"; }
+    if t == "implementa" { return "implements"; }
+    if t == "ancla" { return "anchor"; }
     return t;
 }
 
@@ -112,7 +128,7 @@ fn es_simbolo(b: usize) -> bool {
 // El analisis. Se recorre el texto una vez, sin retroceder.
 // ------------------------------------------------------------------
 
-fn agregar(salida: mut lista<Token>, tipo: view, valor: view, linea: usize) {
+fn agregar(salida: mut list<Token>, tipo: view, valor: view, linea: usize) {
     anadir(salida, Token {
             tipo: nuevo(tipo),
             valor: nuevo(valor),
@@ -149,7 +165,7 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
             } else {
                 error = $"{archivo}:{linea}: cadena sin cerrar";
             }
-            falla "cadena sin cerrar";
+            fail "cadena sin cerrar";
         }
         let b = byte(fuente, i);
         // `{{` y `}}` son una llave escrita, pero solo fuera de un hueco:
@@ -187,7 +203,7 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
         if b == 92 {
             if i + 1 >= fuente.largo() {
                 error = $"{archivo}:{linea}: escape sin cerrar";
-                falla "escape sin cerrar";
+                fail "escape sin cerrar";
             }
             let esc = byte(fuente, i + 1);
             if esc == 120 {
@@ -196,7 +212,7 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
                 if bien { bien = es_hex(byte(fuente, i + 2)) && es_hex(byte(fuente, i + 3)); }
                 if !bien {
                     error = $"{archivo}:{linea}: `\\x` lleva dos digitos hexadecimales detras, como `\\x0a`";
-                    falla "escape mal formado";
+                    fail "escape mal formado";
                 }
                 i = i + 4;
                 continue;
@@ -205,7 +221,7 @@ fn fin_de_cadena_en(fuente: view, desde: usize, interpolada: bool, en_hueco: boo
             || (interpolada && (esc == 123 || esc == 125));
             if !conocido {
                 error = $"{archivo}:{linea}: escape desconocido \\{rebanar(fuente, i + 1, i + 2)}";
-                falla "escape desconocido";
+                fail "escape desconocido";
             }
             i = i + 2;
             continue;
@@ -297,21 +313,21 @@ fn repr_caracter(c: view) -> str {
     return $"'{c}'";
 }
 
-fn analizar(fuente: view) -> lista<Token> ! {
+fn analizar(fuente: view) -> list<Token> ! {
     var error = vacio();
     return try tokens_de(fuente, "<entrada>", error);
 }
 
 // Los tokens de un archivo. Si no se puede, `error` dice por que y donde,
 // con las mismas palabras que el lexer de Python.
-fn tokens_de(fuente: view, archivo: view, error: mut str) -> lista<Token> ! {
+fn tokens_de(fuente: view, archivo: view, error: mut str) -> list<Token> ! {
     return try tokens_de_todo(fuente, archivo, false, 1, error);
 }
 
 // Lo mismo para un texto que empieza en la linea `linea`: el hueco de una
 // cadena interpolada se lee aparte, y sus errores tienen que decir donde
 // esta la cadena.
-fn tokens_desde(fuente: view, archivo: view, linea: usize, error: mut str) -> lista<Token> ! {
+fn tokens_desde(fuente: view, archivo: view, linea: usize, error: mut str) -> list<Token> ! {
     return try tokens_de_todo(fuente, archivo, false, linea, error);
 }
 
@@ -472,7 +488,7 @@ fn lineas_hasta(fuente: view, hasta: usize) -> usize {
 }
 
 fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: usize,
-    error: mut str) -> lista<Token> ! {
+    error: mut str) -> list<Token> ! {
     // Los controles bidireccionales hacen que el codigo se vea distinto de
     // como se compila ("Trojan Source"): no valen en ningun sitio, tampoco
     // en una cadena o un comentario.
@@ -482,16 +498,16 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
     if roto < fuente.largo() {
         let donde = desde_linea + lineas_hasta(fuente, roto);
         error = $"{archivo}:{donde}: el archivo no es UTF-8 valido";
-        falla "no es UTF-8";
+        fail "no es UTF-8";
     }
     let bidi = control_bidireccional(fuente);
     if bidi < fuente.largo() {
         let donde = desde_linea + lineas_hasta(fuente, bidi);
         let cual = nombre_bidireccional(fuente, bidi);
         error = $"{archivo}:{donde}: control bidireccional {cual}: hace que el codigo se vea distinto de como se compila";
-        falla "control bidireccional";
+        fail "control bidireccional";
     }
-    var salida: lista<Token> = [];
+    var salida: list<Token> = [];
     var i = 0;
     var linea = desde_linea;
 
@@ -535,7 +551,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
                 }
                 if !cerrado {
                     error = $"{archivo}:{linea}: comentario /* sin cerrar";
-                    falla "comentario /* sin cerrar";
+                    fail "comentario /* sin cerrar";
                 }
                 if comentarios {
                     agregar(salida, "comentario", rebanar(fuente, i, j + 2), linea);
@@ -580,7 +596,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
                 }
                 if digitos.largo() - desde > 16 {
                     error = $"{archivo}:{linea}: el hexadecimal no cabe en u64";
-                    falla "numero mal formado";
+                    fail "numero mal formado";
                 }
                 agregar(salida, "entero", hex_decimal(digitos), linea);
             }
@@ -635,7 +651,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
                 || byte(fuente, j) == 46 && !rango) {
                 let visto = repr_texto(rebanar(fuente, i, j + largo_utf8(byte(fuente, j))));
                 error = $"{archivo}:{linea}: numero mal formado cerca de {visto}";
-                falla "numero mal formado";
+                fail "numero mal formado";
             }
             // `1_000` es `1000`: el guion bajo solo ayuda a leerlo. Para el
             // formato, con `comentarios`, el numero se queda como se escribio.
@@ -695,7 +711,7 @@ fn tokens_de_todo(fuente: view, archivo: view, comentarios: bool, desde_linea: u
             visto = $"U+{hexadecimal(punto_utf8(fuente, i))}";
         }
         error = $"{archivo}:{linea}: caracter inesperado {visto}";
-        falla "caracter inesperado";
+        fail "caracter inesperado";
     }
 
     agregar(salida, "fin", "", linea);

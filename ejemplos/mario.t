@@ -1,4 +1,4 @@
-usar "std/texto";
+use "std/texto";
 
 fn fila(spaces: usize, bricks: usize) {
     for _i en 0..spaces { imprimir(" "); }

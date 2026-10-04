@@ -6,14 +6,14 @@
 //
 //     ./firmas std/texto.t
 
-usar "lib/generar.t" como G;
-usar "lib/programa.t" como F;
-usar "lib/tipar.t" como I;
-usar "../lexer/lib/lexico.t";
-usar "../lexer/lib/sintaxis.t" como P;
-usar "std/texto";
-usar "std/lista";
-usar "../lexer/lib/clase.t";
+use "lib/generar.t" como G;
+use "lib/programa.t" como F;
+use "lib/tipar.t" como I;
+use "../lexer/lib/lexico.t";
+use "../lexer/lib/sintaxis.t" como P;
+use "std/texto";
+use "std/lista";
+use "../lexer/lib/clase.t";
 
 fn tras_dos_puntos(texto: view) -> str {
     var i = 0;
@@ -80,8 +80,8 @@ fn main() -> usize ! {
 
     for d en arbol.hijos {
         if d.clase == Clase.Fn && !es_generica(d) {
-            var tipos: lista<str> = [];
-            var marcas: lista<str> = [];
+            var tipos: list<str> = [];
+            var marcas: list<str> = [];
             var retorno = vacio();
             var falible = false;
             for h en d.hijos {

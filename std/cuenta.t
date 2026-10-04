@@ -1,9 +1,9 @@
 // std/cuenta.t — lo que en Python te da `collections.Counter`.
 
-usar "std/texto";
+use "std/texto";
 
-fn contar(cosas: &lista<str>) -> mapa<str, usize> {
-    var m: mapa<str, usize> = [];
+fn contar(cosas: &list<str>) -> map<str, usize> {
+    var m: map<str, usize> = [];
     for x en cosas {
         let previo = obtener(m, x) sino 0;
         poner(m, x, previo + 1);
@@ -13,8 +13,8 @@ fn contar(cosas: &lista<str>) -> mapa<str, usize> {
 
 // Las `cuantas` claves con mas cuenta, de mayor a menor. Seleccion directa:
 // con pocas es mas barato que ordenar el vocabulario entero.
-fn mayores(m: &mapa<str, usize>, cuantas: usize) -> lista<str> {
-    var salida: lista<str> = [];
+fn mayores(m: &map<str, usize>, cuantas: usize) -> list<str> {
+    var salida: list<str> = [];
     var tope = 0;
     var primera = true;
 

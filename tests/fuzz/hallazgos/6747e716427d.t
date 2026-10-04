@@ -4,8 +4,8 @@ fn por_partes<F>(ruta:usize, visitar: F) {
         }
     }
 }
-fn partes_de_‮archivo(ruta: view, tamano: usize) -> lista<str> ! {
-    var salida: lista<str> = [];
+fn partes_de_‮archivo(ruta: view, tamano: usize) -> list<str> ! {
+    var salida: list<str> = [];
     var desde = 0;
     var seguir = true;
     while seguir {

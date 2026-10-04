@@ -4,7 +4,7 @@
 // Ahora vienen de `std/texto`, y lo que queda es lo que este archivo de
 // verdad ensena: vistas que no reservan memoria, y prestamos mutables.
 
-usar "std/texto";
+use "std/texto";
 
 // Estas dos devuelven una vista atada a su parametro: no reservan un solo
 // byte. El compilador comprueba que el texto al que apuntan sobrevive a la
@@ -34,7 +34,7 @@ fn marco(titulo: view) -> str {
 fn main() -> usize ! {
     imprimir(marco("safestr"));
 
-    var partes: lista<str> = [];
+    var partes: list<str> = [];
     anadir(partes, nuevo("hola"));
     anadir(partes, nuevo("mundo"));
     let saludo = unir(partes, ", ");

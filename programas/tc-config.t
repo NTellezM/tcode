@@ -6,9 +6,9 @@
 // Junta las bibliotecas: `cli` para los argumentos, `toml` para leer, `json`
 // para escribir. Sale con 2 si faltan argumentos, y con 1 si la clave no esta.
 
-usar "std/cli" como cli;
-usar "std/toml" como toml;
-usar "std/json" como json;
+use "std/cli" como cli;
+use "std/toml" como toml;
+use "std/json" como json;
 
 fn a_json(v: &toml.ValorToml) -> json.Valor {
     match v {
@@ -18,7 +18,7 @@ fn a_json(v: &toml.ValorToml) -> json.Valor {
         toml.ValorToml.Cierto -> { return json.Valor.Cierto; }
         toml.ValorToml.Falso -> { return json.Valor.Falso; }
         toml.ValorToml.Lista(xs) -> {
-            var salida: lista<json.Valor> = [];
+            var salida: list<json.Valor> = [];
             for x en xs { anadir(salida, a_json(x)); }
             return json.Valor.Lista(salida);
         }
@@ -26,8 +26,8 @@ fn a_json(v: &toml.ValorToml) -> json.Valor {
     return json.Valor.Nada;
 }
 
-fn a_objeto(t: &mapa<str, toml.ValorToml>) -> json.Valor {
-    var m: mapa<str, json.Valor> = [];
+fn a_objeto(t: &map<str, toml.ValorToml>) -> json.Valor {
+    var m: map<str, json.Valor> = [];
     for k, v en t {
         poner(m, nuevo(k), a_json(v));
     }

@@ -209,14 +209,14 @@ palabras reservadas y símbolos de uno y dos caracteres.
 <!--c:bloque:lexer-->
 ```
 $ ./ejemplos/lexer/lexer ejemplos/lexer/lib/lexico.t --contar
-ejemplos/lexer/lib/lexico.t: 4923 tokens
-  cadena  115
+ejemplos/lexer/lib/lexico.t: 5018 tokens
+  cadena  133
   entero  376
   fin  1
-  ident  1281
+  ident  1293
   interpolada  16
-  palabra  599
-  simbolo  2535
+  palabra  621
+  simbolo  2578
 ```
 
 Es el primer programa grande del lenguaje y su primera prueba de fuego: usa
@@ -257,7 +257,7 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.902<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.931<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa).
 
 Y hace el último paso él solo: llama al compilador de C, enlaza lo que

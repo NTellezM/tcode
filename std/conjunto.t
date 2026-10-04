@@ -4,15 +4,15 @@
 // porque la intencion se lee: `tiene(vistos, x)` dice si ya paso, y
 // `poner(vistos, x, 1)` no dice nada del `1`.
 
-usar "std/lista";
+use "std/lista";
 
-struct Conjunto { dentro: mapa<str, usize> }
+struct Conjunto { dentro: map<str, usize> }
 
 fn conjunto() -> Conjunto {
     return Conjunto { dentro: [] };
 }
 
-fn de_lista(xs: &lista<str>) -> Conjunto {
+fn de_lista(xs: &list<str>) -> Conjunto {
     var c = conjunto();
     for x en xs { agregar_uno(c, vista(x)); }
     return c;
@@ -35,7 +35,7 @@ fn cuantos_hay(c: &Conjunto) -> usize {
 }
 
 // En orden, para que la salida sea estable.
-fn elementos(c: &Conjunto) -> lista<str> {
+fn elementos(c: &Conjunto) -> list<str> {
     var ks = claves(c.dentro);
     ordenar(ks);
     return ks;

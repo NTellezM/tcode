@@ -5,9 +5,9 @@
 //
 //     ./parser std/lista.t --callado
 
-usar "lib/lexico.t";
-usar "lib/sintaxis.t";
-usar "std/texto";
+use "lib/lexico.t";
+use "lib/sintaxis.t";
+use "std/texto";
 
 fn main() -> usize ! {
     if n_argumentos() < 2 {

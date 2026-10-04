@@ -7,13 +7,13 @@
 // La suite compara lo que sale de aqui con lo que emite el generador de
 // Python, cadena por cadena, para cada funcion del repositorio.
 
-usar "tipos.t" como T;
-usar "tipar.t" como I;
-usar "../../lexer/lib/sintaxis.t" como P;
-usar "../../lexer/lib/lexico.t" como L;
-usar "std/texto";
-usar "std/lista";
-usar "../../lexer/lib/clase.t";
+use "tipos.t" como T;
+use "tipar.t" como I;
+use "../../lexer/lib/sintaxis.t" como P;
+use "../../lexer/lib/lexico.t" como L;
+use "std/texto";
+use "std/lista";
+use "../../lexer/lib/clase.t";
 
 // El nombre C de un tipo compuesto: `[usize; 3]` es `arr_usize_3`.
 // Tiene que dar exactamente lo mismo que el generador de Python, porque de
@@ -172,8 +172,8 @@ fn tipo_resultado(t: view) -> str {
 // nada, y los mensajes lo quitan. Es la regla de `tcode/nombres_c.py`, con
 // la misma lista: lo que declaran las cabeceras incluidas en C17 estricto,
 // las palabras de C, lo del runtime y los nombres reservados de C.
-fn nombres_de_c() -> mapa<str, usize> {
-    var m: mapa<str, usize> = [];
+fn nombres_de_c() -> map<str, usize> {
+    var m: map<str, usize> = [];
     apuntar_nombres_c(m, "BUFSIZ CLOCKS_PER_SEC DBL_DECIMAL_DIG DBL_DIG DBL_EPSILON DBL_HAS_SUBNORM");
     apuntar_nombres_c(m, "DBL_MANT_DIG DBL_MAX DBL_MAX_10_EXP DBL_MAX_EXP DBL_MIN DBL_MIN_10_EXP");
     apuntar_nombres_c(m, "DBL_MIN_EXP DBL_TRUE_MIN DECIMAL_DIG EOF EXIT_FAILURE EXIT_SUCCESS FILE");
@@ -237,11 +237,11 @@ fn nombres_de_c() -> mapa<str, usize> {
     return m;
 }
 
-fn apuntar_nombres_c(m: mut mapa<str, usize>, cuales: view) {
+fn apuntar_nombres_c(m: mut map<str, usize>, cuales: view) {
     for n en palabras(cuales) { poner(m, vista(n), 1); }
 }
 
-fn choca_con_c(n: view, de_c: &mapa<str, usize>) -> bool {
+fn choca_con_c(n: view, de_c: &map<str, usize>) -> bool {
     if tiene(de_c, n) { return true; }
     // Reservados de C: `_Bool`, `__func__`, y todo lo que empiece asi.
     if n.largo() > 1 && byte(n, 0) == 95
@@ -293,7 +293,7 @@ fn legible_c(t: view) -> str {
     return r;
 }
 
-fn nombre_para_c(n: view, de_c: &mapa<str, usize>, intocables: &lista<str>) -> str {
+fn nombre_para_c(n: view, de_c: &map<str, usize>, intocables: &list<str>) -> str {
     if !choca_con_c(n, de_c) { return nuevo(n); }
     for x en intocables {
         if igual(x, n) { return nuevo(n); }
@@ -304,7 +304,7 @@ fn nombre_para_c(n: view, de_c: &mapa<str, usize>, intocables: &lista<str>) -> s
 // Cada nombre de un texto del arbol, cambiado si choca. Uno seguido de `.`
 // es el alias de un modulo, que no llega a C; con `solo_el_primero`, lo que
 // hay detras del punto es la forma de un enum, que tampoco.
-fn texto_para_c(t: view, de_c: &mapa<str, usize>, intocables: &lista<str>,
+fn texto_para_c(t: view, de_c: &map<str, usize>, intocables: &list<str>,
     solo_el_primero: bool) -> str {
     var r = vacio();
     var i = 0;
@@ -332,7 +332,7 @@ fn texto_para_c(t: view, de_c: &mapa<str, usize>, intocables: &lista<str>,
 }
 
 // Los nombres de las funciones de un `externo`: son los de C, y no se tocan.
-fn externas_de(arbol: &P.Nodo, salida: mut lista<str>) {
+fn externas_de(arbol: &P.Nodo, salida: mut list<str>) {
     for d en arbol.hijos {
         if d.clase != Clase.Externo { continue; }
         for f en d.hijos { salida.anadir(copiar(f.texto)); }
@@ -341,7 +341,7 @@ fn externas_de(arbol: &P.Nodo, salida: mut lista<str>) {
 
 // Todo el arbol con los nombres que chocan con C cambiados. Los literales,
 // las rutas, los operadores y las formas de un enum no son nombres de C.
-fn renombrar_para_c(n: mut P.Nodo, de_c: &mapa<str, usize>, intocables: &lista<str>) {
+fn renombrar_para_c(n: mut P.Nodo, de_c: &map<str, usize>, intocables: &list<str>) {
     let cl = n.clase;
     let fijo = cl == Clase.Cadena || cl == Clase.Interpolada || cl == Clase.Entero
     || cl == Clase.Decimal || cl == Clase.Booleano || cl == Clase.Falla
@@ -360,7 +360,7 @@ fn renombrar_para_c(n: mut P.Nodo, de_c: &mapa<str, usize>, intocables: &lista<s
 
 // La firma en C de una funcion. `main` es el unico nombre que cambia: el de
 // verdad lo pone el generador para poder recoger los argumentos.
-fn prototipo(nombre: view, params: &lista<str>, marcas: &lista<str>,
+fn prototipo(nombre: view, params: &list<str>, marcas: &list<str>,
     retorno: view, falible: bool) -> str {
     if nombre == "main" && !falible {
         return nuevo("int main(int argc, char** argv)");
@@ -449,17 +449,17 @@ fn nombre_de_param(marcado: view) -> str {
 struct Sitio {
     archivo: str,
     // nombre -> tipo, para elegir el ancho de la aritmetica comprobada
-    tipos: mapa<str, str>,
+    tipos: map<str, str>,
     // nombres que en C son punteros: parametros prestados
-    punteros: mapa<str, usize>,
+    punteros: map<str, usize>,
     // nombres que se entregan por algun camino: su liberacion la decide una
     // bandera `ss_vivo_X` en vez de hacerse siempre
-    pide_bandera: mapa<str, usize>,
+    pide_bandera: map<str, usize>,
     // lo que devuelve la funcion que se esta generando: `try` sale por ahi
     retorno: str,
     // los campos que el comprobador vio sacar de su struct:
     // `archivo\tlinea\tp.a.b`
-    sacados: mapa<str, usize>,
+    sacados: map<str, usize>,
 }
 
 // Que nombres son un puntero en el C generado: los parametros prestados, y
@@ -751,7 +751,7 @@ fn enum_lit_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     if lleva.largo() != n.hijos.largo() { return no_se(); }
     let etq = etiqueta(en_t, cual);
     var r = $"({en_t}){{ .etiqueta = {etq}";
-    var previos: lista<str> = [];
+    var previos: list<str> = [];
     abrir_marco(b);
     var i = 0;
     for h en n.hijos {
@@ -839,7 +839,7 @@ fn literal_lista_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         if t.forma != T.Forma.Arreglo { return no_se(); }
         let elem = T.elemento(T.escribir_tipo(t));
         var piezas = vacio();
-        var previos: lista<str> = [];
+        var previos: list<str> = [];
         abrir_marco(b);
         for x en n.hijos {
             let valor = expresion_c(b, s, x, elem, tipos);
@@ -1128,7 +1128,7 @@ fn literal_struct_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
     // En C no queda el alias del modulo: `P.Nodo` es `Nodo`.
     r.empujar(tipo_c(escrito));
     r.empujar("){ ");
-    var previos: lista<str> = [];
+    var previos: list<str> = [];
     abrir_marco(b);
     for h en n.hijos {
         if h.clase != Clase.Campo || h.hijos.largo() != 1 {
@@ -1491,15 +1491,15 @@ fn junta(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, op: view,
         // que se presta, por ejemplo—, y delante de la sentencia se harian
         // siempre. Van dentro de un `if`, y lo que dejaron se suelta ahi
         // mismo: el resultado ya es un `bool`.
-        var nuevas: lista<str> = [];
+        var nuevas: list<str> = [];
         k = marca;
         while k < b.lineas.largo() {
             nuevas.anadir(copiar(b.lineas[k]));
             k = k + 1;
         }
         recortar_lineas(b, marca);
-        var suyos: lista<str> = [];
-        var quedan: lista<str> = [];
+        var suyos: list<str> = [];
+        var quedan: list<str> = [];
         k = 0;
         while k < b.temporales.largo() {
             if k < base { quedan.anadir(copiar(b.temporales[k])); }
@@ -1838,7 +1838,7 @@ fn interna_pura_mapa(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     }
     let clave = como_vista(b, s, n.hijos[1], tipos);
     if es_desconocido(clave) { return no_se(); }
-    var previos: lista<str> = [];
+    var previos: list<str> = [];
     var llamada = nuevo("ss_mapa_");
     llamada.empujar(nombre);
     llamada.empujar("_");
@@ -2087,7 +2087,7 @@ fn interna_pura_rebanar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         return no_se();
     }
     var r = nuevo("ss_lang_rebanar_(");
-    var previos: lista<str> = [];
+    var previos: list<str> = [];
     agregar_argumento_ordenado(b, r, previos, vista(v), "view",
         false, false, true);
     r.empujar(", ");
@@ -2271,7 +2271,7 @@ fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -
     if firmados.largo() != n.hijos.largo() { return no_se(); }
     var v = I.sin_modulo(nombre);
     v.empujar("(");
-    var previos: lista<str> = [];
+    var previos: list<str> = [];
     let secuenciar = n.hijos.largo() > 1;
     abrir_marco(b);
     var i = 0;
@@ -2330,7 +2330,7 @@ fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -
 }
 
 fn agregar_argumento_ordenado(b: mut Cuerpo, llamada: mut str,
-    previos: mut lista<str>, arg: view, tipo: view, presta: bool,
+    previos: mut list<str>, arg: view, tipo: view, presta: bool,
     mutable: bool, secuenciar: bool) {
     if !secuenciar {
         llamada.empujar(arg);
@@ -2373,7 +2373,7 @@ fn agregar_argumento_marcado(b: mut Cuerpo, nodo: &P.Nodo, arg: view, tipo: view
 // Los argumentos de un marco ya cerrado, en orden: cada uno en su temporal si
 // la llamada los guarda, o tal cual. `antes` va delante de cada uno menos el
 // primero.
-fn escribir_argumentos(marco: &Marco, llamada: mut str, previos: mut lista<str>,
+fn escribir_argumentos(marco: &Marco, llamada: mut str, previos: mut list<str>,
     antes: view) {
     var primero = true;
     for p en marco.entradas {
@@ -2388,7 +2388,7 @@ fn escribir_argumentos(marco: &Marco, llamada: mut str, previos: mut lista<str>,
     }
 }
 
-fn envolver_llamada_ordenada(llamada: str, previos: &lista<str>) -> str {
+fn envolver_llamada_ordenada(llamada: str, previos: &list<str>) -> str {
     if previos.largo() == 0 { return llamada; }
     var orden = nuevo("((");
     var primero = true;
@@ -2460,8 +2460,8 @@ fn llamada_a_valor(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
     if es_puntero(s, tipos, n.texto) { return no_se(); }
     let partes = T.partes_de_funcion(t);
     if partes.largo() == 0 { return no_se(); }
-    var firmados: lista<str> = [];
-    var marcados: lista<str> = [];
+    var firmados: list<str> = [];
+    var marcados: list<str> = [];
     var i = 0;
     while i + 1 < partes.largo() {
         let p = vista(partes[i]);
@@ -2480,11 +2480,11 @@ fn llamada_a_valor(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
 // llama en C, `firmados` el tipo de cada parametro y `marcados` su marca de
 // prestamo. `pedido`, si no esta vacio, es la copia de generica que hace falta.
 fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
-    en_c: view, firmados: &lista<str>, marcados: &lista<str>,
+    en_c: view, firmados: &list<str>, marcados: &list<str>,
     pedido: view) -> str {
     var v = nuevo(en_c);
     v.empujar("(");
-    var previos: lista<str> = [];
+    var previos: list<str> = [];
     let secuenciar = n.hijos.largo() > 1;
     // Cada argumento queda pendiente mientras se calculan los de despues: si
     // uno de ellos deja sentencias, los de antes corren antes.
@@ -2667,7 +2667,7 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     var pedido = vacio();
     if tiene(tipos.tipo_params, nombre) {
         let sueltos = I.lista_de(tipos.tipo_params, nombre) sino [];
-        var ligaduras: mapa<str, str> = [];
+        var ligaduras: map<str, str> = [];
         var k = 0;
         while k < firmados.largo() && k < n.hijos.largo() {
             let dado = I.tipo_de(tipos, n.hijos[k]);
@@ -2699,7 +2699,7 @@ fn llamada_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
             pedido.empujar("=");
             pedido.empujar(sin_alias);
         }
-        var puestos: lista<str> = [];
+        var puestos: list<str> = [];
         for f en firmados { puestos.anadir(T.escribir_tipo(T.sustituir_tipo(f, ligaduras))); }
         firmados = T.leer_tipos(puestos);
     }
@@ -2715,7 +2715,7 @@ fn entrega_variable(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
 
 // Lo mismo sin el `Sitio`: la pasada que decide las banderas corre antes de
 // que el `Sitio` exista, porque el `Sitio` las lleva dentro.
-fn entrega_suelta(punteros: &mapa<str, usize>, n: &P.Nodo,
+fn entrega_suelta(punteros: &map<str, usize>, n: &P.Nodo,
     tipos: &I.Contexto) -> bool {
     if n.clase != Clase.Variable { return false; }
     if tiene(punteros, n.texto) { return false; }
@@ -2768,7 +2768,7 @@ fn presta_argumento(tipos: &I.Contexto, nombre: view, i: usize) -> bool {
     return T.es_referencia(m) || empieza_con(m, "mut ");
 }
 
-fn apuntar_movida(salida: mut lista<str>, nombre: view) {
+fn apuntar_movida(salida: mut list<str>, nombre: view) {
     for x en salida {
         if igual(x, nombre) { return; }
     }
@@ -2777,8 +2777,8 @@ fn apuntar_movida(salida: mut lista<str>, nombre: view) {
 
 // Los nombres que este nodo entrega. Sin entrar en los bloques de dentro:
 // cada sentencia apaga las suyas, donde toca.
-fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
-    salida: mut lista<str>) {
+fn movidas_en(punteros: &map<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
+    salida: mut list<str>) {
     let clase = n.clase;
     match clase {
         Clase.Bloque -> { return; }
@@ -2851,8 +2851,8 @@ fn movidas_en(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
 }
 
 // Lo que entrega la alternativa de un `sino`, que se apaga dentro de su rama.
-fn movidas_de_alternativa(punteros: &mapa<str, usize>, n: &P.Nodo,
-    tipos: &I.Contexto, salida: mut lista<str>) {
+fn movidas_de_alternativa(punteros: &map<str, usize>, n: &P.Nodo,
+    tipos: &I.Contexto, salida: mut list<str>) {
     if entrega_suelta(punteros, n, tipos) {
         apuntar_movida(salida, n.texto);
     }
@@ -2862,8 +2862,8 @@ fn movidas_de_alternativa(punteros: &mapa<str, usize>, n: &P.Nodo,
 // Lo que se entrega solo por un camino dentro de la sentencia: las
 // alternativas de sus `sino`. Tambien pide bandera, aunque no lo apague la
 // sentencia.
-fn movidas_por_caminos(punteros: &mapa<str, usize>, n: &P.Nodo,
-    tipos: &I.Contexto, salida: mut lista<str>) {
+fn movidas_por_caminos(punteros: &map<str, usize>, n: &P.Nodo,
+    tipos: &I.Contexto, salida: mut list<str>) {
     if n.clase == Clase.Bloque { return; }
     if n.clase == Clase.Sino && n.hijos.largo() == 2 {
         movidas_de_alternativa(punteros, n.hijos[1], tipos, salida);
@@ -2876,24 +2876,24 @@ fn movidas_por_caminos(punteros: &mapa<str, usize>, n: &P.Nodo,
 // saber si una variable se entrega hay que saber primero que tiene duenio, y
 // eso lo dice su tipo. Devolver una variable no cuenta: ahi ya no queda
 // nadie a quien mentirle.
-fn movidas_hondo(punteros: &mapa<str, usize>, bloque: &P.Nodo,
-    tipos: mut I.Contexto, salida: mut lista<str>) {
-    let ninguna: lista<str> = [];
+fn movidas_hondo(punteros: &map<str, usize>, bloque: &P.Nodo,
+    tipos: mut I.Contexto, salida: mut list<str>) {
+    let ninguna: list<str> = [];
     movidas_hondo_en(punteros, bloque, tipos, salida, ninguna);
 }
 
 // `visibles` son las declaraciones que se ven desde aqui, como
 // `nombre@linea`. Cada bloque trabaja sobre su propia copia: lo que se
 // declara dentro no se ve fuera, y asi no hace falta deshacer nada.
-fn movidas_hondo_en(punteros: &mapa<str, usize>, bloque: &P.Nodo,
-    tipos: mut I.Contexto, salida: mut lista<str>, visibles: &lista<str>) {
-    var mias: lista<str> = [];
+fn movidas_hondo_en(punteros: &map<str, usize>, bloque: &P.Nodo,
+    tipos: mut I.Contexto, salida: mut list<str>, visibles: &list<str>) {
+    var mias: list<str> = [];
     for x en visibles { mias.anadir(copiar(x)); }
     I.abrir(tipos);
     for st en bloque.hijos {
         // Lo que entrega esta sentencia se mira ANTES de declarar lo que
         // declara: `let y = x;` entrega la `x` de fuera.
-        var salen: lista<str> = [];
+        var salen: list<str> = [];
         movidas_en(punteros, st, tipos, salen);
         movidas_por_caminos(punteros, st, tipos, salen);
         for nm en salen {
@@ -2944,8 +2944,8 @@ fn movidas_hondo_en(punteros: &mapa<str, usize>, bloque: &P.Nodo,
 // Los bloques de los brazos de un `match`, este donde este dentro de la
 // sentencia: tambien son caminos, y lo que se entrega en ellos pide bandera
 // igual que en las ramas de un `if`.
-fn movidas_en_brazos(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: mut I.Contexto,
-    salida: mut lista<str>, visibles: &lista<str>) {
+fn movidas_en_brazos(punteros: &map<str, usize>, n: &P.Nodo, tipos: mut I.Contexto,
+    salida: mut list<str>, visibles: &list<str>) {
     if n.clase == Clase.Bloque { return; }
     if n.clase == Clase.Brazo {
         for x en n.hijos {
@@ -2957,7 +2957,7 @@ fn movidas_en_brazos(punteros: &mapa<str, usize>, n: &P.Nodo, tipos: mut I.Conte
     for h en n.hijos { movidas_en_brazos(punteros, h, tipos, salida, visibles); }
 }
 
-fn visible_en(visibles: &lista<str>, nombre: view) -> str {
+fn visible_en(visibles: &list<str>, nombre: view) -> str {
     var i = visibles.largo();
     while i > 0 {
         i = i - 1;
@@ -2995,7 +2995,7 @@ fn interna_del_sistema(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         if es_desconocido(ruta) || es_desconocido(desde)
         || es_desconocido(cuantos) { return no_se(); }
         var r = nuevo("ss_lang_leer_parte_archivo_(");
-        var previos: lista<str> = [];
+        var previos: list<str> = [];
         agregar_argumento_ordenado(b, r, previos, vista(ruta), "view",
             false, false, true);
         r.empujar(", ");
@@ -3020,7 +3020,7 @@ fn interna_del_sistema(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         let ruta = copiar(marco_a.entradas[0].valor);
         if es_desconocido(ruta) || es_desconocido(datos) { return no_se(); }
         var r = nuevo("ss_lang_escribir_archivo_(");
-        var previos: lista<str> = [];
+        var previos: list<str> = [];
         agregar_argumento_ordenado(b, r, previos, vista(ruta), "view",
             false, false, true);
         r.empujar(", ");
@@ -3085,15 +3085,15 @@ fn es_interna(nombre: view) -> bool {
 // por algunos caminos, y eso es la parte dificil, no esta.
 
 struct Cuerpo {
-    lineas: lista<str>,
+    lineas: list<str>,
     // Lo declarado en cada bloque abierto: `nombre: tipo`, del mas de fuera
     // al mas de dentro.
-    bloques: lista<lista<str>>,
+    bloques: list<list<str>>,
     // La misma forma que `bloques`, con `nombre@linea` de cada declaracion.
     // Las banderas se deciden por declaracion y no por nombre: tres `r` en
     // tres bloques son tres variables, y que una se entregue no dice nada
     // de las otras dos.
-    claves: lista<lista<str>>,
+    claves: list<list<str>>,
     sangria: usize,
     temporal: usize,
     // La ultima posicion marcada con `#line`, para no repetirla.
@@ -3104,18 +3104,18 @@ struct Cuerpo {
     // devuelve `tipo_c(t)` dentro de `empujar(s, tipo_c(t))`. Vive hasta el
     // final de la sentencia, y se suelta ahi. Van como `nombre: tipo`, igual
     // que los bloques.
-    temporales: lista<str>,
+    temporales: list<str>,
     // Los temporales de las sentencias que envuelven a la actual, de fuera
     // hacia dentro. Una salida temprana tiene que soltarlos todos: la
     // limpieza de fin de cada una se emite despues y no se alcanza.
-    fuera: lista<lista<str>>,
+    fuera: list<list<str>>,
     // Cuantos bloques habia abiertos al empezar el bucle mas de dentro.
     // Salir de un bucle salta el cierre de los bloques de dentro, asi que
     // hay que soltarlos a mano; los de fuera siguen vivos.
-    bucles: lista<usize>,
+    bucles: list<usize>,
     // Cuantas listas de `fuera` habia al abrir cada bucle: `break` y
     // `continue` sueltan solo las de las sentencias de dentro del bucle.
-    bucles_t: lista<usize>,
+    bucles_t: list<usize>,
     // La primera sentencia que esta capa no supo hacer, y de que clase era.
     // No cambia nada de lo que se emite: sirve para poder decir que falta
     // sin tener que adivinarlo contando nodos.
@@ -3123,23 +3123,23 @@ struct Cuerpo {
     fallo_clase: str,
     // Las copias de genericas que piden las llamadas, en el orden en que se
     // terminan de escribir: `plantilla\tnombre_c\tT=tipo...`.
-    instancias: lista<str>,
+    instancias: list<str>,
     // Los tipos que se copian con un copiador generado, en orden.
-    copias: lista<str>,
+    copias: list<str>,
     // Los arreglos que nombra un literal sin declararse en ningun sitio:
     // `for x en [1, 2]`. Su typedef llega tarde, detras de los demas.
-    arreglos: lista<str>,
+    arreglos: list<str>,
     // Las etiquetas de `goto` puestas en todo el archivo, los `switch`
     // abiertos, y cuantos habia al abrir cada bucle: un `break` dentro de un
     // `switch` saldria del `switch`, asi que sale con `goto` a una etiqueta
     // detras del bucle. Esa etiqueta, si hizo falta, en `etiquetas_bucle`.
     etiquetas: usize,
     en_switch: usize,
-    switch_en_bucle: lista<usize>,
-    etiquetas_bucle: lista<str>,
+    switch_en_bucle: list<usize>,
+    etiquetas_bucle: list<str>,
     // Lo ya calculado de una expresion que todavia no corrio: cada marco es
     // una operacion o una llamada a medio escribir.
-    por_correr: lista<Marco>,
+    por_correr: list<Marco>,
 }
 
 // Un operando ya calculado que todavia no corrio: su C, su tipo en C, si no
@@ -3155,7 +3155,7 @@ struct Pendiente {
 // Una barrera corta: lo de fuera no se adelanta dentro de ella.
 struct Marco {
     barrera: bool,
-    entradas: lista<Pendiente>,
+    entradas: list<Pendiente>,
 }
 
 // Lo apunta el sitio mas hondo, y solo la primera vez: si un `if` falla
@@ -3341,7 +3341,7 @@ fn apuntar_pendiente(b: mut Cuerpo, p: Pendiente) {
 }
 
 fn cerrar_marco(b: mut Cuerpo) -> Marco {
-    var quedan: lista<Marco> = [];
+    var quedan: list<Marco> = [];
     var ultimo = Marco { barrera: false, entradas: [] };
     var i = 0;
     let n = b.por_correr.largo();
@@ -3382,9 +3382,9 @@ fn nuevo_temporal(b: mut Cuerpo) -> str {
 }
 
 fn abrir_bloque(b: mut Cuerpo) {
-    let vacio_bloque: lista<str> = [];
+    let vacio_bloque: list<str> = [];
     b.bloques.anadir(vacio_bloque);
-    let vacias: lista<str> = [];
+    let vacias: list<str> = [];
     b.claves.anadir(vacias);
 }
 
@@ -3447,7 +3447,7 @@ fn cerrar_bloque(b: mut Cuerpo, s: &Sitio, tipos: &I.Contexto) {
 // Deja el cuerpo como estaba en `hasta` lineas. Lo usa el `while` cuya
 // condicion hay que rehacer dentro del bucle.
 fn recortar_lineas(b: mut Cuerpo, hasta: usize) {
-    var quedan: lista<str> = [];
+    var quedan: list<str> = [];
     var i = 0;
     while i < hasta {
         quedan.anadir(copiar(b.lineas[i]));
@@ -3467,7 +3467,7 @@ fn apuntar_temporal(b: mut Cuerpo, nombre: view, tipo: view) {
 
 // Quien se queda con un temporal lo dice, y deja de soltarse aqui.
 fn reclamar(b: mut Cuerpo, valor: view) {
-    var quedan: lista<str> = [];
+    var quedan: list<str> = [];
     for t en b.temporales {
         let n = antes_de_dos_puntos(t);
         if !igual(n, valor) { quedan.anadir(copiar(t)); }
@@ -3488,7 +3488,7 @@ fn soltar_temporales(b: mut Cuerpo, tipos: &I.Contexto) {
 
 // Lo que ya se solto al salir no se suelta otra vez.
 fn olvidar_temporales(b: mut Cuerpo) {
-    let vacia: lista<str> = [];
+    let vacia: list<str> = [];
     b.temporales = vacia;
 }
 
@@ -3507,8 +3507,8 @@ fn abrir_bucle_saltos(b: mut Cuerpo) {
 fn cerrar_bucle_saltos(b: mut Cuerpo) {
     if b.etiquetas_bucle.largo() == 0 { return; }
     let etiqueta = copiar(b.etiquetas_bucle[b.etiquetas_bucle.largo() - 1]);
-    var quedan: lista<usize> = [];
-    var quedan_e: lista<str> = [];
+    var quedan: list<usize> = [];
+    var quedan_e: list<str> = [];
     var i = 0;
     while i + 1 < b.etiquetas_bucle.largo() {
         quedan.anadir(b.switch_en_bucle[i]);
@@ -3522,14 +3522,14 @@ fn cerrar_bucle_saltos(b: mut Cuerpo) {
 
 fn quitar_ultimo_bucle(b: mut Cuerpo) {
     if b.bucles.largo() == 0 { return; }
-    var quedan: lista<usize> = [];
+    var quedan: list<usize> = [];
     var i = 0;
     while i + 1 < b.bucles.largo() {
         quedan.anadir(b.bucles[i]);
         i = i + 1;
     }
     b.bucles = quedan;
-    var quedan_t: lista<usize> = [];
+    var quedan_t: list<usize> = [];
     var j = 0;
     while j + 1 < b.bucles_t.largo() {
         quedan_t.anadir(b.bucles_t[j]);
@@ -3539,14 +3539,14 @@ fn quitar_ultimo_bucle(b: mut Cuerpo) {
 }
 
 fn quitar_ultimo_bloque(b: mut Cuerpo) {
-    var quedan: lista<lista<str>> = [];
-    var sus_claves: lista<lista<str>> = [];
+    var quedan: list<list<str>> = [];
+    var sus_claves: list<list<str>> = [];
     var i = 0;
     while i + 1 < b.bloques.largo() {
-        var copia: lista<str> = [];
+        var copia: list<str> = [];
         for x en b.bloques[i] { copia.anadir(copiar(x)); }
         quedan.anadir(copia);
-        var ks: lista<str> = [];
+        var ks: list<str> = [];
         for x en b.claves[i] { ks.anadir(copiar(x)); }
         sus_claves.anadir(ks);
         i = i + 1;
@@ -3592,7 +3592,7 @@ fn soltar_fuera_desde(b: mut Cuerpo, tipos: &I.Contexto, desde: usize) {
 
 fn quitar_ultima_fuera(b: mut Cuerpo) {
     if b.fuera.largo() == 0 { return; }
-    var quedan: lista<lista<str>> = [];
+    var quedan: list<list<str>> = [];
     var i = 0;
     while i + 1 < b.fuera.largo() {
         quedan.anadir(copiar(b.fuera[i]));
@@ -3637,7 +3637,7 @@ fn nace_bandera(b: mut Cuerpo, nombre: view) {
 }
 
 // `ss_vivo_x = false;` por cada una que se entrego en el camino que acaba.
-fn apagar(b: mut Cuerpo, nombres: &lista<str>) {
+fn apagar(b: mut Cuerpo, nombres: &list<str>) {
     for nm en nombres {
         var l = nuevo("ss_vivo_");
         l.empujar(nm);
@@ -3806,9 +3806,9 @@ fn despues_de_dos_puntos(t: view) -> str {
 // funcion entera se descarta, porque media funcion generada no vale nada.
 // Lo que esta sentencia entrego, apagado aqui mismo: el camino se acaba.
 fn apagar_las_de(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) {
-    var salen: lista<str> = [];
+    var salen: list<str> = [];
     movidas_en(s.punteros, n, tipos, salen);
-    var vivas: lista<str> = [];
+    var vivas: list<str> = [];
     for nm en salen {
         if lleva_bandera(b, s, nm) { vivas.anadir(copiar(nm)); }
     }
@@ -3836,7 +3836,7 @@ fn segundo_nombre(t: view) -> str {
 }
 
 fn mueve_algo(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
-    var salen: lista<str> = [];
+    var salen: list<str> = [];
     movidas_en(s.punteros, n, tipos, salen);
     movidas_por_caminos(s.punteros, n, tipos, salen);
     return salen.largo() > 0;
@@ -3847,12 +3847,12 @@ fn mueve_algo(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
 // dentro, y las de dentro no heredan lo que quedo a medias fuera.
 fn sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
-    var antes: lista<str> = [];
+    var antes: list<str> = [];
     for t en b.temporales { antes.anadir(copiar(t)); }
-    var de_fuera: lista<str> = [];
+    var de_fuera: list<str> = [];
     for t en antes { de_fuera.anadir(copiar(t)); }
     b.fuera.anadir(de_fuera);
-    let vacia: lista<str> = [];
+    let vacia: list<str> = [];
     b.temporales = vacia;
 
     let bien = una_sentencia(b, s, n, tipos, retorno, falible);
@@ -4192,7 +4192,7 @@ fn mientras_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     let marca = b.lineas.largo();
     let temporal_antes = b.temporal;
     let bucle_antes = b.bucle;
-    var temporales_antes: lista<str> = [];
+    var temporales_antes: list<str> = [];
     for t en b.temporales { temporales_antes.anadir(copiar(t)); }
     let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
     if es_desconocido(cond) { return false; }
@@ -4246,7 +4246,7 @@ fn mientras_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
             liberacion(b, tipos, nt, tt);
             k = k + 1;
         }
-        var quedan: lista<str> = [];
+        var quedan: list<str> = [];
         var q = 0;
         while q < base {
             quedan.anadir(copiar(b.temporales[q]));
@@ -4755,9 +4755,9 @@ fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 // declarado ahi no existe fuera. Como un brazo de `match`.
 fn valor_de_rama(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, t: view, destino: view,
     tipos: &I.Contexto) -> bool {
-    var antes: lista<str> = [];
+    var antes: list<str> = [];
     for x en b.temporales { antes.anadir(copiar(x)); }
-    var de_fuera: lista<str> = [];
+    var de_fuera: list<str> = [];
     for x en antes { de_fuera.anadir(copiar(x)); }
     b.fuera.anadir(de_fuera);
     olvidar_temporales(b);
@@ -4806,9 +4806,9 @@ fn sino_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     b.sangria = b.sangria + 1;
     if !valor_de_rama(b, s, n.hijos[1], suyo, elegido, tipos) { return no_se(); }
     // Lo que entrega la alternativa solo se entrega por esta rama.
-    var salen: lista<str> = [];
+    var salen: list<str> = [];
     movidas_de_alternativa(s.punteros, n.hijos[1], tipos, salen);
-    var vivas: lista<str> = [];
+    var vivas: list<str> = [];
     for nm en salen {
         if lleva_bandera(b, s, nm) { vivas.anadir(copiar(nm)); }
     }
@@ -4984,7 +4984,7 @@ fn mayusculas_c(t: view) -> str {
 
 // `p.a.b`, si es una cadena de campos desde una variable; vacio si no.
 fn ruta_de_campo_c(n: &P.Nodo) -> str {
-    var nombres: lista<str> = [];
+    var nombres: list<str> = [];
     var x = copiar(n);
     while x.clase == Clase.Campo && x.hijos.largo() > 0 {
         nombres.anadir(copiar(x.texto));
@@ -5096,7 +5096,7 @@ fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Conte
         k = k + 1;
         let variante = I.tras_el_punto(brazo.texto);
         let con_forma = brazo.texto.largo() > 0;
-        var conds: lista<str> = [];
+        var conds: list<str> = [];
         if con_forma {
             let et = etiqueta(base, variante);
             conds.anadir($"{sitio}.etiqueta == {et}");
@@ -5137,7 +5137,7 @@ fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Conte
             // La guarda, con sus temporales soltados en el acto: el brazo
             // puede no casar, y entonces no llega a su final.
             let g: &P.Nodo = brazo.hijos[guarda como usize];
-            var antes: lista<str> = [];
+            var antes: list<str> = [];
             for x en b.temporales { antes.anadir(copiar(x)); }
             olvidar_temporales(b);
             let cond = expresion_c(b, s, g.hijos[0], "bool", tipos);
@@ -5172,7 +5172,7 @@ fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Conte
 // Lo que tiene que cumplir lo de dentro para que el patron case: la forma
 // de lo anidado y el valor de cada literal.
 fn condiciones_patron_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto, base: view,
-    variante: view, posiciones: &lista<P.Nodo>, sitio: view, conds: mut lista<str>) -> bool {
+    variante: view, posiciones: &list<P.Nodo>, sitio: view, conds: mut list<str>) -> bool {
     let lleva = T.tipos_de_mapa(tipos.formas, $"{base}.{variante}") sino [];
     var i = 0;
     while i < posiciones.largo() {
@@ -5208,7 +5208,7 @@ fn condiciones_patron_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto, base
 // Lo que atrapa el patron, prestado: un `str` como `view`, lo demas con
 // duenio como puntero, y los escalares por valor.
 fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
-    posiciones: &lista<P.Nodo>, sitio: view) -> bool {
+    posiciones: &list<P.Nodo>, sitio: view) -> bool {
     let lleva = T.tipos_de_mapa(tipos.formas, $"{base}.{variante}") sino [];
     var i = 0;
     while i < posiciones.largo() {
@@ -5309,7 +5309,7 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
         if que == Clase.Retorno {
             if h.hijos.largo() != 1 { return false; }
             marcar(b, s, h.linea);
-            var antes: lista<str> = [];
+            var antes: list<str> = [];
             for x en b.temporales { antes.anadir(copiar(x)); }
             olvidar_temporales(b);
             let tv = T.escribir_tipo(I.tipo_de(tipos, h.hijos[0]));
@@ -5331,8 +5331,8 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
 }
 
 // Lo que va en cada posicion de un patron, en orden.
-fn posiciones_patron_c(b: &P.Nodo) -> lista<P.Nodo> {
-    var salida: lista<P.Nodo> = [];
+fn posiciones_patron_c(b: &P.Nodo) -> list<P.Nodo> {
+    var salida: list<P.Nodo> = [];
     for h en b.hijos {
         let hc = h.clase;
         if hc == Clase.Atrapa || hc == Clase.Patron || hc == Clase.Literal {

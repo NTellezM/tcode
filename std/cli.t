@@ -10,13 +10,13 @@
 // todo lo demas queda suelto, en orden. Sin ambiguedades: una bandera nunca
 // se traga el argumento siguiente.
 
-usar "std/texto" como t;
-usar "std/mapa" como m;
+use "std/texto" como t;
+use "std/mapa" como m;
 
 struct Argumentos {
-    banderas: mapa<str, bool>,
-    opciones: mapa<str, str>,
-    sueltos: lista<str>,
+    banderas: map<str, bool>,
+    opciones: map<str, str>,
+    sueltos: list<str>,
 }
 
 // La posicion del primer '=', o largo(v) si no hay.

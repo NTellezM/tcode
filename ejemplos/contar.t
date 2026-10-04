@@ -6,8 +6,8 @@
 //
 //     ./contar README.md
 
-usar "std/texto";
-usar "std/caracter";
+use "std/texto";
+use "std/caracter";
 
 fn main() -> usize ! {
     if n_argumentos() < 2 {
@@ -17,7 +17,7 @@ fn main() -> usize ! {
 
     let ruta = argumento(1);
     let contenido = try leer_archivo(ruta);
-    var saltos: lista<usize> = [];
+    var saltos: list<usize> = [];
     var cuantas_palabras = 0;
     var dentro = false;
     var i = 0;

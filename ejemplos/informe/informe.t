@@ -3,9 +3,9 @@
 // Reparte el trabajo en varios archivos, usa funciones que pueden fallar y
 // no libera nada a mano. Es lo que hacia falta para escribir algo grande.
 
-usar "lib/articulo.t";
-usar "std/numero";
-usar "std/texto";
+use "lib/articulo.t";
+use "std/numero";
+use "std/texto";
 
 fn main() -> usize ! {
     var inv = [

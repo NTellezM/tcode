@@ -6,9 +6,9 @@
 //
 //     ./escalas
 
-usar "lib/celsius.t" como c;
-usar "lib/fahrenheit.t" como f;
-usar "std/texto";
+use "lib/celsius.t" como c;
+use "lib/fahrenheit.t" como f;
+use "std/texto";
 
 fn linea(escala: view, grados: usize) -> str {
     return $"{rellenar(escala, 12)}{grados}\n";

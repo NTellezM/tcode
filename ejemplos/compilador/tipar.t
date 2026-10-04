@@ -6,14 +6,14 @@
 //
 //     ./tipar std/texto.t
 
-usar "lib/tipar.t" como I;
-usar "lib/tipos.t" como T;
-usar "lib/propiedad.t" como Q;
-usar "../lexer/lib/lexico.t";
-usar "../lexer/lib/sintaxis.t" como P;
-usar "std/texto";
-usar "std/lista";
-usar "../lexer/lib/clase.t";
+use "lib/tipar.t" como I;
+use "lib/tipos.t" como T;
+use "lib/propiedad.t" como Q;
+use "../lexer/lib/lexico.t";
+use "../lexer/lib/sintaxis.t" como P;
+use "std/texto";
+use "std/lista";
+use "../lexer/lib/clase.t";
 
 // De `nombre: &lista<str>` saca `nombre` y `lista<str>`: el prestamo se
 // guarda aparte, igual que en el comprobador de Python.
@@ -132,8 +132,8 @@ fn tras_espacio(texto: view) -> str {
 fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
     match n.clase {
         Clase.Struct -> {
-            var tipos: lista<str> = [];
-            var nombres: lista<str> = [];
+            var tipos: list<str> = [];
+            var nombres: list<str> = [];
             for h en n.hijos {
                 if h.clase == Clase.CampoDef {
                     nombres.anadir(nombre_de(h.texto));
@@ -144,18 +144,18 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
             poner(c.campos, vista(n.texto), T.leer_tipos(tipos));
             poner(c.nombres, vista(n.texto), nombres);
             // Un struct generico: sus parametros, para leer `Par<str, usize>`.
-            var sueltos: lista<str> = [];
+            var sueltos: list<str> = [];
             for h en n.hijos {
                 if h.clase == Clase.TipoParam { sueltos.anadir(nuevo(h.texto)); }
             }
             if sueltos.largo() > 0 { poner(c.struct_params, vista(n.texto), sueltos); }
         }
         Clase.Enum -> {
-            var cuales: lista<str> = [];
+            var cuales: list<str> = [];
             for h en n.hijos {
                 if h.clase == Clase.Variante {
                     cuales.anadir(nuevo(h.texto));
-                    var lleva: lista<str> = [];
+                    var lleva: list<str> = [];
                     for x en h.hijos {
                         if x.clase == Clase.Lleva {
                             lleva.anadir(nuevo(x.texto));
@@ -172,9 +172,9 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
         Clase.Fn -> {
             var retorno = vacio();
             var es_de_c = false;
-            var sueltos: lista<str> = [];
-            var tipos_param: lista<str> = [];
-            var marcados: lista<str> = [];
+            var sueltos: list<str> = [];
+            var tipos_param: list<str> = [];
+            var marcados: list<str> = [];
             for h en n.hijos {
                 if h.clase == Clase.RetornoTipo {
                     retorno = T.sin_alias_tipo(h.texto);
@@ -196,7 +196,7 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
                 poner(c.externas, vista(n.texto), 1);
                 if retorno == "cadena_c" { retorno = nuevo("str"); }
                 // Una funcion de C presta lo que recibe: no se queda con nada.
-                var prestados: lista<str> = [];
+                var prestados: list<str> = [];
                 for _m en marcados { prestados.anadir(nuevo("&")); }
                 marcados = prestados;
             }
@@ -214,8 +214,8 @@ fn recoger_declaraciones(n: &P.Nodo, c: mut I.Contexto) {
 
 // Recorre un cuerpo declarando lo que vaya apareciendo, y va apuntando cada
 // variable con su tipo en el orden en que se declara.
-fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
-    lineas: mut lista<usize>) {
+fn recorrer(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut list<str>,
+    lineas: mut list<usize>) {
     let clase = n.clase;
 
     match clase {
@@ -308,7 +308,7 @@ fn es_generica(d: &P.Nodo) -> bool {
 }
 
 // Donde empiezan las lineas de esta funcion dentro de `salida`.
-fn primera_de(salida: &lista<str>, quien: view) -> usize {
+fn primera_de(salida: &list<str>, quien: view) -> usize {
     var i = 0;
     while i < salida.largo() {
         if empieza_con(salida[i], quien) { return i; }
@@ -320,20 +320,20 @@ fn primera_de(salida: &lista<str>, quien: view) -> usize {
 // Recorre la funcion otra vez, ahora buscando quien entrega y quien mueve, y
 // le pega a cada linea ya escrita su destino.
 fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
-    salida: mut lista<str>, lineas: &lista<usize>, desde: usize) {
+    salida: mut list<str>, lineas: &list<usize>, desde: usize) {
     // Una por cada linea ya escrita, en el mismo orden. Asi dos variables
     // con el mismo nombre en bloques distintos siguen siendo dos: juntarlas
     // por el nombre daria el destino de una a la otra.
-    var de_bucle: mapa<str, usize> = [];
-    var valores_de_bucle: mapa<str, usize> = [];
+    var de_bucle: map<str, usize> = [];
+    var valores_de_bucle: map<str, usize> = [];
     recoger_bucles(d, de_bucle, valores_de_bucle);
     // Una referencia declarada normalmente (`let x = obtener(...)`) queda
     // prestada. La que introduce un patron de `match`, en cambio, es solo la
     // vista tipada que el patron expone y Python no la marca como recibida.
     // La linea forma parte de la clave para no confundir nombres repetidos.
-    var atrapadas: mapa<str, usize> = [];
+    var atrapadas: map<str, usize> = [];
     recoger_atrapadas(d, atrapadas);
-    var prestados: mapa<str, usize> = [];
+    var prestados: map<str, usize> = [];
     for h en d.hijos {
         if h.clase == Clase.Param {
             let marca = tipo_con_marca(h.texto);
@@ -344,8 +344,8 @@ fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
         }
     }
 
-    var vs: lista<Q.Vigilada> = [];
-    var mias: lista<usize> = [];
+    var vs: list<Q.Vigilada> = [];
+    var mias: list<usize> = [];
     var i = desde;
     while i < salida.largo() {
         let partes = partir_por_tab(salida[i]);
@@ -396,8 +396,8 @@ fn anotar_propiedad(c: &I.Contexto, d: &P.Nodo, quien: view,
 
 // Lo que atrapa un patron, tambien dentro de una forma anidada: `n` es el
 // brazo o la rama `patron`, con la forma en su texto. `_` no atrapa nada.
-fn atrapar(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
-    lineas: mut lista<usize>) {
+fn atrapar(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut list<str>,
+    lineas: mut list<usize>) {
     let lleva = T.tipos_de_mapa(c.formas, vista(n.texto)) sino [];
     var k = 0;
     for x en n.hijos {
@@ -418,7 +418,7 @@ fn atrapar(n: &P.Nodo, c: mut I.Contexto, quien: view, salida: mut lista<str>,
 
 // Variables que nacen al desarmar visualmente una variante. El `match` no
 // mueve esos valores fuera del enum: solo les da nombre dentro del brazo.
-fn recoger_atrapadas(n: &P.Nodo, salida: mut mapa<str, usize>) {
+fn recoger_atrapadas(n: &P.Nodo, salida: mut map<str, usize>) {
     if n.clase == Clase.Atrapa && n.texto != "_" {
         poner(salida, $"{n.texto}\t{n.linea}", 1);
     }
@@ -430,8 +430,8 @@ fn recoger_atrapadas(n: &P.Nodo, salida: mut mapa<str, usize>) {
 // homonima de otro bloque. El primero —el elemento o la clave— se presta
 // siempre; el segundo —el valor de un mapa— llega por copia si es escalar, y
 // prestado si tiene duenio.
-fn recoger_bucles(n: &P.Nodo, primeros: mut mapa<str, usize>,
-    segundos: mut mapa<str, usize>) {
+fn recoger_bucles(n: &P.Nodo, primeros: mut map<str, usize>,
+    segundos: mut map<str, usize>) {
     if n.clase == Clase.Para {
         let partes = try_partir(n.texto);
         var i = 0;
@@ -445,8 +445,8 @@ fn recoger_bucles(n: &P.Nodo, primeros: mut mapa<str, usize>,
     for h en n.hijos { recoger_bucles(h, primeros, segundos); }
 }
 
-fn partir_por_tab(l: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn partir_por_tab(l: view) -> list<str> {
+    var salida: list<str> = [];
     var desde = 0;
     var i = 0;
     while i <= l.largo() {
@@ -462,8 +462,8 @@ fn partir_por_tab(l: view) -> lista<str> {
     return salida;
 }
 
-fn try_partir(texto: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn try_partir(texto: view) -> list<str> {
+    var salida: list<str> = [];
     var desde = 0;
     var i = 0;
     while i <= texto.largo() {
@@ -532,9 +532,9 @@ fn dentro_angulos(t: view) -> str {
     return nuevo(rebanar(t, desde + 1, t.largo() - 1));
 }
 
-fn partir_angulos(t: view) -> lista<str> {
+fn partir_angulos(t: view) -> list<str> {
     let dentro = dentro_angulos(t);
-    var salida: lista<str> = [];
+    var salida: list<str> = [];
     var hondura = 0;
     var desde = 0;
     var i = 0;
@@ -561,14 +561,14 @@ fn partir_angulos(t: view) -> lista<str> {
 // Lo que declaran los modulos que trae un `usar`. El comprobador de Python
 // lo recibe del cargador; aqui se leen las dependencias directas, igual que
 // hace el parser con los nombres de struct.
-fn recoger_de_usados(ruta: view, toks: &lista<Token>, c: mut I.Contexto) {
+fn recoger_de_usados(ruta: view, toks: &list<Token>, c: mut I.Contexto) {
     let dir = carpeta(ruta);
     var i = 0;
     while i + 1 < toks.largo() {
         if toks[i].valor == "usar" {
             if toks[i + 1].tipo == "cadena" {
                 let pedido = nuevo(toks[i + 1].valor);
-                var candidatos: lista<str> = [];
+                var candidatos: list<str> = [];
                 var junto = nuevo(dir);
                 if junto.largo() > 0 { junto.empujar("/"); }
                 junto.empujar(pedido);
@@ -642,8 +642,8 @@ fn main() -> usize ! {
     recoger_de_usados(argumento(1), estado.toks, c);
     recoger_declaraciones(arbol, c);
 
-    var salida: lista<str> = [];
-    var lineas: lista<usize> = [];
+    var salida: list<str> = [];
+    var lineas: list<usize> = [];
     for d en arbol.hijos {
         if d.clase == Clase.Fn && !es_generica(d) {
             I.abrir(c);

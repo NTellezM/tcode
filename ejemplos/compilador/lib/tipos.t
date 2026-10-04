@@ -15,7 +15,7 @@
 // El lexer y el parser de Tcode ya estan escritos en Tcode; esto es la capa
 // siguiente. Se comprueba contra la de Python en cada ejecucion de la suite.
 
-usar "std/texto";
+use "std/texto";
 
 // ------------------------------------------------------------------
 // Leer la forma de un tipo
@@ -37,8 +37,8 @@ fn entre_angulos(t: view) -> view {
 }
 
 // Parte por las comas de fuera: `str, lista<usize>` da dos trozos.
-fn partir_tipos(dentro: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn partir_tipos(dentro: view) -> list<str> {
+    var salida: list<str> = [];
     var hondura = 0;
     var desde = 0;
     var i = 0;
@@ -93,7 +93,7 @@ fn apuntado(t: view) -> view {
 
 // `fn(usize, str) -> bool` da ["usize", "str", "bool"]: los argumentos y,
 // al final, lo que devuelve. Sin flecha, el retorno es `()`.
-fn partes_de_funcion(t: view) -> lista<str> {
+fn partes_de_funcion(t: view) -> list<str> {
     var hondura = 0;
     var cierre = 0;
     var i = 0;
@@ -106,7 +106,7 @@ fn partes_de_funcion(t: view) -> lista<str> {
         }
         i = i + 1;
     }
-    var salida: lista<str> = [];
+    var salida: list<str> = [];
     if cierre == 0 { return salida; }
     let dentro = rebanar(t, 3, cierre);
     if largo(recortar(dentro)) > 0 {
@@ -152,7 +152,7 @@ fn elemento(t: view) -> str {
 fn valor_de_mapa(t: view) -> str ! {
     let leido = leer_tipo(t);
     if leido.forma != Forma.Mapa || leido.args.largo() != 2 {
-        falla "un mapa lleva clave y valor";
+        fail "un mapa lleva clave y valor";
     }
     return escribir_tipo(leido.args[1]);
 }
@@ -189,7 +189,7 @@ struct Tipo {
     // Lo de dentro, en orden: el elemento; la clave y el valor; lo apuntado;
     // los argumentos de una aplicacion; los parametros de una funcion y, si
     // devuelve algo, su retorno al final.
-    args: lista<Tipo>,
+    args: list<Tipo>,
     // Cuantos lleva un arreglo, como se escribio.
     cuantos: str,
     devuelve: bool,
@@ -233,42 +233,42 @@ fn conocido(t: &Tipo) -> bool {
 // El `Tipo` que guarda un mapa bajo `clave`, ya con duenio: `obtener` presta
 // y `sino` no puede devolver un prestamo, asi que se copia. Los lectores de
 // los mapas de tipos lo usan en vez de `obtener ... sino`.
-fn tipo_de_mapa(m: &mapa<str, Tipo>, clave: view) -> Tipo ! {
+fn tipo_de_mapa(m: &map<str, Tipo>, clave: view) -> Tipo ! {
     return copiar(try obtener(m, clave));
 }
 
 // El `Tipo` escrito, sin copiarlo: `tipo_de_mapa` lo copiaba en profundo y
 // enseguida se volvia a escribir —una copia que no valia la pena—.
-fn escribir_de_mapa(m: &mapa<str, Tipo>, clave: view) -> str ! {
+fn escribir_de_mapa(m: &map<str, Tipo>, clave: view) -> str ! {
     let t = try obtener(m, clave);
     return escribir_tipo(t);
 }
 
 // La lista de `Tipo` que guarda un mapa bajo `clave`, con duenio: la pareja
 // de `tipo_de_mapa` para los campos que llevan varios tipos.
-fn tipos_de_mapa(m: &mapa<str, lista<Tipo>>, clave: view) -> lista<Tipo> ! {
+fn tipos_de_mapa(m: &map<str, list<Tipo>>, clave: view) -> list<Tipo> ! {
     return copiar(try obtener(m, clave));
 }
 
 // La lista escrita, sin copiarla: como `escribir_de_mapa`, para los campos
 // que llevan varios tipos.
-fn escribir_de_mapa_tipos(m: &mapa<str, lista<Tipo>>, clave: view) -> lista<str> ! {
+fn escribir_de_mapa_tipos(m: &map<str, list<Tipo>>, clave: view) -> list<str> ! {
     let ts = try obtener(m, clave);
     return escribir_tipos(ts);
 }
 
 // Una lista de textos de tipo, leidos a sus `Tipo`. La usan los que guardan
 // una firma recien leida: el texto entra, la estructura se guarda.
-fn leer_tipos(escritos: &lista<str>) -> lista<Tipo> {
-    var salida: lista<Tipo> = [];
+fn leer_tipos(escritos: &list<str>) -> list<Tipo> {
+    var salida: list<Tipo> = [];
     for e en escritos { salida.anadir(leer_tipo(e)); }
     return salida;
 }
 
 // El camino inverso: la lista de `Tipo`, escrita a texto. La usan los que
 // aun hablan en `str` con el generador de C.
-fn escribir_tipos(tipos: &lista<Tipo>) -> lista<str> {
-    var salida: lista<str> = [];
+fn escribir_tipos(tipos: &list<Tipo>) -> list<str> {
+    var salida: list<str> = [];
     for t en tipos { salida.anadir(escribir_tipo(t)); }
     return salida;
 }
@@ -358,7 +358,7 @@ fn tiene_flecha(t: view) -> bool {
     return false;
 }
 
-fn escritos(ts: &lista<Tipo>, desde: usize, hasta: usize) -> str {
+fn escritos(ts: &list<Tipo>, desde: usize, hasta: usize) -> str {
     var s = vacio();
     var i = desde;
     while i < hasta {
@@ -396,8 +396,8 @@ fn escribir_tipo(t: &Tipo) -> str {
 // Lo que un tipo lleva dentro, cada parte escrita: el elemento de una lista,
 // la clave y el valor de un mapa, lo apuntado, los argumentos de una
 // aplicacion, los parametros y el retorno de una funcion.
-fn partes(t: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn partes(t: view) -> list<str> {
+    var salida: list<str> = [];
     let a = leer_tipo(t);
     for x en a.args { salida.anadir(escribir_tipo(x)); }
     return salida;
@@ -406,10 +406,10 @@ fn partes(t: view) -> lista<str> {
 // El mismo tipo con sus partes cambiadas por `nuevas`, en el orden de
 // `partes`. Es como se reescribe un tipo a cualquier hondura sin partir
 // cadenas: se cambia cada parte y se vuelve a montar.
-fn con_partes(t: view, nuevas: &lista<str>) -> str {
+fn con_partes(t: view, nuevas: &list<str>) -> str {
     var a = leer_tipo(t);
     if nuevas.largo() != a.args.largo() { return nuevo(t); }
-    var hechas: lista<Tipo> = [];
+    var hechas: list<Tipo> = [];
     for x en nuevas { hechas.anadir(leer_tipo(x)); }
     a.args = hechas;
     return escribir_tipo(a);
@@ -424,8 +424,8 @@ fn base(t: view) -> str {
 }
 
 // `[T; N]` -> [T, N]; vacia si no es un arreglo.
-fn partes_de_arreglo(t: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn partes_de_arreglo(t: view) -> list<str> {
+    var salida: list<str> = [];
     let a = leer_tipo(t);
     if a.forma != Forma.Arreglo || a.args.largo() != 1 { return salida; }
     salida.anadir(escribir_tipo(a.args[0]));
@@ -499,7 +499,7 @@ fn sanear(t: view) -> str {
 
 // Como se llama la copia de un struct generico: `Par<str, usize>` es
 // `Par__str_usize`. `args` son los argumentos ya con sus propias copias.
-fn nombre_de_copia(base: view, args: &lista<str>) -> str {
+fn nombre_de_copia(base: view, args: &list<str>) -> str {
     var r = nuevo(base);
     r.empujar("__");
     var i = 0;
@@ -538,17 +538,17 @@ fn escalar(t: view) -> bool {
 // Un tipo de otro modulo se escribe `Q.Nombre`, pero se apunta por su
 // nombre. `vistos` corta la recursion: un `Nodo` con un campo `lista<Nodo>`
 // se contiene a si mismo de forma finita, y preguntarle dos veces no aporta.
-fn posee_en(t: &Tipo, campos: &mapa<str, lista<Tipo>>, parametros: &mapa<str, lista<str>>,
-    variantes: &mapa<str, lista<str>>, formas: &mapa<str, lista<Tipo>>,
-    vistos: mut mapa<str, usize>) -> bool {
+fn posee_en(t: &Tipo, campos: &map<str, list<Tipo>>, parametros: &map<str, list<str>>,
+    variantes: &map<str, list<str>>, formas: &map<str, list<Tipo>>,
+    vistos: mut map<str, usize>) -> bool {
     return posee_desde(t, campos, parametros, variantes, formas, vistos) sino false;
 }
 
 // Falible solo para leer los mapas sin copiar; cada `obtener` va detras de
 // su `tiene`, asi que no falla.
-fn posee_desde(t: &Tipo, campos: &mapa<str, lista<Tipo>>, parametros: &mapa<str, lista<str>>,
-    variantes: &mapa<str, lista<str>>, formas: &mapa<str, lista<Tipo>>,
-    vistos: mut mapa<str, usize>) -> bool ! {
+fn posee_desde(t: &Tipo, campos: &map<str, list<Tipo>>, parametros: &map<str, list<str>>,
+    variantes: &map<str, list<str>>, formas: &map<str, list<Tipo>>,
+    vistos: mut map<str, usize>) -> bool ! {
     match t.forma {
         // Lo prestado es de otro; una funcion y un rango no guardan nada.
         Forma.Presta -> { return false; }
@@ -573,7 +573,7 @@ fn posee_desde(t: &Tipo, campos: &mapa<str, lista<Tipo>>, parametros: &mapa<str,
         if !tiene(parametros, base) || !tiene(campos, base) { return false; }
         let sueltos = try obtener(parametros, base);
         if t.args.largo() != sueltos.largo() { return false; }
-        var ligaduras: mapa<str, str> = [];
+        var ligaduras: map<str, str> = [];
         var i = 0;
         while i < sueltos.largo() {
             poner(ligaduras, vista(sueltos[i]), escribir_tipo(t.args[i]));
@@ -640,7 +640,7 @@ fn base_de_aplicacion(t: view) -> str {
 
 // Cambia cada nombre de `t` que este en `ligaduras` por lo suyo: los
 // parametros de una plantilla por los tipos de una aplicacion.
-fn sustituir(t: view, ligaduras: &mapa<str, str>) -> str {
+fn sustituir(t: view, ligaduras: &map<str, str>) -> str {
     var salida = vacio();
     var desde = 0;
     var i = 0;
@@ -668,7 +668,7 @@ fn sustituir(t: view, ligaduras: &mapa<str, str>) -> str {
 // arbol: los parametros de una plantilla por los tipos de una aplicacion.
 // Es la pareja estructurada de `sustituir`; las ligaduras siguen en str
 // porque las lee quien las escribe en C.
-fn sustituir_tipo(t: &Tipo, ligaduras: &mapa<str, str>) -> Tipo {
+fn sustituir_tipo(t: &Tipo, ligaduras: &map<str, str>) -> Tipo {
     if t.forma == Forma.Nombre && t.args.largo() == 0 {
         if tiene(ligaduras, t.nombre) {
             return leer_tipo(obtener(ligaduras, t.nombre) sino "");
@@ -687,8 +687,8 @@ fn sustituir_tipo(t: &Tipo, ligaduras: &mapa<str, str>) -> Tipo {
 // Empareja un patron generico con un tipo dado, llenando las ligaduras, sobre
 // el arbol: `T` liga con lo que venga, y las partes se comparan por dentro.
 // Las ligaduras siguen en str porque las lee quien las escribe en C.
-fn ligar_tipo(patron: &Tipo, dado: &Tipo, sueltos: &lista<str>,
-    ligaduras: mut mapa<str, str>) {
+fn ligar_tipo(patron: &Tipo, dado: &Tipo, sueltos: &list<str>,
+    ligaduras: mut map<str, str>) {
     if !conocido(dado) { return; }
     if patron.forma == Forma.Presta || patron.forma == Forma.PrestaMut {
         ligar_tipo(patron.args[0], dado, sueltos, ligaduras);
@@ -750,7 +750,7 @@ fn es_de_nombre(b: usize) -> bool {
     return b == 95;
 }
 
-fn tipo_existe(campos: &mapa<str, lista<str>>, t: view) -> bool {
+fn tipo_existe(campos: &map<str, list<str>>, t: view) -> bool {
     match forma_de(t) {
         Forma.Presta -> { return tipo_existe(campos, apuntado(t)); }
         Forma.PrestaMut -> { return tipo_existe(campos, apuntado(t)); }
@@ -776,7 +776,7 @@ fn tipo_existe(campos: &mapa<str, lista<str>>, t: view) -> bool {
 
 // Guardar vistas o arreglos fijos en una coleccion exigiria expresar su vida
 // util o su tamaño, y v0 no los lleva en el tipo.
-fn coleccion_existe(campos: &mapa<str, lista<str>>, t: view) -> bool {
+fn coleccion_existe(campos: &map<str, list<str>>, t: view) -> bool {
     let dentro = elemento(t);
     if dentro == "view" { return false; }
     if es_arreglo(dentro) { return false; }

@@ -29,6 +29,9 @@ PALABRAS = {
     "usar", "try", "sino", "falla", "mapa", "enum", "match", "externo",
     "for", "en", "break", "continue",
     "u8", "u16", "u32", "u64", "usize", "i8", "i16", "i32", "i64", "f32", "f64",
+    # Los nombres nuevos: mientras dure el transbordo valen las dos formas.
+    "list", "map", "use", "fail", "drop", "extends", "protocol",
+    "implements", "anchor",
 }
 
 
@@ -208,7 +211,7 @@ def grafo():
         i = 0
         while i < len(toks):
             t = toks[i]
-            if t.tipo == "palabra" and t.valor == "usar":
+            if t.tipo == "palabra" and t.valor in ("usar", "use"):
                 ruta = toks[i + 1].valor
                 j = i + 2
                 al = None
@@ -277,7 +280,7 @@ def llamadas():
         alias = {}
         i = 0
         while i < len(toks):
-            if toks[i].tipo == "palabra" and toks[i].valor == "usar":
+            if toks[i].tipo == "palabra" and toks[i].valor in ("usar", "use"):
                 ruta = toks[i + 1].valor
                 j = i + 2
                 if j < len(toks) and toks[j].tipo == "ident" \

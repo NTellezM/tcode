@@ -26,7 +26,7 @@
 // `sqrt` corrompiera la memoria, la corrompe. Por eso la puerta es una, se
 // declara, y su nombre esta escrito aqui.
 
-usar "std/texto";
+use "std/texto";
 
 externo "math.h" {
     fn sqrt(x: f64) -> f64;

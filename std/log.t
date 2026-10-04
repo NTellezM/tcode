@@ -8,7 +8,7 @@
 // ERROR van a la salida de error; los demas, a la normal. La marca es UTC,
 // ISO 8601.
 
-usar "std/fecha" como fecha;
+use "std/fecha" como fecha;
 
 struct Log {
     minimo: i64,

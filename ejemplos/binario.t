@@ -7,7 +7,7 @@
 //
 //     ./binario
 
-usar "std/bytes";
+use "std/bytes";
 
 struct Cabecera {
     version: u16,
@@ -26,10 +26,10 @@ fn escribir(c: &Cabecera) -> str {
 }
 
 fn leer(v: view) -> Cabecera ! {
-    if largo(v) < 18 { falla "la cabecera esta cortada"; }
+    if largo(v) < 18 { fail "la cabecera esta cortada"; }
     let cuerpo = rebanar(v, 0, largo(v) - 4);
     let esperada = try leer_u32(v, largo(v) - 4);
-    if fletcher32(cuerpo) != esperada { falla "la suma de verificacion no cuadra"; }
+    if fletcher32(cuerpo) != esperada { fail "la suma de verificacion no cuadra"; }
 
     return Cabecera {
         version: try leer_u16(v, 0),

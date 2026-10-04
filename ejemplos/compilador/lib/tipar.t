@@ -8,51 +8,51 @@
 // cada variable de cada funcion del repositorio. Si difieren, la suite lo
 // dice y nombra el archivo.
 
-usar "tipos.t" como T;
-usar "../../lexer/lib/sintaxis.t" como P;
-usar "std/texto";
-usar "std/lista";
-usar "std/mapa";
-usar "../../lexer/lib/clase.t";
+use "tipos.t" como T;
+use "../../lexer/lib/sintaxis.t" como P;
+use "std/texto";
+use "std/lista";
+use "std/mapa";
+use "../../lexer/lib/clase.t";
 
 // Lo que se sabe mientras se recorre un archivo.
 struct Contexto {
     // Pila de ambitos: nombre -> tipo. El de dentro manda.
-    ambitos: lista<mapa<str, T.Tipo>>,
+    ambitos: list<map<str, T.Tipo>>,
     // Struct -> tipos de sus campos, y sus nombres, en el mismo orden.
-    campos: mapa<str, lista<T.Tipo>>,
-    nombres: mapa<str, lista<str>>,
+    campos: map<str, list<T.Tipo>>,
+    nombres: map<str, list<str>>,
     // Funcion -> lo que devuelve.
-    retornos: mapa<str, T.Tipo>,
+    retornos: map<str, T.Tipo>,
     // Funcion generica -> sus parametros de tipo, y los tipos de sus
     // argumentos. Hacen falta para elegir la copia: `primeras(xs, 8)` con
     // `xs: lista<str>` devuelve `lista<str>`, no `lista<T>`.
-    tipo_params: mapa<str, lista<str>>,
-    params: mapa<str, lista<T.Tipo>>,
+    tipo_params: map<str, list<str>>,
+    params: map<str, list<T.Tipo>>,
     // Los mismos parametros pero con su marca (`&`, `mut`): hace falta para
     // saber si una llamada se queda con el valor o solo lo mira.
-    params_marcados: mapa<str, lista<str>>,
+    params_marcados: map<str, list<str>>,
     // `Enum.Variante` -> lo que lleva esa forma, en orden. Un enum no tiene
     // campos: tiene formas, y solo una a la vez.
-    formas: mapa<str, lista<T.Tipo>>,
+    formas: map<str, list<T.Tipo>>,
     // Enum -> los nombres de sus formas, para saber si un tipo es un enum.
-    variantes: mapa<str, lista<str>>,
+    variantes: map<str, list<str>>,
     // Nombres que traen dos modulos a la vez. El cargador de verdad los
     // renombra, y esta capa no sabe a cual: mejor no emitir la llamada.
-    repetidas: mapa<str, usize>,
+    repetidas: map<str, usize>,
     // Los propios que chocaban con un modulo, y como quedan en C.
-    renombradas: mapa<str, str>,
+    renombradas: map<str, str>,
     // Las que escribio C. Una funcion de C presta lo que recibe y no se
     // queda con nada, asi que sus argumentos no se mueven.
-    externas: mapa<str, usize>,
+    externas: map<str, usize>,
     // Struct generico -> sus parametros de tipo: `Par` -> [A, B]. Un
     // `Par<str, usize>` se queda escrito asi, y sus campos se sacan de aqui.
-    struct_params: mapa<str, lista<str>>,
+    struct_params: map<str, list<str>>,
     // Lo que el comprobador dejo anotado: `dueno#id` -> el tipo de esa
     // expresion, con los numeros escritos ya decididos por su contexto.
     // `dueno` es la funcion que se esta escribiendo, con el nombre que le da
     // el comprobador; vacio, no se mira nada y el tipo se deduce aqui.
-    anotados: mapa<str, T.Tipo>,
+    anotados: map<str, T.Tipo>,
     dueno: str,
 }
 
@@ -64,7 +64,7 @@ fn contexto() -> Contexto {
 }
 
 fn abrir(c: mut Contexto) {
-    let nuevo_ambito: mapa<str, T.Tipo> = [];
+    let nuevo_ambito: map<str, T.Tipo> = [];
     c.ambitos.anadir(nuevo_ambito);
 }
 
@@ -76,10 +76,10 @@ fn cerrar(c: mut Contexto) {
 
 // Quitar el ultimo ambito: se copian los de delante y se deja fuera el final.
 fn redimensionar_ambitos(c: mut Contexto, cuantos: usize) {
-    var quedan: lista<mapa<str, T.Tipo>> = [];
+    var quedan: list<map<str, T.Tipo>> = [];
     var i = 0;
     while i < cuantos {
-        var copia: mapa<str, T.Tipo> = [];
+        var copia: map<str, T.Tipo> = [];
         for k en claves(c.ambitos[i]) {
             let v = T.tipo_de_mapa(c.ambitos[i], k) sino T.ninguno();
             poner(copia, vista(k), v);
@@ -246,11 +246,11 @@ fn tipo_de(c: &Contexto, n: &P.Nodo) -> T.Tipo {
 // `obtener` sobre un mapa de listas devuelve un prestamo, y un prestamo no
 // se puede sustituir si falla. Se pregunta antes con `tiene` y aqui se
 // entrega una copia, que es lo que el que llama necesita.
-fn mirar_tipos(c: &Contexto, struct_: view) -> lista<T.Tipo> ! {
+fn mirar_tipos(c: &Contexto, struct_: view) -> list<T.Tipo> ! {
     return copiar(try obtener(c.campos, struct_));
 }
 
-fn mirar_nombres(c: &Contexto, struct_: view) -> lista<str> ! {
+fn mirar_nombres(c: &Contexto, struct_: view) -> list<str> ! {
     return copiar(try obtener(c.nombres, struct_));
 }
 
@@ -363,14 +363,14 @@ fn es_comparacion(op: view) -> bool {
 }
 
 // Los tipos de los campos de una aplicacion, con sus parametros puestos.
-fn tipos_de_aplicacion(c: &Contexto, t: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn tipos_de_aplicacion(c: &Contexto, t: view) -> list<str> {
+    var salida: list<str> = [];
     let base = T.base_de_aplicacion(t);
     if !tiene(c.struct_params, base) { return salida; }
     let sueltos = lista_de(c.struct_params, vista(base)) sino [];
     let dados = T.partes(t);
     if dados.largo() != sueltos.largo() { return salida; }
-    var ligaduras: mapa<str, str> = [];
+    var ligaduras: map<str, str> = [];
     var i = 0;
     while i < sueltos.largo() {
         poner(ligaduras, vista(sueltos[i]), copiar(dados[i]));
@@ -452,7 +452,7 @@ fn tipo_atrapado(c: &Contexto, t: view) -> str {
 // Si un tipo tiene duenio: la regla de `tipos.t`, con lo que este contexto
 // sabe de structs, genericas y enums.
 fn posee_con_formas(c: &Contexto, t: view) -> bool {
-    var vistos: mapa<str, usize> = [];
+    var vistos: map<str, usize> = [];
     return T.posee_en(T.leer_tipo(t), c.campos, c.struct_params, c.variantes, c.formas, vistos);
 }
 
@@ -489,12 +489,12 @@ fn nombre_resuelto(t: view) -> str {
     // montar.
     if T.es_referencia(t) || T.es_lista(t) || T.es_bloque(t) || T.es_mapa(t)
     || T.es_arreglo(t) {
-        var nuevas: lista<str> = [];
+        var nuevas: list<str> = [];
         for parte en T.partes(t) { nuevas.anadir(nombre_resuelto(parte)); }
         return T.con_partes(t, nuevas);
     }
     if !T.es_aplicacion(t) { return nuevo(t); }
-    var args: lista<str> = [];
+    var args: list<str> = [];
     for a en T.partes(t) { args.anadir(nombre_resuelto(a)); }
     return T.nombre_de_copia(T.base_de_aplicacion(t), args);
 }
@@ -580,7 +580,7 @@ fn tipo_de_llamada(c: &Contexto, n: &P.Nodo) -> str {
     let sueltos = lista_de(c.tipo_params, vista(clave)) sino [];
     if sueltos.largo() == 0 { return retorno; }
     let declarados = T.tipos_de_mapa(c.params, vista(clave)) sino [];
-    var ligaduras: mapa<str, str> = [];
+    var ligaduras: map<str, str> = [];
     var i = 0;
     while i < declarados.largo() && i < n.hijos.largo() {
         let dado = tipo_de(c, n.hijos[i]);
@@ -634,6 +634,6 @@ fn firma_de_funcion(c: &Contexto, nombre: view) -> str {
     return t;
 }
 
-fn lista_de(m: &mapa<str, lista<str>>, clave: view) -> lista<str> ! {
+fn lista_de(m: &map<str, list<str>>, clave: view) -> list<str> ! {
     return copiar(try obtener(m, clave));
 }

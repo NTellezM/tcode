@@ -1,6 +1,6 @@
 // std/texto.t — lo que en Python te dan los metodos de `str`.
 
-usar "std/caracter";
+use "std/caracter";
 
 fn minusculas(v: view) -> str {
     var salida = vacio();
@@ -37,8 +37,8 @@ fn mayusculas(v: view) -> str {
 }
 
 // Parte por espacios, saltos y tabuladores, descartando los vacios.
-fn palabras(v: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn palabras(v: view) -> list<str> {
+    var salida: list<str> = [];
     var desde = 0;
     var i = 0;
     while i <= largo(v) {
@@ -57,8 +57,8 @@ fn palabras(v: view) -> lista<str> {
 // digito: de "hola, mundo!" salen "hola" y "mundo", sin la puntuacion. Es lo
 // que quiere un contador de palabras; `palabras` es lo que quiere quien parte
 // una linea en campos.
-fn terminos(v: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn terminos(v: view) -> list<str> {
+    var salida: list<str> = [];
     var desde = 0;
     var i = 0;
     while i <= largo(v) {
@@ -74,9 +74,9 @@ fn terminos(v: view) -> lista<str> {
 }
 
 // Parte por un separador cualquiera, conservando los trozos vacios.
-fn partir(v: view, sep: view) -> lista<str> ! {
-    if largo(sep) == 0 { falla "el separador no puede estar vacio"; }
-    var salida: lista<str> = [];
+fn partir(v: view, sep: view) -> list<str> ! {
+    if largo(sep) == 0 { fail "el separador no puede estar vacio"; }
+    var salida: list<str> = [];
     var desde = 0;
     var i = 0;
     let primero = byte(sep, 0);
@@ -95,8 +95,8 @@ fn partir(v: view, sep: view) -> lista<str> ! {
 
 // Lineas sin el salto final. Entiende LF y CRLF, conserva las lineas vacias
 // de en medio y no inventa otra despues de un ultimo salto.
-fn lineas(v: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn lineas(v: view) -> list<str> {
+    var salida: list<str> = [];
     var desde = 0;
     var i = 0;
     while i < largo(v) {
@@ -118,7 +118,7 @@ fn lineas(v: view) -> lista<str> {
 
 // Apariciones sin solaparlas: `aaaa` contiene dos `aa`.
 fn apariciones(v: view, aguja: view) -> usize ! {
-    if largo(aguja) == 0 { falla "no se cuentan apariciones de la cadena vacia"; }
+    if largo(aguja) == 0 { fail "no se cuentan apariciones de la cadena vacia"; }
     var cuantas = 0;
     var i = 0;
     let primero = byte(aguja, 0);
@@ -135,12 +135,12 @@ fn apariciones(v: view, aguja: view) -> usize ! {
 }
 
 fn a_entero(v: view) -> usize ! {
-    if largo(v) == 0 { falla "no hay numero que leer"; }
+    if largo(v) == 0 { fail "no hay numero que leer"; }
     var n = 0;
     var i = 0;
     while i < largo(v) {
         let b = byte(v, i);
-        if b < 48 || b > 57 { falla "eso no es un numero"; }
+        if b < 48 || b > 57 { fail "eso no es un numero"; }
         n = n * 10 + (b - 48);
         i = i + 1;
     }
@@ -179,7 +179,7 @@ fn termina_con(v: view, sufijo: view) -> bool {
 // pueda confundir "esta en la posicion 0" con "no esta".
 fn indice_de(pajar: view, aguja: view) -> usize ! {
     if largo(aguja) == 0 { return 0; }
-    if largo(aguja) > largo(pajar) { falla "no esta"; }
+    if largo(aguja) > largo(pajar) { fail "no esta"; }
     // El primer byte descarta casi todas las posiciones sin cortar nada.
     let primero = byte(aguja, 0);
     var i = 0;
@@ -189,7 +189,7 @@ fn indice_de(pajar: view, aguja: view) -> usize ! {
         }
         i = i + 1;
     }
-    falla "no esta";
+    fail "no esta";
 }
 
 fn contiene(pajar: view, aguja: view) -> bool {
@@ -211,7 +211,7 @@ fn repetir(v: view, veces: usize) -> str {
     return s;
 }
 
-fn unir(trozos: &lista<str>, sep: view) -> str {
+fn unir(trozos: &list<str>, sep: view) -> str {
     var s = vacio();
     var primero = true;
     for t en trozos {
@@ -223,7 +223,7 @@ fn unir(trozos: &lista<str>, sep: view) -> str {
 }
 
 fn reemplazar(v: view, viejo: view, nuevo_texto: view) -> str ! {
-    if largo(viejo) == 0 { falla "no se puede reemplazar la cadena vacia"; }
+    if largo(viejo) == 0 { fail "no se puede reemplazar la cadena vacia"; }
     var s = vacio();
     var i = 0;
     let primero = byte(viejo, 0);

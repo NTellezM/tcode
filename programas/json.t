@@ -6,8 +6,8 @@
 // Un JSON mal escrito falla. El parser vive en `std/json`, y las banderas
 // las lee `std/cli`.
 
-usar "std/json" como json;
-usar "std/cli" como cli;
+use "std/json" como json;
+use "std/cli" como cli;
 
 fn main() -> usize ! {
     let todo = try entrada_completa();

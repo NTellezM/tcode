@@ -54,7 +54,7 @@ fn decodificar(v: view) -> str ! {
         if b != 10 && b != 13 { empujar_byte(limpio, b como u8); }
         i = i + 1;
     }
-    if largo(limpio) % 4 != 0 { falla "la entrada no es base64"; }
+    if largo(limpio) % 4 != 0 { fail "la entrada no es base64"; }
     var salida = vacio();
     i = 0;
     while i < largo(limpio) {
@@ -62,15 +62,15 @@ fn decodificar(v: view) -> str ! {
         var rellenos = 0;
         if byte(limpio, i + 3) == 61 { rellenos = 1; }
         if byte(limpio, i + 2) == 61 { rellenos = 2; }
-        if rellenos > 0 && !ultimo { falla "la entrada no es base64"; }
-        if rellenos == 2 && byte(limpio, i + 3) != 61 { falla "la entrada no es base64"; }
+        if rellenos > 0 && !ultimo { fail "la entrada no es base64"; }
+        if rellenos == 2 && byte(limpio, i + 3) != 61 { fail "la entrada no es base64"; }
         var n = 0;
         var k = 0;
         while k < 4 {
             var d = 0;
             if k < 4 - rellenos {
                 d = valor(byte(limpio, i + k));
-                if d == 64 { falla "la entrada no es base64"; }
+                if d == 64 { fail "la entrada no es base64"; }
             }
             n = n * 64 + d;
             k = k + 1;

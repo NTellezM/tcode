@@ -6,17 +6,17 @@
 //
 //     ./pruebas
 
-usar "std/prueba";
-usar "std/texto";
-usar "std/lista";
-usar "std/numero";
-usar "std/mapa";
-usar "std/conjunto";
-usar "std/formato";
-usar "std/bytes";
-usar "std/vector";
-usar "std/par";
-usar "std/iterador";
+use "std/prueba";
+use "std/texto";
+use "std/lista";
+use "std/numero";
+use "std/mapa";
+use "std/conjunto";
+use "std/formato";
+use "std/bytes";
+use "std/vector";
+use "std/par";
+use "std/iterador";
 
 fn corto(x: &str) -> bool { return largo(x) < 5; }
 
@@ -45,7 +45,7 @@ fn main() -> usize ! {
     afirmar_igual_texto(p, "alinear", alinear("7", 4), "   7");
 
     // ---- lista ----
-    var ns: lista<usize> = [];
+    var ns: list<usize> = [];
     anadir(ns, 5); anadir(ns, 1); anadir(ns, 9);
     afirmar_igual_numero(p, "suma", suma(ns), 15);
     afirmar_igual_numero(p, "maximo", try maximo(ns), 9);
@@ -53,7 +53,7 @@ fn main() -> usize ! {
     afirmar_igual_numero(p, "media", try media(ns), 5);
     afirmar_igual_numero(p, "ultima posicion", try ultima_posicion(ns), 2);
 
-    var ts: lista<str> = [];
+    var ts: list<str> = [];
     anadir(ts, nuevo("pera")); anadir(ts, nuevo("aguacate"));
     anadir(ts, nuevo("uva"));
     afirmar_igual_texto(p, "invertida", unir(invertida(ts), ","),
@@ -91,14 +91,14 @@ fn main() -> usize ! {
     afirmar(p, "dividir entre cero falla", (dividir(1, 0) sino 999) == 999);
 
     // ---- mapa y conjunto ----
-    var m: mapa<str, usize> = [];
+    var m: map<str, usize> = [];
     acumular(m, "a", 2); acumular(m, "a", 3); acumular(m, "b", 1);
     afirmar_igual_numero(p, "acumular", obtener_o(m, "a", 0), 5);
     afirmar_igual_texto(p, "claves ordenadas", unir(claves_ordenadas(m), ","),
         "a,b");
-    let valores_m: lista<usize> = try valores_ordenados(m);
+    let valores_m: list<usize> = try valores_ordenados(m);
     afirmar_igual_numero(p, "valores ordenados", suma(valores_m), 6);
-    var otro: mapa<str, usize> = [];
+    var otro: map<str, usize> = [];
     poner(otro, "a", 8); poner(otro, "c", 2); try actualizar(m, otro);
     afirmar_igual_numero(p, "actualizar", obtener_o(m, "a", 0), 8);
 
@@ -138,12 +138,12 @@ fn main() -> usize ! {
     return terminar(p);
 }
 
-fn dos_listas() -> lista<lista<str>> {
-    var a: lista<str> = [];
+fn dos_listas() -> list<list<str>> {
+    var a: list<str> = [];
     anadir(a, nuevo("a"));
-    var b: lista<str> = [];
+    var b: list<str> = [];
     anadir(b, nuevo("b")); anadir(b, nuevo("c"));
-    var todas: lista<lista<str>> = [];
+    var todas: list<list<str>> = [];
     anadir(todas, a); anadir(todas, b);
     return todas;
 }

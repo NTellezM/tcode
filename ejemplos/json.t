@@ -30,15 +30,15 @@
 //     quiera quedarse con lo de dentro escribe `copiar(...)`, que es la
 //     misma regla explicita del resto del lenguaje.
 
-usar "std/texto";
-usar "std/lista";
+use "std/texto";
+use "std/lista";
 
 enum Json {
     Nulo,
     Verdad(bool),
     Numero(i64),
     Texto(str),
-    Lista(lista<Json>),
+    Lista(list<Json>),
 }
 
 fn escribir(v: &Json) -> str {
@@ -84,13 +84,13 @@ fn cuantos(v: &Json) -> usize {
 }
 
 fn main() {
-    var xs: lista<Json> = [];
+    var xs: list<Json> = [];
     anadir(xs, Json.Numero(42));
     anadir(xs, Json.Texto(nuevo("hola")));
     anadir(xs, Json.Verdad(true));
     anadir(xs, Json.Nulo);
 
-    var dentro: lista<Json> = [];
+    var dentro: list<Json> = [];
     anadir(dentro, Json.Numero(1));
     anadir(dentro, Json.Numero(2));
     anadir(xs, Json.Lista(dentro));

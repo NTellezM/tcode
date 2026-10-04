@@ -7,9 +7,9 @@
 // dentro, una comilla se escribe como dos. Texto intensivo puro: es el tipo
 // de biblioteca que ejercita las listas y los prestamos sin tocar nada mas.
 
-fn leer(texto: view) -> lista<lista<str>> {
-    var filas: lista<lista<str>> = [];
-    var fila: lista<str> = [];
+fn leer(texto: view) -> list<list<str>> {
+    var filas: list<list<str>> = [];
+    var fila: list<str> = [];
     var campo = vacio();
     var en_comillas = false;
     var i = 0;
@@ -55,7 +55,7 @@ fn leer(texto: view) -> lista<lista<str>> {
     return filas;
 }
 
-fn escribir(filas: &lista<lista<str>>) -> str {
+fn escribir(filas: &list<list<str>>) -> str {
     var salida = vacio();
     var primera_fila = true;
     for fila en filas {

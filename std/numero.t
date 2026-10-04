@@ -6,18 +6,18 @@
 // eso es lo que hay aqui.
 
 fn dividir(a: usize, b: usize) -> usize ! {
-    if b == 0 { falla "division por cero"; }
+    if b == 0 { fail "division por cero"; }
     return a / b;
 }
 
 fn resto(a: usize, b: usize) -> usize ! {
-    if b == 0 { falla "resto de una division por cero"; }
+    if b == 0 { fail "resto de una division por cero"; }
     return a % b;
 }
 
 // El porcentaje de `parte` sobre `total`, redondeado hacia abajo.
 fn porcentaje(parte: usize, total: usize) -> usize ! {
-    if total == 0 { falla "no hay total sobre el que calcular un porcentaje"; }
+    if total == 0 { fail "no hay total sobre el que calcular un porcentaje"; }
     return try dividir(parte * 100, total);
 }
 
@@ -47,7 +47,7 @@ fn cerca(a: f64, b: f64, tolerancia: f64) -> bool {
 
 // Un porcentaje que no pierde la parte decimal por el camino.
 fn porcentaje_exacto(parte: f64, total: f64) -> f64 ! {
-    if cerca(total, 0.0, 0.0) { falla "no hay total sobre el que calcular"; }
+    if cerca(total, 0.0, 0.0) { fail "no hay total sobre el que calcular"; }
     return (parte * 100.0) / total;
 }
 
@@ -60,6 +60,6 @@ fn acotar_decimal(x: f64, minimo_val: f64, maximo_val: f64) -> f64 {
 
 // Media que no trunca: `media` de `std/lista` divide enteros.
 fn media_decimal(suma: f64, cuantos: usize) -> f64 ! {
-    if cuantos == 0 { falla "no hay nada de lo que sacar la media"; }
+    if cuantos == 0 { fail "no hay nada de lo que sacar la media"; }
     return suma / (cuantos como f64);
 }

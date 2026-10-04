@@ -13,17 +13,17 @@
 //     make tcodec
 //     ./tcodec ejemplos/binario.t --mostrar-c > binario.c
 
-usar "lib/programa.t" como F;
-usar "lib/generar.t" como G;
-usar "lib/tipar.t" como I;
-usar "../lexer/lib/lexico.t";
-usar "../lexer/lib/sintaxis.t" como P;
-usar "lib/tipos.t" como T;
-usar "lib/comprobar.t" como C;
-usar "lib/formato.t" como FMT;
-usar "std/texto";
-usar "std/lista";
-usar "../lexer/lib/clase.t";
+use "lib/programa.t" como F;
+use "lib/generar.t" como G;
+use "lib/tipar.t" como I;
+use "../lexer/lib/lexico.t";
+use "../lexer/lib/sintaxis.t" como P;
+use "lib/tipos.t" como T;
+use "lib/comprobar.t" como C;
+use "lib/formato.t" como FMT;
+use "std/texto";
+use "std/lista";
+use "../lexer/lib/clase.t";
 
 // Lo que hace falta del sistema para construir el binario, escrito en C al
 // lado: ejecutar el compilador de C, un temporal, y sustituir un archivo de
@@ -60,7 +60,7 @@ fn buscar_desde(t: view, que: view, desde: usize) -> usize {
 }
 
 // Lo que va entre `prefijo` y el `(` siguiente, en cada aparicion.
-fn apuntar_tras(t: view, prefijo: view, salida: mut mapa<str, usize>) {
+fn apuntar_tras(t: view, prefijo: view, salida: mut map<str, usize>) {
     var i = buscar_desde(t, prefijo, 0);
     while i < t.largo() {
         let desde = i + prefijo.largo();
@@ -151,8 +151,8 @@ fn necesita_lo_que_falta(l: view) -> bool {
 // Rutas y modulos, como el cargador
 // ------------------------------------------------------------------
 
-fn quitar_ultima(xs: mut lista<str>) {
-    var quedan: lista<str> = [];
+fn quitar_ultima(xs: mut list<str>) {
+    var quedan: list<str> = [];
     var i = 0;
     while i + 1 < xs.largo() {
         quedan.anadir(copiar(xs[i]));
@@ -161,7 +161,7 @@ fn quitar_ultima(xs: mut lista<str>) {
     xs = quedan;
 }
 
-fn esta_en(xs: &lista<str>, x: view) -> bool {
+fn esta_en(xs: &list<str>, x: view) -> bool {
     for y en xs {
         if igual(y, x) { return true; }
     }
@@ -183,7 +183,7 @@ fn resolver(pedido: view, dir: view, raiz: view) -> str ! {
         }
         base.empujar(pedido);
     }
-    var candidatos: lista<str> = [];
+    var candidatos: list<str> = [];
     candidatos.anadir(copiar(base));
     if !termina_con(base, ".t") {
         var con_t = copiar(base);
@@ -198,11 +198,11 @@ fn resolver(pedido: view, dir: view, raiz: view) -> str ! {
 }
 
 // Los `usar` del principio de un archivo, en orden.
-fn usar_de(fuente: view) -> lista<str> ! {
+fn usar_de(fuente: view) -> list<str> ! {
     // Si no se puede leer, no pide nada: el error de verdad lo dice despues
     // `preparar`, con su archivo y su linea.
     let toks = analizar(fuente) sino [];
-    var salida: lista<str> = [];
+    var salida: list<str> = [];
     var i = 0;
     while i + 1 < toks.largo() {
         if toks[i].valor != "usar" { break; }
@@ -221,9 +221,9 @@ fn usar_de(fuente: view) -> lista<str> ! {
 
 // Los `usar` del principio con su alias: `ruta\talias\tlinea`, alias vacio
 // si no lleva.
-fn usar_con_alias(fuente: view) -> lista<str> ! {
+fn usar_con_alias(fuente: view) -> list<str> ! {
     let toks = try analizar(fuente);
-    var salida: lista<str> = [];
+    var salida: list<str> = [];
     var i = 0;
     while i + 1 < toks.largo() {
         if toks[i].valor != "usar" { break; }
@@ -270,8 +270,8 @@ fn tiene_main(fuente: view) -> bool {
 // vez: el mismo recorrido que el cargador, que es el orden en que salen las
 // funciones en el C. Si algo falla, `error` lo dice como el cargador de
 // Python: un ciclo, o un modulo que no esta y quien lo pedia.
-fn visitar(ruta: view, raiz: view, hechos: mut lista<str>,
-    pila: mut lista<str>, error: mut str, quien: view, linea: usize) -> bool {
+fn visitar(ruta: view, raiz: view, hechos: mut list<str>,
+    pila: mut list<str>, error: mut str, quien: view, linea: usize) -> bool {
     if esta_en(pila, ruta) {
         var ciclo = vacio();
         var dentro = false;
@@ -337,8 +337,8 @@ fn visitar(ruta: view, raiz: view, hechos: mut lista<str>,
 // lo pida otro.
 
 // Los modulos que declaran un nombre, en su orden.
-fn declarantes(arboles: &lista<P.Nodo>, modulos: &lista<str>, nombre: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn declarantes(arboles: &list<P.Nodo>, modulos: &list<str>, nombre: view) -> list<str> {
+    var salida: list<str> = [];
     var k = 0;
     while k < arboles.largo() {
         if esta_en(nombres_declarados(arboles[k]), nombre) { salida.anadir(copiar(modulos[k])); }
@@ -347,8 +347,8 @@ fn declarantes(arboles: &lista<P.Nodo>, modulos: &lista<str>, nombre: view) -> l
     return salida;
 }
 
-fn nombres_declarados(arbol: &P.Nodo) -> lista<str> {
-    var salida: lista<str> = [];
+fn nombres_declarados(arbol: &P.Nodo) -> list<str> {
+    var salida: list<str> = [];
     for d en arbol.hijos {
         let clase = d.clase;
         if clase == Clase.Fn || clase == Clase.Struct || clase == Clase.Enum {
@@ -360,7 +360,7 @@ fn nombres_declarados(arbol: &P.Nodo) -> lista<str> {
 
 // Los nombres que una funcion declara dentro: parametros, variables, los de
 // un `for` y los que atrapa un `match`.
-fn locales_de(n: &P.Nodo, salida: mut lista<str>) {
+fn locales_de(n: &P.Nodo, salida: mut list<str>) {
     let clase = n.clase;
     match clase {
         Clase.Param -> {
@@ -390,7 +390,7 @@ fn locales_de(n: &P.Nodo, salida: mut lista<str>) {
 }
 
 // Las llamadas de un arbol, con el nombre tal como se escribio.
-fn llamadas_de(n: &P.Nodo, salida: mut lista<str>) {
+fn llamadas_de(n: &P.Nodo, salida: mut list<str>) {
     if n.clase == Clase.Llamada { salida.anadir(copiar(n.texto)); }
     for h en n.hijos { llamadas_de(h, salida); }
 }
@@ -421,7 +421,7 @@ fn nombre_de_declaracion(t: view) -> str {
 }
 
 // Lo que atrapa un patron, tambien dentro de formas anidadas.
-fn atrapas_de(n: &P.Nodo, salida: mut lista<str>) {
+fn atrapas_de(n: &P.Nodo, salida: mut list<str>) {
     if n.clase == Clase.Atrapa && !igual(n.texto, "_") { salida.anadir(copiar(n.texto)); }
     if n.clase == Clase.Atrapa || n.clase == Clase.Patron {
         for h en n.hijos { atrapas_de(h, salida); }
@@ -432,7 +432,7 @@ fn atrapas_de(n: &P.Nodo, salida: mut lista<str>) {
 // mismo nombre esta a la vista: desde su declaracion hasta el final de su
 // bloque, o dentro de su `for`, su brazo o su clausura. Devuelve lo que se
 // ve despues de `n`, que solo cambia con una declaracion.
-fn mirar_tapadas(n: &P.Nodo, vis: &lista<str>, salida: mut lista<str>) -> lista<str> {
+fn mirar_tapadas(n: &P.Nodo, vis: &list<str>, salida: mut list<str>) -> list<str> {
     let clase = n.clase;
     if clase == Clase.Bloque {
         var dentro = copiar(vis);
@@ -486,16 +486,16 @@ fn mirar_tapadas(n: &P.Nodo, vis: &lista<str>, salida: mut lista<str>) -> lista<
 // compilaria. Se marca como repetida y el cargador la renombra como si
 // chocara con otro modulo. Solo esas: un programa que hoy compila no cambia
 // su C. Las genericas no, que en C llevan los tipos en el nombre.
-fn marcar_tapadas(arboles: &lista<P.Nodo>, plantillas: &mapa<str, usize>,
+fn marcar_tapadas(arboles: &list<P.Nodo>, plantillas: &map<str, usize>,
     global: mut I.Contexto) {
     for arbol en arboles {
         for d en arbol.hijos {
             if d.clase != Clase.Fn { continue; }
-            var params: lista<str> = [];
+            var params: list<str> = [];
             for h en d.hijos {
                 if h.clase == Clase.Param { params.anadir(nombre_de_param(h.texto)); }
             }
-            var tapadas: lista<str> = [];
+            var tapadas: list<str> = [];
             for h en d.hijos {
                 if h.clase == Clase.Bloque { let _v = mirar_tapadas(h, params, tapadas); }
             }
@@ -514,8 +514,8 @@ fn marcar_tapadas(arboles: &lista<P.Nodo>, plantillas: &mapa<str, usize>,
 }
 
 // El primer nombre que se usa sin haberlo pedido, en preorden: `nombre\tlinea`.
-fn sin_pedir(n: &P.Nodo, visible: &mapa<str, str>, duenios: &mapa<str, str>,
-    locales: &lista<str>) -> str {
+fn sin_pedir(n: &P.Nodo, visible: &map<str, str>, duenios: &map<str, str>,
+    locales: &list<str>) -> str {
     let clase = n.clase;
     var nombre = vacio();
     match clase {
@@ -538,11 +538,11 @@ fn sin_pedir(n: &P.Nodo, visible: &mapa<str, str>, duenios: &mapa<str, str>,
     return vacio();
 }
 
-fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
+fn revisar_nombres(arboles: &list<P.Nodo>, modulos: &list<str>, raiz: view,
     error: mut str) -> bool {
     // Quien declara cada nombre, en el orden de los modulos.
-    var duenios: mapa<str, str> = [];
-    var cuantos: mapa<str, usize> = [];
+    var duenios: map<str, str> = [];
+    var cuantos: map<str, usize> = [];
     var k = 0;
     while k < arboles.largo() {
         for n en nombres_declarados(arboles[k]) {
@@ -559,7 +559,7 @@ fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
     while k < arboles.largo() {
         // clave -> `modulo` que la trae; el valor interno es modulo+nombre,
         // salvo que el nombre lo declare uno solo.
-        var visible: mapa<str, str> = [];
+        var visible: map<str, str> = [];
         for n en nombres_declarados(arboles[k]) {
             poner(visible, vista(n), copiar(modulos[k]));
         }
@@ -601,7 +601,7 @@ fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
         // Y lo que se usa sin pedirlo.
         for d en arboles[k].hijos {
             if d.clase != Clase.Fn { continue; }
-            var locales: lista<str> = [];
+            var locales: list<str> = [];
             locales_de(d, locales);
             for h en d.hijos {
                 if h.clase != Clase.Bloque { continue; }
@@ -627,9 +627,9 @@ fn revisar_nombres(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
 
 // Un struct por valor necesita el tamanio del que lleva dentro: se definen
 // en orden de dependencia, visitando antes lo que contiene cada uno.
-fn visitar_struct(nombre: view, indice: &mapa<str, usize>,
-    tipos_de: &lista<lista<str>>, listos: mut mapa<str, usize>,
-    salida: mut lista<str>) {
+fn visitar_struct(nombre: view, indice: &map<str, usize>,
+    tipos_de: &list<list<str>>, listos: mut map<str, usize>,
+    salida: mut list<str>) {
     if tiene(listos, nombre) || !tiene(indice, nombre) { return; }
     poner(listos, nombre, 1);
     let k = obtener(indice, nombre) sino 0;
@@ -647,18 +647,18 @@ fn visitar_struct(nombre: view, indice: &mapa<str, usize>,
 }
 
 // Define en C el enum o struct `nombre`, y antes lo que lleve por valor.
-fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<lista<str>>,
-    en_lleva: &lista<lista<str>>, st_indice: &mapa<str, usize>,
-    st_campos: &lista<lista<str>>, st_tipos: &lista<lista<str>>,
-    definidos: mut mapa<str, usize>, envueltos: mut mapa<str, usize>,
-    adelantados: &mapa<str, usize>, partes: mut lista<str>) {
+fn definir_tipo_c(nombre: view, en_nombres: &list<str>, en_variantes: &list<list<str>>,
+    en_lleva: &list<list<str>>, st_indice: &map<str, usize>,
+    st_campos: &list<list<str>>, st_tipos: &list<list<str>>,
+    definidos: mut map<str, usize>, envueltos: mut map<str, usize>,
+    adelantados: &map<str, usize>, partes: mut list<str>) {
     if tiene(definidos, nombre) { return; }
     var ie = 0;
     while ie < en_nombres.largo() && !igual(en_nombres[ie], nombre) { ie = ie + 1; }
     let es_enum = ie < en_nombres.largo();
     if !es_enum && !tiene(st_indice, nombre) { return; }
     poner(definidos, nombre, 1);
-    var lleva: lista<str> = [];
+    var lleva: list<str> = [];
     if es_enum {
         for x en en_lleva[ie] {
             for t en partir_tab(x) { lleva.anadir(copiar(t)); }
@@ -695,11 +695,11 @@ fn definir_tipo_c(nombre: view, en_nombres: &lista<str>, en_variantes: &lista<li
 
 // Un campo arreglo es un struct de C por valor: su envoltorio va antes que
 // el struct que lo lleva, y el de su elemento antes que el.
-fn envolver_arreglo_c(t: view, en_nombres: &lista<str>, en_variantes: &lista<lista<str>>,
-    en_lleva: &lista<lista<str>>, st_indice: &mapa<str, usize>,
-    st_campos: &lista<lista<str>>, st_tipos: &lista<lista<str>>,
-    definidos: mut mapa<str, usize>, envueltos: mut mapa<str, usize>,
-    adelantados: &mapa<str, usize>, partes: mut lista<str>) {
+fn envolver_arreglo_c(t: view, en_nombres: &list<str>, en_variantes: &list<list<str>>,
+    en_lleva: &list<list<str>>, st_indice: &map<str, usize>,
+    st_campos: &list<list<str>>, st_tipos: &list<list<str>>,
+    definidos: mut map<str, usize>, envueltos: mut map<str, usize>,
+    adelantados: &map<str, usize>, partes: mut list<str>) {
     if tiene(envueltos, t) { return; }
     poner(envueltos, t, 1);
     let pa = T.partes_de_arreglo(t);
@@ -715,14 +715,14 @@ fn envolver_arreglo_c(t: view, en_nombres: &lista<str>, en_variantes: &lista<lis
 }
 
 // Lo que guarda un bloque, una lista o un mapa: sus typedefs dependen de ello.
-fn dependencias_de_agregado(t: view) -> lista<str> {
+fn dependencias_de_agregado(t: view) -> list<str> {
     if T.es_bloque(t) || T.es_lista(t) { return [T.elemento(t)]; }
     return T.partes(t);
 }
 
 // La definicion en C del envoltorio del arreglo `t`: un struct sin nombre,
 // o con el suyo si se declaro antes porque lo guarda un mapa o un bloque.
-fn linea_arreglo(t: view, adelantados: &mapa<str, usize>) -> str {
+fn linea_arreglo(t: view, adelantados: &map<str, usize>) -> str {
     let pa = T.partes_de_arreglo(t);
     let te = G.tipo_c(pa[0]);
     let tc = G.tipo_c(t);
@@ -731,8 +731,8 @@ fn linea_arreglo(t: view, adelantados: &mapa<str, usize>) -> str {
 }
 
 // Un enum en C: la etiqueta y, a su lado, una union con lo de cada forma.
-fn cuerpo_enum_c(ie_s: usize, en_nombres: &lista<str>, en_variantes: &lista<lista<str>>,
-    en_lleva: &lista<lista<str>>, partes: mut lista<str>) {
+fn cuerpo_enum_c(ie_s: usize, en_nombres: &list<str>, en_variantes: &list<list<str>>,
+    en_lleva: &list<list<str>>, partes: mut list<str>) {
     let en_n = copiar(en_nombres[ie_s]);
     partes.anadir($"struct {en_n}");
     partes.anadir(nuevo("{"));
@@ -781,7 +781,7 @@ fn llama_a(n: &P.Nodo, nombre: view) -> bool {
 // `leer_archivo` solo entra en el programa que lo usa.
 // Escribir un archivo entero: la ruta sin ceros por medio, y un fallo al
 // abrir, al escribir o al cerrar es un fallo, no un archivo a medias callado.
-fn ayudante_escribir_archivo(salida: mut lista<str>) {
+fn ayudante_escribir_archivo(salida: mut list<str>) {
     let res = G.tipo_resultado("()");
     salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
     salida.anadir($"static {res} ss_lang_escribir_archivo_(SafeView ruta, SafeView datos)");
@@ -835,7 +835,7 @@ fn resultados_de_internas(n: &P.Nodo, cierres: &Cierres, reg: mut Registro) {
     for h en n.hijos { resultados_de_internas(h, cierres, reg); }
 }
 
-fn ayudante_leer_archivo(salida: mut lista<str>) {
+fn ayudante_leer_archivo(salida: mut list<str>) {
     let res = G.tipo_resultado("str");
     salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
     salida.anadir($"static {res} ss_lang_leer_archivo_(SafeView ruta)");
@@ -876,7 +876,7 @@ fn ayudante_leer_archivo(salida: mut lista<str>) {
     salida.anadir(vacio());
 }
 
-fn ayudante_leer_parte_archivo(salida: mut lista<str>) {
+fn ayudante_leer_parte_archivo(salida: mut list<str>) {
     let res = G.tipo_resultado("str");
     salida.anadir(nuevo("SS_LANG_QUIZA_SIN_USAR"));
     salida.anadir($"static {res} ss_lang_leer_parte_archivo_(SafeView ruta, size_t desde, size_t cuantos)");
@@ -971,7 +971,7 @@ fn sitio(archivo: view, linea: usize) -> str {
 // Donde se declaro un struct, un enum o una funcion con este nombre. Si no
 // aparece se dice el archivo principal: solo pasa si el nombre lo invento el
 // propio compilador.
-fn sitio_de_nombre(arboles: &lista<P.Nodo>, modulos: &lista<str>,
+fn sitio_de_nombre(arboles: &list<P.Nodo>, modulos: &list<str>,
     nombre: view) -> str {
     var i = 0;
     while i < arboles.largo() {
@@ -1008,17 +1008,17 @@ fn rechazo(sitio_fallo: view, que: view) -> usize {
 // al pasar la lista de sus claves y los resultados de `obtener`, asi que
 // los tres van en el mismo recorrido y no en tres.
 struct Registro {
-    listas: lista<str>,
-    mapas: lista<str>,
-    resultados: lista<str>,
-    vistos: mapa<str, usize>,
-    res_vistos: mapa<str, usize>,
+    listas: list<str>,
+    mapas: list<str>,
+    resultados: list<str>,
+    vistos: map<str, usize>,
+    res_vistos: map<str, usize>,
     // Cada `bloque<T>`, en el orden en que se registra: antes que lo que
     // lleva dentro, al reves que una lista.
-    bloques: lista<str>,
+    bloques: list<str>,
     // Los envoltorios de arreglo van aparte: no son agregados sin nombre.
-    arreglos: lista<str>,
-    arr_vistos: mapa<str, usize>,
+    arreglos: list<str>,
+    arr_vistos: map<str, usize>,
 }
 
 fn registro() -> Registro {
@@ -1035,7 +1035,7 @@ fn registrar_resultado(reg: mut Registro, t: view) {
 }
 
 // Tiene partes: se puede leer un campo o modificarlo en el sitio.
-fn es_compuesto_t(t: view, structs: &mapa<str, usize>) -> bool {
+fn es_compuesto_t(t: view, structs: &map<str, usize>) -> bool {
     if t == "str" || T.es_bloque(t) { return true; }
     if T.es_lista(t) || T.es_mapa(t) { return true; }
     if T.es_arreglo(t) { return true; }
@@ -1052,7 +1052,7 @@ fn tipo_obtener(v: view, global: &I.Contexto) -> str {
 // Registra `t` si es una lista o un mapa, lo de dentro primero. Falso si
 // es algo que este hito todavia no escribe.
 fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
-    structs: &mapa<str, usize>) -> bool {
+    structs: &map<str, usize>) -> bool {
     if contiene(t, "<") {
         let resuelto = I.nombre_resuelto(t);
         if !igual(resuelto, t) {
@@ -1118,7 +1118,7 @@ fn mirar_tipo(t: view, reg: mut Registro, global: &I.Contexto,
 }
 
 fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
-    global: &I.Contexto, structs: &mapa<str, usize>) -> bool {
+    global: &I.Contexto, structs: &map<str, usize>) -> bool {
     I.abrir(tipos);
     var bien = true;
     for st en n.hijos {
@@ -1172,7 +1172,7 @@ fn mirar_bloque(n: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
 }
 
 fn mirar_brazos(m: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
-    global: &I.Contexto, structs: &mapa<str, usize>) -> bool {
+    global: &I.Contexto, structs: &map<str, usize>) -> bool {
     for b en m.hijos {
         if b.clase != Clase.Brazo { continue; }
         for h en b.hijos {
@@ -1185,7 +1185,7 @@ fn mirar_brazos(m: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
 }
 
 fn mirar_funcion(d: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
-    global: &I.Contexto, structs: &mapa<str, usize>) -> bool {
+    global: &I.Contexto, structs: &map<str, usize>) -> bool {
     let r = retorno_de(d);
     if !mirar_tipo(r, reg, global, structs) { return false; }
     if es_falible(d) { registrar_resultado(reg, r); }
@@ -1210,8 +1210,8 @@ fn mirar_funcion(d: &P.Nodo, tipos: mut I.Contexto, reg: mut Registro,
 
 // Los typedefs de listas y mapas van juntos, ordenados por el tipo escrito,
 // cada uno despues de los que lleva dentro.
-fn poner_typedef(t: view, reg: &Registro, puestos: mut mapa<str, usize>,
-    salida: mut lista<str>) {
+fn poner_typedef(t: view, reg: &Registro, puestos: mut map<str, usize>,
+    salida: mut list<str>) {
     if tiene(puestos, t) || !tiene(reg.vistos, t) { return; }
     poner(puestos, t, 1);
     let tc = G.tipo_c(t);
@@ -1244,7 +1244,7 @@ fn ordenable(t: view) -> bool {
     return t == "f32" || t == "f64";
 }
 
-fn funcion_push(t: view, salida: mut lista<str>) {
+fn funcion_push(t: view, salida: mut list<str>) {
     let dentro = T.elemento(t);
     let te = G.tipo_c(dentro);
     let tc = G.tipo_c(t);
@@ -1275,7 +1275,7 @@ fn funcion_push(t: view, salida: mut lista<str>) {
     salida.anadir(vacio());
 }
 
-fn funcion_ordenar(t: view, salida: mut lista<str>) {
+fn funcion_ordenar(t: view, salida: mut list<str>) {
     let dentro = T.elemento(t);
     if !ordenable(dentro) { return; }
     let te = G.tipo_c(dentro);
@@ -1305,7 +1305,7 @@ fn funcion_ordenar(t: view, salida: mut lista<str>) {
 // Las lineas que sueltan `donde`, con la misma cuenta que el resto: una
 // lista dentro de un valor gasta indice de bucle.
 fn lineas_liberacion(global: &I.Contexto, donde: view, tipo: view,
-    sangria: usize, cta: mut F.Cuenta, salida: mut lista<str>) {
+    sangria: usize, cta: mut F.Cuenta, salida: mut list<str>) {
     var b = G.cuerpo();
     b.temporal = cta.temporal;
     b.bucle = cta.bucle;
@@ -1320,8 +1320,8 @@ fn lineas_liberacion(global: &I.Contexto, donde: view, tipo: view,
 
 // Un juego de funciones por cada `mapa<K, V>` concreto: tabla de
 // direccionamiento abierto con sondeo lineal, y borrado sin lapidas.
-fn funcion_mapa(t: view, global: &I.Contexto, structs: &mapa<str, usize>,
-    cta: mut F.Cuenta, salida: mut lista<str>) {
+fn funcion_mapa(t: view, global: &I.Contexto, structs: &map<str, usize>,
+    cta: mut F.Cuenta, salida: mut list<str>) {
     let partes = T.partes(t);
     let k = copiar(partes[0]);
     let v = copiar(partes[1]);
@@ -1535,7 +1535,7 @@ fn funcion_mapa(t: view, global: &I.Contexto, structs: &mapa<str, usize>,
 }
 
 fn funcion_bloque(t: view, global: &I.Contexto, cta: mut F.Cuenta,
-    salida: mut lista<str>) {
+    salida: mut list<str>) {
     let elem = T.elemento(t);
     let te = G.tipo_c(elem);
     let nombre = G.tipo_c(t);
@@ -1604,9 +1604,9 @@ fn tipo_de_nombre_mapa(u: view) -> str {
 // Los nombres de C que llevan `_`, cada uno una vez y en el orden en que
 // aparecen. Un nombre empieza donde no lo precede otro caracter de nombre:
 // `posicion__` esta dentro de `ultima_posicion__usize`, y esa es otra.
-fn nombres_con_raya(lineas: &lista<str>) -> lista<str> {
-    var vistos: mapa<str, usize> = [];
-    var salida: lista<str> = [];
+fn nombres_con_raya(lineas: &list<str>) -> list<str> {
+    var vistos: map<str, usize> = [];
+    var salida: list<str> = [];
     for t en lineas {
         var i = 0;
         while i < t.largo() {
@@ -1633,13 +1633,13 @@ fn nombres_con_raya(lineas: &lista<str>) -> lista<str> {
     return salida;
 }
 
-fn con_prefijo(nombres: &lista<str>, prefijo: view, salida: mut mapa<str, usize>) {
+fn con_prefijo(nombres: &list<str>, prefijo: view, salida: mut map<str, usize>) {
     for x en nombres {
         if empieza_con(x, prefijo) { poner(salida, x, 1); }
     }
 }
 
-fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
+fn apuntar_nombres(t: view, prefijo: view, salida: mut map<str, usize>) {
     var i = buscar_desde(t, prefijo, 0);
     while i < t.largo() {
         var j = i + prefijo.largo();
@@ -1666,8 +1666,8 @@ fn apuntar_nombres(t: view, prefijo: view, salida: mut mapa<str, usize>) {
 // salen despues de la aritmetica, de dentro hacia fuera.
 
 // `a\tb` -> [a, b]; la cadena vacia no lleva nada.
-fn partir_tab(t: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn partir_tab(t: view) -> list<str> {
+    var salida: list<str> = [];
     if t.largo() == 0 { return salida; }
     var desde = 0;
     var i = 0;
@@ -1693,9 +1693,9 @@ fn hondura_tipo(t: view) -> usize {
 }
 
 // Apunta el copiador de `t` y el de lo que lleve dentro, en ese orden.
-fn necesita_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
-    st_tipos: &lista<lista<str>>, vistos: mut mapa<str, usize>,
-    salida: mut lista<str>) {
+fn necesita_copiador(t: view, global: &I.Contexto, st_indice: &map<str, usize>,
+    st_tipos: &list<list<str>>, vistos: mut map<str, usize>,
+    salida: mut list<str>) {
     if t == "str" || !I.posee_con_formas(global, t) || tiene(vistos, t) {
         return;
     }
@@ -1750,10 +1750,10 @@ fn copia_de(donde: view, t: view, global: &I.Contexto) -> str {
 }
 
 // Falso si el tipo es de los que este hito todavia no copia.
-fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
-    st_campos: &lista<lista<str>>, st_tipos: &lista<lista<str>>,
-    en_indice: &mapa<str, usize>, en_variantes: &lista<lista<str>>,
-    en_lleva: &lista<lista<str>>, salida: mut lista<str>) -> bool {
+fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &map<str, usize>,
+    st_campos: &list<list<str>>, st_tipos: &list<list<str>>,
+    en_indice: &map<str, usize>, en_variantes: &list<list<str>>,
+    en_lleva: &list<list<str>>, salida: mut list<str>) -> bool {
     let tc = G.tipo_c(t);
     let m = G.mangle(t);
     // Un enum se copia entero y luego se duplica lo que lleve con dueno la
@@ -1764,7 +1764,7 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
         salida.anadir($"static {tc} ss_copia_{m}(const {tc}* p)");
         salida.anadir(nuevo("{"));
         salida.anadir($"    {tc} r = *p;");
-        var hay: lista<usize> = [];
+        var hay: list<usize> = [];
         var iv = 0;
         while iv < en_variantes[ke].largo() {
             let tipos_v = partir_tab(en_lleva[ke][iv]);
@@ -1915,17 +1915,17 @@ fn cuerpo_copiador(t: view, global: &I.Contexto, st_indice: &mapa<str, usize>,
 
 // Los structs desde `desde`, en el orden de `orden`; los que no estan en el,
 // detras y como estaban.
-fn ordenar_como_comprobador(desde: usize, orden: &lista<str>,
-    st_nombres: mut lista<str>, st_indice: mut mapa<str, usize>,
-    st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>) {
-    var puesto: mapa<str, usize> = [];
+fn ordenar_como_comprobador(desde: usize, orden: &list<str>,
+    st_nombres: mut list<str>, st_indice: mut map<str, usize>,
+    st_campos: mut list<list<str>>, st_tipos: mut list<list<str>>) {
+    var puesto: map<str, usize> = [];
     var k = 0;
     while k < orden.largo() {
         if !tiene(puesto, orden[k]) { poner(puesto, vista(orden[k]), k); }
         k = k + 1;
     }
     // Una insercion estable: son pocos.
-    var cual: lista<usize> = [];
+    var cual: list<usize> = [];
     var i = desde;
     while i < st_nombres.largo() {
         cual.anadir(i);
@@ -1946,9 +1946,9 @@ fn ordenar_como_comprobador(desde: usize, orden: &lista<str>,
         }
         a = a + 1;
     }
-    var nombres: lista<str> = [];
-    var campos: lista<lista<str>> = [];
-    var tipos: lista<lista<str>> = [];
+    var nombres: list<str> = [];
+    var campos: list<list<str>> = [];
+    var tipos: list<list<str>> = [];
     var j = 0;
     while j < desde {
         nombres.anadir(copiar(st_nombres[j]));
@@ -1970,18 +1970,18 @@ fn ordenar_como_comprobador(desde: usize, orden: &lista<str>,
 // Como `resolver_tipo` del comprobador: el tipo con cada aplicacion cambiada
 // por su copia, creando la copia la primera vez. Una copia se apunta despues
 // de resolver sus campos, asi que las que pide un campo van antes.
-fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
-    p_params: &lista<lista<str>>, p_campos: &lista<lista<str>>,
-    p_tipos: &lista<lista<str>>, en_curso: mut mapa<str, usize>,
-    st_nombres: mut lista<str>, st_indice: mut mapa<str, usize>,
-    st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>,
+fn resolver_reg(t: view, plantillas_st: &map<str, usize>,
+    p_params: &list<list<str>>, p_campos: &list<list<str>>,
+    p_tipos: &list<list<str>>, en_curso: mut map<str, usize>,
+    st_nombres: mut list<str>, st_indice: mut map<str, usize>,
+    st_campos: mut list<list<str>>, st_tipos: mut list<list<str>>,
     global: mut I.Contexto) -> str {
     if !contiene(t, "<") && !contiene(t, "[") { return nuevo(t); }
     // Lo que lleva tipos dentro se resuelve parte a parte y se vuelve a
     // montar, en orden: la clave de un mapa antes que su valor.
     if T.es_referencia(t) || T.es_lista(t) || T.es_bloque(t) || T.es_mapa(t)
     || T.es_arreglo(t) {
-        var nuevas: lista<str> = [];
+        var nuevas: list<str> = [];
         for parte en T.partes(t) {
             let resuelta = resolver_reg(parte, plantillas_st, p_params, p_campos, p_tipos,
                 en_curso, st_nombres, st_indice, st_campos, st_tipos, global);
@@ -1995,8 +1995,8 @@ fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
     let kp = obtener(plantillas_st, base) sino 0;
     let dados = T.partes(t);
     if dados.largo() != p_params[kp].largo() { return nuevo(t); }
-    var ligaduras: mapa<str, str> = [];
-    var resueltos: lista<str> = [];
+    var ligaduras: map<str, str> = [];
+    var resueltos: list<str> = [];
     var i = 0;
     while i < dados.largo() {
         let d = resolver_reg(dados[i], plantillas_st, p_params, p_campos, p_tipos, en_curso,
@@ -2008,7 +2008,7 @@ fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
     let nombre = T.nombre_de_copia(base, resueltos);
     if tiene(st_indice, nombre) || tiene(en_curso, nombre) { return nombre; }
     poner(en_curso, vista(nombre), 1);
-    var tipos_c: lista<str> = [];
+    var tipos_c: list<str> = [];
     let crudos = copiar(p_tipos[kp]);
     for x en crudos {
         let puesto = T.sustituir(x, ligaduras);
@@ -2026,11 +2026,11 @@ fn resolver_reg(t: view, plantillas_st: &mapa<str, usize>,
 
 // Los tipos escritos en una funcion, en el orden en que los resuelve el
 // comprobador: parametros, retorno y cuerpo.
-fn resolver_en_nodo(n: &P.Nodo, plantillas_st: &mapa<str, usize>,
-    p_params: &lista<lista<str>>, p_campos: &lista<lista<str>>,
-    p_tipos: &lista<lista<str>>, en_curso: mut mapa<str, usize>,
-    st_nombres: mut lista<str>, st_indice: mut mapa<str, usize>,
-    st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>,
+fn resolver_en_nodo(n: &P.Nodo, plantillas_st: &map<str, usize>,
+    p_params: &list<list<str>>, p_campos: &list<list<str>>,
+    p_tipos: &list<list<str>>, en_curso: mut map<str, usize>,
+    st_nombres: mut list<str>, st_indice: mut map<str, usize>,
+    st_campos: mut list<list<str>>, st_tipos: mut list<list<str>>,
     global: mut I.Contexto) {
     let clase = n.clase;
     if clase == Clase.Param {
@@ -2056,11 +2056,11 @@ fn resolver_en_nodo(n: &P.Nodo, plantillas_st: &mapa<str, usize>,
 
 // Una copia de generica resuelve primero su retorno, luego sus parametros y
 // luego el cuerpo.
-fn resolver_instancia(d: &P.Nodo, plantillas_st: &mapa<str, usize>,
-    p_params: &lista<lista<str>>, p_campos: &lista<lista<str>>,
-    p_tipos: &lista<lista<str>>, en_curso: mut mapa<str, usize>,
-    st_nombres: mut lista<str>, st_indice: mut mapa<str, usize>,
-    st_campos: mut lista<lista<str>>, st_tipos: mut lista<lista<str>>,
+fn resolver_instancia(d: &P.Nodo, plantillas_st: &map<str, usize>,
+    p_params: &list<list<str>>, p_campos: &list<list<str>>,
+    p_tipos: &list<list<str>>, en_curso: mut map<str, usize>,
+    st_nombres: mut list<str>, st_indice: mut map<str, usize>,
+    st_campos: mut list<list<str>>, st_tipos: mut list<list<str>>,
     global: mut I.Contexto) {
     for h en d.hijos {
         if h.clase == Clase.RetornoTipo { resolver_en_nodo(h, plantillas_st, p_params, p_campos, p_tipos, en_curso,
@@ -2082,7 +2082,7 @@ fn resolver_instancia(d: &P.Nodo, plantillas_st: &mapa<str, usize>,
 
 // La firma en C de una funcion que escribio otro: un `str` entra como
 // `const char*`, y `cadena_c` sale como tal.
-fn prototipo_externo(nombre: view, tipos_p: &lista<str>, nombres_p: &lista<str>,
+fn prototipo_externo(nombre: view, tipos_p: &list<str>, nombres_p: &list<str>,
     retorno: view) -> str {
     var tc = G.tipo_c(retorno);
     if retorno == "cadena_c" { tc = nuevo("const char*"); }
@@ -2101,7 +2101,7 @@ fn prototipo_externo(nombre: view, tipos_p: &lista<str>, nombres_p: &lista<str>,
 }
 
 // Cada linea de un texto, sin el salto final.
-fn anadir_lineas(texto_c: view, salida: mut lista<str>) {
+fn anadir_lineas(texto_c: view, salida: mut list<str>) {
     var fin = texto_c.largo();
     if fin > 0 && byte(texto_c, fin - 1) == 10 { fin = fin - 1; }
     var desde = 0;
@@ -2127,7 +2127,7 @@ fn anadir_lineas(texto_c: view, salida: mut lista<str>) {
 // Cada clausura de un cuerpo, en preorden y sin entrar en otras, pasa a ser
 // el `Cierre_N` que le dio el comprobador: queda su nombre y sus capturas,
 // y su cuerpo es la funcion `ss_cierre_N`.
-fn numerar_cierres(n: mut P.Nodo, dueno: view, numeracion: &mapa<str, usize>,
+fn numerar_cierres(n: mut P.Nodo, dueno: view, numeracion: &map<str, usize>,
     cuenta: mut usize) {
     var i = 0;
     while i < n.hijos.largo() {
@@ -2161,7 +2161,7 @@ fn tiene_cierre(n: &P.Nodo) -> bool {
 // Lo que lleva el struct de una clausura, en orden, sacado de su pedido
 // `\tss_cierre_N\tnombre=tipo...`. Sin capturas lleva un byte: un struct
 // vacio no es C valido.
-fn campos_de_cierre(p: view, nombres: mut lista<str>, tipos: mut lista<str>) {
+fn campos_de_cierre(p: view, nombres: mut list<str>, tipos: mut list<str>) {
     var k = 2;
     var pieza = campo_pedido(p, k);
     while pieza.largo() > 0 {
@@ -2185,7 +2185,7 @@ fn struct_de_cierre(en_c: view) -> str {
 // Los tipos funcion que puede nombrar el C: las firmas del programa y los
 // tipos de los parametros y retornos de cada funcion escrita, con los que
 // lleven dentro.
-fn apuntar_tipo_funcion(t: view, salida: mut lista<str>) {
+fn apuntar_tipo_funcion(t: view, salida: mut list<str>) {
     if !T.es_funcion(t) || esta_en(salida, t) { return; }
     salida.anadir(nuevo(t));
     for x en T.partes_de_funcion(t) {
@@ -2194,7 +2194,7 @@ fn apuntar_tipo_funcion(t: view, salida: mut lista<str>) {
     }
 }
 
-fn tipos_funcion_de(d: &P.Nodo, salida: mut lista<str>) {
+fn tipos_funcion_de(d: &P.Nodo, salida: mut list<str>) {
     for h en d.hijos {
         if h.clase == Clase.Param {
             let tp = F.tipo_pelado(h.texto);
@@ -2252,8 +2252,8 @@ fn campo_pedido(p: view, cual: usize) -> str {
     return vacio();
 }
 
-fn ligaduras_de(p: view) -> mapa<str, str> {
-    var salida: mapa<str, str> = [];
+fn ligaduras_de(p: view) -> map<str, str> {
+    var salida: map<str, str> = [];
     var k = 2;
     var pieza = campo_pedido(p, k);
     while pieza.largo() > 0 {
@@ -2274,7 +2274,7 @@ fn lleva_tipo(clase: Clase) -> bool {
     return clase == Clase.LiteralStruct || clase == Clase.Cierre;
 }
 
-fn copiar_sustituido(n: &P.Nodo, lig: &mapa<str, str>) -> P.Nodo {
+fn copiar_sustituido(n: &P.Nodo, lig: &map<str, str>) -> P.Nodo {
     var r = P.rama(n.clase, n.linea);
     // El mismo numero: es por el que el comprobador dejo anotado su tipo.
     r.id = n.id;
@@ -2291,8 +2291,8 @@ fn copiar_sustituido(n: &P.Nodo, lig: &mapa<str, str>) -> P.Nodo {
 }
 
 // La copia de una generica con los tipos de un pedido.
-fn nodo_instancia(p: view, arboles: &lista<P.Nodo>,
-    plantillas: &mapa<str, usize>, numeracion: &mapa<str, usize>) -> P.Nodo {
+fn nodo_instancia(p: view, arboles: &list<P.Nodo>,
+    plantillas: &map<str, usize>, numeracion: &map<str, usize>) -> P.Nodo {
     let plantilla = campo_pedido(p, 0);
     let en_c = campo_pedido(p, 1);
     let lig = ligaduras_de(p);
@@ -2330,8 +2330,8 @@ fn dueno_de_pedido(p: view) -> str {
 
 // El orden de las copias por su puesto, sin mover las que empatan:
 // insercion, que son pocas.
-fn orden_por_puesto(puestos: &lista<usize>) -> lista<usize> {
-    var orden: lista<usize> = [];
+fn orden_por_puesto(puestos: &list<usize>) -> list<usize> {
+    var orden: list<usize> = [];
     var i = 0;
     while i < puestos.largo() {
         orden.anadir(i);
@@ -2358,21 +2358,21 @@ fn dueno_de_funcion(d: &P.Nodo, tipos: &I.Contexto) -> str {
 // Las funciones de las clausuras, el modulo de cada una y el indice de cada
 // nombre en C.
 struct Cierres {
-    fns: lista<P.Nodo>,
-    modulo: lista<usize>,
-    indice: mapa<str, usize>,
+    fns: list<P.Nodo>,
+    modulo: list<usize>,
+    indice: map<str, usize>,
     // `dueno#k` -> N, como lo decidio el comprobador.
-    numeracion: mapa<str, usize>,
+    numeracion: map<str, usize>,
     // Los campos que el comprobador vio sacar de su struct.
-    sacados: mapa<str, usize>,
+    sacados: map<str, usize>,
 }
 
 // Escribe en borrador cada copia pedida que no se haya visto, primero las
 // que pide ella, y la apunta en `orden` al terminar.
-fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
-    contextos: mut lista<I.Contexto>, modulos: &lista<str>,
-    plantillas: &mapa<str, usize>, vistos: mut mapa<str, usize>,
-    orden: mut lista<str>, creados: mut lista<str>, cierres: &Cierres,
+fn descubrir(pedidos: &list<str>, arboles: &list<P.Nodo>,
+    contextos: mut list<I.Contexto>, modulos: &list<str>,
+    plantillas: &map<str, usize>, vistos: mut map<str, usize>,
+    orden: mut list<str>, creados: mut list<str>, cierres: &Cierres,
     global: mut I.Contexto, sitio_del_fallo: view) -> bool {
     for p en pedidos {
         let en_c = campo_pedido(p, 1);
@@ -2389,8 +2389,8 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
                 return false;
             }
             let k = obtener(cierres.indice, en_c) sino 0;
-            var cn: lista<str> = [];
-            var ct: lista<str> = [];
+            var cn: list<str> = [];
+            var ct: list<str> = [];
             campos_de_cierre(p, cn, ct);
             let st = struct_de_cierre(en_c);
             poner(global.campos, vista(st), T.leer_tipos(ct));
@@ -2448,9 +2448,9 @@ fn descubrir(pedidos: &lista<str>, arboles: &lista<P.Nodo>,
 // Una funcion al archivo: su prototipo, su cuerpo y lo que su cuerpo pide
 // de la aritmetica. Falso si no la sabe escribir entera.
 fn emitir_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
-    cta: mut F.Cuenta, protos: mut lista<str>, cuerpos: mut lista<str>,
-    anchos: mut mapa<str, usize>, decimales: mut mapa<str, usize>,
-    conversiones: mut mapa<str, usize>) -> bool {
+    cta: mut F.Cuenta, protos: mut list<str>, cuerpos: mut list<str>,
+    anchos: mut map<str, usize>, decimales: mut map<str, usize>,
+    conversiones: mut map<str, usize>) -> bool {
     let lineas = F.generar_funcion(d, tipos, ruta, cta);
     if lineas.largo() == 0 {
         imprimir_error($"{cta.fallo}\n");
@@ -2581,7 +2581,7 @@ fn escribir_de_una_vez(ruta: view, contenido: view, ejecutable: bool) -> bool {
 }
 
 fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
-    cc: view, raiz: view, ext_cabeceras: &lista<str>, ext_modulos: &lista<str>) -> usize {
+    cc: view, raiz: view, ext_cabeceras: &list<str>, ext_modulos: &list<str>) -> usize {
     var base = nuevo(salida);
     if base.largo() == 0 { base = sin_extension(fuente); }
 
@@ -2625,8 +2625,8 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
 
     // Un `externo "algo.c"` no se incluye: se compila y se enlaza junto al
     // programa.
-    var acompanan: lista<str> = [];
-    var faltan: lista<str> = [];
+    var acompanan: list<str> = [];
+    var faltan: list<str> = [];
     var k = 0;
     while k < ext_cabeceras.largo() {
         let cab = vista(ext_cabeceras[k]);
@@ -2728,6 +2728,7 @@ struct Opciones {
     modo: str,
     sin_avisos: bool,
     escribir: bool,
+    renombrar: bool,
     avisos_como_errores: bool,
     terminar: bool,
     codigo: usize,
@@ -2736,7 +2737,8 @@ struct Opciones {
 fn leer_opciones() -> Opciones {
     var o = Opciones { fuente: vacio(), salida: vacio(), nivel: nuevo("2"),
         cc: variable_entorno("CC") sino nuevo("cc"), modo: nuevo("binario"),
-        sin_avisos: false, escribir: false, avisos_como_errores: false,
+        sin_avisos: false, escribir: false, renombrar: false,
+        avisos_como_errores: false,
         terminar: false, codigo: 0 };
     var ia = 1;
     while ia < n_argumentos() {
@@ -2775,6 +2777,8 @@ fn leer_opciones() -> Opciones {
             o.modo = nuevo("explicar");
         } else if a == "--formatear" {
             o.modo = nuevo("formatear");
+        } else if a == "--renombrar" {
+            o.renombrar = true;
         } else if a == "--escribir" {
             o.escribir = true;
         } else if a == "--sin-avisos" {
@@ -2800,7 +2804,7 @@ fn leer_opciones() -> Opciones {
         }
     }
     if o.fuente.largo() == 0 {
-        imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--sin-avisos] [--avisos-como-errores] [--formatear [--escribir]] [--explicar]\n");
+        imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--sin-avisos] [--avisos-como-errores] [--formatear [--renombrar] [--escribir]] [--explicar]\n");
         o.terminar = true;
         o.codigo = 2;
     } else if tcodec_es_archivo(copiar(o.fuente)) == 0 {
@@ -2811,10 +2815,10 @@ fn leer_opciones() -> Opciones {
     return o;
 }
 
-fn formatear_archivo(fuente: view, escribir_en_su_sitio: bool) -> usize {
+fn formatear_archivo(fuente: view, escribir_en_su_sitio: bool, renombrar: bool) -> usize {
     let original = leer_archivo(fuente) sino vacio();
     var error_f = vacio();
-    let salida_f = FMT.formatear(original, fuente, error_f) sino vacio();
+    let salida_f = FMT.formatear(original, fuente, error_f, renombrar) sino vacio();
     if error_f.largo() > 0 {
         imprimir_error($"error: {error_f}\n");
         return 1;
@@ -2836,9 +2840,9 @@ fn formatear_archivo(fuente: view, escribir_en_su_sitio: bool) -> usize {
 // Las instancias de aritmetica y conversion que realmente aparecen en los
 // cuerpos. Mantener esta fase aparte deja visible que su orden depende solo de
 // los nombres apuntados durante la generacion.
-fn aritmetica_usada(anchos: &mapa<str, usize>, decimales: &mapa<str, usize>,
-    conversiones: &mapa<str, usize>) -> lista<str> {
-    var arit: lista<str> = [];
+fn aritmetica_usada(anchos: &map<str, usize>, decimales: &map<str, usize>,
+    conversiones: &map<str, usize>) -> list<str> {
+    var arit: list<str> = [];
     var ws = claves(anchos);
     ordenar(ws);
     for w en ws { arit.anadir(fila_aritmetica(w)); }
@@ -2848,7 +2852,7 @@ fn aritmetica_usada(anchos: &mapa<str, usize>, decimales: &mapa<str, usize>,
         let tc = G.tipo_c(f);
         arit.anadir($"SS_LANG_ARIT_F({f}, {tc})");
     }
-    var cs: lista<str> = [];
+    var cs: list<str> = [];
     for cv en claves(conversiones) {
         let corte = buscar_desde(cv, "_de_", 0);
         if corte < cv.largo() {
@@ -2912,10 +2916,10 @@ fn aritmetica_usada(anchos: &mapa<str, usize>, decimales: &mapa<str, usize>,
 }
 
 // Los typedef de tipos funcion, en el primer lugar en que el C los nombra.
-fn tipos_funcion_usados(global: &I.Contexto, arboles: &lista<P.Nodo>,
-    instancias: &lista<P.Nodo>, protos: &lista<str>,
-    limpios: &lista<str>) -> lista<str> {
-    var candidatos: lista<str> = [];
+fn tipos_funcion_usados(global: &I.Contexto, arboles: &list<P.Nodo>,
+    instancias: &list<P.Nodo>, protos: &list<str>,
+    limpios: &list<str>) -> list<str> {
+    var candidatos: list<str> = [];
     for fk en claves(global.retornos) {
         let firma = I.firma_de_funcion(global, fk);
         apuntar_tipo_funcion(firma, candidatos);
@@ -2930,11 +2934,11 @@ fn tipos_funcion_usados(global: &I.Contexto, arboles: &lista<P.Nodo>,
         k_tf = k_tf + 1;
     }
     for d en instancias { tipos_funcion_de(d, candidatos); }
-    var nombres_fn: lista<str> = [];
+    var nombres_fn: list<str> = [];
     for t en candidatos { nombres_fn.anadir(G.tipo_c(t)); }
-    var tipos_fn: lista<str> = [];
-    var puestos_fn: mapa<str, usize> = [];
-    var mirar_fn: lista<str> = [];
+    var tipos_fn: list<str> = [];
+    var puestos_fn: map<str, usize> = [];
+    var mirar_fn: list<str> = [];
     for l en protos { mirar_fn.anadir(sin_cadenas(l)); }
     for l en limpios { mirar_fn.anadir(copiar(l)); }
     for l en mirar_fn {
@@ -2965,15 +2969,15 @@ fn tipos_funcion_usados(global: &I.Contexto, arboles: &lista<P.Nodo>,
 }
 
 // Ensambla las secciones ya generadas sin decidir nada sobre su contenido.
-fn ensamblar_c(raiz: view, ext_cabeceras: &lista<str>, ext_protos: &lista<str>,
-    partes: &lista<str>, envoltorios: &lista<str>,
-    tipos_fn: &lista<str>, arit: &lista<str>,
-    bloque_copias: &lista<str>, protos: &lista<str>,
-    cuerpos: &lista<str>) -> str ! {
+fn ensamblar_c(raiz: view, ext_cabeceras: &list<str>, ext_protos: &list<str>,
+    partes: &list<str>, envoltorios: &list<str>,
+    tipos_fn: &list<str>, arit: &list<str>,
+    bloque_copias: &list<str>, protos: &list<str>,
+    cuerpos: &list<str>) -> str ! {
     let cabecera = try leer_archivo($"{raiz}/runtime/cabecera.inc");
-    var todas: lista<str> = [];
+    var todas: list<str> = [];
     todas.anadir(cabecera);
-    var incluidas: lista<str> = [];
+    var incluidas: list<str> = [];
     for h en ext_cabeceras {
         if termina_con(h, ".c") || esta_en(incluidas, h) { continue; }
         incluidas.anadir(copiar(h));
@@ -3022,25 +3026,25 @@ fn ensamblar_c(raiz: view, ext_cabeceras: &lista<str>, ext_protos: &lista<str>,
 
 struct UsosGenerados {
     ok: bool,
-    limpios: lista<str>,
-    envoltorios: lista<str>,
+    limpios: list<str>,
+    envoltorios: list<str>,
 }
 
 // Comprueba que cada nombre compuesto usado por los cuerpos tenga la
 // declaracion que el recorrido previo debio registrar. Los arreglos que solo
 // aparecen en literales se completan aqui, igual que antes.
-fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
-    plantillas: &mapa<str, usize>,
-    vistas_inst: &mapa<str, usize>) -> UsosGenerados {
-    var limpios: lista<str> = [];
+fn revisar_usos_generados(cuerpos: &list<str>, reg: &Registro, cta: &F.Cuenta,
+    plantillas: &map<str, usize>,
+    vistas_inst: &map<str, usize>) -> UsosGenerados {
+    var limpios: list<str> = [];
     for l en cuerpos { limpios.anadir(sin_cadenas(l)); }
     // Cada nombre de C de los cuerpos, una vez. Las revisiones de abajo la
     // miran a ella: recorrer todas las lineas por cada prefijo, y por cada
     // generica, se llevaba la quinta parte de lo que tarda el compilador.
     let nombres = nombres_con_raya(limpios);
-    var registradas: mapa<str, usize> = [];
+    var registradas: map<str, usize> = [];
 
-    var usadas: mapa<str, usize> = [];
+    var usadas: map<str, usize> = [];
     con_prefijo(nombres, "ss_lista_", usadas);
     for x en reg.listas {
         let nombre_c = G.tipo_c(x);
@@ -3053,7 +3057,7 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
         }
     }
 
-    var usados_b: mapa<str, usize> = [];
+    var usados_b: map<str, usize> = [];
     con_prefijo(nombres, "ss_bloque_", usados_b);
     for x en reg.bloques {
         let nombre_c = G.tipo_c(x);
@@ -3066,13 +3070,13 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
         }
     }
 
-    var tardios: lista<str> = [];
+    var tardios: list<str> = [];
     for t en cta.arreglos {
         if !tiene(reg.arr_vistos, t) && !esta_en(tardios, t) {
             tardios.anadir(copiar(t));
         }
     }
-    var envoltorios: lista<str> = [];
+    var envoltorios: list<str> = [];
     var hondo = 0;
     var quedan = tardios.largo();
     while quedan > 0 {
@@ -3088,7 +3092,7 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
         hondo = hondo + 1;
     }
     if envoltorios.largo() > 0 { envoltorios.anadir(vacio()); }
-    var usados_a: mapa<str, usize> = [];
+    var usados_a: map<str, usize> = [];
     con_prefijo(nombres, "ss_arr_", usados_a);
     for x en reg.arreglos {
         let nombre_c = G.tipo_c(x);
@@ -3105,8 +3109,8 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
         }
     }
 
-    var usados_m: mapa<str, usize> = [];
-    var usados_r: mapa<str, usize> = [];
+    var usados_m: map<str, usize> = [];
+    var usados_r: map<str, usize> = [];
     con_prefijo(nombres, "ss_mapa_", usados_m);
     con_prefijo(nombres, "ss_res_", usados_r);
     for x en reg.mapas {
@@ -3149,22 +3153,22 @@ fn revisar_usos_generados(cuerpos: &lista<str>, reg: &Registro, cta: &F.Cuenta,
 
 struct CopiadoresGenerados {
     ok: bool,
-    lineas: lista<str>,
+    lineas: list<str>,
 }
 
 fn generar_copiadores(cta: &F.Cuenta, global: &I.Contexto,
-    st_indice: &mapa<str, usize>, st_campos: &lista<lista<str>>,
-    st_tipos: &lista<lista<str>>, en_indice: &mapa<str, usize>,
-    en_variantes: &lista<lista<str>>, en_lleva: &lista<lista<str>>,
-    limpios: &lista<str>, arboles: &lista<P.Nodo>,
-    modulos: &lista<str>) -> CopiadoresGenerados {
-    var apuntados: lista<str> = [];
-    var vistos: mapa<str, usize> = [];
+    st_indice: &map<str, usize>, st_campos: &list<list<str>>,
+    st_tipos: &list<list<str>>, en_indice: &map<str, usize>,
+    en_variantes: &list<list<str>>, en_lleva: &list<list<str>>,
+    limpios: &list<str>, arboles: &list<P.Nodo>,
+    modulos: &list<str>) -> CopiadoresGenerados {
+    var apuntados: list<str> = [];
+    var vistos: map<str, usize> = [];
     for t en cta.copias {
         let tr = I.nombre_resuelto(t);
         necesita_copiador(tr, global, st_indice, st_tipos, vistos, apuntados);
     }
-    var copiadores: lista<str> = [];
+    var copiadores: list<str> = [];
     var hondo = 0;
     var quedan = apuntados.largo();
     while quedan > 0 {
@@ -3176,8 +3180,8 @@ fn generar_copiadores(cta: &F.Cuenta, global: &I.Contexto,
         }
         hondo = hondo + 1;
     }
-    var lineas: lista<str> = [];
-    var nombres: mapa<str, usize> = [];
+    var lineas: list<str> = [];
+    var nombres: map<str, usize> = [];
     for t en copiadores {
         let tc = G.tipo_c(t);
         let m = G.mangle(t);
@@ -3194,7 +3198,7 @@ fn generar_copiadores(cta: &F.Cuenta, global: &I.Contexto,
             return CopiadoresGenerados { ok: false, lineas: [] };
         }
     }
-    var usados: mapa<str, usize> = [];
+    var usados: map<str, usize> = [];
     for l en limpios { apuntar_nombres(l, "ss_copia_", usados); }
     for u en claves(usados) {
         if !tiene(nombres, u) {
@@ -3207,23 +3211,23 @@ fn generar_copiadores(cta: &F.Cuenta, global: &I.Contexto,
 
 struct FuncionesGeneradas {
     ok: bool,
-    protos: lista<str>,
-    cuerpos: lista<str>,
-    anchos: mapa<str, usize>,
-    decimales: mapa<str, usize>,
-    conversiones: mapa<str, usize>,
+    protos: list<str>,
+    cuerpos: list<str>,
+    anchos: map<str, usize>,
+    decimales: map<str, usize>,
+    conversiones: map<str, usize>,
 }
 
-fn generar_funciones(arboles: &lista<P.Nodo>, contextos: mut lista<I.Contexto>,
-    modulos: &lista<str>, instancias: &lista<P.Nodo>,
-    modulo_de: &lista<usize>, duenos_inst: &lista<str>,
-    orden_inst: &lista<str>, orden_copias_revision: &lista<str>,
+fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
+    modulos: &list<str>, instancias: &list<P.Nodo>,
+    modulo_de: &list<usize>, duenos_inst: &list<str>,
+    orden_inst: &list<str>, orden_copias_revision: &list<str>,
     cta: mut F.Cuenta) -> FuncionesGeneradas {
-    var protos: lista<str> = [];
-    var cuerpos: lista<str> = [];
-    var anchos: mapa<str, usize> = [];
-    var decimales: mapa<str, usize> = [];
-    var conversiones: mapa<str, usize> = [];
+    var protos: list<str> = [];
+    var cuerpos: list<str> = [];
+    var anchos: map<str, usize> = [];
+    var decimales: map<str, usize> = [];
+    var conversiones: map<str, usize> = [];
     var i = 0;
     while i < arboles.largo() {
         // El original compara archivo y linea a la vez para no repetir un
@@ -3243,7 +3247,7 @@ fn generar_funciones(arboles: &lista<P.Nodo>, contextos: mut lista<I.Contexto>,
 
     // Las copias van detras de todo, `main` incluida, en el orden en que las
     // hizo el comprobador; las que no hizo, detras, como se descubrieron.
-    var puesto_de: mapa<str, usize> = [];
+    var puesto_de: map<str, usize> = [];
     var k_orden = 0;
     while k_orden < orden_copias_revision.largo() {
         if !tiene(puesto_de, orden_copias_revision[k_orden]) {
@@ -3251,7 +3255,7 @@ fn generar_funciones(arboles: &lista<P.Nodo>, contextos: mut lista<I.Contexto>,
         }
         k_orden = k_orden + 1;
     }
-    var puestos_copias: lista<usize> = [];
+    var puestos_copias: list<usize> = [];
     for p en orden_inst {
         let en_c_o = campo_pedido(p, 1);
         anadir(puestos_copias,
@@ -3275,48 +3279,48 @@ fn generar_funciones(arboles: &lista<P.Nodo>, contextos: mut lista<I.Contexto>,
 }
 
 struct SoporteGenerado {
-    partes: lista<str>,
+    partes: list<str>,
     cta: F.Cuenta,
 }
 
 struct StructsLeidos {
-    nombres: lista<str>,
-    campos: lista<lista<str>>,
-    tipos: lista<lista<str>>,
-    indice: mapa<str, usize>,
+    nombres: list<str>,
+    campos: list<list<str>>,
+    tipos: list<list<str>>,
+    indice: map<str, usize>,
 }
 
 struct StructsGenericos {
-    indice: mapa<str, usize>,
-    params: lista<lista<str>>,
-    campos: lista<lista<str>>,
-    tipos: lista<lista<str>>,
+    indice: map<str, usize>,
+    params: list<list<str>>,
+    campos: list<list<str>>,
+    tipos: list<list<str>>,
 }
 
 struct EnumsLeidos {
-    nombres: lista<str>,
-    indice: mapa<str, usize>,
-    variantes: lista<lista<str>>,
-    lleva: lista<lista<str>>,
+    nombres: list<str>,
+    indice: map<str, usize>,
+    variantes: list<list<str>>,
+    lleva: list<list<str>>,
 }
 
 struct ExternosLeidos {
-    cabeceras: lista<str>,
-    modulos: lista<str>,
-    protos: lista<str>,
+    cabeceras: list<str>,
+    modulos: list<str>,
+    protos: list<str>,
 }
 
 struct ProgramaLeido {
     ok: bool,
-    modulos: lista<str>,
+    modulos: list<str>,
     global: I.Contexto,
-    arboles: lista<P.Nodo>,
-    contextos: lista<I.Contexto>,
+    arboles: list<P.Nodo>,
+    contextos: list<I.Contexto>,
     structs: StructsLeidos,
     genericos: StructsGenericos,
     enums: EnumsLeidos,
     externos: ExternosLeidos,
-    plantillas: mapa<str, usize>,
+    plantillas: map<str, usize>,
 }
 
 fn programa_no_leido() -> ProgramaLeido {
@@ -3329,9 +3333,9 @@ fn programa_no_leido() -> ProgramaLeido {
         plantillas: [] };
 }
 
-fn ajustar_contextos(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
-    global: &I.Contexto, plantillas: &mapa<str, usize>,
-    contextos: mut lista<I.Contexto>) -> bool ! {
+fn ajustar_contextos(arboles: &list<P.Nodo>, modulos: &list<str>, raiz: view,
+    global: &I.Contexto, plantillas: &map<str, usize>,
+    contextos: mut list<I.Contexto>) -> bool ! {
     var error_nombres = vacio();
     if !revisar_nombres(arboles, modulos, raiz, error_nombres) {
         imprimir_error($"error: {error_nombres}\n");
@@ -3419,8 +3423,8 @@ fn ajustar_contextos(arboles: &lista<P.Nodo>, modulos: &lista<str>, raiz: view,
 
 fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
     let principal = F.normalizar(fuente);
-    var modulos: lista<str> = [];
-    var pila: lista<str> = [];
+    var modulos: list<str> = [];
+    var pila: list<str> = [];
     var error_carga = vacio();
     if !visitar(principal, raiz, modulos, pila, error_carga, "", 0) {
         imprimir_error($"error: {error_carga}\n");
@@ -3428,27 +3432,27 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
     }
 
     var global = I.contexto();
-    var arboles: lista<P.Nodo> = [];
-    var contextos: lista<I.Contexto> = [];
-    var st_nombres: lista<str> = [];
-    var st_campos: lista<lista<str>> = [];
-    var st_tipos: lista<lista<str>> = [];
-    var st_indice: mapa<str, usize> = [];
-    var stp_nombres: lista<str> = [];
-    var stp_indice: mapa<str, usize> = [];
-    var stp_params: lista<lista<str>> = [];
-    var stp_campos: lista<lista<str>> = [];
-    var stp_tipos: lista<lista<str>> = [];
-    var ext_cabeceras: lista<str> = [];
-    var ext_modulos: lista<str> = [];
-    var ext_protos: lista<str> = [];
-    var en_nombres: lista<str> = [];
-    var en_indice: mapa<str, usize> = [];
-    var en_variantes: lista<lista<str>> = [];
-    var en_lleva: lista<lista<str>> = [];
-    var plantillas: mapa<str, usize> = [];
-    var previos_st: mapa<str, usize> = [];
-    var previos_en: mapa<str, usize> = [];
+    var arboles: list<P.Nodo> = [];
+    var contextos: list<I.Contexto> = [];
+    var st_nombres: list<str> = [];
+    var st_campos: list<list<str>> = [];
+    var st_tipos: list<list<str>> = [];
+    var st_indice: map<str, usize> = [];
+    var stp_nombres: list<str> = [];
+    var stp_indice: map<str, usize> = [];
+    var stp_params: list<list<str>> = [];
+    var stp_campos: list<list<str>> = [];
+    var stp_tipos: list<list<str>> = [];
+    var ext_cabeceras: list<str> = [];
+    var ext_modulos: list<str> = [];
+    var ext_protos: list<str> = [];
+    var en_nombres: list<str> = [];
+    var en_indice: map<str, usize> = [];
+    var en_variantes: list<list<str>> = [];
+    var en_lleva: list<list<str>> = [];
+    var plantillas: map<str, usize> = [];
+    var previos_st: map<str, usize> = [];
+    var previos_en: map<str, usize> = [];
     var leidos = P.leidos_en(raiz);
     for m en modulos {
         var tipos = I.contexto();
@@ -3492,9 +3496,9 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                                 "no admite un struct generico repetido entre modulos");
                             return programa_no_leido();
                         }
-                        var tps: lista<str> = [];
-                        var cs: lista<str> = [];
-                        var ts: lista<str> = [];
+                        var tps: list<str> = [];
+                        var cs: list<str> = [];
+                        var ts: list<str> = [];
                         for h en d.hijos {
                             if h.clase == Clase.TipoParam { tps.anadir(nuevo(h.texto)); }
                             if h.clase == Clase.CampoDef {
@@ -3515,8 +3519,8 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                             "no admite un struct repetido entre modulos");
                         return programa_no_leido();
                     }
-                    var campos: lista<str> = [];
-                    var tipos_campo: lista<str> = [];
+                    var campos: list<str> = [];
+                    var tipos_campo: list<str> = [];
                     for h en d.hijos {
                         if h.clase == Clase.CampoDef {
                             let tp = F.tipo_pelado(h.texto);
@@ -3533,8 +3537,8 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                 Clase.Externo -> {
                     for f en d.hijos {
                         if f.clase != Clase.Fn { continue; }
-                        var ps: lista<str> = [];
-                        var pn: lista<str> = [];
+                        var ps: list<str> = [];
+                        var pn: list<str> = [];
                         var ret = vacio();
                         for h en f.hijos {
                             if h.clase == Clase.Param {
@@ -3556,8 +3560,8 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                             "no admite un enum repetido entre modulos");
                         return programa_no_leido();
                     }
-                    var vs: lista<str> = [];
-                    var ls: lista<str> = [];
+                    var vs: list<str> = [];
+                    var ls: list<str> = [];
                     for h en d.hijos {
                         if h.clase != Clase.Variante { continue; }
                         vs.anadir(nuevo(h.texto));
@@ -3619,9 +3623,9 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
         plantillas: plantillas };
 }
 
-fn preparar_cierres(revision: &C.Revision, arboles: mut lista<P.Nodo>,
-    contextos: mut lista<I.Contexto>, global: mut I.Contexto) -> Cierres {
-    var sacados: mapa<str, usize> = [];
+fn preparar_cierres(revision: &C.Revision, arboles: mut list<P.Nodo>,
+    contextos: mut list<I.Contexto>, global: mut I.Contexto) -> Cierres {
+    var sacados: map<str, usize> = [];
     for x en revision.sacados { poner(sacados, vista(x), 1); }
     var cierres = Cierres { fns: copiar(revision.cierres),
         modulo: copiar(revision.cierres_mod), indice: [],
@@ -3664,30 +3668,30 @@ fn preparar_cierres(revision: &C.Revision, arboles: mut lista<P.Nodo>,
 
 struct InstanciasPreparadas {
     ok: bool,
-    con_partes: mapa<str, usize>,
-    vistas: mapa<str, usize>,
-    orden: lista<str>,
-    nodos: lista<P.Nodo>,
-    modulos: lista<usize>,
-    duenos: lista<str>,
+    con_partes: map<str, usize>,
+    vistas: map<str, usize>,
+    orden: list<str>,
+    nodos: list<P.Nodo>,
+    modulos: list<usize>,
+    duenos: list<str>,
     n_concretos: usize,
 }
 
-fn preparar_instancias(revision: &C.Revision, arboles: &lista<P.Nodo>,
-    contextos: mut lista<I.Contexto>, modulos: &lista<str>,
+fn preparar_instancias(revision: &C.Revision, arboles: &list<P.Nodo>,
+    contextos: mut list<I.Contexto>, modulos: &list<str>,
     global: mut I.Contexto, cierres: &Cierres,
-    plantillas: &mapa<str, usize>, stp_indice: &mapa<str, usize>,
-    stp_params: &lista<lista<str>>, stp_campos: &lista<lista<str>>,
-    stp_tipos: &lista<lista<str>>, st_nombres: mut lista<str>,
-    st_indice: mut mapa<str, usize>, st_campos: mut lista<lista<str>>,
-    st_tipos: mut lista<lista<str>>, en_nombres: &lista<str>) -> InstanciasPreparadas {
+    plantillas: &map<str, usize>, stp_indice: &map<str, usize>,
+    stp_params: &list<list<str>>, stp_campos: &list<list<str>>,
+    stp_tipos: &list<list<str>>, st_nombres: mut list<str>,
+    st_indice: mut map<str, usize>, st_campos: mut list<list<str>>,
+    st_tipos: mut list<list<str>>, en_nombres: &list<str>) -> InstanciasPreparadas {
     // Primero se concretan los tipos de los structs declarados y los escritos
     // en funciones no genericas.
-    var en_curso_st: mapa<str, usize> = [];
+    var en_curso_st: map<str, usize> = [];
     let n_concretos = st_nombres.largo();
     var k_st = 0;
     while k_st < n_concretos {
-        var nuevos_t: lista<str> = [];
+        var nuevos_t: list<str> = [];
         let viejos_t = copiar(st_tipos[k_st]);
         for vt en viejos_t {
             anadir(nuevos_t, resolver_reg(vista(vt), stp_indice, stp_params,
@@ -3711,15 +3715,15 @@ fn preparar_instancias(revision: &C.Revision, arboles: &lista<P.Nodo>,
         k_fn = k_fn + 1;
     }
 
-    var con_partes: mapa<str, usize> = [];
+    var con_partes: map<str, usize> = [];
     for n en st_nombres { poner(con_partes, vista(n), 1); }
     for n en en_nombres { poner(con_partes, vista(n), 1); }
 
     // Las copias se descubren antes del recorrido de tipos: sus firmas
     // tambien cuentan y su orden tiene que ser el del compilador original.
-    var vistas: mapa<str, usize> = [];
-    var orden: lista<str> = [];
-    var creados: lista<str> = [];
+    var vistas: map<str, usize> = [];
+    var orden: list<str> = [];
+    var creados: list<str> = [];
     var k_desc = 0;
     while k_desc < arboles.largo() {
         for d en arboles[k_desc].hijos {
@@ -3744,8 +3748,8 @@ fn preparar_instancias(revision: &C.Revision, arboles: &lista<P.Nodo>,
         if largo(campo_pedido(p, 0)) == 0 {
             let en_c_c = campo_pedido(p, 1);
             let st_c = struct_de_cierre(en_c_c);
-            var cn: lista<str> = [];
-            var ct: lista<str> = [];
+            var cn: list<str> = [];
+            var ct: list<str> = [];
             campos_de_cierre(p, cn, ct);
             poner(st_indice, vista(st_c), st_nombres.largo());
             st_nombres.anadir(copiar(st_c));
@@ -3767,9 +3771,9 @@ fn preparar_instancias(revision: &C.Revision, arboles: &lista<P.Nodo>,
         st_indice, st_campos, st_tipos);
     for n en st_nombres { poner(con_partes, vista(n), 1); }
 
-    var nodos: lista<P.Nodo> = [];
-    var modulos_i: lista<usize> = [];
-    var duenos: lista<str> = [];
+    var nodos: list<P.Nodo> = [];
+    var modulos_i: list<usize> = [];
+    var duenos: list<str> = [];
     for p en orden {
         if largo(campo_pedido(p, 0)) == 0 {
             let en_c_i = campo_pedido(p, 1);
@@ -3789,18 +3793,18 @@ fn preparar_instancias(revision: &C.Revision, arboles: &lista<P.Nodo>,
         duenos: duenos, n_concretos: n_concretos };
 }
 
-fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
-    cierres: &Cierres, reg: mut Registro, con_partes: &mapa<str, usize>,
-    st_nombres: &lista<str>, st_indice: &mapa<str, usize>,
-    st_campos: &lista<lista<str>>, st_tipos: &lista<lista<str>>,
-    en_nombres: &lista<str>, en_variantes: &lista<lista<str>>,
-    en_lleva: &lista<lista<str>>) -> SoporteGenerado ! {
+fn generar_soporte(raiz: view, arboles: &list<P.Nodo>, global: &I.Contexto,
+    cierres: &Cierres, reg: mut Registro, con_partes: &map<str, usize>,
+    st_nombres: &list<str>, st_indice: &map<str, usize>,
+    st_campos: &list<list<str>>, st_tipos: &list<list<str>>,
+    en_nombres: &list<str>, en_variantes: &list<list<str>>,
+    en_lleva: &list<list<str>>) -> SoporteGenerado ! {
     // Las internas falibles registran su resultado despues de recorrer todo.
     var usa_leer_archivo = false;
     var usa_leer_parte_archivo = false;
     var usa_escribir_archivo = false;
     var da_texto = false;
-    var usa_sistema: mapa<str, usize> = [];
+    var usa_sistema: map<str, usize> = [];
     for arbol en arboles {
         if llama_a(arbol, "leer_archivo") { usa_leer_archivo = true; }
         if llama_a(arbol, "leer_parte_archivo") { usa_leer_parte_archivo = true; }
@@ -3827,13 +3831,13 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
     let _t = da_texto;
 
     // Los structs en orden de dependencia, y quien de ellos posee.
-    var listos: mapa<str, usize> = [];
-    var orden: lista<str> = [];
+    var listos: map<str, usize> = [];
+    var orden: list<str> = [];
     for n en st_nombres { visitar_struct(n, st_indice, st_tipos, listos, orden); }
     var cta = F.cuenta_nueva();
     cta.sacados = copiar(cierres.sacados);
 
-    var partes: lista<str> = [];
+    var partes: list<str> = [];
     let adelantados = declarar_tipos(partes, st_nombres, en_nombres, en_variantes, reg);
     definir_tipos(partes, en_nombres, en_variantes, en_lleva, st_indice, st_campos, st_tipos, orden, adelantados, global, reg);
 
@@ -3844,11 +3848,11 @@ fn generar_soporte(raiz: view, arboles: &lista<P.Nodo>, global: &I.Contexto,
     soltar_enums(partes, en_nombres, en_variantes, en_lleva, global, cta);
     return SoporteGenerado { partes: partes, cta: cta };
 }
-fn declarar_tipos(partes: mut lista<str>,
-    st_nombres: &lista<str>,
-    en_nombres: &lista<str>,
-    en_variantes: &lista<lista<str>>,
-    reg: &Registro) -> mapa<str, usize> {
+fn declarar_tipos(partes: mut list<str>,
+    st_nombres: &list<str>,
+    en_nombres: &list<str>,
+    en_variantes: &list<list<str>>,
+    reg: &Registro) -> map<str, usize> {
     for n en st_nombres { partes.anadir($"typedef struct {n} {n};"); }
     if st_nombres.largo() > 0 { partes.anadir(vacio()); }
     // Cada enum con la etiqueta de cada forma: la 0 es la primera.
@@ -3864,7 +3868,7 @@ fn declarar_tipos(partes: mut lista<str>,
         ie_t = ie_t + 1;
     }
     if en_nombres.largo() > 0 { partes.anadir(vacio()); }
-    var ordenadas: lista<str> = [];
+    var ordenadas: list<str> = [];
     for x en reg.bloques { ordenadas.anadir(copiar(x)); }
     for x en reg.listas { ordenadas.anadir(copiar(x)); }
     for x en reg.mapas { ordenadas.anadir(copiar(x)); }
@@ -3872,8 +3876,8 @@ fn declarar_tipos(partes: mut lista<str>,
     // Un mapa o un bloque de arreglos guarda un puntero al envoltorio, y el
     // envoltorio se define despues de los structs. A esos se les da nombre
     // para declararlos aqui; los demas siguen sin nombre.
-    var adelantados: mapa<str, usize> = [];
-    var adelantados_orden: lista<str> = [];
+    var adelantados: map<str, usize> = [];
+    var adelantados_orden: list<str> = [];
     for x en ordenadas {
         let dependencias = dependencias_de_agregado(x);
         for d en dependencias {
@@ -3888,27 +3892,27 @@ fn declarar_tipos(partes: mut lista<str>,
         let tc_d = G.tipo_c(d);
         partes.anadir($"typedef struct {tc_d} {tc_d};");
     }
-    var puestos: mapa<str, usize> = [];
+    var puestos: map<str, usize> = [];
     for x en ordenadas { poner_typedef(x, reg, puestos, partes); }
     if ordenadas.largo() > 0 { partes.anadir(vacio()); }
     return adelantados;
 }
 
-fn definir_tipos(partes: mut lista<str>,
-    en_nombres: &lista<str>,
-    en_variantes: &lista<lista<str>>,
-    en_lleva: &lista<lista<str>>,
-    st_indice: &mapa<str, usize>,
-    st_campos: &lista<lista<str>>,
-    st_tipos: &lista<lista<str>>,
-    orden: &lista<str>,
-    adelantados: &mapa<str, usize>,
+fn definir_tipos(partes: mut list<str>,
+    en_nombres: &list<str>,
+    en_variantes: &list<list<str>>,
+    en_lleva: &list<list<str>>,
+    st_indice: &map<str, usize>,
+    st_campos: &list<list<str>>,
+    st_tipos: &list<list<str>>,
+    orden: &list<str>,
+    adelantados: &map<str, usize>,
     global: &I.Contexto,
     reg: &Registro) {
     // Los enums, y detras los structs en orden de dependencia. Cada uno
     // necesita el tamanio de lo que lleva por valor, asi que va despues.
-    var definidos: mapa<str, usize> = [];
-    var envueltos: mapa<str, usize> = [];
+    var definidos: map<str, usize> = [];
+    var envueltos: map<str, usize> = [];
     for en_n en en_nombres {
         definir_tipo_c(vista(en_n), en_nombres, en_variantes, en_lleva,
             st_indice, st_campos, st_tipos, definidos, envueltos, adelantados, partes);
@@ -3933,7 +3937,7 @@ fn definir_tipos(partes: mut lista<str>,
     if alguno_posee { partes.anadir(vacio()); }
 
     // Los envoltorios de arreglo, de dentro hacia fuera.
-    var arr_orden: lista<str> = [];
+    var arr_orden: list<str> = [];
     var hondo_a = 0;
     var quedan_a = reg.arreglos.largo();
     while quedan_a > 0 {
@@ -3956,19 +3960,19 @@ fn definir_tipos(partes: mut lista<str>,
     if reg.resultados.largo() > 0 { partes.anadir(vacio()); }
 }
 
-fn internas_del_sistema(partes: mut lista<str>,
+fn internas_del_sistema(partes: mut list<str>,
     raiz: view,
-    usa_sistema: &mapa<str, usize>,
+    usa_sistema: &map<str, usize>,
     usa_escribir_archivo: bool,
     usa_leer_archivo: bool,
     usa_leer_parte_archivo: bool,
     reg: &Registro,
     global: &I.Contexto,
-    con_partes: &mapa<str, usize>,
+    con_partes: &map<str, usize>,
     cta: mut F.Cuenta) ! {
     // Las internas que hablan con el sistema, en un orden fijo.
     let res_texto = G.tipo_resultado("str");
-    var internas_orden: lista<str> = [];
+    var internas_orden: list<str> = [];
     internas_orden.anadir(nuevo("ahora_ms"));
     internas_orden.anadir(nuevo("monotono_ms"));
     internas_orden.anadir(nuevo("semilla"));
@@ -4000,11 +4004,11 @@ fn internas_del_sistema(partes: mut lista<str>,
     for x en reg.mapas { funcion_mapa(x, global, con_partes, cta, partes); }
 }
 
-fn soltar_structs(partes: mut lista<str>,
-    orden: &lista<str>,
-    st_indice: &mapa<str, usize>,
-    st_campos: &lista<lista<str>>,
-    st_tipos: &lista<lista<str>>,
+fn soltar_structs(partes: mut list<str>,
+    orden: &list<str>,
+    st_indice: &map<str, usize>,
+    st_campos: &list<list<str>>,
+    st_tipos: &list<list<str>>,
     global: &I.Contexto,
     cta: mut F.Cuenta) {
     // Liberadores de structs, antes que las funciones y en la misma cuenta.
@@ -4033,10 +4037,10 @@ fn soltar_structs(partes: mut lista<str>,
     }
 }
 
-fn soltar_enums(partes: mut lista<str>,
-    en_nombres: &lista<str>,
-    en_variantes: &lista<lista<str>>,
-    en_lleva: &lista<lista<str>>,
+fn soltar_enums(partes: mut list<str>,
+    en_nombres: &list<str>,
+    en_variantes: &list<list<str>>,
+    en_lleva: &list<list<str>>,
     global: &I.Contexto,
     cta: mut F.Cuenta) {
     // Liberadores de enums: solo las formas que llevan algo con duenio.
@@ -4089,7 +4093,7 @@ fn main() -> usize ! {
     let opciones = leer_opciones();
     if opciones.terminar { return opciones.codigo; }
     if opciones.modo == "formatear" {
-        return formatear_archivo(opciones.fuente, opciones.escribir);
+        return formatear_archivo(opciones.fuente, opciones.escribir, opciones.renombrar);
     }
     let fuente = copiar(opciones.fuente);
     let salida = copiar(opciones.salida);

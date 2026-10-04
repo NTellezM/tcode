@@ -16,12 +16,12 @@
 // Es la misma lista que el comprobador de Python sabe decir con `--explicar`,
 // y la suite compara las dos sobre el codigo real del repositorio.
 
-usar "tipar.t" como I;
-usar "tipos.t" como T;
-usar "../../lexer/lib/sintaxis.t" como P;
-usar "std/texto";
-usar "std/lista";
-usar "../../lexer/lib/clase.t";
+use "tipar.t" como I;
+use "tipos.t" como T;
+use "../../lexer/lib/sintaxis.t" como P;
+use "std/texto";
+use "std/lista";
+use "../../lexer/lib/clase.t";
 
 struct Hecho {
     funcion: str,
@@ -46,9 +46,9 @@ struct Vigilada {
 // declaradas dentro de ella no se fotografian: su destino pertenece a esa
 // rama aunque esta termine y no alcance la continuacion.
 struct Foto {
-    indices: lista<usize>,
-    movidas: lista<usize>,
-    entregadas: lista<usize>,
+    indices: list<usize>,
+    movidas: list<usize>,
+    entregadas: list<usize>,
 }
 
 fn vigilar(nombre: view, tipo: view, prestado: bool,
@@ -102,7 +102,7 @@ fn variable_suelta(n: &P.Nodo) -> str {
 
 // El tipo de una variable segun lo que se esta vigilando. El ambito del
 // comprobador ya se cerro cuando llega este recorrido.
-fn tipo_vigilado(vs: &lista<Vigilada>, nombre: view, linea: usize) -> str {
+fn tipo_vigilado(vs: &list<Vigilada>, nombre: view, linea: usize) -> str {
     let i = cual(vs, nombre, linea) sino vs.largo();
     if i >= vs.largo() { return vacio(); }
     return copiar(vs[i].tipo);
@@ -110,7 +110,7 @@ fn tipo_vigilado(vs: &lista<Vigilada>, nombre: view, linea: usize) -> str {
 
 // Con dos variables del mismo nombre en bloques distintos, la que manda es
 // la ultima declarada antes de esta linea: es la que tapa a la otra.
-fn cual(vs: &lista<Vigilada>, nombre: view, linea: usize) -> usize ! {
+fn cual(vs: &list<Vigilada>, nombre: view, linea: usize) -> usize ! {
     var i = vs.largo();
     while i > 0 {
         i = i - 1;
@@ -118,10 +118,10 @@ fn cual(vs: &lista<Vigilada>, nombre: view, linea: usize) -> usize ! {
             if vs[i].declarada_en <= linea { return i; }
         }
     }
-    falla "no esta vigilada";
+    fail "no esta vigilada";
 }
 
-fn marcar_movida(vs: mut lista<Vigilada>, nombre: view, linea: usize) {
+fn marcar_movida(vs: mut list<Vigilada>, nombre: view, linea: usize) {
     if nombre.largo() == 0 { return; }
     let i = cual(vs, nombre, linea) sino vs.largo();
     if i >= vs.largo() { return; }
@@ -130,7 +130,7 @@ fn marcar_movida(vs: mut lista<Vigilada>, nombre: view, linea: usize) {
     }
 }
 
-fn marcar_entregada(vs: mut lista<Vigilada>, nombre: view, linea: usize) {
+fn marcar_entregada(vs: mut list<Vigilada>, nombre: view, linea: usize) {
     if nombre.largo() == 0 { return; }
     let i = cual(vs, nombre, linea) sino vs.largo();
     if i >= vs.largo() { return; }
@@ -140,7 +140,7 @@ fn marcar_entregada(vs: mut lista<Vigilada>, nombre: view, linea: usize) {
 // Asignar un valor nuevo a una variable vuelve a hacerla dueña. El informe
 // conserva un símbolo por declaración, así que su destino es el de la última
 // vida del valor, no el de una que terminó antes de la reasignación.
-fn marcar_repuesta(vs: mut lista<Vigilada>, nombre: view, linea: usize) {
+fn marcar_repuesta(vs: mut list<Vigilada>, nombre: view, linea: usize) {
     if nombre.largo() == 0 { return; }
     let i = cual(vs, nombre, linea) sino vs.largo();
     if i >= vs.largo() { return; }
@@ -148,10 +148,10 @@ fn marcar_repuesta(vs: mut lista<Vigilada>, nombre: view, linea: usize) {
     vs[i].entregada_en = 0;
 }
 
-fn fotografiar(vs: &lista<Vigilada>, antes_de: usize) -> Foto {
-    var indices: lista<usize> = [];
-    var movidas: lista<usize> = [];
-    var entregadas: lista<usize> = [];
+fn fotografiar(vs: &list<Vigilada>, antes_de: usize) -> Foto {
+    var indices: list<usize> = [];
+    var movidas: list<usize> = [];
+    var entregadas: list<usize> = [];
     var i = 0;
     while i < vs.largo() {
         if vs[i].declarada_en < antes_de {
@@ -165,7 +165,7 @@ fn fotografiar(vs: &lista<Vigilada>, antes_de: usize) -> Foto {
         entregadas: entregadas };
 }
 
-fn restaurar(vs: mut lista<Vigilada>, f: &Foto) {
+fn restaurar(vs: mut list<Vigilada>, f: &Foto) {
     var i = 0;
     while i < f.indices.largo() {
         let k = f.indices[i];
@@ -187,7 +187,7 @@ fn termina(n: &P.Nodo) -> bool {
     || clase == Clase.Romper || clase == Clase.Continuar;
 }
 
-fn unir_ramas(vs: mut lista<Vigilada>, a: &Foto, b: &Foto,
+fn unir_ramas(vs: mut list<Vigilada>, a: &Foto, b: &Foto,
     sale_a: bool, sale_b: bool) {
     var i = 0;
     while i < a.indices.largo() {
@@ -233,7 +233,7 @@ fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
     // depende del argumento: lo mira quien llama, con el tipo de lo que pasa.
     if tiene(c.tipo_params, fn_) {
         let sueltos = I.lista_de(c.tipo_params, fn_) sino [];
-        var cualquiera: mapa<str, str> = [];
+        var cualquiera: map<str, str> = [];
         for tp en sueltos { poner(cualquiera, vista(tp), nuevo("str")); }
         let puesto = T.sustituir(m, cualquiera);
         if !igual(puesto, m) { return true; }
@@ -245,7 +245,7 @@ fn se_lo_queda(c: &I.Contexto, fn_: view, i: usize) -> bool {
 // Recorrer un cuerpo buscando quien entrega y quien mueve
 // ------------------------------------------------------------------
 
-fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
+fn mirar(c: &I.Contexto, n: &P.Nodo, vs: mut list<Vigilada>) {
     let clase = n.clase;
 
     match clase {
@@ -366,7 +366,7 @@ fn declara_prestamo(texto: view) -> bool {
     return i + 2 < texto.largo() && byte(texto, i + 2) == 38;
 }
 
-fn mirar_llamada(c: &I.Contexto, n: &P.Nodo, vs: mut lista<Vigilada>) {
+fn mirar_llamada(c: &I.Contexto, n: &P.Nodo, vs: mut list<Vigilada>) {
     let nombre = vista(n.texto);
 
     // Las internas que se quedan con un valor: el segundo argumento de

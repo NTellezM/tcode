@@ -32,12 +32,12 @@ fn poner_u64(destino: mut str, v: u64) {
 }
 
 fn leer_u8(v: view, desde: usize) -> u8 ! {
-    if desde >= largo(v) { falla "se acabaron los bytes"; }
+    if desde >= largo(v) { fail "se acabaron los bytes"; }
     return byte(v, desde) como u8;
 }
 
 fn leer_u16(v: view, desde: usize) -> u16 ! {
-    if desde + 2 > largo(v) { falla "se acabaron los bytes"; }
+    if desde + 2 > largo(v) { fail "se acabaron los bytes"; }
     var n: u16 = 0;
     var i = 0;
     while i < 2 {
@@ -48,7 +48,7 @@ fn leer_u16(v: view, desde: usize) -> u16 ! {
 }
 
 fn leer_u32(v: view, desde: usize) -> u32 ! {
-    if desde + 4 > largo(v) { falla "se acabaron los bytes"; }
+    if desde + 4 > largo(v) { fail "se acabaron los bytes"; }
     var n: u32 = 0;
     var i = 0;
     while i < 4 {
@@ -59,7 +59,7 @@ fn leer_u32(v: view, desde: usize) -> u32 ! {
 }
 
 fn leer_u64(v: view, desde: usize) -> u64 ! {
-    if desde + 8 > largo(v) { falla "se acabaron los bytes"; }
+    if desde + 8 > largo(v) { fail "se acabaron los bytes"; }
     var n: u64 = 0;
     var i = 0;
     while i < 8 {
@@ -88,11 +88,11 @@ fn valor_hex(b: usize) -> usize ! {
     if b >= 48 && b <= 57 { return b - 48; }
     if b >= 97 && b <= 102 { return b - 87; }
     if b >= 65 && b <= 70 { return b - 55; }
-    falla "eso no es un digito hexadecimal";
+    fail "eso no es un digito hexadecimal";
 }
 
 fn de_hex(v: view) -> str ! {
-    if largo(v) % 2 != 0 { falla "un hexadecimal tiene un numero par de digitos"; }
+    if largo(v) % 2 != 0 { fail "un hexadecimal tiene un numero par de digitos"; }
     var salida = vacio();
     var i = 0;
     while i < largo(v) {

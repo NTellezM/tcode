@@ -9,7 +9,7 @@
 // palabras ni empieza una. Las columnas salen separadas por un espacio: el
 // ancho de `wc` depende del sistema, los numeros no.
 
-usar "std/caracter" como c;
+use "std/caracter" como c;
 
 struct Cuenta {
     lineas: usize,

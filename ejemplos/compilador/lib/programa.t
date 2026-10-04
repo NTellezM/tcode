@@ -5,14 +5,14 @@
 // `cuerpos.t`, que compara funcion a funcion, y `tcodec.t`, que escribe el
 // programa entero.
 
-usar "generar.t" como G;
-usar "tipar.t" como I;
-usar "tipos.t" como T;
-usar "../../lexer/lib/lexico.t";
-usar "../../lexer/lib/sintaxis.t" como P;
-usar "std/texto";
-usar "std/lista";
-usar "../../lexer/lib/clase.t";
+use "generar.t" como G;
+use "tipar.t" como I;
+use "tipos.t" como T;
+use "../../lexer/lib/lexico.t";
+use "../../lexer/lib/sintaxis.t" como P;
+use "std/texto";
+use "std/lista";
+use "../../lexer/lib/clase.t";
 
 fn nombre_de(texto: view) -> str {
     var i = 0;
@@ -68,8 +68,8 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
     // alias.
     match n.clase {
         Clase.Struct -> {
-            var suyos: lista<str> = [];
-            var como_se_llaman: lista<str> = [];
+            var suyos: list<str> = [];
+            var como_se_llaman: list<str> = [];
             for h en n.hijos {
                 if h.clase == Clase.CampoDef {
                     como_se_llaman.anadir(nombre_de(h.texto));
@@ -78,18 +78,18 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
             }
             poner(c.campos, vista(n.texto), T.leer_tipos(suyos));
             poner(c.nombres, vista(n.texto), como_se_llaman);
-            var sueltos_st: lista<str> = [];
+            var sueltos_st: list<str> = [];
             for h en n.hijos {
                 if h.clase == Clase.TipoParam { sueltos_st.anadir(nuevo(h.texto)); }
             }
             if sueltos_st.largo() > 0 { poner(c.struct_params, vista(n.texto), sueltos_st); }
         }
         Clase.Enum -> {
-            var cuales: lista<str> = [];
+            var cuales: list<str> = [];
             for h en n.hijos {
                 if h.clase == Clase.Variante {
                     cuales.anadir(nuevo(h.texto));
-                    var lleva: lista<str> = [];
+                    var lleva: list<str> = [];
                     for x en h.hijos {
                         // Sin alias, como los nombres de los tipos:
                         // `Con(H.Nombre)` lleva un `Nombre`.
@@ -108,9 +108,9 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
         Clase.Fn -> {
             var retorno = vacio();
             var es_de_c = false;
-            var sueltos: lista<str> = [];
-            var tipos_param: lista<str> = [];
-            var marcados: lista<str> = [];
+            var sueltos: list<str> = [];
+            var tipos_param: list<str> = [];
+            var marcados: list<str> = [];
             for h en n.hijos {
                 if h.clase == Clase.RetornoTipo {
                     retorno = T.sin_alias_tipo(h.texto);
@@ -135,7 +135,7 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
                     poner(c.externas, vista(n.texto), 1);
                 }
                 // Una funcion de C presta lo que recibe: no se queda con nada.
-                var prestados: lista<str> = [];
+                var prestados: list<str> = [];
                 for _m en marcados { prestados.anadir(nuevo("&")); }
                 marcados = prestados;
             }
@@ -251,7 +251,7 @@ fn prefijo_de(ruta: view) -> str {
 // `a/./b/../c.t` -> `a/c.t`. Sin preguntar al sistema: hace falta que dos
 // caminos al mismo archivo den la misma cadena, para no cargarlo dos veces.
 fn normalizar(ruta: view) -> str {
-    var partes: lista<str> = [];
+    var partes: list<str> = [];
     let absoluta = ruta.largo() > 0 && byte(ruta, 0) == 47;
     var desde = 0;
     var i = 0;
@@ -281,8 +281,8 @@ fn normalizar(ruta: view) -> str {
     return r;
 }
 
-fn sin_la_ultima(xs: &lista<str>) -> lista<str> {
-    var quedan: lista<str> = [];
+fn sin_la_ultima(xs: &list<str>) -> list<str> {
+    var quedan: list<str> = [];
     var i = 0;
     while i + 1 < xs.largo() {
         quedan.anadir(copiar(xs[i]));
@@ -295,7 +295,7 @@ fn sin_la_ultima(xs: &lista<str>) -> lista<str> {
 // nombre del archivo, salvo que otro de los que declaran ese mismo nombre se
 // llame igual (`x.t` y `lib/x.t`): entonces va la ruta entera, como en el
 // cargador. `modulos` son solo los que declaran el nombre.
-fn prefijo_unico(ruta: view, modulos: &lista<str>) -> str {
+fn prefijo_unico(ruta: view, modulos: &list<str>) -> str {
     let base = prefijo_de(ruta);
     var iguales = 0;
     for m en modulos {
@@ -343,14 +343,14 @@ struct Cuenta {
     etiquetas: usize,
     // Los campos que el comprobador vio sacar de su struct:
     // `archivo\tid del nodo\tp.a.b`.
-    sacados: mapa<str, usize>,
+    sacados: map<str, usize>,
     ultima_linea: usize,
     // Las copias de genericas que han pedido las funciones escritas.
-    instancias: lista<str>,
+    instancias: list<str>,
     // Los tipos que han pedido copiador, en el orden en que se pidieron.
-    copias: lista<str>,
+    copias: list<str>,
     // Los arreglos que solo nombra un literal en algun cuerpo.
-    arreglos: lista<str>,
+    arreglos: list<str>,
     // La funcion que se escribe, con el nombre que le da el comprobador: es
     // la clave de los tipos que dejo anotados. Vacio, no hay anotaciones y
     // los tipos se deducen.
@@ -371,7 +371,7 @@ fn cuenta_nueva() -> Cuenta {
 // el cargador renombra. Devuelve el arbol.
 fn preparar(ruta: view, tipos: mut I.Contexto) -> P.Nodo ! {
     var error = vacio();
-    let ninguno: mapa<str, usize> = [];
+    let ninguno: map<str, usize> = [];
     var leidos = P.leidos();
     return try preparar_con_error(ruta, tipos, error, ninguno, ninguno, leidos, true);
 }
@@ -434,7 +434,7 @@ fn forma_sin_alias(texto: view) -> str {
 }
 
 fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
-    previos_st: &mapa<str, usize>, previos_en: &mapa<str, usize>,
+    previos_st: &map<str, usize>, previos_en: &map<str, usize>,
     leidos: mut P.Leidos, transitivo: bool) -> P.Nodo ! {
     let fuente = try leer_archivo(ruta);
     let tokens = try tokens_de(fuente, ruta, error);
@@ -448,21 +448,21 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
     // Para manglear: las herramientas quieren ver tambien lo que llega de
     // segunda mano, como el cargador completo. La carga de firmas —`usados`—
     // sigue siendo la directa.
-    var extra: lista<P.Usado> = [];
+    var extra: list<P.Usado> = [];
     if transitivo { extra = P.modulos_usados_transitivos(ruta, tokens, leidos); }
 
     var estado = P.estado_de(tokens, ruta, nombres, formas);
     var arbol = P.programa(estado) sino P.rama(Clase.Vacio, 0);
     if estado.error.largo() > 0 || arbol.clase == Clase.Vacio {
         error = copiar(estado.error);
-        falla "sintaxis";
+        fail "sintaxis";
     }
 
     // Lo que chocaria con C se renombra antes que nada, en este arbol y en
     // los de lo que usa, como hace el cargador. Salvo `main` y lo que
     // declara un `externo`: es el nombre de la funcion de C.
     let de_c = G.nombres_de_c();
-    var intocables: lista<str> = [nuevo("main")];
+    var intocables: list<str> = [nuevo("main")];
     G.externas_de(arbol, intocables);
     for u en usados { G.externas_de(u.arbol, intocables); }
     G.renombrar_para_c(arbol, de_c, intocables);
@@ -482,7 +482,7 @@ fn preparar_con_error(ruta: view, tipos: mut I.Contexto, error: mut str,
     // archivo delante, y asi se llama en C.
     for d en arbol.hijos {
         if d.clase == Clase.Fn {
-            var suyos: lista<str> = [normalizar(ruta)];
+            var suyos: list<str> = [normalizar(ruta)];
             if transitivo {
                 for u en extra {
                     if declara_fn(u.arbol, d.texto) { suyos.anadir(normalizar(u.ruta)); }
@@ -517,12 +517,12 @@ fn declara_fn(arbol: &P.Nodo, nombre: view) -> bool {
 // si esta capa no la sabe generar entera: media funcion no vale nada, y la
 // razon va por la salida de error.
 fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
-    cta: mut Cuenta) -> lista<str> {
-    let ninguna: lista<str> = [];
-    var puntos: mapa<str, usize> = [];
-    var de_tipo: mapa<str, str> = [];
-    var tipos_param: lista<str> = [];
-    var marcas: lista<str> = [];
+    cta: mut Cuenta) -> list<str> {
+    let ninguna: list<str> = [];
+    var puntos: map<str, usize> = [];
+    var de_tipo: map<str, str> = [];
+    var tipos_param: list<str> = [];
+    var marcas: list<str> = [];
     var retorno = vacio();
     var falible = false;
 
@@ -557,13 +557,13 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
 
     // Quien se entrega por algun camino lleva bandera. Se decide antes de
     // emitir nada, porque la bandera nace pegada a la declaracion.
-    var movidas: lista<str> = [];
+    var movidas: list<str> = [];
     for h en d.hijos {
         if h.clase == Clase.Bloque {
             G.movidas_hondo(puntos, h, tipos, movidas);
         }
     }
-    var banderas: mapa<str, usize> = [];
+    var banderas: map<str, usize> = [];
     for nm en movidas { poner(banderas, vista(nm), 1); }
 
     var sitio = G.Sitio { archivo: nuevo(ruta), tipos: de_tipo,
@@ -649,7 +649,7 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     if tiene(tipos.renombradas, d.texto) {
         nombre_c = nuevo(obtener(tipos.renombradas, d.texto) sino "");
     }
-    var salida: lista<str> = [];
+    var salida: list<str> = [];
     // La directiva de la funcion, salvo que la ultima marcada ya fuera esa.
     if cta.ultima_linea != d.linea {
         salida.anadir($"#line {d.linea} \"{ruta}\"");

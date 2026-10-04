@@ -6,19 +6,19 @@
 
 // Un entero en [desde, hasta], ambos incluidos.
 fn entero_entre(desde: usize, hasta: usize) -> usize ! {
-    if hasta < desde { falla "el rango esta vacio"; }
+    if hasta < desde { fail "el rango esta vacio"; }
     return desde + azar(hasta - desde + 1);
 }
 
 // Un indice valido de la lista: de 0 a `largo(xs) - 1`.
-fn indice_al_azar<T>(xs: &lista<T>) -> usize ! {
-    if largo(xs) == 0 { falla "la lista esta vacia"; }
+fn indice_al_azar<T>(xs: &list<T>) -> usize ! {
+    if largo(xs) == 0 { fail "la lista esta vacia"; }
     return azar(largo(xs));
 }
 
 // Baraja la lista en su sitio, con Fisher-Yates: cada permutacion sale con la
 // misma probabilidad.
-fn barajar<T>(xs: mut lista<T>) {
+fn barajar<T>(xs: mut list<T>) {
     var i = largo(xs);
     while i > 1 {
         let j = azar(i);

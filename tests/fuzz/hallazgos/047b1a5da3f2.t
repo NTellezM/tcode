@@ -3,7 +3,7 @@ enum Json {
     Verdad(bool),
     Numero(i64),
     Texto(str),
-    Lista(lista<Json>)}
+    Lista(list<Json>) }
 fn escribir(v: &Json) -> str {
     return match v {
         Json.Nulo -> nuevo("null"),

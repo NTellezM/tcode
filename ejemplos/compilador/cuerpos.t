@@ -7,13 +7,13 @@
 //
 //     ./cuerpos std/caracter.t
 
-usar "lib/programa.t" como F;
-usar "lib/tipar.t" como I;
-usar "../lexer/lib/lexico.t";
-usar "../lexer/lib/sintaxis.t" como P;
-usar "std/texto";
-usar "std/lista";
-usar "../lexer/lib/clase.t";
+use "lib/programa.t" como F;
+use "lib/tipar.t" como I;
+use "../lexer/lib/lexico.t";
+use "../lexer/lib/sintaxis.t" como P;
+use "std/texto";
+use "std/lista";
+use "../lexer/lib/clase.t";
 
 fn main() -> usize ! {
     if n_argumentos() < 2 {

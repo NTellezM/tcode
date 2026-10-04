@@ -11,7 +11,7 @@
 // literal del struct, igual que `std/vector`.
 
 struct Pila<T> {
-    datos: lista<T>,
+    datos: list<T>,
     tope: usize,
 }
 
@@ -35,13 +35,13 @@ fn apilar<T>(p: mut Pila<T>, x: T) {
 // Saca el de arriba. `vacio_t` es lo que deja en su hueco, para no dejar un
 // hueco sin duenio.
 fn desapilar<T>(p: mut Pila<T>, vacio_t: T) -> T ! {
-    if p.tope == 0 { falla "la pila esta vacia"; }
+    if p.tope == 0 { fail "la pila esta vacia"; }
     p.tope = p.tope - 1;
     return intercambiar(p.datos[p.tope], vacio_t);
 }
 
 // El de arriba, sin sacarlo: una copia.
 fn cima<T>(p: &Pila<T>) -> T ! {
-    if p.tope == 0 { falla "la pila esta vacia"; }
+    if p.tope == 0 { fail "la pila esta vacia"; }
     return copiar(p.datos[p.tope - 1]);
 }

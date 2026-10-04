@@ -1,8 +1,8 @@
 // std/formato.t — poner numeros y tablas donde se puedan leer.
 
-usar "std/texto";
-usar "std/numero";
-usar "std/lista";
+use "std/texto";
+use "std/numero";
+use "std/lista";
 
 // Un decimal con tantos decimales como se pidan, redondeando. `imprimir`
 // usa `%g`, que sirve para mirar pero no para una tabla.
@@ -46,7 +46,7 @@ fn con_millares(n: usize) -> str {
 }
 
 // Una fila de tabla: cada celda rellenada al ancho que le toca.
-fn fila(celdas: &lista<str>, anchos: &lista<usize>, sep: view) -> str {
+fn fila(celdas: &list<str>, anchos: &list<usize>, sep: view) -> str {
     var s = vacio();
     var i = 0;
     for c en celdas {
@@ -59,8 +59,8 @@ fn fila(celdas: &lista<str>, anchos: &lista<usize>, sep: view) -> str {
 }
 
 // Los anchos que necesita cada columna para que todo cuadre.
-fn anchos_de(filas: &lista<lista<str>>) -> lista<usize> {
-    var anchos: lista<usize> = [];
+fn anchos_de(filas: &list<list<str>>) -> list<usize> {
+    var anchos: list<usize> = [];
     for f en filas {
         var i = 0;
         for c en f {

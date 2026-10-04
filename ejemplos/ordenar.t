@@ -6,9 +6,9 @@
 //
 //     ./ordenar README.md
 
-usar "std/texto";
-usar "std/lista";
-usar "std/cuenta";
+use "std/texto";
+use "std/lista";
+use "std/cuenta";
 
 fn main() -> usize ! {
     if n_argumentos() < 2 {

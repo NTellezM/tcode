@@ -10,7 +10,7 @@
 // sin inicializar que temer, que es de donde salen los problemas al escribir
 // un vector en C o el `unsafe` al escribirlo en Rust.
 
-usar "std/numero";
+use "std/numero";
 
 struct Vector<T> {
     datos: bloque<T>,
@@ -33,19 +33,19 @@ fn agregar<T>(v: mut Vector<T>, x: T) {
 // Saca el ultimo dejando un valor vacio en su sitio: nunca hay un hueco sin
 // duenio, que es lo que el compilador no deja hacer de otra forma.
 fn sacar<T>(v: mut Vector<T>, vacio_del_tipo: T) -> T ! {
-    if v.largo == 0 { falla "el vector esta vacio"; }
+    if v.largo == 0 { fail "el vector esta vacio"; }
     v.largo = v.largo - 1;
     return intercambiar(v.datos[v.largo], vacio_del_tipo);
 }
 
 fn copia_de<T>(v: &Vector<T>, i: usize) -> T ! {
-    if i >= v.largo { falla "esa posicion no existe en el vector"; }
+    if i >= v.largo { fail "esa posicion no existe en el vector"; }
     return copiar(v.datos[i]);
 }
 
 // Una lista independiente con los elementos vivos, no con toda la capacidad.
-fn a_lista<T>(v: &Vector<T>) -> lista<T> {
-    var salida: lista<T> = [];
+fn a_lista<T>(v: &Vector<T>) -> list<T> {
+    var salida: list<T> = [];
     var i = 0;
     while i < v.largo {
         anadir(salida, copiar(v.datos[i]));

@@ -7,12 +7,12 @@
 //
 //     ./tipos std/lista.t
 
-usar "lib/tipos.t" como T;
-usar "../lexer/lib/lexico.t";
-usar "../lexer/lib/sintaxis.t" como P;
-usar "std/texto";
-usar "std/lista";
-usar "../lexer/lib/clase.t";
+use "lib/tipos.t" como T;
+use "../lexer/lib/lexico.t";
+use "../lexer/lib/sintaxis.t" como P;
+use "std/texto";
+use "std/lista";
+use "../lexer/lib/clase.t";
 
 // De `nombre: &lista<str>` se queda con `&lista<str>`. El parser escribe
 // `mut T` donde el comprobador dice `&mut T`, asi que se iguala aqui.
@@ -35,10 +35,10 @@ fn tras_dos_puntos(texto: view) -> str {
     return nuevo(texto);
 }
 
-fn recoger(n: &P.Nodo, campos: mut mapa<str, lista<str>>,
-    tipos: mut lista<str>) {
+fn recoger(n: &P.Nodo, campos: mut map<str, list<str>>,
+    tipos: mut list<str>) {
     if n.clase == Clase.Struct {
-        var suyos: lista<str> = [];
+        var suyos: list<str> = [];
         for h en n.hijos {
             if h.clase == Clase.CampoDef {
                 let t = tras_dos_puntos(h.texto);
@@ -71,18 +71,18 @@ fn main() -> usize ! {
     var estado = P.estado_de(tokens, argumento(1), nombres, formas);
     let arbol = try P.programa(estado);
 
-    var campos: mapa<str, lista<str>> = [];
-    var tipos: lista<str> = [];
+    var campos: map<str, list<str>> = [];
+    var tipos: list<str> = [];
     recoger(arbol, campos, tipos);
 
-    var campos_t: mapa<str, lista<T.Tipo>> = [];
+    var campos_t: map<str, list<T.Tipo>> = [];
     for k en claves(campos) {
         poner(campos_t, vista(k), T.leer_tipos(copiar(try obtener(campos, k))));
     }
 
     // En orden y sin repetir, para que la comparacion sea estable.
-    var vistos: mapa<str, usize> = [];
-    var unicos: lista<str> = [];
+    var vistos: map<str, usize> = [];
+    var unicos: list<str> = [];
     for t en tipos {
         if !tiene(vistos, t) {
             poner(vistos, vista(t), 1);
@@ -108,9 +108,9 @@ fn main() -> usize ! {
 }
 
 // Aqui solo hay structs: sin genericas ni enums.
-fn posee_de(campos: &mapa<str, lista<T.Tipo>>, t: &T.Tipo) -> bool {
-    var nada_s: mapa<str, lista<str>> = [];
-    var nada_t: mapa<str, lista<T.Tipo>> = [];
-    var vistos: mapa<str, usize> = [];
+fn posee_de(campos: &map<str, list<T.Tipo>>, t: &T.Tipo) -> bool {
+    var nada_s: map<str, list<str>> = [];
+    var nada_t: map<str, list<T.Tipo>> = [];
+    var vistos: map<str, usize> = [];
     return T.posee_en(t, campos, nada_s, nada_s, nada_t, vistos);
 }

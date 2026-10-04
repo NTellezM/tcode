@@ -1,2 +1,2 @@
-usar "lib/generar.t/" como G;
-fn main() {}
+use "lib/generar.t/" como G;
+fn main() { }

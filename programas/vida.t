@@ -5,21 +5,21 @@
 // La rejilla es un rectangulo de `.` (muerta) y `#` (viva), una fila por
 // linea. Imprime la rejilla tras las generaciones pedidas.
 
-usar "std/texto" como t;
+use "std/texto" como t;
 
 struct Rejilla {
     ancho: usize,
     alto: usize,
-    celdas: lista<bool>,
+    celdas: list<bool>,
 }
 
 fn leer(texto: view) -> Rejilla ! {
     let filas = t.lineas(texto);
-    if largo(filas) == 0 { falla "la rejilla esta vacia"; }
+    if largo(filas) == 0 { fail "la rejilla esta vacia"; }
     let ancho = largo(filas[0]);
-    var celdas: lista<bool> = [];
+    var celdas: list<bool> = [];
     for f en filas {
-        if largo(f) != ancho { falla "las filas no miden lo mismo"; }
+        if largo(f) != ancho { fail "las filas no miden lo mismo"; }
         var i = 0;
         while i < ancho {
             let b = byte(f, i);
@@ -28,7 +28,7 @@ fn leer(texto: view) -> Rejilla ! {
             } else if b == 46 {
                 anadir(celdas, false);
             } else {
-                falla "una celda que no es `.` ni `#`";
+                fail "una celda que no es `.` ni `#`";
             }
             i = i + 1;
         }
@@ -59,7 +59,7 @@ fn vecinas(r: &Rejilla, x: usize, y: usize) -> usize {
 }
 
 fn siguiente(r: &Rejilla) -> Rejilla {
-    var celdas: lista<bool> = [];
+    var celdas: list<bool> = [];
     var y = 0;
     while y < r.alto {
         var x = 0;

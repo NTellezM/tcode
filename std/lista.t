@@ -13,24 +13,24 @@
 // Una restriccion es un conjunto de tipos con nombre, no una interfaz que
 // haya que implementar: `usize` cumple `numero` sin que nadie escriba nada.
 
-usar "std/numero";
+use "std/numero";
 
 // ---------- para cualquier lista ----------
 
-fn esta_vacia<T>(xs: &lista<T>) -> bool {
+fn esta_vacia<T>(xs: &list<T>) -> bool {
     return largo(xs) == 0;
 }
 
 // La ultima posicion valida. Falla en vez de devolver un numero envuelto:
 // `largo(xs) - 1` sobre una lista vacia aborta el programa.
-fn ultima_posicion<T>(xs: &lista<T>) -> usize ! {
-    if esta_vacia(xs) { falla "una lista vacia no tiene ultima posicion"; }
+fn ultima_posicion<T>(xs: &list<T>) -> usize ! {
+    if esta_vacia(xs) { fail "una lista vacia no tiene ultima posicion"; }
     return largo(xs) - 1;
 }
 
 // Las primeras `cuantas`, o todas si hay menos.
-fn primeras<T>(xs: &lista<T>, cuantas: usize) -> lista<T> {
-    var salida: lista<T> = [];
+fn primeras<T>(xs: &list<T>, cuantas: usize) -> list<T> {
+    var salida: list<T> = [];
     var i = 0;
     for x en xs {
         if i == cuantas { break; }
@@ -42,8 +42,8 @@ fn primeras<T>(xs: &lista<T>, cuantas: usize) -> lista<T> {
 
 // Copia al reves, no da la vuelta en el sitio: sacar un elemento duenio de
 // una lista dejaria un hueco sin duenio, y el compilador no lo permite.
-fn invertida<T>(xs: &lista<T>) -> lista<T> {
-    var salida: lista<T> = [];
+fn invertida<T>(xs: &list<T>) -> list<T> {
+    var salida: list<T> = [];
     var i = largo(xs);
     while i > 0 {
         i = i - 1;
@@ -56,8 +56,8 @@ fn invertida<T>(xs: &lista<T>) -> lista<T> {
 // acabe en `>>`, que el lexer lee como un desplazamiento: es el mismo
 // problema que a C++ le costo veinte años de `> >` con espacio en medio, y
 // aqui se parte el token donde toca cerrar un tipo.
-fn aplanar<T>(xss: &lista<lista<T>>) -> lista<T> {
-    var salida: lista<T> = [];
+fn aplanar<T>(xss: &list<list<T>>) -> list<T> {
+    var salida: list<T> = [];
     for xs en xss {
         for x en xs { anadir(salida, copiar(x)); }
     }
@@ -71,8 +71,8 @@ fn aplanar<T>(xss: &lista<lista<T>>) -> lista<T> {
 // elementos duenios dentro de la lista dejaria un hueco sin duenio, y el
 // compilador no lo permite; asi son n copias en vez de n log n intercambios
 // imposibles.
-fn ordenadas_por<T, F>(xs: &lista<T>, antes: F) -> lista<T> {
-    var orden: lista<usize> = [];
+fn ordenadas_por<T, F>(xs: &list<T>, antes: F) -> list<T> {
+    var orden: list<usize> = [];
     var i = 0;
     while i < largo(xs) {
         anadir(orden, i);
@@ -102,15 +102,15 @@ fn ordenadas_por<T, F>(xs: &lista<T>, antes: F) -> lista<T> {
         j = j + 1;
     }
 
-    var salida: lista<T> = [];
+    var salida: list<T> = [];
     for p en orden { anadir(salida, copiar(xs[p])); }
     return salida;
 }
 
 // Se queda con los que cumplen. `cumple` puede ser una funcion con nombre o
 // una clausura que lleve algo capturado: al ser generico, valen las dos.
-fn filtradas<T, F>(xs: &lista<T>, cumple: F) -> lista<T> {
-    var salida: lista<T> = [];
+fn filtradas<T, F>(xs: &list<T>, cumple: F) -> list<T> {
+    var salida: list<T> = [];
     for x en xs {
         if cumple(x) { anadir(salida, copiar(x)); }
     }
@@ -118,7 +118,7 @@ fn filtradas<T, F>(xs: &lista<T>, cumple: F) -> lista<T> {
 }
 
 // Cuantos cumplen, sin construir la lista.
-fn cuantas_cumplen<T, F>(xs: &lista<T>, cumple: F) -> usize {
+fn cuantas_cumplen<T, F>(xs: &list<T>, cumple: F) -> usize {
     var n = 0;
     for x en xs {
         if cumple(x) { n = n + 1; }
@@ -128,24 +128,24 @@ fn cuantas_cumplen<T, F>(xs: &lista<T>, cumple: F) -> usize {
 
 // ---------- hace falta poder comparar ----------
 
-fn incluye<T: igualable>(xs: &lista<T>, aguja: &T) -> bool {
+fn incluye<T: igualable>(xs: &list<T>, aguja: &T) -> bool {
     for x en xs {
         if igual(x, aguja) { return true; }
     }
     return false;
 }
 
-fn posicion<T: igualable>(xs: &lista<T>, aguja: &T) -> usize ! {
+fn posicion<T: igualable>(xs: &list<T>, aguja: &T) -> usize ! {
     var i = 0;
     for x en xs {
         if igual(x, aguja) { return i; }
         i = i + 1;
     }
-    falla "eso no esta en la lista";
+    fail "eso no esta en la lista";
 }
 
-fn maximo<T: ordenable>(xs: &lista<T>) -> T ! {
-    if esta_vacia(xs) { falla "una lista vacia no tiene maximo"; }
+fn maximo<T: ordenable>(xs: &list<T>) -> T ! {
+    if esta_vacia(xs) { fail "una lista vacia no tiene maximo"; }
     var m = copiar(xs[0]);
     for x en xs {
         if menor(m, x) { m = copiar(x); }
@@ -153,8 +153,8 @@ fn maximo<T: ordenable>(xs: &lista<T>) -> T ! {
     return m;
 }
 
-fn minimo<T: ordenable>(xs: &lista<T>) -> T ! {
-    if esta_vacia(xs) { falla "una lista vacia no tiene minimo"; }
+fn minimo<T: ordenable>(xs: &list<T>) -> T ! {
+    if esta_vacia(xs) { fail "una lista vacia no tiene minimo"; }
     var m = copiar(xs[0]);
     for x en xs {
         if menor(x, m) { m = copiar(x); }
@@ -167,20 +167,20 @@ fn minimo<T: ordenable>(xs: &lista<T>) -> T ! {
 // Sumar una lista vacia da cero, que es lo correcto. `var total: T = 0` es
 // lo que lo permite: en la copia, `T` ya es un tipo concreto y el `0` cuadra
 // con el.
-fn suma<T: numero>(ns: &lista<T>) -> T {
+fn suma<T: numero>(ns: &list<T>) -> T {
     var total: T = 0;
     for n en ns { total = total + n; }
     return total;
 }
 
-fn media(ns: &lista<usize>) -> usize ! {
-    if esta_vacia(ns) { falla "una lista vacia no tiene media"; }
+fn media(ns: &list<usize>) -> usize ! {
+    if esta_vacia(ns) { fail "una lista vacia no tiene media"; }
     return try dividir(suma(ns), largo(ns));
 }
 
 // Da la vuelta a la lista en el sitio. Con numeros se puede: copiar uno no le
 // quita nada a nadie, asi que se pueden intercambiar dos posiciones.
-fn invertir<T: numero>(ns: mut lista<T>) {
+fn invertir<T: numero>(ns: mut list<T>) {
     if esta_vacia(ns) { return; }
     var i = 0;
     var j = largo(ns) - 1;

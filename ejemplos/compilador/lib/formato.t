@@ -10,11 +10,11 @@
 // Es el mismo formateador que el de Python, paso a paso: la suite compara
 // los dos sobre cada archivo del repositorio.
 
-usar "../../lexer/lib/lexico.t";
-usar "std/texto";
-usar "std/lista";
+use "../../lexer/lib/lexico.t";
+use "std/texto";
+use "std/lista";
 
-fn esta_entre(xs: &lista<str>, x: view) -> bool {
+fn esta_entre(xs: &list<str>, x: view) -> bool {
     for y en xs {
         if igual(y, x) { return true; }
     }
@@ -82,7 +82,7 @@ fn descifrado_simple(t: view) -> str {
 // Si el `<` de la posicion `i` abre una lista de tipos y no es un menor.
 // El formateador ve la palabra tal como se escribio, asi que durante el
 // transbordo valen las dos formas del nombre.
-fn es_generico(toks: &lista<Token>, i: usize) -> bool {
+fn es_generico(toks: &list<Token>, i: usize) -> bool {
     if i == 0 { return false; }
     let ant = valor_py(toks[i - 1]);
     let av = vista(ant);
@@ -222,12 +222,12 @@ fn sin_espacio_final(t: view) -> str {
 }
 
 struct Marcas {
-    generico: lista<bool>,
-    unario: lista<bool>,
+    generico: list<bool>,
+    unario: list<bool>,
 }
 
 // Si los dos van pegados, sin espacio en medio.
-fn pega(toks: &lista<Token>, i_ant: usize, i: usize, mc: &Marcas) -> bool {
+fn pega(toks: &list<Token>, i_ant: usize, i: usize, mc: &Marcas) -> bool {
     let tt = vista(toks[i].tipo);
     let ta = vista(toks[i_ant].tipo);
     if tt == "comentario" || ta == "comentario" { return false; }
@@ -263,7 +263,7 @@ fn pega(toks: &lista<Token>, i_ant: usize, i: usize, mc: &Marcas) -> bool {
     return false;
 }
 
-fn juntar(indices: &lista<usize>, desde: usize, hasta: usize, toks: &lista<Token>,
+fn juntar(indices: &list<usize>, desde: usize, hasta: usize, toks: &list<Token>,
     mc: &Marcas) -> str {
     var fuera = vacio();
     var j = desde;
@@ -294,21 +294,30 @@ fn juntar(indices: &lista<usize>, desde: usize, hasta: usize, toks: &lista<Token
 }
 
 // Formatea un archivo. Si no se puede leer como Tcode, `error` dice por que.
-fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
+// Con `renombrar`, ademas cambia cada palabra reservada por su nombre nuevo:
+// es el barrido de la fase B. Los comentarios y los textos son otros tokens,
+// asi que «la lista de espera» se queda como esta.
+fn formatear(fuente: view, archivo: view, error: mut str, renombrar: bool) -> str ! {
     let todos = try tokens_de_todo(fuente, archivo, true, 1, error);
-    var toks: lista<Token> = [];
+    var toks: list<Token> = [];
     for t en todos {
-        if t.tipo != "fin" { toks.anadir(copiar(t)); }
+        if t.tipo != "fin" {
+            var c = copiar(t);
+            if renombrar && c.tipo == "palabra" {
+                c.valor = nuevo(nueva(vista(c.valor)));
+            }
+            toks.anadir(c);
+        }
     }
 
     // Que `<` y `>` son de un tipo y cuales son comparaciones.
-    var generico: lista<bool> = [];
-    var unario: lista<bool> = [];
+    var generico: list<bool> = [];
+    var unario: list<bool> = [];
     for _t en toks {
         generico.anadir(false);
         unario.anadir(false);
     }
-    var pila: lista<usize> = [];
+    var pila: list<usize> = [];
     var i = 0;
     while i < toks.largo() {
         let es_s = toks[i].tipo == "simbolo";
@@ -346,8 +355,8 @@ fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
     let mc = Marcas { generico: generico, unario: unario };
 
     // Repartir en lineas segun venian.
-    var lineas: lista<lista<usize>> = [];
-    var actual: lista<usize> = [];
+    var lineas: list<list<usize>> = [];
+    var actual: list<usize> = [];
     var ultima: usize = 1;
     if toks.largo() > 0 { ultima = toks[0].linea; }
     var k = 0;
@@ -358,7 +367,7 @@ fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
             actual = [];
             var b = ultima + 1;
             while b < l {
-                let vacia: lista<usize> = [];
+                let vacia: list<usize> = [];
                 lineas.anadir(vacia);
                 b = b + 1;
             }
@@ -370,9 +379,9 @@ fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
     lineas.anadir(actual);
 
     // Escribir: el codigo de cada linea y, aparte, su comentario.
-    var codigos: lista<str> = [];
-    var comentarios: lista<str> = [];
-    var con_comentario: lista<bool> = [];
+    var codigos: list<str> = [];
+    var comentarios: list<str> = [];
+    var con_comentario: list<bool> = [];
     var hondura: i64 = 0;
     var blancos = 0;
     var primera = true;
@@ -474,8 +483,8 @@ fn formatear(fuente: view, archivo: view, error: mut str) -> str ! {
     return limpio;
 }
 
-fn quitar_ultimo(xs: mut lista<usize>) {
-    var quedan: lista<usize> = [];
+fn quitar_ultimo(xs: mut list<usize>) {
+    var quedan: list<usize> = [];
     var i = 0;
     while i + 1 < xs.largo() {
         quedan.anadir(xs[i]);

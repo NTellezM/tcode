@@ -9,11 +9,11 @@
 //     afirmar(p, "no esta vacia", largo(xs) > 0);
 //     return terminar(p);
 
-usar "std/texto";
+use "std/texto";
 
 struct Pruebas {
     hechas: usize,
-    fallos: lista<str>,
+    fallos: list<str>,
 }
 
 fn pruebas() -> Pruebas {

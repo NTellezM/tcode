@@ -38,8 +38,8 @@ fn coincide(texto: view, patron: view) -> bool {
 }
 
 // Las que coinciden, en orden y copiadas.
-fn coincidentes(xs: &lista<str>, patron: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn coincidentes(xs: &list<str>, patron: view) -> list<str> {
+    var salida: list<str> = [];
     var i = 0;
     while i < largo(xs) {
         if coincide(xs[i], patron) { anadir(salida, nuevo(xs[i])); }

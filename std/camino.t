@@ -67,8 +67,8 @@ fn unir_ruta(a: view, b: view) -> str {
     return $"{a}/{b}";
 }
 
-fn sin_ultima(xs: &lista<str>) -> lista<str> {
-    var salida: lista<str> = [];
+fn sin_ultima(xs: &list<str>) -> list<str> {
+    var salida: list<str> = [];
     var i = 0;
     while i + 1 < largo(xs) {
         anadir(salida, nuevo(xs[i]));
@@ -77,7 +77,7 @@ fn sin_ultima(xs: &lista<str>) -> lista<str> {
     return salida;
 }
 
-fn juntar(trozos: &lista<str>) -> str {
+fn juntar(trozos: &list<str>) -> str {
     var salida = vacio();
     var i = 0;
     while i < largo(trozos) {
@@ -92,7 +92,7 @@ fn juntar(trozos: &lista<str>) -> str {
 // si no queda nada, devuelve ".".
 fn normalizar(ruta: view) -> str {
     let raiz = absoluta(ruta);
-    var trozos: lista<str> = [];
+    var trozos: list<str> = [];
     var desde = 0;
     var i = 0;
     while i <= largo(ruta) {

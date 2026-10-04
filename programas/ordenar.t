@@ -5,8 +5,8 @@
 // -r invierte el orden; -u deja una sola de cada linea repetida. Sin
 // archivo, lee la entrada. Una ultima linea sin salto cuenta igual.
 
-fn partir_lineas(v: view) -> lista<str> {
-    var salida: lista<str> = [];
+fn partir_lineas(v: view) -> list<str> {
+    var salida: list<str> = [];
     var desde = 0;
     var i = 0;
     while i < largo(v) {

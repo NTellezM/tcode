@@ -7,7 +7,7 @@
 // y la variante. Para que dos ejecuciones no repitan, siembra el azar antes
 // —`sembrar_del_reloj()` hace una mezcla barata del reloj—.
 
-usar "std/azar" como azar;
+use "std/azar" como azar;
 
 fn sembrar_del_reloj() {
     let t = ahora_ms() como u64;
@@ -17,7 +17,7 @@ fn sembrar_del_reloj() {
 }
 
 fn v4() -> str {
-    var b: lista<usize> = [];
+    var b: list<usize> = [];
     var i = 0;
     while i < 16 {
         anadir(b, azar(256));
@@ -28,7 +28,7 @@ fn v4() -> str {
     return formatear(b);
 }
 
-fn formatear(b: &lista<usize>) -> str {
+fn formatear(b: &list<usize>) -> str {
     let d = "0123456789abcdef";
     var salida = vacio();
     var i = 0;

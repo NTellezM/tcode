@@ -8,8 +8,8 @@
 // que un JSON vale lo que quepa: nada, un numero, una cadena, una lista, o un
 // objeto de claves a valores.
 
-usar "std/caracter" como c;
-usar "std/mapa" como m;
+use "std/caracter" como c;
+use "std/mapa" como m;
 
 enum Valor {
     Nada,
@@ -17,8 +17,8 @@ enum Valor {
     Falso,
     Numero(str),
     Texto(str),
-    Lista(lista<Valor>),
-    Objeto(mapa<str, Valor>),
+    Lista(list<Valor>),
+    Objeto(map<str, Valor>),
 }
 
 struct Lector {
@@ -69,7 +69,7 @@ fn escapar_unicode(l: mut Lector, salida: mut str) ! {
     var i = 0;
     while i < 4 {
         let d = digito_hex(tomar(l));
-        if d == 255 { falla "un escape \\u sin cuatro digitos hex"; }
+        if d == 255 { fail "un escape \\u sin cuatro digitos hex"; }
         valor = valor * 16 + d;
         i = i + 1;
     }
@@ -90,7 +90,7 @@ fn cadena(l: mut Lector) -> str ! {
     let _abre = tomar(l); // la comilla
     while true {
         let b = mirar(l);
-        if b == 0 { falla "una cadena sin cerrar"; }
+        if b == 0 { fail "una cadena sin cerrar"; }
         if b == 34 { let _cierra = tomar(l); return salida; }
         if b == 92 {
             let _barra = tomar(l);
@@ -100,15 +100,15 @@ fn cadena(l: mut Lector) -> str ! {
                 continue;
             }
             let decodificado = escapado(codigo);
-            if decodificado == 255 { falla "un escape desconocido"; }
+            if decodificado == 255 { fail "un escape desconocido"; }
             empujar_byte(salida, decodificado como u8);
             continue;
         }
-        if b < 32 { falla "un byte de control suelto en la cadena"; }
+        if b < 32 { fail "un byte de control suelto en la cadena"; }
         empujar_byte(salida, b como u8);
         let _b = tomar(l);
     }
-    falla "una cadena sin cerrar";
+    fail "una cadena sin cerrar";
 }
 
 fn numero(l: mut Lector) -> str ! {
@@ -117,18 +117,18 @@ fn numero(l: mut Lector) -> str ! {
     if mirar(l) == 48 {
         let _cero = tomar(l);
     } else {
-        if !c.es_digito(mirar(l)) { falla "un numero sin digitos"; }
+        if !c.es_digito(mirar(l)) { fail "un numero sin digitos"; }
         while c.es_digito(mirar(l)) { let _d = tomar(l); }
     }
     if mirar(l) == 46 {
         let _punto = tomar(l);
-        if !c.es_digito(mirar(l)) { falla "un punto sin decimales"; }
+        if !c.es_digito(mirar(l)) { fail "un punto sin decimales"; }
         while c.es_digito(mirar(l)) { let _d = tomar(l); }
     }
     if mirar(l) == 101 || mirar(l) == 69 {
         let _e = tomar(l);
         if mirar(l) == 43 || mirar(l) == 45 { let _signo = tomar(l); }
-        if !c.es_digito(mirar(l)) { falla "un exponente sin digitos"; }
+        if !c.es_digito(mirar(l)) { fail "un exponente sin digitos"; }
         while c.es_digito(mirar(l)) { let _d = tomar(l); }
     }
     return nuevo(rebanar(l.texto, desde, l.pos));
@@ -146,13 +146,13 @@ fn valor(l: mut Lector) -> Valor ! {
     if c.es_digito(b) || b == 45 {
         return Valor.Numero(try numero(l));
     }
-    falla "aqui se esperaba un valor";
+    fail "aqui se esperaba un valor";
 }
 
 fn literal(l: mut Lector, palabra: view, v: Valor) -> Valor ! {
     var i = 0;
     while i < largo(palabra) {
-        if tomar(l) != byte(palabra, i) { falla "un literal mal escrito"; }
+        if tomar(l) != byte(palabra, i) { fail "un literal mal escrito"; }
         i = i + 1;
     }
     return v;
@@ -160,28 +160,28 @@ fn literal(l: mut Lector, palabra: view, v: Valor) -> Valor ! {
 
 fn objeto(l: mut Lector) -> Valor ! {
     let _abre = tomar(l); // {
-    var dentro: mapa<str, Valor> = [];
+    var dentro: map<str, Valor> = [];
     espacios(l);
     if mirar(l) == 125 { let _cierra = tomar(l); return Valor.Objeto(dentro); }
     while true {
         espacios(l);
-        if mirar(l) != 34 { falla "la clave de un objeto es una cadena"; }
+        if mirar(l) != 34 { fail "la clave de un objeto es una cadena"; }
         let clave = try cadena(l);
         espacios(l);
-        if tomar(l) != 58 { falla "faltan los dos puntos"; }
+        if tomar(l) != 58 { fail "faltan los dos puntos"; }
         let v = try valor(l);
         poner(dentro, clave, v);
         espacios(l);
         let b = tomar(l);
         if b == 125 { return Valor.Objeto(dentro); }
-        if b != 44 { falla "faltaba una coma o el cierre del objeto"; }
+        if b != 44 { fail "faltaba una coma o el cierre del objeto"; }
     }
-    falla "un objeto sin cerrar";
+    fail "un objeto sin cerrar";
 }
 
 fn arreglo(l: mut Lector) -> Valor ! {
     let _abre = tomar(l); // [
-    var dentro: lista<Valor> = [];
+    var dentro: list<Valor> = [];
     espacios(l);
     if mirar(l) == 93 { let _cierra = tomar(l); return Valor.Lista(dentro); }
     while true {
@@ -190,9 +190,9 @@ fn arreglo(l: mut Lector) -> Valor ! {
         espacios(l);
         let b = tomar(l);
         if b == 93 { return Valor.Lista(dentro); }
-        if b != 44 { falla "faltaba una coma o el cierre de la lista"; }
+        if b != 44 { fail "faltaba una coma o el cierre de la lista"; }
     }
-    falla "una lista sin cerrar";
+    fail "una lista sin cerrar";
 }
 
 // ---------- escribir ----------
@@ -268,7 +268,7 @@ fn leer(texto: view) -> Valor ! {
     let v = try valor(l);
     espacios(l);
     if mirar(l) != 0 {
-        falla "sobra texto despues del valor";
+        fail "sobra texto despues del valor";
     }
     return v;
 }

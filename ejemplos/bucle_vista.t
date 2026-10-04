@@ -8,7 +8,7 @@
 // Es justo la clase de fallo por la que existe el lenguaje, asi que la
 // condicion se emite DENTRO del bucle y se recalcula en cada vuelta.
 
-usar "std/texto";
+use "std/texto";
 
 fn cuantas() -> usize {
     var s = nuevo("aaa");

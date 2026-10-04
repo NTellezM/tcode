@@ -6,7 +6,7 @@
 // al ancho de su celda mas larga, y hay una linea de guiones bajo la
 // cabecera. Se apoya en `std/formato`, que ya calcula los anchos.
 
-usar "std/formato" como f;
+use "std/formato" como f;
 
 // `t` repetido `veces` veces.
 fn repetir(t: view, veces: usize) -> str {
@@ -17,8 +17,8 @@ fn repetir(t: view, veces: usize) -> str {
 }
 
 // La tabla entera, con la cabecera delante si la hay.
-fn dibujar(cabecera: &lista<str>, filas: &lista<lista<str>>) -> str {
-    var todas: lista<lista<str>> = [];
+fn dibujar(cabecera: &list<str>, filas: &list<list<str>>) -> str {
+    var todas: list<list<str>> = [];
     if largo(cabecera) > 0 { anadir(todas, copiar(cabecera)); }
     for f_ en filas { anadir(todas, copiar(f_)); }
     let anchos = f.anchos_de(todas);

@@ -3,15 +3,15 @@
 // Lo usan `parser.t`, que imprime el arbol, y `compilador/tipos.t`, que se
 // apoya en el para responder preguntas sobre los tipos que aparecen.
 
-usar "std/texto";
-usar "lexico.t";
-usar "clase.t";
+use "std/texto";
+use "lexico.t";
+use "clase.t";
 
 struct Nodo {
     clase: Clase,
     texto: str,
     linea: usize,
-    hijos: lista<Nodo>,
+    hijos: list<Nodo>,
     // Unico en su archivo, y 0 en lo que no sale del parser. Con el nombre
     // de la funcion donde esta, es como el comprobador le dice al generador
     // de que tipo es cada expresion.
@@ -19,31 +19,31 @@ struct Nodo {
 }
 
 struct Estado {
-    toks: lista<Token>,
+    toks: list<Token>,
     i: usize,
     // Los alias de `usar ... como x`: `x.algo` es un nombre, no el campo
     // `algo` de una variable `x`.
-    alias: mapa<str, usize>,
+    alias: map<str, usize>,
     // Nombres de struct, recogidos antes de analizar: hacen falta para saber
     // que `Punto { x: 1 }` es un literal y no el inicio de un bloque.
-    structs: mapa<str, usize>,
+    structs: map<str, usize>,
     // Nombres de enum, por lo mismo: `Color.Rojo` es una forma, no el campo
     // `Rojo` de una variable `Color`.
-    enums: mapa<str, usize>,
+    enums: map<str, usize>,
     // El archivo, para los mensajes, y el primer error que se encontro:
     // `archivo:linea: mensaje, se encontro 'x'`, como el parser de Python.
     archivo: str,
     error: str,
     // Los parametros de tipo de la funcion o el struct que se esta leyendo:
     // mientras dura, `T` es un tipo mas.
-    tipo_params: mapa<str, usize>,
+    tipo_params: map<str, usize>,
     // Cuanto se ha bajado en el arbol hasta aqui: ver `limite_hondura`.
     hondura: usize,
 }
 
 // Un estado nuevo sobre unos tokens.
-fn estado_de(toks: lista<Token>, archivo: view, structs: mapa<str, usize>,
-    enums: mapa<str, usize>) -> Estado {
+fn estado_de(toks: list<Token>, archivo: view, structs: map<str, usize>,
+    enums: map<str, usize>) -> Estado {
     return Estado { toks: toks, i: 0, alias: [], structs: structs, enums: enums,
         archivo: nuevo(archivo), error: vacio(), tipo_params: [], hondura: 0 };
 }
@@ -60,7 +60,7 @@ fn entrar(e: mut Estado) ! {
     if e.hondura > limite_hondura() {
         let tope = limite_hondura();
         error_aqui(e, $"el programa anida mas de {tope} niveles; parte la expresion o el bloque en trozos");
-        falla "sintaxis";
+        fail "sintaxis";
     }
 }
 
@@ -290,7 +290,7 @@ fn espera(e: mut Estado, tipo: view, valor: view) -> str ! {
         if que.largo() == 0 { que = nuevo(tipo); }
         let dicho = repr_texto(que);
         error_aqui(e, $"se esperaba {dicho}");
-        falla "sintaxis";
+        fail "sintaxis";
     }
     avanzar(e);
     return v;
@@ -307,7 +307,7 @@ fn entero_literal(e: mut Estado, k: usize) -> str ! {
     if limpio.largo() > tope.largo()
     || (limpio.largo() == tope.largo() && menor(tope, limpio)) {
         error_en(e, "el literal entero no cabe en `u64`", k);
-        falla "sintaxis";
+        fail "sintaxis";
     }
     return limpio;
 }
@@ -443,12 +443,12 @@ fn tipo(e: mut Estado) -> str ! {
         try espera(e, "simbolo", "]");
         if n == "0" {
             error_en(e, "un arreglo tiene que tener al menos un elemento", k);
-            falla "sintaxis";
+            fail "sintaxis";
         }
         return $"[{dentro}; {n}]";
     }
     error_aqui(e, "se esperaba un tipo (str, view, usize, i64, bool, lista<tipo>, mapa<clave, valor>, un struct, o [tipo; N])");
-    falla "sintaxis";
+    fail "sintaxis";
 }
 
 // ------------------------------------------------------------------
@@ -466,9 +466,9 @@ fn match_(e: mut Estado) -> Nodo ! {
     while !es(e, "simbolo", "}") {
         if es(e, "fin", "") {
             error_aqui(e, "match sin cerrar");
-            falla "sintaxis";
+            fail "sintaxis";
         }
-        var alternativas: lista<Nodo> = [];
+        var alternativas: list<Nodo> = [];
         while true {
             let bl = linea_actual(e);
             var b = rama(Clase.Brazo, bl);
@@ -486,7 +486,7 @@ fn match_(e: mut Estado) -> Nodo ! {
                 }
                 if !tiene(e.enums, enum_nombre) && !tiene(e.alias, quien) {
                     error_aqui(e, $"`{enum_nombre}` no es un enum");
-                    falla "sintaxis";
+                    fail "sintaxis";
                 }
                 b.texto.empujar(enum_nombre);
                 b.texto.empujar(".");
@@ -538,7 +538,7 @@ fn match_(e: mut Estado) -> Nodo ! {
     try espera(e, "simbolo", "}");
     if brazos == 0 {
         error_aqui(e, "un `match` sin brazos no mira nada");
-        falla "sintaxis";
+        fail "sintaxis";
     }
     return n;
 }
@@ -572,7 +572,7 @@ fn posicion_patron(e: mut Estado, n: mut Nodo) ! {
         }
         if !tiene(e.enums, enum_nombre) && !tiene(e.alias, quien) {
             error_aqui(e, $"`{enum_nombre}` no es un enum");
-            falla "sintaxis";
+            fail "sintaxis";
         }
         var p = rama(Clase.Patron, l);
         p.texto = $"{enum_nombre}.{cual}";
@@ -595,7 +595,7 @@ fn posicion_patron(e: mut Estado, n: mut Nodo) ! {
         return;
     }
     error_aqui(e, "en un patron va un nombre, `_`, un literal o una forma");
-    falla "sintaxis";
+    fail "sintaxis";
 }
 
 // Analiza lo que hay entre llaves y lo cuelga en orden. `{{` y `}}` son una
@@ -618,7 +618,7 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
         }
         if c == 125 {
             error_en(e, "`}` suelto dentro de una cadena interpolada; escribe `}}` si querias la llave", k);
-            falla "sintaxis";
+            fail "sintaxis";
         }
         if c != 123 {
             i = i + 1;
@@ -629,12 +629,12 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
         let j = cierre_de_hueco(d, i + 1);
         if j >= d.largo() {
             error_en(e, "falta `}` en una cadena interpolada", k);
-            falla "sintaxis";
+            fail "sintaxis";
         }
         let dentro = comillas_de_antes(recortar(rebanar(d, i + 1, j)));
         if dentro.largo() == 0 {
             error_en(e, "`{}` vacio en una cadena interpolada: pon dentro lo que quieras mostrar", k);
-            falla "sintaxis";
+            fail "sintaxis";
         }
         // Lo de dentro esta en la linea de la cadena: sus errores tienen que
         // decirlo.
@@ -642,7 +642,7 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
         let suyos = tokens_desde(dentro, e.archivo, n.linea, error_lex) sino [];
         if error_lex.largo() > 0 {
             if e.error.largo() == 0 { e.error = error_lex; }
-            falla "sintaxis";
+            fail "sintaxis";
         }
         var sub = estado_de(suyos, e.archivo, copiar(e.structs), copiar(e.enums));
         sub.alias = copiar(e.alias);
@@ -651,12 +651,12 @@ fn huecos_de(e: mut Estado, t: view, n: mut Nodo, k: usize) ! {
         let x = expresion(sub) sino hoja(Clase.Vacio, "", 0);
         if sub.error.largo() > 0 {
             if e.error.largo() == 0 { e.error = copiar(sub.error); }
-            falla "sintaxis";
+            fail "sintaxis";
         }
         if !es(sub, "fin", "") {
             let dicho = repr_texto(dentro);
             error_en(e, $"sobra algo despues de la expresion {dicho} dentro de la cadena", k);
-            falla "sintaxis";
+            fail "sintaxis";
         }
         var x_l = x;
         // Todo lo de dentro de un hueco esta en la linea de la cadena.
@@ -857,7 +857,7 @@ fn primario(e: mut Estado) -> Nodo ! {
         try espera(e, "simbolo", "}");
         if !acepta(e, "palabra", "else") {
             error_aqui(e, "un `if` que da un valor necesita `else`: sin el no habria valor cuando la condicion es falsa");
-            falla "sintaxis";
+            fail "sintaxis";
         }
         try espera(e, "simbolo", "{");
         let b = try expresion(e);
@@ -976,7 +976,7 @@ fn primario(e: mut Estado) -> Nodo ! {
     }
 
     error_aqui(e, "se esperaba una expresion");
-    falla "sintaxis";
+    fail "sintaxis";
 }
 
 fn postfijo(e: mut Estado) -> Nodo ! {
@@ -1159,7 +1159,7 @@ fn bloque_dentro(e: mut Estado) -> Nodo ! {
     while !es(e, "simbolo", "}") {
         if es(e, "fin", "") {
             error_aqui(e, "bloque sin cerrar");
-            falla "sintaxis";
+            fail "sintaxis";
         }
         let st = try sentencia(e);
         n.hijos.anadir(st);
@@ -1291,7 +1291,7 @@ fn sentencia(e: mut Estado) -> Nodo ! {
             if e.error.largo() == 0 {
                 e.error = $"{e.archivo}:{l}: `falla` no lleva parentesis; se escribe `falla \"el motivo\";`";
             }
-            falla "sintaxis";
+            fail "sintaxis";
         }
         let motivo = try espera(e, "cadena", "");
         try espera(e, "simbolo", ";");
@@ -1317,7 +1317,7 @@ fn sentencia(e: mut Estado) -> Nodo ! {
         try espera(e, "simbolo", ";");
         if !es_lugar(izq) {
             error_en(e, "a la izquierda de `=` tiene que haber una variable, un campo o un elemento", k);
-            falla "sintaxis";
+            fail "sintaxis";
         }
         n.hijos.anadir(izq);
         n.hijos.anadir(der);
@@ -1338,21 +1338,21 @@ fn sentencia(e: mut Estado) -> Nodo ! {
 // las guarda, como el original.
 fn lista_tipo_params(e: mut Estado, n: mut Nodo, de_quien: view, l: usize,
     restricciones: bool) ! {
-    var vistos: mapa<str, usize> = [];
+    var vistos: map<str, usize> = [];
     if !acepta(e, "simbolo", "<") { return; }
     while true {
         let tp = try espera(e, "ident", "");
         if es_tipo_basico(tp) {
             error_aqui(e, $"`{tp}` ya es un tipo del lenguaje: un parametro de tipo necesita otro nombre");
-            falla "sintaxis";
+            fail "sintaxis";
         }
         if tiene(e.structs, tp) {
             error_aqui(e, $"`{tp}` ya es un struct: un parametro de tipo necesita otro nombre");
-            falla "sintaxis";
+            fail "sintaxis";
         }
         if tiene(vistos, tp) {
             error_aqui(e, $"`{tp}` esta repetido en `{de_quien}<...>`");
-            falla "sintaxis";
+            fail "sintaxis";
         }
         poner(vistos, vista(tp), 1);
         poner(e.tipo_params, vista(tp), 1);
@@ -1363,7 +1363,7 @@ fn lista_tipo_params(e: mut Estado, n: mut Nodo, de_quien: view, l: usize,
             if rv != "decimal" && rv != "entero" && rv != "igualable"
             && rv != "numero" && rv != "ordenable" && rv != "texto" {
                 error_aqui(e, $"`{r}` no es una restriccion; hay `decimal`, `entero`, `igualable`, `numero`, `ordenable`, `texto`");
-                falla "sintaxis";
+                fail "sintaxis";
             }
             if restricciones { n.hijos.anadir(hoja(Clase.Restriccion, rv, l)); }
         }
@@ -1388,7 +1388,7 @@ fn declaracion(e: mut Estado) -> Nodo ! {
         while !es(e, "simbolo", "}") {
             if es(e, "fin", "") {
                 error_aqui(e, "struct sin cerrar");
-                falla "sintaxis";
+                fail "sintaxis";
             }
             let campo = try espera(e, "ident", "");
             try espera(e, "simbolo", ":");
@@ -1416,7 +1416,7 @@ fn declaracion(e: mut Estado) -> Nodo ! {
         while !es(e, "simbolo", "}") {
             if es(e, "fin", "") {
                 error_aqui(e, "`externo` sin cerrar");
-                falla "sintaxis";
+                fail "sintaxis";
             }
             let fl = linea_actual(e);
             let kf = e.i;
@@ -1424,7 +1424,7 @@ fn declaracion(e: mut Estado) -> Nodo ! {
             let nombre = try espera(e, "ident", "");
             if es(e, "simbolo", "<") {
                 error_en(e, "una funcion de C no puede ser generica: C no tiene con que", kf);
-                falla "sintaxis";
+                fail "sintaxis";
             }
             var f = rama(Clase.Fn, fl);
             f.texto.empujar(nombre);
@@ -1450,7 +1450,7 @@ fn declaracion(e: mut Estado) -> Nodo ! {
             }
             if es(e, "simbolo", "!") {
                 error_en(e, "una funcion de C no falla como las de Tcode: devuelve lo que devuelva y lo miras tu", kf);
-                falla "sintaxis";
+                fail "sintaxis";
             }
             try espera(e, "simbolo", ";");
             n.hijos.anadir(f);
@@ -1458,7 +1458,7 @@ fn declaracion(e: mut Estado) -> Nodo ! {
         try espera(e, "simbolo", "}");
         if n.hijos.largo() == 0 {
             error_en(e, "un `externo` vacio no trae nada", k);
-            falla "sintaxis";
+            fail "sintaxis";
         }
         return n;
     }
@@ -1469,16 +1469,16 @@ fn declaracion(e: mut Estado) -> Nodo ! {
         var n = rama(Clase.Enum, l);
         n.texto.empujar(nombre);
         try espera(e, "simbolo", "{");
-        var vistos: mapa<str, usize> = [];
+        var vistos: map<str, usize> = [];
         while !es(e, "simbolo", "}") {
             if es(e, "fin", "") {
                 error_aqui(e, "enum sin cerrar");
-                falla "sintaxis";
+                fail "sintaxis";
             }
             let vn = try espera(e, "ident", "");
             if tiene(vistos, vn) {
                 error_aqui(e, $"`{nombre}.{vn}` esta declarada dos veces");
-                falla "sintaxis";
+                fail "sintaxis";
             }
             poner(vistos, vista(vn), 1);
             var v = rama(Clase.Variante, linea_actual(e));
@@ -1497,7 +1497,7 @@ fn declaracion(e: mut Estado) -> Nodo ! {
         try espera(e, "simbolo", "}");
         if n.hijos.largo() == 0 {
             error_aqui(e, $"`enum {nombre}` no declara ninguna variante: un valor que no puede tomar ninguna forma no sirve para nada");
-            falla "sintaxis";
+            fail "sintaxis";
         }
         return n;
     }
@@ -1533,8 +1533,8 @@ fn declaracion(e: mut Estado) -> Nodo ! {
 }
 
 // Los nombres que van detras de una palabra: `struct Punto` -> `Punto`.
-fn recoger_tras(toks: &lista<Token>, palabra: view) -> mapa<str, usize> {
-    var m: mapa<str, usize> = [];
+fn recoger_tras(toks: &list<Token>, palabra: view) -> map<str, usize> {
+    var m: map<str, usize> = [];
     var i = 0;
     while i + 1 < toks.largo() {
         if igual(toks[i].valor, palabra) {
@@ -1580,12 +1580,12 @@ struct Usado {
 struct Leidos {
     // Donde esta `std/`: la raiz de Tcode.
     raiz: str,
-    indice: mapa<str, usize>,
-    tokens: lista<lista<Token>>,
-    structs: lista<mapa<str, usize>>,
-    enums: lista<mapa<str, usize>>,
-    arboles: lista<Nodo>,
-    con_arbol: lista<bool>,
+    indice: map<str, usize>,
+    tokens: list<list<Token>>,
+    structs: list<map<str, usize>>,
+    enums: list<map<str, usize>>,
+    arboles: list<Nodo>,
+    con_arbol: list<bool>,
 }
 
 fn leidos() -> Leidos {
@@ -1618,8 +1618,8 @@ fn leido(ruta: view, l: mut Leidos) -> usize {
 // en la raiz de Tcode, y lo demas junto al archivo que lo pide; con `.t` y
 // sin el. Nunca desde donde se ejecuta: el mismo programa se lee igual desde
 // cualquier sitio.
-fn candidatos_de(dir: view, pedido: view, raiz: view) -> lista<str> {
-    var candidatos: lista<str> = [];
+fn candidatos_de(dir: view, pedido: view, raiz: view) -> list<str> {
+    var candidatos: list<str> = [];
     var junto = vacio();
     if empieza_con(pedido, "std/") {
         if raiz.largo() > 0 && raiz != "." {
@@ -1639,8 +1639,8 @@ fn candidatos_de(dir: view, pedido: view, raiz: view) -> lista<str> {
     return candidatos;
 }
 
-fn modulos_usados_con(ruta: view, toks: &lista<Token>, l: mut Leidos) -> lista<Usado> {
-    var salida: lista<Usado> = [];
+fn modulos_usados_con(ruta: view, toks: &list<Token>, l: mut Leidos) -> list<Usado> {
+    var salida: list<Usado> = [];
     let dir = carpeta(ruta);
     var i = 0;
     while i + 1 < toks.largo() {
@@ -1679,9 +1679,9 @@ fn modulos_usados_con(ruta: view, toks: &lista<Token>, l: mut Leidos) -> lista<U
 // Igual que `modulos_usados_con`, pero con el cierre transitivo: cada `usar`
 // trae tambien lo que ese modulo usa, como el cargador completo. `preparar`
 // lo usa para manglear una colision de segunda mano igual que la compilacion.
-fn modulos_usados_transitivos(ruta: view, toks: &lista<Token>, l: mut Leidos) -> lista<Usado> {
-    var salida: lista<Usado> = [];
-    var vistos: mapa<str, usize> = [];
+fn modulos_usados_transitivos(ruta: view, toks: &list<Token>, l: mut Leidos) -> list<Usado> {
+    var salida: list<Usado> = [];
+    var vistos: map<str, usize> = [];
     poner(vistos, nuevo(ruta), 1);
     recoger_usados(ruta, toks, l, vistos, salida);
     return salida;
@@ -1689,8 +1689,8 @@ fn modulos_usados_transitivos(ruta: view, toks: &lista<Token>, l: mut Leidos) ->
 
 // Lo que `ruta` usa, y una vuelta mas lo que cada uno usa. `vistos` evita
 // recorrer dos veces el mismo modulo y corta los ciclos.
-fn recoger_usados(ruta: view, toks: &lista<Token>, l: mut Leidos,
-    vistos: mut mapa<str, usize>, salida: mut lista<Usado>) {
+fn recoger_usados(ruta: view, toks: &list<Token>, l: mut Leidos,
+    vistos: mut map<str, usize>, salida: mut list<Usado>) {
     let dir = carpeta(ruta);
     var i = 0;
     while i + 1 < toks.largo() {
@@ -1730,22 +1730,22 @@ fn recoger_usados(ruta: view, toks: &lista<Token>, l: mut Leidos,
     }
 }
 
-fn structs_visibles(ruta: view, toks: &lista<Token>) -> mapa<str, usize> {
+fn structs_visibles(ruta: view, toks: &list<Token>) -> map<str, usize> {
     return visibles(ruta, toks, "struct");
 }
 
-fn enums_visibles(ruta: view, toks: &lista<Token>) -> mapa<str, usize> {
+fn enums_visibles(ruta: view, toks: &list<Token>) -> map<str, usize> {
     return visibles(ruta, toks, "enum");
 }
 
 // Los nombres declarados tras `palabra`, aqui y en lo que este archivo usa.
-fn visibles(ruta: view, toks: &lista<Token>, palabra: view) -> mapa<str, usize> {
+fn visibles(ruta: view, toks: &list<Token>, palabra: view) -> map<str, usize> {
     var l = leidos();
     return visibles_con(ruta, toks, palabra, l);
 }
 
-fn visibles_con(ruta: view, toks: &lista<Token>, palabra: view,
-    l: mut Leidos) -> mapa<str, usize> {
+fn visibles_con(ruta: view, toks: &list<Token>, palabra: view,
+    l: mut Leidos) -> map<str, usize> {
     var m = recoger_tras(toks, palabra);
     let dir = carpeta(ruta);
 
@@ -1787,7 +1787,7 @@ fn programa(e: mut Estado) -> Nodo ! {
     while tipo_en(e, 0) != "fin" {
         if es(e, "palabra", "usar") {
             error_aqui(e, "los `usar` van todos al principio del archivo");
-            falla "sintaxis";
+            fail "sintaxis";
         }
         let d = try declaracion(e);
         raiz.hijos.anadir(d);

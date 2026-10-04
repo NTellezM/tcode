@@ -39,11 +39,11 @@ fn factor(l: mut Lector) -> i64 ! {
     if b == 40 {
         l.pos = l.pos + 1;
         let v = try expr(l);
-        if mirar(l) != 41 { falla "falta )"; }
+        if mirar(l) != 41 { fail "falta )"; }
         l.pos = l.pos + 1;
         return v;
     }
-    if b < 48 || b > 57 { falla "se esperaba un numero"; }
+    if b < 48 || b > 57 { fail "se esperaba un numero"; }
     var v: i64 = 0;
     while l.pos < largo(l.texto) && byte(l.texto, l.pos) >= 48 && byte(l.texto, l.pos) <= 57 {
         let d = (byte(l.texto, l.pos) - 48) como i64;
@@ -86,7 +86,7 @@ fn expr(l: mut Lector) -> i64 ! {
 fn linea_entera(texto: view) -> i64 ! {
     var l = Lector { texto: nuevo(texto), pos: 0 };
     let v = try expr(l);
-    if mirar(l) != 0 { falla "sobra algo"; }
+    if mirar(l) != 0 { fail "sobra algo"; }
     return v;
 }
 

@@ -7,14 +7,14 @@
 //
 //     ./expresiones std/caracter.t
 
-usar "lib/generar.t" como G;
-usar "lib/tipar.t" como I;
-usar "lib/tipos.t" como T;
-usar "../lexer/lib/lexico.t";
-usar "../lexer/lib/sintaxis.t" como P;
-usar "std/texto";
-usar "std/lista";
-usar "../lexer/lib/clase.t";
+use "lib/generar.t" como G;
+use "lib/tipar.t" como I;
+use "lib/tipos.t" como T;
+use "../lexer/lib/lexico.t";
+use "../lexer/lib/sintaxis.t" como P;
+use "std/texto";
+use "std/lista";
+use "../lexer/lib/clase.t";
 
 fn nombre_de(texto: view) -> str {
     var i = 0;
@@ -78,8 +78,8 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
     // Los campos de cada struct, con su tipo: un `0` en un campo `u64` es un
     // `u64`.
     if n.clase == Clase.Struct {
-        var suyos: lista<str> = [];
-        var como_se_llaman: lista<str> = [];
+        var suyos: list<str> = [];
+        var como_se_llaman: list<str> = [];
         for h en n.hijos {
             if h.clase == Clase.CampoDef {
                 como_se_llaman.anadir(nombre_de(h.texto));
@@ -92,9 +92,9 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
     if n.clase == Clase.Fn {
         var retorno = vacio();
         var es_de_c = false;
-        var sueltos: lista<str> = [];
-        var tipos_param: lista<str> = [];
-        var marcados: lista<str> = [];
+        var sueltos: list<str> = [];
+        var tipos_param: list<str> = [];
+        var marcados: list<str> = [];
         for h en n.hijos {
             match h.clase {
                 Clase.RetornoTipo -> {
@@ -117,7 +117,7 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
             poner(c.externas, vista(n.texto), 1);
             if retorno == "cadena_c" { retorno = nuevo("str"); }
             // Una funcion de C presta lo que recibe: no se queda con nada.
-            var prestados: lista<str> = [];
+            var prestados: list<str> = [];
             for _m en marcados { prestados.anadir(nuevo("&")); }
             marcados = prestados;
         }
@@ -130,7 +130,7 @@ fn recoger_firmas(n: &P.Nodo, c: mut I.Contexto) {
 }
 
 // Los `return` de una funcion, en orden.
-fn retornos_de(n: &P.Nodo, fuera: mut lista<usize>, nodos: mut lista<P.Nodo>) {
+fn retornos_de(n: &P.Nodo, fuera: mut list<usize>, nodos: mut list<P.Nodo>) {
     if n.clase == Clase.Retorno {
         if n.hijos.largo() > 0 {
             fuera.anadir(n.linea);
@@ -155,7 +155,7 @@ fn main() -> usize ! {
     var estado = P.estado_de(tokens, ruta, nombres, formas);
     var arbol = try P.programa(estado);
     // Lo que chocaria con C, renombrado como lo hace el cargador.
-    var intocables: lista<str> = [nuevo("main")];
+    var intocables: list<str> = [nuevo("main")];
     G.externas_de(arbol, intocables);
     G.renombrar_para_c(arbol, G.nombres_de_c(), intocables);
 
@@ -165,15 +165,15 @@ fn main() -> usize ! {
     // formas basta saber que es un enum, que se compara por su etiqueta.
     for en_ en enums_vistos {
         if !tiene(tipos.variantes, en_) {
-            let sin_formas: lista<str> = [];
+            let sin_formas: list<str> = [];
             poner(tipos.variantes, en_, sin_formas);
         }
     }
 
     for d en arbol.hijos {
         if d.clase == Clase.Fn && !es_generica(d) {
-            var puntos: mapa<str, usize> = [];
-            var de_tipo: mapa<str, str> = [];
+            var puntos: map<str, usize> = [];
+            var de_tipo: map<str, str> = [];
             I.abrir(tipos);
             for h en d.hijos {
                 if h.clase == Clase.Param {
@@ -190,7 +190,7 @@ fn main() -> usize ! {
             }
             // Esta capa mira expresiones sueltas, no caminos: sin caminos
             // no hay nada que una bandera pueda decidir.
-            let sin_banderas: mapa<str, usize> = [];
+            let sin_banderas: map<str, usize> = [];
             var lo_que_devuelve = vacio();
             for h en d.hijos {
                 if h.clase == Clase.RetornoTipo {
@@ -201,8 +201,8 @@ fn main() -> usize ! {
                 punteros: puntos, pide_bandera: sin_banderas,
                 retorno: lo_que_devuelve, sacados: [] };
 
-            var lineas: lista<usize> = [];
-            var nodos: lista<P.Nodo> = [];
+            var lineas: list<usize> = [];
+            var nodos: list<P.Nodo> = [];
             for h en d.hijos {
                 if h.clase == Clase.Bloque {
                     retornos_de(h, lineas, nodos);

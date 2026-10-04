@@ -26,8 +26,8 @@
 //     rango, los primeros valores saldrian mas veces. Se descarta el
 //     sobrante, como en Rust y en Go.
 
-usar "std/texto";
-usar "std/lista";
+use "std/texto";
+use "std/lista";
 
 fn main() -> usize ! {
     // ---- el entorno ----
@@ -53,7 +53,7 @@ fn main() -> usize ! {
     // Con semilla puesta sale siempre lo mismo, que es lo que hace falta
     // para que una prueba sirva de algo. Sin ponerla, el reloj la elige.
     sembrar(7);
-    var tirada: lista<usize> = [];
+    var tirada: list<usize> = [];
     var i = 0;
     while i < 6 {
         anadir(tirada, azar(6) + 1);

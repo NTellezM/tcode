@@ -6,13 +6,13 @@
 // mayusculas de minusculas en las letras ASCII. Sale con 0 si alguna linea
 // salio y con 1 si ninguna, como `grep`.
 
-usar "std/texto" como t;
+use "std/texto" como t;
 
 fn main() -> usize ! {
     var numerar = false;
     var al_reves = false;
     var sin_caso = false;
-    var sueltos: lista<str> = [];
+    var sueltos: list<str> = [];
     var k = 1;
     while k < n_argumentos() {
         let a = argumento(k);

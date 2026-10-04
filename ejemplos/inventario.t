@@ -4,7 +4,7 @@
 // genera la liberacion de los cuatro, en orden, sin que aparezca un solo
 // `ss_free` en este archivo.
 
-usar "std/texto";
+use "std/texto";
 
 struct Articulo {
     nombre: str,

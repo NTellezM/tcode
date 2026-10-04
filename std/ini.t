@@ -6,12 +6,12 @@
 // Una linea es `clave = valor`, una seccion es `[nombre]`, y `;` o `#`
 // empiezan un comentario. La seccion sin nombre usa la clave vacia "".
 
-usar "std/texto";
+use "std/texto";
 
-fn leer(texto: view) -> mapa<str, mapa<str, str>> {
-    var ini: mapa<str, mapa<str, str>> = [];
+fn leer(texto: view) -> map<str, map<str, str>> {
+    var ini: map<str, map<str, str>> = [];
     var seccion = nuevo("");
-    var dentro: mapa<str, str> = [];
+    var dentro: map<str, str> = [];
     for linea en lineas(texto) {
         let r = recortar(linea);
         if largo(r) == 0 { continue; }
@@ -36,7 +36,7 @@ fn leer(texto: view) -> mapa<str, mapa<str, str>> {
     return ini;
 }
 
-fn escribir_claves(claves: &mapa<str, str>, salida: mut str) {
+fn escribir_claves(claves: &map<str, str>, salida: mut str) {
     for clave, valor en claves {
         empujar(salida, clave);
         empujar(salida, " = ");
@@ -45,7 +45,7 @@ fn escribir_claves(claves: &mapa<str, str>, salida: mut str) {
     }
 }
 
-fn escribir(ini: &mapa<str, mapa<str, str>>) -> str {
+fn escribir(ini: &map<str, map<str, str>>) -> str {
     var salida = vacio();
     // La seccion sin nombre va PRIMERO: sus claves son las de antes de
     // cualquier `[seccion]`, y si fueran despues caerian en la anterior.
@@ -63,19 +63,19 @@ fn escribir(ini: &mapa<str, mapa<str, str>>) -> str {
     return salida;
 }
 
-fn valor_en(dentro: &mapa<str, str>, clave: view) -> str ! {
+fn valor_en(dentro: &map<str, str>, clave: view) -> str ! {
     return nuevo(try obtener(dentro, clave));
 }
 
 // El valor de `clave` en `seccion`; falla si no esta. Una copia, para no
 // depender de quien presta el mapa.
-fn valor(ini: &mapa<str, mapa<str, str>>, seccion: view, clave: view) -> str ! {
+fn valor(ini: &map<str, map<str, str>>, seccion: view, clave: view) -> str ! {
     let dentro = try obtener(ini, seccion);
     return try valor_en(dentro, clave);
 }
 
 // El valor de `clave` en `seccion`, o `alterno` si no esta.
-fn valor_o(ini: &mapa<str, mapa<str, str>>, seccion: view, clave: view,
+fn valor_o(ini: &map<str, map<str, str>>, seccion: view, clave: view,
     alterno: view) -> str {
     let v = valor(ini, seccion, clave) sino nuevo(alterno);
     return v;

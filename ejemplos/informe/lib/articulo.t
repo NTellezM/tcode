@@ -3,8 +3,8 @@
 // Aqui no hay utilidades genericas: `repetir`, `rellenar`, `dividir` y
 // `porcentaje` vienen de `std`. Un modulo propio es para el dominio.
 
-usar "std/texto";
-usar "std/numero";
+use "std/texto";
+use "std/numero";
 
 struct Articulo {
     nombre: str,
