@@ -219,6 +219,21 @@ contado:
 6. **Los documentos** y las listas de las herramientas, que se quedan sólo con
    las nuevas para no arrastrar las viejas.
 
+Y lo que no es ni código `.t` ni documento, que es lo que más fácil se deja:
+
+7. **El árbol de sintaxis del editor.** `contrib/tree-sitter-tcode/` es otra
+   gramática, aparte del compilador, y es la que usa el LSP para ir a la
+   definición y dibujar el contorno de símbolos. Tenía `usar`, `falla`, `lista`
+   y `mapa` como literales: sin cambiarla, el editor deja de entender el código
+   nuevo aunque el compilador vaya bien. Hay que tocar los literales (los
+   nombres de nodo `usar`/`falla` del árbol se quedan: son etiquetas internas),
+   regenerar con `tree-sitter generate` y **rehacer el wasm**, que necesita
+   emscripten. Las copias del wasm que van en el repo se rehicieron con la
+   imagen `emscripten/emsdk` en un contenedor.
+8. **Las gramáticas de VSCode y de GitHub**, que desde la fase B tenían las dos
+   formas y ahora sólo deben tener las nuevas: `lista` ya no es palabra clave y
+   no debe pintarse como tal.
+
 `make tcodec && make semilla`, y `make check` en verde.
 
 **Lo que se gana**: `lista`, `mapa`, `usar` y `falla` vuelven a ser palabras
