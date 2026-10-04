@@ -6,6 +6,16 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
 ### Añadido
 
+- `contrib/lsp` y la extensión de VS Code (0.5.0): el servidor descubre la raíz
+  de `std/` igual que el compilador —`TCODE_RAIZ`, el proyecto abierto y, si no
+  hay ninguno, el binario buscado en el `PATH` y subiendo hasta
+  `runtime/cabecera.inc`—, así que un `.t` suelto, sin proyecto abierto, tiene
+  diagnósticos y completado; la raíz descubierta va a `tcodec` como `cwd` y
+  como `TCODE_RAIZ`. Además hay **hover** con la firma de la función bajo el
+  cursor, y el `.` es disparador del completado: detrás de `modulo.` salen solo
+  las funciones de ese módulo. La lista de módulos de `std/` sale también de
+  los ficheros que hay de verdad en la raíz descubierta.
+
 - `programas/json.t`: el segundo programa real —valida y reformatea JSON, con
   un `Valor` recursivo (`lista<Valor>` y `mapa<str, Valor>`), texto y escapes
   (`\uXXXX` a UTF-8)—, y entra en la suite contra un oraculo de ida y vuelta

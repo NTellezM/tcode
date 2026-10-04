@@ -3013,10 +3013,10 @@ fn main() {
 
     # ---- std/camino ----
     #
-    # `sin_extension` devuelve el NOMBRE sin la extension, no la ruta sin la
-    # extension: quita tambien la carpeta. Es asi desde que el modulo existe
-    # (`c2cba40`), y esto lo fija. `tcodec.t` tiene un ayudante privado del
-    # mismo nombre que si conserva la carpeta: son dos cosas distintas.
+    # `sin_extension` conserva la carpeta: `sin_extension("a/b/c.t")` es
+    # `a/b/c`, no `c`. El ayudante privado que `tcodec.t` tiene con ese mismo
+    # nombre ya lo hacia asi, y eso decide cual era la intencion; el modulo
+    # quitaba tambien la carpeta desde que existe (`c2cba40`) y esto lo fija.
     ("std/camino: la carpeta, la extension y sin ella",
      '''use "std/camino";
         use "std/prueba";
@@ -3030,33 +3030,51 @@ fn main() {
             afirmar_igual_numero(p, "que es un solo byte", largo(suelto), 1);
 
             afirmar_igual_texto(p, "la extension de una ruta", extension("a/b/c.t"), "t");
-            afirmar_igual_texto(p, "el nombre sin la extension", sin_extension("a/b/c.t"), "c");
+            afirmar_igual_texto(p, "sin la extension, con la carpeta",
+                sin_extension("a/b/c.t"), "a/b/c");
             afirmar_igual_numero(p, "el punto, contado desde el principio",
                 punto_extension("a/b/c.t"), 5);
             afirmar_igual_texto(p, "la extension del nombre suelto", extension("c.t"), "t");
             afirmar_igual_texto(p, "y el nombre sin ella", sin_extension("c.t"), "c");
+            afirmar_igual_texto(p, "sin extension no se toca la ruta",
+                sin_extension("a/b/c"), "a/b/c");
             afirmar_igual_texto(p, "un punto al principio no es extension",
                 extension(".gitignore"), "");
             afirmar_igual_texto(p, "y ese nombre se queda entero",
                 sin_extension(".gitignore"), ".gitignore");
             afirmar_igual_texto(p, "de dos extensiones manda la ultima",
                 extension("a/b/c.tar.gz"), "gz");
-            afirmar_igual_texto(p, "y sin ella queda el nombre y el resto",
-                sin_extension("a/b/c.tar.gz"), "c.tar");
+            afirmar_igual_texto(p, "y sin ella queda la ruta y el resto",
+                sin_extension("a/b/c.tar.gz"), "a/b/c.tar");
             return terminar(p);
         }''',
-     "13 comprobaciones, todo bien\n"),
+     "14 comprobaciones, todo bien\n"),
 
     # ---- std/fecha ----
     #
-    # `milisegundos_monotonico` devolvia la hora de pared porque con `-std=c17`
-    # la libc esconde `CLOCK_MONOTONIC`: medir una espera con el reloj que
-    # salta no vale. Esto lo deja fijado.
-    ("std/fecha: el reloj monotonico mide la espera y no retrocede",
+    # Lo que distingue al reloj monotonico de la hora de pared NO es que mida
+    # bien una espera: un reloj de pared tambien avanza 100 ms mientras se
+    # duerme, asi que exigir los 90 ms de abajo lo pasaria igual. Lo que lo
+    # distingue es el ORIGEN de cada uno: la hora de pared cuenta desde 1970
+    # —decadas— y el monotonico desde que la maquina arranco —el tiempo
+    # encendido—. Leidos en el mismo instante tienen que diferir en mucho mas
+    # de un anio, y con un anio de margen sobra: si `monotono_ms` cayera al
+    # reloj de pared, las dos lecturas coincidirian y ESTA afirmacion falla.
+    # Por eso esta es la que vale; la de la espera y la del no-retroceso se
+    # quedan como lo que son, la magnitud y la monotonica en uso.
+    ("std/fecha: el reloj monotonico no es la hora de pared",
      '''use "std/fecha";
         use "std/prueba";
         fn main() -> usize {
             var p = pruebas();
+
+            // Un anio en milisegundos, que es el margen: la diferencia real
+            // son decadas, y no cabe en 32 bits.
+            let un_anio: i64 = 31536000000;
+            let diferencia = ahora() - milisegundos_monotonico();
+            afirmar(p, "el monotonico y la hora de pared difieren en mas de un anio",
+                diferencia > un_anio);
+
             let antes = milisegundos_monotonico();
             dormir_milisegundos(100);
             let tardo = milisegundos_monotonico() - antes;
@@ -3067,7 +3085,7 @@ fn main() {
             afirmar(p, "dos lecturas seguidas no retroceden", b >= a);
             return terminar(p);
         }''',
-     "2 comprobaciones, todo bien\n"),
+     "3 comprobaciones, todo bien\n"),
 
 ]
 

@@ -1,10 +1,12 @@
 # tcode-lsp
 
 Servidor [LSP](https://microsoft.github.io/language-server-protocol/) de Tcode.
-Da **diagnósticos** (los errores del compilador, como subrayados), **formato** e
-**ir a la definición**. No hay un segundo analizador para lo duro: los dos
-primeros salen del propio `tcodec`; el «ir a la definición» es sintáctico, con
-la gramática de tree-sitter (`tree-sitter-tcode.wasm`).
+Da **diagnósticos** (los errores del compilador, como subrayados), **formato**,
+**ir a la definición** y la **firma de la función bajo el cursor** (hover). No
+hay un segundo analizador para lo duro: los diagnósticos y el formato salen del
+propio `tcodec`; la definición y el hover son sintácticos, con la gramática de
+tree-sitter (`tree-sitter-tcode.wasm`), más las tablas de `std/` que lleva
+dentro.
 
 ## Requisitos
 
@@ -32,7 +34,12 @@ Por `initializationOptions` o variables de entorno:
 | opción | variable | por defecto | qué es |
 |---|---|---|---|
 | `tcodec` | `TCODEC` | `tcodec` (del PATH) | el binario del compilador |
-| `raiz` | `TCODE_RAIZ` | el directorio de trabajo | la raíz del proyecto, donde está `std/` |
+| `raiz` | `TCODE_RAIZ` | `TCODE_RAIZ`, el proyecto abierto y, si no hay, la instalación que se descubre desde el binario; y si no, el directorio de trabajo | la raíz del proyecto, donde está `std/` |
+
+La raíz se descubre igual que en el compilador: se resuelve el binario —en el
+`PATH` si va como nombre suelto— y se sube por sus directorios hasta
+`runtime/cabecera.inc`. Así un `.t` suelto, fuera de todo proyecto, encuentra
+`std/` sin decirle nada.
 
 El compilador da `error: archivo:linea: mensaje` (sin columna), así que el
 subrayado cubre la línea entera.

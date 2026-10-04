@@ -1508,6 +1508,7 @@ graph TD
         compilador_tcodec__resultados_de_internas["resultados_de_internas"]
         compilador_tcodec__revisar_nombres["revisar_nombres"]
         compilador_tcodec__revisar_usos_generados["revisar_usos_generados"]
+        compilador_tcodec__ruta_del_ejecutable["ruta_del_ejecutable"]
         compilador_tcodec__sin_pedir["sin_pedir"]
         compilador_tcodec__soltar_enums["soltar_enums"]
         compilador_tcodec__soltar_structs["soltar_structs"]
@@ -1594,6 +1595,7 @@ graph TD
         std_texto__a_entero["a_entero · std/texto"]
         std_texto__contiene["contiene · std/texto"]
         std_texto__empieza_con["empieza_con · std/texto"]
+        std_texto__partir["partir · std/texto"]
         std_texto__recortar["recortar · std/texto"]
         std_texto__reemplazar["reemplazar · std/texto"]
         std_texto__termina_con["termina_con · std/texto"]
@@ -1772,7 +1774,6 @@ graph TD
     compilador_tcodec__programa_no_leido --> compilador_lib_tipar__contexto
     compilador_tcodec__prototipo_externo --> compilador_lib_generar__tipo_c
     compilador_tcodec__raiz_instalada --> std_archivo__es_archivo
-    compilador_tcodec__raiz_instalada --> std_archivo__ruta_real
     compilador_tcodec__registrar_resultado --> compilador_lib_tipar__nombre_resuelto
     compilador_tcodec__resolver --> compilador_lib_programa__normalizar
     compilador_tcodec__resolver --> std_archivo__es_archivo
@@ -1802,6 +1803,10 @@ graph TD
     compilador_tcodec__revisar_usos_generados --> compilador_lib_generar__tipo_resultado
     compilador_tcodec__revisar_usos_generados --> compilador_lib_tipos__arreglos_dentro
     compilador_tcodec__revisar_usos_generados --> compilador_lib_tipos__partes_de_arreglo
+    compilador_tcodec__ruta_del_ejecutable --> std_archivo__es_archivo
+    compilador_tcodec__ruta_del_ejecutable --> std_archivo__ruta_real
+    compilador_tcodec__ruta_del_ejecutable --> std_texto__contiene
+    compilador_tcodec__ruta_del_ejecutable --> std_texto__partir
     compilador_tcodec__sin_pedir --> compilador_lib_comprobar__nombra_interna
     compilador_tcodec__sin_pedir --> compilador_lib_tipar__antes_del_punto
     compilador_tcodec__soltar_enums --> compilador_lib_generar__etiqueta

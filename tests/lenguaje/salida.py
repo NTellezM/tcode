@@ -133,3 +133,33 @@ def correr(suite: Resultado) -> None:
         elif quedan:
             suite.falla("instalar, compilar fuera y desinstalar",
                         f"desinstalar deja {quedan}")
+
+        # Y por el `PATH`, con `argv[0]` suelto: al invocarlo como `tcodec` a
+        # secas, el shell lo encuentra en el `PATH` y `argv[0]` no trae barra
+        # ninguna, asi que el compilador tiene que buscar su propio nombre en
+        # el `PATH` para dar con la instalacion que lo acompaña. Antes resolvia
+        # `argv[0]` tal cual —un nombre suelto no es una ruta— y no daba con
+        # `std/`.
+        suite.total += 1
+        prefijo_path = os.path.join(tmp, "prefijo-path")
+        fuera_path = os.path.join(tmp, "fuera-path")
+        os.makedirs(fuera_path)
+        with open(os.path.join(fuera_path, "p.t"), "w", encoding="utf-8") as f:
+            f.write('use "std/texto";\n'
+                    'fn main() { imprimir($"{mayusculas("hola")}\\n"); }\n')
+        entorno_path = dict(sin_raiz)
+        entorno_path["PATH"] = (os.path.join(prefijo_path, "bin") + os.pathsep
+                                + sin_raiz.get("PATH", ""))
+        pasos = [
+            ["make", "-s", "-C", RAIZ, "instalar", f"PREFIJO={prefijo_path}"],
+            ["tcodec", "p.t", "-o", "p"],
+            [os.path.join(fuera_path, "p")],
+            ["make", "-s", "-C", RAIZ, "desinstalar", f"PREFIJO={prefijo_path}"],
+        ]
+        salidas = [subprocess.run(p, cwd=fuera_path, env=entorno_path,
+                                  capture_output=True, text=True) for p in pasos]
+        if any(s.returncode != 0 for s in salidas) or salidas[2].stdout != "HOLA\n":
+            malo = next((s for s in salidas if s.returncode != 0), salidas[2])
+            suite.falla("instalado, por el PATH tambien encuentra su std/",
+                        f"{malo.args[0]}: codigo {malo.returncode}, "
+                        f"{(malo.stderr or malo.stdout)[:300]!r}")

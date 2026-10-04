@@ -2,7 +2,8 @@
 
 Trae, en un solo sitio: **resaltado** (gramática TextMate), el **icono** de
 `.t`, el **completado** (con la biblioteca estándar) y el **contorno de
-símbolos**, y el **LSP** (diagnósticos, formato e ir a la definición).
+símbolos**, y el **LSP** (diagnósticos, formato, ir a la definición y la
+firma de la función bajo el cursor al pasar por encima).
 
 ## La biblioteca estándar sin saberse las rutas
 
@@ -26,6 +27,20 @@ aporta además sus funciones a la lista: `partir`, `unir`, `minusculas`... de
 `std/texto`; `compilar`, `buscar`... de `std/regex`; `cuantos`, `trozo`... de
 `std/utf8` y compañía.
 
+Detrás de un `modulo.` solo salen las funciones de ese módulo (`texto.` no
+ofrece el resto de la biblioteca), y pasar el ratón por encima de una función
+enseña su firma entera, con sus tipos.
+
+## La biblioteca, también fuera de un proyecto
+
+Con un fichero suelto, sin carpeta de proyecto abierta y sin `TCODE_RAIZ`, la
+raíz se descubre desde el propio `tcodec`: se busca en el `PATH` —o se toma la
+ruta que digas en `tcode.lsp.tcodec`—, se siguen sus enlaces y se sube hasta
+`runtime/cabecera.inc`. De ahí sale `std/`, así que un `tcodec` instalado basta
+para tener diagnósticos y completado en cualquier `.t`, esté donde esté. El
+orden completo es: `TCODE_RAIZ`, la carpeta del proyecto y, si no hay ninguna,
+esa instalación.
+
 ## Instalar
 
 La extensión lleva dentro el servidor y el árbol de sintaxis
@@ -33,11 +48,12 @@ La extensión lleva dentro el servidor y el árbol de sintaxis
 `.vsix`:
 
 ```sh
-code --install-extension tcode-0.4.0.vsix
+code --install-extension tcode-0.5.0.vsix
 ```
 
 Recarga VS Code. Los archivos `.t` se resaltan solos y el LSP arranca si
-`tcodec` está en el `PATH` (o lo configuras en `tcode.lsp.tcodec`).
+`tcodec` está en el `PATH` (o lo configuras en `tcode.lsp.tcodec`); con eso ya
+encuentra `std/` aunque el fichero esté suelto y no haya proyecto abierto.
 
 ## Qué necesita cada pieza
 
@@ -45,7 +61,7 @@ Recarga VS Code. Los archivos `.t` se resaltan solos y el LSP arranca si
 |---|---|
 | resaltado, icono, completado y contorno | nada (va todo incluido) |
 | diagnósticos y formato | `tcodec` en el PATH |
-| ir a la definición | nada (va incluido el árbol de sintaxis) |
+| ir a la definición y la firma al pasar por encima | nada (va incluido el árbol de sintaxis) |
 
 ## Empaquetar
 

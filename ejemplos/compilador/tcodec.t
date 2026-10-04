@@ -2599,14 +2599,44 @@ fn directorio_de(ruta: view) -> str {
     return vacio();
 }
 
+// La ruta REAL del ejecutable, que es desde donde se sube para dar con la
+// instalacion. `argv[0]` es lo que se tecleo para invocarlo y puede ser dos
+// cosas:
+//
+//   * una ruta —lleva barra—: `ruta_real` la deja absoluta y sigue los
+//     enlaces, que es lo que hace falta cuando la instalacion deja un enlace
+//     en `bin/tcodec`;
+//   * un nombre suelto, que es lo que llega cuando el shell lo encontro por
+//     el `PATH` (`tcodec f.t` a secas). No hay ruta que resolver, asi que se
+//     recorre el `PATH` —los trozos entre `:`, y el trozo vacio es el
+//     directorio actual— y se toma el primer fichero que aparezca, el mismo
+//     que habria ejecutado el shell.
+//
+// "" si no aparece.
+fn ruta_del_ejecutable() -> str {
+    let cero = argumento(0);
+    if contiene(cero, "/") { return archivo.ruta_real(cero) sino vacio(); }
+    let camino = variable_entorno("PATH") sino vacio();
+    for parte en partir(camino, ":") sino [] {
+        var dir = nuevo(parte);
+        if largo(dir) == 0 { dir = nuevo("."); }
+        let prueba = $"{dir}/{cero}";
+        if archivo.es_archivo(prueba) {
+            let real = archivo.ruta_real(prueba) sino vacio();
+            if real.largo() > 0 { return real; }
+        }
+    }
+    return vacio();
+}
+
 // Donde esta Tcode —el directorio con `std/` y `runtime/`— para quien no dice
-// `TCODE_RAIZ`: se sube desde el propio ejecutable, con sus enlaces ya
-// resueltos —la instalacion deja un enlace en `bin/`— hasta dar con
-// `runtime/cabecera.inc`. Sin `TCODE_RAIZ` el caso normal es un `tcodec`
-// instalado, que no cuelga del directorio de trabajo, asi que la ruta sale
-// entera. "" si no se encuentra.
+// `TCODE_RAIZ`: resuelve `argv[0]` a una ruta real —buscandolo en el `PATH`
+// si llego suelto, que es como lo invoca el shell— y sube desde ahi, con los
+// enlaces ya resueltos, hasta dar con `runtime/cabecera.inc`. Sin
+// `TCODE_RAIZ` el caso normal es un `tcodec` instalado, que no cuelga del
+// directorio de trabajo, asi que la ruta sale entera. "" si no se encuentra.
 fn raiz_instalada() -> str {
-    var dir = archivo.ruta_real(argumento(0)) sino vacio();
+    var dir = ruta_del_ejecutable();
     while dir.largo() > 0 {
         if archivo.es_archivo($"{dir}/runtime/cabecera.inc") { return dir; }
         dir = directorio_de(dir);

@@ -719,6 +719,7 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 - `retorno_de` ← `mirar_funcion` (tcodec.t)
 - `revisar_nombres` ← `ajustar_contextos` (tcodec.t)
 - `revisar_usos_generados` ← `main` (tcodec.t)
+- `ruta_del_ejecutable` ← `raiz_instalada` (tcodec.t)
 - `ruta_pedida` ← `usar_con_alias` (tcodec.t)
 - `sin_cadenas` ← `emitir_funcion` (tcodec.t), `revisar_usos_generados` (tcodec.t), `tipos_funcion_usados` (tcodec.t)
 - `sin_extension` ← `construir` (tcodec.t), `extension` (tcodec.t)
@@ -879,10 +880,10 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 
 ## std/archivo
 - `borrar` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t)
-- `es_archivo` ← `construir` (tcodec.t), `leer_opciones` (tcodec.t), `raiz_instalada` (tcodec.t), `resolver` (tcodec.t), `visitar` (tcodec.t)
+- `es_archivo` ← `construir` (tcodec.t), `leer_opciones` (tcodec.t), `raiz_instalada` (tcodec.t), `resolver` (tcodec.t), `ruta_del_ejecutable` (tcodec.t), `visitar` (tcodec.t)
 - `instalar` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t)
 - `misma_ruta` ← `construir` (tcodec.t)
-- `ruta_real` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t), `raiz_instalada` (tcodec.t)
+- `ruta_real` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t), `ruta_del_ejecutable` (tcodec.t)
 - `temporal_junto` ← `construir` (tcodec.t), `escribir_de_una_vez` (tcodec.t)
 
 ## std/caracter
@@ -898,10 +899,11 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 
 ## std/texto
 - `a_entero` ← `visitar` (tcodec.t)
-- `contiene` ← `comprobar_programa` (comprobar.t), `instanciar` (comprobar.t), `llamada` (comprobar.t), `registrar_tipo` (comprobar.t), `validar_tipo` (comprobar.t), `decimal_c` (generar.t), `junta` (generar.t), `literal_struct_c` (generar.t), `llamada_c` (generar.t), `quitar_alias_de_tipos` (programa.t), `nombre_resuelto` (tipar.t), `tipo_de` (tipar.t), `forma_de` (tipos.t), `construir` (tcodec.t), `ensamblar_c` (tcodec.t), `mirar_tipo` (tcodec.t), `resolver_reg` (tcodec.t), `tipos_funcion_usados` (tcodec.t), `visitar` (tcodec.t)
+- `contiene` ← `comprobar_programa` (comprobar.t), `instanciar` (comprobar.t), `llamada` (comprobar.t), `registrar_tipo` (comprobar.t), `validar_tipo` (comprobar.t), `decimal_c` (generar.t), `junta` (generar.t), `literal_struct_c` (generar.t), `llamada_c` (generar.t), `quitar_alias_de_tipos` (programa.t), `nombre_resuelto` (tipar.t), `tipo_de` (tipar.t), `forma_de` (tipos.t), `construir` (tcodec.t), `ensamblar_c` (tcodec.t), `mirar_tipo` (tcodec.t), `resolver_reg` (tcodec.t), `ruta_del_ejecutable` (tcodec.t), `tipos_funcion_usados` (tcodec.t), `visitar` (tcodec.t)
 - `empieza_con` ← `marca_de` (expresiones.t), `presta` (expresiones.t), `tipo_pelado` (expresiones.t), `solo_marca` (firmas.t), `tipo_pelado` (firmas.t), `avisar_sin_usar` (comprobar.t), `campo` (comprobar.t), `cierre` (comprobar.t), `comprobar_conversion` (comprobar.t), `comprobar_restricciones` (comprobar.t), `con_signo` (comprobar.t), `legible` (comprobar.t), `param_de` (comprobar.t), `prestamos_vivos` (comprobar.t), `sentencia_asignacion` (comprobar.t), `solapan` (comprobar.t), `tipo_probable` (comprobar.t), `binaria_c` (generar.t), `cabe_literal_entero` (generar.t), `choca_con_c` (generar.t), `conversion_c` (generar.t), `escrito` (generar.t), `interna_pura_imprimir` (generar.t), `junta` (generar.t), `llamada_con_firma` (generar.t), `presta_argumento` (generar.t), `prototipo` (generar.t), `texto_de` (generar.t), `unaria_c` (generar.t), `marca_de` (programa.t), `tipo_pelado` (programa.t), `se_lo_queda` (propiedad.t), `funcion_de_cierre` (tipar.t), `tipo_de` (tipar.t), `empieza` (tipos.t), `partes_de_funcion` (tipos.t), `tiene_flecha` (tipos.t), `aritmetica_usada` (tcodec.t), `con_prefijo` (tcodec.t), `emitir_funcion` (tcodec.t), `ensamblar_c` (tcodec.t), `leer_opciones` (tcodec.t), `resolver` (tcodec.t), `tipo_de_nombre_mapa` (tcodec.t), `visitar` (tcodec.t), `anotar_propiedad` (tipar.t), `elemento_de_bruto` (tipar.t), `primera_de` (tipar.t), `quitar_prestamo` (tipar.t), `tipo_de_declaracion` (tipar.t), `tipo_desnudo` (tipar.t), `valor_de` (tipar.t), `tras_dos_puntos` (tipos.t), `candidatos_de` (sintaxis.t)
 - `indice_de` ← `tipo_sin_alias_tras_nombre` (programa.t), `declara_prestamo` (propiedad.t), `tipo_de_declaracion` (tipar.t)
 - `palabras` ← `apuntar_nombres_c` (generar.t)
+- `partir` ← `ruta_del_ejecutable` (tcodec.t)
 - `recortar` ← `tras_dos_puntos` (expresiones.t), `marca_de` (firmas.t), `tras_dos_puntos` (firmas.t), `campo_de` (comprobar.t), `param_de` (comprobar.t), `partes_declaracion` (comprobar.t), `sentencia_para` (comprobar.t), `cuantos_de_arreglo` (generar.t), `primer_nombre` (generar.t), `segundo_nombre` (generar.t), `tipo_escrito` (generar.t), `tras_dos_puntos` (programa.t), `partes_de_funcion` (tipos.t), `partir_tipos` (tipos.t), `tiene_flecha` (tipos.t), `construir` (tcodec.t), `locales_de` (tcodec.t), `mirar_tapadas` (tcodec.t), `nombre_de_declaracion` (tcodec.t), `nombre_de_param` (tcodec.t), `partir_angulos` (tipar.t), `tipo_con_marca` (tipar.t), `tipo_de_declaracion` (tipar.t), `tipo_desnudo` (tipar.t), `try_partir` (tipar.t), `tras_dos_puntos` (tipos.t), `huecos_de` (sintaxis.t)
 - `reemplazar` ← `internas_del_sistema` (tcodec.t)
 - `termina_con` ← `validar_tipo` (comprobar.t), `es_aplicacion` (tipos.t), `forma_de` (tipos.t), `leer_tipo` (tipos.t), `construir` (tcodec.t), `ensamblar_c` (tcodec.t), `resolver` (tcodec.t), `visitar` (tcodec.t), `candidatos_de` (sintaxis.t)

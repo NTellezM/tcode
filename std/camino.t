@@ -67,12 +67,15 @@ fn extension(ruta: view) -> view {
     return rebanar(ruta, largo(ruta) - largo(n) + p + 1, largo(ruta));
 }
 
+// La ruta sin la extension, pero CON la carpeta: `sin_extension("a/b/c.t")`
+// es `a/b/c`, no `c`. Quitar la carpeta es cosa de `nombre_de`, no de esta.
+// Es lo que hace el ayudante privado que `tcodec.t` tiene con este nombre.
 fn sin_extension(ruta: view) -> view {
     let n = nombre_de(ruta);
     let p = punto_extension(n);
     let desde = largo(ruta) - largo(n);
-    if p >= largo(n) { return rebanar(ruta, desde, largo(ruta)); }
-    return rebanar(ruta, desde, desde + p);
+    if p >= largo(n) { return ruta; }
+    return rebanar(ruta, 0, desde + p);
 }
 
 fn unir_ruta(a: view, b: view) -> str {

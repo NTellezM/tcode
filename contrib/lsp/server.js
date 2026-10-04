@@ -10,9 +10,15 @@
 //
 // Configuración (por `initializationOptions` o variables de entorno):
 //   tcodec  -> ruta del binario (por defecto `tcodec`, o `$TCODEC`)
-//   raiz    -> raíz del proyecto, donde está `std/` (por defecto `$TCODE_RAIZ`)
+//   raiz    -> raíz del proyecto, donde está `std/`. Se resuelve en este
+//              orden: `$TCODE_RAIZ`, la raíz que manda el cliente (el
+//              proyecto abierto) y, si no hay ninguna, la instalación que se
+//              descubre desde el propio binario —en el `PATH` si va suelto,
+//              subiendo hasta `runtime/cabecera.inc`—, igual que el
+//              `raiz_instalada()` del compilador.
 
 const path = require('path');
+const fs = require('fs');
 const { createConnection, TextDocuments, TextDocumentSyncKind,
         Diagnostic, DiagnosticSeverity, ProposedFeatures, TextEdit,
         CompletionItemKind, SymbolKind } =
@@ -31,22 +37,80 @@ let raiz = process.env.TCODE_RAIZ || process.cwd();
 connection.onInitialize((params) => {
     const opciones = params.initializationOptions || {};
     if (opciones.tcodec) tcodec = opciones.tcodec;
-    if (opciones.raiz) raiz = opciones.raiz;
+    // La raíz, en el orden que pide el compilador: `TCODE_RAIZ`, el proyecto
+    // abierto y, si no hay ninguna, la instalación que se descubre desde el
+    // binario. Si no se encuentra nada, el directorio de trabajo, lo de
+    // siempre.
+    raiz = process.env.TCODE_RAIZ || opciones.raiz || raiz_instalada() || process.cwd();
     return {
         capabilities: {
             textDocumentSync: TextDocumentSyncKind.Full,
             documentFormattingProvider: true,
             definitionProvider: true,
+            hoverProvider: true,
             completionProvider: {
                 resolveProvider: false,
                 // `#` trae los módulos de `std/`; `"` los trae al abrir el
-                // texto de un `#importar` o de un `use`.
-                triggerCharacters: ['#', '"'],
+                // texto de un `#importar` o de un `use`; `.` las funciones
+                // del módulo que se acaba de escribir (`texto.`).
+                triggerCharacters: ['#', '"', '.'],
             },
             documentSymbolProvider: true,
         },
     };
 });
+
+// Igual que `raiz_instalada()` del compilador: se resuelve el propio binario
+// —en el `PATH` si va como nombre suelto, con sus enlaces ya resueltos— y se
+// sube por sus directorios hasta dar con `runtime/cabecera.inc`, que es donde
+// vive `std/`. Así un fichero suelto, fuera de todo proyecto, encuentra la
+// biblioteca igual que un `tcodec` instalado. "" si no se encuentra.
+function raiz_instalada() {
+    let binario = ruta_del_binario(tcodec);
+    while (binario) {
+        if (es_archivo(path.join(binario, 'runtime', 'cabecera.inc'))) return binario;
+        const padre = path.dirname(binario);
+        binario = padre === binario ? '' : padre;
+    }
+    return '';
+}
+
+// La ruta de verdad del binario `nombre`: si va suelto, el primero que
+// aparezca recorriendo el `PATH` —el trozo vacío es el directorio actual—, el
+// mismo que habría ejecutado el shell; si lleva barra, tal cual. "" si no está.
+function ruta_del_binario(nombre) {
+    const candidatos = [];
+    if (nombre.includes('/') || nombre.includes('\\')) {
+        candidatos.push(nombre);
+    } else {
+        for (const carpeta of (process.env.PATH || '').split(path.delimiter)) {
+            candidatos.push(path.join(carpeta === '' ? '.' : carpeta, nombre));
+        }
+    }
+    for (const candidato of candidatos) {
+        const real = resolver(candidato);
+        if (real) return real;
+    }
+    return '';
+}
+
+// La ruta con sus enlaces resueltos, o "" si no es un fichero.
+function resolver(ruta) {
+    try {
+        const real = fs.realpathSync(ruta);
+        return fs.statSync(real).isFile() ? real : '';
+    } catch (_) {
+        return '';
+    }
+}
+
+function es_archivo(ruta) {
+    try {
+        return fs.statSync(ruta).isFile();
+    } catch (_) {
+        return false;
+    }
+}
 
 // Un re-chequeo por documento, con un respiro para no compilar a cada tecla.
 const pendientes = new Map();
@@ -174,6 +238,82 @@ connection.onDefinition((params) => {
     return null;
 });
 
+// ---------- el hover ----------
+//
+// La firma de la función bajo el cursor. Las de `std/` y las internas salen de
+// las tablas de más abajo —`partir_firma` ya las parte en etiqueta y en lo que
+// devuelven—, y las del propio documento, de la gramática. No hay tipos: es la
+// misma información que el completado, puesta para leer.
+
+connection.onHover((params) => {
+    const documento = documents.get(params.textDocument.uri);
+    if (!documento || !analizador) return null;
+    const texto = documento.getText();
+    const arbol = analizador.parse(texto);
+    const nodo = arbol.rootNode.descendantForPosition({
+        row: params.position.line, column: params.position.character,
+    });
+    if (!nodo || nodo.type !== 'ident') return null;
+    const ficha = ficha_de_funcion(nodo.text, texto, nodo.startIndex, arbol);
+    if (!ficha) return null;
+    return {
+        contents: [{ language: 'tcode', value: ficha.firma }]
+            .concat(ficha.que ? [ficha.que] : []),
+        range: rango_de(nodo),
+    };
+});
+
+// La ficha de la función `nombre`, o `null` si bajo el cursor no hay ninguna.
+// Si delante hay un `modulo.` —o el alias de un `use ... como`— solo vale ese
+// módulo; si no, vale la del documento, una interna o la de un módulo
+// importado sin alias.
+function ficha_de_funcion(nombre, texto, desde, arbol) {
+    const receptor = modulo_antes(texto.slice(0, desde));
+    if (receptor !== null) {
+        const modulo = modulo_de(receptor, texto);
+        return modulo ? ficha_en_modulo(nombre, modulo) : null;
+    }
+    for (const fn of arbol.rootNode.descendantsOfType('fn')) {
+        const campo = fn.childForFieldName('nombre');
+        if (!campo || campo.text !== nombre) continue;
+        const cuerpo = fn.text.indexOf('{');
+        return {
+            firma: (cuerpo < 0 ? fn.text : fn.text.slice(0, cuerpo)).trim(),
+            que: 'declarada en este archivo',
+        };
+    }
+    const interna = FUNCIONES_INTERNAS.get(nombre);
+    if (interna) {
+        return {
+            firma: interna[0] + (interna[1] ? ' -> ' + interna[1] : ''),
+            que: interna[2],
+        };
+    }
+    for (const [importado, alias] of modulos_importados(texto)) {
+        if (alias !== '') continue;   // con alias, solo se ve tras `alias.`
+        const modulo = MODULOS.find((m) => m[0] === importado);
+        if (!modulo) continue;
+        const encontrada = ficha_en_modulo(nombre, modulo);
+        if (encontrada) return encontrada;
+    }
+    return null;
+}
+
+// La ficha de `nombre` dentro de un módulo, o `null` si no está. La firma tal
+// cual está en `std/*.t`, con sus tipos.
+function ficha_en_modulo(nombre, modulo) {
+    for (const firma of modulo[2]) {
+        const { etiqueta, devuelve } = partir_firma(firma);
+        if (etiqueta.split('(')[0] !== nombre) continue;
+        return {
+            firma: firma,
+            devuelve: devuelve,
+            que: 'std/' + modulo[0] + ' · ' + modulo[1],
+        };
+    }
+    return null;
+}
+
 // ---------- completado ----------
 //
 // Las funciones internas del lenguaje, del índice de `docs/ESPECIFICACION.md`.
@@ -225,6 +365,10 @@ const INTERNAS = [
     ['azar(n)', 'usize', 'de 0 a n - 1, sin sesgo'],
     ['sembrar(s)', '', 'fija la semilla de `azar`'],
 ];
+
+// El nombre suelto -> la ficha, para el hover.
+const FUNCIONES_INTERNAS = new Map(
+    INTERNAS.map(([firma, devuelve, que]) => [firma.split('(')[0], [firma, devuelve, que]]));
 
 const PALABRAS = ['fn', 'if', 'else', 'while', 'for', 'match', 'return', 'fail',
                   'break', 'continue', 'let', 'var', 'mut', 'try', 'sino', 'en',
@@ -557,6 +701,9 @@ const MODULOS = [
       'ajustar<T>(v: mut Vector<T>)']],
 ];
 
+// El nombre del módulo -> qué es, para el completado.
+const DESCRIPCION = new Map(MODULOS.map(([nombre, que]) => [nombre, que]));
+
 // `filtradas<T, F>(xs: &list<T>, cumple: F) -> list<T> !` se parte en la
 // etiqueta sin tipos (`filtradas(xs, cumple)`) y lo que devuelve (`list<T>!`).
 function partir_firma(firma) {
@@ -595,20 +742,81 @@ function sin_tipos(cabecera) {
     return nombre + '(' + lista.join(', ') + ')';
 }
 
-// Los módulos que el documento ya importa, en orden y sin repetir. Valen las
-// dos grafías: `use "std/texto"` y `#importar "texto.t"`.
+// Los módulos que el documento ya importa, en orden y sin repetir, con su
+// alias si lo llevan (`use "std/texto" como t`). Valen las dos grafías:
+// `use "std/texto"` y `#importar "texto.t"`.
 function modulos_importados(texto) {
     const salida = [];
     const visto = new Set();
-    const patron = /(?:use|#importar)\s+"([A-Za-z0-9_\/]+?)(?:\.t)?"/g;
+    const patron = /(?:use|#importar)\s+"([A-Za-z0-9_\/]+?)(?:\.t)?"(?:\s+como\s+([A-Za-z_][A-Za-z0-9_]*))?/g;
     let encajado;
     while ((encajado = patron.exec(texto)) !== null) {
         const nombre = encajado[1].replace(/^std\//, '');
-        if (visto.has(nombre)) continue;
-        visto.add(nombre);
-        salida.push(nombre);
+        const alias = encajado[2] || '';
+        const clave = nombre + ' ' + alias;
+        if (visto.has(clave)) continue;
+        visto.add(clave);
+        salida.push([nombre, alias]);
     }
     return salida;
+}
+
+// El módulo que nombra `nombre` en este documento: su alias (`use "std/texto"
+// como t` -> `t`) o el nombre de la biblioteca (`texto`). `null` si no es uno.
+function modulo_de(nombre, texto) {
+    for (const [importado, alias] of modulos_importados(texto)) {
+        if (alias === nombre) {
+            const modulo = MODULOS.find((m) => m[0] === importado);
+            if (modulo) return modulo;
+        }
+    }
+    return MODULOS.find((m) => m[0] === nombre) || null;
+}
+
+// El `modulo.` justo antes del cursor, si lo hay. Un `1.` no cuenta —es un
+// decimal—, y `esto.` sí, aunque `esto` no sea un módulo: quien decide es
+// `modulo_de`.
+function modulo_antes(antes) {
+    const encajado = antes.match(/([A-Za-z_][A-Za-z0-9_]*)\.[A-Za-z0-9_]*$/);
+    return encajado ? encajado[1] : null;
+}
+
+// Las funciones de un módulo como elementos de completado. `puestos` evita
+// repetir un nombre entre módulos y contra las internas.
+function items_de_modulo(modulo, puestos) {
+    const salida = [];
+    for (const firma of modulo[2]) {
+        const { etiqueta, devuelve } = partir_firma(firma);
+        const clave = etiqueta.split('(')[0];
+        if (puestos.has(clave)) continue;
+        puestos.add(clave);
+        salida.push({
+            label: etiqueta,
+            kind: CompletionItemKind.Function,
+            detail: devuelve ? '-> ' + devuelve : '',
+            documentation: 'std/' + modulo[0] + ' · ' + firma,
+            insertText: clave + '(',
+            filterText: clave,
+        });
+    }
+    return salida;
+}
+
+// Los módulos que hay de verdad en `std/`, bajo la raíz que se descubrió. Los
+// que no estén en la tabla de arriba se ofrecen igual, sin firmas: la lista de
+// módulos sale de la biblioteca, no de la tabla. Se lee una vez por raíz.
+let en_disco = null;
+
+function nombres_en_disco() {
+    if (en_disco && en_disco.raiz === raiz) return en_disco.nombres;
+    const nombres = [];
+    try {
+        for (const fichero of fs.readdirSync(path.join(raiz, 'std'))) {
+            if (fichero.endsWith('.t')) nombres.push(fichero.slice(0, -2));
+        }
+    } catch (_) { /* sin `std/` a la vista: queda la tabla */ }
+    en_disco = { raiz: raiz, nombres: nombres };
+    return nombres;
 }
 
 // ¿El cursor está dentro de un `use "`? Devuelve lo ya escrito dentro de las
@@ -639,6 +847,29 @@ function dentro_de_texto(antes) {
 }
 
 connection.onCompletion((params) => {
+    const documento = documents.get(params.textDocument.uri);
+    const texto = documento ? documento.getText() : '';
+    const offset = documento ? documento.offsetAt(params.position) : 0;
+    const antes = texto.slice(0, offset);
+
+    // Un `#`, o estar dentro de un importe, abre la lista de módulos. Con el
+    // `#` se inserta la directiva entera; dentro de `#importar "` el fichero
+    // con su `.t`, y dentro de un `use "` la ruta de `std/`.
+    const en_use = dentro_de_use(antes);
+    const en_importar = dentro_de_importar(antes);
+    const almohadilla = en_use === null && en_importar === null && !dentro_de_texto(antes)
+        ? antes.match(/#[A-Za-z0-9_\/]*$/) : null;
+
+    // Tras `modulo.` solo salen las funciones de ese módulo: `texto.` no
+    // ofrece el resto de la biblioteca. Un `1.5` no es un módulo —lo descarta
+    // `modulo_antes`—, así que ahí queda la lista de siempre.
+    if (en_use === null && en_importar === null && almohadilla === null
+            && !dentro_de_texto(antes)) {
+        const receptor = modulo_antes(antes);
+        const modulo = receptor === null ? null : modulo_de(receptor, texto);
+        if (modulo) return items_de_modulo(modulo, new Set());
+    }
+
     const salida = [];
     for (const [firma, devuelve, que] of INTERNAS) {
         salida.push({
@@ -653,21 +884,16 @@ connection.onCompletion((params) => {
     for (const t of TIPOS) salida.push({ label: t, kind: CompletionItemKind.TypeParameter });
     for (const c of CONSTANTES) salida.push({ label: c, kind: CompletionItemKind.Constant });
 
-    const documento = documents.get(params.textDocument.uri);
     if (!documento) return salida;
-    const texto = documento.getText();
-    const offset = documento.offsetAt(params.position);
-    const antes = texto.slice(0, offset);
 
-    // Un `#`, o estar dentro de un importe, abre la lista de módulos. Con el
-    // `#` se inserta la directiva entera; dentro de `#importar "` el fichero
-    // con su `.t`, y dentro de un `use "` la ruta de `std/`.
-    const en_use = dentro_de_use(antes);
-    const en_importar = dentro_de_importar(antes);
-    const almohadilla = en_use === null && en_importar === null && !dentro_de_texto(antes)
-        ? antes.match(/#[A-Za-z0-9_\/]*$/) : null;
     if (en_use !== null || en_importar !== null || almohadilla !== null) {
-        for (const [nombre, que] of MODULOS) {
+        // La tabla de arriba más lo que haya en `std/` de la raíz descubierta.
+        const nombres = MODULOS.map((m) => m[0]);
+        for (const nombre of nombres_en_disco()) {
+            if (!nombres.includes(nombre)) nombres.push(nombre);
+        }
+        for (const nombre of nombres) {
+            const que = DESCRIPCION.get(nombre) || 'un módulo de la biblioteca';
             let inserta;
             let etiqueta;
             let prefijo;
@@ -703,24 +929,14 @@ connection.onCompletion((params) => {
     }
 
     // Las funciones de los módulos ya importados, para no saberse los nombres.
-    const puestos = new Set();
-    for (const nombre of modulos_importados(texto)) {
+    // Con alias solo se ven tras el punto, y de eso se encarga el filtro de
+    // arriba.
+    const puestos = new Set(INTERNAS.map(([f]) => f.split('(')[0]));
+    for (const [nombre, alias] of modulos_importados(texto)) {
+        if (alias !== '') continue;
         const modulo = MODULOS.find((m) => m[0] === nombre);
         if (!modulo) continue;
-        for (const firma of modulo[2]) {
-            const { etiqueta, devuelve } = partir_firma(firma);
-            const clave = etiqueta.split('(')[0];
-            if (puestos.has(clave)) continue;
-            if (INTERNAS.some(([f]) => f.split('(')[0] === clave)) continue;
-            puestos.add(clave);
-            salida.push({
-                label: etiqueta,
-                kind: CompletionItemKind.Function,
-                detail: devuelve ? '-> ' + devuelve : '',
-                documentation: 'std/' + nombre + ' · ' + firma,
-                insertText: clave + '(',
-            });
-        }
+        for (const item of items_de_modulo(modulo, puestos)) salida.push(item);
     }
     return salida;
 });
