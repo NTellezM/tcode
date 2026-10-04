@@ -7,7 +7,7 @@ fallo de memoria más comunes de C **no son expresables**.
 
 ```tcode
 fn main() {
-    let saludo = nuevo("hola, ");
+    var saludo = nuevo("hola, ");
     empujar(saludo, "mundo");
     imprimir(saludo);            // se libera sola al cerrar el bloque
 }
@@ -22,6 +22,10 @@ fn saludo(nombre: view) -> str {
     empujar(s, nombre);
     empujar(s, "!");
     return s;            // el `ss_free` lo pone el compilador donde toca
+}
+
+fn main() {
+    imprimir(saludo("mundo"));
 }
 ```
 
@@ -147,58 +151,34 @@ compilar en cualquier sitio donde haya un compilador de C17.
 | `ejemplos/compilador/lib/` | tipos, comprobador, propiedad, generador y formateador; cada capa reparte los nodos por su clase con un `match` |
 | `ejemplos/lexer/lib/` | lexer, parser y el árbol, con la clase de cada nodo como `enum Clase` |
 | `bootstrap/tcodec.c` | la semilla: el C que `tcodec` escribe de sí mismo, con el que se construye |
-| `tcode/` | el compilador de Python, congelado: el oráculo de la suite |
 | `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->46<!--/c--> módulos, <!--c:std_lineas-->7.136<!--/c--> líneas |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
-### Dos compiladores, una regla
+### Un compilador, una semilla
 
-Tcode empezó con un compilador en Python (`tcode/`), sin dependencias, y con
-él se escribió `tcodec`. Hoy los dos escriben el mismo C byte a byte para cada
-programa del repositorio y de la suite, y cada uno es el oráculo del otro.
-Pero dos compiladores obligan a escribir cada idea dos veces, así que la regla
-es esta:
+`tcodec` se construye desde su C semilla, `bootstrap/tcodec.c`: el C que
+escribe de sí mismo, guardado en el repositorio como hacen Zig y Go. `make`
+compila la semilla y la semilla compila el `tcodec.t` de ahora. Cuando
+`tcodec.t` quiere algo que la semilla todavía no sabe compilar, `make
+semilla` la pone al día, y antes de guardarla comprueba que es un punto
+fijo.
 
-- **Lo nuevo del lenguaje entra solo en `tcodec`.** Es el que se usa y el que
-  prueba la suite: los programas de RECHAZO, ACEPTA, ABORTA, MODULOS y el
-  resto compilan con él, construido con los sanitizers.
-- **El de Python queda congelado, desde 1.0.0-rc1 de verdad.** Hace de oráculo:
-  todo programa que sabe compilar tiene que salir igual de los dos. Se le
-  arreglan los fallos, cada uno con el caso que lo demuestra; no aprende
-  nada nuevo. Lo que sabe —palabras, símbolos, tipos, funciones internas,
-  nodos, opciones— está guardado en `tests/python_congelado.json`, y la
-  sección CONGELADO falla si cambia.
-- **Lo que Python no sabe se prueba sin él.** Coincidir con Python dice que
-  `tcodec` no se separó de lo conocido, no que sea correcto: los fallos que
-  estaban en los dos a la vez (`s = s;`, la lista dentro de un enum, un
-  módulo con `main`) no los vio la comparación, los vieron clang, el fuzzing
-  y ASan. Una construcción nueva lleva sus casos en la suite y se juzga con
-  oráculos que no comparten nada con los compiladores: AddressSanitizer y
-  UBSan, las propiedades, `programas/` contra las herramientas del sistema.
-- **Lo que no debe compilar también se sabe sin él.** La sección REGLAS
-  (`tests/reglas.py`) toma cada regla del lenguaje como un par mínimo: la
-  versión que la rompe tiene que rechazarse con el primer error en su línea
-  y diciendo qué regla rompe; la que no, compilar y correr limpia bajo ASan.
-  Cada par va en varios sitios —`main`, un `if`, un bucle, un `for`, un
-  brazo de `match`, otra función, una genérica—. Lo sabe la construcción,
-  no un compilador: así apareció que los dos registraban mal una lista
-  declarada dentro de un `for` o de un `match`.
-- **Las combinaciones se escriben todas.** La sección FORMAS
-  (`tests/lenguaje/formas.py`) guarda cada tipo dentro de cada otro —campo,
-  arreglo, lista, mapa, forma de enum; uno o dos de hondo— en uno, dos o
-  tres archivos, y cada programa tiene que dar el mismo C en los dos
-  compiladores y correr sin fugas bajo ASan. Los fallos que no estaban en
-  ninguna regla sino en la mezcla salieron ahí: un `map` de arreglos que no
-  compilaba en ninguno de los dos, o un préstamo que no se podía pasar a una
-  función que presta.
-- **Después de 1.0 se retira.** El de Python pasa a un archivo y deja de
-  correr en la suite.
-- **`tcodec` se construye desde su C semilla**, `bootstrap/tcodec.c`: el C
-  que escribe de sí mismo, guardado en el repositorio como hacen Zig y Go.
-  `make` compila la semilla y la semilla compila el `tcodec.t` de ahora.
-  Cuando quiere algo que la semilla todavía no sabe compilar,
-  `make semilla` la pone al día, y antes de guardarla comprueba que es un
-  punto fijo.
+Hasta 1.0.0-rc3 hubo un segundo compilador, en Python (`tcode/`), que
+escribía el mismo C byte a byte y hacía de oráculo de la suite. Ya no
+existe: `tcodec` es el único, y su garantía es el punto fijo. El plan y el
+porqué están en [`docs/sin-oraculo.md`](docs/sin-oraculo.md).
+
+La lección de tener dos compiladores sobrevivió a su retirada: **compararlos
+no caza los fallos que los dos comparten**, y esos son los que más daño
+hacen. `s = s;`, una lista dentro de un enum y un módulo con `main` estaban
+en los dos a la vez, y no los vio la comparación: los vieron clang, el
+fuzzing y ASan. Por eso los oráculos que sostienen el compilador hoy no
+comparten nada con él: AddressSanitizer y UBSan, las propiedades, y
+`programas/` contra las herramientas del sistema. Lo que no debe compilar
+tiene además su propio oráculo, la sección REGLAS (`tests/reglas.py`), que
+no es un compilador: toma cada regla del lenguaje como un par mínimo, la
+versión que la rompe tiene que rechazarse con el primer error en su línea y
+diciendo qué regla rompe, y la que no, compilar y correr limpia bajo ASan.
 
 ## El lexer y el parser de Tcode, escritos en Tcode
 
@@ -297,10 +277,10 @@ otro programa.
 ### Y también sabe decir que no
 
 Un compilador no es sólo lo que escribe: es lo que se niega a escribir.
-`lib/comprobar.t` son <!--c:lineas_comprobar-->6.418<!--/c--> líneas con las reglas del comprobador de Python
+`lib/comprobar.t` son <!--c:lineas_comprobar-->6.418<!--/c--> líneas con las reglas del comprobador
 —tipos, propiedad, préstamos, mutabilidad, fallos, literales, genéricas
-comprobadas en cada copia, clausuras— y los **mismos mensajes, en el mismo
-orden**. `tcodec` lo pasa antes de escribir nada:
+comprobadas en cada copia, clausuras—. `tcodec` lo pasa antes de escribir
+nada:
 
 ```
 $ ./tcodec malo.t
@@ -352,8 +332,9 @@ valor fuera de un `return`, un struct genérico deducido de su literal
 Y las herramientas de alrededor, probadas en la suite: los errores de
 módulos (un ciclo, un módulo que no está, un nombre que llega de dos sitios,
 algo que se usa sin pedirlo), los avisos —variables y parámetros sin usar,
-un `var` que podría ser `let`, `como T` sobre algo que ya es `T`, `==` entre
-decimales—, `--formatear` en `lib/formato.t`, y `--explicar`, que dice
+un `var` que podría ser `let`, valores que se asignan y no se leen, `como T`
+sobre algo que ya es `T`, `==` entre decimales—, `--formatear` en
+`lib/formato.t`, y `--explicar`, que dice
 quién es dueño de qué y dónde se libera cada cosa.
 
 Escribirlo encontró fallos reales en el original, que se arreglaron con su
@@ -392,16 +373,15 @@ delante, la cuenta se hacía en `usize` aunque el comprobador ya supiera que
 el literal tomaba el tipo del otro lado. `1 + x` con `x: f64 = 2.5` daba
 `3`; `0 > n` con `n: i32 = -3`, `false`; `1 + x` con `x: u8 = 255`, `256`
 sin parar; `let a: i64 = 5 - 10;` paraba por desbordamiento, e
-`imprimir(-1)` escribía `18446744073709551615`. Ahora los dos generadores
-hacen la cuenta en el mismo tipo que decide el comprobador.
+`imprimir(-1)` escribía `18446744073709551615`. Ahora el generador
+hace la cuenta en el mismo tipo que decide el comprobador.
 
 La causa era de diseño, no de un caso: el generador volvía a deducir el tipo
 de cada expresión por su cuenta, y se equivocaba donde el comprobador ya
 sabía la respuesta. Por eso ahora **el comprobador anota el tipo de cada
-expresión** —con los números escritos ya decididos por su contexto— y los
-dos generadores lo leen de ahí. En Python va en el propio nodo; en el
-compilador escrito en Tcode, que no tiene punteros, cada nodo lleva un número
-y el comprobador devuelve un mapa `función#número → tipo`.
+expresión** —con los números escritos ya decididos por su contexto— y el
+generador lo lee de ahí. Como el compilador no tiene punteros, cada nodo
+lleva un número y el comprobador devuelve un mapa `función#número → tipo`.
 
 Y para que un fallo así no vuelva a pasar desapercibido hay una propiedad
 más, **P11**: programas de aritmética con su salida calculada aparte, en
@@ -435,10 +415,10 @@ escrito, y no compila:
 ejemplo.t:2: `200 + 100` no cabe en `u8`: es una cuenta de numeros escritos, y se hace al compilar
 ```
 
-Lo mismo `1 - 2` sin tipo, `7 / (3 - 3)` o `1 << 32` en un `u32`. Los dos
-comprobadores lo hacen igual —el de Tcode sin enteros de más de 64 bits,
-con signo y magnitud—, y P11 lo prueba con un tercero: el oráculo dice qué
-cuentas tienen que dar error y con qué palabras.
+Lo mismo `1 - 2` sin tipo, `7 / (3 - 3)` o `1 << 32` en un `u32`. El
+comprobador lo hace sin enteros de más de 64 bits, con signo y magnitud, y
+P11 lo prueba con un oráculo aparte (`tests/oraculo.py`): dice qué cuentas
+tienen que dar error y con qué palabras.
 
 ## Formato
 
@@ -488,14 +468,14 @@ dominado por aritmética. Los índices comprobados, los préstamos, la
 liberación automática y los arreglos envueltos en struct salen a 1.00x.
 
 El detalle está en [`bench/README.md`](bench/README.md), incluido por qué
-todas las funciones del programa salen `static` y por qué el compilador
-escrito en Python no se nota (es el 0.5% del tiempo; el otro 99.5% es gcc).
+todas las funciones del programa salen `static` y cuánto tarda `tcodec` en
+escribir su propio C.
 
 ## Probarlo
 
 Para el compilador basta un compilador de C: `make` construye `tcodec` desde
-su semilla. La suite pide además Python 3, sin dependencias, porque el
-compilador de Python es su oráculo.
+su semilla. La suite está escrita en Python 3, sin dependencias; `tcodec` no
+la necesita para existir.
 
 ```
 git clone <este repo> && cd tcode
@@ -563,12 +543,12 @@ querías, y apunta **al código que escribiste**, no al C generado:
 
 ```
 $ tcodec area.t
+aviso: area.t:1: el parametro `b` de `area` no se usa; si es a proposito llamalo `_b`
 aviso: area.t:2: `total` se declara `var` y nunca se modifica; puede ser `let`
 aviso: area.t:3: `sobra` se declara y no se usa; si es a proposito llamala `_sobra`
-aviso: area.t:1: el parametro `b` de `area` no se usa; si es a proposito llamalo `_b`
 ```
 
-Los cinco que hay hoy:
+Los ocho que hay hoy:
 
 | | |
 |---|---|
@@ -577,6 +557,9 @@ Los cinco que hay hoy:
 | `var` que nunca se modifica | *puede ser `let`* |
 | parámetro que no se usa | `_nombre` lo silencia |
 | parámetro `mut T` que nunca se modifica | *podría ser `&T`* |
+| captura `mut` que nunca se modifica | *puede ir sin `mut`* |
+| `como T` sobre algo que ya es `T` | |
+| `==` entre decimales | *compara bit a bit; sugiere `cerca` de `std/numero`* |
 
 Un `_` delante del nombre lo calla, como en Rust: dice que es a propósito y
 quien lea el código no tiene que preguntárselo.
@@ -596,25 +579,32 @@ bien:
 ```
 $ tcodec ejemplos/informe/informe.t --explicar
 
+ejemplos/informe/informe.t
+
   struct Articulo   es DUEÑO: contiene memoria que hay que liberar
       nombre: str  <- duenio
       unidades: usize
       el compilador genera `ss_drop_Articulo` y lo llama donde haga falta
 
+  … (las demás funciones)
+
   fn linea(a: &Articulo, total: usize) -> str !
       puede fallar: quien la llame tiene que usar `try` o `sino`
-      arg a       Articulo  prestado para leer  no se libera aqui: es de quien llama
-      var s       str       DUEÑA               se entrega en la linea 27 (return)
-      let nombre  str       DUEÑA               se libera sola al cerrar su bloque
-      4 valor(es) con memoria propia: 3 se liberan solas, 1 se entrega
+      arg a      Articulo  prestado para leer  no se libera aqui: es de quien llama
+      arg total  usize     valor
+      let pct    usize     valor
+      let barra  str       DUEÑA               se libera sola al cerrar su bloque
+      1 valor(es) con memoria propia: 1 se libera sola
 ```
 
 Y explica también los casos difíciles, como una variable que se mueve pero
 podría no llegar a moverse:
 
 ```
-      var caja  Caja  DUEÑA  se mueve a `consumir` en la linea 14;
-                             lleva bandera por si el programa sale antes
+$ tcodec ejemplos/inventario.t --explicar
+
+  fn main() -> usize
+      var inv     [Articulo; 4]  DUEÑA  se mueve a `resumir` en la linea 59; lleva bandera por si el programa sale antes
 ```
 
 Sirve para tres cosas: aprender el modelo sin pelearse con él, entender por
@@ -624,11 +614,11 @@ Por eso es una de las propiedades que comprueba la suite.
 
 ## Estado
 
-**1.0.0-rc1, candidata a 1.0.** El compilador se construye solo desde su semilla,
+**1.0.0-rc3, candidata a 1.0.** El compilador se construye solo desde su semilla,
 la suite pasa con gcc y clang, y la especificación describe el lenguaje
 entero —su [gramática](docs/ESPECIFICACION.md#gramática), sus funciones
 internas y [lo que no tiene](docs/ESPECIFICACION.md#lo-que-tcode-10-no-tiene)—.
-Lo que falta para 1.0 es de fuera: la CI en otras máquinas, una auditoría
+Lo que falta para 1.0 es de fuera: una auditoría
 independiente y programas escritos por otras personas. Qué se promete que no
 cambia está en [`docs/COMPATIBILIDAD.md`](docs/COMPATIBILIDAD.md).
 
@@ -772,7 +762,7 @@ No hay: escritura incremental, enums con parámetros de tipo, ni patrones
 sobre rangos.
 
 Una función sí puede devolver una vista de lo que le prestaron —un `&str`,
-un campo de un `&T`, un elemento de una `&lista`, un `mut str`—, y quien
+un campo de un `&T`, un elemento de una `&list<T>`, un `mut str`—, y quien
 llama queda protegido: la vista presta de todo lo que se le pasó prestado,
 no vive más que su dueño aunque se reasigne, y no se guarda si sale de un
 temporal.
@@ -797,14 +787,17 @@ que encuentra lo que a nadie se le ocurrió escribir a mano:
 | **P3** | compilar dos veces da C byte a byte idéntico |
 | **P4** | todo error nombra un archivo y una línea que existen |
 | **P5** | el compilador nunca revienta, con entrada válida o inválida |
-| **P6** | `--explicar` funciona sobre todo programa aceptado y nombra todas sus funciones y variables |
+| **P6** | `--explicar` funciona sobre todo programa aceptado y nombra todas sus funciones |
 | **P7** | todo aviso nombra un archivo y una línea que existen, y ningún aviso impide compilar |
 | **P8** | ante un programa **roto a propósito**, el compilador o lo acepta o lo rechaza diciendo dónde: nunca una excepción, nunca un cuelgue |
-| **P9** | un programa repartido en varios archivos, con `use` en rombo, compila y corre igual: los structs y las funciones cruzan de módulo, y un `str` que nace en uno y muere en otro no se filtra |
+| **P9** | un programa repartido en varios archivos, con `use` en rombo, compila y corre igual: los structs y las funciones cruzan de módulo, la carga no duplica nada, y corre limpio bajo ASan y UBSan |
 | **P10** | una vista no sobrevive a que su dueño se reasigne, crezca, se mueva o se libere, venga de `vista`, `rebanar`, un `if` o un `match`, una función, un puntero a función, una clausura, una genérica, un struct que presta o un mapa: el programa que la usa después no compila, y su gemelo que la deja morir antes corre limpio bajo ASan |
-| **P11** | un programa de aritmética imprime lo que tiene que imprimir y para donde tiene que parar —con los nueve enteros y los dos decimales, números escritos a cada lado, conversiones, `if` como valor, llamadas, genéricas, campos y arreglos—, y `tcodec` escribe para él el mismo C que Python, byte a byte. Y una cuenta hecha sólo de números escritos que pararía no compila, con el error que dice el oráculo, en los dos compiladores |
-| **P12** | `tcodec`, el compilador escrito en Tcode, escribe byte a byte el mismo C que el de Python para todo programa generado y para cada programa válido de P10 |
-| **P13** | un préstamo dura hasta el último uso de la vista: en programas que toman vistas, modifican a sus dueños y las usan entre `if` y bucles, lo que el compilador acepta corre limpio bajo ASan, y los dos compiladores dicen lo mismo de cada uno |
+| **P11** | un programa de aritmética imprime lo que tiene que imprimir y para donde tiene que parar —con los nueve enteros y los dos decimales, números escritos a cada lado, conversiones, `if` como valor, llamadas, genéricas, campos y arreglos—. Y una cuenta hecha sólo de números escritos que pararía no compila, con el error que dice el oráculo |
+| **P13** | un préstamo dura hasta el último uso de la vista: en programas que toman vistas, modifican a sus dueños y las usan entre `if` y bucles, lo que el compilador acepta corre limpio bajo ASan |
+| **P14** | un valor que se mueve por algunos caminos y por otros no se libera exactamente una vez, por cualquier camino (`if` con `continue`, `match` con guardas, `break` en un bucle anidado) |
+
+No hay P12: era la comparación byte a byte con el compilador de Python, y se
+retiró con él.
 
 `tests/generador_programas.py` produce programas válidos por construcción
 —con cadenas propias, structs, arreglos, `list<usize>` y `list<str>`,
@@ -834,8 +827,8 @@ repetidos.
 `make check` entera tarda unos cinco minutos en cuatro núcleos. Cada sección
 de la suite es un módulo de `tests/lenguaje/` —sus casos y cómo se
 comprueban—, las secciones corren a la vez, cada una en su proceso, y dentro
-de cada una lo que se puede también. Lo que la suite compila con los sanitizers —`tcodec` y
-las otras capas del compilador escritas en Tcode— se guarda en `.cache/` por
+de cada una lo que se puede también. Lo que la suite construye con los
+sanitizers —`tcodec`, y la semilla de la que sale— se guarda en `.cache/` por
 el hash de su C: la pasada siguiente no lo vuelve a compilar si no cambió.
 Para trabajar hay atajos:
 
@@ -852,4 +845,6 @@ los ejemplos— no están escritas a mano: `make check` guarda lo que mide y
 y lo dice, como cuando algo está sin formatear.
 
 En GitHub la suite corre sola: `make rapido` en cada push, y `make check`
-entera en cada pull request y en `main`.
+entera en cada pull request y en `main`. Además corren la matriz de
+compiladores (gcc 12–14 y clang 16–18) y macOS —punto fijo, sin avisos, y los
+ejemplos—, y el fuzzing largo va en la pasada nocturna.

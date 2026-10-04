@@ -1,5 +1,10 @@
 # Plan: devolver las palabras robadas
 
+> **Estado (2026-10-04): hecho.** Las tres fases (A, B y C) están hechas: el
+> lenguaje usa `list`, `map`, `use` y `fail`, y `lista`, `mapa`, `usar` y
+> `falla` vuelven a ser palabras normales. Lo que sigue es el registro del
+> renombrado, con cada fase marcada.
+
 ## El criterio
 
 No es «pasar todo a inglés». Es esto:
@@ -64,7 +69,7 @@ entran en el mismo criterio — y salen gratis.
 | `sino` | 614 | 185 | tampoco es nombre de nada: «lo que queda a la derecha de un sino» |
 | `como` | 867 | 1.695 | **no está reservada** (es contextual): no roba nada |
 | `externo` | 50 | 2 | es vocabulario —un concepto—, no pegamento |
-| todo el `std` | — | — | `imprimir`, `largo`, `es_letra`… es el encanto y no choca con nada |
+| todo el `std` y las internas | — | — | `imprimir`, `largo`, `es_letra`… es el encanto y no choca con nada |
 
 Con esto, el bucle más común del lenguaje queda intacto:
 

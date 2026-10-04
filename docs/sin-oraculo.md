@@ -1,5 +1,10 @@
 # Sin el oráculo: `tcodec`, solo
 
+> **Estado (2026-10-04): cerrado.** El compilador de Python se borró
+> (`13a2fb7`, `tcode/*.py` entero) y `tcodec` es el único; la garantía es el
+> punto fijo. Lo que sigue es el plan tal como se escribió y se fue
+> ejecutando, fase a fase.
+
 El plan para que `tcodec` deje de necesitar el compilador de Python
 (`tcode/*.py`, unas 12.000 líneas) y sea el único compilador. Como el
 refactor de tipos de `TIPOS.md`, es posterior al 1.0: toca cómo se verifica

@@ -11,7 +11,7 @@ fn saludo(nombre: view) -> str {
 }
 
 fn main() {
-    let quien = saludo("putos");
+    let quien = saludo("mundo");
     imprimir(quien);
     imprimir("\n");
 

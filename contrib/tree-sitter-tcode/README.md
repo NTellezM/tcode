@@ -18,8 +18,11 @@ npx tree-sitter test        # el corpus en test/corpus/
 npx tree-sitter parse ../../ejemplos/compilador/tcodec.t
 ```
 
-Todo el compilador, el lexer, `std/` y `programas/` parsean sin errores ni
-nodos `MISSING`.
+El compilador, el lexer y `std/` parsean sin errores ni nodos `MISSING`
+—salvo `std/compresion.t` y `std/crc.t`—. `programas/` no: la gramática
+todavía no conoce `#importar` ni los literales hexadecimales (`$78`), que es
+lo que usan. Lo que sí está es el Tcode de hoy en lo demás: `use`, `list`,
+`map`, `fail`.
 
 ## Qué hay
 
@@ -34,5 +37,8 @@ nodos `MISSING`.
   como identificadores); aquí se lexan como palabras clave, así que un
   programa que las use como nombre de variable se resaltará raro. Es un
   caso poco común.
+- La gramática modela `use`, no `#importar`, y no conoce los literales
+  hexadecimales (`$78`, `$FFFFFFFF`). Por eso dan nodos `ERROR` los ficheros
+  que los usan: `std/crc.t`, `std/compresion.t` y casi todo `programas/`.
 - El `bloque<T>` de los tipos es indistinguible de un genérico `Par<A, B>`:
   ambos son `ident <...>`. Se resuelve igual que en el compilador.

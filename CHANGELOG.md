@@ -4,6 +4,19 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
 ## Sin publicar
 
+### Lenguaje
+
+- **Las palabras robadas vuelven.** `lista` → `list`, `mapa` → `map`,
+  `usar` → `use` y `falla` → `fail`; esas cuatro vuelven a ser nombres
+  normales. El renombrado se hizo en tres fases —el compilador entiende las
+  dos formas, el código pasa a las nuevas, las viejas se van— porque la
+  cadena de construcción arranca de una semilla congelada que solo conoce
+  las viejas. Las reservadas de antemano pasan a `drop`, `extends`,
+  `protocol`, `implements` y `anchor`. Está en `docs/PLAN-PALABRAS.md`.
+- `truncar(xs: mut list<T>, n: usize)`, interna para recortar una lista; lo
+  que sobra se libera antes de soltar.
+- Literales hexadecimales: `$FF`, `$1a2b`, `$0`.
+
 ### Añadido
 
 - `contrib/lsp` y la extensión de VS Code (0.5.0): el servidor descubre la raíz
@@ -26,8 +39,6 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   comprueba los invariantes de `safestr.h` bajo ASan+UBSan, ademas de los
   fallos de memoria. Corre tambien en la CI nocturna, junto al fuzzing del
   compilador. Es la respuesta a la pregunta abierta 4 de la auditoria.
-
-### Añadido
 
 - `contrib/tree-sitter-tcode`: la gramatica de tree-sitter —espejo del parser
   del compilador, con resaltado y el parser C generado—, para que Tcode se
@@ -103,6 +114,31 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   `mapa<str, Valor>` con la ruta entera, y accessors por tipo. Comprobado
   contra `tomllib`.
 
+- `#importar "modulo.t"`, la directiva para traer un módulo de la
+  biblioteca sin escribir la carpeta: `#importar "texto.t";`, o con alias,
+  `#importar "utf8.t" como U;`. Sustituye al `use "#texto"` que hubo antes;
+  el lexer la reconoce solo al principio de linea y la entienden los dos
+  resolvedores de modulos. Los veinte ficheros de `ejemplos/` y `programas/`
+  pasan a ella, y el completado del editor (VS Code 0.3.0 y 0.4.0) inserta
+  la directiva entera.
+- `std/utf8`: caracteres, no bytes —descodificar con las comprobaciones de
+  UTF-8, recorrer y trocear contando caracteres, medir el ancho al imprimir
+  y `recortar_a_ancho`, que no parte un caracter por la mitad.
+- `std/cola`, `std/url`, `std/sha256` (con HMAC), `std/crc` (CRC-32 de
+  zlib, gzip y PNG), `std/compresion` (infla deflate, zlib y gzip),
+  `std/prioridad`, `std/regex` (con tope de pasos para que `(a+)+b` falle en
+  vez de colgarse) y `std/terminal`.
+- `std/arbol`, `std/grafo` (Dijkstra, orden topologico y componentes) y
+  `std/difuso` (distancia de edicion por caracteres), verificados contra
+  oraculos de fuera.
+- `std/proceso` y `std/entorno`, las dos que pedian los dos consumidores.
+- `externo` admite el tipo de borde `buffer` (`char*`), que solo existe en
+  firmas `externo`: exige una variable `var`, la llamada cuenta como
+  modificarla y rechaza una `view`. El C generado lleva ademas
+  `#define _DEFAULT_SOURCE 1` antes de cualquier `#include`, para que `cc`
+  sin macros no esconda `realpath`, `mkstemp`, `setenv` ni
+  `clock_gettime`.
+
 ### Corregido
 
 - `ejemplos/compilador/tipar.t`: al tipar `for clave, valor en mapa` con el
@@ -132,11 +168,64 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   operando desconocido se inventaba como `usize` en vez de respetar el tipo
   esperado, y `return local * local` salia `usize` y no `i64`. Ahora un
   operando que no se conoce se deja sin tipo y manda el `esperado`.
+- `tcodec` no encontraba su `std/` cuando `argv[0]` llegaba suelto desde el
+  `PATH` (invocado ya instalado): `ruta_del_ejecutable()` lo recorre cuando
+  no hay barra, y con eso `tcodec f.t` funciona desde cualquier directorio.
+- El lexer acepta un `.t` que empieza con la marca de orden de bytes
+  (`U+FEFF`): `sin_bom()` quita los tres bytes antes de lexear. Dentro de
+  una cadena interpolada un BOM sigue siendo un error.
+- `var v: list<str> = [x];` metia el valor en la lista **y ademas** lo
+  liberaba (use-after-free): al literal de lista le faltaba pedir la bandera
+  `ss_vivo_...`. El fuzzer no lo veia porque su mutador no construia codigo
+  valido; ahora tiene la mutacion `agregado`, que inyecta esa forma, y
+  cubre tambien el struct y el cierre.
+- `fn saca<T: ordenable>(c: &Caja<T>) -> T ! { return copiar(c.dato); }` no
+  compilaba: al probar `T = view`, el `copiar` de una vista soltaba dos
+  errores que no eran. `firma_valida` salta las instanciaciones que dejan la
+  firma sin sentido.
+- El choque de nombres entre modulos ya dice cual choca y donde: «el struct
+  `Cosa` ya esta definido en a.t:1».
+- El hover y el detalle de un modulo en el LSP mostraban `std/bytes`, que no
+  es ninguna de las dos grafias reales; ahora devuelven
+  `` `use "std/bytes"` `` o `` `#importar "bytes.t";` ``. La 0.5.1 reempaqueta
+  el arreglo para que el `.vsix` instalado lo lleve, y la 0.5.2 solo usa la
+  raiz del cliente si tiene `std/`, y busca mejor el binario.
+- `make cifras` podia escribir numeros viejos si la ultima comprobacion era
+  anterior; ahora `check` y `cifras` comparten un objetivo `medir`, que mide
+  antes de escribir.
+
+### Cambiado
+
+- `tcodec` deja de hablar con el sistema por su shim en C y usa su propia
+  biblioteca: `std/proceso`, `std/entorno` y `std/archivo`.
+  `sistema_tcodec.c` pasa de 228 lineas y diez funciones a 60 y una
+  (`tcodec_pila_honda`, subir el limite de pila y re-ejecutarse), y
+  `std/archivo` y `std/camino` crecen con lo que pedia el compilador.
+- `make check` incluye el lint (ruff y mypy) al final, y el job `completa`
+  de la CI los instala.
+- El refactor del modelo de tipos sigue en marcha (`docs/TIPOS.md`):
+  `Contexto` y `Mundo` guardan `Tipo` en varios campos y las consultas van
+  migrando. No cambia lo que el lenguaje acepta ni el C que emite.
+
+### Quitado
+
+- **El compilador de Python (`tcode/`) ya no existe.** Se borran sus ~12.000
+  lineas y, con el, se van el DDC (`make ddc`), `make cobertura`, las capas
+  aisladas que comparaban contra el, `tests/python_congelado.json` y la
+  seccion CONGELADO; `test_propiedades.py` compila con `tcodec`. `tcodec` es
+  el unico compilador: se construye desde su semilla y su garantia es el
+  punto fijo. El plan y el porque, en `docs/sin-oraculo.md`.
 
 ### Documentado
 
 - `docs/TIPOS.md`: el plan del modelo de tipos (de `str` a `Tipo`), en tres
   etapas con la garantia de C identico por etapa. Es posterior al 1.0.
+- `docs/GUIA.md` gana una seccion 9 con cinco ejercicios progresivos —el
+  saludo, el nombre letra a letra, la piramide, el cambio en monedas y el
+  contador—, cada uno con su salida real, y un recopilatorio con las tres
+  trampas (no hay `+=`, `let` no se reasigna, el parametro es inmutable
+  salvo `mut`). Los bloques se compilaron extrayendolos del propio
+  documento.
 
 ## 1.0.0-rc3 — 2026-10-01, candidata local
 

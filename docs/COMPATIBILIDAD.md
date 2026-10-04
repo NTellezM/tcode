@@ -57,8 +57,10 @@ operador, ninguna función interna ni ninguna opción de `tcodec`.
 
 ## Módulos
 
-La forma de encontrar un módulo (`use "ruta"`, relativa al archivo, y
-`std/` junto al compilador) no cambia en 1.x.
+La forma de encontrar un módulo no cambia en 1.x: `use "ruta"` es relativa
+al archivo —y `use "std/x"`, la biblioteca junto al compilador—, y
+`#importar "x.t"` trae un módulo de `std/` por el nombre del archivo, con su
+`.t`.
 
 ## Lo que marca una versión mayor
 

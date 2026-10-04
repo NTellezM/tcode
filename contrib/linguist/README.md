@@ -25,13 +25,14 @@ que TCode esté registrado, los proyectos que lo usan marcan los `.t` como
 4. **Conflicto de extensión**. `.t` ya lo usa Perl (sus ficheros de test).
    Para que GitHub distinga, añade una heurística en
    `lib/linguist/heuristics.yml`: un fichero TCode suele empezar con `fn `,
-   `usar `, `struct `, `//` o `var `, mientras que un test Perl usa
-   `use Test::More` o `use strict`. Sin heurística, GitHub usará las muestras
-   de código para adivinar.
+   `use `, `#importar `, `struct `, `//` o `var `, mientras que un test Perl
+   usa `use Test::More` o `use strict`. Sin heurística, GitHub usará las
+   muestras de código para adivinar.
 5. **PR**. Sigue la guía oficial "Adding a language" en
    <https://github.com/github-linguist/linguist/blob/main/CONTRIBUTING.md>.
 
 ## Fuente de verdad
 
-Las palabras reservadas y los símbolos están en `tcode/lexer.py` (`PALABRAS` y
-`SIMBOLOS`). Si cambian, actualiza la gramática.
+Las palabras reservadas y los símbolos están en
+`ejemplos/lexer/lib/lexico.t` (`es_reservada` y su `analizar`). Si cambian,
+actualiza la gramática.

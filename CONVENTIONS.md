@@ -2,17 +2,19 @@
 
 ## Regla de oro
 
-Lo nuevo del lenguaje entra **solo** en `tcodec.t` y `lib/*.t`.
-`tcode/` (Python) solo recibe arreglos de corrección, nunca características.
-`tests/python_congelado.json` no se toca: la sección CONGELADO falla si cambia.
+Lo nuevo del lenguaje entra **solo** en el compilador de Tcode
+(`ejemplos/compilador/` y `ejemplos/lexer/`). El compilador de Python
+(`tcode/`) se borró: `tcodec` es el único (ver `docs/sin-oraculo.md`).
+`tests/python_congelado.json` es la instantánea de aquel compilador y ya no
+lo comprueba ninguna sección: es un registro.
 
 ## Tras tocar el compilador
 
 - `make semilla` **solo cuando se pida explícitamente**. Actualiza
   `bootstrap/tcodec.c` y comprueba el punto fijo. No lo lances por iniciativa.
-- Antes de proponer un cambio en `lib/generar.t`, ejecutar:
-  `python3 tests/test_lenguaje.py PROGRAMA CUERPOS EXPRESIONES`
-  y anotar qué programas del repositorio dejan de coincidir con Python.
+- Antes de proponer un cambio en `ejemplos/compilador/lib/generar.t`,
+  ejecutar `make rapido` y `make semilla`. La comparación con Python que se
+  hacía aquí se retiró con el oráculo (`docs/sin-oraculo.md`).
 
 ## Toda regla nueva
 
@@ -30,6 +32,5 @@ Lo nuevo del lenguaje entra **solo** en `tcodec.t` y `lib/*.t`.
 
 - `make semilla`
 - `git commit` / `git push`
-- Cambios en `tcode/` (Python)
 - Cambios en `tests/python_congelado.json`
 - Reformatear archivos que no toques por otro motivo

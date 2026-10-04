@@ -5,7 +5,14 @@ toca cómo el compilador representa los tipos, no lo que acepta ni lo que
 emite. Es **posterior al 1.0**: la congelación existe para que el código se
 quede quieto, y esto es lo contrario de quieto.
 
-## Estado actual
+> **Estado (2026-10-04).** El refactor ya está en marcha, y arrancó antes de
+> cortar el 1.0: `Contexto` y `Mundo` guardan `Tipo` en varios campos (la
+> Etapa 3 se cerró en `9066fe8`) y las consultas van migrando (`aef7436`). El
+> estado de abajo es el de **antes** de empezar, y las menciones al oráculo
+> de Python y al DDC también son de entonces: el oráculo se borró después
+> (`docs/sin-oraculo.md`).
+
+## Estado antes de empezar (2026-10-01)
 
 Los tipos viven como `str` por todo el compilador: `Contexto.tipo_de` y
 `Mundo` devuelven y guardan texto, y unas ~430 líneas reparten el mismo
@@ -22,7 +29,7 @@ es una aplicación— en forma de `empieza_con`, `rebanar`, `partir_tipos` y
 - `forma_de(str) -> Forma`, la pregunta barata que no reserva nada.
 
 Es decir: no hay que inventar nada. Hay que **usarlo** en el resto del
-compilador, que hoy sigue hablando en `str`.
+compilador, que entonces seguía hablando en `str`.
 
 ## Alcance, medido
 
@@ -57,7 +64,7 @@ riesgo 1. El registro global (`st_tipos`, `en_formas`, `anotados`) sí guarda
 
 La garantía de que no se rompe nada es la misma que ha funcionado todo el
 camino: el compilador se rehace a sí mismo y su C sale **byte a byte igual**;
-el punto fijo, el DDC y la suite entera tienen que quedar verdes antes de
+el punto fijo y la suite entera tienen que quedar verdes antes de
 seguir. Una etapa a la vez, nunca a medias.
 
 ### Etapa 1 — el módulo se vuelve la única fuente de verdad
@@ -87,9 +94,9 @@ compilador mismo señala cada sitio que deja de compilar.
    `make bench-comprobar`, que falla si algo se pasa del límite.
 2. **Los alias.** `sin_alias_tipo` expande sobre texto; hay que re-expresarlo
    sobre `Tipo`. Es el único sitio no mecánico.
-3. **El oráculo de Python.** Sigue en `str`, congelado. No importa: el DDC
-   compara el **C emitido**, no la representación interna. El modelo
-   estructurado es solo de `tcodec`.
+3. **El oráculo de Python.** Entonces seguía en `str`, congelado, y el DDC
+   comparaba el **C emitido**, no la representación interna. Ya no existe
+   (`docs/sin-oraculo.md`): hoy la garantía es el punto fijo.
 4. **No a medias.** Cada etapa termina con `make check`, `make compiladores`
    y el punto fijo verdes, y se commitea sola. Un compilador a medio migrar
    es peor que el de hoy.
@@ -98,7 +105,7 @@ compilador mismo señala cada sitio que deja de compilar.
 
 No es el refactor de arriba, pero cae en el mismo viaje y conviene tenerlo
 escrito. Hoy los **tipos** (struct y enum, genéricos o no) tienen nombre
-**global**: `tcodec` y el oráculo de Python rechazan dos módulos que declaren
+**global**: `tcodec` rechaza dos módulos que declaren
 el mismo —«no admite un struct/enum repetido entre módulos»—. Las
 **funciones**, en cambio, se resuelven por archivo y se manglean al chocar.
 
@@ -106,7 +113,7 @@ Lo destapó `tc-config` al juntar `std/json` y `std/toml`: los dos querían un
 `Valor`, que es el nombre natural del tipo de un dato, y cada biblioteca
 querrá el suyo. Rodeado renombrando el de TOML a `ValorToml`.
 
-El arreglo, en los dos compiladores:
+El arreglo:
 
 1. **Cargador**: no rechazar; guardar cada tipo con su módulo y un nombre
    interno único (`modulo__Tipo`) **solo cuando choca**, como se hace ya con
@@ -115,8 +122,6 @@ El arreglo, en los dos compiladores:
    tipo de ese módulo; la forma a secas, al propio o al único importado.
 3. **C**: el tag del enum (`etiqueta`, hoy `SS_VALOR_TEXTO`) y el nombre del
    struct usan el nombre interno único, no el escrito.
-4. **Espejo en Python**: `modulos.py` (quién declara qué), `comprobador.py`
-   (formas) y `generador.py` (tags).
 
 Como el refactor de arriba, es post-1.0: toca los tipos, que están congelados.
 

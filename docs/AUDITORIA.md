@@ -5,6 +5,12 @@ de qué depende esa promesa, dónde está implementada cada parte, cómo se
 prueba ya, qué se decidió ser conservador a propósito y por dónde empezaría
 a buscar. Las referencias `archivo:línea` son de la rama `camino-1.0`.
 
+> **Aviso (2026-10-04).** Este documento es el registro de la auditoría previa
+> al 1.0. Entonces existía el compilador de Python (`tcode/`) y con él el DDC
+> y la cobertura; hoy no: `tcode/*.py` se borró (`13a2fb7`) y `tcodec` es el
+> único compilador (`docs/sin-oraculo.md`). Donde abajo se cita «Python»,
+> `tcode/`, `make ddc` o `make cobertura`, descríbese el estado de entonces.
+
 ## Qué se promete
 
 Para todo programa que **`tcodec` acepta**, compilado con un compilador de
@@ -176,7 +182,7 @@ tablas (`tests/generar_xid.py`).
 | RECHAZO | programas que no deben compilar, con su mensaje | escrito a mano |
 | REGLAS | cada regla, en pares mínimos y siete contextos | la construcción del par |
 | P1–P13 (`tests/test_propiedades.py`) | programas generados al azar | ASan/UBSan, oráculo aritmético, Python |
-| PROGRAMAS | seis programas reales | `wc`, `base64`, `sort`, `grep`, Python |
+| PROGRAMAS | programas reales | `wc`, `base64`, `ordenar`, `buscar`, `calc`, `vida`, `json` |
 | PROGRAMA, CUERPOS, TIPAR, PROPIEDAD… | cada capa de `tcodec` contra la de Python | Python |
 | `tests/fuzz.py` | mutantes del código real | no revienta; lo que acepta corre limpio |
 | DDC | la semilla | Python, por otro camino |
@@ -240,13 +246,13 @@ En un solo sitio; cada uno se explica donde se enlaza.
 
 ```
 make                  # tcodec desde la semilla
-make check            # la suite entera, DDC incluido
-make ddc              # sólo la compilación doble diversa
+make check            # la suite entera, el grafo y el lint
+make ddc              # (ya no existe: era la doble diversa contra Python)
 make fuzz FUZZ_SEGUNDOS=3600
 TCODE_PROGRAMAS=1000 make propiedades
 make compiladores COMPILADORES="gcc-12 gcc-13 clang-18"
-make cobertura        # que caminos del oraculo de Python no se pisan
-make mutar            # rompe una regla en los dos compiladores: tiene que notarse
+make cobertura        # (ya no existe: era la cobertura del oráculo de Python)
+make mutar            # rompe una regla en tcodec: tiene que notarse
 ./tcodec programa.t --explicar   # lo que el compilador infirió de cada valor
 ./tcodec programa.t --mostrar-c  # el C, con #line apuntando al .t
 ```

@@ -47,6 +47,13 @@ que ya tiene.
 
 Un `str` es dueño de su memoria. Un `view` la toma prestada.
 
+Una **cadena literal no es un `str`, es un `view`**: presta memoria que vive
+tanto como el programa, y nadie la libera. Por eso `f("texto")` no vale donde
+la función pide un `str` con dueño —el error dice que recibió un `view`—, y
+hace falta `nuevo("texto")`. Es lo que hace que `fn estatica() -> view {
+return "constante"; }` sea correcto y que `let v: view = nuevo("x");` no lo
+sea: `nuevo` sí fabrica un dueño, y moriría al acabar la sentencia.
+
 Mientras se vaya a usar un `view` derivado de un `str`, ese `str` **no se
 puede mutar ni mover**. El préstamo dura hasta el último uso de la vista, no
 hasta el final de su bloque:
@@ -244,7 +251,7 @@ por qué repetirlas:
 
 ```tcode
 fn main() {
-    let saludo = nuevo("hola, ");
+    var saludo = nuevo("hola, ");
     empujar(saludo, "mundo");
     imprimir(saludo);
 }
@@ -522,7 +529,14 @@ módulo, no el del archivo.
 
 `#importar "texto.t"` trae un módulo de la biblioteca que viene con el
 compilador sin escribir la carpeta: se escribe el nombre del archivo, con su
-`.t`. Vale también con alias: `#importar "utf8.t" como U;`.
+`.t`. La carpeta `std/` la pone el compilador, así que `#importar "std/texto.t"`
+no vale; y al revés, `use "texto"` sin la carpeta no encuentra nada. Las dos
+formas dicen lo mismo por caminos distintos: con `use`, la ruta se escribe
+entera —`use "std/texto"`—; con `#importar`, sólo el nombre del archivo
+—`#importar "texto.t"`—. Vale también con alias: `#importar "utf8.t" como U;`.
+
+Las funciones **internas** del lenguaje —`imprimir`, `largo`, `rebanar`,
+`byte`, `leer_linea`…— no se piden: están siempre, sin `use` ni `#importar`.
 
 ### Espacios de nombres
 
@@ -686,9 +700,8 @@ rechaza un tamaño cero. `std/archivo` construye encima `por_partes`, que llama
 a una función por cada bloque y mantiene acotada la memoria, y
 `partes_de_archivo`, que conserva los bloques cuando sí se necesitan después.
 
-`texto(x) -> str` materializa `usize`, `i64`, `bool`, `view` o `str`. Es la
-pieza mínima para construir mensajes sin introducir todavía interpolación ni
-un sistema de formatos.
+`texto(x) -> str` materializa un entero, `bool`, `view` o `str`. Los
+decimales no entran; `imprimir` y la cadena interpolada sí los escriben.
 
 ### Avisos
 
@@ -776,7 +789,7 @@ como struct, enum o parámetro de tipo de la función en curso.
 
 ```
 programa    := usar* declaracion*
-usar        := "use" CADENA ("como" NOMBRE)? ";"
+usar        := ("use" | "#importar") CADENA ("como" NOMBRE)? ";"
 declaracion := struct | enum | externo | funcion
 
 struct      := "struct" NOMBRE params_tipo? "{" (campo ("," campo)* ","?)? "}"
@@ -784,8 +797,9 @@ campo       := NOMBRE ":" tipo
 enum        := "enum" NOMBRE "{" variante ("," variante)* ","? "}"
 variante    := NOMBRE ("(" tipo ("," tipo)* ")")?
 externo     := "externo" CADENA "{" firma_c+ "}"
-firma_c     := "fn" NOMBRE "(" (NOMBRE ":" tipo ("," NOMBRE ":" tipo)*)? ")"
+firma_c     := "fn" NOMBRE "(" (NOMBRE ":" tipo_c ("," NOMBRE ":" tipo_c)*)? ")"
                ("->" tipo)? ";"
+tipo_c      := tipo | "buffer"
 funcion     := "fn" NOMBRE params_tipo? "(" params? ")" ("->" tipo)? "!"? bloque
 params_tipo := "<" param_tipo ("," param_tipo)* ">"
 param_tipo  := NOMBRE (":" restriccion)?
@@ -796,7 +810,7 @@ param       := NOMBRE ":" ("mut" | "&" | "&" "mut")? tipo
 tipo        := "&" "mut"? tipo
              | "str" | "view" | "bool" | "usize" | "u8" | "u16" | "u32" | "u64"
              | "i8" | "i16" | "i32" | "i64" | "f32" | "f64"
-             | "lista" "<" tipo ">" | "mapa" "<" tipo "," tipo ">"
+             | "list" "<" tipo ">" | "map" "<" tipo "," tipo ">"
              | "bloque" "<" tipo ">" | "[" tipo ";" ENTERO "]"
              | "fn" "(" (tipo ("," tipo)*)? ")" ("->" tipo)?
              | (STRUCT | ENUM | ALIAS "." NOMBRE) ("<" tipo ("," tipo)* ">")?
@@ -870,7 +884,11 @@ Lo que la gramática sola no dice:
   declarado; si no, `Nombre {` es un nombre seguido de un bloque.
 - **A la izquierda de `=`** sólo puede ir un `lugar`: una variable, un campo
   o un elemento.
-- **Los `use`** van todos al principio del archivo.
+- **Los `use`** van todos al principio del archivo. Vale igual para
+  `#importar`: es la forma de pedir un módulo de `std/` escribiendo sólo el
+  nombre del archivo.
+- **`tipo_c` sólo existe en la firma de un `externo`.** `buffer` es un `str`
+  que la función de C puede escribir; en el resto del lenguaje no es un tipo.
 
 Este programa usa cada producción. La suite lo compila y lo corre bajo
 AddressSanitizer: si la gramática deja de describir el lenguaje, se nota.
@@ -980,7 +998,7 @@ le corresponde.
 | `vista(s: str) -> view` | `ss_view` | **presta** `s` |
 | `empujar(s: mut str, x)` | `ss_append` / `ss_append_view` | **muta** `s` |
 | `largo(x) -> usize` | `ss_len` / `sv_len_of` | solo lee |
-| `igual(a: view, b: view) -> bool` | `sv_equals` | solo lee |
+| `igual(a, b) -> bool` | `sv_equals` | solo lee |
 | `rebanar(v: view, a, b) -> view` | `sv_slice`, con límites comprobados | hereda el préstamo de `v` |
 | `imprimir(x)` | `fwrite` / `printf` | solo lee |
 | `anadir(xs: mut list<T>, x: T)` | `realloc` + asignación comprobada | **muta** `xs`, mueve `x` si es dueño |
@@ -999,7 +1017,7 @@ mi.t:3: rebanar(2, 9) fuera de rango (el texto tiene 4 bytes)
 
 ### Índice de funciones internas
 
-Todas las que trae el lenguaje, sin `use` nada. Las que **fallan** van con
+Todas las que trae el lenguaje, sin `use` ni `#importar` nada. Las que **fallan** van con
 `try` o `sino`, como cualquier función `!`. El detalle de cada una está en la
 sección que se nombra.
 
@@ -1008,7 +1026,7 @@ sección que se nombra.
 | `vacio() -> str` |  | un texto vacío, con dueño | Funciones internas |
 | `nuevo(v: view) -> str` |  | copia un texto a uno con dueño | Funciones internas |
 | `vista(s) -> view` |  | presta `s` | Funciones internas |
-| `texto(x) -> str` |  | un número, `bool`, `view` o `str` como texto | 9. Entrada de archivos y texto construido |
+| `texto(x) -> str` |  | un entero, `bool`, `view` o `str` como texto | 9. Entrada de archivos y texto construido |
 | `empujar(s: mut str, x: view)` |  | añade al final | Funciones internas |
 | `empujar_byte(s: mut str, b: u8)` |  | añade un byte | Bytes |
 | `largo(x) -> usize` |  | bytes de un texto, elementos de una lista, arreglo, bloque o mapa | Funciones internas |
@@ -1020,7 +1038,7 @@ sección que se nombra.
 | `imprimir_error(x)` |  | a la salida de error | 11. Salida, escritura y orden |
 | `anadir(xs: mut list<T>, x: T)` |  | añade al final; mueve `x` si tiene dueño | Listas dinámicas |
 | `truncar(xs: mut list<T>, n: usize)` |  | recorta a `n`; lo que sobra se libera antes de soltar | Listas dinámicas |
-| `ordenar(xs: mut list<T>)` |  | ordena en el sitio: `usize`, `i64`, `bool` o `str` | 12. Recorridos |
+| `ordenar(xs: mut list<T>)` |  | ordena en el sitio: `bool`, los números o `str` | 12. Recorridos |
 | `copiar(x: &T) -> T` |  | copia profunda de cualquier valor | `copiar`: copia profunda, explícita, sin anotar nada |
 | `reservar(n: usize) -> bloque<T>` |  | `n` ranuras, todas a ceros | Memoria propia: `bloque<T>`, `reservar` e `intercambiar` |
 | `redimensionar(b: mut bloque<T>, n: usize)` |  | cambia el tamaño; lo nuevo, a ceros | Memoria propia: `bloque<T>`, `reservar` e `intercambiar` |
@@ -1151,10 +1169,12 @@ Para el orden hay dos piezas:
 
 | | |
 |---|---|
-| `menor(a: view, b: view) -> bool` | orden lexicográfico sobre texto |
+| `menor(a, b) -> bool` | orden de dos valores del mismo tipo: números, `str` y `view` |
 | `ordenar(xs: mut list<T>)` | ordena en el sitio |
 
-`ordenar` sólo funciona sobre `usize`, `i64`, `bool` y `str`, que son los
+`menor` e `igual` valen para dos valores del mismo tipo sin partes, como se
+cuenta en [*`igual` y `menor` sobre cualquier tipo sin partes*](#igual-y-menor-sobre-cualquier-tipo-sin-partes).
+`ordenar` funciona sobre `bool`, los once números y `str`, que son los
 tipos con un orden evidente. **Un struct no lo tiene**: cuál de sus campos
 manda es una decisión del programa, no del lenguaje, y el compilador lo dice
 en vez de inventarse uno.
@@ -1263,13 +1283,12 @@ salida. Un enum se escribe con un `match` que da el nombre de cada forma.
 
 ## Autoanálisis
 
-El **frontend de Tcode, escrito en Tcode**: 884 líneas entre
-`ejemplos/lexer/lib/lexico.t` (léxico), `lexer.t` y `parser.t` (sintaxis).
+El **frontend de Tcode, escrito en Tcode**: el léxico en
+`ejemplos/lexer/lib/lexico.t` y la sintaxis en `lexer.t` y `parser.t`.
 
-Sobre los doce `.t` del repositorio —incluidos ellos mismos— producen 9.099
-tokens idénticos a los del compilador y 4.592 nodos, aceptando y rechazando
-exactamente los mismos archivos. No es una demostración: está en la suite y
-se comprueba en cada ejecución.
+La suite los compila y los corre en cada ejecución, sobre `ejemplos/hola.t`,
+y `make cifras` mide en el README lo que imprimen sobre su propio código: los
+tokens de `lexico.t` y los nodos de `parser.t`.
 
 Escribir el parser sacó cuatro fallos del lenguaje que ningún ejemplo pequeño
 había tocado, y que están corregidos:
@@ -1355,7 +1374,7 @@ cualquier otra.
 | `std/texto` | `palabras`, `terminos`, `lineas`, `partir`, `unir`, `recortar`, `rellenar`, `alinear`, `minusculas`, `mayusculas`, `apariciones`, `repetir`, `reemplazar`, `empieza_con`, `termina_con`, `contiene`, `indice_de`, `a_entero` |
 | `std/iterador` | recorridos de una pasada: `para_cada`, `todas`, `alguna`, `primera_que`, `plegar`, `transformar` |
 | `std/archivo` | `por_partes` con memoria acotada y `partes_de_archivo` |
-| `std/lista` | `suma`, `maximo`, `minimo`, `media`, `invertir` sobre `list<usize>`; `incluye`, `posicion`, `primeras`, `invertida` sobre `list<str>` |
+| `std/lista` | genéricas sobre `list<T>`: `suma`, `maximo`, `minimo`, `media`, `invertir`, `incluye`, `posicion`, `primeras`, `invertida`, `aplanar`, `esta_vacia`, `ultima_posicion`, `ordenadas_por`, `filtradas`, `cuantas_cumplen` |
 | `std/numero` | `dividir`, `resto`, `porcentaje`, `menor_de`, `mayor_de`, `acotar` |
 | `std/cuenta` | `contar` y `mayores` — lo que en Python es `Counter` y `most_common` |
 | `std/mapa` | `acumular`, `obtener_o`, `claves_ordenadas`, `valores_ordenados`, `actualizar`, `completar`, `cuantas_claves` |
@@ -1373,13 +1392,16 @@ palabras. Y partir texto se llama `partir`, no `dividir`, porque `dividir`
 es la división de `std/numero`: dos cosas distintas no pueden compartir
 nombre mientras no haya espacios de nombres.
 
-`std/lista` tiene dos familias casi iguales, una por tipo de elemento. Eso
-es lo que cuesta no tener genéricos todavía, y se ve.
+`std/lista` es genérica: `suma<T: numero>`, `maximo<T: ordenable>`,
+`incluye<T: igualable>` y `primeras<T>` valen para cualquier lista cuyo
+elemento cumpla lo que el cuerpo necesita. Eso es lo que pide una restricción,
+y por eso ya no hace falta una familia de funciones por tipo de elemento.
 
 Lo que gana el programa que las usa se ve mejor que se explica:
 
 ```tcode
 use "std/cuenta";
+use "std/texto";
 
 fn main() -> usize ! {
     let texto = try leer_archivo(argumento(1));
@@ -1447,12 +1469,13 @@ Un mismo parámetro de tipo es un solo tipo en toda la llamada. `dos(1, s)`
 sobre `fn dos<T>(a: T, b: T)` no compila, y el error dice qué argumento
 fijó `T` primero.
 
-Lo que **no** hay todavía: restricciones sobre `T`. Por eso `std/lista` sigue
-teniendo una familia por tipo de elemento: `suma` necesita sumar, `incluye`
-necesita comparar y `primeras` necesita copiar el elemento. Sin poder exigir
-eso de `T`, esas funciones no pueden ser genéricas. Las que sí lo son
-—`esta_vacia`, `ultima_posicion`— son justo las que no miran dentro del
-elemento. Tampoco hay structs genéricos.
+Lo que el cuerpo necesita del elemento se le pide a `T` con una
+**restricción**, escrita en la firma: `fn suma<T: numero>(ns: &list<T>) -> T`.
+Son conjuntos de tipos con nombre, y son lo que hace genéricas a `suma`,
+`maximo`, `incluye` o `primeras` de `std/lista`. Con `T` sin restricción el
+cuerpo sólo puede tratarlo como cualquier valor: copiarlo, moverlo o mirarlo
+por encima. Los structs también llevan parámetros de tipo (`struct Pila<T>`),
+como se cuenta más abajo.
 
 ## `copiar`: copia profunda, explícita, sin anotar nada
 
@@ -1525,13 +1548,15 @@ fn incluye<T: igualable>(xs: &list<T>, aguja: &T) -> bool
 fn maximo<T: ordenable>(xs: &list<T>) -> T !
 ```
 
-Hay cuatro, y son **conjuntos de tipos con nombre**:
+Hay seis, y son **conjuntos de tipos con nombre**:
 
 | restricción | tipos | para qué |
 |---|---|---|
-| `numero` | `usize`, `i64` | `+`, `-`, `*`, `/`, `%` |
-| `igualable` | `usize`, `i64`, `bool`, `str`, `view` | `igual` |
-| `ordenable` | `usize`, `i64`, `str`, `view` | `menor` |
+| `numero` | `u8`, `u16`, `u32`, `u64`, `usize`, `i8`, `i16`, `i32`, `i64`, `f32`, `f64` | `+`, `-`, `*`, `/` |
+| `entero` | los mismos, sin `f32` ni `f64` | `%`, `&`, `\|`, `^`, `<<`, `>>`, `~` |
+| `decimal` | `f32`, `f64` | `/?` y lo que sólo tiene sentido con decimales |
+| `igualable` | todos los números, `bool`, `str` y `view` | `igual` |
+| `ordenable` | todos los números, `str` y `view` | `menor` |
 | `texto` | `str`, `view` | lo que trabaja sobre bytes |
 
 Una restricción **no es una interfaz que haya que implementar**. `usize`
@@ -1742,7 +1767,7 @@ escribe como su firma:
 ```tcode
 fn por_n(a: &Cosa, b: &Cosa) -> bool { return a.n < b.n; }
 
-fn ordenadas_por<T>(xs: &list<T>, antes: fn(&T, &T) -> bool) -> list<T>
+fn ordenadas_por<T, F>(xs: &list<T>, antes: F) -> list<T>
 ```
 
 Eso es un puntero a función: **coste cero, y no posee nada**, así que se
@@ -2129,7 +2154,7 @@ comentarios de líneas seguidas.
 tiene dos consecuencias:
 
 - **No puede estropear nada.** La salida lexea exactamente a los mismos
-  tokens que la entrada, y la suite lo comprueba sobre los 36 `.t` del
+  tokens que la entrada, y la suite lo comprueba sobre todos los `.t` del
   repositorio en cada ejecución. Un formateador que reparte líneas puede
   cambiar lo que un programa significa si se equivoca con la precedencia;
   este no puede.
@@ -2346,6 +2371,7 @@ un `grep`.
 | `u8`…`u64`, `usize`, `i8`…`i64` | sí | sí |
 | `f32`, `f64`, `bool` | sí | sí |
 | `str` | sí, como `const char*` | no |
+| `buffer` | sí, un `str` que C puede escribir | no |
 | `cadena_c` | no | sí, Tcode copia |
 | nada (`()`) | — | sí |
 | `view`, `list`, `map`, structs, enums | no | no |
@@ -2372,6 +2398,12 @@ Una función de C **presta** lo que recibe: `getenv(clave)` no se queda con
 `cadena_c` es un `char*` que **sigue siendo de C** (una literal, un `getenv`,
 un `strerror`). Tcode se queda una copia, que ya es un `str` normal. Un
 `char*` que hay que liberar —`strdup`— no cabe todavía: se envuelve.
+
+**`buffer` es un `str` en el que la función de C va a escribir.** Sólo vale
+en la firma de un `externo`, y al llamarla hay que pasarle una variable `var`:
+el generador le quita el `const` a propósito, porque C escribirá dentro.
+Fuera de un `externo` `buffer` no es un tipo —el error lo dice—, y como
+nombre de variable sigue valiendo.
 
 ### El escape completo: un `.c` de al lado
 
@@ -2433,9 +2465,12 @@ la vuelta siguiente, que es peor que fallar porque parece que funciona. El
 línea demasiado larga, y un `\r\n` de Windows tampoco es parte de la línea.
 
 **El fin de la entrada es un fallo, no una cadena vacía.** Una línea en
-blanco no es lo mismo que no haber nada. Es la diferencia entre el `input()`
-de Python (que levanta `EOFError`) y leer un `""` sin saber cuál de las dos
-cosas pasó.
+blanco devuelve `""` y no falla; acabarse la entrada falla. Con `try`, o con
+un `sino` que dé otra cosa, se distinguen. Con el atajo `sino nuevo("")` no:
+las dos dejan el mismo texto vacío, así que un bucle que pare con
+`largo(linea) == 0` trata igual un `Enter` y el fin de la entrada. Es la
+diferencia entre el `input()` de Python (que levanta `EOFError`) y leer un
+`""` sin saber cuál de las dos cosas pasó.
 
 **`variable_entorno` distingue «no está» de «está vacía».** `getenv` no
 puede: las dos dan algo falso. Go necesitó un `LookupEnv` aparte para esto y
@@ -2460,12 +2495,13 @@ Está en `ejemplos/sistema.t`.
 
 ## Lo que solo sabe `tcodec`
 
-El compilador de Python quedó congelado (ver «Dos compiladores, una regla»
-en el README): lo nuevo entra solo en `tcodec`. Cada novedad de aquí es una
-forma más corta de escribir algo que ya existía, y `tcodec` la traduce a esa
-forma antes de escribir C, así que el C que sale es el mismo que con la forma
-larga. Nada de esto añade reglas de propiedad nuevas: los préstamos, las
-vidas y los errores son los de siempre.
+Estas formas entraron en el lenguaje cuando el compilador de Python ya había
+quedado congelado, así que sólo las conoce `tcodec` — que hoy es el único
+compilador (ver el README). Cada novedad de aquí es una forma más corta de
+escribir algo que ya existía, y `tcodec` la traduce a esa forma antes de
+escribir C, así que el C que sale es el mismo que con la forma larga. Nada de
+esto añade reglas de propiedad nuevas: los préstamos, las vidas y los errores
+son los de siempre.
 
 ### Vistas implícitas
 

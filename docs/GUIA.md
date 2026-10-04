@@ -309,7 +309,8 @@ fn print_row(spaces: usize, bricks: usize) {
 //
 //   0  hay altura
 //   1  la linea estaba mal escrita, o no llega a 1: se vuelve a pedir
-//   2  la linea estaba vacia: es lo mismo que deja el fin de la entrada
+//   2  la linea estaba vacia, o se acabo la entrada: el atajo de abajo las
+//      junta (ver 9.4)
 //
 // El 2 para el bucle, como en el `do ... while (n < 1)`.
 fn leer_altura(n: mut usize) -> i64 {
@@ -381,7 +382,8 @@ fn contar_monedas(centavos: i64, valor: i64) -> i64 {
 //
 //   0  hay cantidad
 //   1  la linea estaba mal escrita: se vuelve a pedir
-//   2  la linea estaba vacia, que es lo mismo que deja el fin de la entrada
+//   2  la linea estaba vacia, o se acabo la entrada: el atajo de abajo las
+//      junta
 fn leer_centavos(centavos: mut i64) -> i64 {
     imprimir("Change owed: ");
     let linea = leer_linea() sino nuevo("");
@@ -430,11 +432,17 @@ Change owed: quarters 0, dimes 0, nickels 0, pennies 0
 
 Este ejercicio es el que más reglas del lenguaje toca de golpe:
 
-- **El fin de la entrada y la línea en blanco son lo mismo.** `leer_linea`
-  falla al acabarse la entrada, pero `sino nuevo("")` deja la misma cadena
-  vacía que deja un `Enter` a secas. Como no hay forma de distinguirlas, una
-  línea vacía **para** el bucle. Si en su lugar volviera a pedir, el fin de la
-  entrada sería un bucle infinito pidiendo una línea que ya no existe.
+- **El fin de la entrada y la línea en blanco se juntan con este `sino`.**
+  `leer_linea` falla al acabarse la entrada, y `sino nuevo("")` convierte ese
+  fallo en la misma cadena vacía que deja un `Enter` a secas. Por eso, **con
+  este atajo**, una línea vacía **para** el bucle: si en su lugar volviera a
+  pedir, el fin de la entrada sería un bucle infinito pidiendo una línea que ya
+  no existe. Pero el runtime **sí los distingue**: el fallo es un fallo y la
+  línea en blanco es una cadena vacía con éxito. Con `try`, o con otro `sino`
+  que no sea `nuevo("")` —por ejemplo `sino nuevo("<FALLO>")`—, se separan:
+  `printf 'a\n\nb\n' | ./programa` da `[a] [] [b] [<FALLO>]` (el valor, la
+  línea en blanco, el valor siguiente y el fallo), y una línea en blanco puede
+  volver a preguntar mientras el fin de la entrada para.
 - **`a_entero` ya lo comprueba todo.** Devuelve `usize` y falla si el texto no
   es un número o si es negativo, así que el `sino 18446744073709551615` cubre
   de una vez «no es número» y «es negativo». El número que sigue es el centinela
@@ -539,7 +547,7 @@ módulo ya lo haya importado por su cuenta.
 
 - **`docs/ESPECIFICACION.md`** — la referencia completa (tipos, reglas de
   préstamo, restricciones).
-- **`std/`** — la biblioteca estándar: `texto`, `map`, `list`, `caracter`,
+- **`std/`** — la biblioteca estándar: `texto`, `lista`, `mapa`, `caracter`,
   `bytes`, `numero`, `par`, `iterador`… Es corta y se lee entera en una tarde.
 - **`programas/`** — programas reales y pequeños: `wc`, `calc`, `base64`,
   `buscar`, `ordenar`, `json`. Son el mejor curso avanzado.

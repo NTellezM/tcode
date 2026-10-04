@@ -67,17 +67,18 @@ Con `static`, gcc sabe que nadie más la llama y la integra también en
 no es un aviso para nadie. Los archivos de C de un `externo` no se ven
 afectados: llaman a su sistema, no a funciones de Tcode.
 
-`tcode` sigue aceptando `-O`, pero `-O2`, lo que espera quien viene de C, ya
+`tcodec` sigue aceptando `-O`, pero `-O2`, lo que espera quien viene de C, ya
 no deja nada en la mesa:
 
 ```
-tcode programa.t -O3
+tcodec programa.t -O3
 ```
 
 ## El compilador
 
-`tcodec` escribe su propio C —unas 21.100 líneas de Tcode más `std/`, 6 MB
-de C— en **1,2 s** (gcc 13, `-O1` en la semilla; unas 9 unidades).
+`tcodec` escribe su propio C —unas 31.500 líneas de Tcode entre el
+compilador, el lexer y `std/`, 6 MB de C— en **1,5 s** (gcc 13, `-O1` en la
+semilla; unas 11 unidades).
 
 Medido con gprof, lo que más pesaba (27 %) era una comprobación sobre el C
 ya escrito: que cada nombre compuesto que usan los cuerpos tenga su

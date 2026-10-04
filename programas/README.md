@@ -14,6 +14,10 @@ por programa, siempre las mismas.
 | `buscar.t` | líneas que contienen un texto, `-n`, `-v`, `-i` | `LC_ALL=C grep -F` |
 | `calc.t` | expresiones enteras en `i64` comprobado | evaluador en Python con los límites de `i64` |
 | `vida.t` | el juego de la vida | implementación en Python |
+| `json.t` | valida y reformatea JSON | el `json` de Python, ida y vuelta |
+
+`tc-config.t` también vive aquí —junta `cli`, `toml` y `json`—, pero no entra
+en la suite: no tiene un oráculo externo.
 
 `calc` prueba la promesa central del lenguaje desde fuera: la cuenta que se
 sale de `i64` o divide por cero para el programa justo en esa línea, después

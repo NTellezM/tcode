@@ -5,15 +5,15 @@ promete cada número está en [`COMPATIBILIDAD.md`](COMPATIBILIDAD.md).
 
 ## Los pasos
 
-1. **El número.** `make version NUEVA=1.0.0-rc1` lo escribe en los tres
-   sitios donde vive —`VERSION`, lo que imprime `tcodec --version` y
-   `tcode/cli.py`— y pone la semilla al día, porque cambiar el mensaje
-   cambia el C de `tcodec`. La sección SALIDA falla si no dicen lo mismo.
+1. **El número.** `make version NUEVA=1.0.0-rc1` lo escribe en los dos
+   sitios donde vive —`VERSION` y lo que imprime `tcodec --version`— y pone
+   la semilla al día, porque cambiar el mensaje cambia el C de `tcodec`. La
+   sección SALIDA falla si no dicen lo mismo.
 2. **El `CHANGELOG.md`.** La sección de la versión deja de decir *sin
    publicar* y lleva la fecha.
 3. **Todo en verde**, en local y en la CI:
-   - `make check` —la suite, las propiedades, el fuzzing guardado, DDC y
-     las cifras del README—;
+   - `make check` —la suite, las propiedades, el fuzzing guardado, las
+     cifras del README, el grafo y el lint—;
    - `make compiladores` con los compiladores que haya;
    - `make bench-comprobar`;
    - la CI de la rama: la matriz, macOS y la suite completa.
@@ -34,8 +34,9 @@ mismos bytes; con otras, el `.tar` de dentro es el mismo aunque la
 compresión cambie. Por eso la suma que vale es la del paquete publicado.
 
 El compilador que sale del paquete también es reproducible: la semilla es un
-punto fijo (`make punto-fijo-cc`), y la compilación doble diversa (`make
-ddc`) muestra que no trae nada que no esté en `tcodec.t`.
+punto fijo (`make punto-fijo-cc`), y `make probar-paquete` lo comprueba
+entero —construye `tcodec` desde la semilla y alcanza su punto fijo— sin
+Python.
 
 ## Los números
 

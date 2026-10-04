@@ -18,8 +18,9 @@ En local se comprueban igual gcc 12, gcc 13 y clang 18 con
 Las filas de la CI corren en cada `push` y en cada pull request sobre `main`,
 y salieron en verde en `1.0.0-rc2`
 ([run 62](https://github.com/NTellezM/tcode/actions/runs/36742678493), 2026-09-30):
-`completa`, `rapido` con `ruff` y `mypy`, gcc 12–14, clang 16–18 y macOS. El
-fuzzing de esa lista no va en el `push`, sino en la pasada nocturna.
+`completa` y `rapido`, las dos con `ruff` y `mypy`, gcc 12–14, clang 16–18 y
+macOS. El fuzzing de esa lista no va en el `push`, sino en la pasada
+nocturna.
 
 ## Qué hace falta
 
@@ -34,18 +35,19 @@ fuzzing de esa lista no va en el `push`, sino en la pasada nocturna.
 
 - **64 bits.** `usize` es `size_t`, y todo lo que se prueba es de 64 bits.
   Un sistema de 32 bits no se ha probado nunca.
-- **POSIX.** `tcodec` usa `system`, `mkdtemp`, `mkstemp`, `realpath`,
-  `rename` y `stat` para llamar a `cc` y escribir de una vez. En Linux sube
-  el límite de pila y se vuelve a ejecutar (`/proc/self/exe`); en macOS
-  compila con la pila de siempre, que basta para el propio compilador y todos
-  los ejemplos.
+- **POSIX.** `tcodec` llama a `cc` con `system` (`std/proceso`) y escribe de
+  una vez con `realpath`, `mkstemp` y `rename` (`std/archivo`); ya no usa
+  `mkdtemp` ni `stat`. Lo único que le queda de C propio,
+  `ejemplos/compilador/lib/sistema_tcodec.c`, sube el límite de pila en Linux
+  y se vuelve a ejecutar (`/proc/self/exe`); en macOS compila con la pila de
+  siempre, que basta para el propio compilador y todos los ejemplos.
 - **UTF-8.** Los `.t` son UTF-8; los nombres no ASCII (UAX #31) llegan al C
   tal cual, y gcc desde la 10 y clang los aceptan.
 
 ## No soportadas
 
-- **Windows.** No hay `system` con la misma semántica ni `mkdtemp`, y nadie
-  lo ha intentado. WSL es Linux.
+- **Windows.** No hay `system` con la misma semántica ni `realpath`,
+  `mkstemp` y `rename` de POSIX, y nadie lo ha intentado. WSL es Linux.
 - **Otros sistemas POSIX** (FreeBSD, OpenBSD…): probablemente funcionan,
-  pero `tcodec_raiz_instalada` no sabe encontrar su propio ejecutable en
-  ellos; con `TCODE_RAIZ` debería bastar. Sin comprobar.
+  pero sin comprobar: `raiz_instalada` busca el ejecutable por `argv[0]` y el
+  `PATH` (portable) y el resto es `std/`. Con `TCODE_RAIZ` debería bastar.
