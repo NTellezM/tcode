@@ -1,0 +1,5 @@
+{
+  "origen": "std/bytes.t",
+  "firma": "tcodec: error: <sitio>: tcodec no sabe escribir esta expresion de `poner_uN`. Es un fallo del compilador, no de tu programa",
+  "mutacion": "insertado '-'"
+}

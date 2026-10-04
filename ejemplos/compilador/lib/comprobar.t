@@ -3737,8 +3737,14 @@ fn binaria(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) ->
         fijar_literal(c, m, n.hijos[1], literal_decimal());
         td = copiar(ti);
     }
-    // Cuanto se desplaza llega siempre como `usize`.
-    if desplaza && es_numerico(td) { fijar_literal(c, m, n.hijos[1], "usize"); }
+    // Cuanto se desplaza llega siempre como `usize`. Un negativo no cabe: se
+    // mira aqui —y no solo en el plegado de literales— para coger tambien el
+    // caso en que un `como` envuelve al desplazamiento y deja el negativo
+    // llegar al generador.
+    if desplaza && es_numerico(td) {
+        fijar_literal(c, m, n.hijos[1], "usize");
+        comprobar_literal(c, m, n.hijos[1], "usize");
+    }
     let a = vista(ti);
     let b = vista(td);
     if op == "==" || op == "!=" {
