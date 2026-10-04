@@ -9,6 +9,7 @@
     { "include": "#numeros" },
     { "include": "#funciones" },
     { "include": "#declaraciones" },
+    { "include": "#funciones_internas" },
     { "include": "#tipos" },
     { "include": "#palabras_clave" },
     { "include": "#constantes" }
@@ -34,6 +35,7 @@
     },
     "numeros": {
       "patterns": [
+        { "name": "constant.numeric.hex.tcode", "match": "\\$[0-9A-Fa-f][0-9A-Fa-f_]*" },
         {
           "name": "constant.numeric.float.tcode",
           "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9]+)?\\b"
@@ -56,6 +58,14 @@
         }
       ]
     },
+    "funciones_internas": {
+      "patterns": [
+        {
+          "name": "support.function.builtin.tcode",
+          "match": "\\b(vacio|nuevo|vista|texto|empujar_byte|empujar|largo|byte|rebanar|igual|menor|imprimir_error|imprimir|anadir|truncar|ordenar|copiar|reservar|redimensionar|intercambiar|poner|obtener_mut|obtener|tiene|quitar|claves|raiz|piso|techo|redondear|absoluto|n_argumentos|argumento|leer_parte_archivo|leer_archivo|escribir_archivo|leer_linea|entrada_completa|variable_entorno|ahora_ms|monotono_ms|azar|sembrar)\\b(?=\\s*\\()"
+        }
+      ]
+    },
     "declaraciones": {
       "patterns": [
         {
@@ -74,7 +84,7 @@
     },
     "palabras_clave": {
       "name": "keyword.control.tcode",
-      "match": "\\b(fn|if|else|while|for|match|return|falla|break|continue|let|var|mut|try|sino|en|usar|struct|enum|externo|como)\\b"
+      "match": "\\b(fn|if|else|while|for|match|return|falla|break|continue|let|var|mut|try|sino|en|usar|struct|enum|externo|como|ancla|soltar|extiende|protocolo|implementa)\\b"
     },
     "constantes": {
       "name": "constant.language.tcode",

@@ -8,6 +8,7 @@
     { "include": "#cadena" },
     { "include": "#numero" },
     { "include": "#literal" },
+    { "include": "#funcion_interna" },
     { "include": "#tipo" },
     { "include": "#palabra_clave" },
     { "include": "#operador" }
@@ -49,6 +50,10 @@
     "numero": {
       "patterns": [
         {
+          "name": "constant.numeric.hex.tcode",
+          "match": "\\$[0-9A-Fa-f][0-9A-Fa-f_]*"
+        },
+        {
           "name": "constant.numeric.float.tcode",
           "match": "\\b[0-9][0-9_]*\\.[0-9][0-9_]*([eE][+-]?[0-9]+)?\\b"
         },
@@ -70,11 +75,19 @@
         }
       ]
     },
+    "funcion_interna": {
+      "patterns": [
+        {
+          "name": "support.function.builtin.tcode",
+          "match": "\\b(?:vacio|nuevo|vista|texto|empujar_byte|empujar|largo|byte|rebanar|igual|menor|imprimir_error|imprimir|anadir|truncar|ordenar|copiar|reservar|redimensionar|intercambiar|poner|obtener_mut|obtener|tiene|quitar|claves|raiz|piso|techo|redondear|absoluto|n_argumentos|argumento|leer_parte_archivo|leer_archivo|escribir_archivo|leer_linea|entrada_completa|variable_entorno|ahora_ms|monotono_ms|azar|sembrar)\\b(?=\\s*\\()"
+        }
+      ]
+    },
     "tipo": {
       "patterns": [
         {
           "name": "storage.type.tcode",
-          "match": "\\b(?:u8|u16|u32|u64|usize|i8|i16|i32|i64|f32|f64|str|bool|view|lista|mapa)\\b"
+          "match": "\\b(?:u8|u16|u32|u64|usize|i8|i16|i32|i64|f32|f64|str|bool|view|lista|mapa|bloque|cadena_c)\\b"
         }
       ]
     },
@@ -82,7 +95,7 @@
       "patterns": [
         {
           "name": "keyword.control.tcode",
-          "match": "\\b(?:if|else|while|for|en|break|continue|return|match)\\b"
+          "match": "\\b(?:if|else|while|for|en|break|continue|return|match|ancla)\\b"
         },
         {
           "name": "keyword.control.exception.tcode",
@@ -90,7 +103,7 @@
         },
         {
           "name": "keyword.declaration.tcode",
-          "match": "\\b(?:fn|let|var|struct|enum|usar|externo)\\b"
+          "match": "\\b(?:fn|let|var|struct|enum|usar|externo|protocolo|extiende|implementa|como|soltar)\\b"
         },
         {
           "name": "storage.modifier.tcode",

@@ -28,7 +28,8 @@
         "icon": {
           "light": "./icons/tcode.svg",
           "dark": "./icons/tcode.svg"
-        }
+        },
+        "configuration": "./language-configuration.json"
       }
     ],
     "grammars": [
