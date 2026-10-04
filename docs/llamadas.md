@@ -784,6 +784,7 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 
 ## lexer/lib/lexico.t
 - `agregar` ← `tokens_de_todo` (lexico.t)
+- `canonica` ← `es_reservada` (lexico.t), `tokens_de_todo` (lexico.t)
 - `cierre_de_hueco` ← `interpolada_c` (generar.t)
 - `control_bidireccional` ← `tokens_de_todo` (lexico.t)
 - `empieza_nombre` ← `tokens_de_todo` (lexico.t)

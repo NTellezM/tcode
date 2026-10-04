@@ -80,11 +80,14 @@ fn descifrado_simple(t: view) -> str {
 }
 
 // Si el `<` de la posicion `i` abre una lista de tipos y no es un menor.
+// El formateador ve la palabra tal como se escribio, asi que durante el
+// transbordo valen las dos formas del nombre.
 fn es_generico(toks: &lista<Token>, i: usize) -> bool {
     if i == 0 { return false; }
     let ant = valor_py(toks[i - 1]);
     let av = vista(ant);
-    if av == "lista" || av == "mapa" || av == "bloque" || av == "fn" {
+    if av == "lista" || av == "mapa" || av == "list" || av == "map"
+    || av == "bloque" || av == "fn" {
         return true;
     }
     if toks[i - 1].tipo != "ident" { return false; }
