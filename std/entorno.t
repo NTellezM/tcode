@@ -25,7 +25,15 @@ fn variable_o(nombre: view, por_defecto: view) -> str {
     return variable_entorno(nombre) sino nuevo(por_defecto);
 }
 
-// Donde el sistema dice que se escriban los ficheros temporales.
+// Donde el sistema dice que se escriban los ficheros temporales: el
+// directorio, NO un directorio nuevo.
+//
+// La distincion importa y ya ha costado un susto. El shim en C del compilador
+// tenia una funcion con este mismo nombre que creaba un directorio NUEVO y
+// unico con `mkdtemp`; quien la sustituya esperando eso acabaria escribiendo en
+// una ruta compartida —dos compilaciones pisandose el mismo `/tmp/algo.err`— y
+// un `borrar(directorio_temporal())` intentaria borrar `/tmp`. Para un nombre
+// unico dentro del temporal, usa `std/archivo.temporal_junto`.
 fn directorio_temporal() -> str {
     return variable_entorno("TMPDIR") sino nuevo("/tmp");
 }

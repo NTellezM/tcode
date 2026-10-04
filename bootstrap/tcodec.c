@@ -105246,10 +105246,10 @@ SS_LANG_QUIZA_SIN_USAR static SafeString variable_o(SS_LANG_QUIZA_SIN_USAR SafeV
     return ss_tmp31991;
 }
 
-#line 29 "std/entorno.t"
+#line 37 "std/entorno.t"
 SS_LANG_QUIZA_SIN_USAR static SafeString directorio_temporal(void)
 {
-#line 30 "std/entorno.t"
+#line 38 "std/entorno.t"
     ss_res_str ss_tmp31992 = ss_lang_variable_entorno_(sv_len("TMPDIR", 6));
     SafeString ss_tmp31993;
     if (ss_tmp31992.motivo != NULL)
@@ -105264,10 +105264,10 @@ SS_LANG_QUIZA_SIN_USAR static SafeString directorio_temporal(void)
     return ss_tmp31994;
 }
 
-#line 35 "std/entorno.t"
+#line 43 "std/entorno.t"
 SS_LANG_QUIZA_SIN_USAR static ss_res_str directorio_personal(void)
 {
-#line 36 "std/entorno.t"
+#line 44 "std/entorno.t"
     ss_res_str ss_tmp31995 = ss_lang_variable_entorno_(sv_len("HOME", 4));
     if (ss_tmp31995.motivo != NULL)
     {

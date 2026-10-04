@@ -148,7 +148,7 @@ compilar en cualquier sitio donde haya un compilador de C17.
 | `ejemplos/lexer/lib/` | lexer, parser y el árbol, con la clase de cada nodo como `enum Clase` |
 | `bootstrap/tcodec.c` | la semilla: el C que `tcodec` escribe de sí mismo, con el que se construye |
 | `tcode/` | el compilador de Python, congelado: el oráculo de la suite |
-| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->46<!--/c--> módulos, <!--c:std_lineas-->7.125<!--/c--> líneas |
+| `std/` | la biblioteca estándar, escrita en Tcode: <!--c:std_modulos-->46<!--/c--> módulos, <!--c:std_lineas-->7.133<!--/c--> líneas |
 | `runtime/` | safestr, la librería de C original, ya corregida |
 
 ### Dos compiladores, una regla
@@ -289,8 +289,8 @@ AddressSanitizer y UBSan; la suite comprueba las dos cosas en cada ejecución.
 El compilador ya no necesita a Python para existir: se construye desde su
 semilla, que es el paso que dieron Go en la 1.5 y Rust con su primer `rustc`
 escrito en Rust. Lo
-que necesita del sistema y Tcode no trae —ejecutar el compilador de C, un
-temporal, sustituir un archivo de una vez, subir la pila— son <!--c:lineas_sistema-->228<!--/c--> líneas de C en
+que necesita del sistema y Tcode no trae —subir el límite de pila y volver a
+ejecutarse a sí mismo— son <!--c:lineas_sistema-->60<!--/c--> líneas de C en
 `lib/sistema_tcodec.c`, que `tcodec` pide con un `externo` como cualquier
 otro programa.
 
@@ -645,7 +645,7 @@ structs (`&T` y `mut T`), `list<T>` dinámica, `map<str, V>` con tabla hash,
 argumentos de la línea de órdenes, `ordenar` y `menor`, salida de error y
 escritura de archivos, `for`/`break`/`continue`, `map<str, V>` con `obtener` prestado y `&T` y `&mut T` como tipos, cadenas interpoladas, módulos y fallos como valores.
 
-Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/arbol`, `std/archivo`, `std/azar`, `std/base64`, `std/bit`, `std/bytes`, `std/camino`, `std/caracter`, `std/cli`, `std/cola`, `std/color`, `std/compresion`, `std/conjunto`, `std/crc`, `std/csv`, `std/cuenta`, `std/difuso`, `std/entorno`, `std/fecha`, `std/formato`, `std/glob`, `std/grafo`, `std/hash`, `std/ini`, `std/iterador`, `std/json`, `std/lista`, `std/log`, `std/mapa`, `std/numero`, `std/par`, `std/pila`, `std/plantilla`, `std/prioridad`, `std/proceso`, `std/prueba`, `std/regex`, `std/sha256`, `std/tabla`, `std/terminal`, `std/texto`, `std/toml`, `std/url`, `std/utf8`, `std/uuid` y `std/vector`<!--/c-->—, <!--c:std_lineas-->7.125<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
+Hay además una biblioteca estándar escrita en Tcode —<!--c:std_lista-->`std/arbol`, `std/archivo`, `std/azar`, `std/base64`, `std/bit`, `std/bytes`, `std/camino`, `std/caracter`, `std/cli`, `std/cola`, `std/color`, `std/compresion`, `std/conjunto`, `std/crc`, `std/csv`, `std/cuenta`, `std/difuso`, `std/entorno`, `std/fecha`, `std/formato`, `std/glob`, `std/grafo`, `std/hash`, `std/ini`, `std/iterador`, `std/json`, `std/lista`, `std/log`, `std/mapa`, `std/numero`, `std/par`, `std/pila`, `std/plantilla`, `std/prioridad`, `std/proceso`, `std/prueba`, `std/regex`, `std/sha256`, `std/tabla`, `std/terminal`, `std/texto`, `std/toml`, `std/url`, `std/utf8`, `std/uuid` y `std/vector`<!--/c-->—, <!--c:std_lineas-->7.133<!--/c--> líneas que ningún programa tiene ya que copiarse. Los ejemplos del repositorio las usan, y no
 queda una sola función duplicada entre `ejemplos/` y `std/`.
 
 Y **`copiar(x)`**: copia profunda de cualquier valor —número, `str`, struct,
@@ -780,7 +780,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1516 casos, 0 fallas
+1518 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 

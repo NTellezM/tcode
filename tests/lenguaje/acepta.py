@@ -3011,6 +3011,64 @@ fn main() {
         }''',
      "16 comprobaciones, todo bien\n"),
 
+    # ---- std/camino ----
+    #
+    # `sin_extension` devuelve el NOMBRE sin la extension, no la ruta sin la
+    # extension: quita tambien la carpeta. Es asi desde que el modulo existe
+    # (`c2cba40`), y esto lo fija. `tcodec.t` tiene un ayudante privado del
+    # mismo nombre que si conserva la carpeta: son dos cosas distintas.
+    ("std/camino: la carpeta, la extension y sin ella",
+     '''use "std/camino";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            let con = carpeta_o_actual("a/b/c.t");
+            afirmar_igual_texto(p, "la carpeta de una ruta", con, "a/b");
+            afirmar_igual_numero(p, "y mide lo que dice", largo(con), 3);
+            let suelto = carpeta_o_actual("c.t");
+            afirmar_igual_texto(p, "un nombre suelto esta en el actual", suelto, ".");
+            afirmar_igual_numero(p, "que es un solo byte", largo(suelto), 1);
+
+            afirmar_igual_texto(p, "la extension de una ruta", extension("a/b/c.t"), "t");
+            afirmar_igual_texto(p, "el nombre sin la extension", sin_extension("a/b/c.t"), "c");
+            afirmar_igual_numero(p, "el punto, contado desde el principio",
+                punto_extension("a/b/c.t"), 5);
+            afirmar_igual_texto(p, "la extension del nombre suelto", extension("c.t"), "t");
+            afirmar_igual_texto(p, "y el nombre sin ella", sin_extension("c.t"), "c");
+            afirmar_igual_texto(p, "un punto al principio no es extension",
+                extension(".gitignore"), "");
+            afirmar_igual_texto(p, "y ese nombre se queda entero",
+                sin_extension(".gitignore"), ".gitignore");
+            afirmar_igual_texto(p, "de dos extensiones manda la ultima",
+                extension("a/b/c.tar.gz"), "gz");
+            afirmar_igual_texto(p, "y sin ella queda el nombre y el resto",
+                sin_extension("a/b/c.tar.gz"), "c.tar");
+            return terminar(p);
+        }''',
+     "13 comprobaciones, todo bien\n"),
+
+    # ---- std/fecha ----
+    #
+    # `milisegundos_monotonico` devolvia la hora de pared porque con `-std=c17`
+    # la libc esconde `CLOCK_MONOTONIC`: medir una espera con el reloj que
+    # salta no vale. Esto lo deja fijado.
+    ("std/fecha: el reloj monotonico mide la espera y no retrocede",
+     '''use "std/fecha";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            let antes = milisegundos_monotonico();
+            dormir_milisegundos(100);
+            let tardo = milisegundos_monotonico() - antes;
+            afirmar(p, "dormir 100 ms tarda al menos 90", tardo >= 90);
+
+            let a = milisegundos_monotonico();
+            let b = milisegundos_monotonico();
+            afirmar(p, "dos lecturas seguidas no retroceden", b >= a);
+            return terminar(p);
+        }''',
+     "2 comprobaciones, todo bien\n"),
+
 ]
 
 
