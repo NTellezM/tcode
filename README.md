@@ -226,7 +226,7 @@ interpoladas para los mensajes, y lectura de archivos con argumentos. Corre
 limpio bajo ASan y UBSan, y ante una entrada rota —una cadena sin cerrar, un
 archivo binario— falla diciendo qué pasa, sin reventar ni filtrar.
 
-`ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.802<!--/c--> líneas más: descenso recursivo con la
+`ejemplos/lexer/lib/sintaxis.t` son <!--c:lineas_sintaxis-->1.809<!--/c--> líneas más: descenso recursivo con la
 precedencia completa, sentencias, declaraciones y un árbol que se construye
 de abajo arriba:
 
@@ -257,7 +257,7 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.880<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->21.894<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa).
 
 Y hace el último paso él solo: llama al compilador de C, enlaza lo que
@@ -778,7 +778,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1497 casos, 0 fallas
+1498 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 

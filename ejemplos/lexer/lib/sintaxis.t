@@ -1619,9 +1619,16 @@ fn leido(ruta: view, l: mut Leidos) -> usize {
 // sin el. Nunca desde donde se ejecuta: el mismo programa se lee igual desde
 // cualquier sitio.
 fn candidatos_de(dir: view, pedido: view, raiz: view) -> list<str> {
+    // `#texto` es `std/texto`, igual que en el cargador: la carpeta de la
+    // instalacion sin escribirla.
+    var quiere = nuevo(pedido);
+    if quiere.largo() > 0 && byte(quiere, 0) == 35 {
+        quiere = nuevo("std/");
+        quiere.empujar(rebanar(pedido, 1, pedido.largo()));
+    }
     var candidatos: list<str> = [];
     var junto = vacio();
-    if empieza_con(pedido, "std/") {
+    if empieza_con(quiere, "std/") {
         if raiz.largo() > 0 && raiz != "." {
             junto.empujar(raiz);
             junto.empujar("/");
@@ -1630,9 +1637,9 @@ fn candidatos_de(dir: view, pedido: view, raiz: view) -> list<str> {
         junto.empujar(dir);
         junto.empujar("/");
     }
-    junto.empujar(pedido);
+    junto.empujar(quiere);
     candidatos.anadir(copiar(junto));
-    if !termina_con(pedido, ".t") {
+    if !termina_con(quiere, ".t") {
         junto.empujar(".t");
         candidatos.anadir(junto);
     }

@@ -171,17 +171,24 @@ fn esta_en(xs: &list<str>, x: view) -> bool {
 // Donde esta un modulo pedido. `std/` viene de la instalacion; lo demas es
 // relativo al archivo que lo pide. La extension es opcional.
 fn resolver(pedido: view, dir: view, raiz: view) -> str ! {
+    // `#texto` es `std/texto`: el atajo se abre aqui, que es por donde pasa
+    // todo pedido que llega a buscar un archivo.
+    var quiere = nuevo(pedido);
+    if quiere.largo() > 0 && byte(quiere, 0) == 35 {
+        quiere = nuevo("std/");
+        quiere.empujar(rebanar(pedido, 1, pedido.largo()));
+    }
     var base = vacio();
-    if empieza_con(pedido, "std/") {
+    if empieza_con(quiere, "std/") {
         base.empujar(raiz);
         base.empujar("/std/");
-        base.empujar(rebanar(pedido, 4, pedido.largo()));
+        base.empujar(rebanar(quiere, 4, quiere.largo()));
     } else {
         if dir.largo() > 0 {
             base.empujar(dir);
             base.empujar("/");
         }
-        base.empujar(pedido);
+        base.empujar(quiere);
     }
     var candidatos: list<str> = [];
     candidatos.anadir(copiar(base));

@@ -1365,6 +1365,16 @@ fn main() {
         }''',
      "1 1 1\n2 0 2\n[cami] [日本]\nfalse 3\n"),
 
+    ("`#modulo` es lo mismo que `std/modulo`",
+     '''use "#utf8" como U;
+        use "#texto";
+        fn main() {
+            let v = "camión";
+            imprimir($"{U.cuantos(v)} {U.ancho(v)} {contiene(v, "mi")}");
+            imprimir($" {repetir("ab", 3)}\\n");
+        }''',
+     "6 6 true ababab\n"),
+
     ("un contenedor propio, escrito en Tcode y no en el compilador",
      '''struct Pila<T> { cosas: list<T> }
 

@@ -520,6 +520,9 @@ error: dependencia circular entre modulos: a.t -> b.t -> a.t
 junto al programa. La extensión `.t` es opcional: se escribe el nombre del
 módulo, no el del archivo.
 
+`#texto` es `std/texto`: el atajo de la carpeta de la instalación, para no
+escribirla. Vale también con alias: `use "#utf8" como U;`.
+
 ### Espacios de nombres
 
 Los nombres se resuelven **por archivo**: cada uno ve lo que él mismo
