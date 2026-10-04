@@ -1,8 +1,8 @@
 {
   "name": "tcode",
   "displayName": "Tcode",
-  "description": "Soporte de lenguaje para Tcode: resaltado, diagnósticos, formato e ir a la definición",
-  "version": "0.2.0",
+  "description": "Soporte de lenguaje para Tcode: resaltado, completado (con la biblioteca estándar), diagnósticos, formato e ir a la definición",
+  "version": "0.3.0",
   "publisher": "tcode",
   "license": "MIT",
   "engines": {
@@ -39,6 +39,15 @@
         "path": "./syntaxes/tcode.tmLanguage.json"
       }
     ],
+    "configurationDefaults": {
+      "[tcode]": {
+        "editor.quickSuggestions": {
+          "other": "on",
+          "comments": "off",
+          "strings": "on"
+        }
+      }
+    },
     "configuration": {
       "title": "Tcode",
       "properties": {

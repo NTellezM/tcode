@@ -37,7 +37,12 @@ connection.onInitialize((params) => {
             textDocumentSync: TextDocumentSyncKind.Full,
             documentFormattingProvider: true,
             definitionProvider: true,
-            completionProvider: { resolveProvider: false },
+            completionProvider: {
+                resolveProvider: false,
+                // `#` trae los módulos de `std/`; `"` los trae al abrir el
+                // texto de un `use`.
+                triggerCharacters: ['#', '"'],
+            },
             documentSymbolProvider: true,
         },
     };
@@ -231,7 +236,402 @@ const TIPOS = ['str', 'view', 'usize', 'u8', 'u16', 'u32', 'u64', 'i8', 'i16',
 
 const CONSTANTES = ['true', 'false'];
 
-connection.onCompletion(() => {
+// ---------- la biblioteca estándar ----------
+//
+// `use "#texto";` es lo mismo que `use "std/texto";`. Al escribir `#` salen
+// los módulos y se inserta el importe entero; dentro de un `use "` solo se
+// inserta `#módulo`. Los módulos que el documento ya importa aportan además
+// sus funciones, para no tener que saberse los nombres.
+//
+// Cada módulo es `[nombre, qué es, [firmas...]]`, con la firma tal cual está
+// en `std/*.t`: de ahí salen la etiqueta (sin tipos), lo que devuelve y la
+// ayuda. No están todas, solo las que se usan de verdad.
+
+const MODULOS = [
+    ['archivo', 'leer archivos con memoria acotada',
+     ['por_partes<F>(ruta: view, tamano: usize, visitar: F) !',
+      'partes_de_archivo(ruta: view, tamano: usize) -> list<str> !']],
+    ['azar', 'aleatoriedad sobre `azar` y `sembrar`',
+     ['entero_entre(desde: usize, hasta: usize) -> usize !',
+      'indice_al_azar<T>(xs: &list<T>) -> usize !',
+      'barajar<T>(xs: mut list<T>)']],
+    ['base64', 'base64 (RFC 4648)',
+     ['codificar(v: view) -> str',
+      'decodificar(v: view) -> str !']],
+    ['bit', 'manejo de bits',
+     ['mascara(n: usize) -> u64',
+      'prueba(x: u64, n: usize) -> bool',
+      'pon(x: u64, n: usize) -> u64',
+      'quita(x: u64, n: usize) -> u64',
+      'alterna(x: u64, n: usize) -> u64',
+      'cuenta(x: u64) -> usize',
+      'a_binario(x: u64, digitos: usize) -> str']],
+    ['bytes', 'leer y escribir enteros en un buffer',
+     ['poner_u8(destino: mut str, v: u8)',
+      'poner_u16(destino: mut str, v: u16)',
+      'poner_u32(destino: mut str, v: u32)',
+      'poner_u64(destino: mut str, v: u64)',
+      'leer_u8(v: view, desde: usize) -> u8 !',
+      'leer_u16(v: view, desde: usize) -> u16 !',
+      'leer_u32(v: view, desde: usize) -> u32 !',
+      'leer_u64(v: view, desde: usize) -> u64 !',
+      'a_hex(v: view) -> str',
+      'de_hex(v: view) -> str !']],
+    ['camino', 'rutas de archivo, con `/`',
+     ['absoluta(ruta: view) -> bool',
+      'nombre_de(ruta: view) -> view',
+      'carpeta_de(ruta: view) -> view',
+      'extension(ruta: view) -> view',
+      'sin_extension(ruta: view) -> view',
+      'unir_ruta(a: view, b: view) -> str',
+      'juntar(trozos: &list<str>) -> str',
+      'normalizar(ruta: view) -> str']],
+    ['caracter', 'clasificación de bytes ASCII',
+     ['es_blanco(b: usize) -> bool',
+      'es_digito(b: usize) -> bool',
+      'es_minuscula(b: usize) -> bool',
+      'es_mayuscula(b: usize) -> bool',
+      'es_letra(b: usize) -> bool',
+      'es_alfanumerico(b: usize) -> bool']],
+    ['cli', 'leer los argumentos del programa',
+     ['leer() -> Argumentos',
+      'tiene_bandera(a: &Argumentos, nombre: view) -> bool',
+      'opcion(a: &Argumentos, nombre: view) -> str']],
+    ['cola', 'una cola FIFO y una de doble extremo',
+     ['nueva_cola<T>() -> Cola<T>',
+      'cola_vacia<T>(c: &Cola<T>) -> bool',
+      'cuantos_en_cola<T>(c: &Cola<T>) -> usize',
+      'encolar<T>(c: mut Cola<T>, x: T)',
+      'desencolar<T>(c: mut Cola<T>) -> T !',
+      'frente<T>(c: &Cola<T>) -> T !',
+      'nueva_doble<T>() -> Doble<T>',
+      'meter_detras<T>(d: mut Doble<T>, x: T)',
+      'meter_delante<T>(d: mut Doble<T>, x: T)',
+      'sacar_delante<T>(d: mut Doble<T>) -> T !',
+      'sacar_detras<T>(d: mut Doble<T>) -> T !',
+      'primero<T>(d: &Doble<T>) -> T !',
+      'ultimo<T>(d: &Doble<T>) -> T !']],
+    ['color', 'colores y estilos ANSI',
+     ['pintar(codigo: view, texto: view) -> str',
+      'negrita(texto: view) -> str',
+      'tenue(texto: view) -> str',
+      'subrayado(texto: view) -> str',
+      'rojo(texto: view) -> str',
+      'verde(texto: view) -> str',
+      'amarillo(texto: view) -> str',
+      'azul(texto: view) -> str',
+      'magenta(texto: view) -> str',
+      'cian(texto: view) -> str',
+      'blanco(texto: view) -> str',
+      'color_256(n: usize, texto: view) -> str']],
+    ['compresion', 'descomprimir DEFLATE, zlib y gzip',
+     ['adler32(v: view) -> u32',
+      'inflar_deflate(datos: view) -> str !',
+      'inflar_zlib(datos: view) -> str !',
+      'inflar_gzip(datos: view) -> str !',
+      'deflar_guardado(datos: view) -> str']],
+    ['conjunto', 'un conjunto de textos',
+     ['conjunto() -> Conjunto',
+      'de_lista(xs: &list<str>) -> Conjunto',
+      'agregar_uno(c: mut Conjunto, x: view)',
+      'contiene_a(c: &Conjunto, x: view) -> bool',
+      'quitar_uno(c: mut Conjunto, x: view) -> bool',
+      'cuantos_hay(c: &Conjunto) -> usize',
+      'elementos(c: &Conjunto) -> list<str>',
+      'union(a: &Conjunto, b: &Conjunto) -> Conjunto',
+      'interseccion(a: &Conjunto, b: &Conjunto) -> Conjunto',
+      'diferencia(a: &Conjunto, b: &Conjunto) -> Conjunto']],
+    ['crc', 'CRC-32, la suma de zlib, gzip y PNG',
+     ['crc32(v: view) -> u32',
+      'crc32_continuar(previa: u32, v: view) -> u32']],
+    ['csv', 'leer y escribir CSV (RFC 4180)',
+     ['leer(texto: view) -> list<list<str>>',
+      'escribir(filas: &list<list<str>>) -> str']],
+    ['cuenta', 'lo que en Python te da `collections.Counter`',
+     ['contar(cosas: &list<str>) -> map<str, usize>',
+      'mayores(m: &map<str, usize>, cuantas: usize) -> list<str>']],
+    ['fecha', 'fechas y horas desde `ahora_ms`',
+     ['ahora() -> i64',
+      'a_partes(ms: i64) -> Partes',
+      'a_ms(p: &Partes) -> i64',
+      'a_fecha(ms: i64) -> str',
+      'a_hora(ms: i64) -> str',
+      'formatear(ms: i64) -> str',
+      'dia_de_semana(p: &Partes) -> view']],
+    ['formato', 'poner números y tablas donde se puedan leer',
+     ['con_decimales(x: f64, cuantos: usize) -> str',
+      'con_millares(n: usize) -> str',
+      'fila(celdas: &list<str>, anchos: &list<usize>, sep: view) -> str',
+      'anchos_de(filas: &list<list<str>>) -> list<usize>']],
+    ['glob', 'coincidencia de patrones, con `*` y `?`',
+     ['coincide(texto: view, patron: view) -> bool',
+      'coincidentes(xs: &list<str>, patron: view) -> list<str>']],
+    ['hash', 'hashes rápidos de contenido',
+     ['fnv1a(v: view) -> u64',
+      'djb2(v: view) -> u64',
+      'a_hex(h: u64) -> str',
+      'potencia(base: u64, exponente: usize) -> u64']],
+    ['ini', 'leer y escribir INI',
+     ['leer(texto: view) -> map<str, map<str, str>>',
+      'escribir(ini: &map<str, map<str, str>>) -> str',
+      'valor(ini: &map<str, map<str, str>>, seccion: view, clave: view) -> str !',
+      'valor_o(ini: &map<str, map<str, str>>, seccion: view, clave: view, alterno: view) -> str']],
+    ['iterador', 'recorridos que componen sin colecciones intermedias',
+     ['para_cada<T, F>(xs: &list<T>, hacer: F)',
+      'todas<T, F>(xs: &list<T>, cumple: F) -> bool',
+      'alguna<T, F>(xs: &list<T>, cumple: F) -> bool',
+      'primera_que<T, F>(xs: &list<T>, cumple: F) -> T !',
+      'plegar<T, A, F>(xs: &list<T>, inicial: A, combinar: F) -> A',
+      'transformar<T, F>(xs: &list<T>, convertir: F) -> list<T>']],
+    ['json', 'leer y escribir JSON',
+     ['leer(texto: view) -> Valor !',
+      'escribir(v: &Valor) -> str',
+      'escribir_con_sangria(v: &Valor) -> str']],
+    ['lista', 'lo que se le pide a una lista y no viene de serie',
+     ['esta_vacia<T>(xs: &list<T>) -> bool',
+      'ultima_posicion<T>(xs: &list<T>) -> usize !',
+      'primeras<T>(xs: &list<T>, cuantas: usize) -> list<T>',
+      'invertida<T>(xs: &list<T>) -> list<T>',
+      'aplanar<T>(xss: &list<list<T>>) -> list<T>',
+      'ordenadas_por<T, F>(xs: &list<T>, antes: F) -> list<T>',
+      'filtradas<T, F>(xs: &list<T>, cumple: F) -> list<T>',
+      'cuantas_cumplen<T, F>(xs: &list<T>, cumple: F) -> usize',
+      'incluye<T: igualable>(xs: &list<T>, aguja: &T) -> bool',
+      'posicion<T: igualable>(xs: &list<T>, aguja: &T) -> usize !',
+      'maximo<T: ordenable>(xs: &list<T>) -> T !',
+      'minimo<T: ordenable>(xs: &list<T>) -> T !',
+      'suma<T: numero>(ns: &list<T>) -> T',
+      'media(ns: &list<usize>) -> usize !',
+      'invertir<T: numero>(ns: mut list<T>)']],
+    ['log', 'avisos con nivel y hora',
+     ['con_nivel(minimo: i64) -> Log',
+      'etiqueta(nivel: i64) -> view',
+      'depura(l: &Log, mensaje: view)',
+      'informa(l: &Log, mensaje: view)',
+      'avisa(l: &Log, mensaje: view)',
+      'error(l: &Log, mensaje: view)']],
+    ['mapa', 'lo que se le pide a un mapa y no viene de serie',
+     ['esta_vacio<V>(m: &map<str, V>) -> bool',
+      'obtener_o<V>(m: &map<str, V>, clave: view, alterno: V) -> V',
+      'acumular(m: mut map<str, usize>, clave: view, cuanto: usize)',
+      'claves_ordenadas<V>(m: &map<str, V>) -> list<str>',
+      'valores_ordenados<V>(m: &map<str, V>) -> list<V> !',
+      'actualizar<V>(destino: mut map<str, V>, otro: &map<str, V>) !',
+      'completar<V>(destino: mut map<str, V>, otro: &map<str, V>) !',
+      'cuantas_claves<V, F>(m: &map<str, V>, cumple: F) -> usize']],
+    ['numero', 'aritmética que puede fallar, y lo declara',
+     ['dividir(a: usize, b: usize) -> usize !',
+      'resto(a: usize, b: usize) -> usize !',
+      'porcentaje(parte: usize, total: usize) -> usize !',
+      'menor_de(a: usize, b: usize) -> usize',
+      'mayor_de(a: usize, b: usize) -> usize',
+      'acotar(n: usize, minimo_val: usize, maximo_val: usize) -> usize',
+      'cerca(a: f64, b: f64, tolerancia: f64) -> bool',
+      'porcentaje_exacto(parte: f64, total: f64) -> f64 !',
+      'acotar_decimal(x: f64, minimo_val: f64, maximo_val: f64) -> f64',
+      'media_decimal(suma: f64, cuantos: usize) -> f64 !']],
+    ['par', 'dos valores juntos',
+     ['par<A, B>(a: A, b: B) -> Par<A, B>',
+      'volteado<A, B>(p: &Par<A, B>) -> Par<B, A>']],
+    ['pila', 'una pila LIFO',
+     ['cuantos<T>(p: &Pila<T>) -> usize',
+      'vacia<T>(p: &Pila<T>) -> bool',
+      'apilar<T>(p: mut Pila<T>, x: T)',
+      'desapilar<T>(p: mut Pila<T>, vacio_t: T) -> T !',
+      'cima<T>(p: &Pila<T>) -> T !']],
+    ['plantilla', 'rellenar una plantilla con `{clave}`',
+     ['rellenar(patron: view, datos: &map<str, str>) -> str']],
+    ['prioridad', 'una cola de prioridad (montículo de mínimos)',
+     ['prioridad_vacia<T: numero>(p: &Prioridad<T>) -> bool',
+      'cuantos_en_prioridad<T: numero>(p: &Prioridad<T>) -> usize',
+      'meter_con_prioridad<T: numero>(p: mut Prioridad<T>, x: T)',
+      'ver_el_primero<T: numero>(p: &Prioridad<T>) -> T !',
+      'sacar_el_primero<T: numero>(p: mut Prioridad<T>) -> T !']],
+    ['prueba', 'comprobar cosas desde Tcode',
+     ['pruebas() -> Pruebas',
+      'afirmar(p: mut Pruebas, que: view, cierto: bool)',
+      'afirmar_igual_texto(p: mut Pruebas, que: view, dado: view, esperado: view)',
+      'afirmar_igual_numero(p: mut Pruebas, que: view, dado: usize, esperado: usize)',
+      'terminar(p: &Pruebas) -> usize']],
+    ['regex', 'expresiones regulares',
+     ['compilar(patron: view) -> Patron !',
+      'motor(p: &Patron, v: view) -> Motor',
+      'casamenta(p: &Patron, v: view) -> bool',
+      'busca(p: &Patron, v: view) -> bool',
+      'buscar(p: &Patron, v: view) -> Rango !',
+      'capturas(p: &Patron, v: view) -> list<str> !',
+      'sustituir(m: &Motor, v: view, con: view, salida: mut str)',
+      'reemplazar(p: &Patron, v: view, con: view) -> str',
+      'reemplazar_todo(p: &Patron, v: view, con: view) -> str',
+      'partir(p: &Patron, v: view) -> list<str>']],
+    ['sha256', 'SHA-256 (FIPS 180-4), en Tcode puro',
+     ['resumen(v: view) -> str',
+      'resumen_hex(v: view) -> str',
+      'nuevo_resumen() -> Resumen',
+      'anadir_al_resumen(r: mut Resumen, v: view)',
+      'terminar_resumen(r: &Resumen) -> str',
+      'terminar_resumen_hex(r: &Resumen) -> str',
+      'hmac_sha256(clave: view, mensaje: view) -> str',
+      'sha256_de_fichero(ruta: view) -> str !']],
+    ['tabla', 'tablas de texto alineadas',
+     ['repetir(t: view, veces: usize) -> str',
+      'dibujar(cabecera: &list<str>, filas: &list<list<str>>) -> str']],
+    ['terminal', 'mover el cursor y dibujar en una terminal',
+     ['escape(codigo: view) -> str',
+      'subir(n: usize) -> str',
+      'bajar(n: usize) -> str',
+      'derecha(n: usize) -> str',
+      'izquierda(n: usize) -> str',
+      'a_columna(n: usize) -> str',
+      'a_inicio_de_linea() -> str',
+      'borrar_linea() -> str',
+      'borrar_pantalla() -> str',
+      'ocultar_cursor() -> str',
+      'mostrar_cursor() -> str',
+      'sin_codigos(v: view) -> str',
+      'ancho_visible(v: view) -> usize',
+      'barra(hechos: usize, total: usize, ancho: usize) -> str',
+      'giro(paso: usize) -> str',
+      'marco(lineas: &list<str>) -> list<str>']],
+    ['texto', 'lo que en Python te dan los métodos de `str`',
+     ['minusculas(v: view) -> str',
+      'mayusculas(v: view) -> str',
+      'palabras(v: view) -> list<str>',
+      'terminos(v: view) -> list<str>',
+      'partir(v: view, sep: view) -> list<str> !',
+      'lineas(v: view) -> list<str>',
+      'apariciones(v: view, aguja: view) -> usize !',
+      'a_entero(v: view) -> usize !',
+      'recortar(v: view) -> view',
+      'empieza_con(v: view, prefijo: view) -> bool',
+      'termina_con(v: view, sufijo: view) -> bool',
+      'indice_de(pajar: view, aguja: view) -> usize !',
+      'contiene(pajar: view, aguja: view) -> bool',
+      'repetir(v: view, veces: usize) -> str',
+      'unir(trozos: &list<str>, sep: view) -> str',
+      'reemplazar(v: view, viejo: view, nuevo_texto: view) -> str !',
+      'rellenar(v: view, ancho: usize) -> str',
+      'alinear(v: view, ancho: usize) -> str']],
+    ['toml', 'leer TOML (lo esencial)',
+     ['leer(texto: view) -> map<str, ValorToml> !',
+      'tiene_clave(t: &map<str, ValorToml>, clave: view) -> bool',
+      'texto_de(t: &map<str, ValorToml>, clave: view, alterno: view) -> str',
+      'entero_de(t: &map<str, ValorToml>, clave: view, alterno: i64) -> i64',
+      'decimal_de(t: &map<str, ValorToml>, clave: view, alterno: f64) -> f64',
+      'cierto_de(t: &map<str, ValorToml>, clave: view, alterno: bool) -> bool',
+      'crudo_de(t: &map<str, ValorToml>, clave: view) -> ValorToml !',
+      'lista_de(t: &map<str, ValorToml>, clave: view) -> list<ValorToml> !']],
+    ['url', 'partir y rearmar direcciones de internet (RFC 3986)',
+     ['analizar(v: view) -> Partes',
+      'construir(p: &Partes) -> str',
+      'parametros(consulta: view) -> list<Par<str, str>>',
+      'valor_de(consulta: view, nombre: view) -> str !',
+      'codificar_componente(v: view) -> str',
+      'decodificar_componente(v: view) -> str !',
+      'decodificar_formulario(v: view) -> str !']],
+    ['utf8', 'leer y escribir texto como caracteres, no como bytes',
+     ['caracter(v: view, i: usize) -> u32 !',
+      'caracter_o(v: view, i: usize, defecto: u32) -> u32',
+      'siguiente(v: view, i: usize) -> usize',
+      'cuantos(v: view) -> usize',
+      'valido(v: view) -> bool',
+      'indices(v: view) -> list<usize>',
+      'trozo(v: view, desde: usize, hasta: usize) -> view',
+      'codificar(destino: mut str, c: u32) !',
+      'de_caracter(c: u32) -> str !',
+      'ancho_de(c: u32) -> usize',
+      'ancho(v: view) -> usize',
+      'recortar_a_ancho(v: view, columnas: usize) -> view']],
+    ['uuid', 'identificadores únicos (UUID v4)',
+     ['sembrar_del_reloj()',
+      'v4() -> str',
+      'formatear(b: &list<usize>) -> str']],
+    ['vector', 'una lista dinámica escrita en Tcode',
+     ['cuantos<T>(v: &Vector<T>) -> usize',
+      'capacidad<T>(v: &Vector<T>) -> usize',
+      'agregar<T>(v: mut Vector<T>, x: T)',
+      'sacar<T>(v: mut Vector<T>, vacio_del_tipo: T) -> T !',
+      'copia_de<T>(v: &Vector<T>, i: usize) -> T !',
+      'a_lista<T>(v: &Vector<T>) -> list<T>',
+      'ajustar<T>(v: mut Vector<T>)']],
+];
+
+// `filtradas<T, F>(xs: &list<T>, cumple: F) -> list<T> !` se parte en la
+// etiqueta sin tipos (`filtradas(xs, cumple)`) y lo que devuelve (`list<T>!`).
+function partir_firma(firma) {
+    const falla = firma.endsWith(' !');
+    const cuerpo = falla ? firma.slice(0, -2) : firma;
+    const corte = cuerpo.indexOf(' -> ');
+    const cabecera = corte < 0 ? cuerpo : cuerpo.slice(0, corte);
+    let devuelve = corte < 0 ? '' : cuerpo.slice(corte + 4);
+    if (falla) devuelve = devuelve ? devuelve + '!' : '!';
+    return { etiqueta: sin_tipos(cabecera), devuelve: devuelve };
+}
+
+// El nombre y los parámetros, sin sus tipos: `filtradas<T, F>(xs: &list<T>,
+// cumple: F)` -> `filtradas(xs, cumple)`. Las comas dentro de `<>`, `()` o
+// `[]` no separan parámetros.
+function sin_tipos(cabecera) {
+    const abre = cabecera.search(/[<(]/);
+    if (abre < 0) return cabecera.trim();
+    const nombre = cabecera.slice(0, abre).trim();
+    const dentro = cabecera.slice(cabecera.indexOf('(', abre) + 1, cabecera.lastIndexOf(')'));
+    const parametros = [];
+    let hondo = 0;
+    let desde = 0;
+    for (let i = 0; i <= dentro.length; i++) {
+        const c = dentro[i];
+        if (c === '<' || c === '(' || c === '[') hondo++;
+        else if (c === '>' || c === ')' || c === ']') hondo--;
+        if ((c === ',' && hondo === 0) || i === dentro.length) {
+            const parametro = dentro.slice(desde, i);
+            const dos_puntos = parametro.indexOf(':');
+            parametros.push((dos_puntos < 0 ? parametro : parametro.slice(0, dos_puntos)).trim());
+            desde = i + 1;
+        }
+    }
+    const lista = parametros.filter((p) => p !== '');
+    return nombre + '(' + lista.join(', ') + ')';
+}
+
+// Los módulos que el documento ya importa, en orden y sin repetir. Valen las
+// dos grafías: `use "std/texto"` y `use "#texto"`.
+function modulos_importados(texto) {
+    const salida = [];
+    const visto = new Set();
+    const patron = /use\s+"#?([A-Za-z0-9_\/]+)"/g;
+    let encajado;
+    while ((encajado = patron.exec(texto)) !== null) {
+        const nombre = encajado[1].replace(/^std\//, '');
+        if (visto.has(nombre)) continue;
+        visto.add(nombre);
+        salida.push(nombre);
+    }
+    return salida;
+}
+
+// ¿El cursor está dentro de un `use "`? Devuelve lo ya escrito dentro de las
+// comillas, o `null` si no es el caso.
+function dentro_de_use(antes) {
+    const encajado = antes.match(/(?:^|\n)[^\S\n]*use[^\S\n]+"([^"\n]*)$/);
+    return encajado ? encajado[1] : null;
+}
+
+// ¿El cursor está dentro de un texto `"..."`? Basta con mirar la línea: una
+// comilla sin cerrar. Sirve para no ofrecer `#módulo` dentro de un texto
+// cualquiera ni de un comentario.
+function dentro_de_texto(antes) {
+    const linea = antes.slice(antes.lastIndexOf('\n') + 1);
+    if (/^\s*\/\//.test(linea)) return true;
+    let dentro = false;
+    for (let i = 0; i < linea.length; i++) {
+        if (linea[i] === '\\') { i++; continue; }
+        if (linea[i] === '"') dentro = !dentro;
+    }
+    return dentro;
+}
+
+connection.onCompletion((params) => {
     const salida = [];
     for (const [firma, devuelve, que] of INTERNAS) {
         salida.push({
@@ -245,6 +645,59 @@ connection.onCompletion(() => {
     for (const p of PALABRAS) salida.push({ label: p, kind: CompletionItemKind.Keyword });
     for (const t of TIPOS) salida.push({ label: t, kind: CompletionItemKind.TypeParameter });
     for (const c of CONSTANTES) salida.push({ label: c, kind: CompletionItemKind.Constant });
+
+    const documento = documents.get(params.textDocument.uri);
+    if (!documento) return salida;
+    const texto = documento.getText();
+    const offset = documento.offsetAt(params.position);
+    const antes = texto.slice(0, offset);
+
+    // Un `#` (o estar dentro de un `use "`) abre la lista de módulos. Fuera se
+    // inserta la sentencia entera; dentro solo lo que falta del nombre.
+    const dentro = dentro_de_use(antes);
+    const almohadilla = dentro === null && !dentro_de_texto(antes)
+        ? antes.match(/#[A-Za-z0-9_\/]*$/) : null;
+    if (dentro !== null || almohadilla !== null) {
+        const prefijo = dentro !== null ? dentro : almohadilla[0];
+        for (const [nombre, que] of MODULOS) {
+            const inserta = dentro !== null ? '#' + nombre : 'use "#' + nombre + '";';
+            salida.push({
+                label: '#' + nombre,
+                kind: CompletionItemKind.Module,
+                detail: inserta,
+                documentation: que + '  (use "#' + nombre + '"; es use "std/' + nombre + '";)',
+                // El cliente filtra por lo que se reemplaza: que encajen las
+                // dos grafías y el `#`.
+                filterText: '#' + nombre + ' std/' + nombre,
+                textEdit: TextEdit.replace({
+                    start: documento.positionAt(offset - prefijo.length),
+                    end: documento.positionAt(offset),
+                }, inserta),
+                sortText: '0' + nombre,
+            });
+        }
+    }
+
+    // Las funciones de los módulos ya importados, para no saberse los nombres.
+    const puestos = new Set();
+    for (const nombre of modulos_importados(texto)) {
+        const modulo = MODULOS.find((m) => m[0] === nombre);
+        if (!modulo) continue;
+        for (const firma of modulo[2]) {
+            const { etiqueta, devuelve } = partir_firma(firma);
+            const clave = etiqueta.split('(')[0];
+            if (puestos.has(clave)) continue;
+            if (INTERNAS.some(([f]) => f.split('(')[0] === clave)) continue;
+            puestos.add(clave);
+            salida.push({
+                label: etiqueta,
+                kind: CompletionItemKind.Function,
+                detail: devuelve ? '-> ' + devuelve : '',
+                documentation: 'std/' + nombre + ' · ' + firma,
+                insertText: clave + '(',
+            });
+        }
+    }
     return salida;
 });
 

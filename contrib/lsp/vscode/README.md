@@ -1,8 +1,28 @@
 # Extensión de VS Code para Tcode
 
 Trae, en un solo sitio: **resaltado** (gramática TextMate), el **icono** de
-`.t`, el **completado** y el **contorno de símbolos**, y el **LSP**
-(diagnósticos, formato e ir a la definición).
+`.t`, el **completado** (con la biblioteca estándar) y el **contorno de
+símbolos**, y el **LSP** (diagnósticos, formato e ir a la definición).
+
+## La biblioteca estándar sin saberse las rutas
+
+Al escribir `#` sale la lista de módulos de `std/` y el completado inserta el
+importe entero, con el cursor después del punto y coma:
+
+```tcode
+#            ->  use "#texto";
+```
+
+Dentro de un `use "` solo falta el nombre, y también se completa:
+
+```tcode
+use "#"      ->  use "#texto";
+```
+
+Y un módulo ya importado (por cualquiera de las dos grafías, `use "#texto"` o
+`use "std/texto"`) aporta además sus funciones a la lista: `partir`, `unir`,
+`minusculas`... de `std/texto`; `compilar`, `buscar`... de `std/regex`;
+`cuantos`, `trozo`... de `std/utf8` y compañía.
 
 ## Instalar
 
@@ -11,7 +31,7 @@ La extensión lleva dentro el servidor y el árbol de sintaxis
 `.vsix`:
 
 ```sh
-code --install-extension tcode-0.2.0.vsix
+code --install-extension tcode-0.3.0.vsix
 ```
 
 Recarga VS Code. Los archivos `.t` se resaltan solos y el LSP arranca si
