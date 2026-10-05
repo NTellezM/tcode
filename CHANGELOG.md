@@ -138,6 +138,42 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   `#define _DEFAULT_SOURCE 1` antes de cualquier `#include`, para que `cc`
   sin macros no esconda `realpath`, `mkstemp`, `setenv` ni
   `clock_gettime`.
+- `std/proceso` sabe quedarse con lo que imprime una orden:
+  `salida_de(orden) -> str !` y `salida_de_hasta(orden, tope)`. Va con
+  `popen`, o sea por `/bin/sh` como el `ejecutar` de siempre, asi que la
+  orden entiende tuberias, redirecciones y variables igual en las dos. Tope
+  de 8 MiB por defecto —una orden que no para no se come la memoria, y al
+  pasarse falla en vez de devolver medio texto—, y una orden que no existe
+  se detecta por el 127 del shell. Que la orden salga con error no es un
+  fallo: el texto se devuelve igual. Limite honesto: la copia usa `strlen`,
+  asi que es para texto, no para bytes binarios con ceros en medio. El
+  `FILE*`, el buffer que crece y su liberacion viven en `std/proceso.c`, al
+  lado del modulo, que es lo que no cruza el borde de `externo`.
+- `std/terminal` sabe cuanto mide la terminal: `filas()`, `columnas()` y
+  `tiene_tamano()`, con `ioctl(TIOCGWINSZ)` en `std/terminal.c`. Cuando la
+  salida no es una terminal —o cuando `ioctl` acierta y devuelve cero, que
+  pasa en una pseudoterminal recien abierta y sin tamano fijado, y como
+  tamano es peor que no saberlo— el recambio es 24x80: asi se puede dibujar
+  un marco sin preguntar antes si hay terminal. `tiene_tamano` es lo que
+  distingue el tamano de verdad del de recambio.
+- `std/terminal`: `leer_tecla_con_tope(milisegundos)`, una tecla o
+  `"sin_tecla"` si se acaba el tiempo. El nombre del tope es propio y no el
+  texto vacio a proposito: `leer_tecla` ya devuelve `""` para una secuencia
+  que no conoce —Mayus+flecha—, que hay que ignorar, y con el mismo texto no
+  se podrian distinguir «todavia no hay tecla» y «esa tecla no la se». El
+  ESC suelto no cambia de contrato. De paso la lectura pasa de `getchar` a
+  `read(2)`: con stdio de por medio, `getchar` se trae bytes al buffer
+  interno y `poll` dice que no hay nada aunque queden.
+- `std/terminal`: raton en SGR. `activar_raton()` y `desactivar_raton()`
+  encienden y apagan `?1002h` y `?1006h`, y `leer_tecla` devuelve el evento
+  como `raton:<boton>:<accion>:<x>:<y>` —`raton:izquierda:pulsa:12:5`—, con
+  `es_raton`, `raton_boton`, `raton_accion`, `raton_x` y `raton_y` para no
+  partir la cadena a mano. El parseo se resincroniza hasta la `M` o la `m`
+  final: parar en la primera letra dejaba el resto en la entrada, donde el
+  siguiente `leer_tecla` lo leia como texto suelto. `desactivar_raton()`
+  **devuelve la cadena y no imprime** —este modulo no escribe—: quien llama
+  tiene que imprimirla al salir, o el terminal sigue mandando secuencias de
+  raton a la shell, que las pinta como basura.
 
 ### Corregido
 
