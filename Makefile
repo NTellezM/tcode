@@ -35,14 +35,22 @@ all: tcodec
 SEMILLA = bootstrap/tcodec.c
 ETAPA0 = .cache/tcodec0
 SISTEMA = ejemplos/compilador/lib/sistema_tcodec.c
+# Los `.c` que acompañan a un modulo de `std/`: uno por cada `externo
+# "algo.c"` de la biblioteca. Se pasan a mano a `cc` en los targets que
+# compilan con `--mostrar-c`, porque ese modo no enlaza acompañantes —el C es
+# el producto y lo enlaza quien lo pida—. No es opcional: el compilador
+# escribe TODAS las funciones de TODOS los modulos que carga, aunque nadie las
+# llame, asi que `bootstrap/tcodec.c` referencia estos simbolos y sin ellos el
+# enlazador se queja.
+STD_C = std/proceso.c std/terminal.c
 RUNTIME_C = runtime/safestr.c
 TCODEC_FUENTES = $(wildcard ejemplos/compilador/*.t ejemplos/compilador/lib/*.t \
-	ejemplos/compilador/lib/*.c ejemplos/lexer/lib/*.t std/*.t runtime/* \
+	ejemplos/compilador/lib/*.c ejemplos/lexer/lib/*.t std/*.t std/*.c runtime/* \
 	runtime/sistema/*)
 
-$(ETAPA0): $(SEMILLA) $(SISTEMA) $(wildcard runtime/*)
+$(ETAPA0): $(SEMILLA) $(SISTEMA) $(STD_C) $(wildcard runtime/*)
 	@mkdir -p .cache
-	@$(CC) -std=c17 -O1 -Iruntime $(SEMILLA) $(RUNTIME_C) $(SISTEMA) -o $@ -lm
+	@$(CC) -std=c17 -O1 -Iruntime $(SEMILLA) $(RUNTIME_C) $(SISTEMA) $(STD_C) -o $@ -lm
 
 tcodec: $(ETAPA0) $(TCODEC_FUENTES)
 	@TCODE_RAIZ=. ./$(ETAPA0) ejemplos/compilador/tcodec.t -o tcodec
@@ -53,7 +61,7 @@ tcodec: $(ETAPA0) $(TCODEC_FUENTES)
 # que la semilla vieja todavia no sabe compilar.
 semilla: tcodec
 	@TCODE_RAIZ=. ./tcodec ejemplos/compilador/tcodec.t --mostrar-c > .cache/semilla.c
-	@$(CC) -std=c17 -O1 -Iruntime .cache/semilla.c $(RUNTIME_C) $(SISTEMA) -o .cache/semilla -lm
+	@$(CC) -std=c17 -O1 -Iruntime .cache/semilla.c $(RUNTIME_C) $(SISTEMA) $(STD_C) -o .cache/semilla -lm
 	@TCODE_RAIZ=. ./.cache/semilla ejemplos/compilador/tcodec.t --mostrar-c \
 	    | cmp -s - .cache/semilla.c \
 	    || { echo "la semilla nueva no se reproduce a si misma"; exit 1; }
@@ -86,10 +94,10 @@ con-un-cc: punto-fijo-cc
 # Sin la suite: lo que se puede comprobar con solo un compilador de C.
 punto-fijo-cc:
 	@mkdir -p .cache
-	@$(CC_ESTRICTO) $(SEMILLA) $(RUNTIME_C) $(SISTEMA) -o .cache/cc-etapa0 -lm
+	@$(CC_ESTRICTO) $(SEMILLA) $(RUNTIME_C) $(SISTEMA) $(STD_C) -o .cache/cc-etapa0 -lm
 	@TCODE_RAIZ=. ./.cache/cc-etapa0 ejemplos/compilador/tcodec.t --mostrar-c \
 	    > .cache/cc-etapa1.c
-	@$(CC_ESTRICTO) .cache/cc-etapa1.c $(RUNTIME_C) $(SISTEMA) -o .cache/cc-etapa1 -lm
+	@$(CC_ESTRICTO) .cache/cc-etapa1.c $(RUNTIME_C) $(SISTEMA) $(STD_C) -o .cache/cc-etapa1 -lm
 	@TCODE_RAIZ=. ./.cache/cc-etapa1 ejemplos/compilador/tcodec.t --mostrar-c \
 	    | cmp -s - .cache/cc-etapa1.c \
 	    || { echo "tcodec no reproduce su C con este compilador"; exit 1; }
@@ -155,7 +163,7 @@ icono:
 instalar: tcodec
 	@install -d $(INSTALADO)/std $(INSTALADO)/runtime/sistema $(DESTDIR)$(PREFIJO)/bin
 	@install -m 755 tcodec $(INSTALADO)/tcodec
-	@install -m 644 std/*.t $(INSTALADO)/std/
+	@install -m 644 std/*.t std/*.c $(INSTALADO)/std/
 	@install -m 644 runtime/*.c runtime/*.h runtime/*.inc $(INSTALADO)/runtime/
 	@install -m 644 runtime/sistema/*.inc $(INSTALADO)/runtime/sistema/
 	@install -m 644 VERSION $(INSTALADO)/VERSION

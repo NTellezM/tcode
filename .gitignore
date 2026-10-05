@@ -29,7 +29,15 @@ ejemplos/lexer/lexer
 ejemplos/lexer/*.c
 ejemplos/lexer/parser
 
+# El compilador escribe un `.c` por programa compilado, al lado del fuente:
+# esos se ignoran.
 std/*.c
+
+# Pero un `.c` escrito a mano junto a un modulo de `std/` es FUENTE, y va en el
+# repositorio: sin el, `externo "algo.c"` no encuentra su archivo en una maquina
+# limpia, el `install` no lo lleva y el paquete de `git archive` saldria sin el.
+!std/proceso.c
+!std/terminal.c
 
 # binario commiteado por error alguna vez
 ejemplos/frec/
