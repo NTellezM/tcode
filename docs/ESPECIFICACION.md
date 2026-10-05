@@ -1384,6 +1384,8 @@ cualquier otra.
 | `std/vector` | `Vector<T>` sobre `bloque<T>`, con conversión a `list<T>` |
 | `std/formato` | `con_decimales`, `con_millares`, tablas alineadas |
 | `std/prueba` | afirmaciones y resumen: probar Tcode desde Tcode |
+| `std/terminal` | el cursor y el dibujo (`subir`, `borrar_linea`, `barra`, `marco`), el tamaño (`filas`, `columnas`, `tiene_tamano`), el teclado (`modo_crudo`, `leer_tecla`, `leer_tecla_con_tope`) y el ratón (`activar_raton`, `es_raton`, `raton_boton`, `raton_x`…) |
+| `std/proceso` | `ejecutar` y `va_bien` para el código de salida, `salida_de` y `salida_de_hasta` para lo que la orden imprime |
 
 Dos nombres piden explicación. `palabras` parte por espacios y `terminos`
 por cualquier cosa que no sea letra ni dígito: lo primero es lo que quiere
@@ -1423,6 +1425,150 @@ valor recién creado se puede prestar, aunque no tenga nombre — el compilador
 lo guarda hasta el final de la sentencia y lo libera ahí. Eso vale también
 donde el valor se devuelve: `return $"[{rellenar(v, 8)}]"` suelta el `str`
 de `rellenar` antes de salir, no después.
+
+### `std/terminal`: dibujar, medir y leer
+
+Lo que se dibuja son **códigos de escape, y eso es texto**: `subir(2)`,
+`borrar_linea()`, una `barra` de avance o un `marco` son funciones normales
+que devuelven `str`, y quien llama decide si eso va a una terminal o a un
+archivo. Nada de esa mitad necesita backend. Lo que sí habla con el
+terminal son tres cosas —el tamaño, el teclado y el ratón—, y las tres
+cruzan el borde de `externo` por `std/terminal.c`, al lado del módulo: por
+el borde sólo pasan números y `bool`, y el resto —`ioctl`, `poll`, el
+`FILE*` de stdio— no cabe.
+
+**El tamaño siempre tiene respuesta.** `filas()` y `columnas()` devuelven lo
+que diga `ioctl(TIOCGWINSZ)`, o **24 y 80** cuando no hay una terminal de
+verdad, y `tiene_tamano()` distingue las dos cosas: es lo que hay que mirar
+antes de dibujar algo que ocupe la pantalla entera. El recambio no es
+cortesía: en una pseudoterminal recién abierta y sin tamaño fijado, `ioctl`
+acierta y devuelve cero, y un cero como tamaño es peor que no saberlo.
+
+**El tope de tiempo devuelve un nombre, no el texto vacío.**
+`leer_tecla_con_tope(milisegundos)` es lo que deja repintar un cronómetro
+mientras se espera una tecla: se repinta, se mira si hay tecla, y si no la
+hay se vuelve a repintar. Cuando se acaba el tiempo devuelve `"sin_tecla"`,
+que es un nombre propio **a propósito**: `leer_tecla` ya devuelve `""` para
+una secuencia que no conoce —Mayús+flecha, por ejemplo—, que hay que
+ignorar, y con el mismo texto no se podrían distinguir «todavía no hay
+tecla» de «esa tecla no la sé». El ESC suelto no cambia de contrato:
+sigue siendo la tecla Escape, porque esperar unos milisegundos a ver si
+llega más partiría las secuencias por la mitad en un enlace lento —ssh, un
+multiplexor—. `milisegundos` negativo espera sin tope, como `leer_tecla`.
+
+**El ratón llega como texto, y se lee como texto.** Con `activar_raton()`
+el terminal manda cada clic en SGR —`?1002h` para pulsar, soltar y
+arrastrar, `?1006h` para que venga como texto y no como tres bytes en
+crudo—; `leer_tecla` devuelve el evento como
+`raton:<botón>:<acción>:<x>:<y>` (`raton:izquierda:pulsa:12:5`), y
+`es_raton`, `raton_boton`, `raton_accion`, `raton_x` y `raton_y` lo leen sin
+partir la cadena a mano. Las coordenadas van de 1 en adelante, como las
+manda el terminal: quien dibuje un tablero les resta uno.
+
+`desactivar_raton()` **devuelve la cadena y no imprime**: este módulo no
+escribe. Quien lo use tiene que imprimirla al salir, junto a `modo_normal`,
+o el terminal sigue mandando secuencias de ratón a la shell, que las pinta
+como basura. Es la misma regla que con el modo crudo: un `fail` que se
+propague deja el terminal tocado, y `stty sane` lo arregla en la shell.
+
+```tcode
+use "std/terminal";
+
+fn main() -> usize {
+    // Si la salida no es una terminal, esto son 24x80: se puede dibujar un
+    // marco sin preguntar antes.
+    let alto = filas();
+    let ancho = columnas();
+    imprimir($"{alto}x{ancho}\n");
+
+    // El cronómetro: mientras no llegue una tecla, se repinta.
+    var paso = 0;
+    var tecla = leer_tecla_con_tope(50);
+    while tecla == "sin_tecla" {
+        imprimir(giro(paso));
+        paso = paso + 1;
+        tecla = leer_tecla_con_tope(50);
+    }
+
+    // El ratón, si es un evento de ratón y no una tecla.
+    if es_raton(tecla) {
+        let boton = raton_boton(tecla) sino nuevo("?");
+        let x = raton_x(tecla) sino 0;
+        let y = raton_y(tecla) sino 0;
+        imprimir($"{boton} en {x}:{y}\n");
+    }
+    return 0;
+}
+```
+
+`leer_tecla` devuelve `""` cuando la secuencia no se conoce y
+`"fin_de_entrada"` cuando la entrada se cerró, y `leer_tecla_con_tope`
+devuelve además `"sin_tecla"` cuando se acaba el tiempo. Las tres cosas se
+ignoran de forma distinta, y por eso tienen nombres distintos; el bucle de
+arriba sale en cuanto llega cualquier otra cosa, porque
+`leer_tecla_con_tope` no espera a entender la tecla, sólo a que haya algo
+que leer.
+
+### `std/proceso`: lanzar una orden y quedarse con lo que imprime
+
+`ejecutar(orden)` devuelve el código de salida, y `salida_de(orden)` devuelve
+**lo que la orden imprimió** en un `str` de Tcode. La orden es la misma en
+las dos: va por el shell, así que entiende tuberías, redirecciones y
+variables de entorno. Eso no es un detalle de implementación, es la decisión:
+`ejecutar` ya usaba `system` y `salida_de` usa `popen`, que también pasa por
+`/bin/sh`; con `pipe`+`fork`+`exec` habría que partir la orden en `argv` a
+mano y las dos funciones dejarían de entender lo mismo. Lo que se paga es
+que `popen` da **un solo flujo**: se lee la salida estándar, y el error
+estándar se queda donde estaba.
+
+**Que la orden salga con error no es un fallo.** El `!` de las tres es para
+lo que impide contestar: que no se pudiera lanzar, que el shell no encontrara
+la orden —el 127, el mismo trato que en `ejecutar`— o que la salida no
+cupiera en el tope. El código de salida se mira sólo para eso: una orden que
+sale con 1 es una respuesta, y su texto vuelve igual.
+
+**`salida_de_hasta(orden, tope)` lleva tope porque la salida no se sabe
+cuánto mide.** El texto crece en un búfer de C hasta que la orden termina o
+hasta el tope; sin tope, un `yes` o un `cat /dev/zero` se comerían la
+memoria del proceso. Al llegar al tope **falla**, en vez de devolver medio
+texto como si fuera el texto entero. El `salida_de` de siempre lleva 8 MiB;
+y como la lectura va en bloques de 4 KiB, un tope menor que eso deja pasar el
+primer bloque entero —4096 bytes— antes de cortar: el tope se respeta de
+4096 en adelante.
+
+**Es para texto, no para bytes.** La copia que sale de C usa `strlen`, así
+que un cero en medio de la salida la corta ahí: `salida_de` sirve para lo
+que una orden imprime de verdad —líneas, JSON, un `uname`—, no para leer un
+binario.
+
+El `FILE*` de `popen`, el búfer que crece y su liberación viven en
+`std/proceso.c`, al lado del módulo, y no por gusto: un puntero opaco y
+memoria que hay que soltar no caben en el borde de `externo`. Tcode copia el
+texto al volver de la captura —esa copia la hace el borde por `cadena_c`— y
+el búfer de C se suelta acto seguido, antes de cualquier `!`.
+
+```tcode
+use "std/proceso" como proceso;
+
+fn main() -> usize ! {
+    // La orden entiende tuberías y redirecciones: es la misma que `ejecutar`.
+    let lineas = try proceso.salida_de("wc -l < std/proceso.t");
+    imprimir($"std/proceso.t tiene {lineas}");
+
+    // Una orden que sale con error no es un fallo: el texto vuelve igual.
+    let saludo = try proceso.salida_de("printf hola; exit 3");
+    imprimir($"la orden falló y aun así dijo {saludo}\n");
+
+    // El tope: si la salida no cabe, esto falla en vez de devolver medio texto.
+    let poco = try proceso.salida_de_hasta("printf 1234567890", 4096);
+    imprimir($"cabían {largo(poco)} bytes\n");
+    return 0;
+}
+```
+
+Eso imprime `std/proceso.t tiene 85`, `la orden falló y aun así dijo hola` y
+`cabían 10 bytes`: en la tercera, la orden imprime menos que el tope, así que
+no se corta nada.
 
 ## Genéricas
 
@@ -2418,7 +2564,36 @@ long long ahora_segundos(void) { return (long long) time(NULL); }
 ```
 
 `time(NULL)` pide un puntero y no cabe en el borde; envuelto, sí. No hace
-falta un Makefile ni salir de la orden `tcode`.
+falta un Makefile ni salir de la orden `tcode`. El archivo se resuelve
+**relativo al directorio del módulo que declara el bloque**, no al del
+programa que lo usa: `externo "proceso.c"` dentro de `std/proceso.t` busca
+`std/proceso.c`. Por eso un módulo de `std/` puede traer su acompañante y
+usarlo desde cualquier programa, escriba donde escriba su `.t`.
+
+El acompañante **no se incluye**: no hay un `#include "proceso.c"` por
+ningún lado. Se compila aparte y se enlaza, y en el C generado sólo queda el
+prototipo. Es lo que evita que dos módulos que envuelven la misma cabecera
+choquen entre sí.
+
+**`--mostrar-c` no lo enlaza, y `--emitir-c` tampoco.** Los dos modos tienen
+el C por producto, y quien lo pida es quien enlaza, así que los `.c`
+acompañantes se pasan a mano junto al C generado. Por eso el `Makefile` los
+tiene en `STD_C` —hoy `std/proceso.c` y `std/terminal.c`— en las cuatro
+líneas de `cc` que compilan la semilla, y la suite los declara en `apoyo` en
+sus casos. No es opcional aunque `-O1` tire las funciones `static` que nadie
+llama: `tcodec` escribe TODAS las funciones de TODOS los módulos que carga,
+así que el C generado **referencia** esos símbolos aunque nadie los use, y
+sin ellos el enlazador se queja. Con `-O0`, o con `-ffunction-sections`, no
+hay optimizador que los tire; la regla no puede depender de que GCC siga
+tirando estáticos muertos.
+
+Un `.c` escrito a mano junto a un módulo es **fuente**, y va en el
+repositorio. Es la razón de que `.gitignore` tenga destapados
+`std/proceso.c` y `std/terminal.c` fichero a fichero, con el porqué escrito
+al lado: sin ellos, `externo "algo.c"` no encuentra su archivo en una copia
+limpia, `install` no lo lleva y el paquete de `git archive` saldría sin él.
+Los `.c` que el compilador escribe para cada programa siguen ignorados por
+la regla general.
 
 ### Comparación
 
