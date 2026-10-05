@@ -10,11 +10,18 @@
 // borra, una barra de avance y un marco.
 //
 // Todo eso es texto: no necesita backend y vale igual para una terminal que
-// para un archivo. El teclado —`modo_crudo`, `modo_normal`, `leer_tecla`— es
-// otra cosa: ahi hay que hablar con el terminal, y quien sabe de eso es
-// `stty`.
+// para un archivo.
+//
+// Lo que si habla con el terminal son tres cosas, y las tres pasan por
+// `terminal.c`, al lado de este archivo, porque no caben en el borde de
+// `externo`: el tamaño —`filas`, `columnas`, `tiene_tamano`—, el teclado
+// —`modo_crudo`, `modo_normal`, `leer_tecla` y `leer_tecla_con_tope`, que
+// espera con tope de tiempo— y el raton —`activar_raton`, `desactivar_raton`
+// y los `raton_*` que leen lo que devuelve `leer_tecla`—. El modo crudo sigue
+// poniendolo `stty`, que de eso sabe mas que nadie.
 
 use "std/utf8" como U;
+use "std/texto";
 
 // --------------------------------------------------------------- el cursor
 
@@ -155,6 +162,58 @@ fn marco(lineas: &list<str>) -> list<str> {
     return salida;
 }
 
+// ---------------------------------------------------------- el borde con C
+//
+// Tres cosas no caben en el borde de `externo` y viven en `terminal.c`, al
+// lado de este archivo:
+//
+//   - El tamaño de la terminal. `ioctl` es VARIADICA —declararla aqui con
+//     tres parametros fijos choca con la de `<sys/ioctl.h>` y el C generado
+//     no compila— y `TIOCGWINSZ` escribe en un `struct winsize` por puntero,
+//     que desde Tcode no se fabrica.
+//   - Esperar a que haya una tecla con un tope de tiempo, que pide `poll`
+//     sobre el descriptor de la entrada.
+//   - Y leer los bytes por el descriptor y no por `getchar`: stdio se trae de
+//     golpe lo que haya y lo guarda en su buffer, donde `poll` no lo ve; sin
+//     eso `hay_tecla` diria que no hay nada mientras el byte ya esta leido.
+//
+// Por el borde solo cruzan numeros y `bool`, asi que las cuatro son de una
+// linea.
+
+externo "terminal.c" {
+    // -1 si no se pudo saber.
+    fn terminal_filas() -> i32;
+    fn terminal_columnas() -> i32;
+    // Si hay algo que leer ahora, o si se acabo el tiempo. Negativo espera
+    // sin tope.
+    fn hay_tecla(milisegundos: i32) -> bool;
+    // Un byte de la entrada, o -1 al acabarse.
+    fn leer_byte_crudo() -> i32;
+}
+
+// Cuantas filas tiene la terminal, o 24 si la salida no es una terminal. El
+// recambio es lo que deja dibujar un marco sin preguntar antes si hay
+// terminal: `tiene_tamano` lo dice, y esto siempre da algo con lo que
+// trabajar.
+fn filas() -> usize {
+    let n = terminal_filas();
+    if n <= 0 { return 24; }
+    return n como usize;
+}
+
+// Las columnas, o 80 si la salida no es una terminal.
+fn columnas() -> usize {
+    let n = terminal_columnas();
+    if n <= 0 { return 80; }
+    return n como usize;
+}
+
+// Si el tamaño es el de una terminal de verdad, y no el de recambio. Es lo
+// que hay que mirar antes de dibujar algo que ocupe la pantalla entera.
+fn tiene_tamano() -> bool {
+    return terminal_filas() > 0 && terminal_columnas() > 0;
+}
+
 // --------------------------------------------------------------- el teclado
 //
 // Un juego no quiere esperar a Enter ni ver su tecla escrita en la pantalla.
@@ -180,12 +239,6 @@ externo "unistd.h" {
 
 externo "stdlib.h" {
     fn system(orden: str) -> i32;
-}
-
-externo "stdio.h" {
-    // Un byte de la entrada, o -1 al acabarse. Es lo unico que deja leer el
-    // borde: `read` pide un puntero al sitio donde escribir, y eso no cabe.
-    fn getchar() -> i32;
 }
 
 // Si la entrada es un terminal de verdad: lo que hay que mirar antes de
@@ -217,8 +270,13 @@ fn modo_normal() -> bool {
 }
 
 // Un byte de la entrada, o -1 si se acabo.
+//
+// Va por el descriptor y no por `getchar`, y no es un detalle: stdio se trae
+// de golpe todo lo que haya y lo guarda en su buffer, donde `hay_tecla` —que
+// mira el descriptor— no lo ve. Con `getchar`, un `hay_tecla` detras de un
+// byte ya leido diria que no hay nada aunque queden bytes por devolver.
 fn leer_byte() -> i64 {
-    return getchar() como i64;
+    return leer_byte_crudo() como i64;
 }
 
 // Cuantos bytes anuncia el primero de un caracter UTF-8. Es la tabla de
@@ -307,6 +365,7 @@ fn por_numero(n: usize) -> str {
 fn secuencia() -> str {
     let c = leer_byte();
     if c < 0 { return nuevo("escape"); }
+    if c == 60 { return raton_sgr(); }
     if c < 48 || c > 57 { return por_letra(c); }
     var n = 0;
     var d = c;
@@ -322,10 +381,9 @@ fn secuencia() -> str {
 
 // Lo que sigue a un ESC. El terminal manda una flecha de un golpe —`ESC [ A`
 // es un solo `write`—, asi que las letras que faltan ya estan ahi cuando se
-// piden. Un ESC suelto no se puede distinguir de un principio de secuencia
-// sin un `select` con su tiempo de espera, que el borde no deja usar: por eso
-// dos ESC seguidos son la tecla Escape, y un ESC con otra cosa detras es esa
-// tecla con Alt.
+// piden. Por eso dos ESC seguidos son la tecla Escape, y un ESC con otra cosa
+// detras es esa tecla con Alt: no se espera a ver si llega algo mas, que
+// dejaria el juego colgado al pulsar Escape.
 fn tras_escape() -> str {
     let c = leer_byte();
     if c < 0 || c == 27 { return nuevo("escape"); }
@@ -344,9 +402,11 @@ fn tras_escape() -> str {
 //     con Alt     "alt-a"
 //     sin entrada "fin_de_entrada", cuando la entrada se cerro
 //
-// Dos ESC seguidos son la tecla Escape: un ESC suelto no se distingue del
-// principio de una flecha sin un `select` que el borde no deja usar, y
-// esperar a ver si llega algo mas dejaria el juego colgado al pulsar Escape.
+// Dos ESC seguidos son la tecla Escape. `hay_tecla` ya permitiria distinguir un
+// ESC suelto de una flecha esperando unos milisegundos, pero eso cambia el
+// contrato de esta funcion para todo el mundo y en un enlace lento —ssh, un
+// multiplexor— parte las secuencias por la mitad: se queda como estaba, y
+// quien quiera el tope tiene `leer_tecla_con_tope`, que no lo cambia.
 // Una secuencia que no se conoce —Mayus+flecha, por ejemplo— devuelve el
 // texto vacio, que es lo que hay que ignorar.
 //
@@ -370,4 +430,148 @@ fn leer_tecla() -> str {
     }
     if c < 32 { return nombre_de_control(c); }
     return caracter_de(c);
+}
+
+// Una tecla, o "sin_tecla" si en `milisegundos` no llego ninguna.
+//
+// Es lo que deja repintar un cronometro mientras se espera: se repinta, se
+// mira si hay tecla, y si no la hay se vuelve a repintar.
+//
+// El nombre del tope es propio y no el texto vacio a proposito: `leer_tecla`
+// ya devuelve el texto vacio para una secuencia que no conoce —Mayus+flecha—,
+// que hay que ignorar. Si el tope devolviera lo mismo, quien llama no podria
+// distinguir «todavia no hay tecla» de «esa tecla no la se».
+//
+// Con `milisegundos` negativo espera sin tope, como `leer_tecla`.
+fn leer_tecla_con_tope(milisegundos: i32) -> str {
+    if !hay_tecla(milisegundos) { return nuevo("sin_tecla"); }
+    return leer_tecla();
+}
+
+// ------------------------------------------------------------------ el raton
+//
+// Con `?1006h` el terminal manda cada clic como texto: `ESC [ < boton ; x ; y`
+// y una `M` al pulsar o una `m` al soltar. Las coordenadas van de 1 al ancho y
+// de 1 al alto, que es como las manda el terminal; quien dibuje un tablero les
+// resta uno.
+//
+// Se encienden las dos cosas juntas: `?1002h` —pulsar, soltar y arrastrar, que
+// es lo que quiere un tablero— y `?1006h`. Sin `?1006h` el terminal manda los
+// tres bytes en crudo, que no son texto y llegan como basura.
+//
+// Mientras esta encendido, el terminal deja de seleccionar texto con el raton:
+// es lo que se paga por recibirlo.
+
+fn activar_raton() -> str {
+    return $"{escape("?1002h")}{escape("?1006h")}";
+}
+
+// Se apaga en el orden contrario y tambien el modo basico y el de cualquier
+// movimiento, por si acaso.
+//
+// Lo devuelve como texto porque este modulo no escribe: quien lo use tiene que
+// imprimirlo al salir, junto a `modo_normal`. Un `fail` que se propague deja
+// el terminal mandando clics a la shell, que los pinta como basura.
+fn desactivar_raton() -> str {
+    return $"{escape("?1006l")}{escape("?1002l")}{escape("?1000l")}{escape("?1003l")}";
+}
+
+// El nombre del boton. Los dos bits de abajo son el boton en todas las
+// codificaciones, tambien en la rueda —64 arriba, 65 abajo, 66 y 67 a los
+// lados— y en los botones 8 y 9 —128 y 129—. Los modificadores, bits 2 a 4, y
+// el movimiento, bit 5, se miran aparte: el boton es el mismo.
+fn nombre_de_boton(b: usize) -> str {
+    let base = b & 3;
+    if b >= 64 && b < 128 {
+        if base == 0 { return nuevo("rueda_arriba"); }
+        if base == 1 { return nuevo("rueda_abajo"); }
+        if base == 2 { return nuevo("rueda_izquierda"); }
+        return nuevo("rueda_derecha");
+    }
+    if b >= 128 {
+        if base == 0 { return nuevo("boton8"); }
+        return nuevo("boton9");
+    }
+    if base == 0 { return nuevo("izquierda"); }
+    if base == 1 { return nuevo("medio"); }
+    if base == 2 { return nuevo("derecha"); }
+    return nuevo("ninguno");
+}
+
+// El numero que viene ahora. Deja en `fin` el byte que lo corto —el separador
+// o el final—, y -1 si no habia ningun digito.
+fn leer_hasta(fin: mut i64) -> i64 {
+    var n: i64 = 0;
+    var hay = false;
+    var c = leer_byte();
+    while c >= 48 && c <= 57 {
+        n = n * 10 + (c - 48);
+        hay = true;
+        c = leer_byte();
+    }
+    fin = c;
+    if !hay { return -1; }
+    return n;
+}
+
+// Lo que venia detras de `ESC [ <`. Si no encaja, se consume hasta el final
+// para no dejar el resto en la entrada.
+fn raton_sgr() -> str {
+    var fin: i64 = 0;
+    let b = leer_hasta(fin);
+    if b < 0 || fin != 59 { return raton_resincronizar(); }
+    let x = leer_hasta(fin);
+    if x < 0 || fin != 59 { return raton_resincronizar(); }
+    let y = leer_hasta(fin);
+    if y < 0 { return raton_resincronizar(); }
+    var accion = nuevo("pulsa");
+    if fin == 109 { accion = nuevo("suelta"); }
+    else if fin != 77 { return raton_resincronizar(); }
+    else if (b & 32) != 0 { accion = nuevo("movido"); }
+    return $"raton:{nombre_de_boton(b como usize)}:{accion}:{x}:{y}";
+}
+
+// El final de un evento SGR es `M` o `m`. Parar en la primera letra no vale:
+// los numeros y los `;` van por medio, y una `x` de mas —lo que manda un
+// terminal roto— se tomaria por el final y el resto quedaria en la entrada,
+// donde el siguiente `leer_tecla` lo leeria como texto suelto.
+fn raton_resincronizar() -> str {
+    var c = leer_byte();
+    while c >= 0 && c != 77 && c != 109 { c = leer_byte(); }
+    return vacio();
+}
+
+// Si lo que devolvio `leer_tecla` es un evento de raton.
+fn es_raton(t: view) -> bool {
+    return empieza_con(t, "raton:");
+}
+
+fn campos_de_raton(t: view) -> list<str> ! {
+    let campos = try partir(t, ":");
+    if campos.largo() != 5 { fail "no es un evento de raton"; }
+    return campos;
+}
+
+// El boton: "izquierda", "medio", "derecha", "rueda_arriba", "rueda_abajo"...
+fn raton_boton(t: view) -> str ! {
+    let c = try campos_de_raton(t);
+    return copiar(c[1]);
+}
+
+// Que hizo: "pulsa", "suelta" o "movido".
+fn raton_accion(t: view) -> str ! {
+    let c = try campos_de_raton(t);
+    return copiar(c[2]);
+}
+
+// La columna, tal como la manda el terminal: 1 es la primera.
+fn raton_x(t: view) -> usize ! {
+    let c = try campos_de_raton(t);
+    return try a_entero(vista(c[3]));
+}
+
+// La fila, tal como la manda el terminal: 1 es la primera.
+fn raton_y(t: view) -> usize ! {
+    let c = try campos_de_raton(t);
+    return try a_entero(vista(c[4]));
 }

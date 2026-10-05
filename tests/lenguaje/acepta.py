@@ -10,7 +10,14 @@ from .comun import (
     en_paralelo,
 )
 
-ACEPTA = [
+# Un caso: el nombre, la fuente y la salida esperada; y, solo si le hace
+# falta, un cuarto elemento con lo que se le pasa a `correr_c` (los `.c` de
+# apoyo de un modulo de `std/`, o la entrada que lee el binario por un tubo).
+# Los dos tamaños van en el tipo a proposito: sin el, mypy junta todas las
+# tuplas en una de largo variable y `caso[0]` deja de ser una cadena.
+Caso = tuple[str, str, str] | tuple[str, str, str, dict[str, object]]
+
+ACEPTA: list[Caso] = [
     ("literales hexadecimales",
      '''fn main() {
             let a: usize = $FF;
@@ -1482,7 +1489,8 @@ fn main() {
             afirmar(p, "y el temporal no viene vacio", largo(directorio_temporal()) > 0);
             return terminar(p);
         }''',
-     "6 comprobaciones, todo bien\n"),
+     "6 comprobaciones, todo bien\n",
+     {"apoyo": ("std/proceso.c",)}),
 
     ("un contenedor propio, escrito en Tcode y no en el compilador",
      '''struct Pila<T> { cosas: list<T> }
@@ -2976,7 +2984,24 @@ fn main() {
             afirmar_igual_numero(p, "el marco mide lo que el borde", ancho_visible(caja[1]), 9);
             return terminar(p);
         }''',
-     "20 comprobaciones, todo bien\n"),
+     "20 comprobaciones, todo bien\n",
+     {"apoyo": ("std/terminal.c",)}),
+
+    # El tamaño pide `std/terminal.c`, que `--mostrar-c` no enlaza, y la
+    # entrada va por un tubo cerrado: asi no depende de si la suite corre en
+    # una terminal de verdad, donde el tamaño seria el suyo.
+    ("std/terminal: el tamaño de recambio cuando no hay terminal",
+     '''use "std/terminal";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            afirmar_igual_numero(p, "las filas de recambio", filas(), 24);
+            afirmar_igual_numero(p, "las columnas de recambio", columnas(), 80);
+            afirmar(p, "y no hay terminal de verdad", !tiene_tamano());
+            return terminar(p);
+        }''',
+     "3 comprobaciones, todo bien\n",
+     {"apoyo": ("std/terminal.c",), "entrada": ""}),
 
     # ---- std/utf8 ----
     ("std/utf8: los indices de cada caracter y su valor",
@@ -3119,23 +3144,30 @@ def correr(suite: Resultado) -> None:
         # El C de cada caso sale en orden; compilarlo con los sanitizers y
         # correrlo, que es lo que cuesta, va en paralelo.
         trabajos = []
-        for i, (nombre, fuente, salida) in enumerate(ACEPTA):
+        # Un caso es (nombre, fuente, salida) y, si le hace falta, un cuarto
+        # elemento con lo que se le pasa a `correr_c`: los `.c` de apoyo de un
+        # modulo de `std/`, o la entrada que lee el binario por un tubo.
+        for i, caso in enumerate(ACEPTA):
+            nombre, fuente, salida = caso[0], caso[1], caso[2]
+            opciones = caso[3] if len(caso) > 3 else {}
             suite.total += 1
             suyo = os.path.join(tmp, str(i))
             os.mkdir(suyo)
             try:
-                trabajos.append((nombre, salida, c_de(fuente, suyo), suyo))
+                trabajos.append((nombre, salida, c_de(fuente, suyo), suyo,
+                                 opciones))
             except AssertionError as exc:
                 suite.falla(nombre, str(exc))
 
         def _correr_caso(trabajo):
             try:
-                return correr_c(trabajo[2], trabajo[3])
+                return correr_c(trabajo[2], trabajo[3], **trabajo[4])
             except AssertionError as exc:
                 return str(exc)
 
-        for (nombre, salida, _, _), hecho in zip(trabajos,
-                                                 en_paralelo(_correr_caso, trabajos)):
+        for (nombre, salida, _, _, _), hecho in zip(trabajos,
+                                                    en_paralelo(_correr_caso,
+                                                                trabajos)):
             if isinstance(hecho, str):
                 suite.falla(nombre, hecho)
                 continue

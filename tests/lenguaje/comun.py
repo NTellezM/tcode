@@ -96,9 +96,10 @@ def bloques(texto, marca):
     return salida
 
 
-def compilar_y_correr(fuente, tmp, con_sanitizers=True):
+def compilar_y_correr(fuente, tmp, con_sanitizers=True, apoyo=(), entrada=None):
     """Devuelve (codigo_de_salida, stdout, stderr) o lanza AssertionError."""
-    return correr_c(c_de(fuente, tmp), tmp, con_sanitizers)
+    return correr_c(c_de(fuente, tmp), tmp, con_sanitizers, apoyo=apoyo,
+                    entrada=entrada)
 
 
 def en_paralelo(funcion, trabajos):
@@ -118,16 +119,28 @@ def c_de(fuente, tmp):
     return r.stdout
 
 
-def correr_c(codigo, tmp, con_sanitizers=True):
+def correr_c(codigo, tmp, con_sanitizers=True, apoyo=(), entrada=None):
     """Compila el C en `tmp` y lo corre: (codigo_de_salida, stdout, stderr),
-    o AssertionError si el C no compila."""
+    o AssertionError si el C no compila.
+
+    `apoyo` son los `.c` que acompañan a un modulo de `std/` —los de sus
+    bloques `externo`—, con la ruta relativa a la raiz del repositorio.
+    `--mostrar-c` no los enlaza, asi que se pasan a mano aqui, y asi tambien
+    quedan bajo los sanitizers; explicito en cada caso que los use.
+
+    `entrada`, si no es `None`, es el texto que lee el binario por un tubo.
+    Sin ella la entrada es la que herede la suite, que en una terminal de
+    verdad es una terminal: un caso que mire el tamaño o las teclas no puede
+    depender de eso."""
     ruta_c = os.path.join(tmp, "p.c")
     binario = os.path.join(tmp, "p")
     with open(ruta_c, "w", encoding="utf-8") as f:
         f.write(codigo)
 
     orden = ["cc", "-std=c17", "-g", "-Wall", "-Wextra", "-Werror",
-             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             f"-I{RUNTIME}", ruta_c,
+             *(os.path.join(RAIZ, a) for a in apoyo),
+             os.path.join(RUNTIME, "safestr.c"),
              "-o", binario, "-lm"]
     if con_sanitizers:
         orden.insert(3, "-fsanitize=address,undefined")
@@ -136,5 +149,6 @@ def correr_c(codigo, tmp, con_sanitizers=True):
     r = cc(orden, capture_output=True, text=True)
     assert r.returncode == 0, "el C generado no compila:\n" + r.stderr
 
-    e = subprocess.run([binario], capture_output=True, text=True, timeout=60)
+    e = subprocess.run([binario], capture_output=True, text=True, timeout=60,
+                       input=entrada)
     return e.returncode, e.stdout, e.stderr
