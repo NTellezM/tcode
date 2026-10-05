@@ -1492,6 +1492,35 @@ fn main() {
      "6 comprobaciones, todo bien\n",
      {"apoyo": ("std/proceso.c",)}),
 
+    # El tope de `salida_de_hasta` tiene que cortar por debajo de 4 KiB, no
+    # dejar pasar el primer bloque entero. Aqui no se puede comprobar el
+    # mensaje del `fail` —el caso tiene que salir con 0—, asi que se mira la
+    # condicion que lo dispara: una orden valida que imprime mas que el tope
+    # cae en el `sino`, y una que cabe devuelve el texto.
+    ("std/proceso: el tope se cumple exacto, tambien por debajo de 4 KiB",
+     '''#importar "proceso.t";
+        use "std/prueba";
+        fn main() -> usize {
+            var p = pruebas();
+            afirmar_igual_texto(p, "mas corta que el tope",
+                salida_de_hasta("printf 12", 4) sino nuevo("FALLO"), "12");
+            afirmar_igual_texto(p, "igual al tope",
+                salida_de_hasta("printf 1234", 4) sino nuevo("FALLO"), "1234");
+            afirmar_igual_texto(p, "mas larga que el tope",
+                salida_de_hasta("printf 1234567890", 4) sino nuevo("FALLO"), "FALLO");
+            let cuatro = "head -c 4096 /dev/zero | tr '[:cntrl:]' 'x'";
+            let cinco = "head -c 4097 /dev/zero | tr '[:cntrl:]' 'x'";
+            let lleno = salida_de_hasta(cuatro, 4096) sino nuevo("FALLO");
+            afirmar_igual_numero(p, "4096 cabe justo", largo(lleno), 4096);
+            let sobre = salida_de_hasta(cinco, 4096) sino nuevo("FALLO");
+            afirmar_igual_texto(p, "4097 no cabe en 4096", sobre, "FALLO");
+            let lleno2 = salida_de_hasta(cinco, 4097) sino nuevo("FALLO");
+            afirmar_igual_numero(p, "4097 cabe justo", largo(lleno2), 4097);
+            return terminar(p);
+        }''',
+     "6 comprobaciones, todo bien\n",
+     {"apoyo": ("std/proceso.c",)}),
+
     ("un contenedor propio, escrito en Tcode y no en el compilador",
      '''struct Pila<T> { cosas: list<T> }
 

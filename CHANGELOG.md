@@ -143,8 +143,9 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
   `popen`, o sea por `/bin/sh` como el `ejecutar` de siempre, asi que la
   orden entiende tuberias, redirecciones y variables igual en las dos. Tope
   de 8 MiB por defecto —una orden que no para no se come la memoria, y al
-  pasarse falla en vez de devolver medio texto—, y una orden que no existe
-  se detecta por el 127 del shell. Que la orden salga con error no es un
+  pasarse falla en vez de devolver medio texto; el tope se cumple exacto,
+  tambien por debajo de los 4 KiB del bloque de lectura—, y una orden que no
+  existe se detecta por el 127 del shell. Que la orden salga con error no es un
   fallo: el texto se devuelve igual. Limite honesto: la copia usa `strlen`,
   asi que es para texto, no para bytes binarios con ceros en medio. El
   `FILE*`, el buffer que crece y su liberacion viven en `std/proceso.c`, al

@@ -1531,10 +1531,12 @@ sale con 1 es una respuesta, y su texto vuelve igual.
 cuánto mide.** El texto crece en un búfer de C hasta que la orden termina o
 hasta el tope; sin tope, un `yes` o un `cat /dev/zero` se comerían la
 memoria del proceso. Al llegar al tope **falla**, en vez de devolver medio
-texto como si fuera el texto entero. El `salida_de` de siempre lleva 8 MiB;
-y como la lectura va en bloques de 4 KiB, un tope menor que eso deja pasar el
-primer bloque entero —4096 bytes— antes de cortar: el tope se respeta de
-4096 en adelante.
+texto como si fuera el texto entero. El `salida_de` de siempre lleva 8 MiB.
+
+El tope se cumple **exacto**, también por debajo de los 4 KiB del primer
+bloque: el búfer nunca empieza por encima del tope, y cuando ya mide el tope
+se prueba un byte más —en el hueco del terminador— para distinguir «se acabó
+justo en el tope», que es un éxito, de «había más», que falla.
 
 **Es para texto, no para bytes.** La copia que sale de C usa `strlen`, así
 que un cero en medio de la salida la corta ahí: `salida_de` sirve para lo

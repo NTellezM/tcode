@@ -87,7 +87,11 @@ const char* capturar_salida(const char* orden)
         return "";
     }
 
+    /* El buffer empieza en 4 KiB, pero nunca por encima del tope: con un tope
+     * menor hay que cortar en el primer bloque, no despues de leerlo entero. */
     size_t capacidad = 4096;
+    if (capacidad > proceso_tope_) capacidad = proceso_tope_;
+
     char* texto = (char*) malloc(capacidad + 1);
     if (texto == NULL)
     {
@@ -103,6 +107,13 @@ const char* capturar_salida(const char* orden)
         {
             if (capacidad >= proceso_tope_)
             {
+                /* El buffer ya mide el tope entero. Queda libre el byte del
+                 * terminador, y ahi se prueba si hay mas: si el `fread` no
+                 * trae nada, la salida media justo el tope y no se corto
+                 * nada; si trae algo, se paso y se corta. Sin esta prueba,
+                 * una salida que cabe exacta se confundiria con una
+                 * truncada. */
+                if (fread(texto + largo, 1, 1, tubo) == 0) break;
                 proceso_truncada_ = 1;
                 break;
             }
