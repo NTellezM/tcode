@@ -220,14 +220,18 @@ MODULOS = [
              'fn main() -> usize { return 0; }'},
      "a.t", "a.t:2: el struct generico `Caja` ya esta definido en caja.t:1", None),
 
-    # Dos genericas con el mismo nombre que no se ven entre si (cada modulo
-    # trae la otra con alias): el choque tambien las nombra a las dos.
-    ("dos modulos con la misma generica dicen los dos sitios",
+    # Dos genericas con el mismo nombre en modulos que no se ven entre si
+    # (cada uno trae la otra con alias). Antes esto se rechazaba; desde que
+    # cada modulo conserva su nombre en el C emitido, las dos conviven.
+    ("dos modulos con la misma generica compilan los dos",
      {"base.t": 'fn id<T>(x: T) -> T { return x; }',
       "mid.t": 'use "base.t" como B;\nfn id<T>(x: T) -> T { return x; }',
       "a.t": 'use "mid.t";\nuse "base.t" como B;\n'
-             'fn main() -> usize { return 0; }'},
-     "a.t", "`id` esta en base.t:1 y mid.t:2", None),
+             'fn main() -> usize {\n'
+             '    imprimir("ok\\n");\n'
+             '    return 0;\n'
+             '}'},
+     "a.t", None, "ok\n"),
 ]
 
 

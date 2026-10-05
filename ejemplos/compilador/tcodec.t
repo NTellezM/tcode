@@ -3440,20 +3440,12 @@ fn programa_no_leido() -> ProgramaLeido {
 }
 
 fn ajustar_contextos(arboles: &list<P.Nodo>, modulos: &list<str>, raiz: view,
-    global: &I.Contexto, plantillas: &map<str, usize>,
+    global: &I.Contexto, _plantillas: &map<str, usize>,
     contextos: mut list<I.Contexto>) -> bool ! {
     var error_nombres = vacio();
     if !revisar_nombres(arboles, modulos, raiz, error_nombres) {
         imprimir_error($"error: {error_nombres}\n");
         return false;
-    }
-    for g en claves(plantillas) {
-        if tiene(global.repetidas, g) {
-            let sitios = sitios_de_nombre(arboles, modulos, g);
-            let _r = rechazo(sitio_de_nombre(arboles, modulos, g),
-                $"no admite una generica repetida entre modulos: `{g}` esta en {sitios_juntos(sitios)}");
-            return false;
-        }
     }
     var mr = 0;
     while mr < arboles.largo() {

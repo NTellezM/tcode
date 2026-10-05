@@ -5231,7 +5231,7 @@ SS_LANG_QUIZA_SIN_USAR static UsosGenerados revisar_usos_generados(SS_LANG_QUIZA
 SS_LANG_QUIZA_SIN_USAR static CopiadoresGenerados generar_copiadores(SS_LANG_QUIZA_SIN_USAR const Cuenta* cta, SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* st_indice, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* st_campos, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* st_tipos, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* en_indice, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* en_variantes, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* en_lleva, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* limpios, SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* modulos);
 SS_LANG_QUIZA_SIN_USAR static FuncionesGeneradas generar_funciones(SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto* contextos, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* modulos, SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* instancias, SS_LANG_QUIZA_SIN_USAR const ss_lista_usize* modulo_de, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* duenos_inst, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* orden_inst, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* orden_copias_revision, SS_LANG_QUIZA_SIN_USAR Cuenta* cta);
 SS_LANG_QUIZA_SIN_USAR static ProgramaLeido programa_no_leido(void);
-SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* modulos, SS_LANG_QUIZA_SIN_USAR SafeView raiz, SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* plantillas, SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto* contextos);
+SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* modulos, SS_LANG_QUIZA_SIN_USAR SafeView raiz, SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* _plantillas, SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto* contextos);
 SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_SIN_USAR SafeView fuente, SS_LANG_QUIZA_SIN_USAR SafeView raiz);
 SS_LANG_QUIZA_SIN_USAR static Cierres preparar_cierres(SS_LANG_QUIZA_SIN_USAR const Revision* revision, SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto* contextos, SS_LANG_QUIZA_SIN_USAR Contexto* global);
 SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_QUIZA_SIN_USAR const Revision* revision, SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto* contextos, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* modulos, SS_LANG_QUIZA_SIN_USAR Contexto* global, SS_LANG_QUIZA_SIN_USAR const Cierres* cierres, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* plantillas, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* stp_indice, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* stp_params, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* stp_campos, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* stp_tipos, SS_LANG_QUIZA_SIN_USAR ss_lista_str* st_nombres, SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize* st_indice, SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str* st_campos, SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str* st_tipos, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* en_nombres);
@@ -120720,7 +120720,7 @@ SS_LANG_QUIZA_SIN_USAR static ProgramaLeido programa_no_leido(void)
 }
 
 #line 3442 "ejemplos/compilador/tcodec.t"
-SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* modulos, SS_LANG_QUIZA_SIN_USAR SafeView raiz, SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* plantillas, SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto* contextos)
+SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* modulos, SS_LANG_QUIZA_SIN_USAR SafeView raiz, SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* _plantillas, SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto* contextos)
 {
 #line 3445 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString error_nombres = ss_new();
@@ -120747,133 +120747,68 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
         return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp35930 };
     }
 #line 3450 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp35931 = ss_mapa_claves_mapa_str_usize(plantillas, "ejemplos/compilador/tcodec.t", 3450);
-    for (size_t ss_k1230 = 0; ss_k1230 < ss_tmp35931.length; ss_k1230++)
-    {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* g = &ss_tmp35931.e[ss_k1230];
-#line 3451 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp35932;
-        SafeView ss_tmp35933;
-#line 3451 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp35932 = &(*global).repetidas, ss_tmp35933 = ss_view(g), ss_mapa_tiene_mapa_str_usize(ss_tmp35932, ss_tmp35933))))
-        {
-#line 3452 "ejemplos/compilador/tcodec.t"
-            const ss_lista_Nodo* ss_tmp35934;
-            const ss_lista_str* ss_tmp35935;
-            SafeView ss_tmp35936;
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str sitios = ((ss_tmp35934 = arboles, ss_tmp35935 = modulos, ss_tmp35936 = ss_view(g), sitios_de_nombre(ss_tmp35934, ss_tmp35935, ss_tmp35936)));
-#line 3453 "ejemplos/compilador/tcodec.t"
-            const ss_lista_Nodo* ss_tmp35938;
-            const ss_lista_str* ss_tmp35939;
-            SafeView ss_tmp35940;
-            SafeString ss_tmp35937 = ((ss_tmp35938 = arboles, ss_tmp35939 = modulos, ss_tmp35940 = ss_view(g), sitio_de_nombre(ss_tmp35938, ss_tmp35939, ss_tmp35940)));
-            SafeView ss_tmp35941;
-            SafeString ss_tmp35943 = ss_new();
-            SafeView ss_tmp35944 = ss_view(&ss_tmp35937);
-            ss_lang_agregar_texto_(&ss_tmp35943, sv_len("no admite una generica repetida entre modulos: `", 48), "ejemplos/compilador/tcodec.t", 3454);
-            ss_lang_agregar_texto_(&ss_tmp35943, ss_view(g), "ejemplos/compilador/tcodec.t", 3454);
-            ss_lang_agregar_texto_(&ss_tmp35943, sv_len("` esta en ", 10), "ejemplos/compilador/tcodec.t", 3454);
-            SafeString ss_tmp35945 = sitios_juntos(&sitios);
-            ss_lang_agregar_texto_(&ss_tmp35943, ss_view(&ss_tmp35945), "ejemplos/compilador/tcodec.t", 3454);
-            SafeString ss_tmp35942 = ss_tmp35943;
-            SafeView ss_tmp35946;
-            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp35941 = ss_tmp35944, ss_tmp35946 = ss_view(&ss_tmp35942), rechazo(ss_tmp35941, ss_tmp35946)));
-            ss_free(&ss_tmp35937);
-            ss_free(&ss_tmp35945);
-            ss_free(&ss_tmp35942);
-#line 3455 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp35947 = false;
-            for (size_t ss_i1231 = 0; ss_i1231 < ss_tmp35931.length; ss_i1231++)
-            {
-                ss_free(&ss_tmp35931.e[ss_i1231]);
-            }
-            free(ss_tmp35931.e);
-            ss_tmp35931.e = NULL;
-            ss_tmp35931.length = 0;
-            ss_tmp35931.capacity = 0;
-            for (size_t ss_i1232 = 0; ss_i1232 < sitios.length; ss_i1232++)
-            {
-                ss_free(&sitios.e[ss_i1232]);
-            }
-            free(sitios.e);
-            sitios.e = NULL;
-            sitios.length = 0;
-            sitios.capacity = 0;
-            ss_free(&error_nombres);
-            return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp35947 };
-        }
-    }
-    for (size_t ss_i1233 = 0; ss_i1233 < ss_tmp35931.length; ss_i1233++)
-    {
-        ss_free(&ss_tmp35931.e[ss_i1233]);
-    }
-    free(ss_tmp35931.e);
-    ss_tmp35931.e = NULL;
-    ss_tmp35931.length = 0;
-    ss_tmp35931.capacity = 0;
-#line 3458 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t mr = (size_t)0;
-#line 3459 "ejemplos/compilador/tcodec.t"
+#line 3451 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp35948;
-        size_t ss_tmp35949;
-#line 3459 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp35948 = mr, ss_tmp35949 = ((*arboles).length), (ss_tmp35948 < ss_tmp35949)))))
+        size_t ss_tmp35931;
+        size_t ss_tmp35932;
+#line 3451 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp35931 = mr, ss_tmp35932 = ((*arboles).length), (ss_tmp35931 < ss_tmp35932)))))
         {
             break;
         }
-#line 3460 "ejemplos/compilador/tcodec.t"
-        const ss_lista_Nodo* ss_tmp35950;
-        for (size_t ss_k1234 = 0; ss_k1234 < ((ss_tmp35950 = &((*arboles)), &ss_tmp35950->e[ss_lang_indice_(mr, ss_tmp35950->length, "ejemplos/compilador/tcodec.t", 3460)])[0]).hijos.length; ss_k1234++)
+#line 3452 "ejemplos/compilador/tcodec.t"
+        const ss_lista_Nodo* ss_tmp35933;
+        for (size_t ss_k1230 = 0; ss_k1230 < ((ss_tmp35933 = &((*arboles)), &ss_tmp35933->e[ss_lang_indice_(mr, ss_tmp35933->length, "ejemplos/compilador/tcodec.t", 3452)])[0]).hijos.length; ss_k1230++)
         {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp35950 = &((*arboles)), &ss_tmp35950->e[ss_lang_indice_(mr, ss_tmp35950->length, "ejemplos/compilador/tcodec.t", 3460)])[0]).hijos.e[ss_k1234];
-#line 3461 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp35951;
-            Clase ss_tmp35952;
-#line 3461 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_usize* ss_tmp35953;
-            SafeView ss_tmp35954;
-#line 3461 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp35951 = (*d).clase, ss_tmp35952 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp35951.etiqueta == ss_tmp35952.etiqueta))) && ((ss_tmp35953 = &(*global).repetidas, ss_tmp35954 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp35953, ss_tmp35954)))))
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp35933 = &((*arboles)), &ss_tmp35933->e[ss_lang_indice_(mr, ss_tmp35933->length, "ejemplos/compilador/tcodec.t", 3452)])[0]).hijos.e[ss_k1230];
+#line 3453 "ejemplos/compilador/tcodec.t"
+            Clase ss_tmp35934;
+            Clase ss_tmp35935;
+#line 3453 "ejemplos/compilador/tcodec.t"
+            const ss_mapa_str_usize* ss_tmp35936;
+            SafeView ss_tmp35937;
+#line 3453 "ejemplos/compilador/tcodec.t"
+            if ((((ss_tmp35934 = (*d).clase, ss_tmp35935 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp35934.etiqueta == ss_tmp35935.etiqueta))) && ((ss_tmp35936 = &(*global).repetidas, ss_tmp35937 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp35936, ss_tmp35937)))))
             {
-#line 3462 "ejemplos/compilador/tcodec.t"
-                const ss_lista_Nodo* ss_tmp35955;
-                const ss_lista_str* ss_tmp35956;
-                SafeView ss_tmp35957;
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str suyos = ((ss_tmp35955 = arboles, ss_tmp35956 = modulos, ss_tmp35957 = ss_view(&(*d).texto), declarantes(ss_tmp35955, ss_tmp35956, ss_tmp35957)));
-#line 3463 "ejemplos/compilador/tcodec.t"
-                const ss_lista_str* ss_tmp35958;
-                SafeView ss_tmp35959;
-                const ss_lista_str* ss_tmp35960;
-                SS_LANG_QUIZA_SIN_USAR SafeString base = ((ss_tmp35959 = ss_view(&((ss_tmp35958 = &((*modulos)), &ss_tmp35958->e[ss_lang_indice_(mr, ss_tmp35958->length, "ejemplos/compilador/tcodec.t", 3463)])[0])), ss_tmp35960 = &suyos, prefijo_unico(ss_tmp35959, ss_tmp35960)));
-#line 3464 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp35961 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp35961, ss_view(&base), "ejemplos/compilador/tcodec.t", 3464);
-                ss_lang_agregar_texto_(&ss_tmp35961, sv_len("__", 2), "ejemplos/compilador/tcodec.t", 3464);
-                ss_lang_agregar_texto_(&ss_tmp35961, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3464);
-                SS_LANG_QUIZA_SIN_USAR SafeString otro = ss_tmp35961;
+#line 3454 "ejemplos/compilador/tcodec.t"
+                const ss_lista_Nodo* ss_tmp35938;
+                const ss_lista_str* ss_tmp35939;
+                SafeView ss_tmp35940;
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str suyos = ((ss_tmp35938 = arboles, ss_tmp35939 = modulos, ss_tmp35940 = ss_view(&(*d).texto), declarantes(ss_tmp35938, ss_tmp35939, ss_tmp35940)));
+#line 3455 "ejemplos/compilador/tcodec.t"
+                const ss_lista_str* ss_tmp35941;
+                SafeView ss_tmp35942;
+                const ss_lista_str* ss_tmp35943;
+                SS_LANG_QUIZA_SIN_USAR SafeString base = ((ss_tmp35942 = ss_view(&((ss_tmp35941 = &((*modulos)), &ss_tmp35941->e[ss_lang_indice_(mr, ss_tmp35941->length, "ejemplos/compilador/tcodec.t", 3455)])[0])), ss_tmp35943 = &suyos, prefijo_unico(ss_tmp35942, ss_tmp35943)));
+#line 3456 "ejemplos/compilador/tcodec.t"
+                SafeString ss_tmp35944 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp35944, ss_view(&base), "ejemplos/compilador/tcodec.t", 3456);
+                ss_lang_agregar_texto_(&ss_tmp35944, sv_len("__", 2), "ejemplos/compilador/tcodec.t", 3456);
+                ss_lang_agregar_texto_(&ss_tmp35944, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3456);
+                SS_LANG_QUIZA_SIN_USAR SafeString otro = ss_tmp35944;
                 bool ss_vivo_otro = true;
-#line 3465 "ejemplos/compilador/tcodec.t"
-                ss_lista_Contexto* ss_tmp35962;
-                ss_mapa_str_str* ss_tmp35963 = &((ss_tmp35962 = &((*contextos)), &ss_tmp35962->e[ss_lang_indice_(mr, ss_tmp35962->length, "ejemplos/compilador/tcodec.t", 3465)])[0]).renombradas;
-#line 3465 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_str(ss_tmp35963, ss_view(&(*d).texto), otro, "ejemplos/compilador/tcodec.t", 3465);
+#line 3457 "ejemplos/compilador/tcodec.t"
+                ss_lista_Contexto* ss_tmp35945;
+                ss_mapa_str_str* ss_tmp35946 = &((ss_tmp35945 = &((*contextos)), &ss_tmp35945->e[ss_lang_indice_(mr, ss_tmp35945->length, "ejemplos/compilador/tcodec.t", 3457)])[0]).renombradas;
+#line 3457 "ejemplos/compilador/tcodec.t"
+                ss_mapa_poner_mapa_str_str(ss_tmp35946, ss_view(&(*d).texto), otro, "ejemplos/compilador/tcodec.t", 3457);
                 ss_vivo_otro = false;
-#line 3466 "ejemplos/compilador/tcodec.t"
-                ss_lista_Contexto* ss_tmp35964;
-                ss_mapa_str_usize* ss_tmp35965;
-                SafeView ss_tmp35966;
-#line 3466 "ejemplos/compilador/tcodec.t"
-                ((ss_tmp35965 = &((ss_tmp35964 = &((*contextos)), &ss_tmp35964->e[ss_lang_indice_(mr, ss_tmp35964->length, "ejemplos/compilador/tcodec.t", 3466)])[0]).repetidas, ss_tmp35966 = ss_view(&(*d).texto), ss_mapa_quitar_mapa_str_usize(ss_tmp35965, ss_tmp35966)));
+#line 3458 "ejemplos/compilador/tcodec.t"
+                ss_lista_Contexto* ss_tmp35947;
+                ss_mapa_str_usize* ss_tmp35948;
+                SafeView ss_tmp35949;
+#line 3458 "ejemplos/compilador/tcodec.t"
+                ((ss_tmp35948 = &((ss_tmp35947 = &((*contextos)), &ss_tmp35947->e[ss_lang_indice_(mr, ss_tmp35947->length, "ejemplos/compilador/tcodec.t", 3458)])[0]).repetidas, ss_tmp35949 = ss_view(&(*d).texto), ss_mapa_quitar_mapa_str_usize(ss_tmp35948, ss_tmp35949)));
                 if (ss_vivo_otro)
                 {
                     ss_free(&otro);
                 }
                 ss_free(&base);
-                for (size_t ss_i1235 = 0; ss_i1235 < suyos.length; ss_i1235++)
+                for (size_t ss_i1231 = 0; ss_i1231 < suyos.length; ss_i1231++)
                 {
-                    ss_free(&suyos.e[ss_i1235]);
+                    ss_free(&suyos.e[ss_i1231]);
                 }
                 free(suyos.e);
                 suyos.e = NULL;
@@ -120881,52 +120816,52 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 suyos.capacity = 0;
             }
         }
-#line 3469 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp35968;
-        ss_res_str ss_tmp35967 = ss_lang_leer_archivo_(ss_view(&((ss_tmp35968 = &((*modulos)), &ss_tmp35968->e[ss_lang_indice_(mr, ss_tmp35968->length, "ejemplos/compilador/tcodec.t", 3469)])[0])));
-        if (ss_tmp35967.motivo != NULL)
+#line 3461 "ejemplos/compilador/tcodec.t"
+        const ss_lista_str* ss_tmp35951;
+        ss_res_str ss_tmp35950 = ss_lang_leer_archivo_(ss_view(&((ss_tmp35951 = &((*modulos)), &ss_tmp35951->e[ss_lang_indice_(mr, ss_tmp35951->length, "ejemplos/compilador/tcodec.t", 3461)])[0])));
+        if (ss_tmp35950.motivo != NULL)
         {
             ss_free(&error_nombres);
-            return (ss_res_bool){ .motivo = ss_tmp35967.motivo };
+            return (ss_res_bool){ .motivo = ss_tmp35950.motivo };
         }
-        SS_LANG_QUIZA_SIN_USAR SafeString fuente_m = ss_tmp35967.valor;
-#line 3470 "ejemplos/compilador/tcodec.t"
-        ss_res_lista_str ss_tmp35969 = usar_con_alias(ss_view(&fuente_m));
-        if (ss_tmp35969.motivo != NULL)
+        SS_LANG_QUIZA_SIN_USAR SafeString fuente_m = ss_tmp35950.valor;
+#line 3462 "ejemplos/compilador/tcodec.t"
+        ss_res_lista_str ss_tmp35952 = usar_con_alias(ss_view(&fuente_m));
+        if (ss_tmp35952.motivo != NULL)
         {
             ss_free(&fuente_m);
             ss_free(&error_nombres);
-            return (ss_res_bool){ .motivo = ss_tmp35969.motivo };
+            return (ss_res_bool){ .motivo = ss_tmp35952.motivo };
         }
-        SS_LANG_QUIZA_SIN_USAR ss_lista_str pedidos_m = ss_tmp35969.valor;
-#line 3471 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp35970;
-        SS_LANG_QUIZA_SIN_USAR SafeString dir_m = carpeta(ss_view(&((ss_tmp35970 = &((*modulos)), &ss_tmp35970->e[ss_lang_indice_(mr, ss_tmp35970->length, "ejemplos/compilador/tcodec.t", 3471)])[0])));
-#line 3472 "ejemplos/compilador/tcodec.t"
-        for (size_t ss_k1236 = 0; ss_k1236 < pedidos_m.length; ss_k1236++)
+        SS_LANG_QUIZA_SIN_USAR ss_lista_str pedidos_m = ss_tmp35952.valor;
+#line 3463 "ejemplos/compilador/tcodec.t"
+        const ss_lista_str* ss_tmp35953;
+        SS_LANG_QUIZA_SIN_USAR SafeString dir_m = carpeta(ss_view(&((ss_tmp35953 = &((*modulos)), &ss_tmp35953->e[ss_lang_indice_(mr, ss_tmp35953->length, "ejemplos/compilador/tcodec.t", 3463)])[0])));
+#line 3464 "ejemplos/compilador/tcodec.t"
+        for (size_t ss_k1232 = 0; ss_k1232 < pedidos_m.length; ss_k1232++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* pedido = &pedidos_m.e[ss_k1236];
-#line 3473 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp35971;
-            size_t ss_tmp35972;
-            SS_LANG_QUIZA_SIN_USAR SafeString ruta_p = ((ss_tmp35971 = ss_view(pedido), ss_tmp35972 = (size_t)0, campo_pedido(ss_tmp35971, ss_tmp35972)));
-#line 3474 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp35973;
-            size_t ss_tmp35974;
-            SS_LANG_QUIZA_SIN_USAR SafeString alias_p = ((ss_tmp35973 = ss_view(pedido), ss_tmp35974 = (size_t)1, campo_pedido(ss_tmp35973, ss_tmp35974)));
-#line 3475 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp35976;
-            SafeView ss_tmp35977;
-            SafeView ss_tmp35978;
-            ss_res_str ss_tmp35975 = ((ss_tmp35976 = ss_view(&ruta_p), ss_tmp35977 = ss_view(&dir_m), ss_tmp35978 = raiz, resolver(ss_tmp35976, ss_tmp35977, ss_tmp35978)));
-            if (ss_tmp35975.motivo != NULL)
+            SS_LANG_QUIZA_SIN_USAR const SafeString* pedido = &pedidos_m.e[ss_k1232];
+#line 3465 "ejemplos/compilador/tcodec.t"
+            SafeView ss_tmp35954;
+            size_t ss_tmp35955;
+            SS_LANG_QUIZA_SIN_USAR SafeString ruta_p = ((ss_tmp35954 = ss_view(pedido), ss_tmp35955 = (size_t)0, campo_pedido(ss_tmp35954, ss_tmp35955)));
+#line 3466 "ejemplos/compilador/tcodec.t"
+            SafeView ss_tmp35956;
+            size_t ss_tmp35957;
+            SS_LANG_QUIZA_SIN_USAR SafeString alias_p = ((ss_tmp35956 = ss_view(pedido), ss_tmp35957 = (size_t)1, campo_pedido(ss_tmp35956, ss_tmp35957)));
+#line 3467 "ejemplos/compilador/tcodec.t"
+            SafeView ss_tmp35959;
+            SafeView ss_tmp35960;
+            SafeView ss_tmp35961;
+            ss_res_str ss_tmp35958 = ((ss_tmp35959 = ss_view(&ruta_p), ss_tmp35960 = ss_view(&dir_m), ss_tmp35961 = raiz, resolver(ss_tmp35959, ss_tmp35960, ss_tmp35961)));
+            if (ss_tmp35958.motivo != NULL)
             {
                 ss_free(&alias_p);
                 ss_free(&ruta_p);
                 ss_free(&dir_m);
-                for (size_t ss_i1237 = 0; ss_i1237 < pedidos_m.length; ss_i1237++)
+                for (size_t ss_i1233 = 0; ss_i1233 < pedidos_m.length; ss_i1233++)
                 {
-                    ss_free(&pedidos_m.e[ss_i1237]);
+                    ss_free(&pedidos_m.e[ss_i1233]);
                 }
                 free(pedidos_m.e);
                 pedidos_m.e = NULL;
@@ -120934,60 +120869,60 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 pedidos_m.capacity = 0;
                 ss_free(&fuente_m);
                 ss_free(&error_nombres);
-                return (ss_res_bool){ .motivo = ss_tmp35975.motivo };
+                return (ss_res_bool){ .motivo = ss_tmp35958.motivo };
             }
-            SS_LANG_QUIZA_SIN_USAR SafeString destino = ss_tmp35975.valor;
-#line 3476 "ejemplos/compilador/tcodec.t"
+            SS_LANG_QUIZA_SIN_USAR SafeString destino = ss_tmp35958.valor;
+#line 3468 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR size_t jm = (size_t)0;
-#line 3477 "ejemplos/compilador/tcodec.t"
+#line 3469 "ejemplos/compilador/tcodec.t"
             while (true)
             {
-                size_t ss_tmp35979;
-                size_t ss_tmp35980;
-#line 3477 "ejemplos/compilador/tcodec.t"
-                const ss_lista_str* ss_tmp35981;
-                SafeView ss_tmp35982;
-                SafeView ss_tmp35983;
-                if (!((((ss_tmp35979 = jm, ss_tmp35980 = ((*modulos).length), (ss_tmp35979 < ss_tmp35980))) && (!((ss_tmp35982 = ss_view(&((ss_tmp35981 = &((*modulos)), &ss_tmp35981->e[ss_lang_indice_(jm, ss_tmp35981->length, "ejemplos/compilador/tcodec.t", 3477)])[0])), ss_tmp35983 = ss_view(&destino), sv_equals(ss_tmp35982, ss_tmp35983)))))))
+                size_t ss_tmp35962;
+                size_t ss_tmp35963;
+#line 3469 "ejemplos/compilador/tcodec.t"
+                const ss_lista_str* ss_tmp35964;
+                SafeView ss_tmp35965;
+                SafeView ss_tmp35966;
+                if (!((((ss_tmp35962 = jm, ss_tmp35963 = ((*modulos).length), (ss_tmp35962 < ss_tmp35963))) && (!((ss_tmp35965 = ss_view(&((ss_tmp35964 = &((*modulos)), &ss_tmp35964->e[ss_lang_indice_(jm, ss_tmp35964->length, "ejemplos/compilador/tcodec.t", 3469)])[0])), ss_tmp35966 = ss_view(&destino), sv_equals(ss_tmp35965, ss_tmp35966)))))))
                 {
                     break;
                 }
-#line 3478 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp35984;
-                size_t ss_tmp35985;
-#line 3478 "ejemplos/compilador/tcodec.t"
-                jm = ((ss_tmp35984 = jm, ss_tmp35985 = (size_t)1, ss_lang_suma_usize(ss_tmp35984, ss_tmp35985, "ejemplos/compilador/tcodec.t", 3478)));
+#line 3470 "ejemplos/compilador/tcodec.t"
+                size_t ss_tmp35967;
+                size_t ss_tmp35968;
+#line 3470 "ejemplos/compilador/tcodec.t"
+                jm = ((ss_tmp35967 = jm, ss_tmp35968 = (size_t)1, ss_lang_suma_usize(ss_tmp35967, ss_tmp35968, "ejemplos/compilador/tcodec.t", 3470)));
             }
-#line 3480 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp35986;
-            size_t ss_tmp35987;
-#line 3480 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp35986 = jm, ss_tmp35987 = ((*modulos).length), (ss_tmp35986 == ss_tmp35987))))
+#line 3472 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp35969;
+            size_t ss_tmp35970;
+#line 3472 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp35969 = jm, ss_tmp35970 = ((*modulos).length), (ss_tmp35969 == ss_tmp35970))))
             {
-#line 3481 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp35989 = ss_new();
-                const ss_lista_str* ss_tmp35990;
-                ss_lang_agregar_texto_(&ss_tmp35989, ss_view(&((ss_tmp35990 = &((*modulos)), &ss_tmp35990->e[ss_lang_indice_(mr, ss_tmp35990->length, "ejemplos/compilador/tcodec.t", 3481)])[0])), "ejemplos/compilador/tcodec.t", 3481);
-                ss_lang_agregar_texto_(&ss_tmp35989, sv_len(":", 1), "ejemplos/compilador/tcodec.t", 3481);
-                SafeView ss_tmp35992;
-                size_t ss_tmp35993;
-                SafeString ss_tmp35991 = ((ss_tmp35992 = ss_view(pedido), ss_tmp35993 = (size_t)2, campo_pedido(ss_tmp35992, ss_tmp35993)));
-                ss_lang_agregar_texto_(&ss_tmp35989, ss_view(&ss_tmp35991), "ejemplos/compilador/tcodec.t", 3481);
-                SafeString ss_tmp35988 = ss_tmp35989;
-                SafeView ss_tmp35994;
-                SafeView ss_tmp35995;
-                SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp35994 = ss_view(&ss_tmp35988), ss_tmp35995 = sv_len("no ha cargado un modulo que hacia falta", 39), rechazo(ss_tmp35994, ss_tmp35995)));
-                ss_free(&ss_tmp35991);
-                ss_free(&ss_tmp35988);
-#line 3483 "ejemplos/compilador/tcodec.t"
-                bool ss_tmp35996 = false;
+#line 3473 "ejemplos/compilador/tcodec.t"
+                SafeString ss_tmp35972 = ss_new();
+                const ss_lista_str* ss_tmp35973;
+                ss_lang_agregar_texto_(&ss_tmp35972, ss_view(&((ss_tmp35973 = &((*modulos)), &ss_tmp35973->e[ss_lang_indice_(mr, ss_tmp35973->length, "ejemplos/compilador/tcodec.t", 3473)])[0])), "ejemplos/compilador/tcodec.t", 3473);
+                ss_lang_agregar_texto_(&ss_tmp35972, sv_len(":", 1), "ejemplos/compilador/tcodec.t", 3473);
+                SafeView ss_tmp35975;
+                size_t ss_tmp35976;
+                SafeString ss_tmp35974 = ((ss_tmp35975 = ss_view(pedido), ss_tmp35976 = (size_t)2, campo_pedido(ss_tmp35975, ss_tmp35976)));
+                ss_lang_agregar_texto_(&ss_tmp35972, ss_view(&ss_tmp35974), "ejemplos/compilador/tcodec.t", 3473);
+                SafeString ss_tmp35971 = ss_tmp35972;
+                SafeView ss_tmp35977;
+                SafeView ss_tmp35978;
+                SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp35977 = ss_view(&ss_tmp35971), ss_tmp35978 = sv_len("no ha cargado un modulo que hacia falta", 39), rechazo(ss_tmp35977, ss_tmp35978)));
+                ss_free(&ss_tmp35974);
+                ss_free(&ss_tmp35971);
+#line 3475 "ejemplos/compilador/tcodec.t"
+                bool ss_tmp35979 = false;
                 ss_free(&destino);
                 ss_free(&alias_p);
                 ss_free(&ruta_p);
                 ss_free(&dir_m);
-                for (size_t ss_i1238 = 0; ss_i1238 < pedidos_m.length; ss_i1238++)
+                for (size_t ss_i1234 = 0; ss_i1234 < pedidos_m.length; ss_i1234++)
                 {
-                    ss_free(&pedidos_m.e[ss_i1238]);
+                    ss_free(&pedidos_m.e[ss_i1234]);
                 }
                 free(pedidos_m.e);
                 pedidos_m.e = NULL;
@@ -120995,77 +120930,77 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 pedidos_m.capacity = 0;
                 ss_free(&fuente_m);
                 ss_free(&error_nombres);
-                return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp35996 };
+                return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp35979 };
             }
-#line 3485 "ejemplos/compilador/tcodec.t"
-            const ss_lista_Nodo* ss_tmp35997;
-            for (size_t ss_k1239 = 0; ss_k1239 < ((ss_tmp35997 = &((*arboles)), &ss_tmp35997->e[ss_lang_indice_(jm, ss_tmp35997->length, "ejemplos/compilador/tcodec.t", 3485)])[0]).hijos.length; ss_k1239++)
+#line 3477 "ejemplos/compilador/tcodec.t"
+            const ss_lista_Nodo* ss_tmp35980;
+            for (size_t ss_k1235 = 0; ss_k1235 < ((ss_tmp35980 = &((*arboles)), &ss_tmp35980->e[ss_lang_indice_(jm, ss_tmp35980->length, "ejemplos/compilador/tcodec.t", 3477)])[0]).hijos.length; ss_k1235++)
             {
-                SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp35997 = &((*arboles)), &ss_tmp35997->e[ss_lang_indice_(jm, ss_tmp35997->length, "ejemplos/compilador/tcodec.t", 3485)])[0]).hijos.e[ss_k1239];
-#line 3486 "ejemplos/compilador/tcodec.t"
-                Clase ss_tmp35998;
-                Clase ss_tmp35999;
-#line 3486 "ejemplos/compilador/tcodec.t"
-                const ss_mapa_str_usize* ss_tmp36000;
-                SafeView ss_tmp36001;
-#line 3486 "ejemplos/compilador/tcodec.t"
-                if ((((ss_tmp35998 = (*d).clase, ss_tmp35999 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp35998.etiqueta != ss_tmp35999.etiqueta))) || (!((ss_tmp36000 = &(*global).repetidas, ss_tmp36001 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp36000, ss_tmp36001))))))
+                SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp35980 = &((*arboles)), &ss_tmp35980->e[ss_lang_indice_(jm, ss_tmp35980->length, "ejemplos/compilador/tcodec.t", 3477)])[0]).hijos.e[ss_k1235];
+#line 3478 "ejemplos/compilador/tcodec.t"
+                Clase ss_tmp35981;
+                Clase ss_tmp35982;
+#line 3478 "ejemplos/compilador/tcodec.t"
+                const ss_mapa_str_usize* ss_tmp35983;
+                SafeView ss_tmp35984;
+#line 3478 "ejemplos/compilador/tcodec.t"
+                if ((((ss_tmp35981 = (*d).clase, ss_tmp35982 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp35981.etiqueta != ss_tmp35982.etiqueta))) || (!((ss_tmp35983 = &(*global).repetidas, ss_tmp35984 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp35983, ss_tmp35984))))))
                 {
-#line 3487 "ejemplos/compilador/tcodec.t"
+#line 3479 "ejemplos/compilador/tcodec.t"
                     continue;
                 }
-#line 3489 "ejemplos/compilador/tcodec.t"
+#line 3481 "ejemplos/compilador/tcodec.t"
                 SS_LANG_QUIZA_SIN_USAR SafeString clave = ss_clone(&(*d).texto);
-#line 3490 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp36002;
-                size_t ss_tmp36003;
-#line 3490 "ejemplos/compilador/tcodec.t"
-                if (((ss_tmp36002 = sv_len_of(ss_view(&alias_p)), ss_tmp36003 = (size_t)0, (ss_tmp36002 > ss_tmp36003))))
+#line 3482 "ejemplos/compilador/tcodec.t"
+                size_t ss_tmp35985;
+                size_t ss_tmp35986;
+#line 3482 "ejemplos/compilador/tcodec.t"
+                if (((ss_tmp35985 = sv_len_of(ss_view(&alias_p)), ss_tmp35986 = (size_t)0, (ss_tmp35985 > ss_tmp35986))))
                 {
-                    SafeString ss_tmp36004 = ss_new();
-                    ss_lang_agregar_texto_(&ss_tmp36004, ss_view(&alias_p), "ejemplos/compilador/tcodec.t", 3490);
-                    ss_lang_agregar_texto_(&ss_tmp36004, sv_len(".", 1), "ejemplos/compilador/tcodec.t", 3490);
-                    ss_lang_agregar_texto_(&ss_tmp36004, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3490);
-                    SafeString ss_tmp36005 = ss_tmp36004;
+                    SafeString ss_tmp35987 = ss_new();
+                    ss_lang_agregar_texto_(&ss_tmp35987, ss_view(&alias_p), "ejemplos/compilador/tcodec.t", 3482);
+                    ss_lang_agregar_texto_(&ss_tmp35987, sv_len(".", 1), "ejemplos/compilador/tcodec.t", 3482);
+                    ss_lang_agregar_texto_(&ss_tmp35987, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3482);
+                    SafeString ss_tmp35988 = ss_tmp35987;
                     ss_free(&clave);
-                    clave = ss_tmp36005;
+                    clave = ss_tmp35988;
                 }
-#line 3491 "ejemplos/compilador/tcodec.t"
-                const ss_lista_Nodo* ss_tmp36006;
-                const ss_lista_str* ss_tmp36007;
-                SafeView ss_tmp36008;
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str suyos = ((ss_tmp36006 = arboles, ss_tmp36007 = modulos, ss_tmp36008 = ss_view(&(*d).texto), declarantes(ss_tmp36006, ss_tmp36007, ss_tmp36008)));
-#line 3492 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp36009;
-                const ss_lista_str* ss_tmp36010;
-                SS_LANG_QUIZA_SIN_USAR SafeString base_d = ((ss_tmp36009 = ss_view(&destino), ss_tmp36010 = &suyos, prefijo_unico(ss_tmp36009, ss_tmp36010)));
-#line 3493 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp36011 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp36011, ss_view(&base_d), "ejemplos/compilador/tcodec.t", 3493);
-                ss_lang_agregar_texto_(&ss_tmp36011, sv_len("__", 2), "ejemplos/compilador/tcodec.t", 3493);
-                ss_lang_agregar_texto_(&ss_tmp36011, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3493);
-                SS_LANG_QUIZA_SIN_USAR SafeString otro = ss_tmp36011;
+#line 3483 "ejemplos/compilador/tcodec.t"
+                const ss_lista_Nodo* ss_tmp35989;
+                const ss_lista_str* ss_tmp35990;
+                SafeView ss_tmp35991;
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str suyos = ((ss_tmp35989 = arboles, ss_tmp35990 = modulos, ss_tmp35991 = ss_view(&(*d).texto), declarantes(ss_tmp35989, ss_tmp35990, ss_tmp35991)));
+#line 3484 "ejemplos/compilador/tcodec.t"
+                SafeView ss_tmp35992;
+                const ss_lista_str* ss_tmp35993;
+                SS_LANG_QUIZA_SIN_USAR SafeString base_d = ((ss_tmp35992 = ss_view(&destino), ss_tmp35993 = &suyos, prefijo_unico(ss_tmp35992, ss_tmp35993)));
+#line 3485 "ejemplos/compilador/tcodec.t"
+                SafeString ss_tmp35994 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp35994, ss_view(&base_d), "ejemplos/compilador/tcodec.t", 3485);
+                ss_lang_agregar_texto_(&ss_tmp35994, sv_len("__", 2), "ejemplos/compilador/tcodec.t", 3485);
+                ss_lang_agregar_texto_(&ss_tmp35994, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3485);
+                SS_LANG_QUIZA_SIN_USAR SafeString otro = ss_tmp35994;
                 bool ss_vivo_otro = true;
-#line 3494 "ejemplos/compilador/tcodec.t"
-                ss_lista_Contexto* ss_tmp36012;
-                ss_mapa_str_str* ss_tmp36013 = &((ss_tmp36012 = &((*contextos)), &ss_tmp36012->e[ss_lang_indice_(mr, ss_tmp36012->length, "ejemplos/compilador/tcodec.t", 3494)])[0]).renombradas;
-#line 3494 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_str(ss_tmp36013, ss_view(&clave), otro, "ejemplos/compilador/tcodec.t", 3494);
+#line 3486 "ejemplos/compilador/tcodec.t"
+                ss_lista_Contexto* ss_tmp35995;
+                ss_mapa_str_str* ss_tmp35996 = &((ss_tmp35995 = &((*contextos)), &ss_tmp35995->e[ss_lang_indice_(mr, ss_tmp35995->length, "ejemplos/compilador/tcodec.t", 3486)])[0]).renombradas;
+#line 3486 "ejemplos/compilador/tcodec.t"
+                ss_mapa_poner_mapa_str_str(ss_tmp35996, ss_view(&clave), otro, "ejemplos/compilador/tcodec.t", 3486);
                 ss_vivo_otro = false;
-#line 3495 "ejemplos/compilador/tcodec.t"
-                ss_lista_Contexto* ss_tmp36014;
-                ss_mapa_str_usize* ss_tmp36015;
-                SafeView ss_tmp36016;
-#line 3495 "ejemplos/compilador/tcodec.t"
-                ((ss_tmp36015 = &((ss_tmp36014 = &((*contextos)), &ss_tmp36014->e[ss_lang_indice_(mr, ss_tmp36014->length, "ejemplos/compilador/tcodec.t", 3495)])[0]).repetidas, ss_tmp36016 = ss_view(&clave), ss_mapa_quitar_mapa_str_usize(ss_tmp36015, ss_tmp36016)));
+#line 3487 "ejemplos/compilador/tcodec.t"
+                ss_lista_Contexto* ss_tmp35997;
+                ss_mapa_str_usize* ss_tmp35998;
+                SafeView ss_tmp35999;
+#line 3487 "ejemplos/compilador/tcodec.t"
+                ((ss_tmp35998 = &((ss_tmp35997 = &((*contextos)), &ss_tmp35997->e[ss_lang_indice_(mr, ss_tmp35997->length, "ejemplos/compilador/tcodec.t", 3487)])[0]).repetidas, ss_tmp35999 = ss_view(&clave), ss_mapa_quitar_mapa_str_usize(ss_tmp35998, ss_tmp35999)));
                 if (ss_vivo_otro)
                 {
                     ss_free(&otro);
                 }
                 ss_free(&base_d);
-                for (size_t ss_i1240 = 0; ss_i1240 < suyos.length; ss_i1240++)
+                for (size_t ss_i1236 = 0; ss_i1236 < suyos.length; ss_i1236++)
                 {
-                    ss_free(&suyos.e[ss_i1240]);
+                    ss_free(&suyos.e[ss_i1236]);
                 }
                 free(suyos.e);
                 suyos.e = NULL;
@@ -121077,15 +121012,15 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
             ss_free(&alias_p);
             ss_free(&ruta_p);
         }
-#line 3498 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36017;
-        size_t ss_tmp36018;
-#line 3498 "ejemplos/compilador/tcodec.t"
-        mr = ((ss_tmp36017 = mr, ss_tmp36018 = (size_t)1, ss_lang_suma_usize(ss_tmp36017, ss_tmp36018, "ejemplos/compilador/tcodec.t", 3498)));
+#line 3490 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36000;
+        size_t ss_tmp36001;
+#line 3490 "ejemplos/compilador/tcodec.t"
+        mr = ((ss_tmp36000 = mr, ss_tmp36001 = (size_t)1, ss_lang_suma_usize(ss_tmp36000, ss_tmp36001, "ejemplos/compilador/tcodec.t", 3490)));
         ss_free(&dir_m);
-        for (size_t ss_i1241 = 0; ss_i1241 < pedidos_m.length; ss_i1241++)
+        for (size_t ss_i1237 = 0; ss_i1237 < pedidos_m.length; ss_i1237++)
         {
-            ss_free(&pedidos_m.e[ss_i1241]);
+            ss_free(&pedidos_m.e[ss_i1237]);
         }
         free(pedidos_m.e);
         pedidos_m.e = NULL;
@@ -121093,81 +121028,81 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
         pedidos_m.capacity = 0;
         ss_free(&fuente_m);
     }
-#line 3502 "ejemplos/compilador/tcodec.t"
+#line 3494 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_ctx = (size_t)0;
-#line 3503 "ejemplos/compilador/tcodec.t"
+#line 3495 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36019;
-        size_t ss_tmp36020;
-#line 3503 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp36019 = k_ctx, ss_tmp36020 = ((*contextos).length), (ss_tmp36019 < ss_tmp36020)))))
+        size_t ss_tmp36002;
+        size_t ss_tmp36003;
+#line 3495 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp36002 = k_ctx, ss_tmp36003 = ((*contextos).length), (ss_tmp36002 < ss_tmp36003)))))
         {
             break;
         }
-#line 3504 "ejemplos/compilador/tcodec.t"
-        ss_lista_str ss_tmp36021 = ss_mapa_claves_mapa_str_lista_Tipo(&(*global).campos, "ejemplos/compilador/tcodec.t", 3504);
-        for (size_t ss_k1242 = 0; ss_k1242 < ss_tmp36021.length; ss_k1242++)
+#line 3496 "ejemplos/compilador/tcodec.t"
+        ss_lista_str ss_tmp36004 = ss_mapa_claves_mapa_str_lista_Tipo(&(*global).campos, "ejemplos/compilador/tcodec.t", 3496);
+        for (size_t ss_k1238 = 0; ss_k1238 < ss_tmp36004.length; ss_k1238++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* st = &ss_tmp36021.e[ss_k1242];
-#line 3505 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp36022;
-            const ss_mapa_str_lista_Tipo* ss_tmp36023;
-            SafeView ss_tmp36024;
-#line 3505 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp36023 = &((ss_tmp36022 = &((*contextos)), &ss_tmp36022->e[ss_lang_indice_(k_ctx, ss_tmp36022->length, "ejemplos/compilador/tcodec.t", 3505)])[0]).campos, ss_tmp36024 = ss_view(st), ss_mapa_tiene_mapa_str_lista_Tipo(ss_tmp36023, ss_tmp36024))))
+            SS_LANG_QUIZA_SIN_USAR const SafeString* st = &ss_tmp36004.e[ss_k1238];
+#line 3497 "ejemplos/compilador/tcodec.t"
+            ss_lista_Contexto* ss_tmp36005;
+            const ss_mapa_str_lista_Tipo* ss_tmp36006;
+            SafeView ss_tmp36007;
+#line 3497 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp36006 = &((ss_tmp36005 = &((*contextos)), &ss_tmp36005->e[ss_lang_indice_(k_ctx, ss_tmp36005->length, "ejemplos/compilador/tcodec.t", 3497)])[0]).campos, ss_tmp36007 = ss_view(st), ss_mapa_tiene_mapa_str_lista_Tipo(ss_tmp36006, ss_tmp36007))))
             {
                 continue;
             }
-#line 3506 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_lista_Tipo* ss_tmp36026;
-            SafeView ss_tmp36027;
-            ss_res_lista_Tipo ss_tmp36025 = ((ss_tmp36026 = &(*global).campos, ss_tmp36027 = ss_view(st), tipos_de_mapa(ss_tmp36026, ss_tmp36027)));
-            ss_lista_Tipo ss_tmp36028;
-            if (ss_tmp36025.motivo != NULL)
+#line 3498 "ejemplos/compilador/tcodec.t"
+            const ss_mapa_str_lista_Tipo* ss_tmp36009;
+            SafeView ss_tmp36010;
+            ss_res_lista_Tipo ss_tmp36008 = ((ss_tmp36009 = &(*global).campos, ss_tmp36010 = ss_view(st), tipos_de_mapa(ss_tmp36009, ss_tmp36010)));
+            ss_lista_Tipo ss_tmp36011;
+            if (ss_tmp36008.motivo != NULL)
             {
-                ss_lista_Tipo ss_tmp36029 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_tmp36028 = ss_tmp36029;
+                ss_lista_Tipo ss_tmp36012 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_tmp36011 = ss_tmp36012;
             }
             else
             {
-                ss_tmp36028 = ss_tmp36025.valor;
+                ss_tmp36011 = ss_tmp36008.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR ss_lista_Tipo cs_g = ss_tmp36028;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_Tipo cs_g = ss_tmp36011;
             bool ss_vivo_cs_g = true;
-#line 3507 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp36030;
-            ss_mapa_str_lista_Tipo* ss_tmp36031 = &((ss_tmp36030 = &((*contextos)), &ss_tmp36030->e[ss_lang_indice_(k_ctx, ss_tmp36030->length, "ejemplos/compilador/tcodec.t", 3507)])[0]).campos;
-#line 3507 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_lista_Tipo(ss_tmp36031, ss_view(st), cs_g, "ejemplos/compilador/tcodec.t", 3507);
+#line 3499 "ejemplos/compilador/tcodec.t"
+            ss_lista_Contexto* ss_tmp36013;
+            ss_mapa_str_lista_Tipo* ss_tmp36014 = &((ss_tmp36013 = &((*contextos)), &ss_tmp36013->e[ss_lang_indice_(k_ctx, ss_tmp36013->length, "ejemplos/compilador/tcodec.t", 3499)])[0]).campos;
+#line 3499 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_lista_Tipo(ss_tmp36014, ss_view(st), cs_g, "ejemplos/compilador/tcodec.t", 3499);
             ss_vivo_cs_g = false;
-#line 3508 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_lista_str* ss_tmp36033;
-            SafeView ss_tmp36034;
-            ss_res_lista_str ss_tmp36032 = ((ss_tmp36033 = &(*global).nombres, ss_tmp36034 = ss_view(st), lista_de(ss_tmp36033, ss_tmp36034)));
-            ss_lista_str ss_tmp36035;
-            if (ss_tmp36032.motivo != NULL)
+#line 3500 "ejemplos/compilador/tcodec.t"
+            const ss_mapa_str_lista_str* ss_tmp36016;
+            SafeView ss_tmp36017;
+            ss_res_lista_str ss_tmp36015 = ((ss_tmp36016 = &(*global).nombres, ss_tmp36017 = ss_view(st), lista_de(ss_tmp36016, ss_tmp36017)));
+            ss_lista_str ss_tmp36018;
+            if (ss_tmp36015.motivo != NULL)
             {
-                ss_lista_str ss_tmp36036 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_tmp36035 = ss_tmp36036;
+                ss_lista_str ss_tmp36019 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_tmp36018 = ss_tmp36019;
             }
             else
             {
-                ss_tmp36035 = ss_tmp36032.valor;
+                ss_tmp36018 = ss_tmp36015.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str ns_g = ss_tmp36035;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str ns_g = ss_tmp36018;
             bool ss_vivo_ns_g = true;
-#line 3509 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp36037;
-            ss_mapa_str_lista_str* ss_tmp36038 = &((ss_tmp36037 = &((*contextos)), &ss_tmp36037->e[ss_lang_indice_(k_ctx, ss_tmp36037->length, "ejemplos/compilador/tcodec.t", 3509)])[0]).nombres;
-#line 3509 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_lista_str(ss_tmp36038, ss_view(st), ns_g, "ejemplos/compilador/tcodec.t", 3509);
+#line 3501 "ejemplos/compilador/tcodec.t"
+            ss_lista_Contexto* ss_tmp36020;
+            ss_mapa_str_lista_str* ss_tmp36021 = &((ss_tmp36020 = &((*contextos)), &ss_tmp36020->e[ss_lang_indice_(k_ctx, ss_tmp36020->length, "ejemplos/compilador/tcodec.t", 3501)])[0]).nombres;
+#line 3501 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_lista_str(ss_tmp36021, ss_view(st), ns_g, "ejemplos/compilador/tcodec.t", 3501);
             ss_vivo_ns_g = false;
             if (ss_vivo_ns_g)
             {
-                for (size_t ss_i1243 = 0; ss_i1243 < ns_g.length; ss_i1243++)
+                for (size_t ss_i1239 = 0; ss_i1239 < ns_g.length; ss_i1239++)
                 {
-                    ss_free(&ns_g.e[ss_i1243]);
+                    ss_free(&ns_g.e[ss_i1239]);
                 }
                 free(ns_g.e);
                 ns_g.e = NULL;
@@ -121176,9 +121111,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
             }
             if (ss_vivo_cs_g)
             {
-                for (size_t ss_i1244 = 0; ss_i1244 < cs_g.length; ss_i1244++)
+                for (size_t ss_i1240 = 0; ss_i1240 < cs_g.length; ss_i1240++)
                 {
-                    ss_drop_Tipo(&cs_g.e[ss_i1244]);
+                    ss_drop_Tipo(&cs_g.e[ss_i1240]);
                 }
                 free(cs_g.e);
                 cs_g.e = NULL;
@@ -121186,55 +121121,55 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 cs_g.capacity = 0;
             }
         }
-        for (size_t ss_i1245 = 0; ss_i1245 < ss_tmp36021.length; ss_i1245++)
+        for (size_t ss_i1241 = 0; ss_i1241 < ss_tmp36004.length; ss_i1241++)
         {
-            ss_free(&ss_tmp36021.e[ss_i1245]);
+            ss_free(&ss_tmp36004.e[ss_i1241]);
         }
-        free(ss_tmp36021.e);
-        ss_tmp36021.e = NULL;
-        ss_tmp36021.length = 0;
-        ss_tmp36021.capacity = 0;
-#line 3511 "ejemplos/compilador/tcodec.t"
-        ss_lista_str ss_tmp36039 = ss_mapa_claves_mapa_str_lista_str(&(*global).struct_params, "ejemplos/compilador/tcodec.t", 3511);
-        for (size_t ss_k1246 = 0; ss_k1246 < ss_tmp36039.length; ss_k1246++)
+        free(ss_tmp36004.e);
+        ss_tmp36004.e = NULL;
+        ss_tmp36004.length = 0;
+        ss_tmp36004.capacity = 0;
+#line 3503 "ejemplos/compilador/tcodec.t"
+        ss_lista_str ss_tmp36022 = ss_mapa_claves_mapa_str_lista_str(&(*global).struct_params, "ejemplos/compilador/tcodec.t", 3503);
+        for (size_t ss_k1242 = 0; ss_k1242 < ss_tmp36022.length; ss_k1242++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* sp = &ss_tmp36039.e[ss_k1246];
-#line 3512 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp36040;
-            const ss_mapa_str_lista_str* ss_tmp36041;
-            SafeView ss_tmp36042;
-#line 3512 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp36041 = &((ss_tmp36040 = &((*contextos)), &ss_tmp36040->e[ss_lang_indice_(k_ctx, ss_tmp36040->length, "ejemplos/compilador/tcodec.t", 3512)])[0]).struct_params, ss_tmp36042 = ss_view(sp), ss_mapa_tiene_mapa_str_lista_str(ss_tmp36041, ss_tmp36042))))
+            SS_LANG_QUIZA_SIN_USAR const SafeString* sp = &ss_tmp36022.e[ss_k1242];
+#line 3504 "ejemplos/compilador/tcodec.t"
+            ss_lista_Contexto* ss_tmp36023;
+            const ss_mapa_str_lista_str* ss_tmp36024;
+            SafeView ss_tmp36025;
+#line 3504 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp36024 = &((ss_tmp36023 = &((*contextos)), &ss_tmp36023->e[ss_lang_indice_(k_ctx, ss_tmp36023->length, "ejemplos/compilador/tcodec.t", 3504)])[0]).struct_params, ss_tmp36025 = ss_view(sp), ss_mapa_tiene_mapa_str_lista_str(ss_tmp36024, ss_tmp36025))))
             {
                 continue;
             }
-#line 3513 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_lista_str* ss_tmp36044;
-            SafeView ss_tmp36045;
-            ss_res_lista_str ss_tmp36043 = ((ss_tmp36044 = &(*global).struct_params, ss_tmp36045 = ss_view(sp), lista_de(ss_tmp36044, ss_tmp36045)));
-            ss_lista_str ss_tmp36046;
-            if (ss_tmp36043.motivo != NULL)
+#line 3505 "ejemplos/compilador/tcodec.t"
+            const ss_mapa_str_lista_str* ss_tmp36027;
+            SafeView ss_tmp36028;
+            ss_res_lista_str ss_tmp36026 = ((ss_tmp36027 = &(*global).struct_params, ss_tmp36028 = ss_view(sp), lista_de(ss_tmp36027, ss_tmp36028)));
+            ss_lista_str ss_tmp36029;
+            if (ss_tmp36026.motivo != NULL)
             {
-                ss_lista_str ss_tmp36047 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_tmp36046 = ss_tmp36047;
+                ss_lista_str ss_tmp36030 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_tmp36029 = ss_tmp36030;
             }
             else
             {
-                ss_tmp36046 = ss_tmp36043.valor;
+                ss_tmp36029 = ss_tmp36026.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str ps_g = ss_tmp36046;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str ps_g = ss_tmp36029;
             bool ss_vivo_ps_g = true;
-#line 3514 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp36048;
-            ss_mapa_str_lista_str* ss_tmp36049 = &((ss_tmp36048 = &((*contextos)), &ss_tmp36048->e[ss_lang_indice_(k_ctx, ss_tmp36048->length, "ejemplos/compilador/tcodec.t", 3514)])[0]).struct_params;
-#line 3514 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_lista_str(ss_tmp36049, ss_view(sp), ps_g, "ejemplos/compilador/tcodec.t", 3514);
+#line 3506 "ejemplos/compilador/tcodec.t"
+            ss_lista_Contexto* ss_tmp36031;
+            ss_mapa_str_lista_str* ss_tmp36032 = &((ss_tmp36031 = &((*contextos)), &ss_tmp36031->e[ss_lang_indice_(k_ctx, ss_tmp36031->length, "ejemplos/compilador/tcodec.t", 3506)])[0]).struct_params;
+#line 3506 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_lista_str(ss_tmp36032, ss_view(sp), ps_g, "ejemplos/compilador/tcodec.t", 3506);
             ss_vivo_ps_g = false;
             if (ss_vivo_ps_g)
             {
-                for (size_t ss_i1247 = 0; ss_i1247 < ps_g.length; ss_i1247++)
+                for (size_t ss_i1243 = 0; ss_i1243 < ps_g.length; ss_i1243++)
                 {
-                    ss_free(&ps_g.e[ss_i1247]);
+                    ss_free(&ps_g.e[ss_i1243]);
                 }
                 free(ps_g.e);
                 ps_g.e = NULL;
@@ -121242,55 +121177,55 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 ps_g.capacity = 0;
             }
         }
-        for (size_t ss_i1248 = 0; ss_i1248 < ss_tmp36039.length; ss_i1248++)
+        for (size_t ss_i1244 = 0; ss_i1244 < ss_tmp36022.length; ss_i1244++)
         {
-            ss_free(&ss_tmp36039.e[ss_i1248]);
+            ss_free(&ss_tmp36022.e[ss_i1244]);
         }
-        free(ss_tmp36039.e);
-        ss_tmp36039.e = NULL;
-        ss_tmp36039.length = 0;
-        ss_tmp36039.capacity = 0;
-#line 3516 "ejemplos/compilador/tcodec.t"
-        ss_lista_str ss_tmp36050 = ss_mapa_claves_mapa_str_lista_str(&(*global).variantes, "ejemplos/compilador/tcodec.t", 3516);
-        for (size_t ss_k1249 = 0; ss_k1249 < ss_tmp36050.length; ss_k1249++)
+        free(ss_tmp36022.e);
+        ss_tmp36022.e = NULL;
+        ss_tmp36022.length = 0;
+        ss_tmp36022.capacity = 0;
+#line 3508 "ejemplos/compilador/tcodec.t"
+        ss_lista_str ss_tmp36033 = ss_mapa_claves_mapa_str_lista_str(&(*global).variantes, "ejemplos/compilador/tcodec.t", 3508);
+        for (size_t ss_k1245 = 0; ss_k1245 < ss_tmp36033.length; ss_k1245++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* en_g = &ss_tmp36050.e[ss_k1249];
-#line 3517 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp36051;
-            const ss_mapa_str_lista_str* ss_tmp36052;
-            SafeView ss_tmp36053;
-#line 3517 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp36052 = &((ss_tmp36051 = &((*contextos)), &ss_tmp36051->e[ss_lang_indice_(k_ctx, ss_tmp36051->length, "ejemplos/compilador/tcodec.t", 3517)])[0]).variantes, ss_tmp36053 = ss_view(en_g), ss_mapa_tiene_mapa_str_lista_str(ss_tmp36052, ss_tmp36053))))
+            SS_LANG_QUIZA_SIN_USAR const SafeString* en_g = &ss_tmp36033.e[ss_k1245];
+#line 3509 "ejemplos/compilador/tcodec.t"
+            ss_lista_Contexto* ss_tmp36034;
+            const ss_mapa_str_lista_str* ss_tmp36035;
+            SafeView ss_tmp36036;
+#line 3509 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp36035 = &((ss_tmp36034 = &((*contextos)), &ss_tmp36034->e[ss_lang_indice_(k_ctx, ss_tmp36034->length, "ejemplos/compilador/tcodec.t", 3509)])[0]).variantes, ss_tmp36036 = ss_view(en_g), ss_mapa_tiene_mapa_str_lista_str(ss_tmp36035, ss_tmp36036))))
             {
                 continue;
             }
-#line 3518 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_lista_str* ss_tmp36055;
-            SafeView ss_tmp36056;
-            ss_res_lista_str ss_tmp36054 = ((ss_tmp36055 = &(*global).variantes, ss_tmp36056 = ss_view(en_g), lista_de(ss_tmp36055, ss_tmp36056)));
-            ss_lista_str ss_tmp36057;
-            if (ss_tmp36054.motivo != NULL)
+#line 3510 "ejemplos/compilador/tcodec.t"
+            const ss_mapa_str_lista_str* ss_tmp36038;
+            SafeView ss_tmp36039;
+            ss_res_lista_str ss_tmp36037 = ((ss_tmp36038 = &(*global).variantes, ss_tmp36039 = ss_view(en_g), lista_de(ss_tmp36038, ss_tmp36039)));
+            ss_lista_str ss_tmp36040;
+            if (ss_tmp36037.motivo != NULL)
             {
-                ss_lista_str ss_tmp36058 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_tmp36057 = ss_tmp36058;
+                ss_lista_str ss_tmp36041 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_tmp36040 = ss_tmp36041;
             }
             else
             {
-                ss_tmp36057 = ss_tmp36054.valor;
+                ss_tmp36040 = ss_tmp36037.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str vs_g = ss_tmp36057;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str vs_g = ss_tmp36040;
             bool ss_vivo_vs_g = true;
-#line 3519 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp36059;
-            ss_mapa_str_lista_str* ss_tmp36060 = &((ss_tmp36059 = &((*contextos)), &ss_tmp36059->e[ss_lang_indice_(k_ctx, ss_tmp36059->length, "ejemplos/compilador/tcodec.t", 3519)])[0]).variantes;
-#line 3519 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_lista_str(ss_tmp36060, ss_view(en_g), vs_g, "ejemplos/compilador/tcodec.t", 3519);
+#line 3511 "ejemplos/compilador/tcodec.t"
+            ss_lista_Contexto* ss_tmp36042;
+            ss_mapa_str_lista_str* ss_tmp36043 = &((ss_tmp36042 = &((*contextos)), &ss_tmp36042->e[ss_lang_indice_(k_ctx, ss_tmp36042->length, "ejemplos/compilador/tcodec.t", 3511)])[0]).variantes;
+#line 3511 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_lista_str(ss_tmp36043, ss_view(en_g), vs_g, "ejemplos/compilador/tcodec.t", 3511);
             ss_vivo_vs_g = false;
             if (ss_vivo_vs_g)
             {
-                for (size_t ss_i1250 = 0; ss_i1250 < vs_g.length; ss_i1250++)
+                for (size_t ss_i1246 = 0; ss_i1246 < vs_g.length; ss_i1246++)
                 {
-                    ss_free(&vs_g.e[ss_i1250]);
+                    ss_free(&vs_g.e[ss_i1246]);
                 }
                 free(vs_g.e);
                 vs_g.e = NULL;
@@ -121298,55 +121233,55 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 vs_g.capacity = 0;
             }
         }
-        for (size_t ss_i1251 = 0; ss_i1251 < ss_tmp36050.length; ss_i1251++)
+        for (size_t ss_i1247 = 0; ss_i1247 < ss_tmp36033.length; ss_i1247++)
         {
-            ss_free(&ss_tmp36050.e[ss_i1251]);
+            ss_free(&ss_tmp36033.e[ss_i1247]);
         }
-        free(ss_tmp36050.e);
-        ss_tmp36050.e = NULL;
-        ss_tmp36050.length = 0;
-        ss_tmp36050.capacity = 0;
-#line 3521 "ejemplos/compilador/tcodec.t"
-        ss_lista_str ss_tmp36061 = ss_mapa_claves_mapa_str_lista_Tipo(&(*global).formas, "ejemplos/compilador/tcodec.t", 3521);
-        for (size_t ss_k1252 = 0; ss_k1252 < ss_tmp36061.length; ss_k1252++)
+        free(ss_tmp36033.e);
+        ss_tmp36033.e = NULL;
+        ss_tmp36033.length = 0;
+        ss_tmp36033.capacity = 0;
+#line 3513 "ejemplos/compilador/tcodec.t"
+        ss_lista_str ss_tmp36044 = ss_mapa_claves_mapa_str_lista_Tipo(&(*global).formas, "ejemplos/compilador/tcodec.t", 3513);
+        for (size_t ss_k1248 = 0; ss_k1248 < ss_tmp36044.length; ss_k1248++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* fk = &ss_tmp36061.e[ss_k1252];
-#line 3522 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp36062;
-            const ss_mapa_str_lista_Tipo* ss_tmp36063;
-            SafeView ss_tmp36064;
-#line 3522 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp36063 = &((ss_tmp36062 = &((*contextos)), &ss_tmp36062->e[ss_lang_indice_(k_ctx, ss_tmp36062->length, "ejemplos/compilador/tcodec.t", 3522)])[0]).formas, ss_tmp36064 = ss_view(fk), ss_mapa_tiene_mapa_str_lista_Tipo(ss_tmp36063, ss_tmp36064))))
+            SS_LANG_QUIZA_SIN_USAR const SafeString* fk = &ss_tmp36044.e[ss_k1248];
+#line 3514 "ejemplos/compilador/tcodec.t"
+            ss_lista_Contexto* ss_tmp36045;
+            const ss_mapa_str_lista_Tipo* ss_tmp36046;
+            SafeView ss_tmp36047;
+#line 3514 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp36046 = &((ss_tmp36045 = &((*contextos)), &ss_tmp36045->e[ss_lang_indice_(k_ctx, ss_tmp36045->length, "ejemplos/compilador/tcodec.t", 3514)])[0]).formas, ss_tmp36047 = ss_view(fk), ss_mapa_tiene_mapa_str_lista_Tipo(ss_tmp36046, ss_tmp36047))))
             {
                 continue;
             }
-#line 3523 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_lista_Tipo* ss_tmp36066;
-            SafeView ss_tmp36067;
-            ss_res_lista_Tipo ss_tmp36065 = ((ss_tmp36066 = &(*global).formas, ss_tmp36067 = ss_view(fk), tipos_de_mapa(ss_tmp36066, ss_tmp36067)));
-            ss_lista_Tipo ss_tmp36068;
-            if (ss_tmp36065.motivo != NULL)
+#line 3515 "ejemplos/compilador/tcodec.t"
+            const ss_mapa_str_lista_Tipo* ss_tmp36049;
+            SafeView ss_tmp36050;
+            ss_res_lista_Tipo ss_tmp36048 = ((ss_tmp36049 = &(*global).formas, ss_tmp36050 = ss_view(fk), tipos_de_mapa(ss_tmp36049, ss_tmp36050)));
+            ss_lista_Tipo ss_tmp36051;
+            if (ss_tmp36048.motivo != NULL)
             {
-                ss_lista_Tipo ss_tmp36069 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_tmp36068 = ss_tmp36069;
+                ss_lista_Tipo ss_tmp36052 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_tmp36051 = ss_tmp36052;
             }
             else
             {
-                ss_tmp36068 = ss_tmp36065.valor;
+                ss_tmp36051 = ss_tmp36048.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR ss_lista_Tipo fs_g = ss_tmp36068;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_Tipo fs_g = ss_tmp36051;
             bool ss_vivo_fs_g = true;
-#line 3524 "ejemplos/compilador/tcodec.t"
-            ss_lista_Contexto* ss_tmp36070;
-            ss_mapa_str_lista_Tipo* ss_tmp36071 = &((ss_tmp36070 = &((*contextos)), &ss_tmp36070->e[ss_lang_indice_(k_ctx, ss_tmp36070->length, "ejemplos/compilador/tcodec.t", 3524)])[0]).formas;
-#line 3524 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_lista_Tipo(ss_tmp36071, ss_view(fk), fs_g, "ejemplos/compilador/tcodec.t", 3524);
+#line 3516 "ejemplos/compilador/tcodec.t"
+            ss_lista_Contexto* ss_tmp36053;
+            ss_mapa_str_lista_Tipo* ss_tmp36054 = &((ss_tmp36053 = &((*contextos)), &ss_tmp36053->e[ss_lang_indice_(k_ctx, ss_tmp36053->length, "ejemplos/compilador/tcodec.t", 3516)])[0]).formas;
+#line 3516 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_lista_Tipo(ss_tmp36054, ss_view(fk), fs_g, "ejemplos/compilador/tcodec.t", 3516);
             ss_vivo_fs_g = false;
             if (ss_vivo_fs_g)
             {
-                for (size_t ss_i1253 = 0; ss_i1253 < fs_g.length; ss_i1253++)
+                for (size_t ss_i1249 = 0; ss_i1249 < fs_g.length; ss_i1249++)
                 {
-                    ss_drop_Tipo(&fs_g.e[ss_i1253]);
+                    ss_drop_Tipo(&fs_g.e[ss_i1249]);
                 }
                 free(fs_g.e);
                 fs_g.e = NULL;
@@ -121354,66 +121289,66 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_bool ajustar_contextos(SS_LANG_QUIZA_SIN_US
                 fs_g.capacity = 0;
             }
         }
-        for (size_t ss_i1254 = 0; ss_i1254 < ss_tmp36061.length; ss_i1254++)
+        for (size_t ss_i1250 = 0; ss_i1250 < ss_tmp36044.length; ss_i1250++)
         {
-            ss_free(&ss_tmp36061.e[ss_i1254]);
+            ss_free(&ss_tmp36044.e[ss_i1250]);
         }
-        free(ss_tmp36061.e);
-        ss_tmp36061.e = NULL;
-        ss_tmp36061.length = 0;
-        ss_tmp36061.capacity = 0;
-#line 3526 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36072;
-        size_t ss_tmp36073;
-#line 3526 "ejemplos/compilador/tcodec.t"
-        k_ctx = ((ss_tmp36072 = k_ctx, ss_tmp36073 = (size_t)1, ss_lang_suma_usize(ss_tmp36072, ss_tmp36073, "ejemplos/compilador/tcodec.t", 3526)));
+        free(ss_tmp36044.e);
+        ss_tmp36044.e = NULL;
+        ss_tmp36044.length = 0;
+        ss_tmp36044.capacity = 0;
+#line 3518 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36055;
+        size_t ss_tmp36056;
+#line 3518 "ejemplos/compilador/tcodec.t"
+        k_ctx = ((ss_tmp36055 = k_ctx, ss_tmp36056 = (size_t)1, ss_lang_suma_usize(ss_tmp36055, ss_tmp36056, "ejemplos/compilador/tcodec.t", 3518)));
     }
-#line 3528 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp36074 = true;
+#line 3520 "ejemplos/compilador/tcodec.t"
+    bool ss_tmp36057 = true;
     ss_free(&error_nombres);
-    return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp36074 };
+    return (ss_res_bool){ .motivo = NULL, .valor = ss_tmp36057 };
 }
 
-#line 3531 "ejemplos/compilador/tcodec.t"
+#line 3523 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_SIN_USAR SafeView fuente, SS_LANG_QUIZA_SIN_USAR SafeView raiz)
 {
-#line 3532 "ejemplos/compilador/tcodec.t"
+#line 3524 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString principal = programa__normalizar(fuente);
-#line 3533 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36075 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str modulos = ss_tmp36075;
+#line 3525 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36058 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str modulos = ss_tmp36058;
     bool ss_vivo_modulos = true;
-#line 3534 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36076 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str pila = ss_tmp36076;
-#line 3535 "ejemplos/compilador/tcodec.t"
+#line 3526 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36059 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str pila = ss_tmp36059;
+#line 3527 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString error_carga = ss_new();
-#line 3536 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp36077;
-    SafeView ss_tmp36078;
-    ss_lista_str* ss_tmp36079;
-    ss_lista_str* ss_tmp36080;
-    SafeString* ss_tmp36081;
-    SafeView ss_tmp36082;
-    size_t ss_tmp36083;
-    if ((!((ss_tmp36077 = ss_view(&principal), ss_tmp36078 = raiz, ss_tmp36079 = &modulos, ss_tmp36080 = &pila, ss_tmp36081 = &error_carga, ss_tmp36082 = sv_len("", 0), ss_tmp36083 = (size_t)0, tcodec__visitar(ss_tmp36077, ss_tmp36078, ss_tmp36079, ss_tmp36080, ss_tmp36081, ss_tmp36082, ss_tmp36083)))))
+#line 3528 "ejemplos/compilador/tcodec.t"
+    SafeView ss_tmp36060;
+    SafeView ss_tmp36061;
+    ss_lista_str* ss_tmp36062;
+    ss_lista_str* ss_tmp36063;
+    SafeString* ss_tmp36064;
+    SafeView ss_tmp36065;
+    size_t ss_tmp36066;
+    if ((!((ss_tmp36060 = ss_view(&principal), ss_tmp36061 = raiz, ss_tmp36062 = &modulos, ss_tmp36063 = &pila, ss_tmp36064 = &error_carga, ss_tmp36065 = sv_len("", 0), ss_tmp36066 = (size_t)0, tcodec__visitar(ss_tmp36060, ss_tmp36061, ss_tmp36062, ss_tmp36063, ss_tmp36064, ss_tmp36065, ss_tmp36066)))))
     {
-#line 3537 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp36085 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp36085, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 3537);
-        ss_lang_agregar_texto_(&ss_tmp36085, ss_view(&error_carga), "ejemplos/compilador/tcodec.t", 3537);
-        ss_lang_agregar_texto_(&ss_tmp36085, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 3537);
-        SafeString ss_tmp36084 = ss_tmp36085;
-        SafeView ss_tmp36086 = ss_view(&ss_tmp36084);
-#line 3537 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stderr, ss_tmp36086);
-        ss_free(&ss_tmp36084);
-#line 3538 "ejemplos/compilador/tcodec.t"
-        ProgramaLeido ss_tmp36087 = programa_no_leido();
+#line 3529 "ejemplos/compilador/tcodec.t"
+        SafeString ss_tmp36068 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp36068, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 3529);
+        ss_lang_agregar_texto_(&ss_tmp36068, ss_view(&error_carga), "ejemplos/compilador/tcodec.t", 3529);
+        ss_lang_agregar_texto_(&ss_tmp36068, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 3529);
+        SafeString ss_tmp36067 = ss_tmp36068;
+        SafeView ss_tmp36069 = ss_view(&ss_tmp36067);
+#line 3529 "ejemplos/compilador/tcodec.t"
+        ss_lang_escribir_(stderr, ss_tmp36069);
+        ss_free(&ss_tmp36067);
+#line 3530 "ejemplos/compilador/tcodec.t"
+        ProgramaLeido ss_tmp36070 = programa_no_leido();
         ss_free(&error_carga);
-        for (size_t ss_i1255 = 0; ss_i1255 < pila.length; ss_i1255++)
+        for (size_t ss_i1251 = 0; ss_i1251 < pila.length; ss_i1251++)
         {
-            ss_free(&pila.e[ss_i1255]);
+            ss_free(&pila.e[ss_i1251]);
         }
         free(pila.e);
         pila.e = NULL;
@@ -121421,9 +121356,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         pila.capacity = 0;
         if (ss_vivo_modulos)
         {
-            for (size_t ss_i1256 = 0; ss_i1256 < modulos.length; ss_i1256++)
+            for (size_t ss_i1252 = 0; ss_i1252 < modulos.length; ss_i1252++)
             {
-                ss_free(&modulos.e[ss_i1256]);
+                ss_free(&modulos.e[ss_i1252]);
             }
             free(modulos.e);
             modulos.e = NULL;
@@ -121431,770 +121366,770 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             modulos.capacity = 0;
         }
         ss_free(&principal);
-        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36087 };
+        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36070 };
     }
-#line 3541 "ejemplos/compilador/tcodec.t"
+#line 3533 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR Contexto global = contexto();
     bool ss_vivo_global = true;
-#line 3542 "ejemplos/compilador/tcodec.t"
-    ss_lista_Nodo ss_tmp36088 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo arboles = ss_tmp36088;
+#line 3534 "ejemplos/compilador/tcodec.t"
+    ss_lista_Nodo ss_tmp36071 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo arboles = ss_tmp36071;
     bool ss_vivo_arboles = true;
-#line 3543 "ejemplos/compilador/tcodec.t"
-    ss_lista_Contexto ss_tmp36089 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto contextos = ss_tmp36089;
+#line 3535 "ejemplos/compilador/tcodec.t"
+    ss_lista_Contexto ss_tmp36072 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto contextos = ss_tmp36072;
     bool ss_vivo_contextos = true;
-#line 3544 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36090 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str st_nombres = ss_tmp36090;
+#line 3536 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36073 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str st_nombres = ss_tmp36073;
     bool ss_vivo_st_nombres = true;
-#line 3545 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp36091 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str st_campos = ss_tmp36091;
+#line 3537 "ejemplos/compilador/tcodec.t"
+    ss_lista_lista_str ss_tmp36074 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str st_campos = ss_tmp36074;
     bool ss_vivo_st_campos = true;
-#line 3546 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp36092 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str st_tipos = ss_tmp36092;
+#line 3538 "ejemplos/compilador/tcodec.t"
+    ss_lista_lista_str ss_tmp36075 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str st_tipos = ss_tmp36075;
     bool ss_vivo_st_tipos = true;
-#line 3547 "ejemplos/compilador/tcodec.t"
+#line 3539 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize st_indice = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
     bool ss_vivo_st_indice = true;
-#line 3549 "ejemplos/compilador/tcodec.t"
+#line 3541 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_str st_donde = (ss_mapa_str_str){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
-#line 3550 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36093 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str stp_nombres = ss_tmp36093;
-#line 3551 "ejemplos/compilador/tcodec.t"
+#line 3542 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36076 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str stp_nombres = ss_tmp36076;
+#line 3543 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize stp_indice = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
     bool ss_vivo_stp_indice = true;
-#line 3552 "ejemplos/compilador/tcodec.t"
+#line 3544 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_str stp_donde = (ss_mapa_str_str){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
-#line 3553 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp36094 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_params = ss_tmp36094;
+#line 3545 "ejemplos/compilador/tcodec.t"
+    ss_lista_lista_str ss_tmp36077 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_params = ss_tmp36077;
     bool ss_vivo_stp_params = true;
-#line 3554 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp36095 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_campos = ss_tmp36095;
+#line 3546 "ejemplos/compilador/tcodec.t"
+    ss_lista_lista_str ss_tmp36078 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_campos = ss_tmp36078;
     bool ss_vivo_stp_campos = true;
-#line 3555 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp36096 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_tipos = ss_tmp36096;
+#line 3547 "ejemplos/compilador/tcodec.t"
+    ss_lista_lista_str ss_tmp36079 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_tipos = ss_tmp36079;
     bool ss_vivo_stp_tipos = true;
-#line 3556 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36097 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_cabeceras = ss_tmp36097;
+#line 3548 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36080 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_cabeceras = ss_tmp36080;
     bool ss_vivo_ext_cabeceras = true;
-#line 3557 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36098 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_modulos = ss_tmp36098;
+#line 3549 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36081 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_modulos = ss_tmp36081;
     bool ss_vivo_ext_modulos = true;
-#line 3558 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36099 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_protos = ss_tmp36099;
+#line 3550 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36082 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_protos = ss_tmp36082;
     bool ss_vivo_ext_protos = true;
-#line 3559 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36100 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str en_nombres = ss_tmp36100;
+#line 3551 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36083 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str en_nombres = ss_tmp36083;
     bool ss_vivo_en_nombres = true;
-#line 3560 "ejemplos/compilador/tcodec.t"
+#line 3552 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize en_indice = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
     bool ss_vivo_en_indice = true;
-#line 3561 "ejemplos/compilador/tcodec.t"
+#line 3553 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_str en_donde = (ss_mapa_str_str){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
-#line 3562 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp36101 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str en_variantes = ss_tmp36101;
+#line 3554 "ejemplos/compilador/tcodec.t"
+    ss_lista_lista_str ss_tmp36084 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str en_variantes = ss_tmp36084;
     bool ss_vivo_en_variantes = true;
-#line 3563 "ejemplos/compilador/tcodec.t"
-    ss_lista_lista_str ss_tmp36102 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str en_lleva = ss_tmp36102;
+#line 3555 "ejemplos/compilador/tcodec.t"
+    ss_lista_lista_str ss_tmp36085 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str en_lleva = ss_tmp36085;
     bool ss_vivo_en_lleva = true;
-#line 3564 "ejemplos/compilador/tcodec.t"
+#line 3556 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize plantillas = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
     bool ss_vivo_plantillas = true;
-#line 3565 "ejemplos/compilador/tcodec.t"
+#line 3557 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize previos_st = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
-#line 3566 "ejemplos/compilador/tcodec.t"
+#line 3558 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize previos_en = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
-#line 3567 "ejemplos/compilador/tcodec.t"
+#line 3559 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR Leidos leidos = leidos_en(raiz);
-#line 3568 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1257 = 0; ss_k1257 < modulos.length; ss_k1257++)
+#line 3560 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1253 = 0; ss_k1253 < modulos.length; ss_k1253++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* m = &modulos.e[ss_k1257];
-#line 3569 "ejemplos/compilador/tcodec.t"
+        SS_LANG_QUIZA_SIN_USAR const SafeString* m = &modulos.e[ss_k1253];
+#line 3561 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR Contexto tipos = contexto();
         bool ss_vivo_tipos = true;
-#line 3570 "ejemplos/compilador/tcodec.t"
+#line 3562 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString error_m = ss_new();
-#line 3571 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp36104;
-        Contexto* ss_tmp36105;
-        SafeString* ss_tmp36106;
-        const ss_mapa_str_usize* ss_tmp36107;
-        const ss_mapa_str_usize* ss_tmp36108;
-        Leidos* ss_tmp36109;
-        bool ss_tmp36110;
-        ss_res_Nodo ss_tmp36103 = ((ss_tmp36104 = ss_view(m), ss_tmp36105 = &tipos, ss_tmp36106 = &error_m, ss_tmp36107 = &previos_st, ss_tmp36108 = &previos_en, ss_tmp36109 = &leidos, ss_tmp36110 = false, preparar_con_error(ss_tmp36104, ss_tmp36105, ss_tmp36106, ss_tmp36107, ss_tmp36108, ss_tmp36109, ss_tmp36110)));
-        Nodo ss_tmp36111;
-        if (ss_tmp36103.motivo != NULL)
+#line 3563 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp36087;
+        Contexto* ss_tmp36088;
+        SafeString* ss_tmp36089;
+        const ss_mapa_str_usize* ss_tmp36090;
+        const ss_mapa_str_usize* ss_tmp36091;
+        Leidos* ss_tmp36092;
+        bool ss_tmp36093;
+        ss_res_Nodo ss_tmp36086 = ((ss_tmp36087 = ss_view(m), ss_tmp36088 = &tipos, ss_tmp36089 = &error_m, ss_tmp36090 = &previos_st, ss_tmp36091 = &previos_en, ss_tmp36092 = &leidos, ss_tmp36093 = false, preparar_con_error(ss_tmp36087, ss_tmp36088, ss_tmp36089, ss_tmp36090, ss_tmp36091, ss_tmp36092, ss_tmp36093)));
+        Nodo ss_tmp36094;
+        if (ss_tmp36086.motivo != NULL)
         {
-            Clase ss_tmp36112;
-            size_t ss_tmp36113;
-            ss_tmp36111 = ((ss_tmp36112 = (Clase){ .etiqueta = SS_CLASE_VACIO }, ss_tmp36113 = (size_t)0, rama(ss_tmp36112, ss_tmp36113)));
+            Clase ss_tmp36095;
+            size_t ss_tmp36096;
+            ss_tmp36094 = ((ss_tmp36095 = (Clase){ .etiqueta = SS_CLASE_VACIO }, ss_tmp36096 = (size_t)0, rama(ss_tmp36095, ss_tmp36096)));
         }
         else
         {
-            ss_tmp36111 = ss_tmp36103.valor;
+            ss_tmp36094 = ss_tmp36086.valor;
         }
-        SS_LANG_QUIZA_SIN_USAR Nodo arbol = ss_tmp36111;
+        SS_LANG_QUIZA_SIN_USAR Nodo arbol = ss_tmp36094;
         bool ss_vivo_arbol = true;
-#line 3573 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36114;
-        size_t ss_tmp36115;
-#line 3573 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp36114 = sv_len_of(ss_view(&error_m)), ss_tmp36115 = (size_t)0, (ss_tmp36114 > ss_tmp36115))))
+#line 3565 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36097;
+        size_t ss_tmp36098;
+#line 3565 "ejemplos/compilador/tcodec.t"
+        if (((ss_tmp36097 = sv_len_of(ss_view(&error_m)), ss_tmp36098 = (size_t)0, (ss_tmp36097 > ss_tmp36098))))
         {
+#line 3566 "ejemplos/compilador/tcodec.t"
+            SafeString ss_tmp36100 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp36100, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 3566);
+            ss_lang_agregar_texto_(&ss_tmp36100, ss_view(&error_m), "ejemplos/compilador/tcodec.t", 3566);
+            ss_lang_agregar_texto_(&ss_tmp36100, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 3566);
+            SafeString ss_tmp36099 = ss_tmp36100;
+            SafeView ss_tmp36101 = ss_view(&ss_tmp36099);
+#line 3566 "ejemplos/compilador/tcodec.t"
+            ss_lang_escribir_(stderr, ss_tmp36101);
+            ss_free(&ss_tmp36099);
+#line 3567 "ejemplos/compilador/tcodec.t"
+            ProgramaLeido ss_tmp36102 = programa_no_leido();
+            if (ss_vivo_arbol)
+            {
+                ss_drop_Nodo(&arbol);
+            }
+            ss_free(&error_m);
+            if (ss_vivo_tipos)
+            {
+                ss_drop_Contexto(&tipos);
+            }
+            ss_drop_Leidos(&leidos);
+            ss_mapa_libre_mapa_str_usize(&previos_en);
+            ss_mapa_libre_mapa_str_usize(&previos_st);
+            if (ss_vivo_plantillas)
+            {
+                ss_mapa_libre_mapa_str_usize(&plantillas);
+            }
+            if (ss_vivo_en_lleva)
+            {
+                for (size_t ss_i1254 = 0; ss_i1254 < en_lleva.length; ss_i1254++)
+                {
+                    for (size_t ss_i1255 = 0; ss_i1255 < en_lleva.e[ss_i1254].length; ss_i1255++)
+                    {
+                        ss_free(&en_lleva.e[ss_i1254].e[ss_i1255]);
+                    }
+                    free(en_lleva.e[ss_i1254].e);
+                    en_lleva.e[ss_i1254].e = NULL;
+                    en_lleva.e[ss_i1254].length = 0;
+                    en_lleva.e[ss_i1254].capacity = 0;
+                }
+                free(en_lleva.e);
+                en_lleva.e = NULL;
+                en_lleva.length = 0;
+                en_lleva.capacity = 0;
+            }
+            if (ss_vivo_en_variantes)
+            {
+                for (size_t ss_i1256 = 0; ss_i1256 < en_variantes.length; ss_i1256++)
+                {
+                    for (size_t ss_i1257 = 0; ss_i1257 < en_variantes.e[ss_i1256].length; ss_i1257++)
+                    {
+                        ss_free(&en_variantes.e[ss_i1256].e[ss_i1257]);
+                    }
+                    free(en_variantes.e[ss_i1256].e);
+                    en_variantes.e[ss_i1256].e = NULL;
+                    en_variantes.e[ss_i1256].length = 0;
+                    en_variantes.e[ss_i1256].capacity = 0;
+                }
+                free(en_variantes.e);
+                en_variantes.e = NULL;
+                en_variantes.length = 0;
+                en_variantes.capacity = 0;
+            }
+            ss_mapa_libre_mapa_str_str(&en_donde);
+            if (ss_vivo_en_indice)
+            {
+                ss_mapa_libre_mapa_str_usize(&en_indice);
+            }
+            if (ss_vivo_en_nombres)
+            {
+                for (size_t ss_i1258 = 0; ss_i1258 < en_nombres.length; ss_i1258++)
+                {
+                    ss_free(&en_nombres.e[ss_i1258]);
+                }
+                free(en_nombres.e);
+                en_nombres.e = NULL;
+                en_nombres.length = 0;
+                en_nombres.capacity = 0;
+            }
+            if (ss_vivo_ext_protos)
+            {
+                for (size_t ss_i1259 = 0; ss_i1259 < ext_protos.length; ss_i1259++)
+                {
+                    ss_free(&ext_protos.e[ss_i1259]);
+                }
+                free(ext_protos.e);
+                ext_protos.e = NULL;
+                ext_protos.length = 0;
+                ext_protos.capacity = 0;
+            }
+            if (ss_vivo_ext_modulos)
+            {
+                for (size_t ss_i1260 = 0; ss_i1260 < ext_modulos.length; ss_i1260++)
+                {
+                    ss_free(&ext_modulos.e[ss_i1260]);
+                }
+                free(ext_modulos.e);
+                ext_modulos.e = NULL;
+                ext_modulos.length = 0;
+                ext_modulos.capacity = 0;
+            }
+            if (ss_vivo_ext_cabeceras)
+            {
+                for (size_t ss_i1261 = 0; ss_i1261 < ext_cabeceras.length; ss_i1261++)
+                {
+                    ss_free(&ext_cabeceras.e[ss_i1261]);
+                }
+                free(ext_cabeceras.e);
+                ext_cabeceras.e = NULL;
+                ext_cabeceras.length = 0;
+                ext_cabeceras.capacity = 0;
+            }
+            if (ss_vivo_stp_tipos)
+            {
+                for (size_t ss_i1262 = 0; ss_i1262 < stp_tipos.length; ss_i1262++)
+                {
+                    for (size_t ss_i1263 = 0; ss_i1263 < stp_tipos.e[ss_i1262].length; ss_i1263++)
+                    {
+                        ss_free(&stp_tipos.e[ss_i1262].e[ss_i1263]);
+                    }
+                    free(stp_tipos.e[ss_i1262].e);
+                    stp_tipos.e[ss_i1262].e = NULL;
+                    stp_tipos.e[ss_i1262].length = 0;
+                    stp_tipos.e[ss_i1262].capacity = 0;
+                }
+                free(stp_tipos.e);
+                stp_tipos.e = NULL;
+                stp_tipos.length = 0;
+                stp_tipos.capacity = 0;
+            }
+            if (ss_vivo_stp_campos)
+            {
+                for (size_t ss_i1264 = 0; ss_i1264 < stp_campos.length; ss_i1264++)
+                {
+                    for (size_t ss_i1265 = 0; ss_i1265 < stp_campos.e[ss_i1264].length; ss_i1265++)
+                    {
+                        ss_free(&stp_campos.e[ss_i1264].e[ss_i1265]);
+                    }
+                    free(stp_campos.e[ss_i1264].e);
+                    stp_campos.e[ss_i1264].e = NULL;
+                    stp_campos.e[ss_i1264].length = 0;
+                    stp_campos.e[ss_i1264].capacity = 0;
+                }
+                free(stp_campos.e);
+                stp_campos.e = NULL;
+                stp_campos.length = 0;
+                stp_campos.capacity = 0;
+            }
+            if (ss_vivo_stp_params)
+            {
+                for (size_t ss_i1266 = 0; ss_i1266 < stp_params.length; ss_i1266++)
+                {
+                    for (size_t ss_i1267 = 0; ss_i1267 < stp_params.e[ss_i1266].length; ss_i1267++)
+                    {
+                        ss_free(&stp_params.e[ss_i1266].e[ss_i1267]);
+                    }
+                    free(stp_params.e[ss_i1266].e);
+                    stp_params.e[ss_i1266].e = NULL;
+                    stp_params.e[ss_i1266].length = 0;
+                    stp_params.e[ss_i1266].capacity = 0;
+                }
+                free(stp_params.e);
+                stp_params.e = NULL;
+                stp_params.length = 0;
+                stp_params.capacity = 0;
+            }
+            ss_mapa_libre_mapa_str_str(&stp_donde);
+            if (ss_vivo_stp_indice)
+            {
+                ss_mapa_libre_mapa_str_usize(&stp_indice);
+            }
+            for (size_t ss_i1268 = 0; ss_i1268 < stp_nombres.length; ss_i1268++)
+            {
+                ss_free(&stp_nombres.e[ss_i1268]);
+            }
+            free(stp_nombres.e);
+            stp_nombres.e = NULL;
+            stp_nombres.length = 0;
+            stp_nombres.capacity = 0;
+            ss_mapa_libre_mapa_str_str(&st_donde);
+            if (ss_vivo_st_indice)
+            {
+                ss_mapa_libre_mapa_str_usize(&st_indice);
+            }
+            if (ss_vivo_st_tipos)
+            {
+                for (size_t ss_i1269 = 0; ss_i1269 < st_tipos.length; ss_i1269++)
+                {
+                    for (size_t ss_i1270 = 0; ss_i1270 < st_tipos.e[ss_i1269].length; ss_i1270++)
+                    {
+                        ss_free(&st_tipos.e[ss_i1269].e[ss_i1270]);
+                    }
+                    free(st_tipos.e[ss_i1269].e);
+                    st_tipos.e[ss_i1269].e = NULL;
+                    st_tipos.e[ss_i1269].length = 0;
+                    st_tipos.e[ss_i1269].capacity = 0;
+                }
+                free(st_tipos.e);
+                st_tipos.e = NULL;
+                st_tipos.length = 0;
+                st_tipos.capacity = 0;
+            }
+            if (ss_vivo_st_campos)
+            {
+                for (size_t ss_i1271 = 0; ss_i1271 < st_campos.length; ss_i1271++)
+                {
+                    for (size_t ss_i1272 = 0; ss_i1272 < st_campos.e[ss_i1271].length; ss_i1272++)
+                    {
+                        ss_free(&st_campos.e[ss_i1271].e[ss_i1272]);
+                    }
+                    free(st_campos.e[ss_i1271].e);
+                    st_campos.e[ss_i1271].e = NULL;
+                    st_campos.e[ss_i1271].length = 0;
+                    st_campos.e[ss_i1271].capacity = 0;
+                }
+                free(st_campos.e);
+                st_campos.e = NULL;
+                st_campos.length = 0;
+                st_campos.capacity = 0;
+            }
+            if (ss_vivo_st_nombres)
+            {
+                for (size_t ss_i1273 = 0; ss_i1273 < st_nombres.length; ss_i1273++)
+                {
+                    ss_free(&st_nombres.e[ss_i1273]);
+                }
+                free(st_nombres.e);
+                st_nombres.e = NULL;
+                st_nombres.length = 0;
+                st_nombres.capacity = 0;
+            }
+            if (ss_vivo_contextos)
+            {
+                for (size_t ss_i1274 = 0; ss_i1274 < contextos.length; ss_i1274++)
+                {
+                    ss_drop_Contexto(&contextos.e[ss_i1274]);
+                }
+                free(contextos.e);
+                contextos.e = NULL;
+                contextos.length = 0;
+                contextos.capacity = 0;
+            }
+            if (ss_vivo_arboles)
+            {
+                for (size_t ss_i1275 = 0; ss_i1275 < arboles.length; ss_i1275++)
+                {
+                    ss_drop_Nodo(&arboles.e[ss_i1275]);
+                }
+                free(arboles.e);
+                arboles.e = NULL;
+                arboles.length = 0;
+                arboles.capacity = 0;
+            }
+            if (ss_vivo_global)
+            {
+                ss_drop_Contexto(&global);
+            }
+            ss_free(&error_carga);
+            for (size_t ss_i1276 = 0; ss_i1276 < pila.length; ss_i1276++)
+            {
+                ss_free(&pila.e[ss_i1276]);
+            }
+            free(pila.e);
+            pila.e = NULL;
+            pila.length = 0;
+            pila.capacity = 0;
+            if (ss_vivo_modulos)
+            {
+                for (size_t ss_i1277 = 0; ss_i1277 < modulos.length; ss_i1277++)
+                {
+                    ss_free(&modulos.e[ss_i1277]);
+                }
+                free(modulos.e);
+                modulos.e = NULL;
+                modulos.length = 0;
+                modulos.capacity = 0;
+            }
+            ss_free(&principal);
+            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36102 };
+        }
+#line 3569 "ejemplos/compilador/tcodec.t"
+        Clase ss_tmp36103;
+        Clase ss_tmp36104;
+#line 3569 "ejemplos/compilador/tcodec.t"
+        if (((ss_tmp36103 = arbol.clase, ss_tmp36104 = (Clase){ .etiqueta = SS_CLASE_VACIO }, (ss_tmp36103.etiqueta == ss_tmp36104.etiqueta))))
+        {
+#line 3570 "ejemplos/compilador/tcodec.t"
+            SafeString ss_tmp36106 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp36106, sv_len("tcodec: no se pudo leer `", 25), "ejemplos/compilador/tcodec.t", 3570);
+            ss_lang_agregar_texto_(&ss_tmp36106, ss_view(m), "ejemplos/compilador/tcodec.t", 3570);
+            ss_lang_agregar_texto_(&ss_tmp36106, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 3570);
+            SafeString ss_tmp36105 = ss_tmp36106;
+            SafeView ss_tmp36107 = ss_view(&ss_tmp36105);
+#line 3570 "ejemplos/compilador/tcodec.t"
+            ss_lang_escribir_(stderr, ss_tmp36107);
+            ss_free(&ss_tmp36105);
+#line 3571 "ejemplos/compilador/tcodec.t"
+            ProgramaLeido ss_tmp36108 = programa_no_leido();
+            if (ss_vivo_arbol)
+            {
+                ss_drop_Nodo(&arbol);
+            }
+            ss_free(&error_m);
+            if (ss_vivo_tipos)
+            {
+                ss_drop_Contexto(&tipos);
+            }
+            ss_drop_Leidos(&leidos);
+            ss_mapa_libre_mapa_str_usize(&previos_en);
+            ss_mapa_libre_mapa_str_usize(&previos_st);
+            if (ss_vivo_plantillas)
+            {
+                ss_mapa_libre_mapa_str_usize(&plantillas);
+            }
+            if (ss_vivo_en_lleva)
+            {
+                for (size_t ss_i1278 = 0; ss_i1278 < en_lleva.length; ss_i1278++)
+                {
+                    for (size_t ss_i1279 = 0; ss_i1279 < en_lleva.e[ss_i1278].length; ss_i1279++)
+                    {
+                        ss_free(&en_lleva.e[ss_i1278].e[ss_i1279]);
+                    }
+                    free(en_lleva.e[ss_i1278].e);
+                    en_lleva.e[ss_i1278].e = NULL;
+                    en_lleva.e[ss_i1278].length = 0;
+                    en_lleva.e[ss_i1278].capacity = 0;
+                }
+                free(en_lleva.e);
+                en_lleva.e = NULL;
+                en_lleva.length = 0;
+                en_lleva.capacity = 0;
+            }
+            if (ss_vivo_en_variantes)
+            {
+                for (size_t ss_i1280 = 0; ss_i1280 < en_variantes.length; ss_i1280++)
+                {
+                    for (size_t ss_i1281 = 0; ss_i1281 < en_variantes.e[ss_i1280].length; ss_i1281++)
+                    {
+                        ss_free(&en_variantes.e[ss_i1280].e[ss_i1281]);
+                    }
+                    free(en_variantes.e[ss_i1280].e);
+                    en_variantes.e[ss_i1280].e = NULL;
+                    en_variantes.e[ss_i1280].length = 0;
+                    en_variantes.e[ss_i1280].capacity = 0;
+                }
+                free(en_variantes.e);
+                en_variantes.e = NULL;
+                en_variantes.length = 0;
+                en_variantes.capacity = 0;
+            }
+            ss_mapa_libre_mapa_str_str(&en_donde);
+            if (ss_vivo_en_indice)
+            {
+                ss_mapa_libre_mapa_str_usize(&en_indice);
+            }
+            if (ss_vivo_en_nombres)
+            {
+                for (size_t ss_i1282 = 0; ss_i1282 < en_nombres.length; ss_i1282++)
+                {
+                    ss_free(&en_nombres.e[ss_i1282]);
+                }
+                free(en_nombres.e);
+                en_nombres.e = NULL;
+                en_nombres.length = 0;
+                en_nombres.capacity = 0;
+            }
+            if (ss_vivo_ext_protos)
+            {
+                for (size_t ss_i1283 = 0; ss_i1283 < ext_protos.length; ss_i1283++)
+                {
+                    ss_free(&ext_protos.e[ss_i1283]);
+                }
+                free(ext_protos.e);
+                ext_protos.e = NULL;
+                ext_protos.length = 0;
+                ext_protos.capacity = 0;
+            }
+            if (ss_vivo_ext_modulos)
+            {
+                for (size_t ss_i1284 = 0; ss_i1284 < ext_modulos.length; ss_i1284++)
+                {
+                    ss_free(&ext_modulos.e[ss_i1284]);
+                }
+                free(ext_modulos.e);
+                ext_modulos.e = NULL;
+                ext_modulos.length = 0;
+                ext_modulos.capacity = 0;
+            }
+            if (ss_vivo_ext_cabeceras)
+            {
+                for (size_t ss_i1285 = 0; ss_i1285 < ext_cabeceras.length; ss_i1285++)
+                {
+                    ss_free(&ext_cabeceras.e[ss_i1285]);
+                }
+                free(ext_cabeceras.e);
+                ext_cabeceras.e = NULL;
+                ext_cabeceras.length = 0;
+                ext_cabeceras.capacity = 0;
+            }
+            if (ss_vivo_stp_tipos)
+            {
+                for (size_t ss_i1286 = 0; ss_i1286 < stp_tipos.length; ss_i1286++)
+                {
+                    for (size_t ss_i1287 = 0; ss_i1287 < stp_tipos.e[ss_i1286].length; ss_i1287++)
+                    {
+                        ss_free(&stp_tipos.e[ss_i1286].e[ss_i1287]);
+                    }
+                    free(stp_tipos.e[ss_i1286].e);
+                    stp_tipos.e[ss_i1286].e = NULL;
+                    stp_tipos.e[ss_i1286].length = 0;
+                    stp_tipos.e[ss_i1286].capacity = 0;
+                }
+                free(stp_tipos.e);
+                stp_tipos.e = NULL;
+                stp_tipos.length = 0;
+                stp_tipos.capacity = 0;
+            }
+            if (ss_vivo_stp_campos)
+            {
+                for (size_t ss_i1288 = 0; ss_i1288 < stp_campos.length; ss_i1288++)
+                {
+                    for (size_t ss_i1289 = 0; ss_i1289 < stp_campos.e[ss_i1288].length; ss_i1289++)
+                    {
+                        ss_free(&stp_campos.e[ss_i1288].e[ss_i1289]);
+                    }
+                    free(stp_campos.e[ss_i1288].e);
+                    stp_campos.e[ss_i1288].e = NULL;
+                    stp_campos.e[ss_i1288].length = 0;
+                    stp_campos.e[ss_i1288].capacity = 0;
+                }
+                free(stp_campos.e);
+                stp_campos.e = NULL;
+                stp_campos.length = 0;
+                stp_campos.capacity = 0;
+            }
+            if (ss_vivo_stp_params)
+            {
+                for (size_t ss_i1290 = 0; ss_i1290 < stp_params.length; ss_i1290++)
+                {
+                    for (size_t ss_i1291 = 0; ss_i1291 < stp_params.e[ss_i1290].length; ss_i1291++)
+                    {
+                        ss_free(&stp_params.e[ss_i1290].e[ss_i1291]);
+                    }
+                    free(stp_params.e[ss_i1290].e);
+                    stp_params.e[ss_i1290].e = NULL;
+                    stp_params.e[ss_i1290].length = 0;
+                    stp_params.e[ss_i1290].capacity = 0;
+                }
+                free(stp_params.e);
+                stp_params.e = NULL;
+                stp_params.length = 0;
+                stp_params.capacity = 0;
+            }
+            ss_mapa_libre_mapa_str_str(&stp_donde);
+            if (ss_vivo_stp_indice)
+            {
+                ss_mapa_libre_mapa_str_usize(&stp_indice);
+            }
+            for (size_t ss_i1292 = 0; ss_i1292 < stp_nombres.length; ss_i1292++)
+            {
+                ss_free(&stp_nombres.e[ss_i1292]);
+            }
+            free(stp_nombres.e);
+            stp_nombres.e = NULL;
+            stp_nombres.length = 0;
+            stp_nombres.capacity = 0;
+            ss_mapa_libre_mapa_str_str(&st_donde);
+            if (ss_vivo_st_indice)
+            {
+                ss_mapa_libre_mapa_str_usize(&st_indice);
+            }
+            if (ss_vivo_st_tipos)
+            {
+                for (size_t ss_i1293 = 0; ss_i1293 < st_tipos.length; ss_i1293++)
+                {
+                    for (size_t ss_i1294 = 0; ss_i1294 < st_tipos.e[ss_i1293].length; ss_i1294++)
+                    {
+                        ss_free(&st_tipos.e[ss_i1293].e[ss_i1294]);
+                    }
+                    free(st_tipos.e[ss_i1293].e);
+                    st_tipos.e[ss_i1293].e = NULL;
+                    st_tipos.e[ss_i1293].length = 0;
+                    st_tipos.e[ss_i1293].capacity = 0;
+                }
+                free(st_tipos.e);
+                st_tipos.e = NULL;
+                st_tipos.length = 0;
+                st_tipos.capacity = 0;
+            }
+            if (ss_vivo_st_campos)
+            {
+                for (size_t ss_i1295 = 0; ss_i1295 < st_campos.length; ss_i1295++)
+                {
+                    for (size_t ss_i1296 = 0; ss_i1296 < st_campos.e[ss_i1295].length; ss_i1296++)
+                    {
+                        ss_free(&st_campos.e[ss_i1295].e[ss_i1296]);
+                    }
+                    free(st_campos.e[ss_i1295].e);
+                    st_campos.e[ss_i1295].e = NULL;
+                    st_campos.e[ss_i1295].length = 0;
+                    st_campos.e[ss_i1295].capacity = 0;
+                }
+                free(st_campos.e);
+                st_campos.e = NULL;
+                st_campos.length = 0;
+                st_campos.capacity = 0;
+            }
+            if (ss_vivo_st_nombres)
+            {
+                for (size_t ss_i1297 = 0; ss_i1297 < st_nombres.length; ss_i1297++)
+                {
+                    ss_free(&st_nombres.e[ss_i1297]);
+                }
+                free(st_nombres.e);
+                st_nombres.e = NULL;
+                st_nombres.length = 0;
+                st_nombres.capacity = 0;
+            }
+            if (ss_vivo_contextos)
+            {
+                for (size_t ss_i1298 = 0; ss_i1298 < contextos.length; ss_i1298++)
+                {
+                    ss_drop_Contexto(&contextos.e[ss_i1298]);
+                }
+                free(contextos.e);
+                contextos.e = NULL;
+                contextos.length = 0;
+                contextos.capacity = 0;
+            }
+            if (ss_vivo_arboles)
+            {
+                for (size_t ss_i1299 = 0; ss_i1299 < arboles.length; ss_i1299++)
+                {
+                    ss_drop_Nodo(&arboles.e[ss_i1299]);
+                }
+                free(arboles.e);
+                arboles.e = NULL;
+                arboles.length = 0;
+                arboles.capacity = 0;
+            }
+            if (ss_vivo_global)
+            {
+                ss_drop_Contexto(&global);
+            }
+            ss_free(&error_carga);
+            for (size_t ss_i1300 = 0; ss_i1300 < pila.length; ss_i1300++)
+            {
+                ss_free(&pila.e[ss_i1300]);
+            }
+            free(pila.e);
+            pila.e = NULL;
+            pila.length = 0;
+            pila.capacity = 0;
+            if (ss_vivo_modulos)
+            {
+                for (size_t ss_i1301 = 0; ss_i1301 < modulos.length; ss_i1301++)
+                {
+                    ss_free(&modulos.e[ss_i1301]);
+                }
+                free(modulos.e);
+                modulos.e = NULL;
+                modulos.length = 0;
+                modulos.capacity = 0;
+            }
+            ss_free(&principal);
+            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36108 };
+        }
+#line 3573 "ejemplos/compilador/tcodec.t"
+        for (size_t ss_k1302 = 0; ss_k1302 < arbol.hijos.length; ss_k1302++)
+        {
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &arbol.hijos.e[ss_k1302];
 #line 3574 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp36117 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp36117, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 3574);
-            ss_lang_agregar_texto_(&ss_tmp36117, ss_view(&error_m), "ejemplos/compilador/tcodec.t", 3574);
-            ss_lang_agregar_texto_(&ss_tmp36117, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 3574);
-            SafeString ss_tmp36116 = ss_tmp36117;
-            SafeView ss_tmp36118 = ss_view(&ss_tmp36116);
+            Clase ss_tmp36109;
+            Clase ss_tmp36110;
 #line 3574 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp36118);
-            ss_free(&ss_tmp36116);
+            Clase ss_tmp36111;
+            Clase ss_tmp36112;
+#line 3574 "ejemplos/compilador/tcodec.t"
+            if ((((ss_tmp36109 = (*d).clase, ss_tmp36110 = (Clase){ .etiqueta = SS_CLASE_STRUCT }, (ss_tmp36109.etiqueta == ss_tmp36110.etiqueta))) || ((ss_tmp36111 = (*d).clase, ss_tmp36112 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp36111.etiqueta == ss_tmp36112.etiqueta)))))
+            {
 #line 3575 "ejemplos/compilador/tcodec.t"
-            ProgramaLeido ss_tmp36119 = programa_no_leido();
-            if (ss_vivo_arbol)
-            {
-                ss_drop_Nodo(&arbol);
+                ss_mapa_str_usize* ss_tmp36113 = &previos_st;
+#line 3575 "ejemplos/compilador/tcodec.t"
+                ss_mapa_poner_mapa_str_usize(ss_tmp36113, ss_view(&(*d).texto), (size_t)1, "ejemplos/compilador/tcodec.t", 3575);
             }
-            ss_free(&error_m);
-            if (ss_vivo_tipos)
+#line 3577 "ejemplos/compilador/tcodec.t"
+            Clase ss_tmp36114;
+            Clase ss_tmp36115;
+#line 3577 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp36114 = (*d).clase, ss_tmp36115 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp36114.etiqueta == ss_tmp36115.etiqueta))))
             {
-                ss_drop_Contexto(&tipos);
+                ss_mapa_str_usize* ss_tmp36116 = &previos_en;
+#line 3577 "ejemplos/compilador/tcodec.t"
+                ss_mapa_poner_mapa_str_usize(ss_tmp36116, ss_view(&(*d).texto), (size_t)1, "ejemplos/compilador/tcodec.t", 3577);
             }
-            ss_drop_Leidos(&leidos);
-            ss_mapa_libre_mapa_str_usize(&previos_en);
-            ss_mapa_libre_mapa_str_usize(&previos_st);
-            if (ss_vivo_plantillas)
-            {
-                ss_mapa_libre_mapa_str_usize(&plantillas);
-            }
-            if (ss_vivo_en_lleva)
-            {
-                for (size_t ss_i1258 = 0; ss_i1258 < en_lleva.length; ss_i1258++)
-                {
-                    for (size_t ss_i1259 = 0; ss_i1259 < en_lleva.e[ss_i1258].length; ss_i1259++)
-                    {
-                        ss_free(&en_lleva.e[ss_i1258].e[ss_i1259]);
-                    }
-                    free(en_lleva.e[ss_i1258].e);
-                    en_lleva.e[ss_i1258].e = NULL;
-                    en_lleva.e[ss_i1258].length = 0;
-                    en_lleva.e[ss_i1258].capacity = 0;
-                }
-                free(en_lleva.e);
-                en_lleva.e = NULL;
-                en_lleva.length = 0;
-                en_lleva.capacity = 0;
-            }
-            if (ss_vivo_en_variantes)
-            {
-                for (size_t ss_i1260 = 0; ss_i1260 < en_variantes.length; ss_i1260++)
-                {
-                    for (size_t ss_i1261 = 0; ss_i1261 < en_variantes.e[ss_i1260].length; ss_i1261++)
-                    {
-                        ss_free(&en_variantes.e[ss_i1260].e[ss_i1261]);
-                    }
-                    free(en_variantes.e[ss_i1260].e);
-                    en_variantes.e[ss_i1260].e = NULL;
-                    en_variantes.e[ss_i1260].length = 0;
-                    en_variantes.e[ss_i1260].capacity = 0;
-                }
-                free(en_variantes.e);
-                en_variantes.e = NULL;
-                en_variantes.length = 0;
-                en_variantes.capacity = 0;
-            }
-            ss_mapa_libre_mapa_str_str(&en_donde);
-            if (ss_vivo_en_indice)
-            {
-                ss_mapa_libre_mapa_str_usize(&en_indice);
-            }
-            if (ss_vivo_en_nombres)
-            {
-                for (size_t ss_i1262 = 0; ss_i1262 < en_nombres.length; ss_i1262++)
-                {
-                    ss_free(&en_nombres.e[ss_i1262]);
-                }
-                free(en_nombres.e);
-                en_nombres.e = NULL;
-                en_nombres.length = 0;
-                en_nombres.capacity = 0;
-            }
-            if (ss_vivo_ext_protos)
-            {
-                for (size_t ss_i1263 = 0; ss_i1263 < ext_protos.length; ss_i1263++)
-                {
-                    ss_free(&ext_protos.e[ss_i1263]);
-                }
-                free(ext_protos.e);
-                ext_protos.e = NULL;
-                ext_protos.length = 0;
-                ext_protos.capacity = 0;
-            }
-            if (ss_vivo_ext_modulos)
-            {
-                for (size_t ss_i1264 = 0; ss_i1264 < ext_modulos.length; ss_i1264++)
-                {
-                    ss_free(&ext_modulos.e[ss_i1264]);
-                }
-                free(ext_modulos.e);
-                ext_modulos.e = NULL;
-                ext_modulos.length = 0;
-                ext_modulos.capacity = 0;
-            }
-            if (ss_vivo_ext_cabeceras)
-            {
-                for (size_t ss_i1265 = 0; ss_i1265 < ext_cabeceras.length; ss_i1265++)
-                {
-                    ss_free(&ext_cabeceras.e[ss_i1265]);
-                }
-                free(ext_cabeceras.e);
-                ext_cabeceras.e = NULL;
-                ext_cabeceras.length = 0;
-                ext_cabeceras.capacity = 0;
-            }
-            if (ss_vivo_stp_tipos)
-            {
-                for (size_t ss_i1266 = 0; ss_i1266 < stp_tipos.length; ss_i1266++)
-                {
-                    for (size_t ss_i1267 = 0; ss_i1267 < stp_tipos.e[ss_i1266].length; ss_i1267++)
-                    {
-                        ss_free(&stp_tipos.e[ss_i1266].e[ss_i1267]);
-                    }
-                    free(stp_tipos.e[ss_i1266].e);
-                    stp_tipos.e[ss_i1266].e = NULL;
-                    stp_tipos.e[ss_i1266].length = 0;
-                    stp_tipos.e[ss_i1266].capacity = 0;
-                }
-                free(stp_tipos.e);
-                stp_tipos.e = NULL;
-                stp_tipos.length = 0;
-                stp_tipos.capacity = 0;
-            }
-            if (ss_vivo_stp_campos)
-            {
-                for (size_t ss_i1268 = 0; ss_i1268 < stp_campos.length; ss_i1268++)
-                {
-                    for (size_t ss_i1269 = 0; ss_i1269 < stp_campos.e[ss_i1268].length; ss_i1269++)
-                    {
-                        ss_free(&stp_campos.e[ss_i1268].e[ss_i1269]);
-                    }
-                    free(stp_campos.e[ss_i1268].e);
-                    stp_campos.e[ss_i1268].e = NULL;
-                    stp_campos.e[ss_i1268].length = 0;
-                    stp_campos.e[ss_i1268].capacity = 0;
-                }
-                free(stp_campos.e);
-                stp_campos.e = NULL;
-                stp_campos.length = 0;
-                stp_campos.capacity = 0;
-            }
-            if (ss_vivo_stp_params)
-            {
-                for (size_t ss_i1270 = 0; ss_i1270 < stp_params.length; ss_i1270++)
-                {
-                    for (size_t ss_i1271 = 0; ss_i1271 < stp_params.e[ss_i1270].length; ss_i1271++)
-                    {
-                        ss_free(&stp_params.e[ss_i1270].e[ss_i1271]);
-                    }
-                    free(stp_params.e[ss_i1270].e);
-                    stp_params.e[ss_i1270].e = NULL;
-                    stp_params.e[ss_i1270].length = 0;
-                    stp_params.e[ss_i1270].capacity = 0;
-                }
-                free(stp_params.e);
-                stp_params.e = NULL;
-                stp_params.length = 0;
-                stp_params.capacity = 0;
-            }
-            ss_mapa_libre_mapa_str_str(&stp_donde);
-            if (ss_vivo_stp_indice)
-            {
-                ss_mapa_libre_mapa_str_usize(&stp_indice);
-            }
-            for (size_t ss_i1272 = 0; ss_i1272 < stp_nombres.length; ss_i1272++)
-            {
-                ss_free(&stp_nombres.e[ss_i1272]);
-            }
-            free(stp_nombres.e);
-            stp_nombres.e = NULL;
-            stp_nombres.length = 0;
-            stp_nombres.capacity = 0;
-            ss_mapa_libre_mapa_str_str(&st_donde);
-            if (ss_vivo_st_indice)
-            {
-                ss_mapa_libre_mapa_str_usize(&st_indice);
-            }
-            if (ss_vivo_st_tipos)
-            {
-                for (size_t ss_i1273 = 0; ss_i1273 < st_tipos.length; ss_i1273++)
-                {
-                    for (size_t ss_i1274 = 0; ss_i1274 < st_tipos.e[ss_i1273].length; ss_i1274++)
-                    {
-                        ss_free(&st_tipos.e[ss_i1273].e[ss_i1274]);
-                    }
-                    free(st_tipos.e[ss_i1273].e);
-                    st_tipos.e[ss_i1273].e = NULL;
-                    st_tipos.e[ss_i1273].length = 0;
-                    st_tipos.e[ss_i1273].capacity = 0;
-                }
-                free(st_tipos.e);
-                st_tipos.e = NULL;
-                st_tipos.length = 0;
-                st_tipos.capacity = 0;
-            }
-            if (ss_vivo_st_campos)
-            {
-                for (size_t ss_i1275 = 0; ss_i1275 < st_campos.length; ss_i1275++)
-                {
-                    for (size_t ss_i1276 = 0; ss_i1276 < st_campos.e[ss_i1275].length; ss_i1276++)
-                    {
-                        ss_free(&st_campos.e[ss_i1275].e[ss_i1276]);
-                    }
-                    free(st_campos.e[ss_i1275].e);
-                    st_campos.e[ss_i1275].e = NULL;
-                    st_campos.e[ss_i1275].length = 0;
-                    st_campos.e[ss_i1275].capacity = 0;
-                }
-                free(st_campos.e);
-                st_campos.e = NULL;
-                st_campos.length = 0;
-                st_campos.capacity = 0;
-            }
-            if (ss_vivo_st_nombres)
-            {
-                for (size_t ss_i1277 = 0; ss_i1277 < st_nombres.length; ss_i1277++)
-                {
-                    ss_free(&st_nombres.e[ss_i1277]);
-                }
-                free(st_nombres.e);
-                st_nombres.e = NULL;
-                st_nombres.length = 0;
-                st_nombres.capacity = 0;
-            }
-            if (ss_vivo_contextos)
-            {
-                for (size_t ss_i1278 = 0; ss_i1278 < contextos.length; ss_i1278++)
-                {
-                    ss_drop_Contexto(&contextos.e[ss_i1278]);
-                }
-                free(contextos.e);
-                contextos.e = NULL;
-                contextos.length = 0;
-                contextos.capacity = 0;
-            }
-            if (ss_vivo_arboles)
-            {
-                for (size_t ss_i1279 = 0; ss_i1279 < arboles.length; ss_i1279++)
-                {
-                    ss_drop_Nodo(&arboles.e[ss_i1279]);
-                }
-                free(arboles.e);
-                arboles.e = NULL;
-                arboles.length = 0;
-                arboles.capacity = 0;
-            }
-            if (ss_vivo_global)
-            {
-                ss_drop_Contexto(&global);
-            }
-            ss_free(&error_carga);
-            for (size_t ss_i1280 = 0; ss_i1280 < pila.length; ss_i1280++)
-            {
-                ss_free(&pila.e[ss_i1280]);
-            }
-            free(pila.e);
-            pila.e = NULL;
-            pila.length = 0;
-            pila.capacity = 0;
-            if (ss_vivo_modulos)
-            {
-                for (size_t ss_i1281 = 0; ss_i1281 < modulos.length; ss_i1281++)
-                {
-                    ss_free(&modulos.e[ss_i1281]);
-                }
-                free(modulos.e);
-                modulos.e = NULL;
-                modulos.length = 0;
-                modulos.capacity = 0;
-            }
-            ss_free(&principal);
-            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36119 };
         }
-#line 3577 "ejemplos/compilador/tcodec.t"
-        Clase ss_tmp36120;
-        Clase ss_tmp36121;
-#line 3577 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp36120 = arbol.clase, ss_tmp36121 = (Clase){ .etiqueta = SS_CLASE_VACIO }, (ss_tmp36120.etiqueta == ss_tmp36121.etiqueta))))
-        {
-#line 3578 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp36123 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp36123, sv_len("tcodec: no se pudo leer `", 25), "ejemplos/compilador/tcodec.t", 3578);
-            ss_lang_agregar_texto_(&ss_tmp36123, ss_view(m), "ejemplos/compilador/tcodec.t", 3578);
-            ss_lang_agregar_texto_(&ss_tmp36123, sv_len("`\n", 2), "ejemplos/compilador/tcodec.t", 3578);
-            SafeString ss_tmp36122 = ss_tmp36123;
-            SafeView ss_tmp36124 = ss_view(&ss_tmp36122);
-#line 3578 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp36124);
-            ss_free(&ss_tmp36122);
 #line 3579 "ejemplos/compilador/tcodec.t"
-            ProgramaLeido ss_tmp36125 = programa_no_leido();
-            if (ss_vivo_arbol)
-            {
-                ss_drop_Nodo(&arbol);
-            }
-            ss_free(&error_m);
-            if (ss_vivo_tipos)
-            {
-                ss_drop_Contexto(&tipos);
-            }
-            ss_drop_Leidos(&leidos);
-            ss_mapa_libre_mapa_str_usize(&previos_en);
-            ss_mapa_libre_mapa_str_usize(&previos_st);
-            if (ss_vivo_plantillas)
-            {
-                ss_mapa_libre_mapa_str_usize(&plantillas);
-            }
-            if (ss_vivo_en_lleva)
-            {
-                for (size_t ss_i1282 = 0; ss_i1282 < en_lleva.length; ss_i1282++)
-                {
-                    for (size_t ss_i1283 = 0; ss_i1283 < en_lleva.e[ss_i1282].length; ss_i1283++)
-                    {
-                        ss_free(&en_lleva.e[ss_i1282].e[ss_i1283]);
-                    }
-                    free(en_lleva.e[ss_i1282].e);
-                    en_lleva.e[ss_i1282].e = NULL;
-                    en_lleva.e[ss_i1282].length = 0;
-                    en_lleva.e[ss_i1282].capacity = 0;
-                }
-                free(en_lleva.e);
-                en_lleva.e = NULL;
-                en_lleva.length = 0;
-                en_lleva.capacity = 0;
-            }
-            if (ss_vivo_en_variantes)
-            {
-                for (size_t ss_i1284 = 0; ss_i1284 < en_variantes.length; ss_i1284++)
-                {
-                    for (size_t ss_i1285 = 0; ss_i1285 < en_variantes.e[ss_i1284].length; ss_i1285++)
-                    {
-                        ss_free(&en_variantes.e[ss_i1284].e[ss_i1285]);
-                    }
-                    free(en_variantes.e[ss_i1284].e);
-                    en_variantes.e[ss_i1284].e = NULL;
-                    en_variantes.e[ss_i1284].length = 0;
-                    en_variantes.e[ss_i1284].capacity = 0;
-                }
-                free(en_variantes.e);
-                en_variantes.e = NULL;
-                en_variantes.length = 0;
-                en_variantes.capacity = 0;
-            }
-            ss_mapa_libre_mapa_str_str(&en_donde);
-            if (ss_vivo_en_indice)
-            {
-                ss_mapa_libre_mapa_str_usize(&en_indice);
-            }
-            if (ss_vivo_en_nombres)
-            {
-                for (size_t ss_i1286 = 0; ss_i1286 < en_nombres.length; ss_i1286++)
-                {
-                    ss_free(&en_nombres.e[ss_i1286]);
-                }
-                free(en_nombres.e);
-                en_nombres.e = NULL;
-                en_nombres.length = 0;
-                en_nombres.capacity = 0;
-            }
-            if (ss_vivo_ext_protos)
-            {
-                for (size_t ss_i1287 = 0; ss_i1287 < ext_protos.length; ss_i1287++)
-                {
-                    ss_free(&ext_protos.e[ss_i1287]);
-                }
-                free(ext_protos.e);
-                ext_protos.e = NULL;
-                ext_protos.length = 0;
-                ext_protos.capacity = 0;
-            }
-            if (ss_vivo_ext_modulos)
-            {
-                for (size_t ss_i1288 = 0; ss_i1288 < ext_modulos.length; ss_i1288++)
-                {
-                    ss_free(&ext_modulos.e[ss_i1288]);
-                }
-                free(ext_modulos.e);
-                ext_modulos.e = NULL;
-                ext_modulos.length = 0;
-                ext_modulos.capacity = 0;
-            }
-            if (ss_vivo_ext_cabeceras)
-            {
-                for (size_t ss_i1289 = 0; ss_i1289 < ext_cabeceras.length; ss_i1289++)
-                {
-                    ss_free(&ext_cabeceras.e[ss_i1289]);
-                }
-                free(ext_cabeceras.e);
-                ext_cabeceras.e = NULL;
-                ext_cabeceras.length = 0;
-                ext_cabeceras.capacity = 0;
-            }
-            if (ss_vivo_stp_tipos)
-            {
-                for (size_t ss_i1290 = 0; ss_i1290 < stp_tipos.length; ss_i1290++)
-                {
-                    for (size_t ss_i1291 = 0; ss_i1291 < stp_tipos.e[ss_i1290].length; ss_i1291++)
-                    {
-                        ss_free(&stp_tipos.e[ss_i1290].e[ss_i1291]);
-                    }
-                    free(stp_tipos.e[ss_i1290].e);
-                    stp_tipos.e[ss_i1290].e = NULL;
-                    stp_tipos.e[ss_i1290].length = 0;
-                    stp_tipos.e[ss_i1290].capacity = 0;
-                }
-                free(stp_tipos.e);
-                stp_tipos.e = NULL;
-                stp_tipos.length = 0;
-                stp_tipos.capacity = 0;
-            }
-            if (ss_vivo_stp_campos)
-            {
-                for (size_t ss_i1292 = 0; ss_i1292 < stp_campos.length; ss_i1292++)
-                {
-                    for (size_t ss_i1293 = 0; ss_i1293 < stp_campos.e[ss_i1292].length; ss_i1293++)
-                    {
-                        ss_free(&stp_campos.e[ss_i1292].e[ss_i1293]);
-                    }
-                    free(stp_campos.e[ss_i1292].e);
-                    stp_campos.e[ss_i1292].e = NULL;
-                    stp_campos.e[ss_i1292].length = 0;
-                    stp_campos.e[ss_i1292].capacity = 0;
-                }
-                free(stp_campos.e);
-                stp_campos.e = NULL;
-                stp_campos.length = 0;
-                stp_campos.capacity = 0;
-            }
-            if (ss_vivo_stp_params)
-            {
-                for (size_t ss_i1294 = 0; ss_i1294 < stp_params.length; ss_i1294++)
-                {
-                    for (size_t ss_i1295 = 0; ss_i1295 < stp_params.e[ss_i1294].length; ss_i1295++)
-                    {
-                        ss_free(&stp_params.e[ss_i1294].e[ss_i1295]);
-                    }
-                    free(stp_params.e[ss_i1294].e);
-                    stp_params.e[ss_i1294].e = NULL;
-                    stp_params.e[ss_i1294].length = 0;
-                    stp_params.e[ss_i1294].capacity = 0;
-                }
-                free(stp_params.e);
-                stp_params.e = NULL;
-                stp_params.length = 0;
-                stp_params.capacity = 0;
-            }
-            ss_mapa_libre_mapa_str_str(&stp_donde);
-            if (ss_vivo_stp_indice)
-            {
-                ss_mapa_libre_mapa_str_usize(&stp_indice);
-            }
-            for (size_t ss_i1296 = 0; ss_i1296 < stp_nombres.length; ss_i1296++)
-            {
-                ss_free(&stp_nombres.e[ss_i1296]);
-            }
-            free(stp_nombres.e);
-            stp_nombres.e = NULL;
-            stp_nombres.length = 0;
-            stp_nombres.capacity = 0;
-            ss_mapa_libre_mapa_str_str(&st_donde);
-            if (ss_vivo_st_indice)
-            {
-                ss_mapa_libre_mapa_str_usize(&st_indice);
-            }
-            if (ss_vivo_st_tipos)
-            {
-                for (size_t ss_i1297 = 0; ss_i1297 < st_tipos.length; ss_i1297++)
-                {
-                    for (size_t ss_i1298 = 0; ss_i1298 < st_tipos.e[ss_i1297].length; ss_i1298++)
-                    {
-                        ss_free(&st_tipos.e[ss_i1297].e[ss_i1298]);
-                    }
-                    free(st_tipos.e[ss_i1297].e);
-                    st_tipos.e[ss_i1297].e = NULL;
-                    st_tipos.e[ss_i1297].length = 0;
-                    st_tipos.e[ss_i1297].capacity = 0;
-                }
-                free(st_tipos.e);
-                st_tipos.e = NULL;
-                st_tipos.length = 0;
-                st_tipos.capacity = 0;
-            }
-            if (ss_vivo_st_campos)
-            {
-                for (size_t ss_i1299 = 0; ss_i1299 < st_campos.length; ss_i1299++)
-                {
-                    for (size_t ss_i1300 = 0; ss_i1300 < st_campos.e[ss_i1299].length; ss_i1300++)
-                    {
-                        ss_free(&st_campos.e[ss_i1299].e[ss_i1300]);
-                    }
-                    free(st_campos.e[ss_i1299].e);
-                    st_campos.e[ss_i1299].e = NULL;
-                    st_campos.e[ss_i1299].length = 0;
-                    st_campos.e[ss_i1299].capacity = 0;
-                }
-                free(st_campos.e);
-                st_campos.e = NULL;
-                st_campos.length = 0;
-                st_campos.capacity = 0;
-            }
-            if (ss_vivo_st_nombres)
-            {
-                for (size_t ss_i1301 = 0; ss_i1301 < st_nombres.length; ss_i1301++)
-                {
-                    ss_free(&st_nombres.e[ss_i1301]);
-                }
-                free(st_nombres.e);
-                st_nombres.e = NULL;
-                st_nombres.length = 0;
-                st_nombres.capacity = 0;
-            }
-            if (ss_vivo_contextos)
-            {
-                for (size_t ss_i1302 = 0; ss_i1302 < contextos.length; ss_i1302++)
-                {
-                    ss_drop_Contexto(&contextos.e[ss_i1302]);
-                }
-                free(contextos.e);
-                contextos.e = NULL;
-                contextos.length = 0;
-                contextos.capacity = 0;
-            }
-            if (ss_vivo_arboles)
-            {
-                for (size_t ss_i1303 = 0; ss_i1303 < arboles.length; ss_i1303++)
-                {
-                    ss_drop_Nodo(&arboles.e[ss_i1303]);
-                }
-                free(arboles.e);
-                arboles.e = NULL;
-                arboles.length = 0;
-                arboles.capacity = 0;
-            }
-            if (ss_vivo_global)
-            {
-                ss_drop_Contexto(&global);
-            }
-            ss_free(&error_carga);
-            for (size_t ss_i1304 = 0; ss_i1304 < pila.length; ss_i1304++)
-            {
-                ss_free(&pila.e[ss_i1304]);
-            }
-            free(pila.e);
-            pila.e = NULL;
-            pila.length = 0;
-            pila.capacity = 0;
-            if (ss_vivo_modulos)
-            {
-                for (size_t ss_i1305 = 0; ss_i1305 < modulos.length; ss_i1305++)
-                {
-                    ss_free(&modulos.e[ss_i1305]);
-                }
-                free(modulos.e);
-                modulos.e = NULL;
-                modulos.length = 0;
-                modulos.capacity = 0;
-            }
-            ss_free(&principal);
-            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36125 };
-        }
+        const Nodo* ss_tmp36117;
+        Contexto* ss_tmp36118;
+        ((ss_tmp36117 = &arbol, ss_tmp36118 = &global, recoger_firmas(ss_tmp36117, ss_tmp36118)));
+#line 3580 "ejemplos/compilador/tcodec.t"
+        for (size_t ss_k1303 = 0; ss_k1303 < arbol.hijos.length; ss_k1303++)
+        {
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &arbol.hijos.e[ss_k1303];
 #line 3581 "ejemplos/compilador/tcodec.t"
-        for (size_t ss_k1306 = 0; ss_k1306 < arbol.hijos.length; ss_k1306++)
-        {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &arbol.hijos.e[ss_k1306];
-#line 3582 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp36126;
-            Clase ss_tmp36127;
-#line 3582 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp36128;
-            Clase ss_tmp36129;
-#line 3582 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp36126 = (*d).clase, ss_tmp36127 = (Clase){ .etiqueta = SS_CLASE_STRUCT }, (ss_tmp36126.etiqueta == ss_tmp36127.etiqueta))) || ((ss_tmp36128 = (*d).clase, ss_tmp36129 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp36128.etiqueta == ss_tmp36129.etiqueta)))))
-            {
-#line 3583 "ejemplos/compilador/tcodec.t"
-                ss_mapa_str_usize* ss_tmp36130 = &previos_st;
-#line 3583 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_usize(ss_tmp36130, ss_view(&(*d).texto), (size_t)1, "ejemplos/compilador/tcodec.t", 3583);
-            }
-#line 3585 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp36131;
-            Clase ss_tmp36132;
-#line 3585 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp36131 = (*d).clase, ss_tmp36132 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp36131.etiqueta == ss_tmp36132.etiqueta))))
-            {
-                ss_mapa_str_usize* ss_tmp36133 = &previos_en;
-#line 3585 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_usize(ss_tmp36133, ss_view(&(*d).texto), (size_t)1, "ejemplos/compilador/tcodec.t", 3585);
-            }
-        }
-#line 3587 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp36134;
-        Contexto* ss_tmp36135;
-        ((ss_tmp36134 = &arbol, ss_tmp36135 = &global, recoger_firmas(ss_tmp36134, ss_tmp36135)));
-#line 3588 "ejemplos/compilador/tcodec.t"
-        for (size_t ss_k1307 = 0; ss_k1307 < arbol.hijos.length; ss_k1307++)
-        {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &arbol.hijos.e[ss_k1307];
-#line 3589 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR Clase clase = (*d).clase;
-#line 3590 "ejemplos/compilador/tcodec.t"
+#line 3582 "ejemplos/compilador/tcodec.t"
             switch (clase.etiqueta)
             {
             case SS_CLASE_FN:
             {
-#line 3592 "ejemplos/compilador/tcodec.t"
+#line 3584 "ejemplos/compilador/tcodec.t"
                 if (es_generica(d))
                 {
-#line 3593 "ejemplos/compilador/tcodec.t"
-                    ss_mapa_str_usize* ss_tmp36136 = &plantillas;
-#line 3593 "ejemplos/compilador/tcodec.t"
-                    ss_mapa_poner_mapa_str_usize(ss_tmp36136, ss_view(&(*d).texto), (arboles.length), "ejemplos/compilador/tcodec.t", 3593);
-#line 3594 "ejemplos/compilador/tcodec.t"
+#line 3585 "ejemplos/compilador/tcodec.t"
+                    ss_mapa_str_usize* ss_tmp36119 = &plantillas;
+#line 3585 "ejemplos/compilador/tcodec.t"
+                    ss_mapa_poner_mapa_str_usize(ss_tmp36119, ss_view(&(*d).texto), (arboles.length), "ejemplos/compilador/tcodec.t", 3585);
+#line 3586 "ejemplos/compilador/tcodec.t"
                     continue;
                 }
-#line 3596 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp36137;
-                SafeView ss_tmp36138;
-                SafeView ss_tmp36139;
-                SafeView ss_tmp36140;
-                if ((((ss_tmp36137 = ss_view(&(*d).texto), ss_tmp36138 = sv_len("main", 4), sv_equals(ss_tmp36137, ss_tmp36138))) && (!((ss_tmp36139 = ss_view(m), ss_tmp36140 = ss_view(&principal), sv_equals(ss_tmp36139, ss_tmp36140))))))
+#line 3588 "ejemplos/compilador/tcodec.t"
+                SafeView ss_tmp36120;
+                SafeView ss_tmp36121;
+                SafeView ss_tmp36122;
+                SafeView ss_tmp36123;
+                if ((((ss_tmp36120 = ss_view(&(*d).texto), ss_tmp36121 = sv_len("main", 4), sv_equals(ss_tmp36120, ss_tmp36121))) && (!((ss_tmp36122 = ss_view(m), ss_tmp36123 = ss_view(&principal), sv_equals(ss_tmp36122, ss_tmp36123))))))
                 {
-#line 3597 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp36142;
-                    size_t ss_tmp36143;
-                    SafeString ss_tmp36141 = ((ss_tmp36142 = ss_view(m), ss_tmp36143 = (*d).linea, sitio(ss_tmp36142, ss_tmp36143)));
-                    SafeView ss_tmp36144;
-                    SafeView ss_tmp36145;
-                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36144 = ss_view(&ss_tmp36141), ss_tmp36145 = sv_len("no admite un `main` en un modulo", 32), rechazo(ss_tmp36144, ss_tmp36145)));
-                    ss_free(&ss_tmp36141);
-#line 3599 "ejemplos/compilador/tcodec.t"
-                    ProgramaLeido ss_tmp36146 = programa_no_leido();
+#line 3589 "ejemplos/compilador/tcodec.t"
+                    SafeView ss_tmp36125;
+                    size_t ss_tmp36126;
+                    SafeString ss_tmp36124 = ((ss_tmp36125 = ss_view(m), ss_tmp36126 = (*d).linea, sitio(ss_tmp36125, ss_tmp36126)));
+                    SafeView ss_tmp36127;
+                    SafeView ss_tmp36128;
+                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36127 = ss_view(&ss_tmp36124), ss_tmp36128 = sv_len("no admite un `main` en un modulo", 32), rechazo(ss_tmp36127, ss_tmp36128)));
+                    ss_free(&ss_tmp36124);
+#line 3591 "ejemplos/compilador/tcodec.t"
+                    ProgramaLeido ss_tmp36129 = programa_no_leido();
                     if (ss_vivo_arbol)
                     {
                         ss_drop_Nodo(&arbol);
@@ -122213,16 +122148,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_en_lleva)
                     {
-                        for (size_t ss_i1308 = 0; ss_i1308 < en_lleva.length; ss_i1308++)
+                        for (size_t ss_i1304 = 0; ss_i1304 < en_lleva.length; ss_i1304++)
                         {
-                            for (size_t ss_i1309 = 0; ss_i1309 < en_lleva.e[ss_i1308].length; ss_i1309++)
+                            for (size_t ss_i1305 = 0; ss_i1305 < en_lleva.e[ss_i1304].length; ss_i1305++)
                             {
-                                ss_free(&en_lleva.e[ss_i1308].e[ss_i1309]);
+                                ss_free(&en_lleva.e[ss_i1304].e[ss_i1305]);
                             }
-                            free(en_lleva.e[ss_i1308].e);
-                            en_lleva.e[ss_i1308].e = NULL;
-                            en_lleva.e[ss_i1308].length = 0;
-                            en_lleva.e[ss_i1308].capacity = 0;
+                            free(en_lleva.e[ss_i1304].e);
+                            en_lleva.e[ss_i1304].e = NULL;
+                            en_lleva.e[ss_i1304].length = 0;
+                            en_lleva.e[ss_i1304].capacity = 0;
                         }
                         free(en_lleva.e);
                         en_lleva.e = NULL;
@@ -122231,16 +122166,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_en_variantes)
                     {
-                        for (size_t ss_i1310 = 0; ss_i1310 < en_variantes.length; ss_i1310++)
+                        for (size_t ss_i1306 = 0; ss_i1306 < en_variantes.length; ss_i1306++)
                         {
-                            for (size_t ss_i1311 = 0; ss_i1311 < en_variantes.e[ss_i1310].length; ss_i1311++)
+                            for (size_t ss_i1307 = 0; ss_i1307 < en_variantes.e[ss_i1306].length; ss_i1307++)
                             {
-                                ss_free(&en_variantes.e[ss_i1310].e[ss_i1311]);
+                                ss_free(&en_variantes.e[ss_i1306].e[ss_i1307]);
                             }
-                            free(en_variantes.e[ss_i1310].e);
-                            en_variantes.e[ss_i1310].e = NULL;
-                            en_variantes.e[ss_i1310].length = 0;
-                            en_variantes.e[ss_i1310].capacity = 0;
+                            free(en_variantes.e[ss_i1306].e);
+                            en_variantes.e[ss_i1306].e = NULL;
+                            en_variantes.e[ss_i1306].length = 0;
+                            en_variantes.e[ss_i1306].capacity = 0;
                         }
                         free(en_variantes.e);
                         en_variantes.e = NULL;
@@ -122254,9 +122189,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_en_nombres)
                     {
-                        for (size_t ss_i1312 = 0; ss_i1312 < en_nombres.length; ss_i1312++)
+                        for (size_t ss_i1308 = 0; ss_i1308 < en_nombres.length; ss_i1308++)
                         {
-                            ss_free(&en_nombres.e[ss_i1312]);
+                            ss_free(&en_nombres.e[ss_i1308]);
                         }
                         free(en_nombres.e);
                         en_nombres.e = NULL;
@@ -122265,9 +122200,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_ext_protos)
                     {
-                        for (size_t ss_i1313 = 0; ss_i1313 < ext_protos.length; ss_i1313++)
+                        for (size_t ss_i1309 = 0; ss_i1309 < ext_protos.length; ss_i1309++)
                         {
-                            ss_free(&ext_protos.e[ss_i1313]);
+                            ss_free(&ext_protos.e[ss_i1309]);
                         }
                         free(ext_protos.e);
                         ext_protos.e = NULL;
@@ -122276,9 +122211,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_ext_modulos)
                     {
-                        for (size_t ss_i1314 = 0; ss_i1314 < ext_modulos.length; ss_i1314++)
+                        for (size_t ss_i1310 = 0; ss_i1310 < ext_modulos.length; ss_i1310++)
                         {
-                            ss_free(&ext_modulos.e[ss_i1314]);
+                            ss_free(&ext_modulos.e[ss_i1310]);
                         }
                         free(ext_modulos.e);
                         ext_modulos.e = NULL;
@@ -122287,9 +122222,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_ext_cabeceras)
                     {
-                        for (size_t ss_i1315 = 0; ss_i1315 < ext_cabeceras.length; ss_i1315++)
+                        for (size_t ss_i1311 = 0; ss_i1311 < ext_cabeceras.length; ss_i1311++)
                         {
-                            ss_free(&ext_cabeceras.e[ss_i1315]);
+                            ss_free(&ext_cabeceras.e[ss_i1311]);
                         }
                         free(ext_cabeceras.e);
                         ext_cabeceras.e = NULL;
@@ -122298,16 +122233,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_stp_tipos)
                     {
-                        for (size_t ss_i1316 = 0; ss_i1316 < stp_tipos.length; ss_i1316++)
+                        for (size_t ss_i1312 = 0; ss_i1312 < stp_tipos.length; ss_i1312++)
                         {
-                            for (size_t ss_i1317 = 0; ss_i1317 < stp_tipos.e[ss_i1316].length; ss_i1317++)
+                            for (size_t ss_i1313 = 0; ss_i1313 < stp_tipos.e[ss_i1312].length; ss_i1313++)
                             {
-                                ss_free(&stp_tipos.e[ss_i1316].e[ss_i1317]);
+                                ss_free(&stp_tipos.e[ss_i1312].e[ss_i1313]);
                             }
-                            free(stp_tipos.e[ss_i1316].e);
-                            stp_tipos.e[ss_i1316].e = NULL;
-                            stp_tipos.e[ss_i1316].length = 0;
-                            stp_tipos.e[ss_i1316].capacity = 0;
+                            free(stp_tipos.e[ss_i1312].e);
+                            stp_tipos.e[ss_i1312].e = NULL;
+                            stp_tipos.e[ss_i1312].length = 0;
+                            stp_tipos.e[ss_i1312].capacity = 0;
                         }
                         free(stp_tipos.e);
                         stp_tipos.e = NULL;
@@ -122316,16 +122251,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_stp_campos)
                     {
-                        for (size_t ss_i1318 = 0; ss_i1318 < stp_campos.length; ss_i1318++)
+                        for (size_t ss_i1314 = 0; ss_i1314 < stp_campos.length; ss_i1314++)
                         {
-                            for (size_t ss_i1319 = 0; ss_i1319 < stp_campos.e[ss_i1318].length; ss_i1319++)
+                            for (size_t ss_i1315 = 0; ss_i1315 < stp_campos.e[ss_i1314].length; ss_i1315++)
                             {
-                                ss_free(&stp_campos.e[ss_i1318].e[ss_i1319]);
+                                ss_free(&stp_campos.e[ss_i1314].e[ss_i1315]);
                             }
-                            free(stp_campos.e[ss_i1318].e);
-                            stp_campos.e[ss_i1318].e = NULL;
-                            stp_campos.e[ss_i1318].length = 0;
-                            stp_campos.e[ss_i1318].capacity = 0;
+                            free(stp_campos.e[ss_i1314].e);
+                            stp_campos.e[ss_i1314].e = NULL;
+                            stp_campos.e[ss_i1314].length = 0;
+                            stp_campos.e[ss_i1314].capacity = 0;
                         }
                         free(stp_campos.e);
                         stp_campos.e = NULL;
@@ -122334,16 +122269,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_stp_params)
                     {
-                        for (size_t ss_i1320 = 0; ss_i1320 < stp_params.length; ss_i1320++)
+                        for (size_t ss_i1316 = 0; ss_i1316 < stp_params.length; ss_i1316++)
                         {
-                            for (size_t ss_i1321 = 0; ss_i1321 < stp_params.e[ss_i1320].length; ss_i1321++)
+                            for (size_t ss_i1317 = 0; ss_i1317 < stp_params.e[ss_i1316].length; ss_i1317++)
                             {
-                                ss_free(&stp_params.e[ss_i1320].e[ss_i1321]);
+                                ss_free(&stp_params.e[ss_i1316].e[ss_i1317]);
                             }
-                            free(stp_params.e[ss_i1320].e);
-                            stp_params.e[ss_i1320].e = NULL;
-                            stp_params.e[ss_i1320].length = 0;
-                            stp_params.e[ss_i1320].capacity = 0;
+                            free(stp_params.e[ss_i1316].e);
+                            stp_params.e[ss_i1316].e = NULL;
+                            stp_params.e[ss_i1316].length = 0;
+                            stp_params.e[ss_i1316].capacity = 0;
                         }
                         free(stp_params.e);
                         stp_params.e = NULL;
@@ -122355,9 +122290,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     {
                         ss_mapa_libre_mapa_str_usize(&stp_indice);
                     }
-                    for (size_t ss_i1322 = 0; ss_i1322 < stp_nombres.length; ss_i1322++)
+                    for (size_t ss_i1318 = 0; ss_i1318 < stp_nombres.length; ss_i1318++)
                     {
-                        ss_free(&stp_nombres.e[ss_i1322]);
+                        ss_free(&stp_nombres.e[ss_i1318]);
                     }
                     free(stp_nombres.e);
                     stp_nombres.e = NULL;
@@ -122370,16 +122305,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_st_tipos)
                     {
-                        for (size_t ss_i1323 = 0; ss_i1323 < st_tipos.length; ss_i1323++)
+                        for (size_t ss_i1319 = 0; ss_i1319 < st_tipos.length; ss_i1319++)
                         {
-                            for (size_t ss_i1324 = 0; ss_i1324 < st_tipos.e[ss_i1323].length; ss_i1324++)
+                            for (size_t ss_i1320 = 0; ss_i1320 < st_tipos.e[ss_i1319].length; ss_i1320++)
                             {
-                                ss_free(&st_tipos.e[ss_i1323].e[ss_i1324]);
+                                ss_free(&st_tipos.e[ss_i1319].e[ss_i1320]);
                             }
-                            free(st_tipos.e[ss_i1323].e);
-                            st_tipos.e[ss_i1323].e = NULL;
-                            st_tipos.e[ss_i1323].length = 0;
-                            st_tipos.e[ss_i1323].capacity = 0;
+                            free(st_tipos.e[ss_i1319].e);
+                            st_tipos.e[ss_i1319].e = NULL;
+                            st_tipos.e[ss_i1319].length = 0;
+                            st_tipos.e[ss_i1319].capacity = 0;
                         }
                         free(st_tipos.e);
                         st_tipos.e = NULL;
@@ -122388,16 +122323,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_st_campos)
                     {
-                        for (size_t ss_i1325 = 0; ss_i1325 < st_campos.length; ss_i1325++)
+                        for (size_t ss_i1321 = 0; ss_i1321 < st_campos.length; ss_i1321++)
                         {
-                            for (size_t ss_i1326 = 0; ss_i1326 < st_campos.e[ss_i1325].length; ss_i1326++)
+                            for (size_t ss_i1322 = 0; ss_i1322 < st_campos.e[ss_i1321].length; ss_i1322++)
                             {
-                                ss_free(&st_campos.e[ss_i1325].e[ss_i1326]);
+                                ss_free(&st_campos.e[ss_i1321].e[ss_i1322]);
                             }
-                            free(st_campos.e[ss_i1325].e);
-                            st_campos.e[ss_i1325].e = NULL;
-                            st_campos.e[ss_i1325].length = 0;
-                            st_campos.e[ss_i1325].capacity = 0;
+                            free(st_campos.e[ss_i1321].e);
+                            st_campos.e[ss_i1321].e = NULL;
+                            st_campos.e[ss_i1321].length = 0;
+                            st_campos.e[ss_i1321].capacity = 0;
                         }
                         free(st_campos.e);
                         st_campos.e = NULL;
@@ -122406,9 +122341,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_st_nombres)
                     {
-                        for (size_t ss_i1327 = 0; ss_i1327 < st_nombres.length; ss_i1327++)
+                        for (size_t ss_i1323 = 0; ss_i1323 < st_nombres.length; ss_i1323++)
                         {
-                            ss_free(&st_nombres.e[ss_i1327]);
+                            ss_free(&st_nombres.e[ss_i1323]);
                         }
                         free(st_nombres.e);
                         st_nombres.e = NULL;
@@ -122417,9 +122352,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_contextos)
                     {
-                        for (size_t ss_i1328 = 0; ss_i1328 < contextos.length; ss_i1328++)
+                        for (size_t ss_i1324 = 0; ss_i1324 < contextos.length; ss_i1324++)
                         {
-                            ss_drop_Contexto(&contextos.e[ss_i1328]);
+                            ss_drop_Contexto(&contextos.e[ss_i1324]);
                         }
                         free(contextos.e);
                         contextos.e = NULL;
@@ -122428,9 +122363,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_arboles)
                     {
-                        for (size_t ss_i1329 = 0; ss_i1329 < arboles.length; ss_i1329++)
+                        for (size_t ss_i1325 = 0; ss_i1325 < arboles.length; ss_i1325++)
                         {
-                            ss_drop_Nodo(&arboles.e[ss_i1329]);
+                            ss_drop_Nodo(&arboles.e[ss_i1325]);
                         }
                         free(arboles.e);
                         arboles.e = NULL;
@@ -122442,9 +122377,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         ss_drop_Contexto(&global);
                     }
                     ss_free(&error_carga);
-                    for (size_t ss_i1330 = 0; ss_i1330 < pila.length; ss_i1330++)
+                    for (size_t ss_i1326 = 0; ss_i1326 < pila.length; ss_i1326++)
                     {
-                        ss_free(&pila.e[ss_i1330]);
+                        ss_free(&pila.e[ss_i1326]);
                     }
                     free(pila.e);
                     pila.e = NULL;
@@ -122452,9 +122387,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     pila.capacity = 0;
                     if (ss_vivo_modulos)
                     {
-                        for (size_t ss_i1331 = 0; ss_i1331 < modulos.length; ss_i1331++)
+                        for (size_t ss_i1327 = 0; ss_i1327 < modulos.length; ss_i1327++)
                         {
-                            ss_free(&modulos.e[ss_i1331]);
+                            ss_free(&modulos.e[ss_i1327]);
                         }
                         free(modulos.e);
                         modulos.e = NULL;
@@ -122462,56 +122397,56 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         modulos.capacity = 0;
                     }
                     ss_free(&principal);
-                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36146 };
+                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36129 };
                 }
-#line 3601 "ejemplos/compilador/tcodec.t"
+#line 3593 "ejemplos/compilador/tcodec.t"
                 continue;
                 break;
             }
             case SS_CLASE_STRUCT:
             {
-#line 3604 "ejemplos/compilador/tcodec.t"
+#line 3596 "ejemplos/compilador/tcodec.t"
                 if (tiene_tipo_param(d))
                 {
-#line 3605 "ejemplos/compilador/tcodec.t"
-                    const ss_mapa_str_usize* ss_tmp36147;
-                    SafeView ss_tmp36148;
-#line 3605 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp36147 = &stp_indice, ss_tmp36148 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp36147, ss_tmp36148))))
+#line 3597 "ejemplos/compilador/tcodec.t"
+                    const ss_mapa_str_usize* ss_tmp36130;
+                    SafeView ss_tmp36131;
+#line 3597 "ejemplos/compilador/tcodec.t"
+                    if (((ss_tmp36130 = &stp_indice, ss_tmp36131 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp36130, ss_tmp36131))))
                     {
-#line 3606 "ejemplos/compilador/tcodec.t"
-                        const ss_mapa_str_str* ss_tmp36150;
-                        SafeView ss_tmp36151;
-#line 3606 "ejemplos/compilador/tcodec.t"
-                        ss_res_view ss_tmp36149 = ((ss_tmp36150 = &stp_donde, ss_tmp36151 = ss_view(&(*d).texto), ss_mapa_obtener_mapa_str_str(ss_tmp36150, ss_tmp36151)));
-                        SafeView ss_tmp36152;
-                        if (ss_tmp36149.motivo != NULL)
+#line 3598 "ejemplos/compilador/tcodec.t"
+                        const ss_mapa_str_str* ss_tmp36133;
+                        SafeView ss_tmp36134;
+#line 3598 "ejemplos/compilador/tcodec.t"
+                        ss_res_view ss_tmp36132 = ((ss_tmp36133 = &stp_donde, ss_tmp36134 = ss_view(&(*d).texto), ss_mapa_obtener_mapa_str_str(ss_tmp36133, ss_tmp36134)));
+                        SafeView ss_tmp36135;
+                        if (ss_tmp36132.motivo != NULL)
                         {
-                            ss_tmp36152 = sv_len("", 0);
+                            ss_tmp36135 = sv_len("", 0);
                         }
                         else
                         {
-                            ss_tmp36152 = ss_tmp36149.valor;
+                            ss_tmp36135 = ss_tmp36132.valor;
                         }
-                        SS_LANG_QUIZA_SIN_USAR SafeView antes = ss_tmp36152;
-#line 3607 "ejemplos/compilador/tcodec.t"
-                        SafeView ss_tmp36154;
-                        size_t ss_tmp36155;
-                        SafeString ss_tmp36153 = ((ss_tmp36154 = ss_view(m), ss_tmp36155 = (*d).linea, sitio(ss_tmp36154, ss_tmp36155)));
-                        SafeView ss_tmp36156;
-                        SafeString ss_tmp36158 = ss_new();
-                        SafeView ss_tmp36159 = ss_view(&ss_tmp36153);
-                        ss_lang_agregar_texto_(&ss_tmp36158, sv_len("el struct generico `", 20), "ejemplos/compilador/tcodec.t", 3608);
-                        ss_lang_agregar_texto_(&ss_tmp36158, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3608);
-                        ss_lang_agregar_texto_(&ss_tmp36158, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 3608);
-                        SafeString ss_tmp36157 = ss_tmp36158;
-                        SafeView ss_tmp36160;
-                        SafeView ss_tmp36161;
-                        SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36156 = ss_tmp36159, ss_tmp36160 = ss_view(&ss_tmp36157), ss_tmp36161 = antes, rechazo_tipo_repetido(ss_tmp36156, ss_tmp36160, ss_tmp36161)));
-                        ss_free(&ss_tmp36153);
-                        ss_free(&ss_tmp36157);
-#line 3609 "ejemplos/compilador/tcodec.t"
-                        ProgramaLeido ss_tmp36162 = programa_no_leido();
+                        SS_LANG_QUIZA_SIN_USAR SafeView antes = ss_tmp36135;
+#line 3599 "ejemplos/compilador/tcodec.t"
+                        SafeView ss_tmp36137;
+                        size_t ss_tmp36138;
+                        SafeString ss_tmp36136 = ((ss_tmp36137 = ss_view(m), ss_tmp36138 = (*d).linea, sitio(ss_tmp36137, ss_tmp36138)));
+                        SafeView ss_tmp36139;
+                        SafeString ss_tmp36141 = ss_new();
+                        SafeView ss_tmp36142 = ss_view(&ss_tmp36136);
+                        ss_lang_agregar_texto_(&ss_tmp36141, sv_len("el struct generico `", 20), "ejemplos/compilador/tcodec.t", 3600);
+                        ss_lang_agregar_texto_(&ss_tmp36141, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3600);
+                        ss_lang_agregar_texto_(&ss_tmp36141, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 3600);
+                        SafeString ss_tmp36140 = ss_tmp36141;
+                        SafeView ss_tmp36143;
+                        SafeView ss_tmp36144;
+                        SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36139 = ss_tmp36142, ss_tmp36143 = ss_view(&ss_tmp36140), ss_tmp36144 = antes, rechazo_tipo_repetido(ss_tmp36139, ss_tmp36143, ss_tmp36144)));
+                        ss_free(&ss_tmp36136);
+                        ss_free(&ss_tmp36140);
+#line 3601 "ejemplos/compilador/tcodec.t"
+                        ProgramaLeido ss_tmp36145 = programa_no_leido();
                         if (ss_vivo_arbol)
                         {
                             ss_drop_Nodo(&arbol);
@@ -122530,16 +122465,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_en_lleva)
                         {
-                            for (size_t ss_i1332 = 0; ss_i1332 < en_lleva.length; ss_i1332++)
+                            for (size_t ss_i1328 = 0; ss_i1328 < en_lleva.length; ss_i1328++)
                             {
-                                for (size_t ss_i1333 = 0; ss_i1333 < en_lleva.e[ss_i1332].length; ss_i1333++)
+                                for (size_t ss_i1329 = 0; ss_i1329 < en_lleva.e[ss_i1328].length; ss_i1329++)
                                 {
-                                    ss_free(&en_lleva.e[ss_i1332].e[ss_i1333]);
+                                    ss_free(&en_lleva.e[ss_i1328].e[ss_i1329]);
                                 }
-                                free(en_lleva.e[ss_i1332].e);
-                                en_lleva.e[ss_i1332].e = NULL;
-                                en_lleva.e[ss_i1332].length = 0;
-                                en_lleva.e[ss_i1332].capacity = 0;
+                                free(en_lleva.e[ss_i1328].e);
+                                en_lleva.e[ss_i1328].e = NULL;
+                                en_lleva.e[ss_i1328].length = 0;
+                                en_lleva.e[ss_i1328].capacity = 0;
                             }
                             free(en_lleva.e);
                             en_lleva.e = NULL;
@@ -122548,16 +122483,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_en_variantes)
                         {
-                            for (size_t ss_i1334 = 0; ss_i1334 < en_variantes.length; ss_i1334++)
+                            for (size_t ss_i1330 = 0; ss_i1330 < en_variantes.length; ss_i1330++)
                             {
-                                for (size_t ss_i1335 = 0; ss_i1335 < en_variantes.e[ss_i1334].length; ss_i1335++)
+                                for (size_t ss_i1331 = 0; ss_i1331 < en_variantes.e[ss_i1330].length; ss_i1331++)
                                 {
-                                    ss_free(&en_variantes.e[ss_i1334].e[ss_i1335]);
+                                    ss_free(&en_variantes.e[ss_i1330].e[ss_i1331]);
                                 }
-                                free(en_variantes.e[ss_i1334].e);
-                                en_variantes.e[ss_i1334].e = NULL;
-                                en_variantes.e[ss_i1334].length = 0;
-                                en_variantes.e[ss_i1334].capacity = 0;
+                                free(en_variantes.e[ss_i1330].e);
+                                en_variantes.e[ss_i1330].e = NULL;
+                                en_variantes.e[ss_i1330].length = 0;
+                                en_variantes.e[ss_i1330].capacity = 0;
                             }
                             free(en_variantes.e);
                             en_variantes.e = NULL;
@@ -122571,9 +122506,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_en_nombres)
                         {
-                            for (size_t ss_i1336 = 0; ss_i1336 < en_nombres.length; ss_i1336++)
+                            for (size_t ss_i1332 = 0; ss_i1332 < en_nombres.length; ss_i1332++)
                             {
-                                ss_free(&en_nombres.e[ss_i1336]);
+                                ss_free(&en_nombres.e[ss_i1332]);
                             }
                             free(en_nombres.e);
                             en_nombres.e = NULL;
@@ -122582,9 +122517,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_ext_protos)
                         {
-                            for (size_t ss_i1337 = 0; ss_i1337 < ext_protos.length; ss_i1337++)
+                            for (size_t ss_i1333 = 0; ss_i1333 < ext_protos.length; ss_i1333++)
                             {
-                                ss_free(&ext_protos.e[ss_i1337]);
+                                ss_free(&ext_protos.e[ss_i1333]);
                             }
                             free(ext_protos.e);
                             ext_protos.e = NULL;
@@ -122593,9 +122528,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_ext_modulos)
                         {
-                            for (size_t ss_i1338 = 0; ss_i1338 < ext_modulos.length; ss_i1338++)
+                            for (size_t ss_i1334 = 0; ss_i1334 < ext_modulos.length; ss_i1334++)
                             {
-                                ss_free(&ext_modulos.e[ss_i1338]);
+                                ss_free(&ext_modulos.e[ss_i1334]);
                             }
                             free(ext_modulos.e);
                             ext_modulos.e = NULL;
@@ -122604,9 +122539,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_ext_cabeceras)
                         {
-                            for (size_t ss_i1339 = 0; ss_i1339 < ext_cabeceras.length; ss_i1339++)
+                            for (size_t ss_i1335 = 0; ss_i1335 < ext_cabeceras.length; ss_i1335++)
                             {
-                                ss_free(&ext_cabeceras.e[ss_i1339]);
+                                ss_free(&ext_cabeceras.e[ss_i1335]);
                             }
                             free(ext_cabeceras.e);
                             ext_cabeceras.e = NULL;
@@ -122615,16 +122550,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_stp_tipos)
                         {
-                            for (size_t ss_i1340 = 0; ss_i1340 < stp_tipos.length; ss_i1340++)
+                            for (size_t ss_i1336 = 0; ss_i1336 < stp_tipos.length; ss_i1336++)
                             {
-                                for (size_t ss_i1341 = 0; ss_i1341 < stp_tipos.e[ss_i1340].length; ss_i1341++)
+                                for (size_t ss_i1337 = 0; ss_i1337 < stp_tipos.e[ss_i1336].length; ss_i1337++)
                                 {
-                                    ss_free(&stp_tipos.e[ss_i1340].e[ss_i1341]);
+                                    ss_free(&stp_tipos.e[ss_i1336].e[ss_i1337]);
                                 }
-                                free(stp_tipos.e[ss_i1340].e);
-                                stp_tipos.e[ss_i1340].e = NULL;
-                                stp_tipos.e[ss_i1340].length = 0;
-                                stp_tipos.e[ss_i1340].capacity = 0;
+                                free(stp_tipos.e[ss_i1336].e);
+                                stp_tipos.e[ss_i1336].e = NULL;
+                                stp_tipos.e[ss_i1336].length = 0;
+                                stp_tipos.e[ss_i1336].capacity = 0;
                             }
                             free(stp_tipos.e);
                             stp_tipos.e = NULL;
@@ -122633,16 +122568,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_stp_campos)
                         {
-                            for (size_t ss_i1342 = 0; ss_i1342 < stp_campos.length; ss_i1342++)
+                            for (size_t ss_i1338 = 0; ss_i1338 < stp_campos.length; ss_i1338++)
                             {
-                                for (size_t ss_i1343 = 0; ss_i1343 < stp_campos.e[ss_i1342].length; ss_i1343++)
+                                for (size_t ss_i1339 = 0; ss_i1339 < stp_campos.e[ss_i1338].length; ss_i1339++)
                                 {
-                                    ss_free(&stp_campos.e[ss_i1342].e[ss_i1343]);
+                                    ss_free(&stp_campos.e[ss_i1338].e[ss_i1339]);
                                 }
-                                free(stp_campos.e[ss_i1342].e);
-                                stp_campos.e[ss_i1342].e = NULL;
-                                stp_campos.e[ss_i1342].length = 0;
-                                stp_campos.e[ss_i1342].capacity = 0;
+                                free(stp_campos.e[ss_i1338].e);
+                                stp_campos.e[ss_i1338].e = NULL;
+                                stp_campos.e[ss_i1338].length = 0;
+                                stp_campos.e[ss_i1338].capacity = 0;
                             }
                             free(stp_campos.e);
                             stp_campos.e = NULL;
@@ -122651,16 +122586,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_stp_params)
                         {
-                            for (size_t ss_i1344 = 0; ss_i1344 < stp_params.length; ss_i1344++)
+                            for (size_t ss_i1340 = 0; ss_i1340 < stp_params.length; ss_i1340++)
                             {
-                                for (size_t ss_i1345 = 0; ss_i1345 < stp_params.e[ss_i1344].length; ss_i1345++)
+                                for (size_t ss_i1341 = 0; ss_i1341 < stp_params.e[ss_i1340].length; ss_i1341++)
                                 {
-                                    ss_free(&stp_params.e[ss_i1344].e[ss_i1345]);
+                                    ss_free(&stp_params.e[ss_i1340].e[ss_i1341]);
                                 }
-                                free(stp_params.e[ss_i1344].e);
-                                stp_params.e[ss_i1344].e = NULL;
-                                stp_params.e[ss_i1344].length = 0;
-                                stp_params.e[ss_i1344].capacity = 0;
+                                free(stp_params.e[ss_i1340].e);
+                                stp_params.e[ss_i1340].e = NULL;
+                                stp_params.e[ss_i1340].length = 0;
+                                stp_params.e[ss_i1340].capacity = 0;
                             }
                             free(stp_params.e);
                             stp_params.e = NULL;
@@ -122672,9 +122607,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         {
                             ss_mapa_libre_mapa_str_usize(&stp_indice);
                         }
-                        for (size_t ss_i1346 = 0; ss_i1346 < stp_nombres.length; ss_i1346++)
+                        for (size_t ss_i1342 = 0; ss_i1342 < stp_nombres.length; ss_i1342++)
                         {
-                            ss_free(&stp_nombres.e[ss_i1346]);
+                            ss_free(&stp_nombres.e[ss_i1342]);
                         }
                         free(stp_nombres.e);
                         stp_nombres.e = NULL;
@@ -122687,16 +122622,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_st_tipos)
                         {
-                            for (size_t ss_i1347 = 0; ss_i1347 < st_tipos.length; ss_i1347++)
+                            for (size_t ss_i1343 = 0; ss_i1343 < st_tipos.length; ss_i1343++)
                             {
-                                for (size_t ss_i1348 = 0; ss_i1348 < st_tipos.e[ss_i1347].length; ss_i1348++)
+                                for (size_t ss_i1344 = 0; ss_i1344 < st_tipos.e[ss_i1343].length; ss_i1344++)
                                 {
-                                    ss_free(&st_tipos.e[ss_i1347].e[ss_i1348]);
+                                    ss_free(&st_tipos.e[ss_i1343].e[ss_i1344]);
                                 }
-                                free(st_tipos.e[ss_i1347].e);
-                                st_tipos.e[ss_i1347].e = NULL;
-                                st_tipos.e[ss_i1347].length = 0;
-                                st_tipos.e[ss_i1347].capacity = 0;
+                                free(st_tipos.e[ss_i1343].e);
+                                st_tipos.e[ss_i1343].e = NULL;
+                                st_tipos.e[ss_i1343].length = 0;
+                                st_tipos.e[ss_i1343].capacity = 0;
                             }
                             free(st_tipos.e);
                             st_tipos.e = NULL;
@@ -122705,16 +122640,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_st_campos)
                         {
-                            for (size_t ss_i1349 = 0; ss_i1349 < st_campos.length; ss_i1349++)
+                            for (size_t ss_i1345 = 0; ss_i1345 < st_campos.length; ss_i1345++)
                             {
-                                for (size_t ss_i1350 = 0; ss_i1350 < st_campos.e[ss_i1349].length; ss_i1350++)
+                                for (size_t ss_i1346 = 0; ss_i1346 < st_campos.e[ss_i1345].length; ss_i1346++)
                                 {
-                                    ss_free(&st_campos.e[ss_i1349].e[ss_i1350]);
+                                    ss_free(&st_campos.e[ss_i1345].e[ss_i1346]);
                                 }
-                                free(st_campos.e[ss_i1349].e);
-                                st_campos.e[ss_i1349].e = NULL;
-                                st_campos.e[ss_i1349].length = 0;
-                                st_campos.e[ss_i1349].capacity = 0;
+                                free(st_campos.e[ss_i1345].e);
+                                st_campos.e[ss_i1345].e = NULL;
+                                st_campos.e[ss_i1345].length = 0;
+                                st_campos.e[ss_i1345].capacity = 0;
                             }
                             free(st_campos.e);
                             st_campos.e = NULL;
@@ -122723,9 +122658,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_st_nombres)
                         {
-                            for (size_t ss_i1351 = 0; ss_i1351 < st_nombres.length; ss_i1351++)
+                            for (size_t ss_i1347 = 0; ss_i1347 < st_nombres.length; ss_i1347++)
                             {
-                                ss_free(&st_nombres.e[ss_i1351]);
+                                ss_free(&st_nombres.e[ss_i1347]);
                             }
                             free(st_nombres.e);
                             st_nombres.e = NULL;
@@ -122734,9 +122669,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_contextos)
                         {
-                            for (size_t ss_i1352 = 0; ss_i1352 < contextos.length; ss_i1352++)
+                            for (size_t ss_i1348 = 0; ss_i1348 < contextos.length; ss_i1348++)
                             {
-                                ss_drop_Contexto(&contextos.e[ss_i1352]);
+                                ss_drop_Contexto(&contextos.e[ss_i1348]);
                             }
                             free(contextos.e);
                             contextos.e = NULL;
@@ -122745,9 +122680,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                         if (ss_vivo_arboles)
                         {
-                            for (size_t ss_i1353 = 0; ss_i1353 < arboles.length; ss_i1353++)
+                            for (size_t ss_i1349 = 0; ss_i1349 < arboles.length; ss_i1349++)
                             {
-                                ss_drop_Nodo(&arboles.e[ss_i1353]);
+                                ss_drop_Nodo(&arboles.e[ss_i1349]);
                             }
                             free(arboles.e);
                             arboles.e = NULL;
@@ -122759,9 +122694,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             ss_drop_Contexto(&global);
                         }
                         ss_free(&error_carga);
-                        for (size_t ss_i1354 = 0; ss_i1354 < pila.length; ss_i1354++)
+                        for (size_t ss_i1350 = 0; ss_i1350 < pila.length; ss_i1350++)
                         {
-                            ss_free(&pila.e[ss_i1354]);
+                            ss_free(&pila.e[ss_i1350]);
                         }
                         free(pila.e);
                         pila.e = NULL;
@@ -122769,9 +122704,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         pila.capacity = 0;
                         if (ss_vivo_modulos)
                         {
-                            for (size_t ss_i1355 = 0; ss_i1355 < modulos.length; ss_i1355++)
+                            for (size_t ss_i1351 = 0; ss_i1351 < modulos.length; ss_i1351++)
                             {
-                                ss_free(&modulos.e[ss_i1355]);
+                                ss_free(&modulos.e[ss_i1351]);
                             }
                             free(modulos.e);
                             modulos.e = NULL;
@@ -122779,51 +122714,51 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             modulos.capacity = 0;
                         }
                         ss_free(&principal);
-                        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36162 };
+                        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36145 };
                     }
-#line 3611 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str ss_tmp36163 = { .e = NULL, .length = 0, .capacity = 0 };
-                    SS_LANG_QUIZA_SIN_USAR ss_lista_str tps = ss_tmp36163;
+#line 3603 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str ss_tmp36146 = { .e = NULL, .length = 0, .capacity = 0 };
+                    SS_LANG_QUIZA_SIN_USAR ss_lista_str tps = ss_tmp36146;
                     bool ss_vivo_tps = true;
-#line 3612 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str ss_tmp36164 = { .e = NULL, .length = 0, .capacity = 0 };
-                    SS_LANG_QUIZA_SIN_USAR ss_lista_str cs = ss_tmp36164;
+#line 3604 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str ss_tmp36147 = { .e = NULL, .length = 0, .capacity = 0 };
+                    SS_LANG_QUIZA_SIN_USAR ss_lista_str cs = ss_tmp36147;
                     bool ss_vivo_cs = true;
-#line 3613 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str ss_tmp36165 = { .e = NULL, .length = 0, .capacity = 0 };
-                    SS_LANG_QUIZA_SIN_USAR ss_lista_str ts = ss_tmp36165;
+#line 3605 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str ss_tmp36148 = { .e = NULL, .length = 0, .capacity = 0 };
+                    SS_LANG_QUIZA_SIN_USAR ss_lista_str ts = ss_tmp36148;
                     bool ss_vivo_ts = true;
-#line 3614 "ejemplos/compilador/tcodec.t"
-                    for (size_t ss_k1356 = 0; ss_k1356 < (*d).hijos.length; ss_k1356++)
+#line 3606 "ejemplos/compilador/tcodec.t"
+                    for (size_t ss_k1352 = 0; ss_k1352 < (*d).hijos.length; ss_k1352++)
                     {
-                        SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1356];
-#line 3615 "ejemplos/compilador/tcodec.t"
-                        Clase ss_tmp36166;
-                        Clase ss_tmp36167;
-#line 3615 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp36166 = (*h).clase, ss_tmp36167 = (Clase){ .etiqueta = SS_CLASE_TIPOPARAM }, (ss_tmp36166.etiqueta == ss_tmp36167.etiqueta))))
+                        SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1352];
+#line 3607 "ejemplos/compilador/tcodec.t"
+                        Clase ss_tmp36149;
+                        Clase ss_tmp36150;
+#line 3607 "ejemplos/compilador/tcodec.t"
+                        if (((ss_tmp36149 = (*h).clase, ss_tmp36150 = (Clase){ .etiqueta = SS_CLASE_TIPOPARAM }, (ss_tmp36149.etiqueta == ss_tmp36150.etiqueta))))
                         {
-                            ss_lista_str* ss_tmp36168 = &tps;
-#line 3615 "ejemplos/compilador/tcodec.t"
-                            ss_push_lista_str(ss_tmp36168, ss_from_view(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3615);
+                            ss_lista_str* ss_tmp36151 = &tps;
+#line 3607 "ejemplos/compilador/tcodec.t"
+                            ss_push_lista_str(ss_tmp36151, ss_from_view(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3607);
                         }
-#line 3616 "ejemplos/compilador/tcodec.t"
-                        Clase ss_tmp36169;
-                        Clase ss_tmp36170;
-#line 3616 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp36169 = (*h).clase, ss_tmp36170 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp36169.etiqueta == ss_tmp36170.etiqueta))))
+#line 3608 "ejemplos/compilador/tcodec.t"
+                        Clase ss_tmp36152;
+                        Clase ss_tmp36153;
+#line 3608 "ejemplos/compilador/tcodec.t"
+                        if (((ss_tmp36152 = (*h).clase, ss_tmp36153 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp36152.etiqueta == ss_tmp36153.etiqueta))))
                         {
-#line 3617 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp36171 = &cs;
-#line 3617 "ejemplos/compilador/tcodec.t"
-                            ss_push_lista_str(ss_tmp36171, programa__nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3617);
-#line 3618 "ejemplos/compilador/tcodec.t"
+#line 3609 "ejemplos/compilador/tcodec.t"
+                            ss_lista_str* ss_tmp36154 = &cs;
+#line 3609 "ejemplos/compilador/tcodec.t"
+                            ss_push_lista_str(ss_tmp36154, programa__nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3609);
+#line 3610 "ejemplos/compilador/tcodec.t"
                             SS_LANG_QUIZA_SIN_USAR SafeString tp = tipo_pelado(ss_view(&(*h).texto));
                             bool ss_vivo_tp = true;
-#line 3619 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp36172 = &ts;
-#line 3619 "ejemplos/compilador/tcodec.t"
-                            ss_push_lista_str(ss_tmp36172, tp, "ejemplos/compilador/tcodec.t", 3619);
+#line 3611 "ejemplos/compilador/tcodec.t"
+                            ss_lista_str* ss_tmp36155 = &ts;
+#line 3611 "ejemplos/compilador/tcodec.t"
+                            ss_push_lista_str(ss_tmp36155, tp, "ejemplos/compilador/tcodec.t", 3611);
                             ss_vivo_tp = false;
                             if (ss_vivo_tp)
                             {
@@ -122831,41 +122766,41 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                         }
                     }
-#line 3622 "ejemplos/compilador/tcodec.t"
-                    ss_mapa_str_usize* ss_tmp36173 = &stp_indice;
-#line 3622 "ejemplos/compilador/tcodec.t"
-                    ss_mapa_poner_mapa_str_usize(ss_tmp36173, ss_view(&(*d).texto), (stp_nombres.length), "ejemplos/compilador/tcodec.t", 3622);
-#line 3623 "ejemplos/compilador/tcodec.t"
-                    ss_mapa_str_str* ss_tmp36174 = &stp_donde;
-                    SafeView ss_tmp36175;
-                    size_t ss_tmp36176;
-#line 3623 "ejemplos/compilador/tcodec.t"
-                    ss_mapa_poner_mapa_str_str(ss_tmp36174, ss_view(&(*d).texto), ((ss_tmp36175 = ss_view(m), ss_tmp36176 = (*d).linea, sitio(ss_tmp36175, ss_tmp36176))), "ejemplos/compilador/tcodec.t", 3623);
-#line 3624 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp36177 = &stp_nombres;
-#line 3624 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp36177, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3624);
-#line 3625 "ejemplos/compilador/tcodec.t"
-                    ss_lista_lista_str* ss_tmp36178 = &stp_params;
-#line 3625 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_lista_str(ss_tmp36178, tps, "ejemplos/compilador/tcodec.t", 3625);
+#line 3614 "ejemplos/compilador/tcodec.t"
+                    ss_mapa_str_usize* ss_tmp36156 = &stp_indice;
+#line 3614 "ejemplos/compilador/tcodec.t"
+                    ss_mapa_poner_mapa_str_usize(ss_tmp36156, ss_view(&(*d).texto), (stp_nombres.length), "ejemplos/compilador/tcodec.t", 3614);
+#line 3615 "ejemplos/compilador/tcodec.t"
+                    ss_mapa_str_str* ss_tmp36157 = &stp_donde;
+                    SafeView ss_tmp36158;
+                    size_t ss_tmp36159;
+#line 3615 "ejemplos/compilador/tcodec.t"
+                    ss_mapa_poner_mapa_str_str(ss_tmp36157, ss_view(&(*d).texto), ((ss_tmp36158 = ss_view(m), ss_tmp36159 = (*d).linea, sitio(ss_tmp36158, ss_tmp36159))), "ejemplos/compilador/tcodec.t", 3615);
+#line 3616 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str* ss_tmp36160 = &stp_nombres;
+#line 3616 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_str(ss_tmp36160, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3616);
+#line 3617 "ejemplos/compilador/tcodec.t"
+                    ss_lista_lista_str* ss_tmp36161 = &stp_params;
+#line 3617 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_lista_str(ss_tmp36161, tps, "ejemplos/compilador/tcodec.t", 3617);
                     ss_vivo_tps = false;
-#line 3626 "ejemplos/compilador/tcodec.t"
-                    ss_lista_lista_str* ss_tmp36179 = &stp_campos;
-#line 3626 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_lista_str(ss_tmp36179, cs, "ejemplos/compilador/tcodec.t", 3626);
+#line 3618 "ejemplos/compilador/tcodec.t"
+                    ss_lista_lista_str* ss_tmp36162 = &stp_campos;
+#line 3618 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_lista_str(ss_tmp36162, cs, "ejemplos/compilador/tcodec.t", 3618);
                     ss_vivo_cs = false;
-#line 3627 "ejemplos/compilador/tcodec.t"
-                    ss_lista_lista_str* ss_tmp36180 = &stp_tipos;
-#line 3627 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_lista_str(ss_tmp36180, ts, "ejemplos/compilador/tcodec.t", 3627);
+#line 3619 "ejemplos/compilador/tcodec.t"
+                    ss_lista_lista_str* ss_tmp36163 = &stp_tipos;
+#line 3619 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_lista_str(ss_tmp36163, ts, "ejemplos/compilador/tcodec.t", 3619);
                     ss_vivo_ts = false;
-#line 3628 "ejemplos/compilador/tcodec.t"
+#line 3620 "ejemplos/compilador/tcodec.t"
                     if (ss_vivo_ts)
                     {
-                        for (size_t ss_i1357 = 0; ss_i1357 < ts.length; ss_i1357++)
+                        for (size_t ss_i1353 = 0; ss_i1353 < ts.length; ss_i1353++)
                         {
-                            ss_free(&ts.e[ss_i1357]);
+                            ss_free(&ts.e[ss_i1353]);
                         }
                         free(ts.e);
                         ts.e = NULL;
@@ -122874,9 +122809,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_cs)
                     {
-                        for (size_t ss_i1358 = 0; ss_i1358 < cs.length; ss_i1358++)
+                        for (size_t ss_i1354 = 0; ss_i1354 < cs.length; ss_i1354++)
                         {
-                            ss_free(&cs.e[ss_i1358]);
+                            ss_free(&cs.e[ss_i1354]);
                         }
                         free(cs.e);
                         cs.e = NULL;
@@ -122885,9 +122820,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_tps)
                     {
-                        for (size_t ss_i1359 = 0; ss_i1359 < tps.length; ss_i1359++)
+                        for (size_t ss_i1355 = 0; ss_i1355 < tps.length; ss_i1355++)
                         {
-                            ss_free(&tps.e[ss_i1359]);
+                            ss_free(&tps.e[ss_i1355]);
                         }
                         free(tps.e);
                         tps.e = NULL;
@@ -122896,45 +122831,45 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     continue;
                 }
-#line 3630 "ejemplos/compilador/tcodec.t"
-                const ss_mapa_str_usize* ss_tmp36181;
-                SafeView ss_tmp36182;
-#line 3630 "ejemplos/compilador/tcodec.t"
-                if (((ss_tmp36181 = &st_indice, ss_tmp36182 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp36181, ss_tmp36182))))
+#line 3622 "ejemplos/compilador/tcodec.t"
+                const ss_mapa_str_usize* ss_tmp36164;
+                SafeView ss_tmp36165;
+#line 3622 "ejemplos/compilador/tcodec.t"
+                if (((ss_tmp36164 = &st_indice, ss_tmp36165 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp36164, ss_tmp36165))))
                 {
-#line 3631 "ejemplos/compilador/tcodec.t"
-                    const ss_mapa_str_str* ss_tmp36184;
-                    SafeView ss_tmp36185;
-#line 3631 "ejemplos/compilador/tcodec.t"
-                    ss_res_view ss_tmp36183 = ((ss_tmp36184 = &st_donde, ss_tmp36185 = ss_view(&(*d).texto), ss_mapa_obtener_mapa_str_str(ss_tmp36184, ss_tmp36185)));
-                    SafeView ss_tmp36186;
-                    if (ss_tmp36183.motivo != NULL)
+#line 3623 "ejemplos/compilador/tcodec.t"
+                    const ss_mapa_str_str* ss_tmp36167;
+                    SafeView ss_tmp36168;
+#line 3623 "ejemplos/compilador/tcodec.t"
+                    ss_res_view ss_tmp36166 = ((ss_tmp36167 = &st_donde, ss_tmp36168 = ss_view(&(*d).texto), ss_mapa_obtener_mapa_str_str(ss_tmp36167, ss_tmp36168)));
+                    SafeView ss_tmp36169;
+                    if (ss_tmp36166.motivo != NULL)
                     {
-                        ss_tmp36186 = sv_len("", 0);
+                        ss_tmp36169 = sv_len("", 0);
                     }
                     else
                     {
-                        ss_tmp36186 = ss_tmp36183.valor;
+                        ss_tmp36169 = ss_tmp36166.valor;
                     }
-                    SS_LANG_QUIZA_SIN_USAR SafeView antes = ss_tmp36186;
-#line 3632 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp36188;
-                    size_t ss_tmp36189;
-                    SafeString ss_tmp36187 = ((ss_tmp36188 = ss_view(m), ss_tmp36189 = (*d).linea, sitio(ss_tmp36188, ss_tmp36189)));
-                    SafeView ss_tmp36190;
-                    SafeString ss_tmp36192 = ss_new();
-                    SafeView ss_tmp36193 = ss_view(&ss_tmp36187);
-                    ss_lang_agregar_texto_(&ss_tmp36192, sv_len("el struct `", 11), "ejemplos/compilador/tcodec.t", 3633);
-                    ss_lang_agregar_texto_(&ss_tmp36192, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3633);
-                    ss_lang_agregar_texto_(&ss_tmp36192, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 3633);
-                    SafeString ss_tmp36191 = ss_tmp36192;
-                    SafeView ss_tmp36194;
-                    SafeView ss_tmp36195;
-                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36190 = ss_tmp36193, ss_tmp36194 = ss_view(&ss_tmp36191), ss_tmp36195 = antes, rechazo_tipo_repetido(ss_tmp36190, ss_tmp36194, ss_tmp36195)));
-                    ss_free(&ss_tmp36187);
-                    ss_free(&ss_tmp36191);
-#line 3634 "ejemplos/compilador/tcodec.t"
-                    ProgramaLeido ss_tmp36196 = programa_no_leido();
+                    SS_LANG_QUIZA_SIN_USAR SafeView antes = ss_tmp36169;
+#line 3624 "ejemplos/compilador/tcodec.t"
+                    SafeView ss_tmp36171;
+                    size_t ss_tmp36172;
+                    SafeString ss_tmp36170 = ((ss_tmp36171 = ss_view(m), ss_tmp36172 = (*d).linea, sitio(ss_tmp36171, ss_tmp36172)));
+                    SafeView ss_tmp36173;
+                    SafeString ss_tmp36175 = ss_new();
+                    SafeView ss_tmp36176 = ss_view(&ss_tmp36170);
+                    ss_lang_agregar_texto_(&ss_tmp36175, sv_len("el struct `", 11), "ejemplos/compilador/tcodec.t", 3625);
+                    ss_lang_agregar_texto_(&ss_tmp36175, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3625);
+                    ss_lang_agregar_texto_(&ss_tmp36175, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 3625);
+                    SafeString ss_tmp36174 = ss_tmp36175;
+                    SafeView ss_tmp36177;
+                    SafeView ss_tmp36178;
+                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36173 = ss_tmp36176, ss_tmp36177 = ss_view(&ss_tmp36174), ss_tmp36178 = antes, rechazo_tipo_repetido(ss_tmp36173, ss_tmp36177, ss_tmp36178)));
+                    ss_free(&ss_tmp36170);
+                    ss_free(&ss_tmp36174);
+#line 3626 "ejemplos/compilador/tcodec.t"
+                    ProgramaLeido ss_tmp36179 = programa_no_leido();
                     if (ss_vivo_arbol)
                     {
                         ss_drop_Nodo(&arbol);
@@ -122953,16 +122888,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_en_lleva)
                     {
-                        for (size_t ss_i1360 = 0; ss_i1360 < en_lleva.length; ss_i1360++)
+                        for (size_t ss_i1356 = 0; ss_i1356 < en_lleva.length; ss_i1356++)
                         {
-                            for (size_t ss_i1361 = 0; ss_i1361 < en_lleva.e[ss_i1360].length; ss_i1361++)
+                            for (size_t ss_i1357 = 0; ss_i1357 < en_lleva.e[ss_i1356].length; ss_i1357++)
                             {
-                                ss_free(&en_lleva.e[ss_i1360].e[ss_i1361]);
+                                ss_free(&en_lleva.e[ss_i1356].e[ss_i1357]);
                             }
-                            free(en_lleva.e[ss_i1360].e);
-                            en_lleva.e[ss_i1360].e = NULL;
-                            en_lleva.e[ss_i1360].length = 0;
-                            en_lleva.e[ss_i1360].capacity = 0;
+                            free(en_lleva.e[ss_i1356].e);
+                            en_lleva.e[ss_i1356].e = NULL;
+                            en_lleva.e[ss_i1356].length = 0;
+                            en_lleva.e[ss_i1356].capacity = 0;
                         }
                         free(en_lleva.e);
                         en_lleva.e = NULL;
@@ -122971,16 +122906,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_en_variantes)
                     {
-                        for (size_t ss_i1362 = 0; ss_i1362 < en_variantes.length; ss_i1362++)
+                        for (size_t ss_i1358 = 0; ss_i1358 < en_variantes.length; ss_i1358++)
                         {
-                            for (size_t ss_i1363 = 0; ss_i1363 < en_variantes.e[ss_i1362].length; ss_i1363++)
+                            for (size_t ss_i1359 = 0; ss_i1359 < en_variantes.e[ss_i1358].length; ss_i1359++)
                             {
-                                ss_free(&en_variantes.e[ss_i1362].e[ss_i1363]);
+                                ss_free(&en_variantes.e[ss_i1358].e[ss_i1359]);
                             }
-                            free(en_variantes.e[ss_i1362].e);
-                            en_variantes.e[ss_i1362].e = NULL;
-                            en_variantes.e[ss_i1362].length = 0;
-                            en_variantes.e[ss_i1362].capacity = 0;
+                            free(en_variantes.e[ss_i1358].e);
+                            en_variantes.e[ss_i1358].e = NULL;
+                            en_variantes.e[ss_i1358].length = 0;
+                            en_variantes.e[ss_i1358].capacity = 0;
                         }
                         free(en_variantes.e);
                         en_variantes.e = NULL;
@@ -122994,9 +122929,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_en_nombres)
                     {
-                        for (size_t ss_i1364 = 0; ss_i1364 < en_nombres.length; ss_i1364++)
+                        for (size_t ss_i1360 = 0; ss_i1360 < en_nombres.length; ss_i1360++)
                         {
-                            ss_free(&en_nombres.e[ss_i1364]);
+                            ss_free(&en_nombres.e[ss_i1360]);
                         }
                         free(en_nombres.e);
                         en_nombres.e = NULL;
@@ -123005,9 +122940,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_ext_protos)
                     {
-                        for (size_t ss_i1365 = 0; ss_i1365 < ext_protos.length; ss_i1365++)
+                        for (size_t ss_i1361 = 0; ss_i1361 < ext_protos.length; ss_i1361++)
                         {
-                            ss_free(&ext_protos.e[ss_i1365]);
+                            ss_free(&ext_protos.e[ss_i1361]);
                         }
                         free(ext_protos.e);
                         ext_protos.e = NULL;
@@ -123016,9 +122951,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_ext_modulos)
                     {
-                        for (size_t ss_i1366 = 0; ss_i1366 < ext_modulos.length; ss_i1366++)
+                        for (size_t ss_i1362 = 0; ss_i1362 < ext_modulos.length; ss_i1362++)
                         {
-                            ss_free(&ext_modulos.e[ss_i1366]);
+                            ss_free(&ext_modulos.e[ss_i1362]);
                         }
                         free(ext_modulos.e);
                         ext_modulos.e = NULL;
@@ -123027,9 +122962,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_ext_cabeceras)
                     {
-                        for (size_t ss_i1367 = 0; ss_i1367 < ext_cabeceras.length; ss_i1367++)
+                        for (size_t ss_i1363 = 0; ss_i1363 < ext_cabeceras.length; ss_i1363++)
                         {
-                            ss_free(&ext_cabeceras.e[ss_i1367]);
+                            ss_free(&ext_cabeceras.e[ss_i1363]);
                         }
                         free(ext_cabeceras.e);
                         ext_cabeceras.e = NULL;
@@ -123038,16 +122973,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_stp_tipos)
                     {
-                        for (size_t ss_i1368 = 0; ss_i1368 < stp_tipos.length; ss_i1368++)
+                        for (size_t ss_i1364 = 0; ss_i1364 < stp_tipos.length; ss_i1364++)
                         {
-                            for (size_t ss_i1369 = 0; ss_i1369 < stp_tipos.e[ss_i1368].length; ss_i1369++)
+                            for (size_t ss_i1365 = 0; ss_i1365 < stp_tipos.e[ss_i1364].length; ss_i1365++)
                             {
-                                ss_free(&stp_tipos.e[ss_i1368].e[ss_i1369]);
+                                ss_free(&stp_tipos.e[ss_i1364].e[ss_i1365]);
                             }
-                            free(stp_tipos.e[ss_i1368].e);
-                            stp_tipos.e[ss_i1368].e = NULL;
-                            stp_tipos.e[ss_i1368].length = 0;
-                            stp_tipos.e[ss_i1368].capacity = 0;
+                            free(stp_tipos.e[ss_i1364].e);
+                            stp_tipos.e[ss_i1364].e = NULL;
+                            stp_tipos.e[ss_i1364].length = 0;
+                            stp_tipos.e[ss_i1364].capacity = 0;
                         }
                         free(stp_tipos.e);
                         stp_tipos.e = NULL;
@@ -123056,16 +122991,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_stp_campos)
                     {
-                        for (size_t ss_i1370 = 0; ss_i1370 < stp_campos.length; ss_i1370++)
+                        for (size_t ss_i1366 = 0; ss_i1366 < stp_campos.length; ss_i1366++)
                         {
-                            for (size_t ss_i1371 = 0; ss_i1371 < stp_campos.e[ss_i1370].length; ss_i1371++)
+                            for (size_t ss_i1367 = 0; ss_i1367 < stp_campos.e[ss_i1366].length; ss_i1367++)
                             {
-                                ss_free(&stp_campos.e[ss_i1370].e[ss_i1371]);
+                                ss_free(&stp_campos.e[ss_i1366].e[ss_i1367]);
                             }
-                            free(stp_campos.e[ss_i1370].e);
-                            stp_campos.e[ss_i1370].e = NULL;
-                            stp_campos.e[ss_i1370].length = 0;
-                            stp_campos.e[ss_i1370].capacity = 0;
+                            free(stp_campos.e[ss_i1366].e);
+                            stp_campos.e[ss_i1366].e = NULL;
+                            stp_campos.e[ss_i1366].length = 0;
+                            stp_campos.e[ss_i1366].capacity = 0;
                         }
                         free(stp_campos.e);
                         stp_campos.e = NULL;
@@ -123074,16 +123009,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_stp_params)
                     {
-                        for (size_t ss_i1372 = 0; ss_i1372 < stp_params.length; ss_i1372++)
+                        for (size_t ss_i1368 = 0; ss_i1368 < stp_params.length; ss_i1368++)
                         {
-                            for (size_t ss_i1373 = 0; ss_i1373 < stp_params.e[ss_i1372].length; ss_i1373++)
+                            for (size_t ss_i1369 = 0; ss_i1369 < stp_params.e[ss_i1368].length; ss_i1369++)
                             {
-                                ss_free(&stp_params.e[ss_i1372].e[ss_i1373]);
+                                ss_free(&stp_params.e[ss_i1368].e[ss_i1369]);
                             }
-                            free(stp_params.e[ss_i1372].e);
-                            stp_params.e[ss_i1372].e = NULL;
-                            stp_params.e[ss_i1372].length = 0;
-                            stp_params.e[ss_i1372].capacity = 0;
+                            free(stp_params.e[ss_i1368].e);
+                            stp_params.e[ss_i1368].e = NULL;
+                            stp_params.e[ss_i1368].length = 0;
+                            stp_params.e[ss_i1368].capacity = 0;
                         }
                         free(stp_params.e);
                         stp_params.e = NULL;
@@ -123095,9 +123030,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     {
                         ss_mapa_libre_mapa_str_usize(&stp_indice);
                     }
-                    for (size_t ss_i1374 = 0; ss_i1374 < stp_nombres.length; ss_i1374++)
+                    for (size_t ss_i1370 = 0; ss_i1370 < stp_nombres.length; ss_i1370++)
                     {
-                        ss_free(&stp_nombres.e[ss_i1374]);
+                        ss_free(&stp_nombres.e[ss_i1370]);
                     }
                     free(stp_nombres.e);
                     stp_nombres.e = NULL;
@@ -123110,16 +123045,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_st_tipos)
                     {
-                        for (size_t ss_i1375 = 0; ss_i1375 < st_tipos.length; ss_i1375++)
+                        for (size_t ss_i1371 = 0; ss_i1371 < st_tipos.length; ss_i1371++)
                         {
-                            for (size_t ss_i1376 = 0; ss_i1376 < st_tipos.e[ss_i1375].length; ss_i1376++)
+                            for (size_t ss_i1372 = 0; ss_i1372 < st_tipos.e[ss_i1371].length; ss_i1372++)
                             {
-                                ss_free(&st_tipos.e[ss_i1375].e[ss_i1376]);
+                                ss_free(&st_tipos.e[ss_i1371].e[ss_i1372]);
                             }
-                            free(st_tipos.e[ss_i1375].e);
-                            st_tipos.e[ss_i1375].e = NULL;
-                            st_tipos.e[ss_i1375].length = 0;
-                            st_tipos.e[ss_i1375].capacity = 0;
+                            free(st_tipos.e[ss_i1371].e);
+                            st_tipos.e[ss_i1371].e = NULL;
+                            st_tipos.e[ss_i1371].length = 0;
+                            st_tipos.e[ss_i1371].capacity = 0;
                         }
                         free(st_tipos.e);
                         st_tipos.e = NULL;
@@ -123128,16 +123063,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_st_campos)
                     {
-                        for (size_t ss_i1377 = 0; ss_i1377 < st_campos.length; ss_i1377++)
+                        for (size_t ss_i1373 = 0; ss_i1373 < st_campos.length; ss_i1373++)
                         {
-                            for (size_t ss_i1378 = 0; ss_i1378 < st_campos.e[ss_i1377].length; ss_i1378++)
+                            for (size_t ss_i1374 = 0; ss_i1374 < st_campos.e[ss_i1373].length; ss_i1374++)
                             {
-                                ss_free(&st_campos.e[ss_i1377].e[ss_i1378]);
+                                ss_free(&st_campos.e[ss_i1373].e[ss_i1374]);
                             }
-                            free(st_campos.e[ss_i1377].e);
-                            st_campos.e[ss_i1377].e = NULL;
-                            st_campos.e[ss_i1377].length = 0;
-                            st_campos.e[ss_i1377].capacity = 0;
+                            free(st_campos.e[ss_i1373].e);
+                            st_campos.e[ss_i1373].e = NULL;
+                            st_campos.e[ss_i1373].length = 0;
+                            st_campos.e[ss_i1373].capacity = 0;
                         }
                         free(st_campos.e);
                         st_campos.e = NULL;
@@ -123146,9 +123081,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_st_nombres)
                     {
-                        for (size_t ss_i1379 = 0; ss_i1379 < st_nombres.length; ss_i1379++)
+                        for (size_t ss_i1375 = 0; ss_i1375 < st_nombres.length; ss_i1375++)
                         {
-                            ss_free(&st_nombres.e[ss_i1379]);
+                            ss_free(&st_nombres.e[ss_i1375]);
                         }
                         free(st_nombres.e);
                         st_nombres.e = NULL;
@@ -123157,9 +123092,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_contextos)
                     {
-                        for (size_t ss_i1380 = 0; ss_i1380 < contextos.length; ss_i1380++)
+                        for (size_t ss_i1376 = 0; ss_i1376 < contextos.length; ss_i1376++)
                         {
-                            ss_drop_Contexto(&contextos.e[ss_i1380]);
+                            ss_drop_Contexto(&contextos.e[ss_i1376]);
                         }
                         free(contextos.e);
                         contextos.e = NULL;
@@ -123168,9 +123103,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_arboles)
                     {
-                        for (size_t ss_i1381 = 0; ss_i1381 < arboles.length; ss_i1381++)
+                        for (size_t ss_i1377 = 0; ss_i1377 < arboles.length; ss_i1377++)
                         {
-                            ss_drop_Nodo(&arboles.e[ss_i1381]);
+                            ss_drop_Nodo(&arboles.e[ss_i1377]);
                         }
                         free(arboles.e);
                         arboles.e = NULL;
@@ -123182,9 +123117,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         ss_drop_Contexto(&global);
                     }
                     ss_free(&error_carga);
-                    for (size_t ss_i1382 = 0; ss_i1382 < pila.length; ss_i1382++)
+                    for (size_t ss_i1378 = 0; ss_i1378 < pila.length; ss_i1378++)
                     {
-                        ss_free(&pila.e[ss_i1382]);
+                        ss_free(&pila.e[ss_i1378]);
                     }
                     free(pila.e);
                     pila.e = NULL;
@@ -123192,9 +123127,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     pila.capacity = 0;
                     if (ss_vivo_modulos)
                     {
-                        for (size_t ss_i1383 = 0; ss_i1383 < modulos.length; ss_i1383++)
+                        for (size_t ss_i1379 = 0; ss_i1379 < modulos.length; ss_i1379++)
                         {
-                            ss_free(&modulos.e[ss_i1383]);
+                            ss_free(&modulos.e[ss_i1379]);
                         }
                         free(modulos.e);
                         modulos.e = NULL;
@@ -123202,37 +123137,37 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         modulos.capacity = 0;
                     }
                     ss_free(&principal);
-                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36196 };
+                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36179 };
                 }
-#line 3636 "ejemplos/compilador/tcodec.t"
-                ss_lista_str ss_tmp36197 = { .e = NULL, .length = 0, .capacity = 0 };
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str campos = ss_tmp36197;
+#line 3628 "ejemplos/compilador/tcodec.t"
+                ss_lista_str ss_tmp36180 = { .e = NULL, .length = 0, .capacity = 0 };
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str campos = ss_tmp36180;
                 bool ss_vivo_campos = true;
-#line 3637 "ejemplos/compilador/tcodec.t"
-                ss_lista_str ss_tmp36198 = { .e = NULL, .length = 0, .capacity = 0 };
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_campo = ss_tmp36198;
+#line 3629 "ejemplos/compilador/tcodec.t"
+                ss_lista_str ss_tmp36181 = { .e = NULL, .length = 0, .capacity = 0 };
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_campo = ss_tmp36181;
                 bool ss_vivo_tipos_campo = true;
-#line 3638 "ejemplos/compilador/tcodec.t"
-                for (size_t ss_k1384 = 0; ss_k1384 < (*d).hijos.length; ss_k1384++)
+#line 3630 "ejemplos/compilador/tcodec.t"
+                for (size_t ss_k1380 = 0; ss_k1380 < (*d).hijos.length; ss_k1380++)
                 {
-                    SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1384];
-#line 3639 "ejemplos/compilador/tcodec.t"
-                    Clase ss_tmp36199;
-                    Clase ss_tmp36200;
-#line 3639 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp36199 = (*h).clase, ss_tmp36200 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp36199.etiqueta == ss_tmp36200.etiqueta))))
+                    SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1380];
+#line 3631 "ejemplos/compilador/tcodec.t"
+                    Clase ss_tmp36182;
+                    Clase ss_tmp36183;
+#line 3631 "ejemplos/compilador/tcodec.t"
+                    if (((ss_tmp36182 = (*h).clase, ss_tmp36183 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp36182.etiqueta == ss_tmp36183.etiqueta))))
                     {
-#line 3640 "ejemplos/compilador/tcodec.t"
+#line 3632 "ejemplos/compilador/tcodec.t"
                         SS_LANG_QUIZA_SIN_USAR SafeString tp = tipo_pelado(ss_view(&(*h).texto));
                         bool ss_vivo_tp = true;
-#line 3641 "ejemplos/compilador/tcodec.t"
-                        ss_lista_str* ss_tmp36201 = &campos;
-#line 3641 "ejemplos/compilador/tcodec.t"
-                        ss_push_lista_str(ss_tmp36201, programa__nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3641);
-#line 3642 "ejemplos/compilador/tcodec.t"
-                        ss_lista_str* ss_tmp36202 = &tipos_campo;
-#line 3642 "ejemplos/compilador/tcodec.t"
-                        ss_push_lista_str(ss_tmp36202, tp, "ejemplos/compilador/tcodec.t", 3642);
+#line 3633 "ejemplos/compilador/tcodec.t"
+                        ss_lista_str* ss_tmp36184 = &campos;
+#line 3633 "ejemplos/compilador/tcodec.t"
+                        ss_push_lista_str(ss_tmp36184, programa__nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3633);
+#line 3634 "ejemplos/compilador/tcodec.t"
+                        ss_lista_str* ss_tmp36185 = &tipos_campo;
+#line 3634 "ejemplos/compilador/tcodec.t"
+                        ss_push_lista_str(ss_tmp36185, tp, "ejemplos/compilador/tcodec.t", 3634);
                         ss_vivo_tp = false;
                         if (ss_vivo_tp)
                         {
@@ -123240,36 +123175,36 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         }
                     }
                 }
-#line 3645 "ejemplos/compilador/tcodec.t"
-                ss_mapa_str_usize* ss_tmp36203 = &st_indice;
-#line 3645 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_usize(ss_tmp36203, ss_view(&(*d).texto), (st_nombres.length), "ejemplos/compilador/tcodec.t", 3645);
-#line 3646 "ejemplos/compilador/tcodec.t"
-                ss_mapa_str_str* ss_tmp36204 = &st_donde;
-                SafeView ss_tmp36205;
-                size_t ss_tmp36206;
-#line 3646 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_str(ss_tmp36204, ss_view(&(*d).texto), ((ss_tmp36205 = ss_view(m), ss_tmp36206 = (*d).linea, sitio(ss_tmp36205, ss_tmp36206))), "ejemplos/compilador/tcodec.t", 3646);
-#line 3647 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp36207 = &st_nombres;
-#line 3647 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp36207, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3647);
-#line 3648 "ejemplos/compilador/tcodec.t"
-                ss_lista_lista_str* ss_tmp36208 = &st_campos;
-#line 3648 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_lista_str(ss_tmp36208, campos, "ejemplos/compilador/tcodec.t", 3648);
+#line 3637 "ejemplos/compilador/tcodec.t"
+                ss_mapa_str_usize* ss_tmp36186 = &st_indice;
+#line 3637 "ejemplos/compilador/tcodec.t"
+                ss_mapa_poner_mapa_str_usize(ss_tmp36186, ss_view(&(*d).texto), (st_nombres.length), "ejemplos/compilador/tcodec.t", 3637);
+#line 3638 "ejemplos/compilador/tcodec.t"
+                ss_mapa_str_str* ss_tmp36187 = &st_donde;
+                SafeView ss_tmp36188;
+                size_t ss_tmp36189;
+#line 3638 "ejemplos/compilador/tcodec.t"
+                ss_mapa_poner_mapa_str_str(ss_tmp36187, ss_view(&(*d).texto), ((ss_tmp36188 = ss_view(m), ss_tmp36189 = (*d).linea, sitio(ss_tmp36188, ss_tmp36189))), "ejemplos/compilador/tcodec.t", 3638);
+#line 3639 "ejemplos/compilador/tcodec.t"
+                ss_lista_str* ss_tmp36190 = &st_nombres;
+#line 3639 "ejemplos/compilador/tcodec.t"
+                ss_push_lista_str(ss_tmp36190, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3639);
+#line 3640 "ejemplos/compilador/tcodec.t"
+                ss_lista_lista_str* ss_tmp36191 = &st_campos;
+#line 3640 "ejemplos/compilador/tcodec.t"
+                ss_push_lista_lista_str(ss_tmp36191, campos, "ejemplos/compilador/tcodec.t", 3640);
                 ss_vivo_campos = false;
-#line 3649 "ejemplos/compilador/tcodec.t"
-                ss_lista_lista_str* ss_tmp36209 = &st_tipos;
-#line 3649 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_lista_str(ss_tmp36209, tipos_campo, "ejemplos/compilador/tcodec.t", 3649);
+#line 3641 "ejemplos/compilador/tcodec.t"
+                ss_lista_lista_str* ss_tmp36192 = &st_tipos;
+#line 3641 "ejemplos/compilador/tcodec.t"
+                ss_push_lista_lista_str(ss_tmp36192, tipos_campo, "ejemplos/compilador/tcodec.t", 3641);
                 ss_vivo_tipos_campo = false;
-#line 3650 "ejemplos/compilador/tcodec.t"
+#line 3642 "ejemplos/compilador/tcodec.t"
                 if (ss_vivo_tipos_campo)
                 {
-                    for (size_t ss_i1385 = 0; ss_i1385 < tipos_campo.length; ss_i1385++)
+                    for (size_t ss_i1381 = 0; ss_i1381 < tipos_campo.length; ss_i1381++)
                     {
-                        ss_free(&tipos_campo.e[ss_i1385]);
+                        ss_free(&tipos_campo.e[ss_i1381]);
                     }
                     free(tipos_campo.e);
                     tipos_campo.e = NULL;
@@ -123278,9 +123213,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                 }
                 if (ss_vivo_campos)
                 {
-                    for (size_t ss_i1386 = 0; ss_i1386 < campos.length; ss_i1386++)
+                    for (size_t ss_i1382 = 0; ss_i1382 < campos.length; ss_i1382++)
                     {
-                        ss_free(&campos.e[ss_i1386]);
+                        ss_free(&campos.e[ss_i1382]);
                     }
                     free(campos.e);
                     campos.e = NULL;
@@ -123292,168 +123227,168 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             case SS_CLASE_EXTERNO:
             {
-#line 3653 "ejemplos/compilador/tcodec.t"
-                for (size_t ss_k1387 = 0; ss_k1387 < (*d).hijos.length; ss_k1387++)
+#line 3645 "ejemplos/compilador/tcodec.t"
+                for (size_t ss_k1383 = 0; ss_k1383 < (*d).hijos.length; ss_k1383++)
                 {
-                    SS_LANG_QUIZA_SIN_USAR const Nodo* f = &(*d).hijos.e[ss_k1387];
-#line 3654 "ejemplos/compilador/tcodec.t"
-                    Clase ss_tmp36210;
-                    Clase ss_tmp36211;
-#line 3654 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp36210 = (*f).clase, ss_tmp36211 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp36210.etiqueta != ss_tmp36211.etiqueta))))
+                    SS_LANG_QUIZA_SIN_USAR const Nodo* f = &(*d).hijos.e[ss_k1383];
+#line 3646 "ejemplos/compilador/tcodec.t"
+                    Clase ss_tmp36193;
+                    Clase ss_tmp36194;
+#line 3646 "ejemplos/compilador/tcodec.t"
+                    if (((ss_tmp36193 = (*f).clase, ss_tmp36194 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp36193.etiqueta != ss_tmp36194.etiqueta))))
                     {
                         continue;
                     }
-#line 3655 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str ss_tmp36212 = { .e = NULL, .length = 0, .capacity = 0 };
-                    SS_LANG_QUIZA_SIN_USAR ss_lista_str ps = ss_tmp36212;
-#line 3656 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str ss_tmp36213 = { .e = NULL, .length = 0, .capacity = 0 };
-                    SS_LANG_QUIZA_SIN_USAR ss_lista_str pn = ss_tmp36213;
-#line 3657 "ejemplos/compilador/tcodec.t"
+#line 3647 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str ss_tmp36195 = { .e = NULL, .length = 0, .capacity = 0 };
+                    SS_LANG_QUIZA_SIN_USAR ss_lista_str ps = ss_tmp36195;
+#line 3648 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str ss_tmp36196 = { .e = NULL, .length = 0, .capacity = 0 };
+                    SS_LANG_QUIZA_SIN_USAR ss_lista_str pn = ss_tmp36196;
+#line 3649 "ejemplos/compilador/tcodec.t"
                     SS_LANG_QUIZA_SIN_USAR SafeString ret = ss_new();
-#line 3658 "ejemplos/compilador/tcodec.t"
-                    for (size_t ss_k1388 = 0; ss_k1388 < (*f).hijos.length; ss_k1388++)
+#line 3650 "ejemplos/compilador/tcodec.t"
+                    for (size_t ss_k1384 = 0; ss_k1384 < (*f).hijos.length; ss_k1384++)
                     {
-                        SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*f).hijos.e[ss_k1388];
-#line 3659 "ejemplos/compilador/tcodec.t"
-                        Clase ss_tmp36214;
-                        Clase ss_tmp36215;
-#line 3659 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp36214 = (*h).clase, ss_tmp36215 = (Clase){ .etiqueta = SS_CLASE_PARAM }, (ss_tmp36214.etiqueta == ss_tmp36215.etiqueta))))
+                        SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*f).hijos.e[ss_k1384];
+#line 3651 "ejemplos/compilador/tcodec.t"
+                        Clase ss_tmp36197;
+                        Clase ss_tmp36198;
+#line 3651 "ejemplos/compilador/tcodec.t"
+                        if (((ss_tmp36197 = (*h).clase, ss_tmp36198 = (Clase){ .etiqueta = SS_CLASE_PARAM }, (ss_tmp36197.etiqueta == ss_tmp36198.etiqueta))))
                         {
-#line 3660 "ejemplos/compilador/tcodec.t"
+#line 3652 "ejemplos/compilador/tcodec.t"
                             SS_LANG_QUIZA_SIN_USAR SafeString tp = tipo_pelado(ss_view(&(*h).texto));
                             bool ss_vivo_tp = true;
-#line 3661 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp36216 = &ps;
-#line 3661 "ejemplos/compilador/tcodec.t"
-                            ss_push_lista_str(ss_tmp36216, tp, "ejemplos/compilador/tcodec.t", 3661);
+#line 3653 "ejemplos/compilador/tcodec.t"
+                            ss_lista_str* ss_tmp36199 = &ps;
+#line 3653 "ejemplos/compilador/tcodec.t"
+                            ss_push_lista_str(ss_tmp36199, tp, "ejemplos/compilador/tcodec.t", 3653);
                             ss_vivo_tp = false;
-#line 3662 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp36217 = &pn;
-#line 3662 "ejemplos/compilador/tcodec.t"
-                            ss_push_lista_str(ss_tmp36217, programa__nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3662);
+#line 3654 "ejemplos/compilador/tcodec.t"
+                            ss_lista_str* ss_tmp36200 = &pn;
+#line 3654 "ejemplos/compilador/tcodec.t"
+                            ss_push_lista_str(ss_tmp36200, programa__nombre_de(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3654);
                             if (ss_vivo_tp)
                             {
                                 ss_free(&tp);
                             }
                         }
-#line 3664 "ejemplos/compilador/tcodec.t"
-                        Clase ss_tmp36218;
-                        Clase ss_tmp36219;
-#line 3664 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp36218 = (*h).clase, ss_tmp36219 = (Clase){ .etiqueta = SS_CLASE_RETORNOTIPO }, (ss_tmp36218.etiqueta == ss_tmp36219.etiqueta))))
+#line 3656 "ejemplos/compilador/tcodec.t"
+                        Clase ss_tmp36201;
+                        Clase ss_tmp36202;
+#line 3656 "ejemplos/compilador/tcodec.t"
+                        if (((ss_tmp36201 = (*h).clase, ss_tmp36202 = (Clase){ .etiqueta = SS_CLASE_RETORNOTIPO }, (ss_tmp36201.etiqueta == ss_tmp36202.etiqueta))))
                         {
-                            SafeString ss_tmp36220 = ss_from_view(ss_view(&(*h).texto));
+                            SafeString ss_tmp36203 = ss_from_view(ss_view(&(*h).texto));
                             ss_free(&ret);
-                            ret = ss_tmp36220;
+                            ret = ss_tmp36203;
                         }
                     }
-#line 3666 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp36221 = &ext_cabeceras;
-#line 3666 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp36221, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3666);
-#line 3667 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp36222 = &ext_modulos;
-#line 3667 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp36222, ss_clone(m), "ejemplos/compilador/tcodec.t", 3667);
-#line 3668 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp36223 = &ext_protos;
-                    SafeView ss_tmp36224;
-                    const ss_lista_str* ss_tmp36225;
-                    const ss_lista_str* ss_tmp36226;
-                    SafeView ss_tmp36227;
-#line 3668 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp36223, ((ss_tmp36224 = ss_view(&(*f).texto), ss_tmp36225 = &ps, ss_tmp36226 = &pn, ss_tmp36227 = ss_view(&ret), prototipo_externo(ss_tmp36224, ss_tmp36225, ss_tmp36226, ss_tmp36227))), "ejemplos/compilador/tcodec.t", 3668);
+#line 3658 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str* ss_tmp36204 = &ext_cabeceras;
+#line 3658 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_str(ss_tmp36204, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3658);
+#line 3659 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str* ss_tmp36205 = &ext_modulos;
+#line 3659 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_str(ss_tmp36205, ss_clone(m), "ejemplos/compilador/tcodec.t", 3659);
+#line 3660 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str* ss_tmp36206 = &ext_protos;
+                    SafeView ss_tmp36207;
+                    const ss_lista_str* ss_tmp36208;
+                    const ss_lista_str* ss_tmp36209;
+                    SafeView ss_tmp36210;
+#line 3660 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_str(ss_tmp36206, ((ss_tmp36207 = ss_view(&(*f).texto), ss_tmp36208 = &ps, ss_tmp36209 = &pn, ss_tmp36210 = ss_view(&ret), prototipo_externo(ss_tmp36207, ss_tmp36208, ss_tmp36209, ss_tmp36210))), "ejemplos/compilador/tcodec.t", 3660);
                     ss_free(&ret);
-                    for (size_t ss_i1389 = 0; ss_i1389 < pn.length; ss_i1389++)
+                    for (size_t ss_i1385 = 0; ss_i1385 < pn.length; ss_i1385++)
                     {
-                        ss_free(&pn.e[ss_i1389]);
+                        ss_free(&pn.e[ss_i1385]);
                     }
                     free(pn.e);
                     pn.e = NULL;
                     pn.length = 0;
                     pn.capacity = 0;
-                    for (size_t ss_i1390 = 0; ss_i1390 < ps.length; ss_i1390++)
+                    for (size_t ss_i1386 = 0; ss_i1386 < ps.length; ss_i1386++)
                     {
-                        ss_free(&ps.e[ss_i1390]);
+                        ss_free(&ps.e[ss_i1386]);
                     }
                     free(ps.e);
                     ps.e = NULL;
                     ps.length = 0;
                     ps.capacity = 0;
                 }
-#line 3670 "ejemplos/compilador/tcodec.t"
+#line 3662 "ejemplos/compilador/tcodec.t"
                 continue;
                 break;
             }
             case SS_CLASE_ENUM:
             {
-#line 3673 "ejemplos/compilador/tcodec.t"
-                const ss_mapa_str_usize* ss_tmp36228;
-                SafeView ss_tmp36229;
-#line 3673 "ejemplos/compilador/tcodec.t"
-                const ss_mapa_str_usize* ss_tmp36230;
-                SafeView ss_tmp36231;
-#line 3673 "ejemplos/compilador/tcodec.t"
-                if ((((ss_tmp36228 = &en_indice, ss_tmp36229 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp36228, ss_tmp36229))) || ((ss_tmp36230 = &st_indice, ss_tmp36231 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp36230, ss_tmp36231)))))
+#line 3665 "ejemplos/compilador/tcodec.t"
+                const ss_mapa_str_usize* ss_tmp36211;
+                SafeView ss_tmp36212;
+#line 3665 "ejemplos/compilador/tcodec.t"
+                const ss_mapa_str_usize* ss_tmp36213;
+                SafeView ss_tmp36214;
+#line 3665 "ejemplos/compilador/tcodec.t"
+                if ((((ss_tmp36211 = &en_indice, ss_tmp36212 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp36211, ss_tmp36212))) || ((ss_tmp36213 = &st_indice, ss_tmp36214 = ss_view(&(*d).texto), ss_mapa_tiene_mapa_str_usize(ss_tmp36213, ss_tmp36214)))))
                 {
-#line 3674 "ejemplos/compilador/tcodec.t"
-                    const ss_mapa_str_str* ss_tmp36233;
-                    SafeView ss_tmp36234;
-#line 3674 "ejemplos/compilador/tcodec.t"
-                    ss_res_view ss_tmp36232 = ((ss_tmp36233 = &en_donde, ss_tmp36234 = ss_view(&(*d).texto), ss_mapa_obtener_mapa_str_str(ss_tmp36233, ss_tmp36234)));
-                    SafeView ss_tmp36235;
-                    if (ss_tmp36232.motivo != NULL)
+#line 3666 "ejemplos/compilador/tcodec.t"
+                    const ss_mapa_str_str* ss_tmp36216;
+                    SafeView ss_tmp36217;
+#line 3666 "ejemplos/compilador/tcodec.t"
+                    ss_res_view ss_tmp36215 = ((ss_tmp36216 = &en_donde, ss_tmp36217 = ss_view(&(*d).texto), ss_mapa_obtener_mapa_str_str(ss_tmp36216, ss_tmp36217)));
+                    SafeView ss_tmp36218;
+                    if (ss_tmp36215.motivo != NULL)
                     {
-                        ss_tmp36235 = sv_len("", 0);
+                        ss_tmp36218 = sv_len("", 0);
                     }
                     else
                     {
-                        ss_tmp36235 = ss_tmp36232.valor;
+                        ss_tmp36218 = ss_tmp36215.valor;
                     }
-                    SS_LANG_QUIZA_SIN_USAR SafeView antes = ss_tmp36235;
-#line 3675 "ejemplos/compilador/tcodec.t"
-                    size_t ss_tmp36236;
-                    size_t ss_tmp36237;
-#line 3675 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp36236 = sv_len_of(antes), ss_tmp36237 = (size_t)0, (ss_tmp36236 == ss_tmp36237))))
+                    SS_LANG_QUIZA_SIN_USAR SafeView antes = ss_tmp36218;
+#line 3667 "ejemplos/compilador/tcodec.t"
+                    size_t ss_tmp36219;
+                    size_t ss_tmp36220;
+#line 3667 "ejemplos/compilador/tcodec.t"
+                    if (((ss_tmp36219 = sv_len_of(antes), ss_tmp36220 = (size_t)0, (ss_tmp36219 == ss_tmp36220))))
                     {
-#line 3676 "ejemplos/compilador/tcodec.t"
-                        const ss_mapa_str_str* ss_tmp36239;
-                        SafeView ss_tmp36240;
-#line 3676 "ejemplos/compilador/tcodec.t"
-                        ss_res_view ss_tmp36238 = ((ss_tmp36239 = &st_donde, ss_tmp36240 = ss_view(&(*d).texto), ss_mapa_obtener_mapa_str_str(ss_tmp36239, ss_tmp36240)));
-                        SafeView ss_tmp36241;
-                        if (ss_tmp36238.motivo != NULL)
+#line 3668 "ejemplos/compilador/tcodec.t"
+                        const ss_mapa_str_str* ss_tmp36222;
+                        SafeView ss_tmp36223;
+#line 3668 "ejemplos/compilador/tcodec.t"
+                        ss_res_view ss_tmp36221 = ((ss_tmp36222 = &st_donde, ss_tmp36223 = ss_view(&(*d).texto), ss_mapa_obtener_mapa_str_str(ss_tmp36222, ss_tmp36223)));
+                        SafeView ss_tmp36224;
+                        if (ss_tmp36221.motivo != NULL)
                         {
-                            ss_tmp36241 = sv_len("", 0);
+                            ss_tmp36224 = sv_len("", 0);
                         }
                         else
                         {
-                            ss_tmp36241 = ss_tmp36238.valor;
+                            ss_tmp36224 = ss_tmp36221.valor;
                         }
-                        antes = ss_tmp36241;
+                        antes = ss_tmp36224;
                     }
-#line 3678 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp36243;
-                    size_t ss_tmp36244;
-                    SafeString ss_tmp36242 = ((ss_tmp36243 = ss_view(m), ss_tmp36244 = (*d).linea, sitio(ss_tmp36243, ss_tmp36244)));
-                    SafeView ss_tmp36245;
-                    SafeString ss_tmp36247 = ss_new();
-                    SafeView ss_tmp36248 = ss_view(&ss_tmp36242);
-                    ss_lang_agregar_texto_(&ss_tmp36247, sv_len("el enum `", 9), "ejemplos/compilador/tcodec.t", 3679);
-                    ss_lang_agregar_texto_(&ss_tmp36247, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3679);
-                    ss_lang_agregar_texto_(&ss_tmp36247, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 3679);
-                    SafeString ss_tmp36246 = ss_tmp36247;
-                    SafeView ss_tmp36249;
-                    SafeView ss_tmp36250;
-                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36245 = ss_tmp36248, ss_tmp36249 = ss_view(&ss_tmp36246), ss_tmp36250 = antes, rechazo_tipo_repetido(ss_tmp36245, ss_tmp36249, ss_tmp36250)));
-                    ss_free(&ss_tmp36242);
-                    ss_free(&ss_tmp36246);
-#line 3680 "ejemplos/compilador/tcodec.t"
-                    ProgramaLeido ss_tmp36251 = programa_no_leido();
+#line 3670 "ejemplos/compilador/tcodec.t"
+                    SafeView ss_tmp36226;
+                    size_t ss_tmp36227;
+                    SafeString ss_tmp36225 = ((ss_tmp36226 = ss_view(m), ss_tmp36227 = (*d).linea, sitio(ss_tmp36226, ss_tmp36227)));
+                    SafeView ss_tmp36228;
+                    SafeString ss_tmp36230 = ss_new();
+                    SafeView ss_tmp36231 = ss_view(&ss_tmp36225);
+                    ss_lang_agregar_texto_(&ss_tmp36230, sv_len("el enum `", 9), "ejemplos/compilador/tcodec.t", 3671);
+                    ss_lang_agregar_texto_(&ss_tmp36230, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 3671);
+                    ss_lang_agregar_texto_(&ss_tmp36230, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 3671);
+                    SafeString ss_tmp36229 = ss_tmp36230;
+                    SafeView ss_tmp36232;
+                    SafeView ss_tmp36233;
+                    SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36228 = ss_tmp36231, ss_tmp36232 = ss_view(&ss_tmp36229), ss_tmp36233 = antes, rechazo_tipo_repetido(ss_tmp36228, ss_tmp36232, ss_tmp36233)));
+                    ss_free(&ss_tmp36225);
+                    ss_free(&ss_tmp36229);
+#line 3672 "ejemplos/compilador/tcodec.t"
+                    ProgramaLeido ss_tmp36234 = programa_no_leido();
                     if (ss_vivo_arbol)
                     {
                         ss_drop_Nodo(&arbol);
@@ -123472,16 +123407,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_en_lleva)
                     {
-                        for (size_t ss_i1391 = 0; ss_i1391 < en_lleva.length; ss_i1391++)
+                        for (size_t ss_i1387 = 0; ss_i1387 < en_lleva.length; ss_i1387++)
                         {
-                            for (size_t ss_i1392 = 0; ss_i1392 < en_lleva.e[ss_i1391].length; ss_i1392++)
+                            for (size_t ss_i1388 = 0; ss_i1388 < en_lleva.e[ss_i1387].length; ss_i1388++)
                             {
-                                ss_free(&en_lleva.e[ss_i1391].e[ss_i1392]);
+                                ss_free(&en_lleva.e[ss_i1387].e[ss_i1388]);
                             }
-                            free(en_lleva.e[ss_i1391].e);
-                            en_lleva.e[ss_i1391].e = NULL;
-                            en_lleva.e[ss_i1391].length = 0;
-                            en_lleva.e[ss_i1391].capacity = 0;
+                            free(en_lleva.e[ss_i1387].e);
+                            en_lleva.e[ss_i1387].e = NULL;
+                            en_lleva.e[ss_i1387].length = 0;
+                            en_lleva.e[ss_i1387].capacity = 0;
                         }
                         free(en_lleva.e);
                         en_lleva.e = NULL;
@@ -123490,16 +123425,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_en_variantes)
                     {
-                        for (size_t ss_i1393 = 0; ss_i1393 < en_variantes.length; ss_i1393++)
+                        for (size_t ss_i1389 = 0; ss_i1389 < en_variantes.length; ss_i1389++)
                         {
-                            for (size_t ss_i1394 = 0; ss_i1394 < en_variantes.e[ss_i1393].length; ss_i1394++)
+                            for (size_t ss_i1390 = 0; ss_i1390 < en_variantes.e[ss_i1389].length; ss_i1390++)
                             {
-                                ss_free(&en_variantes.e[ss_i1393].e[ss_i1394]);
+                                ss_free(&en_variantes.e[ss_i1389].e[ss_i1390]);
                             }
-                            free(en_variantes.e[ss_i1393].e);
-                            en_variantes.e[ss_i1393].e = NULL;
-                            en_variantes.e[ss_i1393].length = 0;
-                            en_variantes.e[ss_i1393].capacity = 0;
+                            free(en_variantes.e[ss_i1389].e);
+                            en_variantes.e[ss_i1389].e = NULL;
+                            en_variantes.e[ss_i1389].length = 0;
+                            en_variantes.e[ss_i1389].capacity = 0;
                         }
                         free(en_variantes.e);
                         en_variantes.e = NULL;
@@ -123513,9 +123448,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_en_nombres)
                     {
-                        for (size_t ss_i1395 = 0; ss_i1395 < en_nombres.length; ss_i1395++)
+                        for (size_t ss_i1391 = 0; ss_i1391 < en_nombres.length; ss_i1391++)
                         {
-                            ss_free(&en_nombres.e[ss_i1395]);
+                            ss_free(&en_nombres.e[ss_i1391]);
                         }
                         free(en_nombres.e);
                         en_nombres.e = NULL;
@@ -123524,9 +123459,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_ext_protos)
                     {
-                        for (size_t ss_i1396 = 0; ss_i1396 < ext_protos.length; ss_i1396++)
+                        for (size_t ss_i1392 = 0; ss_i1392 < ext_protos.length; ss_i1392++)
                         {
-                            ss_free(&ext_protos.e[ss_i1396]);
+                            ss_free(&ext_protos.e[ss_i1392]);
                         }
                         free(ext_protos.e);
                         ext_protos.e = NULL;
@@ -123535,9 +123470,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_ext_modulos)
                     {
-                        for (size_t ss_i1397 = 0; ss_i1397 < ext_modulos.length; ss_i1397++)
+                        for (size_t ss_i1393 = 0; ss_i1393 < ext_modulos.length; ss_i1393++)
                         {
-                            ss_free(&ext_modulos.e[ss_i1397]);
+                            ss_free(&ext_modulos.e[ss_i1393]);
                         }
                         free(ext_modulos.e);
                         ext_modulos.e = NULL;
@@ -123546,9 +123481,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_ext_cabeceras)
                     {
-                        for (size_t ss_i1398 = 0; ss_i1398 < ext_cabeceras.length; ss_i1398++)
+                        for (size_t ss_i1394 = 0; ss_i1394 < ext_cabeceras.length; ss_i1394++)
                         {
-                            ss_free(&ext_cabeceras.e[ss_i1398]);
+                            ss_free(&ext_cabeceras.e[ss_i1394]);
                         }
                         free(ext_cabeceras.e);
                         ext_cabeceras.e = NULL;
@@ -123557,16 +123492,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_stp_tipos)
                     {
-                        for (size_t ss_i1399 = 0; ss_i1399 < stp_tipos.length; ss_i1399++)
+                        for (size_t ss_i1395 = 0; ss_i1395 < stp_tipos.length; ss_i1395++)
                         {
-                            for (size_t ss_i1400 = 0; ss_i1400 < stp_tipos.e[ss_i1399].length; ss_i1400++)
+                            for (size_t ss_i1396 = 0; ss_i1396 < stp_tipos.e[ss_i1395].length; ss_i1396++)
                             {
-                                ss_free(&stp_tipos.e[ss_i1399].e[ss_i1400]);
+                                ss_free(&stp_tipos.e[ss_i1395].e[ss_i1396]);
                             }
-                            free(stp_tipos.e[ss_i1399].e);
-                            stp_tipos.e[ss_i1399].e = NULL;
-                            stp_tipos.e[ss_i1399].length = 0;
-                            stp_tipos.e[ss_i1399].capacity = 0;
+                            free(stp_tipos.e[ss_i1395].e);
+                            stp_tipos.e[ss_i1395].e = NULL;
+                            stp_tipos.e[ss_i1395].length = 0;
+                            stp_tipos.e[ss_i1395].capacity = 0;
                         }
                         free(stp_tipos.e);
                         stp_tipos.e = NULL;
@@ -123575,16 +123510,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_stp_campos)
                     {
-                        for (size_t ss_i1401 = 0; ss_i1401 < stp_campos.length; ss_i1401++)
+                        for (size_t ss_i1397 = 0; ss_i1397 < stp_campos.length; ss_i1397++)
                         {
-                            for (size_t ss_i1402 = 0; ss_i1402 < stp_campos.e[ss_i1401].length; ss_i1402++)
+                            for (size_t ss_i1398 = 0; ss_i1398 < stp_campos.e[ss_i1397].length; ss_i1398++)
                             {
-                                ss_free(&stp_campos.e[ss_i1401].e[ss_i1402]);
+                                ss_free(&stp_campos.e[ss_i1397].e[ss_i1398]);
                             }
-                            free(stp_campos.e[ss_i1401].e);
-                            stp_campos.e[ss_i1401].e = NULL;
-                            stp_campos.e[ss_i1401].length = 0;
-                            stp_campos.e[ss_i1401].capacity = 0;
+                            free(stp_campos.e[ss_i1397].e);
+                            stp_campos.e[ss_i1397].e = NULL;
+                            stp_campos.e[ss_i1397].length = 0;
+                            stp_campos.e[ss_i1397].capacity = 0;
                         }
                         free(stp_campos.e);
                         stp_campos.e = NULL;
@@ -123593,16 +123528,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_stp_params)
                     {
-                        for (size_t ss_i1403 = 0; ss_i1403 < stp_params.length; ss_i1403++)
+                        for (size_t ss_i1399 = 0; ss_i1399 < stp_params.length; ss_i1399++)
                         {
-                            for (size_t ss_i1404 = 0; ss_i1404 < stp_params.e[ss_i1403].length; ss_i1404++)
+                            for (size_t ss_i1400 = 0; ss_i1400 < stp_params.e[ss_i1399].length; ss_i1400++)
                             {
-                                ss_free(&stp_params.e[ss_i1403].e[ss_i1404]);
+                                ss_free(&stp_params.e[ss_i1399].e[ss_i1400]);
                             }
-                            free(stp_params.e[ss_i1403].e);
-                            stp_params.e[ss_i1403].e = NULL;
-                            stp_params.e[ss_i1403].length = 0;
-                            stp_params.e[ss_i1403].capacity = 0;
+                            free(stp_params.e[ss_i1399].e);
+                            stp_params.e[ss_i1399].e = NULL;
+                            stp_params.e[ss_i1399].length = 0;
+                            stp_params.e[ss_i1399].capacity = 0;
                         }
                         free(stp_params.e);
                         stp_params.e = NULL;
@@ -123614,9 +123549,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     {
                         ss_mapa_libre_mapa_str_usize(&stp_indice);
                     }
-                    for (size_t ss_i1405 = 0; ss_i1405 < stp_nombres.length; ss_i1405++)
+                    for (size_t ss_i1401 = 0; ss_i1401 < stp_nombres.length; ss_i1401++)
                     {
-                        ss_free(&stp_nombres.e[ss_i1405]);
+                        ss_free(&stp_nombres.e[ss_i1401]);
                     }
                     free(stp_nombres.e);
                     stp_nombres.e = NULL;
@@ -123629,16 +123564,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_st_tipos)
                     {
-                        for (size_t ss_i1406 = 0; ss_i1406 < st_tipos.length; ss_i1406++)
+                        for (size_t ss_i1402 = 0; ss_i1402 < st_tipos.length; ss_i1402++)
                         {
-                            for (size_t ss_i1407 = 0; ss_i1407 < st_tipos.e[ss_i1406].length; ss_i1407++)
+                            for (size_t ss_i1403 = 0; ss_i1403 < st_tipos.e[ss_i1402].length; ss_i1403++)
                             {
-                                ss_free(&st_tipos.e[ss_i1406].e[ss_i1407]);
+                                ss_free(&st_tipos.e[ss_i1402].e[ss_i1403]);
                             }
-                            free(st_tipos.e[ss_i1406].e);
-                            st_tipos.e[ss_i1406].e = NULL;
-                            st_tipos.e[ss_i1406].length = 0;
-                            st_tipos.e[ss_i1406].capacity = 0;
+                            free(st_tipos.e[ss_i1402].e);
+                            st_tipos.e[ss_i1402].e = NULL;
+                            st_tipos.e[ss_i1402].length = 0;
+                            st_tipos.e[ss_i1402].capacity = 0;
                         }
                         free(st_tipos.e);
                         st_tipos.e = NULL;
@@ -123647,16 +123582,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_st_campos)
                     {
-                        for (size_t ss_i1408 = 0; ss_i1408 < st_campos.length; ss_i1408++)
+                        for (size_t ss_i1404 = 0; ss_i1404 < st_campos.length; ss_i1404++)
                         {
-                            for (size_t ss_i1409 = 0; ss_i1409 < st_campos.e[ss_i1408].length; ss_i1409++)
+                            for (size_t ss_i1405 = 0; ss_i1405 < st_campos.e[ss_i1404].length; ss_i1405++)
                             {
-                                ss_free(&st_campos.e[ss_i1408].e[ss_i1409]);
+                                ss_free(&st_campos.e[ss_i1404].e[ss_i1405]);
                             }
-                            free(st_campos.e[ss_i1408].e);
-                            st_campos.e[ss_i1408].e = NULL;
-                            st_campos.e[ss_i1408].length = 0;
-                            st_campos.e[ss_i1408].capacity = 0;
+                            free(st_campos.e[ss_i1404].e);
+                            st_campos.e[ss_i1404].e = NULL;
+                            st_campos.e[ss_i1404].length = 0;
+                            st_campos.e[ss_i1404].capacity = 0;
                         }
                         free(st_campos.e);
                         st_campos.e = NULL;
@@ -123665,9 +123600,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_st_nombres)
                     {
-                        for (size_t ss_i1410 = 0; ss_i1410 < st_nombres.length; ss_i1410++)
+                        for (size_t ss_i1406 = 0; ss_i1406 < st_nombres.length; ss_i1406++)
                         {
-                            ss_free(&st_nombres.e[ss_i1410]);
+                            ss_free(&st_nombres.e[ss_i1406]);
                         }
                         free(st_nombres.e);
                         st_nombres.e = NULL;
@@ -123676,9 +123611,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_contextos)
                     {
-                        for (size_t ss_i1411 = 0; ss_i1411 < contextos.length; ss_i1411++)
+                        for (size_t ss_i1407 = 0; ss_i1407 < contextos.length; ss_i1407++)
                         {
-                            ss_drop_Contexto(&contextos.e[ss_i1411]);
+                            ss_drop_Contexto(&contextos.e[ss_i1407]);
                         }
                         free(contextos.e);
                         contextos.e = NULL;
@@ -123687,9 +123622,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     }
                     if (ss_vivo_arboles)
                     {
-                        for (size_t ss_i1412 = 0; ss_i1412 < arboles.length; ss_i1412++)
+                        for (size_t ss_i1408 = 0; ss_i1408 < arboles.length; ss_i1408++)
                         {
-                            ss_drop_Nodo(&arboles.e[ss_i1412]);
+                            ss_drop_Nodo(&arboles.e[ss_i1408]);
                         }
                         free(arboles.e);
                         arboles.e = NULL;
@@ -123701,9 +123636,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         ss_drop_Contexto(&global);
                     }
                     ss_free(&error_carga);
-                    for (size_t ss_i1413 = 0; ss_i1413 < pila.length; ss_i1413++)
+                    for (size_t ss_i1409 = 0; ss_i1409 < pila.length; ss_i1409++)
                     {
-                        ss_free(&pila.e[ss_i1413]);
+                        ss_free(&pila.e[ss_i1409]);
                     }
                     free(pila.e);
                     pila.e = NULL;
@@ -123711,9 +123646,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                     pila.capacity = 0;
                     if (ss_vivo_modulos)
                     {
-                        for (size_t ss_i1414 = 0; ss_i1414 < modulos.length; ss_i1414++)
+                        for (size_t ss_i1410 = 0; ss_i1410 < modulos.length; ss_i1410++)
                         {
-                            ss_free(&modulos.e[ss_i1414]);
+                            ss_free(&modulos.e[ss_i1410]);
                         }
                         free(modulos.e);
                         modulos.e = NULL;
@@ -123721,64 +123656,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                         modulos.capacity = 0;
                     }
                     ss_free(&principal);
-                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36251 };
+                    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36234 };
                 }
-#line 3682 "ejemplos/compilador/tcodec.t"
-                ss_lista_str ss_tmp36252 = { .e = NULL, .length = 0, .capacity = 0 };
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str vs = ss_tmp36252;
+#line 3674 "ejemplos/compilador/tcodec.t"
+                ss_lista_str ss_tmp36235 = { .e = NULL, .length = 0, .capacity = 0 };
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str vs = ss_tmp36235;
                 bool ss_vivo_vs = true;
-#line 3683 "ejemplos/compilador/tcodec.t"
-                ss_lista_str ss_tmp36253 = { .e = NULL, .length = 0, .capacity = 0 };
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str ls = ss_tmp36253;
+#line 3675 "ejemplos/compilador/tcodec.t"
+                ss_lista_str ss_tmp36236 = { .e = NULL, .length = 0, .capacity = 0 };
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str ls = ss_tmp36236;
                 bool ss_vivo_ls = true;
-#line 3684 "ejemplos/compilador/tcodec.t"
-                for (size_t ss_k1415 = 0; ss_k1415 < (*d).hijos.length; ss_k1415++)
+#line 3676 "ejemplos/compilador/tcodec.t"
+                for (size_t ss_k1411 = 0; ss_k1411 < (*d).hijos.length; ss_k1411++)
                 {
-                    SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1415];
-#line 3685 "ejemplos/compilador/tcodec.t"
-                    Clase ss_tmp36254;
-                    Clase ss_tmp36255;
-#line 3685 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp36254 = (*h).clase, ss_tmp36255 = (Clase){ .etiqueta = SS_CLASE_VARIANTE }, (ss_tmp36254.etiqueta != ss_tmp36255.etiqueta))))
+                    SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1411];
+#line 3677 "ejemplos/compilador/tcodec.t"
+                    Clase ss_tmp36237;
+                    Clase ss_tmp36238;
+#line 3677 "ejemplos/compilador/tcodec.t"
+                    if (((ss_tmp36237 = (*h).clase, ss_tmp36238 = (Clase){ .etiqueta = SS_CLASE_VARIANTE }, (ss_tmp36237.etiqueta != ss_tmp36238.etiqueta))))
                     {
                         continue;
                     }
-#line 3686 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp36256 = &vs;
-#line 3686 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp36256, ss_from_view(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3686);
-#line 3687 "ejemplos/compilador/tcodec.t"
+#line 3678 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str* ss_tmp36239 = &vs;
+#line 3678 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_str(ss_tmp36239, ss_from_view(ss_view(&(*h).texto)), "ejemplos/compilador/tcodec.t", 3678);
+#line 3679 "ejemplos/compilador/tcodec.t"
                     SS_LANG_QUIZA_SIN_USAR SafeString junto = ss_new();
                     bool ss_vivo_junto = true;
-#line 3688 "ejemplos/compilador/tcodec.t"
+#line 3680 "ejemplos/compilador/tcodec.t"
                     SS_LANG_QUIZA_SIN_USAR bool primero_t = true;
-#line 3689 "ejemplos/compilador/tcodec.t"
-                    for (size_t ss_k1416 = 0; ss_k1416 < (*h).hijos.length; ss_k1416++)
+#line 3681 "ejemplos/compilador/tcodec.t"
+                    for (size_t ss_k1412 = 0; ss_k1412 < (*h).hijos.length; ss_k1412++)
                     {
-                        SS_LANG_QUIZA_SIN_USAR const Nodo* x = &(*h).hijos.e[ss_k1416];
-#line 3690 "ejemplos/compilador/tcodec.t"
-                        Clase ss_tmp36257;
-                        Clase ss_tmp36258;
-#line 3690 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp36257 = (*x).clase, ss_tmp36258 = (Clase){ .etiqueta = SS_CLASE_LLEVA }, (ss_tmp36257.etiqueta != ss_tmp36258.etiqueta))))
+                        SS_LANG_QUIZA_SIN_USAR const Nodo* x = &(*h).hijos.e[ss_k1412];
+#line 3682 "ejemplos/compilador/tcodec.t"
+                        Clase ss_tmp36240;
+                        Clase ss_tmp36241;
+#line 3682 "ejemplos/compilador/tcodec.t"
+                        if (((ss_tmp36240 = (*x).clase, ss_tmp36241 = (Clase){ .etiqueta = SS_CLASE_LLEVA }, (ss_tmp36240.etiqueta != ss_tmp36241.etiqueta))))
                         {
                             continue;
                         }
-#line 3691 "ejemplos/compilador/tcodec.t"
+#line 3683 "ejemplos/compilador/tcodec.t"
                         SS_LANG_QUIZA_SIN_USAR SafeString t = sin_alias_tipo(ss_view(&(*x).texto));
-#line 3692 "ejemplos/compilador/tcodec.t"
+#line 3684 "ejemplos/compilador/tcodec.t"
                         if (lleva_bloque_o_arreglo(ss_view(&t)))
                         {
-#line 3693 "ejemplos/compilador/tcodec.t"
-                            SafeView ss_tmp36260;
-                            size_t ss_tmp36261;
-                            SafeString ss_tmp36259 = ((ss_tmp36260 = ss_view(m), ss_tmp36261 = (*x).linea, sitio(ss_tmp36260, ss_tmp36261)));
-                            SafeView ss_tmp36262;
-                            SafeView ss_tmp36263;
-                            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36262 = ss_view(&ss_tmp36259), ss_tmp36263 = sv_len("no escribe bloques ni arreglos dentro de un enum", 48), rechazo(ss_tmp36262, ss_tmp36263)));
-                            ss_free(&ss_tmp36259);
-#line 3695 "ejemplos/compilador/tcodec.t"
-                            ProgramaLeido ss_tmp36264 = programa_no_leido();
+#line 3685 "ejemplos/compilador/tcodec.t"
+                            SafeView ss_tmp36243;
+                            size_t ss_tmp36244;
+                            SafeString ss_tmp36242 = ((ss_tmp36243 = ss_view(m), ss_tmp36244 = (*x).linea, sitio(ss_tmp36243, ss_tmp36244)));
+                            SafeView ss_tmp36245;
+                            SafeView ss_tmp36246;
+                            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36245 = ss_view(&ss_tmp36242), ss_tmp36246 = sv_len("no escribe bloques ni arreglos dentro de un enum", 48), rechazo(ss_tmp36245, ss_tmp36246)));
+                            ss_free(&ss_tmp36242);
+#line 3687 "ejemplos/compilador/tcodec.t"
+                            ProgramaLeido ss_tmp36247 = programa_no_leido();
                             ss_free(&t);
                             if (ss_vivo_junto)
                             {
@@ -123786,9 +123721,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_ls)
                             {
-                                for (size_t ss_i1417 = 0; ss_i1417 < ls.length; ss_i1417++)
+                                for (size_t ss_i1413 = 0; ss_i1413 < ls.length; ss_i1413++)
                                 {
-                                    ss_free(&ls.e[ss_i1417]);
+                                    ss_free(&ls.e[ss_i1413]);
                                 }
                                 free(ls.e);
                                 ls.e = NULL;
@@ -123797,9 +123732,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_vs)
                             {
-                                for (size_t ss_i1418 = 0; ss_i1418 < vs.length; ss_i1418++)
+                                for (size_t ss_i1414 = 0; ss_i1414 < vs.length; ss_i1414++)
                                 {
-                                    ss_free(&vs.e[ss_i1418]);
+                                    ss_free(&vs.e[ss_i1414]);
                                 }
                                 free(vs.e);
                                 vs.e = NULL;
@@ -123824,16 +123759,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_en_lleva)
                             {
-                                for (size_t ss_i1419 = 0; ss_i1419 < en_lleva.length; ss_i1419++)
+                                for (size_t ss_i1415 = 0; ss_i1415 < en_lleva.length; ss_i1415++)
                                 {
-                                    for (size_t ss_i1420 = 0; ss_i1420 < en_lleva.e[ss_i1419].length; ss_i1420++)
+                                    for (size_t ss_i1416 = 0; ss_i1416 < en_lleva.e[ss_i1415].length; ss_i1416++)
                                     {
-                                        ss_free(&en_lleva.e[ss_i1419].e[ss_i1420]);
+                                        ss_free(&en_lleva.e[ss_i1415].e[ss_i1416]);
                                     }
-                                    free(en_lleva.e[ss_i1419].e);
-                                    en_lleva.e[ss_i1419].e = NULL;
-                                    en_lleva.e[ss_i1419].length = 0;
-                                    en_lleva.e[ss_i1419].capacity = 0;
+                                    free(en_lleva.e[ss_i1415].e);
+                                    en_lleva.e[ss_i1415].e = NULL;
+                                    en_lleva.e[ss_i1415].length = 0;
+                                    en_lleva.e[ss_i1415].capacity = 0;
                                 }
                                 free(en_lleva.e);
                                 en_lleva.e = NULL;
@@ -123842,16 +123777,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_en_variantes)
                             {
-                                for (size_t ss_i1421 = 0; ss_i1421 < en_variantes.length; ss_i1421++)
+                                for (size_t ss_i1417 = 0; ss_i1417 < en_variantes.length; ss_i1417++)
                                 {
-                                    for (size_t ss_i1422 = 0; ss_i1422 < en_variantes.e[ss_i1421].length; ss_i1422++)
+                                    for (size_t ss_i1418 = 0; ss_i1418 < en_variantes.e[ss_i1417].length; ss_i1418++)
                                     {
-                                        ss_free(&en_variantes.e[ss_i1421].e[ss_i1422]);
+                                        ss_free(&en_variantes.e[ss_i1417].e[ss_i1418]);
                                     }
-                                    free(en_variantes.e[ss_i1421].e);
-                                    en_variantes.e[ss_i1421].e = NULL;
-                                    en_variantes.e[ss_i1421].length = 0;
-                                    en_variantes.e[ss_i1421].capacity = 0;
+                                    free(en_variantes.e[ss_i1417].e);
+                                    en_variantes.e[ss_i1417].e = NULL;
+                                    en_variantes.e[ss_i1417].length = 0;
+                                    en_variantes.e[ss_i1417].capacity = 0;
                                 }
                                 free(en_variantes.e);
                                 en_variantes.e = NULL;
@@ -123865,9 +123800,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_en_nombres)
                             {
-                                for (size_t ss_i1423 = 0; ss_i1423 < en_nombres.length; ss_i1423++)
+                                for (size_t ss_i1419 = 0; ss_i1419 < en_nombres.length; ss_i1419++)
                                 {
-                                    ss_free(&en_nombres.e[ss_i1423]);
+                                    ss_free(&en_nombres.e[ss_i1419]);
                                 }
                                 free(en_nombres.e);
                                 en_nombres.e = NULL;
@@ -123876,9 +123811,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_ext_protos)
                             {
-                                for (size_t ss_i1424 = 0; ss_i1424 < ext_protos.length; ss_i1424++)
+                                for (size_t ss_i1420 = 0; ss_i1420 < ext_protos.length; ss_i1420++)
                                 {
-                                    ss_free(&ext_protos.e[ss_i1424]);
+                                    ss_free(&ext_protos.e[ss_i1420]);
                                 }
                                 free(ext_protos.e);
                                 ext_protos.e = NULL;
@@ -123887,9 +123822,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_ext_modulos)
                             {
-                                for (size_t ss_i1425 = 0; ss_i1425 < ext_modulos.length; ss_i1425++)
+                                for (size_t ss_i1421 = 0; ss_i1421 < ext_modulos.length; ss_i1421++)
                                 {
-                                    ss_free(&ext_modulos.e[ss_i1425]);
+                                    ss_free(&ext_modulos.e[ss_i1421]);
                                 }
                                 free(ext_modulos.e);
                                 ext_modulos.e = NULL;
@@ -123898,9 +123833,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_ext_cabeceras)
                             {
-                                for (size_t ss_i1426 = 0; ss_i1426 < ext_cabeceras.length; ss_i1426++)
+                                for (size_t ss_i1422 = 0; ss_i1422 < ext_cabeceras.length; ss_i1422++)
                                 {
-                                    ss_free(&ext_cabeceras.e[ss_i1426]);
+                                    ss_free(&ext_cabeceras.e[ss_i1422]);
                                 }
                                 free(ext_cabeceras.e);
                                 ext_cabeceras.e = NULL;
@@ -123909,16 +123844,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_stp_tipos)
                             {
-                                for (size_t ss_i1427 = 0; ss_i1427 < stp_tipos.length; ss_i1427++)
+                                for (size_t ss_i1423 = 0; ss_i1423 < stp_tipos.length; ss_i1423++)
                                 {
-                                    for (size_t ss_i1428 = 0; ss_i1428 < stp_tipos.e[ss_i1427].length; ss_i1428++)
+                                    for (size_t ss_i1424 = 0; ss_i1424 < stp_tipos.e[ss_i1423].length; ss_i1424++)
                                     {
-                                        ss_free(&stp_tipos.e[ss_i1427].e[ss_i1428]);
+                                        ss_free(&stp_tipos.e[ss_i1423].e[ss_i1424]);
                                     }
-                                    free(stp_tipos.e[ss_i1427].e);
-                                    stp_tipos.e[ss_i1427].e = NULL;
-                                    stp_tipos.e[ss_i1427].length = 0;
-                                    stp_tipos.e[ss_i1427].capacity = 0;
+                                    free(stp_tipos.e[ss_i1423].e);
+                                    stp_tipos.e[ss_i1423].e = NULL;
+                                    stp_tipos.e[ss_i1423].length = 0;
+                                    stp_tipos.e[ss_i1423].capacity = 0;
                                 }
                                 free(stp_tipos.e);
                                 stp_tipos.e = NULL;
@@ -123927,16 +123862,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_stp_campos)
                             {
-                                for (size_t ss_i1429 = 0; ss_i1429 < stp_campos.length; ss_i1429++)
+                                for (size_t ss_i1425 = 0; ss_i1425 < stp_campos.length; ss_i1425++)
                                 {
-                                    for (size_t ss_i1430 = 0; ss_i1430 < stp_campos.e[ss_i1429].length; ss_i1430++)
+                                    for (size_t ss_i1426 = 0; ss_i1426 < stp_campos.e[ss_i1425].length; ss_i1426++)
                                     {
-                                        ss_free(&stp_campos.e[ss_i1429].e[ss_i1430]);
+                                        ss_free(&stp_campos.e[ss_i1425].e[ss_i1426]);
                                     }
-                                    free(stp_campos.e[ss_i1429].e);
-                                    stp_campos.e[ss_i1429].e = NULL;
-                                    stp_campos.e[ss_i1429].length = 0;
-                                    stp_campos.e[ss_i1429].capacity = 0;
+                                    free(stp_campos.e[ss_i1425].e);
+                                    stp_campos.e[ss_i1425].e = NULL;
+                                    stp_campos.e[ss_i1425].length = 0;
+                                    stp_campos.e[ss_i1425].capacity = 0;
                                 }
                                 free(stp_campos.e);
                                 stp_campos.e = NULL;
@@ -123945,16 +123880,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_stp_params)
                             {
-                                for (size_t ss_i1431 = 0; ss_i1431 < stp_params.length; ss_i1431++)
+                                for (size_t ss_i1427 = 0; ss_i1427 < stp_params.length; ss_i1427++)
                                 {
-                                    for (size_t ss_i1432 = 0; ss_i1432 < stp_params.e[ss_i1431].length; ss_i1432++)
+                                    for (size_t ss_i1428 = 0; ss_i1428 < stp_params.e[ss_i1427].length; ss_i1428++)
                                     {
-                                        ss_free(&stp_params.e[ss_i1431].e[ss_i1432]);
+                                        ss_free(&stp_params.e[ss_i1427].e[ss_i1428]);
                                     }
-                                    free(stp_params.e[ss_i1431].e);
-                                    stp_params.e[ss_i1431].e = NULL;
-                                    stp_params.e[ss_i1431].length = 0;
-                                    stp_params.e[ss_i1431].capacity = 0;
+                                    free(stp_params.e[ss_i1427].e);
+                                    stp_params.e[ss_i1427].e = NULL;
+                                    stp_params.e[ss_i1427].length = 0;
+                                    stp_params.e[ss_i1427].capacity = 0;
                                 }
                                 free(stp_params.e);
                                 stp_params.e = NULL;
@@ -123966,9 +123901,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             {
                                 ss_mapa_libre_mapa_str_usize(&stp_indice);
                             }
-                            for (size_t ss_i1433 = 0; ss_i1433 < stp_nombres.length; ss_i1433++)
+                            for (size_t ss_i1429 = 0; ss_i1429 < stp_nombres.length; ss_i1429++)
                             {
-                                ss_free(&stp_nombres.e[ss_i1433]);
+                                ss_free(&stp_nombres.e[ss_i1429]);
                             }
                             free(stp_nombres.e);
                             stp_nombres.e = NULL;
@@ -123981,16 +123916,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_st_tipos)
                             {
-                                for (size_t ss_i1434 = 0; ss_i1434 < st_tipos.length; ss_i1434++)
+                                for (size_t ss_i1430 = 0; ss_i1430 < st_tipos.length; ss_i1430++)
                                 {
-                                    for (size_t ss_i1435 = 0; ss_i1435 < st_tipos.e[ss_i1434].length; ss_i1435++)
+                                    for (size_t ss_i1431 = 0; ss_i1431 < st_tipos.e[ss_i1430].length; ss_i1431++)
                                     {
-                                        ss_free(&st_tipos.e[ss_i1434].e[ss_i1435]);
+                                        ss_free(&st_tipos.e[ss_i1430].e[ss_i1431]);
                                     }
-                                    free(st_tipos.e[ss_i1434].e);
-                                    st_tipos.e[ss_i1434].e = NULL;
-                                    st_tipos.e[ss_i1434].length = 0;
-                                    st_tipos.e[ss_i1434].capacity = 0;
+                                    free(st_tipos.e[ss_i1430].e);
+                                    st_tipos.e[ss_i1430].e = NULL;
+                                    st_tipos.e[ss_i1430].length = 0;
+                                    st_tipos.e[ss_i1430].capacity = 0;
                                 }
                                 free(st_tipos.e);
                                 st_tipos.e = NULL;
@@ -123999,16 +123934,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_st_campos)
                             {
-                                for (size_t ss_i1436 = 0; ss_i1436 < st_campos.length; ss_i1436++)
+                                for (size_t ss_i1432 = 0; ss_i1432 < st_campos.length; ss_i1432++)
                                 {
-                                    for (size_t ss_i1437 = 0; ss_i1437 < st_campos.e[ss_i1436].length; ss_i1437++)
+                                    for (size_t ss_i1433 = 0; ss_i1433 < st_campos.e[ss_i1432].length; ss_i1433++)
                                     {
-                                        ss_free(&st_campos.e[ss_i1436].e[ss_i1437]);
+                                        ss_free(&st_campos.e[ss_i1432].e[ss_i1433]);
                                     }
-                                    free(st_campos.e[ss_i1436].e);
-                                    st_campos.e[ss_i1436].e = NULL;
-                                    st_campos.e[ss_i1436].length = 0;
-                                    st_campos.e[ss_i1436].capacity = 0;
+                                    free(st_campos.e[ss_i1432].e);
+                                    st_campos.e[ss_i1432].e = NULL;
+                                    st_campos.e[ss_i1432].length = 0;
+                                    st_campos.e[ss_i1432].capacity = 0;
                                 }
                                 free(st_campos.e);
                                 st_campos.e = NULL;
@@ -124017,9 +123952,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_st_nombres)
                             {
-                                for (size_t ss_i1438 = 0; ss_i1438 < st_nombres.length; ss_i1438++)
+                                for (size_t ss_i1434 = 0; ss_i1434 < st_nombres.length; ss_i1434++)
                                 {
-                                    ss_free(&st_nombres.e[ss_i1438]);
+                                    ss_free(&st_nombres.e[ss_i1434]);
                                 }
                                 free(st_nombres.e);
                                 st_nombres.e = NULL;
@@ -124028,9 +123963,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_contextos)
                             {
-                                for (size_t ss_i1439 = 0; ss_i1439 < contextos.length; ss_i1439++)
+                                for (size_t ss_i1435 = 0; ss_i1435 < contextos.length; ss_i1435++)
                                 {
-                                    ss_drop_Contexto(&contextos.e[ss_i1439]);
+                                    ss_drop_Contexto(&contextos.e[ss_i1435]);
                                 }
                                 free(contextos.e);
                                 contextos.e = NULL;
@@ -124039,9 +123974,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             }
                             if (ss_vivo_arboles)
                             {
-                                for (size_t ss_i1440 = 0; ss_i1440 < arboles.length; ss_i1440++)
+                                for (size_t ss_i1436 = 0; ss_i1436 < arboles.length; ss_i1436++)
                                 {
-                                    ss_drop_Nodo(&arboles.e[ss_i1440]);
+                                    ss_drop_Nodo(&arboles.e[ss_i1436]);
                                 }
                                 free(arboles.e);
                                 arboles.e = NULL;
@@ -124053,9 +123988,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                                 ss_drop_Contexto(&global);
                             }
                             ss_free(&error_carga);
-                            for (size_t ss_i1441 = 0; ss_i1441 < pila.length; ss_i1441++)
+                            for (size_t ss_i1437 = 0; ss_i1437 < pila.length; ss_i1437++)
                             {
-                                ss_free(&pila.e[ss_i1441]);
+                                ss_free(&pila.e[ss_i1437]);
                             }
                             free(pila.e);
                             pila.e = NULL;
@@ -124063,9 +123998,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                             pila.capacity = 0;
                             if (ss_vivo_modulos)
                             {
-                                for (size_t ss_i1442 = 0; ss_i1442 < modulos.length; ss_i1442++)
+                                for (size_t ss_i1438 = 0; ss_i1438 < modulos.length; ss_i1438++)
                                 {
-                                    ss_free(&modulos.e[ss_i1442]);
+                                    ss_free(&modulos.e[ss_i1438]);
                                 }
                                 free(modulos.e);
                                 modulos.e = NULL;
@@ -124073,63 +124008,63 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                                 modulos.capacity = 0;
                             }
                             ss_free(&principal);
-                            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36264 };
+                            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36247 };
                         }
-#line 3697 "ejemplos/compilador/tcodec.t"
+#line 3689 "ejemplos/compilador/tcodec.t"
                         if ((!primero_t))
                         {
-                            SafeString* ss_tmp36265 = &junto;
-#line 3697 "ejemplos/compilador/tcodec.t"
-                            ss_append_view(ss_tmp36265, sv_len("\t", 1));
+                            SafeString* ss_tmp36248 = &junto;
+#line 3689 "ejemplos/compilador/tcodec.t"
+                            ss_append_view(ss_tmp36248, sv_len("\t", 1));
                         }
-#line 3698 "ejemplos/compilador/tcodec.t"
+#line 3690 "ejemplos/compilador/tcodec.t"
                         primero_t = false;
-#line 3699 "ejemplos/compilador/tcodec.t"
-                        SafeString* ss_tmp36266 = &junto;
-#line 3699 "ejemplos/compilador/tcodec.t"
-                        ss_append_view(ss_tmp36266, ss_view(&t));
+#line 3691 "ejemplos/compilador/tcodec.t"
+                        SafeString* ss_tmp36249 = &junto;
+#line 3691 "ejemplos/compilador/tcodec.t"
+                        ss_append_view(ss_tmp36249, ss_view(&t));
                         ss_free(&t);
                     }
-#line 3701 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp36267 = &ls;
-#line 3701 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp36267, junto, "ejemplos/compilador/tcodec.t", 3701);
+#line 3693 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str* ss_tmp36250 = &ls;
+#line 3693 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_str(ss_tmp36250, junto, "ejemplos/compilador/tcodec.t", 3693);
                     ss_vivo_junto = false;
                     if (ss_vivo_junto)
                     {
                         ss_free(&junto);
                     }
                 }
-#line 3703 "ejemplos/compilador/tcodec.t"
-                ss_mapa_str_usize* ss_tmp36268 = &en_indice;
-#line 3703 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_usize(ss_tmp36268, ss_view(&(*d).texto), (en_nombres.length), "ejemplos/compilador/tcodec.t", 3703);
-#line 3704 "ejemplos/compilador/tcodec.t"
-                ss_mapa_str_str* ss_tmp36269 = &en_donde;
-                SafeView ss_tmp36270;
-                size_t ss_tmp36271;
-#line 3704 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_str(ss_tmp36269, ss_view(&(*d).texto), ((ss_tmp36270 = ss_view(m), ss_tmp36271 = (*d).linea, sitio(ss_tmp36270, ss_tmp36271))), "ejemplos/compilador/tcodec.t", 3704);
-#line 3705 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp36272 = &en_nombres;
-#line 3705 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp36272, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3705);
-#line 3706 "ejemplos/compilador/tcodec.t"
-                ss_lista_lista_str* ss_tmp36273 = &en_variantes;
-#line 3706 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_lista_str(ss_tmp36273, vs, "ejemplos/compilador/tcodec.t", 3706);
+#line 3695 "ejemplos/compilador/tcodec.t"
+                ss_mapa_str_usize* ss_tmp36251 = &en_indice;
+#line 3695 "ejemplos/compilador/tcodec.t"
+                ss_mapa_poner_mapa_str_usize(ss_tmp36251, ss_view(&(*d).texto), (en_nombres.length), "ejemplos/compilador/tcodec.t", 3695);
+#line 3696 "ejemplos/compilador/tcodec.t"
+                ss_mapa_str_str* ss_tmp36252 = &en_donde;
+                SafeView ss_tmp36253;
+                size_t ss_tmp36254;
+#line 3696 "ejemplos/compilador/tcodec.t"
+                ss_mapa_poner_mapa_str_str(ss_tmp36252, ss_view(&(*d).texto), ((ss_tmp36253 = ss_view(m), ss_tmp36254 = (*d).linea, sitio(ss_tmp36253, ss_tmp36254))), "ejemplos/compilador/tcodec.t", 3696);
+#line 3697 "ejemplos/compilador/tcodec.t"
+                ss_lista_str* ss_tmp36255 = &en_nombres;
+#line 3697 "ejemplos/compilador/tcodec.t"
+                ss_push_lista_str(ss_tmp36255, ss_from_view(ss_view(&(*d).texto)), "ejemplos/compilador/tcodec.t", 3697);
+#line 3698 "ejemplos/compilador/tcodec.t"
+                ss_lista_lista_str* ss_tmp36256 = &en_variantes;
+#line 3698 "ejemplos/compilador/tcodec.t"
+                ss_push_lista_lista_str(ss_tmp36256, vs, "ejemplos/compilador/tcodec.t", 3698);
                 ss_vivo_vs = false;
-#line 3707 "ejemplos/compilador/tcodec.t"
-                ss_lista_lista_str* ss_tmp36274 = &en_lleva;
-#line 3707 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_lista_str(ss_tmp36274, ls, "ejemplos/compilador/tcodec.t", 3707);
+#line 3699 "ejemplos/compilador/tcodec.t"
+                ss_lista_lista_str* ss_tmp36257 = &en_lleva;
+#line 3699 "ejemplos/compilador/tcodec.t"
+                ss_push_lista_lista_str(ss_tmp36257, ls, "ejemplos/compilador/tcodec.t", 3699);
                 ss_vivo_ls = false;
-#line 3708 "ejemplos/compilador/tcodec.t"
+#line 3700 "ejemplos/compilador/tcodec.t"
                 if (ss_vivo_ls)
                 {
-                    for (size_t ss_i1443 = 0; ss_i1443 < ls.length; ss_i1443++)
+                    for (size_t ss_i1439 = 0; ss_i1439 < ls.length; ss_i1439++)
                     {
-                        ss_free(&ls.e[ss_i1443]);
+                        ss_free(&ls.e[ss_i1439]);
                     }
                     free(ls.e);
                     ls.e = NULL;
@@ -124138,9 +124073,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                 }
                 if (ss_vivo_vs)
                 {
-                    for (size_t ss_i1444 = 0; ss_i1444 < vs.length; ss_i1444++)
+                    for (size_t ss_i1440 = 0; ss_i1440 < vs.length; ss_i1440++)
                     {
-                        ss_free(&vs.e[ss_i1444]);
+                        ss_free(&vs.e[ss_i1440]);
                     }
                     free(vs.e);
                     vs.e = NULL;
@@ -124152,37 +124087,37 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             default:
             {
-#line 3711 "ejemplos/compilador/tcodec.t"
-                Clase ss_tmp36275;
-                Clase ss_tmp36276;
-#line 3711 "ejemplos/compilador/tcodec.t"
-                Clase ss_tmp36277;
-                Clase ss_tmp36278;
-#line 3711 "ejemplos/compilador/tcodec.t"
-                if ((((ss_tmp36275 = clase, ss_tmp36276 = (Clase){ .etiqueta = SS_CLASE_USAR }, (ss_tmp36275.etiqueta == ss_tmp36276.etiqueta))) || ((ss_tmp36277 = clase, ss_tmp36278 = (Clase){ .etiqueta = SS_CLASE_ALIAS }, (ss_tmp36277.etiqueta == ss_tmp36278.etiqueta)))))
+#line 3703 "ejemplos/compilador/tcodec.t"
+                Clase ss_tmp36258;
+                Clase ss_tmp36259;
+#line 3703 "ejemplos/compilador/tcodec.t"
+                Clase ss_tmp36260;
+                Clase ss_tmp36261;
+#line 3703 "ejemplos/compilador/tcodec.t"
+                if ((((ss_tmp36258 = clase, ss_tmp36259 = (Clase){ .etiqueta = SS_CLASE_USAR }, (ss_tmp36258.etiqueta == ss_tmp36259.etiqueta))) || ((ss_tmp36260 = clase, ss_tmp36261 = (Clase){ .etiqueta = SS_CLASE_ALIAS }, (ss_tmp36260.etiqueta == ss_tmp36261.etiqueta)))))
                 {
                     continue;
                 }
                 break;
             }
             }
-#line 3714 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp36280;
-            size_t ss_tmp36281;
-            SafeString ss_tmp36279 = ((ss_tmp36280 = ss_view(m), ss_tmp36281 = (*d).linea, sitio(ss_tmp36280, ss_tmp36281)));
-            SafeView ss_tmp36282;
-            SafeString ss_tmp36284 = ss_new();
-            SafeView ss_tmp36285 = ss_view(&ss_tmp36279);
-            ss_lang_agregar_texto_(&ss_tmp36284, sv_len("no escribe `", 12), "ejemplos/compilador/tcodec.t", 3715);
-            ss_lang_agregar_texto_(&ss_tmp36284, nombre_de_clase(clase), "ejemplos/compilador/tcodec.t", 3715);
-            ss_lang_agregar_texto_(&ss_tmp36284, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 3715);
-            SafeString ss_tmp36283 = ss_tmp36284;
-            SafeView ss_tmp36286;
-            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36282 = ss_tmp36285, ss_tmp36286 = ss_view(&ss_tmp36283), rechazo(ss_tmp36282, ss_tmp36286)));
-            ss_free(&ss_tmp36279);
-            ss_free(&ss_tmp36283);
-#line 3716 "ejemplos/compilador/tcodec.t"
-            ProgramaLeido ss_tmp36287 = programa_no_leido();
+#line 3706 "ejemplos/compilador/tcodec.t"
+            SafeView ss_tmp36263;
+            size_t ss_tmp36264;
+            SafeString ss_tmp36262 = ((ss_tmp36263 = ss_view(m), ss_tmp36264 = (*d).linea, sitio(ss_tmp36263, ss_tmp36264)));
+            SafeView ss_tmp36265;
+            SafeString ss_tmp36267 = ss_new();
+            SafeView ss_tmp36268 = ss_view(&ss_tmp36262);
+            ss_lang_agregar_texto_(&ss_tmp36267, sv_len("no escribe `", 12), "ejemplos/compilador/tcodec.t", 3707);
+            ss_lang_agregar_texto_(&ss_tmp36267, nombre_de_clase(clase), "ejemplos/compilador/tcodec.t", 3707);
+            ss_lang_agregar_texto_(&ss_tmp36267, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 3707);
+            SafeString ss_tmp36266 = ss_tmp36267;
+            SafeView ss_tmp36269;
+            SS_LANG_QUIZA_SIN_USAR size_t _r = ((ss_tmp36265 = ss_tmp36268, ss_tmp36269 = ss_view(&ss_tmp36266), rechazo(ss_tmp36265, ss_tmp36269)));
+            ss_free(&ss_tmp36262);
+            ss_free(&ss_tmp36266);
+#line 3708 "ejemplos/compilador/tcodec.t"
+            ProgramaLeido ss_tmp36270 = programa_no_leido();
             if (ss_vivo_arbol)
             {
                 ss_drop_Nodo(&arbol);
@@ -124201,16 +124136,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_en_lleva)
             {
-                for (size_t ss_i1445 = 0; ss_i1445 < en_lleva.length; ss_i1445++)
+                for (size_t ss_i1441 = 0; ss_i1441 < en_lleva.length; ss_i1441++)
                 {
-                    for (size_t ss_i1446 = 0; ss_i1446 < en_lleva.e[ss_i1445].length; ss_i1446++)
+                    for (size_t ss_i1442 = 0; ss_i1442 < en_lleva.e[ss_i1441].length; ss_i1442++)
                     {
-                        ss_free(&en_lleva.e[ss_i1445].e[ss_i1446]);
+                        ss_free(&en_lleva.e[ss_i1441].e[ss_i1442]);
                     }
-                    free(en_lleva.e[ss_i1445].e);
-                    en_lleva.e[ss_i1445].e = NULL;
-                    en_lleva.e[ss_i1445].length = 0;
-                    en_lleva.e[ss_i1445].capacity = 0;
+                    free(en_lleva.e[ss_i1441].e);
+                    en_lleva.e[ss_i1441].e = NULL;
+                    en_lleva.e[ss_i1441].length = 0;
+                    en_lleva.e[ss_i1441].capacity = 0;
                 }
                 free(en_lleva.e);
                 en_lleva.e = NULL;
@@ -124219,16 +124154,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_en_variantes)
             {
-                for (size_t ss_i1447 = 0; ss_i1447 < en_variantes.length; ss_i1447++)
+                for (size_t ss_i1443 = 0; ss_i1443 < en_variantes.length; ss_i1443++)
                 {
-                    for (size_t ss_i1448 = 0; ss_i1448 < en_variantes.e[ss_i1447].length; ss_i1448++)
+                    for (size_t ss_i1444 = 0; ss_i1444 < en_variantes.e[ss_i1443].length; ss_i1444++)
                     {
-                        ss_free(&en_variantes.e[ss_i1447].e[ss_i1448]);
+                        ss_free(&en_variantes.e[ss_i1443].e[ss_i1444]);
                     }
-                    free(en_variantes.e[ss_i1447].e);
-                    en_variantes.e[ss_i1447].e = NULL;
-                    en_variantes.e[ss_i1447].length = 0;
-                    en_variantes.e[ss_i1447].capacity = 0;
+                    free(en_variantes.e[ss_i1443].e);
+                    en_variantes.e[ss_i1443].e = NULL;
+                    en_variantes.e[ss_i1443].length = 0;
+                    en_variantes.e[ss_i1443].capacity = 0;
                 }
                 free(en_variantes.e);
                 en_variantes.e = NULL;
@@ -124242,9 +124177,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_en_nombres)
             {
-                for (size_t ss_i1449 = 0; ss_i1449 < en_nombres.length; ss_i1449++)
+                for (size_t ss_i1445 = 0; ss_i1445 < en_nombres.length; ss_i1445++)
                 {
-                    ss_free(&en_nombres.e[ss_i1449]);
+                    ss_free(&en_nombres.e[ss_i1445]);
                 }
                 free(en_nombres.e);
                 en_nombres.e = NULL;
@@ -124253,9 +124188,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_ext_protos)
             {
-                for (size_t ss_i1450 = 0; ss_i1450 < ext_protos.length; ss_i1450++)
+                for (size_t ss_i1446 = 0; ss_i1446 < ext_protos.length; ss_i1446++)
                 {
-                    ss_free(&ext_protos.e[ss_i1450]);
+                    ss_free(&ext_protos.e[ss_i1446]);
                 }
                 free(ext_protos.e);
                 ext_protos.e = NULL;
@@ -124264,9 +124199,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_ext_modulos)
             {
-                for (size_t ss_i1451 = 0; ss_i1451 < ext_modulos.length; ss_i1451++)
+                for (size_t ss_i1447 = 0; ss_i1447 < ext_modulos.length; ss_i1447++)
                 {
-                    ss_free(&ext_modulos.e[ss_i1451]);
+                    ss_free(&ext_modulos.e[ss_i1447]);
                 }
                 free(ext_modulos.e);
                 ext_modulos.e = NULL;
@@ -124275,9 +124210,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_ext_cabeceras)
             {
-                for (size_t ss_i1452 = 0; ss_i1452 < ext_cabeceras.length; ss_i1452++)
+                for (size_t ss_i1448 = 0; ss_i1448 < ext_cabeceras.length; ss_i1448++)
                 {
-                    ss_free(&ext_cabeceras.e[ss_i1452]);
+                    ss_free(&ext_cabeceras.e[ss_i1448]);
                 }
                 free(ext_cabeceras.e);
                 ext_cabeceras.e = NULL;
@@ -124286,16 +124221,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_stp_tipos)
             {
-                for (size_t ss_i1453 = 0; ss_i1453 < stp_tipos.length; ss_i1453++)
+                for (size_t ss_i1449 = 0; ss_i1449 < stp_tipos.length; ss_i1449++)
                 {
-                    for (size_t ss_i1454 = 0; ss_i1454 < stp_tipos.e[ss_i1453].length; ss_i1454++)
+                    for (size_t ss_i1450 = 0; ss_i1450 < stp_tipos.e[ss_i1449].length; ss_i1450++)
                     {
-                        ss_free(&stp_tipos.e[ss_i1453].e[ss_i1454]);
+                        ss_free(&stp_tipos.e[ss_i1449].e[ss_i1450]);
                     }
-                    free(stp_tipos.e[ss_i1453].e);
-                    stp_tipos.e[ss_i1453].e = NULL;
-                    stp_tipos.e[ss_i1453].length = 0;
-                    stp_tipos.e[ss_i1453].capacity = 0;
+                    free(stp_tipos.e[ss_i1449].e);
+                    stp_tipos.e[ss_i1449].e = NULL;
+                    stp_tipos.e[ss_i1449].length = 0;
+                    stp_tipos.e[ss_i1449].capacity = 0;
                 }
                 free(stp_tipos.e);
                 stp_tipos.e = NULL;
@@ -124304,16 +124239,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_stp_campos)
             {
-                for (size_t ss_i1455 = 0; ss_i1455 < stp_campos.length; ss_i1455++)
+                for (size_t ss_i1451 = 0; ss_i1451 < stp_campos.length; ss_i1451++)
                 {
-                    for (size_t ss_i1456 = 0; ss_i1456 < stp_campos.e[ss_i1455].length; ss_i1456++)
+                    for (size_t ss_i1452 = 0; ss_i1452 < stp_campos.e[ss_i1451].length; ss_i1452++)
                     {
-                        ss_free(&stp_campos.e[ss_i1455].e[ss_i1456]);
+                        ss_free(&stp_campos.e[ss_i1451].e[ss_i1452]);
                     }
-                    free(stp_campos.e[ss_i1455].e);
-                    stp_campos.e[ss_i1455].e = NULL;
-                    stp_campos.e[ss_i1455].length = 0;
-                    stp_campos.e[ss_i1455].capacity = 0;
+                    free(stp_campos.e[ss_i1451].e);
+                    stp_campos.e[ss_i1451].e = NULL;
+                    stp_campos.e[ss_i1451].length = 0;
+                    stp_campos.e[ss_i1451].capacity = 0;
                 }
                 free(stp_campos.e);
                 stp_campos.e = NULL;
@@ -124322,16 +124257,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_stp_params)
             {
-                for (size_t ss_i1457 = 0; ss_i1457 < stp_params.length; ss_i1457++)
+                for (size_t ss_i1453 = 0; ss_i1453 < stp_params.length; ss_i1453++)
                 {
-                    for (size_t ss_i1458 = 0; ss_i1458 < stp_params.e[ss_i1457].length; ss_i1458++)
+                    for (size_t ss_i1454 = 0; ss_i1454 < stp_params.e[ss_i1453].length; ss_i1454++)
                     {
-                        ss_free(&stp_params.e[ss_i1457].e[ss_i1458]);
+                        ss_free(&stp_params.e[ss_i1453].e[ss_i1454]);
                     }
-                    free(stp_params.e[ss_i1457].e);
-                    stp_params.e[ss_i1457].e = NULL;
-                    stp_params.e[ss_i1457].length = 0;
-                    stp_params.e[ss_i1457].capacity = 0;
+                    free(stp_params.e[ss_i1453].e);
+                    stp_params.e[ss_i1453].e = NULL;
+                    stp_params.e[ss_i1453].length = 0;
+                    stp_params.e[ss_i1453].capacity = 0;
                 }
                 free(stp_params.e);
                 stp_params.e = NULL;
@@ -124343,9 +124278,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             {
                 ss_mapa_libre_mapa_str_usize(&stp_indice);
             }
-            for (size_t ss_i1459 = 0; ss_i1459 < stp_nombres.length; ss_i1459++)
+            for (size_t ss_i1455 = 0; ss_i1455 < stp_nombres.length; ss_i1455++)
             {
-                ss_free(&stp_nombres.e[ss_i1459]);
+                ss_free(&stp_nombres.e[ss_i1455]);
             }
             free(stp_nombres.e);
             stp_nombres.e = NULL;
@@ -124358,16 +124293,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_st_tipos)
             {
-                for (size_t ss_i1460 = 0; ss_i1460 < st_tipos.length; ss_i1460++)
+                for (size_t ss_i1456 = 0; ss_i1456 < st_tipos.length; ss_i1456++)
                 {
-                    for (size_t ss_i1461 = 0; ss_i1461 < st_tipos.e[ss_i1460].length; ss_i1461++)
+                    for (size_t ss_i1457 = 0; ss_i1457 < st_tipos.e[ss_i1456].length; ss_i1457++)
                     {
-                        ss_free(&st_tipos.e[ss_i1460].e[ss_i1461]);
+                        ss_free(&st_tipos.e[ss_i1456].e[ss_i1457]);
                     }
-                    free(st_tipos.e[ss_i1460].e);
-                    st_tipos.e[ss_i1460].e = NULL;
-                    st_tipos.e[ss_i1460].length = 0;
-                    st_tipos.e[ss_i1460].capacity = 0;
+                    free(st_tipos.e[ss_i1456].e);
+                    st_tipos.e[ss_i1456].e = NULL;
+                    st_tipos.e[ss_i1456].length = 0;
+                    st_tipos.e[ss_i1456].capacity = 0;
                 }
                 free(st_tipos.e);
                 st_tipos.e = NULL;
@@ -124376,16 +124311,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_st_campos)
             {
-                for (size_t ss_i1462 = 0; ss_i1462 < st_campos.length; ss_i1462++)
+                for (size_t ss_i1458 = 0; ss_i1458 < st_campos.length; ss_i1458++)
                 {
-                    for (size_t ss_i1463 = 0; ss_i1463 < st_campos.e[ss_i1462].length; ss_i1463++)
+                    for (size_t ss_i1459 = 0; ss_i1459 < st_campos.e[ss_i1458].length; ss_i1459++)
                     {
-                        ss_free(&st_campos.e[ss_i1462].e[ss_i1463]);
+                        ss_free(&st_campos.e[ss_i1458].e[ss_i1459]);
                     }
-                    free(st_campos.e[ss_i1462].e);
-                    st_campos.e[ss_i1462].e = NULL;
-                    st_campos.e[ss_i1462].length = 0;
-                    st_campos.e[ss_i1462].capacity = 0;
+                    free(st_campos.e[ss_i1458].e);
+                    st_campos.e[ss_i1458].e = NULL;
+                    st_campos.e[ss_i1458].length = 0;
+                    st_campos.e[ss_i1458].capacity = 0;
                 }
                 free(st_campos.e);
                 st_campos.e = NULL;
@@ -124394,9 +124329,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_st_nombres)
             {
-                for (size_t ss_i1464 = 0; ss_i1464 < st_nombres.length; ss_i1464++)
+                for (size_t ss_i1460 = 0; ss_i1460 < st_nombres.length; ss_i1460++)
                 {
-                    ss_free(&st_nombres.e[ss_i1464]);
+                    ss_free(&st_nombres.e[ss_i1460]);
                 }
                 free(st_nombres.e);
                 st_nombres.e = NULL;
@@ -124405,9 +124340,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_contextos)
             {
-                for (size_t ss_i1465 = 0; ss_i1465 < contextos.length; ss_i1465++)
+                for (size_t ss_i1461 = 0; ss_i1461 < contextos.length; ss_i1461++)
                 {
-                    ss_drop_Contexto(&contextos.e[ss_i1465]);
+                    ss_drop_Contexto(&contextos.e[ss_i1461]);
                 }
                 free(contextos.e);
                 contextos.e = NULL;
@@ -124416,9 +124351,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             }
             if (ss_vivo_arboles)
             {
-                for (size_t ss_i1466 = 0; ss_i1466 < arboles.length; ss_i1466++)
+                for (size_t ss_i1462 = 0; ss_i1462 < arboles.length; ss_i1462++)
                 {
-                    ss_drop_Nodo(&arboles.e[ss_i1466]);
+                    ss_drop_Nodo(&arboles.e[ss_i1462]);
                 }
                 free(arboles.e);
                 arboles.e = NULL;
@@ -124430,9 +124365,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                 ss_drop_Contexto(&global);
             }
             ss_free(&error_carga);
-            for (size_t ss_i1467 = 0; ss_i1467 < pila.length; ss_i1467++)
+            for (size_t ss_i1463 = 0; ss_i1463 < pila.length; ss_i1463++)
             {
-                ss_free(&pila.e[ss_i1467]);
+                ss_free(&pila.e[ss_i1463]);
             }
             free(pila.e);
             pila.e = NULL;
@@ -124440,9 +124375,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             pila.capacity = 0;
             if (ss_vivo_modulos)
             {
-                for (size_t ss_i1468 = 0; ss_i1468 < modulos.length; ss_i1468++)
+                for (size_t ss_i1464 = 0; ss_i1464 < modulos.length; ss_i1464++)
                 {
-                    ss_free(&modulos.e[ss_i1468]);
+                    ss_free(&modulos.e[ss_i1464]);
                 }
                 free(modulos.e);
                 modulos.e = NULL;
@@ -124450,17 +124385,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
                 modulos.capacity = 0;
             }
             ss_free(&principal);
-            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36287 };
+            return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36270 };
         }
-#line 3718 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp36288 = &arboles;
-#line 3718 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_Nodo(ss_tmp36288, arbol, "ejemplos/compilador/tcodec.t", 3718);
+#line 3710 "ejemplos/compilador/tcodec.t"
+        ss_lista_Nodo* ss_tmp36271 = &arboles;
+#line 3710 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_Nodo(ss_tmp36271, arbol, "ejemplos/compilador/tcodec.t", 3710);
         ss_vivo_arbol = false;
-#line 3719 "ejemplos/compilador/tcodec.t"
-        ss_lista_Contexto* ss_tmp36289 = &contextos;
-#line 3719 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_Contexto(ss_tmp36289, tipos, "ejemplos/compilador/tcodec.t", 3719);
+#line 3711 "ejemplos/compilador/tcodec.t"
+        ss_lista_Contexto* ss_tmp36272 = &contextos;
+#line 3711 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_Contexto(ss_tmp36272, tipos, "ejemplos/compilador/tcodec.t", 3711);
         ss_vivo_tipos = false;
         if (ss_vivo_arbol)
         {
@@ -124472,20 +124407,20 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             ss_drop_Contexto(&tipos);
         }
     }
-#line 3721 "ejemplos/compilador/tcodec.t"
-    const ss_lista_Nodo* ss_tmp36290;
-    const ss_mapa_str_usize* ss_tmp36291;
-    Contexto* ss_tmp36292;
-    ((ss_tmp36290 = &arboles, ss_tmp36291 = &plantillas, ss_tmp36292 = &global, marcar_tapadas(ss_tmp36290, ss_tmp36291, ss_tmp36292)));
-#line 3722 "ejemplos/compilador/tcodec.t"
-    const ss_lista_Nodo* ss_tmp36294;
-    const ss_lista_str* ss_tmp36295;
-    SafeView ss_tmp36296;
-    const Contexto* ss_tmp36297;
-    const ss_mapa_str_usize* ss_tmp36298;
-    ss_lista_Contexto* ss_tmp36299;
-    ss_res_bool ss_tmp36293 = ((ss_tmp36294 = &arboles, ss_tmp36295 = &modulos, ss_tmp36296 = raiz, ss_tmp36297 = &global, ss_tmp36298 = &plantillas, ss_tmp36299 = &contextos, ajustar_contextos(ss_tmp36294, ss_tmp36295, ss_tmp36296, ss_tmp36297, ss_tmp36298, ss_tmp36299)));
-    if (ss_tmp36293.motivo != NULL)
+#line 3713 "ejemplos/compilador/tcodec.t"
+    const ss_lista_Nodo* ss_tmp36273;
+    const ss_mapa_str_usize* ss_tmp36274;
+    Contexto* ss_tmp36275;
+    ((ss_tmp36273 = &arboles, ss_tmp36274 = &plantillas, ss_tmp36275 = &global, marcar_tapadas(ss_tmp36273, ss_tmp36274, ss_tmp36275)));
+#line 3714 "ejemplos/compilador/tcodec.t"
+    const ss_lista_Nodo* ss_tmp36277;
+    const ss_lista_str* ss_tmp36278;
+    SafeView ss_tmp36279;
+    const Contexto* ss_tmp36280;
+    const ss_mapa_str_usize* ss_tmp36281;
+    ss_lista_Contexto* ss_tmp36282;
+    ss_res_bool ss_tmp36276 = ((ss_tmp36277 = &arboles, ss_tmp36278 = &modulos, ss_tmp36279 = raiz, ss_tmp36280 = &global, ss_tmp36281 = &plantillas, ss_tmp36282 = &contextos, ajustar_contextos(ss_tmp36277, ss_tmp36278, ss_tmp36279, ss_tmp36280, ss_tmp36281, ss_tmp36282)));
+    if (ss_tmp36276.motivo != NULL)
     {
         ss_drop_Leidos(&leidos);
         ss_mapa_libre_mapa_str_usize(&previos_en);
@@ -124496,16 +124431,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_en_lleva)
         {
-            for (size_t ss_i1469 = 0; ss_i1469 < en_lleva.length; ss_i1469++)
+            for (size_t ss_i1465 = 0; ss_i1465 < en_lleva.length; ss_i1465++)
             {
-                for (size_t ss_i1470 = 0; ss_i1470 < en_lleva.e[ss_i1469].length; ss_i1470++)
+                for (size_t ss_i1466 = 0; ss_i1466 < en_lleva.e[ss_i1465].length; ss_i1466++)
                 {
-                    ss_free(&en_lleva.e[ss_i1469].e[ss_i1470]);
+                    ss_free(&en_lleva.e[ss_i1465].e[ss_i1466]);
                 }
-                free(en_lleva.e[ss_i1469].e);
-                en_lleva.e[ss_i1469].e = NULL;
-                en_lleva.e[ss_i1469].length = 0;
-                en_lleva.e[ss_i1469].capacity = 0;
+                free(en_lleva.e[ss_i1465].e);
+                en_lleva.e[ss_i1465].e = NULL;
+                en_lleva.e[ss_i1465].length = 0;
+                en_lleva.e[ss_i1465].capacity = 0;
             }
             free(en_lleva.e);
             en_lleva.e = NULL;
@@ -124514,16 +124449,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_en_variantes)
         {
-            for (size_t ss_i1471 = 0; ss_i1471 < en_variantes.length; ss_i1471++)
+            for (size_t ss_i1467 = 0; ss_i1467 < en_variantes.length; ss_i1467++)
             {
-                for (size_t ss_i1472 = 0; ss_i1472 < en_variantes.e[ss_i1471].length; ss_i1472++)
+                for (size_t ss_i1468 = 0; ss_i1468 < en_variantes.e[ss_i1467].length; ss_i1468++)
                 {
-                    ss_free(&en_variantes.e[ss_i1471].e[ss_i1472]);
+                    ss_free(&en_variantes.e[ss_i1467].e[ss_i1468]);
                 }
-                free(en_variantes.e[ss_i1471].e);
-                en_variantes.e[ss_i1471].e = NULL;
-                en_variantes.e[ss_i1471].length = 0;
-                en_variantes.e[ss_i1471].capacity = 0;
+                free(en_variantes.e[ss_i1467].e);
+                en_variantes.e[ss_i1467].e = NULL;
+                en_variantes.e[ss_i1467].length = 0;
+                en_variantes.e[ss_i1467].capacity = 0;
             }
             free(en_variantes.e);
             en_variantes.e = NULL;
@@ -124537,9 +124472,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_en_nombres)
         {
-            for (size_t ss_i1473 = 0; ss_i1473 < en_nombres.length; ss_i1473++)
+            for (size_t ss_i1469 = 0; ss_i1469 < en_nombres.length; ss_i1469++)
             {
-                ss_free(&en_nombres.e[ss_i1473]);
+                ss_free(&en_nombres.e[ss_i1469]);
             }
             free(en_nombres.e);
             en_nombres.e = NULL;
@@ -124548,9 +124483,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_ext_protos)
         {
-            for (size_t ss_i1474 = 0; ss_i1474 < ext_protos.length; ss_i1474++)
+            for (size_t ss_i1470 = 0; ss_i1470 < ext_protos.length; ss_i1470++)
             {
-                ss_free(&ext_protos.e[ss_i1474]);
+                ss_free(&ext_protos.e[ss_i1470]);
             }
             free(ext_protos.e);
             ext_protos.e = NULL;
@@ -124559,9 +124494,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_ext_modulos)
         {
-            for (size_t ss_i1475 = 0; ss_i1475 < ext_modulos.length; ss_i1475++)
+            for (size_t ss_i1471 = 0; ss_i1471 < ext_modulos.length; ss_i1471++)
             {
-                ss_free(&ext_modulos.e[ss_i1475]);
+                ss_free(&ext_modulos.e[ss_i1471]);
             }
             free(ext_modulos.e);
             ext_modulos.e = NULL;
@@ -124570,9 +124505,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_ext_cabeceras)
         {
-            for (size_t ss_i1476 = 0; ss_i1476 < ext_cabeceras.length; ss_i1476++)
+            for (size_t ss_i1472 = 0; ss_i1472 < ext_cabeceras.length; ss_i1472++)
             {
-                ss_free(&ext_cabeceras.e[ss_i1476]);
+                ss_free(&ext_cabeceras.e[ss_i1472]);
             }
             free(ext_cabeceras.e);
             ext_cabeceras.e = NULL;
@@ -124581,16 +124516,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_stp_tipos)
         {
-            for (size_t ss_i1477 = 0; ss_i1477 < stp_tipos.length; ss_i1477++)
+            for (size_t ss_i1473 = 0; ss_i1473 < stp_tipos.length; ss_i1473++)
             {
-                for (size_t ss_i1478 = 0; ss_i1478 < stp_tipos.e[ss_i1477].length; ss_i1478++)
+                for (size_t ss_i1474 = 0; ss_i1474 < stp_tipos.e[ss_i1473].length; ss_i1474++)
                 {
-                    ss_free(&stp_tipos.e[ss_i1477].e[ss_i1478]);
+                    ss_free(&stp_tipos.e[ss_i1473].e[ss_i1474]);
                 }
-                free(stp_tipos.e[ss_i1477].e);
-                stp_tipos.e[ss_i1477].e = NULL;
-                stp_tipos.e[ss_i1477].length = 0;
-                stp_tipos.e[ss_i1477].capacity = 0;
+                free(stp_tipos.e[ss_i1473].e);
+                stp_tipos.e[ss_i1473].e = NULL;
+                stp_tipos.e[ss_i1473].length = 0;
+                stp_tipos.e[ss_i1473].capacity = 0;
             }
             free(stp_tipos.e);
             stp_tipos.e = NULL;
@@ -124599,16 +124534,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_stp_campos)
         {
-            for (size_t ss_i1479 = 0; ss_i1479 < stp_campos.length; ss_i1479++)
+            for (size_t ss_i1475 = 0; ss_i1475 < stp_campos.length; ss_i1475++)
             {
-                for (size_t ss_i1480 = 0; ss_i1480 < stp_campos.e[ss_i1479].length; ss_i1480++)
+                for (size_t ss_i1476 = 0; ss_i1476 < stp_campos.e[ss_i1475].length; ss_i1476++)
                 {
-                    ss_free(&stp_campos.e[ss_i1479].e[ss_i1480]);
+                    ss_free(&stp_campos.e[ss_i1475].e[ss_i1476]);
                 }
-                free(stp_campos.e[ss_i1479].e);
-                stp_campos.e[ss_i1479].e = NULL;
-                stp_campos.e[ss_i1479].length = 0;
-                stp_campos.e[ss_i1479].capacity = 0;
+                free(stp_campos.e[ss_i1475].e);
+                stp_campos.e[ss_i1475].e = NULL;
+                stp_campos.e[ss_i1475].length = 0;
+                stp_campos.e[ss_i1475].capacity = 0;
             }
             free(stp_campos.e);
             stp_campos.e = NULL;
@@ -124617,16 +124552,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_stp_params)
         {
-            for (size_t ss_i1481 = 0; ss_i1481 < stp_params.length; ss_i1481++)
+            for (size_t ss_i1477 = 0; ss_i1477 < stp_params.length; ss_i1477++)
             {
-                for (size_t ss_i1482 = 0; ss_i1482 < stp_params.e[ss_i1481].length; ss_i1482++)
+                for (size_t ss_i1478 = 0; ss_i1478 < stp_params.e[ss_i1477].length; ss_i1478++)
                 {
-                    ss_free(&stp_params.e[ss_i1481].e[ss_i1482]);
+                    ss_free(&stp_params.e[ss_i1477].e[ss_i1478]);
                 }
-                free(stp_params.e[ss_i1481].e);
-                stp_params.e[ss_i1481].e = NULL;
-                stp_params.e[ss_i1481].length = 0;
-                stp_params.e[ss_i1481].capacity = 0;
+                free(stp_params.e[ss_i1477].e);
+                stp_params.e[ss_i1477].e = NULL;
+                stp_params.e[ss_i1477].length = 0;
+                stp_params.e[ss_i1477].capacity = 0;
             }
             free(stp_params.e);
             stp_params.e = NULL;
@@ -124638,9 +124573,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         {
             ss_mapa_libre_mapa_str_usize(&stp_indice);
         }
-        for (size_t ss_i1483 = 0; ss_i1483 < stp_nombres.length; ss_i1483++)
+        for (size_t ss_i1479 = 0; ss_i1479 < stp_nombres.length; ss_i1479++)
         {
-            ss_free(&stp_nombres.e[ss_i1483]);
+            ss_free(&stp_nombres.e[ss_i1479]);
         }
         free(stp_nombres.e);
         stp_nombres.e = NULL;
@@ -124653,16 +124588,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_st_tipos)
         {
-            for (size_t ss_i1484 = 0; ss_i1484 < st_tipos.length; ss_i1484++)
+            for (size_t ss_i1480 = 0; ss_i1480 < st_tipos.length; ss_i1480++)
             {
-                for (size_t ss_i1485 = 0; ss_i1485 < st_tipos.e[ss_i1484].length; ss_i1485++)
+                for (size_t ss_i1481 = 0; ss_i1481 < st_tipos.e[ss_i1480].length; ss_i1481++)
                 {
-                    ss_free(&st_tipos.e[ss_i1484].e[ss_i1485]);
+                    ss_free(&st_tipos.e[ss_i1480].e[ss_i1481]);
                 }
-                free(st_tipos.e[ss_i1484].e);
-                st_tipos.e[ss_i1484].e = NULL;
-                st_tipos.e[ss_i1484].length = 0;
-                st_tipos.e[ss_i1484].capacity = 0;
+                free(st_tipos.e[ss_i1480].e);
+                st_tipos.e[ss_i1480].e = NULL;
+                st_tipos.e[ss_i1480].length = 0;
+                st_tipos.e[ss_i1480].capacity = 0;
             }
             free(st_tipos.e);
             st_tipos.e = NULL;
@@ -124671,16 +124606,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_st_campos)
         {
-            for (size_t ss_i1486 = 0; ss_i1486 < st_campos.length; ss_i1486++)
+            for (size_t ss_i1482 = 0; ss_i1482 < st_campos.length; ss_i1482++)
             {
-                for (size_t ss_i1487 = 0; ss_i1487 < st_campos.e[ss_i1486].length; ss_i1487++)
+                for (size_t ss_i1483 = 0; ss_i1483 < st_campos.e[ss_i1482].length; ss_i1483++)
                 {
-                    ss_free(&st_campos.e[ss_i1486].e[ss_i1487]);
+                    ss_free(&st_campos.e[ss_i1482].e[ss_i1483]);
                 }
-                free(st_campos.e[ss_i1486].e);
-                st_campos.e[ss_i1486].e = NULL;
-                st_campos.e[ss_i1486].length = 0;
-                st_campos.e[ss_i1486].capacity = 0;
+                free(st_campos.e[ss_i1482].e);
+                st_campos.e[ss_i1482].e = NULL;
+                st_campos.e[ss_i1482].length = 0;
+                st_campos.e[ss_i1482].capacity = 0;
             }
             free(st_campos.e);
             st_campos.e = NULL;
@@ -124689,9 +124624,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_st_nombres)
         {
-            for (size_t ss_i1488 = 0; ss_i1488 < st_nombres.length; ss_i1488++)
+            for (size_t ss_i1484 = 0; ss_i1484 < st_nombres.length; ss_i1484++)
             {
-                ss_free(&st_nombres.e[ss_i1488]);
+                ss_free(&st_nombres.e[ss_i1484]);
             }
             free(st_nombres.e);
             st_nombres.e = NULL;
@@ -124700,9 +124635,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_contextos)
         {
-            for (size_t ss_i1489 = 0; ss_i1489 < contextos.length; ss_i1489++)
+            for (size_t ss_i1485 = 0; ss_i1485 < contextos.length; ss_i1485++)
             {
-                ss_drop_Contexto(&contextos.e[ss_i1489]);
+                ss_drop_Contexto(&contextos.e[ss_i1485]);
             }
             free(contextos.e);
             contextos.e = NULL;
@@ -124711,9 +124646,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_arboles)
         {
-            for (size_t ss_i1490 = 0; ss_i1490 < arboles.length; ss_i1490++)
+            for (size_t ss_i1486 = 0; ss_i1486 < arboles.length; ss_i1486++)
             {
-                ss_drop_Nodo(&arboles.e[ss_i1490]);
+                ss_drop_Nodo(&arboles.e[ss_i1486]);
             }
             free(arboles.e);
             arboles.e = NULL;
@@ -124725,9 +124660,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             ss_drop_Contexto(&global);
         }
         ss_free(&error_carga);
-        for (size_t ss_i1491 = 0; ss_i1491 < pila.length; ss_i1491++)
+        for (size_t ss_i1487 = 0; ss_i1487 < pila.length; ss_i1487++)
         {
-            ss_free(&pila.e[ss_i1491]);
+            ss_free(&pila.e[ss_i1487]);
         }
         free(pila.e);
         pila.e = NULL;
@@ -124735,9 +124670,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         pila.capacity = 0;
         if (ss_vivo_modulos)
         {
-            for (size_t ss_i1492 = 0; ss_i1492 < modulos.length; ss_i1492++)
+            for (size_t ss_i1488 = 0; ss_i1488 < modulos.length; ss_i1488++)
             {
-                ss_free(&modulos.e[ss_i1492]);
+                ss_free(&modulos.e[ss_i1488]);
             }
             free(modulos.e);
             modulos.e = NULL;
@@ -124745,12 +124680,12 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             modulos.capacity = 0;
         }
         ss_free(&principal);
-        return (ss_res_ProgramaLeido){ .motivo = ss_tmp36293.motivo };
+        return (ss_res_ProgramaLeido){ .motivo = ss_tmp36276.motivo };
     }
-    if ((!ss_tmp36293.valor))
+    if ((!ss_tmp36276.valor))
     {
-#line 3723 "ejemplos/compilador/tcodec.t"
-        ProgramaLeido ss_tmp36300 = programa_no_leido();
+#line 3715 "ejemplos/compilador/tcodec.t"
+        ProgramaLeido ss_tmp36283 = programa_no_leido();
         ss_drop_Leidos(&leidos);
         ss_mapa_libre_mapa_str_usize(&previos_en);
         ss_mapa_libre_mapa_str_usize(&previos_st);
@@ -124760,16 +124695,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_en_lleva)
         {
-            for (size_t ss_i1493 = 0; ss_i1493 < en_lleva.length; ss_i1493++)
+            for (size_t ss_i1489 = 0; ss_i1489 < en_lleva.length; ss_i1489++)
             {
-                for (size_t ss_i1494 = 0; ss_i1494 < en_lleva.e[ss_i1493].length; ss_i1494++)
+                for (size_t ss_i1490 = 0; ss_i1490 < en_lleva.e[ss_i1489].length; ss_i1490++)
                 {
-                    ss_free(&en_lleva.e[ss_i1493].e[ss_i1494]);
+                    ss_free(&en_lleva.e[ss_i1489].e[ss_i1490]);
                 }
-                free(en_lleva.e[ss_i1493].e);
-                en_lleva.e[ss_i1493].e = NULL;
-                en_lleva.e[ss_i1493].length = 0;
-                en_lleva.e[ss_i1493].capacity = 0;
+                free(en_lleva.e[ss_i1489].e);
+                en_lleva.e[ss_i1489].e = NULL;
+                en_lleva.e[ss_i1489].length = 0;
+                en_lleva.e[ss_i1489].capacity = 0;
             }
             free(en_lleva.e);
             en_lleva.e = NULL;
@@ -124778,16 +124713,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_en_variantes)
         {
-            for (size_t ss_i1495 = 0; ss_i1495 < en_variantes.length; ss_i1495++)
+            for (size_t ss_i1491 = 0; ss_i1491 < en_variantes.length; ss_i1491++)
             {
-                for (size_t ss_i1496 = 0; ss_i1496 < en_variantes.e[ss_i1495].length; ss_i1496++)
+                for (size_t ss_i1492 = 0; ss_i1492 < en_variantes.e[ss_i1491].length; ss_i1492++)
                 {
-                    ss_free(&en_variantes.e[ss_i1495].e[ss_i1496]);
+                    ss_free(&en_variantes.e[ss_i1491].e[ss_i1492]);
                 }
-                free(en_variantes.e[ss_i1495].e);
-                en_variantes.e[ss_i1495].e = NULL;
-                en_variantes.e[ss_i1495].length = 0;
-                en_variantes.e[ss_i1495].capacity = 0;
+                free(en_variantes.e[ss_i1491].e);
+                en_variantes.e[ss_i1491].e = NULL;
+                en_variantes.e[ss_i1491].length = 0;
+                en_variantes.e[ss_i1491].capacity = 0;
             }
             free(en_variantes.e);
             en_variantes.e = NULL;
@@ -124801,9 +124736,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_en_nombres)
         {
-            for (size_t ss_i1497 = 0; ss_i1497 < en_nombres.length; ss_i1497++)
+            for (size_t ss_i1493 = 0; ss_i1493 < en_nombres.length; ss_i1493++)
             {
-                ss_free(&en_nombres.e[ss_i1497]);
+                ss_free(&en_nombres.e[ss_i1493]);
             }
             free(en_nombres.e);
             en_nombres.e = NULL;
@@ -124812,9 +124747,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_ext_protos)
         {
-            for (size_t ss_i1498 = 0; ss_i1498 < ext_protos.length; ss_i1498++)
+            for (size_t ss_i1494 = 0; ss_i1494 < ext_protos.length; ss_i1494++)
             {
-                ss_free(&ext_protos.e[ss_i1498]);
+                ss_free(&ext_protos.e[ss_i1494]);
             }
             free(ext_protos.e);
             ext_protos.e = NULL;
@@ -124823,9 +124758,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_ext_modulos)
         {
-            for (size_t ss_i1499 = 0; ss_i1499 < ext_modulos.length; ss_i1499++)
+            for (size_t ss_i1495 = 0; ss_i1495 < ext_modulos.length; ss_i1495++)
             {
-                ss_free(&ext_modulos.e[ss_i1499]);
+                ss_free(&ext_modulos.e[ss_i1495]);
             }
             free(ext_modulos.e);
             ext_modulos.e = NULL;
@@ -124834,9 +124769,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_ext_cabeceras)
         {
-            for (size_t ss_i1500 = 0; ss_i1500 < ext_cabeceras.length; ss_i1500++)
+            for (size_t ss_i1496 = 0; ss_i1496 < ext_cabeceras.length; ss_i1496++)
             {
-                ss_free(&ext_cabeceras.e[ss_i1500]);
+                ss_free(&ext_cabeceras.e[ss_i1496]);
             }
             free(ext_cabeceras.e);
             ext_cabeceras.e = NULL;
@@ -124845,16 +124780,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_stp_tipos)
         {
-            for (size_t ss_i1501 = 0; ss_i1501 < stp_tipos.length; ss_i1501++)
+            for (size_t ss_i1497 = 0; ss_i1497 < stp_tipos.length; ss_i1497++)
             {
-                for (size_t ss_i1502 = 0; ss_i1502 < stp_tipos.e[ss_i1501].length; ss_i1502++)
+                for (size_t ss_i1498 = 0; ss_i1498 < stp_tipos.e[ss_i1497].length; ss_i1498++)
                 {
-                    ss_free(&stp_tipos.e[ss_i1501].e[ss_i1502]);
+                    ss_free(&stp_tipos.e[ss_i1497].e[ss_i1498]);
                 }
-                free(stp_tipos.e[ss_i1501].e);
-                stp_tipos.e[ss_i1501].e = NULL;
-                stp_tipos.e[ss_i1501].length = 0;
-                stp_tipos.e[ss_i1501].capacity = 0;
+                free(stp_tipos.e[ss_i1497].e);
+                stp_tipos.e[ss_i1497].e = NULL;
+                stp_tipos.e[ss_i1497].length = 0;
+                stp_tipos.e[ss_i1497].capacity = 0;
             }
             free(stp_tipos.e);
             stp_tipos.e = NULL;
@@ -124863,16 +124798,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_stp_campos)
         {
-            for (size_t ss_i1503 = 0; ss_i1503 < stp_campos.length; ss_i1503++)
+            for (size_t ss_i1499 = 0; ss_i1499 < stp_campos.length; ss_i1499++)
             {
-                for (size_t ss_i1504 = 0; ss_i1504 < stp_campos.e[ss_i1503].length; ss_i1504++)
+                for (size_t ss_i1500 = 0; ss_i1500 < stp_campos.e[ss_i1499].length; ss_i1500++)
                 {
-                    ss_free(&stp_campos.e[ss_i1503].e[ss_i1504]);
+                    ss_free(&stp_campos.e[ss_i1499].e[ss_i1500]);
                 }
-                free(stp_campos.e[ss_i1503].e);
-                stp_campos.e[ss_i1503].e = NULL;
-                stp_campos.e[ss_i1503].length = 0;
-                stp_campos.e[ss_i1503].capacity = 0;
+                free(stp_campos.e[ss_i1499].e);
+                stp_campos.e[ss_i1499].e = NULL;
+                stp_campos.e[ss_i1499].length = 0;
+                stp_campos.e[ss_i1499].capacity = 0;
             }
             free(stp_campos.e);
             stp_campos.e = NULL;
@@ -124881,16 +124816,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_stp_params)
         {
-            for (size_t ss_i1505 = 0; ss_i1505 < stp_params.length; ss_i1505++)
+            for (size_t ss_i1501 = 0; ss_i1501 < stp_params.length; ss_i1501++)
             {
-                for (size_t ss_i1506 = 0; ss_i1506 < stp_params.e[ss_i1505].length; ss_i1506++)
+                for (size_t ss_i1502 = 0; ss_i1502 < stp_params.e[ss_i1501].length; ss_i1502++)
                 {
-                    ss_free(&stp_params.e[ss_i1505].e[ss_i1506]);
+                    ss_free(&stp_params.e[ss_i1501].e[ss_i1502]);
                 }
-                free(stp_params.e[ss_i1505].e);
-                stp_params.e[ss_i1505].e = NULL;
-                stp_params.e[ss_i1505].length = 0;
-                stp_params.e[ss_i1505].capacity = 0;
+                free(stp_params.e[ss_i1501].e);
+                stp_params.e[ss_i1501].e = NULL;
+                stp_params.e[ss_i1501].length = 0;
+                stp_params.e[ss_i1501].capacity = 0;
             }
             free(stp_params.e);
             stp_params.e = NULL;
@@ -124902,9 +124837,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         {
             ss_mapa_libre_mapa_str_usize(&stp_indice);
         }
-        for (size_t ss_i1507 = 0; ss_i1507 < stp_nombres.length; ss_i1507++)
+        for (size_t ss_i1503 = 0; ss_i1503 < stp_nombres.length; ss_i1503++)
         {
-            ss_free(&stp_nombres.e[ss_i1507]);
+            ss_free(&stp_nombres.e[ss_i1503]);
         }
         free(stp_nombres.e);
         stp_nombres.e = NULL;
@@ -124917,16 +124852,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_st_tipos)
         {
-            for (size_t ss_i1508 = 0; ss_i1508 < st_tipos.length; ss_i1508++)
+            for (size_t ss_i1504 = 0; ss_i1504 < st_tipos.length; ss_i1504++)
             {
-                for (size_t ss_i1509 = 0; ss_i1509 < st_tipos.e[ss_i1508].length; ss_i1509++)
+                for (size_t ss_i1505 = 0; ss_i1505 < st_tipos.e[ss_i1504].length; ss_i1505++)
                 {
-                    ss_free(&st_tipos.e[ss_i1508].e[ss_i1509]);
+                    ss_free(&st_tipos.e[ss_i1504].e[ss_i1505]);
                 }
-                free(st_tipos.e[ss_i1508].e);
-                st_tipos.e[ss_i1508].e = NULL;
-                st_tipos.e[ss_i1508].length = 0;
-                st_tipos.e[ss_i1508].capacity = 0;
+                free(st_tipos.e[ss_i1504].e);
+                st_tipos.e[ss_i1504].e = NULL;
+                st_tipos.e[ss_i1504].length = 0;
+                st_tipos.e[ss_i1504].capacity = 0;
             }
             free(st_tipos.e);
             st_tipos.e = NULL;
@@ -124935,16 +124870,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_st_campos)
         {
-            for (size_t ss_i1510 = 0; ss_i1510 < st_campos.length; ss_i1510++)
+            for (size_t ss_i1506 = 0; ss_i1506 < st_campos.length; ss_i1506++)
             {
-                for (size_t ss_i1511 = 0; ss_i1511 < st_campos.e[ss_i1510].length; ss_i1511++)
+                for (size_t ss_i1507 = 0; ss_i1507 < st_campos.e[ss_i1506].length; ss_i1507++)
                 {
-                    ss_free(&st_campos.e[ss_i1510].e[ss_i1511]);
+                    ss_free(&st_campos.e[ss_i1506].e[ss_i1507]);
                 }
-                free(st_campos.e[ss_i1510].e);
-                st_campos.e[ss_i1510].e = NULL;
-                st_campos.e[ss_i1510].length = 0;
-                st_campos.e[ss_i1510].capacity = 0;
+                free(st_campos.e[ss_i1506].e);
+                st_campos.e[ss_i1506].e = NULL;
+                st_campos.e[ss_i1506].length = 0;
+                st_campos.e[ss_i1506].capacity = 0;
             }
             free(st_campos.e);
             st_campos.e = NULL;
@@ -124953,9 +124888,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_st_nombres)
         {
-            for (size_t ss_i1512 = 0; ss_i1512 < st_nombres.length; ss_i1512++)
+            for (size_t ss_i1508 = 0; ss_i1508 < st_nombres.length; ss_i1508++)
             {
-                ss_free(&st_nombres.e[ss_i1512]);
+                ss_free(&st_nombres.e[ss_i1508]);
             }
             free(st_nombres.e);
             st_nombres.e = NULL;
@@ -124964,9 +124899,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_contextos)
         {
-            for (size_t ss_i1513 = 0; ss_i1513 < contextos.length; ss_i1513++)
+            for (size_t ss_i1509 = 0; ss_i1509 < contextos.length; ss_i1509++)
             {
-                ss_drop_Contexto(&contextos.e[ss_i1513]);
+                ss_drop_Contexto(&contextos.e[ss_i1509]);
             }
             free(contextos.e);
             contextos.e = NULL;
@@ -124975,9 +124910,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         }
         if (ss_vivo_arboles)
         {
-            for (size_t ss_i1514 = 0; ss_i1514 < arboles.length; ss_i1514++)
+            for (size_t ss_i1510 = 0; ss_i1510 < arboles.length; ss_i1510++)
             {
-                ss_drop_Nodo(&arboles.e[ss_i1514]);
+                ss_drop_Nodo(&arboles.e[ss_i1510]);
             }
             free(arboles.e);
             arboles.e = NULL;
@@ -124989,9 +124924,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             ss_drop_Contexto(&global);
         }
         ss_free(&error_carga);
-        for (size_t ss_i1515 = 0; ss_i1515 < pila.length; ss_i1515++)
+        for (size_t ss_i1511 = 0; ss_i1511 < pila.length; ss_i1511++)
         {
-            ss_free(&pila.e[ss_i1515]);
+            ss_free(&pila.e[ss_i1511]);
         }
         free(pila.e);
         pila.e = NULL;
@@ -124999,9 +124934,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         pila.capacity = 0;
         if (ss_vivo_modulos)
         {
-            for (size_t ss_i1516 = 0; ss_i1516 < modulos.length; ss_i1516++)
+            for (size_t ss_i1512 = 0; ss_i1512 < modulos.length; ss_i1512++)
             {
-                ss_free(&modulos.e[ss_i1516]);
+                ss_free(&modulos.e[ss_i1512]);
             }
             free(modulos.e);
             modulos.e = NULL;
@@ -125009,88 +124944,88 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
             modulos.capacity = 0;
         }
         ss_free(&principal);
-        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36300 };
+        return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36283 };
     }
-#line 3727 "ejemplos/compilador/tcodec.t"
+#line 3719 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_alias = (size_t)0;
-#line 3728 "ejemplos/compilador/tcodec.t"
+#line 3720 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36301;
-        size_t ss_tmp36302;
-#line 3728 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp36301 = k_alias, ss_tmp36302 = (arboles.length), (ss_tmp36301 < ss_tmp36302)))))
+        size_t ss_tmp36284;
+        size_t ss_tmp36285;
+#line 3720 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp36284 = k_alias, ss_tmp36285 = (arboles.length), (ss_tmp36284 < ss_tmp36285)))))
         {
             break;
         }
-#line 3729 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp36303;
-        quitar_alias_de_tipos(&((ss_tmp36303 = &(arboles), &ss_tmp36303->e[ss_lang_indice_(k_alias, ss_tmp36303->length, "ejemplos/compilador/tcodec.t", 3729)])[0]));
-#line 3730 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36304;
-        size_t ss_tmp36305;
-#line 3730 "ejemplos/compilador/tcodec.t"
-        k_alias = ((ss_tmp36304 = k_alias, ss_tmp36305 = (size_t)1, ss_lang_suma_usize(ss_tmp36304, ss_tmp36305, "ejemplos/compilador/tcodec.t", 3730)));
+#line 3721 "ejemplos/compilador/tcodec.t"
+        ss_lista_Nodo* ss_tmp36286;
+        quitar_alias_de_tipos(&((ss_tmp36286 = &(arboles), &ss_tmp36286->e[ss_lang_indice_(k_alias, ss_tmp36286->length, "ejemplos/compilador/tcodec.t", 3721)])[0]));
+#line 3722 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36287;
+        size_t ss_tmp36288;
+#line 3722 "ejemplos/compilador/tcodec.t"
+        k_alias = ((ss_tmp36287 = k_alias, ss_tmp36288 = (size_t)1, ss_lang_suma_usize(ss_tmp36287, ss_tmp36288, "ejemplos/compilador/tcodec.t", 3722)));
     }
-#line 3732 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36306;
-    ss_lista_lista_str ss_tmp36307;
-    ss_lista_lista_str ss_tmp36308;
-    ss_mapa_str_usize ss_tmp36309;
-#line 3732 "ejemplos/compilador/tcodec.t"
-    SS_LANG_QUIZA_SIN_USAR StructsLeidos structs = ((ss_tmp36306 = st_nombres, ss_tmp36307 = st_campos, ss_tmp36308 = st_tipos, ss_tmp36309 = st_indice, (StructsLeidos){ .nombres = ss_tmp36306, .campos = ss_tmp36307, .tipos = ss_tmp36308, .indice = ss_tmp36309 }));
+#line 3724 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36289;
+    ss_lista_lista_str ss_tmp36290;
+    ss_lista_lista_str ss_tmp36291;
+    ss_mapa_str_usize ss_tmp36292;
+#line 3724 "ejemplos/compilador/tcodec.t"
+    SS_LANG_QUIZA_SIN_USAR StructsLeidos structs = ((ss_tmp36289 = st_nombres, ss_tmp36290 = st_campos, ss_tmp36291 = st_tipos, ss_tmp36292 = st_indice, (StructsLeidos){ .nombres = ss_tmp36289, .campos = ss_tmp36290, .tipos = ss_tmp36291, .indice = ss_tmp36292 }));
     bool ss_vivo_structs = true;
     ss_vivo_st_nombres = false;
     ss_vivo_st_campos = false;
     ss_vivo_st_tipos = false;
     ss_vivo_st_indice = false;
-#line 3734 "ejemplos/compilador/tcodec.t"
-    ss_mapa_str_usize ss_tmp36310;
-    ss_lista_lista_str ss_tmp36311;
-    ss_lista_lista_str ss_tmp36312;
-    ss_lista_lista_str ss_tmp36313;
-#line 3734 "ejemplos/compilador/tcodec.t"
-    SS_LANG_QUIZA_SIN_USAR StructsGenericos genericos = ((ss_tmp36310 = stp_indice, ss_tmp36311 = stp_params, ss_tmp36312 = stp_campos, ss_tmp36313 = stp_tipos, (StructsGenericos){ .indice = ss_tmp36310, .params = ss_tmp36311, .campos = ss_tmp36312, .tipos = ss_tmp36313 }));
+#line 3726 "ejemplos/compilador/tcodec.t"
+    ss_mapa_str_usize ss_tmp36293;
+    ss_lista_lista_str ss_tmp36294;
+    ss_lista_lista_str ss_tmp36295;
+    ss_lista_lista_str ss_tmp36296;
+#line 3726 "ejemplos/compilador/tcodec.t"
+    SS_LANG_QUIZA_SIN_USAR StructsGenericos genericos = ((ss_tmp36293 = stp_indice, ss_tmp36294 = stp_params, ss_tmp36295 = stp_campos, ss_tmp36296 = stp_tipos, (StructsGenericos){ .indice = ss_tmp36293, .params = ss_tmp36294, .campos = ss_tmp36295, .tipos = ss_tmp36296 }));
     bool ss_vivo_genericos = true;
     ss_vivo_stp_indice = false;
     ss_vivo_stp_params = false;
     ss_vivo_stp_campos = false;
     ss_vivo_stp_tipos = false;
-#line 3736 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36314;
-    ss_mapa_str_usize ss_tmp36315;
-    ss_lista_lista_str ss_tmp36316;
-    ss_lista_lista_str ss_tmp36317;
-#line 3736 "ejemplos/compilador/tcodec.t"
-    SS_LANG_QUIZA_SIN_USAR EnumsLeidos enums = ((ss_tmp36314 = en_nombres, ss_tmp36315 = en_indice, ss_tmp36316 = en_variantes, ss_tmp36317 = en_lleva, (EnumsLeidos){ .nombres = ss_tmp36314, .indice = ss_tmp36315, .variantes = ss_tmp36316, .lleva = ss_tmp36317 }));
+#line 3728 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36297;
+    ss_mapa_str_usize ss_tmp36298;
+    ss_lista_lista_str ss_tmp36299;
+    ss_lista_lista_str ss_tmp36300;
+#line 3728 "ejemplos/compilador/tcodec.t"
+    SS_LANG_QUIZA_SIN_USAR EnumsLeidos enums = ((ss_tmp36297 = en_nombres, ss_tmp36298 = en_indice, ss_tmp36299 = en_variantes, ss_tmp36300 = en_lleva, (EnumsLeidos){ .nombres = ss_tmp36297, .indice = ss_tmp36298, .variantes = ss_tmp36299, .lleva = ss_tmp36300 }));
     bool ss_vivo_enums = true;
     ss_vivo_en_nombres = false;
     ss_vivo_en_indice = false;
     ss_vivo_en_variantes = false;
     ss_vivo_en_lleva = false;
-#line 3738 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36318;
-    ss_lista_str ss_tmp36319;
-    ss_lista_str ss_tmp36320;
-#line 3738 "ejemplos/compilador/tcodec.t"
-    SS_LANG_QUIZA_SIN_USAR ExternosLeidos externos = ((ss_tmp36318 = ext_cabeceras, ss_tmp36319 = ext_modulos, ss_tmp36320 = ext_protos, (ExternosLeidos){ .cabeceras = ss_tmp36318, .modulos = ss_tmp36319, .protos = ss_tmp36320 }));
+#line 3730 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36301;
+    ss_lista_str ss_tmp36302;
+    ss_lista_str ss_tmp36303;
+#line 3730 "ejemplos/compilador/tcodec.t"
+    SS_LANG_QUIZA_SIN_USAR ExternosLeidos externos = ((ss_tmp36301 = ext_cabeceras, ss_tmp36302 = ext_modulos, ss_tmp36303 = ext_protos, (ExternosLeidos){ .cabeceras = ss_tmp36301, .modulos = ss_tmp36302, .protos = ss_tmp36303 }));
     bool ss_vivo_externos = true;
     ss_vivo_ext_cabeceras = false;
     ss_vivo_ext_modulos = false;
     ss_vivo_ext_protos = false;
-#line 3740 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp36321;
-    ss_lista_str ss_tmp36322;
-    Contexto ss_tmp36323;
-    ss_lista_Nodo ss_tmp36324;
-    ss_lista_Contexto ss_tmp36325;
-    StructsLeidos ss_tmp36326;
-    StructsGenericos ss_tmp36327;
-    EnumsLeidos ss_tmp36328;
-    ExternosLeidos ss_tmp36329;
-    ss_mapa_str_usize ss_tmp36330;
-#line 3740 "ejemplos/compilador/tcodec.t"
-    ProgramaLeido ss_tmp36331 = ((ss_tmp36321 = true, ss_tmp36322 = modulos, ss_tmp36323 = global, ss_tmp36324 = arboles, ss_tmp36325 = contextos, ss_tmp36326 = structs, ss_tmp36327 = genericos, ss_tmp36328 = enums, ss_tmp36329 = externos, ss_tmp36330 = plantillas, (ProgramaLeido){ .ok = ss_tmp36321, .modulos = ss_tmp36322, .global = ss_tmp36323, .arboles = ss_tmp36324, .contextos = ss_tmp36325, .structs = ss_tmp36326, .genericos = ss_tmp36327, .enums = ss_tmp36328, .externos = ss_tmp36329, .plantillas = ss_tmp36330 }));
+#line 3732 "ejemplos/compilador/tcodec.t"
+    bool ss_tmp36304;
+    ss_lista_str ss_tmp36305;
+    Contexto ss_tmp36306;
+    ss_lista_Nodo ss_tmp36307;
+    ss_lista_Contexto ss_tmp36308;
+    StructsLeidos ss_tmp36309;
+    StructsGenericos ss_tmp36310;
+    EnumsLeidos ss_tmp36311;
+    ExternosLeidos ss_tmp36312;
+    ss_mapa_str_usize ss_tmp36313;
+#line 3732 "ejemplos/compilador/tcodec.t"
+    ProgramaLeido ss_tmp36314 = ((ss_tmp36304 = true, ss_tmp36305 = modulos, ss_tmp36306 = global, ss_tmp36307 = arboles, ss_tmp36308 = contextos, ss_tmp36309 = structs, ss_tmp36310 = genericos, ss_tmp36311 = enums, ss_tmp36312 = externos, ss_tmp36313 = plantillas, (ProgramaLeido){ .ok = ss_tmp36304, .modulos = ss_tmp36305, .global = ss_tmp36306, .arboles = ss_tmp36307, .contextos = ss_tmp36308, .structs = ss_tmp36309, .genericos = ss_tmp36310, .enums = ss_tmp36311, .externos = ss_tmp36312, .plantillas = ss_tmp36313 }));
     ss_vivo_modulos = false;
     ss_vivo_global = false;
     ss_vivo_arboles = false;
@@ -125125,16 +125060,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_en_lleva)
     {
-        for (size_t ss_i1517 = 0; ss_i1517 < en_lleva.length; ss_i1517++)
+        for (size_t ss_i1513 = 0; ss_i1513 < en_lleva.length; ss_i1513++)
         {
-            for (size_t ss_i1518 = 0; ss_i1518 < en_lleva.e[ss_i1517].length; ss_i1518++)
+            for (size_t ss_i1514 = 0; ss_i1514 < en_lleva.e[ss_i1513].length; ss_i1514++)
             {
-                ss_free(&en_lleva.e[ss_i1517].e[ss_i1518]);
+                ss_free(&en_lleva.e[ss_i1513].e[ss_i1514]);
             }
-            free(en_lleva.e[ss_i1517].e);
-            en_lleva.e[ss_i1517].e = NULL;
-            en_lleva.e[ss_i1517].length = 0;
-            en_lleva.e[ss_i1517].capacity = 0;
+            free(en_lleva.e[ss_i1513].e);
+            en_lleva.e[ss_i1513].e = NULL;
+            en_lleva.e[ss_i1513].length = 0;
+            en_lleva.e[ss_i1513].capacity = 0;
         }
         free(en_lleva.e);
         en_lleva.e = NULL;
@@ -125143,16 +125078,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_en_variantes)
     {
-        for (size_t ss_i1519 = 0; ss_i1519 < en_variantes.length; ss_i1519++)
+        for (size_t ss_i1515 = 0; ss_i1515 < en_variantes.length; ss_i1515++)
         {
-            for (size_t ss_i1520 = 0; ss_i1520 < en_variantes.e[ss_i1519].length; ss_i1520++)
+            for (size_t ss_i1516 = 0; ss_i1516 < en_variantes.e[ss_i1515].length; ss_i1516++)
             {
-                ss_free(&en_variantes.e[ss_i1519].e[ss_i1520]);
+                ss_free(&en_variantes.e[ss_i1515].e[ss_i1516]);
             }
-            free(en_variantes.e[ss_i1519].e);
-            en_variantes.e[ss_i1519].e = NULL;
-            en_variantes.e[ss_i1519].length = 0;
-            en_variantes.e[ss_i1519].capacity = 0;
+            free(en_variantes.e[ss_i1515].e);
+            en_variantes.e[ss_i1515].e = NULL;
+            en_variantes.e[ss_i1515].length = 0;
+            en_variantes.e[ss_i1515].capacity = 0;
         }
         free(en_variantes.e);
         en_variantes.e = NULL;
@@ -125166,9 +125101,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_en_nombres)
     {
-        for (size_t ss_i1521 = 0; ss_i1521 < en_nombres.length; ss_i1521++)
+        for (size_t ss_i1517 = 0; ss_i1517 < en_nombres.length; ss_i1517++)
         {
-            ss_free(&en_nombres.e[ss_i1521]);
+            ss_free(&en_nombres.e[ss_i1517]);
         }
         free(en_nombres.e);
         en_nombres.e = NULL;
@@ -125177,9 +125112,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_ext_protos)
     {
-        for (size_t ss_i1522 = 0; ss_i1522 < ext_protos.length; ss_i1522++)
+        for (size_t ss_i1518 = 0; ss_i1518 < ext_protos.length; ss_i1518++)
         {
-            ss_free(&ext_protos.e[ss_i1522]);
+            ss_free(&ext_protos.e[ss_i1518]);
         }
         free(ext_protos.e);
         ext_protos.e = NULL;
@@ -125188,9 +125123,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_ext_modulos)
     {
-        for (size_t ss_i1523 = 0; ss_i1523 < ext_modulos.length; ss_i1523++)
+        for (size_t ss_i1519 = 0; ss_i1519 < ext_modulos.length; ss_i1519++)
         {
-            ss_free(&ext_modulos.e[ss_i1523]);
+            ss_free(&ext_modulos.e[ss_i1519]);
         }
         free(ext_modulos.e);
         ext_modulos.e = NULL;
@@ -125199,9 +125134,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_ext_cabeceras)
     {
-        for (size_t ss_i1524 = 0; ss_i1524 < ext_cabeceras.length; ss_i1524++)
+        for (size_t ss_i1520 = 0; ss_i1520 < ext_cabeceras.length; ss_i1520++)
         {
-            ss_free(&ext_cabeceras.e[ss_i1524]);
+            ss_free(&ext_cabeceras.e[ss_i1520]);
         }
         free(ext_cabeceras.e);
         ext_cabeceras.e = NULL;
@@ -125210,16 +125145,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_stp_tipos)
     {
-        for (size_t ss_i1525 = 0; ss_i1525 < stp_tipos.length; ss_i1525++)
+        for (size_t ss_i1521 = 0; ss_i1521 < stp_tipos.length; ss_i1521++)
         {
-            for (size_t ss_i1526 = 0; ss_i1526 < stp_tipos.e[ss_i1525].length; ss_i1526++)
+            for (size_t ss_i1522 = 0; ss_i1522 < stp_tipos.e[ss_i1521].length; ss_i1522++)
             {
-                ss_free(&stp_tipos.e[ss_i1525].e[ss_i1526]);
+                ss_free(&stp_tipos.e[ss_i1521].e[ss_i1522]);
             }
-            free(stp_tipos.e[ss_i1525].e);
-            stp_tipos.e[ss_i1525].e = NULL;
-            stp_tipos.e[ss_i1525].length = 0;
-            stp_tipos.e[ss_i1525].capacity = 0;
+            free(stp_tipos.e[ss_i1521].e);
+            stp_tipos.e[ss_i1521].e = NULL;
+            stp_tipos.e[ss_i1521].length = 0;
+            stp_tipos.e[ss_i1521].capacity = 0;
         }
         free(stp_tipos.e);
         stp_tipos.e = NULL;
@@ -125228,16 +125163,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_stp_campos)
     {
-        for (size_t ss_i1527 = 0; ss_i1527 < stp_campos.length; ss_i1527++)
+        for (size_t ss_i1523 = 0; ss_i1523 < stp_campos.length; ss_i1523++)
         {
-            for (size_t ss_i1528 = 0; ss_i1528 < stp_campos.e[ss_i1527].length; ss_i1528++)
+            for (size_t ss_i1524 = 0; ss_i1524 < stp_campos.e[ss_i1523].length; ss_i1524++)
             {
-                ss_free(&stp_campos.e[ss_i1527].e[ss_i1528]);
+                ss_free(&stp_campos.e[ss_i1523].e[ss_i1524]);
             }
-            free(stp_campos.e[ss_i1527].e);
-            stp_campos.e[ss_i1527].e = NULL;
-            stp_campos.e[ss_i1527].length = 0;
-            stp_campos.e[ss_i1527].capacity = 0;
+            free(stp_campos.e[ss_i1523].e);
+            stp_campos.e[ss_i1523].e = NULL;
+            stp_campos.e[ss_i1523].length = 0;
+            stp_campos.e[ss_i1523].capacity = 0;
         }
         free(stp_campos.e);
         stp_campos.e = NULL;
@@ -125246,16 +125181,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_stp_params)
     {
-        for (size_t ss_i1529 = 0; ss_i1529 < stp_params.length; ss_i1529++)
+        for (size_t ss_i1525 = 0; ss_i1525 < stp_params.length; ss_i1525++)
         {
-            for (size_t ss_i1530 = 0; ss_i1530 < stp_params.e[ss_i1529].length; ss_i1530++)
+            for (size_t ss_i1526 = 0; ss_i1526 < stp_params.e[ss_i1525].length; ss_i1526++)
             {
-                ss_free(&stp_params.e[ss_i1529].e[ss_i1530]);
+                ss_free(&stp_params.e[ss_i1525].e[ss_i1526]);
             }
-            free(stp_params.e[ss_i1529].e);
-            stp_params.e[ss_i1529].e = NULL;
-            stp_params.e[ss_i1529].length = 0;
-            stp_params.e[ss_i1529].capacity = 0;
+            free(stp_params.e[ss_i1525].e);
+            stp_params.e[ss_i1525].e = NULL;
+            stp_params.e[ss_i1525].length = 0;
+            stp_params.e[ss_i1525].capacity = 0;
         }
         free(stp_params.e);
         stp_params.e = NULL;
@@ -125267,9 +125202,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     {
         ss_mapa_libre_mapa_str_usize(&stp_indice);
     }
-    for (size_t ss_i1531 = 0; ss_i1531 < stp_nombres.length; ss_i1531++)
+    for (size_t ss_i1527 = 0; ss_i1527 < stp_nombres.length; ss_i1527++)
     {
-        ss_free(&stp_nombres.e[ss_i1531]);
+        ss_free(&stp_nombres.e[ss_i1527]);
     }
     free(stp_nombres.e);
     stp_nombres.e = NULL;
@@ -125282,16 +125217,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_st_tipos)
     {
-        for (size_t ss_i1532 = 0; ss_i1532 < st_tipos.length; ss_i1532++)
+        for (size_t ss_i1528 = 0; ss_i1528 < st_tipos.length; ss_i1528++)
         {
-            for (size_t ss_i1533 = 0; ss_i1533 < st_tipos.e[ss_i1532].length; ss_i1533++)
+            for (size_t ss_i1529 = 0; ss_i1529 < st_tipos.e[ss_i1528].length; ss_i1529++)
             {
-                ss_free(&st_tipos.e[ss_i1532].e[ss_i1533]);
+                ss_free(&st_tipos.e[ss_i1528].e[ss_i1529]);
             }
-            free(st_tipos.e[ss_i1532].e);
-            st_tipos.e[ss_i1532].e = NULL;
-            st_tipos.e[ss_i1532].length = 0;
-            st_tipos.e[ss_i1532].capacity = 0;
+            free(st_tipos.e[ss_i1528].e);
+            st_tipos.e[ss_i1528].e = NULL;
+            st_tipos.e[ss_i1528].length = 0;
+            st_tipos.e[ss_i1528].capacity = 0;
         }
         free(st_tipos.e);
         st_tipos.e = NULL;
@@ -125300,16 +125235,16 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_st_campos)
     {
-        for (size_t ss_i1534 = 0; ss_i1534 < st_campos.length; ss_i1534++)
+        for (size_t ss_i1530 = 0; ss_i1530 < st_campos.length; ss_i1530++)
         {
-            for (size_t ss_i1535 = 0; ss_i1535 < st_campos.e[ss_i1534].length; ss_i1535++)
+            for (size_t ss_i1531 = 0; ss_i1531 < st_campos.e[ss_i1530].length; ss_i1531++)
             {
-                ss_free(&st_campos.e[ss_i1534].e[ss_i1535]);
+                ss_free(&st_campos.e[ss_i1530].e[ss_i1531]);
             }
-            free(st_campos.e[ss_i1534].e);
-            st_campos.e[ss_i1534].e = NULL;
-            st_campos.e[ss_i1534].length = 0;
-            st_campos.e[ss_i1534].capacity = 0;
+            free(st_campos.e[ss_i1530].e);
+            st_campos.e[ss_i1530].e = NULL;
+            st_campos.e[ss_i1530].length = 0;
+            st_campos.e[ss_i1530].capacity = 0;
         }
         free(st_campos.e);
         st_campos.e = NULL;
@@ -125318,9 +125253,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_st_nombres)
     {
-        for (size_t ss_i1536 = 0; ss_i1536 < st_nombres.length; ss_i1536++)
+        for (size_t ss_i1532 = 0; ss_i1532 < st_nombres.length; ss_i1532++)
         {
-            ss_free(&st_nombres.e[ss_i1536]);
+            ss_free(&st_nombres.e[ss_i1532]);
         }
         free(st_nombres.e);
         st_nombres.e = NULL;
@@ -125329,9 +125264,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_contextos)
     {
-        for (size_t ss_i1537 = 0; ss_i1537 < contextos.length; ss_i1537++)
+        for (size_t ss_i1533 = 0; ss_i1533 < contextos.length; ss_i1533++)
         {
-            ss_drop_Contexto(&contextos.e[ss_i1537]);
+            ss_drop_Contexto(&contextos.e[ss_i1533]);
         }
         free(contextos.e);
         contextos.e = NULL;
@@ -125340,9 +125275,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     }
     if (ss_vivo_arboles)
     {
-        for (size_t ss_i1538 = 0; ss_i1538 < arboles.length; ss_i1538++)
+        for (size_t ss_i1534 = 0; ss_i1534 < arboles.length; ss_i1534++)
         {
-            ss_drop_Nodo(&arboles.e[ss_i1538]);
+            ss_drop_Nodo(&arboles.e[ss_i1534]);
         }
         free(arboles.e);
         arboles.e = NULL;
@@ -125354,9 +125289,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         ss_drop_Contexto(&global);
     }
     ss_free(&error_carga);
-    for (size_t ss_i1539 = 0; ss_i1539 < pila.length; ss_i1539++)
+    for (size_t ss_i1535 = 0; ss_i1535 < pila.length; ss_i1535++)
     {
-        ss_free(&pila.e[ss_i1539]);
+        ss_free(&pila.e[ss_i1535]);
     }
     free(pila.e);
     pila.e = NULL;
@@ -125364,9 +125299,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
     pila.capacity = 0;
     if (ss_vivo_modulos)
     {
-        for (size_t ss_i1540 = 0; ss_i1540 < modulos.length; ss_i1540++)
+        for (size_t ss_i1536 = 0; ss_i1536 < modulos.length; ss_i1536++)
         {
-            ss_free(&modulos.e[ss_i1540]);
+            ss_free(&modulos.e[ss_i1536]);
         }
         free(modulos.e);
         modulos.e = NULL;
@@ -125374,188 +125309,188 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_ProgramaLeido leer_programa(SS_LANG_QUIZA_S
         modulos.capacity = 0;
     }
     ss_free(&principal);
-    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36331 };
+    return (ss_res_ProgramaLeido){ .motivo = NULL, .valor = ss_tmp36314 };
 }
 
-#line 3746 "ejemplos/compilador/tcodec.t"
+#line 3738 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static Cierres preparar_cierres(SS_LANG_QUIZA_SIN_USAR const Revision* revision, SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto* contextos, SS_LANG_QUIZA_SIN_USAR Contexto* global)
 {
-#line 3748 "ejemplos/compilador/tcodec.t"
+#line 3740 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize sacados = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
     bool ss_vivo_sacados = true;
-#line 3749 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1541 = 0; ss_k1541 < (*revision).sacados.length; ss_k1541++)
+#line 3741 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1537 = 0; ss_k1537 < (*revision).sacados.length; ss_k1537++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*revision).sacados.e[ss_k1541];
-        ss_mapa_str_usize* ss_tmp36332 = &sacados;
-#line 3749 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp36332, ss_view(x), (size_t)1, "ejemplos/compilador/tcodec.t", 3749);
+        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*revision).sacados.e[ss_k1537];
+        ss_mapa_str_usize* ss_tmp36315 = &sacados;
+#line 3741 "ejemplos/compilador/tcodec.t"
+        ss_mapa_poner_mapa_str_usize(ss_tmp36315, ss_view(x), (size_t)1, "ejemplos/compilador/tcodec.t", 3741);
     }
-#line 3750 "ejemplos/compilador/tcodec.t"
-    ss_lista_Nodo ss_tmp36333;
-    ss_lista_usize ss_tmp36334;
-    ss_mapa_str_usize ss_tmp36335;
-    ss_mapa_str_usize ss_tmp36336;
-    ss_mapa_str_usize ss_tmp36337;
-#line 3750 "ejemplos/compilador/tcodec.t"
-    SS_LANG_QUIZA_SIN_USAR Cierres cierres = ((ss_tmp36333 = ss_copia_lista_Nodo(&(*revision).cierres), ss_tmp36334 = ss_copia_lista_usize(&(*revision).cierres_mod), ss_tmp36335 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp36336 = ss_copia_mapa_str_usize(&(*revision).numeracion), ss_tmp36337 = sacados, (Cierres){ .fns = ss_tmp36333, .modulo = ss_tmp36334, .indice = ss_tmp36335, .numeracion = ss_tmp36336, .sacados = ss_tmp36337 }));
+#line 3742 "ejemplos/compilador/tcodec.t"
+    ss_lista_Nodo ss_tmp36316;
+    ss_lista_usize ss_tmp36317;
+    ss_mapa_str_usize ss_tmp36318;
+    ss_mapa_str_usize ss_tmp36319;
+    ss_mapa_str_usize ss_tmp36320;
+#line 3742 "ejemplos/compilador/tcodec.t"
+    SS_LANG_QUIZA_SIN_USAR Cierres cierres = ((ss_tmp36316 = ss_copia_lista_Nodo(&(*revision).cierres), ss_tmp36317 = ss_copia_lista_usize(&(*revision).cierres_mod), ss_tmp36318 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp36319 = ss_copia_mapa_str_usize(&(*revision).numeracion), ss_tmp36320 = sacados, (Cierres){ .fns = ss_tmp36316, .modulo = ss_tmp36317, .indice = ss_tmp36318, .numeracion = ss_tmp36319, .sacados = ss_tmp36320 }));
     ss_vivo_sacados = false;
-#line 3753 "ejemplos/compilador/tcodec.t"
+#line 3745 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t m_c = (size_t)0;
-#line 3754 "ejemplos/compilador/tcodec.t"
+#line 3746 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36338;
-        size_t ss_tmp36339;
-#line 3754 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp36338 = m_c, ss_tmp36339 = ((*arboles).length), (ss_tmp36338 < ss_tmp36339)))))
+        size_t ss_tmp36321;
+        size_t ss_tmp36322;
+#line 3746 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp36321 = m_c, ss_tmp36322 = ((*arboles).length), (ss_tmp36321 < ss_tmp36322)))))
         {
             break;
         }
-#line 3755 "ejemplos/compilador/tcodec.t"
+#line 3747 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t k_d = (size_t)0;
-#line 3756 "ejemplos/compilador/tcodec.t"
+#line 3748 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            ss_lista_Nodo* ss_tmp36340;
-            size_t ss_tmp36341;
-            size_t ss_tmp36342;
-#line 3756 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp36341 = k_d, ss_tmp36342 = (((ss_tmp36340 = &((*arboles)), &ss_tmp36340->e[ss_lang_indice_(m_c, ss_tmp36340->length, "ejemplos/compilador/tcodec.t", 3756)])[0]).hijos.length), (ss_tmp36341 < ss_tmp36342)))))
+            ss_lista_Nodo* ss_tmp36323;
+            size_t ss_tmp36324;
+            size_t ss_tmp36325;
+#line 3748 "ejemplos/compilador/tcodec.t"
+            if (!(((ss_tmp36324 = k_d, ss_tmp36325 = (((ss_tmp36323 = &((*arboles)), &ss_tmp36323->e[ss_lang_indice_(m_c, ss_tmp36323->length, "ejemplos/compilador/tcodec.t", 3748)])[0]).hijos.length), (ss_tmp36324 < ss_tmp36325)))))
             {
                 break;
             }
-#line 3757 "ejemplos/compilador/tcodec.t"
-            ss_lista_Nodo* ss_tmp36343;
-            ss_lista_Nodo* ss_tmp36344;
-            Clase ss_tmp36345;
-            Clase ss_tmp36346;
-#line 3757 "ejemplos/compilador/tcodec.t"
-            ss_lista_Nodo* ss_tmp36347;
-            ss_lista_Nodo* ss_tmp36348;
-            if ((((ss_tmp36345 = ((ss_tmp36344 = &(((ss_tmp36343 = &((*arboles)), &ss_tmp36343->e[ss_lang_indice_(m_c, ss_tmp36343->length, "ejemplos/compilador/tcodec.t", 3757)])[0]).hijos), &ss_tmp36344->e[ss_lang_indice_(k_d, ss_tmp36344->length, "ejemplos/compilador/tcodec.t", 3757)])[0]).clase, ss_tmp36346 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp36345.etiqueta == ss_tmp36346.etiqueta))) && (!es_generica(&((ss_tmp36348 = &(((ss_tmp36347 = &((*arboles)), &ss_tmp36347->e[ss_lang_indice_(m_c, ss_tmp36347->length, "ejemplos/compilador/tcodec.t", 3758)])[0]).hijos), &ss_tmp36348->e[ss_lang_indice_(k_d, ss_tmp36348->length, "ejemplos/compilador/tcodec.t", 3758)])[0])))))
+#line 3749 "ejemplos/compilador/tcodec.t"
+            ss_lista_Nodo* ss_tmp36326;
+            ss_lista_Nodo* ss_tmp36327;
+            Clase ss_tmp36328;
+            Clase ss_tmp36329;
+#line 3749 "ejemplos/compilador/tcodec.t"
+            ss_lista_Nodo* ss_tmp36330;
+            ss_lista_Nodo* ss_tmp36331;
+            if ((((ss_tmp36328 = ((ss_tmp36327 = &(((ss_tmp36326 = &((*arboles)), &ss_tmp36326->e[ss_lang_indice_(m_c, ss_tmp36326->length, "ejemplos/compilador/tcodec.t", 3749)])[0]).hijos), &ss_tmp36327->e[ss_lang_indice_(k_d, ss_tmp36327->length, "ejemplos/compilador/tcodec.t", 3749)])[0]).clase, ss_tmp36329 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp36328.etiqueta == ss_tmp36329.etiqueta))) && (!es_generica(&((ss_tmp36331 = &(((ss_tmp36330 = &((*arboles)), &ss_tmp36330->e[ss_lang_indice_(m_c, ss_tmp36330->length, "ejemplos/compilador/tcodec.t", 3750)])[0]).hijos), &ss_tmp36331->e[ss_lang_indice_(k_d, ss_tmp36331->length, "ejemplos/compilador/tcodec.t", 3750)])[0])))))
             {
-#line 3759 "ejemplos/compilador/tcodec.t"
-                ss_lista_Nodo* ss_tmp36349;
-                ss_lista_Nodo* ss_tmp36350;
-                SS_LANG_QUIZA_SIN_USAR SafeString dueno = ss_clone(&((ss_tmp36350 = &(((ss_tmp36349 = &((*arboles)), &ss_tmp36349->e[ss_lang_indice_(m_c, ss_tmp36349->length, "ejemplos/compilador/tcodec.t", 3759)])[0]).hijos), &ss_tmp36350->e[ss_lang_indice_(k_d, ss_tmp36350->length, "ejemplos/compilador/tcodec.t", 3759)])[0]).texto);
-#line 3760 "ejemplos/compilador/tcodec.t"
-                ss_lista_Contexto* ss_tmp36351;
-                const ss_mapa_str_str* ss_tmp36352;
-                SafeView ss_tmp36353;
-#line 3760 "ejemplos/compilador/tcodec.t"
-                if (((ss_tmp36352 = &((ss_tmp36351 = &((*contextos)), &ss_tmp36351->e[ss_lang_indice_(m_c, ss_tmp36351->length, "ejemplos/compilador/tcodec.t", 3760)])[0]).renombradas, ss_tmp36353 = ss_view(&dueno), ss_mapa_tiene_mapa_str_str(ss_tmp36352, ss_tmp36353))))
+#line 3751 "ejemplos/compilador/tcodec.t"
+                ss_lista_Nodo* ss_tmp36332;
+                ss_lista_Nodo* ss_tmp36333;
+                SS_LANG_QUIZA_SIN_USAR SafeString dueno = ss_clone(&((ss_tmp36333 = &(((ss_tmp36332 = &((*arboles)), &ss_tmp36332->e[ss_lang_indice_(m_c, ss_tmp36332->length, "ejemplos/compilador/tcodec.t", 3751)])[0]).hijos), &ss_tmp36333->e[ss_lang_indice_(k_d, ss_tmp36333->length, "ejemplos/compilador/tcodec.t", 3751)])[0]).texto);
+#line 3752 "ejemplos/compilador/tcodec.t"
+                ss_lista_Contexto* ss_tmp36334;
+                const ss_mapa_str_str* ss_tmp36335;
+                SafeView ss_tmp36336;
+#line 3752 "ejemplos/compilador/tcodec.t"
+                if (((ss_tmp36335 = &((ss_tmp36334 = &((*contextos)), &ss_tmp36334->e[ss_lang_indice_(m_c, ss_tmp36334->length, "ejemplos/compilador/tcodec.t", 3752)])[0]).renombradas, ss_tmp36336 = ss_view(&dueno), ss_mapa_tiene_mapa_str_str(ss_tmp36335, ss_tmp36336))))
                 {
-#line 3761 "ejemplos/compilador/tcodec.t"
-                    ss_lista_Contexto* ss_tmp36355;
-                    const ss_mapa_str_str* ss_tmp36356;
-                    SafeView ss_tmp36357;
-#line 3761 "ejemplos/compilador/tcodec.t"
-                    ss_res_view ss_tmp36354 = ((ss_tmp36356 = &((ss_tmp36355 = &((*contextos)), &ss_tmp36355->e[ss_lang_indice_(m_c, ss_tmp36355->length, "ejemplos/compilador/tcodec.t", 3761)])[0]).renombradas, ss_tmp36357 = ss_view(&dueno), ss_mapa_obtener_mapa_str_str(ss_tmp36356, ss_tmp36357)));
-                    SafeView ss_tmp36358;
-                    if (ss_tmp36354.motivo != NULL)
+#line 3753 "ejemplos/compilador/tcodec.t"
+                    ss_lista_Contexto* ss_tmp36338;
+                    const ss_mapa_str_str* ss_tmp36339;
+                    SafeView ss_tmp36340;
+#line 3753 "ejemplos/compilador/tcodec.t"
+                    ss_res_view ss_tmp36337 = ((ss_tmp36339 = &((ss_tmp36338 = &((*contextos)), &ss_tmp36338->e[ss_lang_indice_(m_c, ss_tmp36338->length, "ejemplos/compilador/tcodec.t", 3753)])[0]).renombradas, ss_tmp36340 = ss_view(&dueno), ss_mapa_obtener_mapa_str_str(ss_tmp36339, ss_tmp36340)));
+                    SafeView ss_tmp36341;
+                    if (ss_tmp36337.motivo != NULL)
                     {
-                        ss_tmp36358 = sv_len("", 0);
+                        ss_tmp36341 = sv_len("", 0);
                     }
                     else
                     {
-                        ss_tmp36358 = ss_tmp36354.valor;
+                        ss_tmp36341 = ss_tmp36337.valor;
                     }
-                    SafeString ss_tmp36359 = ss_from_view(ss_tmp36358);
+                    SafeString ss_tmp36342 = ss_from_view(ss_tmp36341);
                     ss_free(&dueno);
-                    dueno = ss_tmp36359;
+                    dueno = ss_tmp36342;
                 }
-#line 3763 "ejemplos/compilador/tcodec.t"
+#line 3755 "ejemplos/compilador/tcodec.t"
                 SS_LANG_QUIZA_SIN_USAR size_t cuenta = (size_t)0;
-#line 3764 "ejemplos/compilador/tcodec.t"
-                ss_lista_Nodo* ss_tmp36360;
-                ss_lista_Nodo* ss_tmp36361;
-                Nodo* ss_tmp36362;
-                SafeView ss_tmp36363;
-                const ss_mapa_str_usize* ss_tmp36364;
-                size_t* ss_tmp36365;
-                ((ss_tmp36362 = &((ss_tmp36361 = &(((ss_tmp36360 = &((*arboles)), &ss_tmp36360->e[ss_lang_indice_(m_c, ss_tmp36360->length, "ejemplos/compilador/tcodec.t", 3764)])[0]).hijos), &ss_tmp36361->e[ss_lang_indice_(k_d, ss_tmp36361->length, "ejemplos/compilador/tcodec.t", 3764)])[0]), ss_tmp36363 = ss_view(&dueno), ss_tmp36364 = &cierres.numeracion, ss_tmp36365 = &cuenta, numerar_cierres(ss_tmp36362, ss_tmp36363, ss_tmp36364, ss_tmp36365)));
+#line 3756 "ejemplos/compilador/tcodec.t"
+                ss_lista_Nodo* ss_tmp36343;
+                ss_lista_Nodo* ss_tmp36344;
+                Nodo* ss_tmp36345;
+                SafeView ss_tmp36346;
+                const ss_mapa_str_usize* ss_tmp36347;
+                size_t* ss_tmp36348;
+                ((ss_tmp36345 = &((ss_tmp36344 = &(((ss_tmp36343 = &((*arboles)), &ss_tmp36343->e[ss_lang_indice_(m_c, ss_tmp36343->length, "ejemplos/compilador/tcodec.t", 3756)])[0]).hijos), &ss_tmp36344->e[ss_lang_indice_(k_d, ss_tmp36344->length, "ejemplos/compilador/tcodec.t", 3756)])[0]), ss_tmp36346 = ss_view(&dueno), ss_tmp36347 = &cierres.numeracion, ss_tmp36348 = &cuenta, numerar_cierres(ss_tmp36345, ss_tmp36346, ss_tmp36347, ss_tmp36348)));
                 ss_free(&dueno);
             }
-#line 3767 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp36366;
-            size_t ss_tmp36367;
-#line 3767 "ejemplos/compilador/tcodec.t"
-            k_d = ((ss_tmp36366 = k_d, ss_tmp36367 = (size_t)1, ss_lang_suma_usize(ss_tmp36366, ss_tmp36367, "ejemplos/compilador/tcodec.t", 3767)));
+#line 3759 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp36349;
+            size_t ss_tmp36350;
+#line 3759 "ejemplos/compilador/tcodec.t"
+            k_d = ((ss_tmp36349 = k_d, ss_tmp36350 = (size_t)1, ss_lang_suma_usize(ss_tmp36349, ss_tmp36350, "ejemplos/compilador/tcodec.t", 3759)));
         }
-#line 3769 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36368;
-        size_t ss_tmp36369;
-#line 3769 "ejemplos/compilador/tcodec.t"
-        m_c = ((ss_tmp36368 = m_c, ss_tmp36369 = (size_t)1, ss_lang_suma_usize(ss_tmp36368, ss_tmp36369, "ejemplos/compilador/tcodec.t", 3769)));
+#line 3761 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36351;
+        size_t ss_tmp36352;
+#line 3761 "ejemplos/compilador/tcodec.t"
+        m_c = ((ss_tmp36351 = m_c, ss_tmp36352 = (size_t)1, ss_lang_suma_usize(ss_tmp36351, ss_tmp36352, "ejemplos/compilador/tcodec.t", 3761)));
     }
-#line 3771 "ejemplos/compilador/tcodec.t"
+#line 3763 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize numeracion = ss_copia_mapa_str_usize(&cierres.numeracion);
-#line 3772 "ejemplos/compilador/tcodec.t"
+#line 3764 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_cf = (size_t)0;
-#line 3773 "ejemplos/compilador/tcodec.t"
+#line 3765 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36370;
-        size_t ss_tmp36371;
-#line 3773 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp36370 = k_cf, ss_tmp36371 = (cierres.fns.length), (ss_tmp36370 < ss_tmp36371)))))
+        size_t ss_tmp36353;
+        size_t ss_tmp36354;
+#line 3765 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp36353 = k_cf, ss_tmp36354 = (cierres.fns.length), (ss_tmp36353 < ss_tmp36354)))))
         {
             break;
         }
-#line 3774 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp36372;
-        SS_LANG_QUIZA_SIN_USAR SafeString dueno_c = ss_clone(&((ss_tmp36372 = &(cierres.fns), &ss_tmp36372->e[ss_lang_indice_(k_cf, ss_tmp36372->length, "ejemplos/compilador/tcodec.t", 3774)])[0]).texto);
-#line 3775 "ejemplos/compilador/tcodec.t"
+#line 3766 "ejemplos/compilador/tcodec.t"
+        ss_lista_Nodo* ss_tmp36355;
+        SS_LANG_QUIZA_SIN_USAR SafeString dueno_c = ss_clone(&((ss_tmp36355 = &(cierres.fns), &ss_tmp36355->e[ss_lang_indice_(k_cf, ss_tmp36355->length, "ejemplos/compilador/tcodec.t", 3766)])[0]).texto);
+#line 3767 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t cuenta_c = (size_t)0;
-#line 3776 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp36373;
-        Nodo* ss_tmp36374;
-        SafeView ss_tmp36375;
-        const ss_mapa_str_usize* ss_tmp36376;
-        size_t* ss_tmp36377;
-        ((ss_tmp36374 = &((ss_tmp36373 = &(cierres.fns), &ss_tmp36373->e[ss_lang_indice_(k_cf, ss_tmp36373->length, "ejemplos/compilador/tcodec.t", 3776)])[0]), ss_tmp36375 = ss_view(&dueno_c), ss_tmp36376 = &numeracion, ss_tmp36377 = &cuenta_c, numerar_cierres(ss_tmp36374, ss_tmp36375, ss_tmp36376, ss_tmp36377)));
-#line 3777 "ejemplos/compilador/tcodec.t"
-        ss_mapa_str_usize* ss_tmp36378 = &cierres.indice;
-#line 3777 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp36378, ss_view(&dueno_c), k_cf, "ejemplos/compilador/tcodec.t", 3777);
-#line 3778 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp36379;
-        const Nodo* ss_tmp36380;
-        Contexto* ss_tmp36381;
-        ((ss_tmp36380 = &((ss_tmp36379 = &(cierres.fns), &ss_tmp36379->e[ss_lang_indice_(k_cf, ss_tmp36379->length, "ejemplos/compilador/tcodec.t", 3778)])[0]), ss_tmp36381 = global, recoger_firmas(ss_tmp36380, ss_tmp36381)));
-#line 3779 "ejemplos/compilador/tcodec.t"
+#line 3768 "ejemplos/compilador/tcodec.t"
+        ss_lista_Nodo* ss_tmp36356;
+        Nodo* ss_tmp36357;
+        SafeView ss_tmp36358;
+        const ss_mapa_str_usize* ss_tmp36359;
+        size_t* ss_tmp36360;
+        ((ss_tmp36357 = &((ss_tmp36356 = &(cierres.fns), &ss_tmp36356->e[ss_lang_indice_(k_cf, ss_tmp36356->length, "ejemplos/compilador/tcodec.t", 3768)])[0]), ss_tmp36358 = ss_view(&dueno_c), ss_tmp36359 = &numeracion, ss_tmp36360 = &cuenta_c, numerar_cierres(ss_tmp36357, ss_tmp36358, ss_tmp36359, ss_tmp36360)));
+#line 3769 "ejemplos/compilador/tcodec.t"
+        ss_mapa_str_usize* ss_tmp36361 = &cierres.indice;
+#line 3769 "ejemplos/compilador/tcodec.t"
+        ss_mapa_poner_mapa_str_usize(ss_tmp36361, ss_view(&dueno_c), k_cf, "ejemplos/compilador/tcodec.t", 3769);
+#line 3770 "ejemplos/compilador/tcodec.t"
+        ss_lista_Nodo* ss_tmp36362;
+        const Nodo* ss_tmp36363;
+        Contexto* ss_tmp36364;
+        ((ss_tmp36363 = &((ss_tmp36362 = &(cierres.fns), &ss_tmp36362->e[ss_lang_indice_(k_cf, ss_tmp36362->length, "ejemplos/compilador/tcodec.t", 3770)])[0]), ss_tmp36364 = global, recoger_firmas(ss_tmp36363, ss_tmp36364)));
+#line 3771 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t k_cx = (size_t)0;
-#line 3780 "ejemplos/compilador/tcodec.t"
+#line 3772 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            size_t ss_tmp36382;
-            size_t ss_tmp36383;
-#line 3780 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp36382 = k_cx, ss_tmp36383 = ((*contextos).length), (ss_tmp36382 < ss_tmp36383)))))
+            size_t ss_tmp36365;
+            size_t ss_tmp36366;
+#line 3772 "ejemplos/compilador/tcodec.t"
+            if (!(((ss_tmp36365 = k_cx, ss_tmp36366 = ((*contextos).length), (ss_tmp36365 < ss_tmp36366)))))
             {
                 break;
             }
-#line 3781 "ejemplos/compilador/tcodec.t"
-            ss_lista_Nodo* ss_tmp36384;
-            const Nodo* ss_tmp36385;
-            ss_lista_Contexto* ss_tmp36386;
-            Contexto* ss_tmp36387;
-            ((ss_tmp36385 = &((ss_tmp36384 = &(cierres.fns), &ss_tmp36384->e[ss_lang_indice_(k_cf, ss_tmp36384->length, "ejemplos/compilador/tcodec.t", 3781)])[0]), ss_tmp36387 = &((ss_tmp36386 = &((*contextos)), &ss_tmp36386->e[ss_lang_indice_(k_cx, ss_tmp36386->length, "ejemplos/compilador/tcodec.t", 3781)])[0]), recoger_firmas(ss_tmp36385, ss_tmp36387)));
-#line 3782 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp36388;
-            size_t ss_tmp36389;
-#line 3782 "ejemplos/compilador/tcodec.t"
-            k_cx = ((ss_tmp36388 = k_cx, ss_tmp36389 = (size_t)1, ss_lang_suma_usize(ss_tmp36388, ss_tmp36389, "ejemplos/compilador/tcodec.t", 3782)));
+#line 3773 "ejemplos/compilador/tcodec.t"
+            ss_lista_Nodo* ss_tmp36367;
+            const Nodo* ss_tmp36368;
+            ss_lista_Contexto* ss_tmp36369;
+            Contexto* ss_tmp36370;
+            ((ss_tmp36368 = &((ss_tmp36367 = &(cierres.fns), &ss_tmp36367->e[ss_lang_indice_(k_cf, ss_tmp36367->length, "ejemplos/compilador/tcodec.t", 3773)])[0]), ss_tmp36370 = &((ss_tmp36369 = &((*contextos)), &ss_tmp36369->e[ss_lang_indice_(k_cx, ss_tmp36369->length, "ejemplos/compilador/tcodec.t", 3773)])[0]), recoger_firmas(ss_tmp36368, ss_tmp36370)));
+#line 3774 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp36371;
+            size_t ss_tmp36372;
+#line 3774 "ejemplos/compilador/tcodec.t"
+            k_cx = ((ss_tmp36371 = k_cx, ss_tmp36372 = (size_t)1, ss_lang_suma_usize(ss_tmp36371, ss_tmp36372, "ejemplos/compilador/tcodec.t", 3774)));
         }
-#line 3784 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36390;
-        size_t ss_tmp36391;
-#line 3784 "ejemplos/compilador/tcodec.t"
-        k_cf = ((ss_tmp36390 = k_cf, ss_tmp36391 = (size_t)1, ss_lang_suma_usize(ss_tmp36390, ss_tmp36391, "ejemplos/compilador/tcodec.t", 3784)));
+#line 3776 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36373;
+        size_t ss_tmp36374;
+#line 3776 "ejemplos/compilador/tcodec.t"
+        k_cf = ((ss_tmp36373 = k_cf, ss_tmp36374 = (size_t)1, ss_lang_suma_usize(ss_tmp36373, ss_tmp36374, "ejemplos/compilador/tcodec.t", 3776)));
         ss_free(&dueno_c);
     }
-#line 3786 "ejemplos/compilador/tcodec.t"
+#line 3778 "ejemplos/compilador/tcodec.t"
     ss_mapa_libre_mapa_str_usize(&numeracion);
     if (ss_vivo_sacados)
     {
@@ -125564,81 +125499,81 @@ SS_LANG_QUIZA_SIN_USAR static Cierres preparar_cierres(SS_LANG_QUIZA_SIN_USAR co
     return cierres;
 }
 
-#line 3800 "ejemplos/compilador/tcodec.t"
+#line 3792 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_QUIZA_SIN_USAR const Revision* revision, SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto* contextos, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* modulos, SS_LANG_QUIZA_SIN_USAR Contexto* global, SS_LANG_QUIZA_SIN_USAR const Cierres* cierres, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* plantillas, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* stp_indice, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* stp_params, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* stp_campos, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* stp_tipos, SS_LANG_QUIZA_SIN_USAR ss_lista_str* st_nombres, SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize* st_indice, SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str* st_campos, SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str* st_tipos, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* en_nombres)
 {
-#line 3810 "ejemplos/compilador/tcodec.t"
+#line 3802 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize en_curso_st = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
-#line 3811 "ejemplos/compilador/tcodec.t"
+#line 3803 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t n_concretos = ((*st_nombres).length);
-#line 3812 "ejemplos/compilador/tcodec.t"
+#line 3804 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_st = (size_t)0;
-#line 3813 "ejemplos/compilador/tcodec.t"
+#line 3805 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36392;
-        size_t ss_tmp36393;
-#line 3813 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp36392 = k_st, ss_tmp36393 = n_concretos, (ss_tmp36392 < ss_tmp36393)))))
+        size_t ss_tmp36375;
+        size_t ss_tmp36376;
+#line 3805 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp36375 = k_st, ss_tmp36376 = n_concretos, (ss_tmp36375 < ss_tmp36376)))))
         {
             break;
         }
-#line 3814 "ejemplos/compilador/tcodec.t"
-        ss_lista_str ss_tmp36394 = { .e = NULL, .length = 0, .capacity = 0 };
-        SS_LANG_QUIZA_SIN_USAR ss_lista_str nuevos_t = ss_tmp36394;
+#line 3806 "ejemplos/compilador/tcodec.t"
+        ss_lista_str ss_tmp36377 = { .e = NULL, .length = 0, .capacity = 0 };
+        SS_LANG_QUIZA_SIN_USAR ss_lista_str nuevos_t = ss_tmp36377;
         bool ss_vivo_nuevos_t = true;
+#line 3807 "ejemplos/compilador/tcodec.t"
+        ss_lista_lista_str* ss_tmp36378;
+        SS_LANG_QUIZA_SIN_USAR ss_lista_str viejos_t = ss_copia_lista_str(&((ss_tmp36378 = &((*st_tipos)), &ss_tmp36378->e[ss_lang_indice_(k_st, ss_tmp36378->length, "ejemplos/compilador/tcodec.t", 3807)])[0]));
+#line 3808 "ejemplos/compilador/tcodec.t"
+        for (size_t ss_k1538 = 0; ss_k1538 < viejos_t.length; ss_k1538++)
+        {
+            SS_LANG_QUIZA_SIN_USAR const SafeString* vt = &viejos_t.e[ss_k1538];
+#line 3809 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36379 = &nuevos_t;
+            SafeView ss_tmp36380;
+            const ss_mapa_str_usize* ss_tmp36381;
+            const ss_lista_lista_str* ss_tmp36382;
+            const ss_lista_lista_str* ss_tmp36383;
+            const ss_lista_lista_str* ss_tmp36384;
+            ss_mapa_str_usize* ss_tmp36385;
+            ss_lista_str* ss_tmp36386;
+            ss_mapa_str_usize* ss_tmp36387;
+            ss_lista_lista_str* ss_tmp36388;
+            ss_lista_lista_str* ss_tmp36389;
+            Contexto* ss_tmp36390;
+#line 3809 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36379, ((ss_tmp36380 = ss_view(vt), ss_tmp36381 = stp_indice, ss_tmp36382 = stp_params, ss_tmp36383 = stp_campos, ss_tmp36384 = stp_tipos, ss_tmp36385 = &en_curso_st, ss_tmp36386 = st_nombres, ss_tmp36387 = st_indice, ss_tmp36388 = st_campos, ss_tmp36389 = st_tipos, ss_tmp36390 = global, resolver_reg(ss_tmp36380, ss_tmp36381, ss_tmp36382, ss_tmp36383, ss_tmp36384, ss_tmp36385, ss_tmp36386, ss_tmp36387, ss_tmp36388, ss_tmp36389, ss_tmp36390))), "ejemplos/compilador/tcodec.t", 3809);
+        }
+#line 3813 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp36391;
+        SS_LANG_QUIZA_SIN_USAR SafeString nombre_st = ss_clone(&((ss_tmp36391 = &((*st_nombres)), &ss_tmp36391->e[ss_lang_indice_(k_st, ss_tmp36391->length, "ejemplos/compilador/tcodec.t", 3813)])[0]));
+#line 3814 "ejemplos/compilador/tcodec.t"
+        ss_mapa_str_lista_Tipo* ss_tmp36392 = &(*global).campos;
+#line 3814 "ejemplos/compilador/tcodec.t"
+        ss_mapa_poner_mapa_str_lista_Tipo(ss_tmp36392, ss_view(&nombre_st), leer_tipos(&nuevos_t), "ejemplos/compilador/tcodec.t", 3814);
 #line 3815 "ejemplos/compilador/tcodec.t"
-        ss_lista_lista_str* ss_tmp36395;
-        SS_LANG_QUIZA_SIN_USAR ss_lista_str viejos_t = ss_copia_lista_str(&((ss_tmp36395 = &((*st_tipos)), &ss_tmp36395->e[ss_lang_indice_(k_st, ss_tmp36395->length, "ejemplos/compilador/tcodec.t", 3815)])[0]));
-#line 3816 "ejemplos/compilador/tcodec.t"
-        for (size_t ss_k1542 = 0; ss_k1542 < viejos_t.length; ss_k1542++)
+        ss_lista_lista_str* ss_tmp36393;
+        ss_lista_str ss_tmp36394 = nuevos_t;
+        for (size_t ss_i1539 = 0; ss_i1539 < ((ss_tmp36393 = &((*st_tipos)), &ss_tmp36393->e[ss_lang_indice_(k_st, ss_tmp36393->length, "ejemplos/compilador/tcodec.t", 3815)])[0]).length; ss_i1539++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* vt = &viejos_t.e[ss_k1542];
-#line 3817 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36396 = &nuevos_t;
-            SafeView ss_tmp36397;
-            const ss_mapa_str_usize* ss_tmp36398;
-            const ss_lista_lista_str* ss_tmp36399;
-            const ss_lista_lista_str* ss_tmp36400;
-            const ss_lista_lista_str* ss_tmp36401;
-            ss_mapa_str_usize* ss_tmp36402;
-            ss_lista_str* ss_tmp36403;
-            ss_mapa_str_usize* ss_tmp36404;
-            ss_lista_lista_str* ss_tmp36405;
-            ss_lista_lista_str* ss_tmp36406;
-            Contexto* ss_tmp36407;
-#line 3817 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36396, ((ss_tmp36397 = ss_view(vt), ss_tmp36398 = stp_indice, ss_tmp36399 = stp_params, ss_tmp36400 = stp_campos, ss_tmp36401 = stp_tipos, ss_tmp36402 = &en_curso_st, ss_tmp36403 = st_nombres, ss_tmp36404 = st_indice, ss_tmp36405 = st_campos, ss_tmp36406 = st_tipos, ss_tmp36407 = global, resolver_reg(ss_tmp36397, ss_tmp36398, ss_tmp36399, ss_tmp36400, ss_tmp36401, ss_tmp36402, ss_tmp36403, ss_tmp36404, ss_tmp36405, ss_tmp36406, ss_tmp36407))), "ejemplos/compilador/tcodec.t", 3817);
+            ss_free(&((ss_tmp36393 = &((*st_tipos)), &ss_tmp36393->e[ss_lang_indice_(k_st, ss_tmp36393->length, "ejemplos/compilador/tcodec.t", 3815)])[0]).e[ss_i1539]);
         }
-#line 3821 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp36408;
-        SS_LANG_QUIZA_SIN_USAR SafeString nombre_st = ss_clone(&((ss_tmp36408 = &((*st_nombres)), &ss_tmp36408->e[ss_lang_indice_(k_st, ss_tmp36408->length, "ejemplos/compilador/tcodec.t", 3821)])[0]));
-#line 3822 "ejemplos/compilador/tcodec.t"
-        ss_mapa_str_lista_Tipo* ss_tmp36409 = &(*global).campos;
-#line 3822 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_lista_Tipo(ss_tmp36409, ss_view(&nombre_st), leer_tipos(&nuevos_t), "ejemplos/compilador/tcodec.t", 3822);
-#line 3823 "ejemplos/compilador/tcodec.t"
-        ss_lista_lista_str* ss_tmp36410;
-        ss_lista_str ss_tmp36411 = nuevos_t;
-        for (size_t ss_i1543 = 0; ss_i1543 < ((ss_tmp36410 = &((*st_tipos)), &ss_tmp36410->e[ss_lang_indice_(k_st, ss_tmp36410->length, "ejemplos/compilador/tcodec.t", 3823)])[0]).length; ss_i1543++)
-        {
-            ss_free(&((ss_tmp36410 = &((*st_tipos)), &ss_tmp36410->e[ss_lang_indice_(k_st, ss_tmp36410->length, "ejemplos/compilador/tcodec.t", 3823)])[0]).e[ss_i1543]);
-        }
-        free(((ss_tmp36410 = &((*st_tipos)), &ss_tmp36410->e[ss_lang_indice_(k_st, ss_tmp36410->length, "ejemplos/compilador/tcodec.t", 3823)])[0]).e);
-        ((ss_tmp36410 = &((*st_tipos)), &ss_tmp36410->e[ss_lang_indice_(k_st, ss_tmp36410->length, "ejemplos/compilador/tcodec.t", 3823)])[0]).e = NULL;
-        ((ss_tmp36410 = &((*st_tipos)), &ss_tmp36410->e[ss_lang_indice_(k_st, ss_tmp36410->length, "ejemplos/compilador/tcodec.t", 3823)])[0]).length = 0;
-        ((ss_tmp36410 = &((*st_tipos)), &ss_tmp36410->e[ss_lang_indice_(k_st, ss_tmp36410->length, "ejemplos/compilador/tcodec.t", 3823)])[0]).capacity = 0;
-        ((ss_tmp36410 = &((*st_tipos)), &ss_tmp36410->e[ss_lang_indice_(k_st, ss_tmp36410->length, "ejemplos/compilador/tcodec.t", 3823)])[0]) = ss_tmp36411;
+        free(((ss_tmp36393 = &((*st_tipos)), &ss_tmp36393->e[ss_lang_indice_(k_st, ss_tmp36393->length, "ejemplos/compilador/tcodec.t", 3815)])[0]).e);
+        ((ss_tmp36393 = &((*st_tipos)), &ss_tmp36393->e[ss_lang_indice_(k_st, ss_tmp36393->length, "ejemplos/compilador/tcodec.t", 3815)])[0]).e = NULL;
+        ((ss_tmp36393 = &((*st_tipos)), &ss_tmp36393->e[ss_lang_indice_(k_st, ss_tmp36393->length, "ejemplos/compilador/tcodec.t", 3815)])[0]).length = 0;
+        ((ss_tmp36393 = &((*st_tipos)), &ss_tmp36393->e[ss_lang_indice_(k_st, ss_tmp36393->length, "ejemplos/compilador/tcodec.t", 3815)])[0]).capacity = 0;
+        ((ss_tmp36393 = &((*st_tipos)), &ss_tmp36393->e[ss_lang_indice_(k_st, ss_tmp36393->length, "ejemplos/compilador/tcodec.t", 3815)])[0]) = ss_tmp36394;
         ss_vivo_nuevos_t = false;
-#line 3824 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36412;
-        size_t ss_tmp36413;
-#line 3824 "ejemplos/compilador/tcodec.t"
-        k_st = ((ss_tmp36412 = k_st, ss_tmp36413 = (size_t)1, ss_lang_suma_usize(ss_tmp36412, ss_tmp36413, "ejemplos/compilador/tcodec.t", 3824)));
+#line 3816 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36395;
+        size_t ss_tmp36396;
+#line 3816 "ejemplos/compilador/tcodec.t"
+        k_st = ((ss_tmp36395 = k_st, ss_tmp36396 = (size_t)1, ss_lang_suma_usize(ss_tmp36395, ss_tmp36396, "ejemplos/compilador/tcodec.t", 3816)));
         ss_free(&nombre_st);
-        for (size_t ss_i1544 = 0; ss_i1544 < viejos_t.length; ss_i1544++)
+        for (size_t ss_i1540 = 0; ss_i1540 < viejos_t.length; ss_i1540++)
         {
-            ss_free(&viejos_t.e[ss_i1544]);
+            ss_free(&viejos_t.e[ss_i1540]);
         }
         free(viejos_t.e);
         viejos_t.e = NULL;
@@ -125646,9 +125581,9 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
         viejos_t.capacity = 0;
         if (ss_vivo_nuevos_t)
         {
-            for (size_t ss_i1545 = 0; ss_i1545 < nuevos_t.length; ss_i1545++)
+            for (size_t ss_i1541 = 0; ss_i1541 < nuevos_t.length; ss_i1541++)
             {
-                ss_free(&nuevos_t.e[ss_i1545]);
+                ss_free(&nuevos_t.e[ss_i1541]);
             }
             free(nuevos_t.e);
             nuevos_t.e = NULL;
@@ -125656,134 +125591,134 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
             nuevos_t.capacity = 0;
         }
     }
-#line 3826 "ejemplos/compilador/tcodec.t"
+#line 3818 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_fn = (size_t)0;
-#line 3827 "ejemplos/compilador/tcodec.t"
+#line 3819 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36414;
-        size_t ss_tmp36415;
-#line 3827 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp36414 = k_fn, ss_tmp36415 = ((*arboles).length), (ss_tmp36414 < ss_tmp36415)))))
+        size_t ss_tmp36397;
+        size_t ss_tmp36398;
+#line 3819 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp36397 = k_fn, ss_tmp36398 = ((*arboles).length), (ss_tmp36397 < ss_tmp36398)))))
         {
             break;
         }
-#line 3828 "ejemplos/compilador/tcodec.t"
-        const ss_lista_Nodo* ss_tmp36416;
-        for (size_t ss_k1546 = 0; ss_k1546 < ((ss_tmp36416 = &((*arboles)), &ss_tmp36416->e[ss_lang_indice_(k_fn, ss_tmp36416->length, "ejemplos/compilador/tcodec.t", 3828)])[0]).hijos.length; ss_k1546++)
+#line 3820 "ejemplos/compilador/tcodec.t"
+        const ss_lista_Nodo* ss_tmp36399;
+        for (size_t ss_k1542 = 0; ss_k1542 < ((ss_tmp36399 = &((*arboles)), &ss_tmp36399->e[ss_lang_indice_(k_fn, ss_tmp36399->length, "ejemplos/compilador/tcodec.t", 3820)])[0]).hijos.length; ss_k1542++)
         {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp36416 = &((*arboles)), &ss_tmp36416->e[ss_lang_indice_(k_fn, ss_tmp36416->length, "ejemplos/compilador/tcodec.t", 3828)])[0]).hijos.e[ss_k1546];
-#line 3829 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp36417;
-            Clase ss_tmp36418;
-#line 3829 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp36417 = (*d).clase, ss_tmp36418 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp36417.etiqueta == ss_tmp36418.etiqueta))) && (!es_generica(d))))
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp36399 = &((*arboles)), &ss_tmp36399->e[ss_lang_indice_(k_fn, ss_tmp36399->length, "ejemplos/compilador/tcodec.t", 3820)])[0]).hijos.e[ss_k1542];
+#line 3821 "ejemplos/compilador/tcodec.t"
+            Clase ss_tmp36400;
+            Clase ss_tmp36401;
+#line 3821 "ejemplos/compilador/tcodec.t"
+            if ((((ss_tmp36400 = (*d).clase, ss_tmp36401 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp36400.etiqueta == ss_tmp36401.etiqueta))) && (!es_generica(d))))
             {
-#line 3830 "ejemplos/compilador/tcodec.t"
-                const Nodo* ss_tmp36419;
-                const ss_mapa_str_usize* ss_tmp36420;
-                const ss_lista_lista_str* ss_tmp36421;
-                const ss_lista_lista_str* ss_tmp36422;
-                const ss_lista_lista_str* ss_tmp36423;
-                ss_mapa_str_usize* ss_tmp36424;
-                ss_lista_str* ss_tmp36425;
-                ss_mapa_str_usize* ss_tmp36426;
-                ss_lista_lista_str* ss_tmp36427;
-                ss_lista_lista_str* ss_tmp36428;
-                Contexto* ss_tmp36429;
-                ((ss_tmp36419 = d, ss_tmp36420 = stp_indice, ss_tmp36421 = stp_params, ss_tmp36422 = stp_campos, ss_tmp36423 = stp_tipos, ss_tmp36424 = &en_curso_st, ss_tmp36425 = st_nombres, ss_tmp36426 = st_indice, ss_tmp36427 = st_campos, ss_tmp36428 = st_tipos, ss_tmp36429 = global, resolver_en_nodo(ss_tmp36419, ss_tmp36420, ss_tmp36421, ss_tmp36422, ss_tmp36423, ss_tmp36424, ss_tmp36425, ss_tmp36426, ss_tmp36427, ss_tmp36428, ss_tmp36429)));
+#line 3822 "ejemplos/compilador/tcodec.t"
+                const Nodo* ss_tmp36402;
+                const ss_mapa_str_usize* ss_tmp36403;
+                const ss_lista_lista_str* ss_tmp36404;
+                const ss_lista_lista_str* ss_tmp36405;
+                const ss_lista_lista_str* ss_tmp36406;
+                ss_mapa_str_usize* ss_tmp36407;
+                ss_lista_str* ss_tmp36408;
+                ss_mapa_str_usize* ss_tmp36409;
+                ss_lista_lista_str* ss_tmp36410;
+                ss_lista_lista_str* ss_tmp36411;
+                Contexto* ss_tmp36412;
+                ((ss_tmp36402 = d, ss_tmp36403 = stp_indice, ss_tmp36404 = stp_params, ss_tmp36405 = stp_campos, ss_tmp36406 = stp_tipos, ss_tmp36407 = &en_curso_st, ss_tmp36408 = st_nombres, ss_tmp36409 = st_indice, ss_tmp36410 = st_campos, ss_tmp36411 = st_tipos, ss_tmp36412 = global, resolver_en_nodo(ss_tmp36402, ss_tmp36403, ss_tmp36404, ss_tmp36405, ss_tmp36406, ss_tmp36407, ss_tmp36408, ss_tmp36409, ss_tmp36410, ss_tmp36411, ss_tmp36412)));
             }
         }
-#line 3835 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36430;
-        size_t ss_tmp36431;
-#line 3835 "ejemplos/compilador/tcodec.t"
-        k_fn = ((ss_tmp36430 = k_fn, ss_tmp36431 = (size_t)1, ss_lang_suma_usize(ss_tmp36430, ss_tmp36431, "ejemplos/compilador/tcodec.t", 3835)));
+#line 3827 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36413;
+        size_t ss_tmp36414;
+#line 3827 "ejemplos/compilador/tcodec.t"
+        k_fn = ((ss_tmp36413 = k_fn, ss_tmp36414 = (size_t)1, ss_lang_suma_usize(ss_tmp36413, ss_tmp36414, "ejemplos/compilador/tcodec.t", 3827)));
     }
-#line 3838 "ejemplos/compilador/tcodec.t"
+#line 3830 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize con_partes = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
     bool ss_vivo_con_partes = true;
-#line 3839 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1547 = 0; ss_k1547 < (*st_nombres).length; ss_k1547++)
+#line 3831 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1543 = 0; ss_k1543 < (*st_nombres).length; ss_k1543++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1547];
-        ss_mapa_str_usize* ss_tmp36432 = &con_partes;
-#line 3839 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp36432, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3839);
+        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1543];
+        ss_mapa_str_usize* ss_tmp36415 = &con_partes;
+#line 3831 "ejemplos/compilador/tcodec.t"
+        ss_mapa_poner_mapa_str_usize(ss_tmp36415, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3831);
     }
-#line 3840 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1548 = 0; ss_k1548 < (*en_nombres).length; ss_k1548++)
+#line 3832 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1544 = 0; ss_k1544 < (*en_nombres).length; ss_k1544++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*en_nombres).e[ss_k1548];
-        ss_mapa_str_usize* ss_tmp36433 = &con_partes;
-#line 3840 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp36433, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3840);
+        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*en_nombres).e[ss_k1544];
+        ss_mapa_str_usize* ss_tmp36416 = &con_partes;
+#line 3832 "ejemplos/compilador/tcodec.t"
+        ss_mapa_poner_mapa_str_usize(ss_tmp36416, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3832);
     }
-#line 3844 "ejemplos/compilador/tcodec.t"
+#line 3836 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize vistas = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
     bool ss_vivo_vistas = true;
-#line 3845 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36434 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str orden = ss_tmp36434;
+#line 3837 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36417 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str orden = ss_tmp36417;
     bool ss_vivo_orden = true;
-#line 3846 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36435 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str creados = ss_tmp36435;
-#line 3847 "ejemplos/compilador/tcodec.t"
+#line 3838 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36418 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str creados = ss_tmp36418;
+#line 3839 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_desc = (size_t)0;
-#line 3848 "ejemplos/compilador/tcodec.t"
+#line 3840 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36436;
-        size_t ss_tmp36437;
-#line 3848 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp36436 = k_desc, ss_tmp36437 = ((*arboles).length), (ss_tmp36436 < ss_tmp36437)))))
+        size_t ss_tmp36419;
+        size_t ss_tmp36420;
+#line 3840 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp36419 = k_desc, ss_tmp36420 = ((*arboles).length), (ss_tmp36419 < ss_tmp36420)))))
         {
             break;
         }
-#line 3849 "ejemplos/compilador/tcodec.t"
-        const ss_lista_Nodo* ss_tmp36438;
-        for (size_t ss_k1549 = 0; ss_k1549 < ((ss_tmp36438 = &((*arboles)), &ss_tmp36438->e[ss_lang_indice_(k_desc, ss_tmp36438->length, "ejemplos/compilador/tcodec.t", 3849)])[0]).hijos.length; ss_k1549++)
+#line 3841 "ejemplos/compilador/tcodec.t"
+        const ss_lista_Nodo* ss_tmp36421;
+        for (size_t ss_k1545 = 0; ss_k1545 < ((ss_tmp36421 = &((*arboles)), &ss_tmp36421->e[ss_lang_indice_(k_desc, ss_tmp36421->length, "ejemplos/compilador/tcodec.t", 3841)])[0]).hijos.length; ss_k1545++)
         {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp36438 = &((*arboles)), &ss_tmp36438->e[ss_lang_indice_(k_desc, ss_tmp36438->length, "ejemplos/compilador/tcodec.t", 3849)])[0]).hijos.e[ss_k1549];
-#line 3850 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp36439;
-            Clase ss_tmp36440;
-#line 3850 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp36439 = (*d).clase, ss_tmp36440 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp36439.etiqueta != ss_tmp36440.etiqueta))) || es_generica(d)))
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp36421 = &((*arboles)), &ss_tmp36421->e[ss_lang_indice_(k_desc, ss_tmp36421->length, "ejemplos/compilador/tcodec.t", 3841)])[0]).hijos.e[ss_k1545];
+#line 3842 "ejemplos/compilador/tcodec.t"
+            Clase ss_tmp36422;
+            Clase ss_tmp36423;
+#line 3842 "ejemplos/compilador/tcodec.t"
+            if ((((ss_tmp36422 = (*d).clase, ss_tmp36423 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp36422.etiqueta != ss_tmp36423.etiqueta))) || es_generica(d)))
             {
                 continue;
             }
-#line 3851 "ejemplos/compilador/tcodec.t"
+#line 3843 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR Cuenta borrador = cuenta_nueva();
-#line 3852 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize ss_tmp36441 = ss_copia_mapa_str_usize(&(*cierres).sacados);
+#line 3844 "ejemplos/compilador/tcodec.t"
+            ss_mapa_str_usize ss_tmp36424 = ss_copia_mapa_str_usize(&(*cierres).sacados);
             ss_mapa_libre_mapa_str_usize(&borrador.sacados);
-            borrador.sacados = ss_tmp36441;
-#line 3853 "ejemplos/compilador/tcodec.t"
-            const Nodo* ss_tmp36442;
-            ss_lista_Contexto* ss_tmp36443;
-            const Contexto* ss_tmp36444;
-            SafeString ss_tmp36445 = ((ss_tmp36442 = d, ss_tmp36444 = &((ss_tmp36443 = &((*contextos)), &ss_tmp36443->e[ss_lang_indice_(k_desc, ss_tmp36443->length, "ejemplos/compilador/tcodec.t", 3853)])[0]), dueno_de_funcion(ss_tmp36442, ss_tmp36444)));
+            borrador.sacados = ss_tmp36424;
+#line 3845 "ejemplos/compilador/tcodec.t"
+            const Nodo* ss_tmp36425;
+            ss_lista_Contexto* ss_tmp36426;
+            const Contexto* ss_tmp36427;
+            SafeString ss_tmp36428 = ((ss_tmp36425 = d, ss_tmp36427 = &((ss_tmp36426 = &((*contextos)), &ss_tmp36426->e[ss_lang_indice_(k_desc, ss_tmp36426->length, "ejemplos/compilador/tcodec.t", 3845)])[0]), dueno_de_funcion(ss_tmp36425, ss_tmp36427)));
             ss_free(&borrador.dueno);
-            borrador.dueno = ss_tmp36445;
-#line 3854 "ejemplos/compilador/tcodec.t"
-            const Nodo* ss_tmp36446;
-            ss_lista_Contexto* ss_tmp36447;
-            Contexto* ss_tmp36448;
-            const ss_lista_str* ss_tmp36449;
-            SafeView ss_tmp36450;
-            Cuenta* ss_tmp36451;
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str escritas = ((ss_tmp36446 = d, ss_tmp36448 = &((ss_tmp36447 = &((*contextos)), &ss_tmp36447->e[ss_lang_indice_(k_desc, ss_tmp36447->length, "ejemplos/compilador/tcodec.t", 3854)])[0]), ss_tmp36450 = ss_view(&((ss_tmp36449 = &((*modulos)), &ss_tmp36449->e[ss_lang_indice_(k_desc, ss_tmp36449->length, "ejemplos/compilador/tcodec.t", 3855)])[0])), ss_tmp36451 = &borrador, generar_funcion(ss_tmp36446, ss_tmp36448, ss_tmp36450, ss_tmp36451)));
-#line 3856 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp36452;
-            size_t ss_tmp36453;
-#line 3856 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp36452 = (escritas.length), ss_tmp36453 = (size_t)0, (ss_tmp36452 == ss_tmp36453))))
+            borrador.dueno = ss_tmp36428;
+#line 3846 "ejemplos/compilador/tcodec.t"
+            const Nodo* ss_tmp36429;
+            ss_lista_Contexto* ss_tmp36430;
+            Contexto* ss_tmp36431;
+            const ss_lista_str* ss_tmp36432;
+            SafeView ss_tmp36433;
+            Cuenta* ss_tmp36434;
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str escritas = ((ss_tmp36429 = d, ss_tmp36431 = &((ss_tmp36430 = &((*contextos)), &ss_tmp36430->e[ss_lang_indice_(k_desc, ss_tmp36430->length, "ejemplos/compilador/tcodec.t", 3846)])[0]), ss_tmp36433 = ss_view(&((ss_tmp36432 = &((*modulos)), &ss_tmp36432->e[ss_lang_indice_(k_desc, ss_tmp36432->length, "ejemplos/compilador/tcodec.t", 3847)])[0])), ss_tmp36434 = &borrador, generar_funcion(ss_tmp36429, ss_tmp36431, ss_tmp36433, ss_tmp36434)));
+#line 3848 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp36435;
+            size_t ss_tmp36436;
+#line 3848 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp36435 = (escritas.length), ss_tmp36436 = (size_t)0, (ss_tmp36435 == ss_tmp36436))))
             {
-                for (size_t ss_i1550 = 0; ss_i1550 < escritas.length; ss_i1550++)
+                for (size_t ss_i1546 = 0; ss_i1546 < escritas.length; ss_i1546++)
                 {
-                    ss_free(&escritas.e[ss_i1550]);
+                    ss_free(&escritas.e[ss_i1546]);
                 }
                 free(escritas.e);
                 escritas.e = NULL;
@@ -125792,52 +125727,52 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
                 ss_drop_Cuenta(&borrador);
                 continue;
             }
-#line 3857 "ejemplos/compilador/tcodec.t"
-            const ss_lista_str* ss_tmp36454;
-            const ss_lista_Nodo* ss_tmp36455;
-            ss_lista_Contexto* ss_tmp36456;
-            const ss_lista_str* ss_tmp36457;
-            const ss_mapa_str_usize* ss_tmp36458;
-            ss_mapa_str_usize* ss_tmp36459;
-            ss_lista_str* ss_tmp36460;
-            ss_lista_str* ss_tmp36461;
-            const Cierres* ss_tmp36462;
-            Contexto* ss_tmp36463;
-            const ss_lista_str* ss_tmp36465;
-            SafeView ss_tmp36466;
-            size_t ss_tmp36467;
-            SafeString ss_tmp36464 = ((ss_tmp36466 = ss_view(&((ss_tmp36465 = &((*modulos)), &ss_tmp36465->e[ss_lang_indice_(k_desc, ss_tmp36465->length, "ejemplos/compilador/tcodec.t", 3859)])[0])), ss_tmp36467 = (*d).linea, sitio(ss_tmp36466, ss_tmp36467)));
-            SafeView ss_tmp36468;
-            if ((!((ss_tmp36454 = &borrador.instancias, ss_tmp36455 = arboles, ss_tmp36456 = contextos, ss_tmp36457 = modulos, ss_tmp36458 = plantillas, ss_tmp36459 = &vistas, ss_tmp36460 = &orden, ss_tmp36461 = &creados, ss_tmp36462 = cierres, ss_tmp36463 = global, ss_tmp36468 = ss_view(&ss_tmp36464), descubrir(ss_tmp36454, ss_tmp36455, ss_tmp36456, ss_tmp36457, ss_tmp36458, ss_tmp36459, ss_tmp36460, ss_tmp36461, ss_tmp36462, ss_tmp36463, ss_tmp36468)))))
+#line 3849 "ejemplos/compilador/tcodec.t"
+            const ss_lista_str* ss_tmp36437;
+            const ss_lista_Nodo* ss_tmp36438;
+            ss_lista_Contexto* ss_tmp36439;
+            const ss_lista_str* ss_tmp36440;
+            const ss_mapa_str_usize* ss_tmp36441;
+            ss_mapa_str_usize* ss_tmp36442;
+            ss_lista_str* ss_tmp36443;
+            ss_lista_str* ss_tmp36444;
+            const Cierres* ss_tmp36445;
+            Contexto* ss_tmp36446;
+            const ss_lista_str* ss_tmp36448;
+            SafeView ss_tmp36449;
+            size_t ss_tmp36450;
+            SafeString ss_tmp36447 = ((ss_tmp36449 = ss_view(&((ss_tmp36448 = &((*modulos)), &ss_tmp36448->e[ss_lang_indice_(k_desc, ss_tmp36448->length, "ejemplos/compilador/tcodec.t", 3851)])[0])), ss_tmp36450 = (*d).linea, sitio(ss_tmp36449, ss_tmp36450)));
+            SafeView ss_tmp36451;
+            if ((!((ss_tmp36437 = &borrador.instancias, ss_tmp36438 = arboles, ss_tmp36439 = contextos, ss_tmp36440 = modulos, ss_tmp36441 = plantillas, ss_tmp36442 = &vistas, ss_tmp36443 = &orden, ss_tmp36444 = &creados, ss_tmp36445 = cierres, ss_tmp36446 = global, ss_tmp36451 = ss_view(&ss_tmp36447), descubrir(ss_tmp36437, ss_tmp36438, ss_tmp36439, ss_tmp36440, ss_tmp36441, ss_tmp36442, ss_tmp36443, ss_tmp36444, ss_tmp36445, ss_tmp36446, ss_tmp36451)))))
             {
-#line 3860 "ejemplos/compilador/tcodec.t"
-                bool ss_tmp36469;
-                ss_mapa_str_usize ss_tmp36470;
-                ss_mapa_str_usize ss_tmp36471;
-                ss_lista_str ss_tmp36472 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_str ss_tmp36473;
-                ss_lista_Nodo ss_tmp36474 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_Nodo ss_tmp36475;
-                ss_lista_usize ss_tmp36476 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_usize ss_tmp36477;
-                ss_lista_str ss_tmp36478 = { .e = NULL, .length = 0, .capacity = 0 };
-                ss_lista_str ss_tmp36479;
-                size_t ss_tmp36480;
-#line 3860 "ejemplos/compilador/tcodec.t"
-                InstanciasPreparadas ss_tmp36481 = ((ss_tmp36469 = false, ss_tmp36470 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp36471 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp36473 = ss_tmp36472, ss_tmp36475 = ss_tmp36474, ss_tmp36477 = ss_tmp36476, ss_tmp36479 = ss_tmp36478, ss_tmp36480 = (size_t)0, (InstanciasPreparadas){ .ok = ss_tmp36469, .con_partes = ss_tmp36470, .vistas = ss_tmp36471, .orden = ss_tmp36473, .nodos = ss_tmp36475, .modulos = ss_tmp36477, .duenos = ss_tmp36479, .n_concretos = ss_tmp36480 }));
-                ss_free(&ss_tmp36464);
-                for (size_t ss_i1551 = 0; ss_i1551 < escritas.length; ss_i1551++)
+#line 3852 "ejemplos/compilador/tcodec.t"
+                bool ss_tmp36452;
+                ss_mapa_str_usize ss_tmp36453;
+                ss_mapa_str_usize ss_tmp36454;
+                ss_lista_str ss_tmp36455 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_str ss_tmp36456;
+                ss_lista_Nodo ss_tmp36457 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_Nodo ss_tmp36458;
+                ss_lista_usize ss_tmp36459 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_usize ss_tmp36460;
+                ss_lista_str ss_tmp36461 = { .e = NULL, .length = 0, .capacity = 0 };
+                ss_lista_str ss_tmp36462;
+                size_t ss_tmp36463;
+#line 3852 "ejemplos/compilador/tcodec.t"
+                InstanciasPreparadas ss_tmp36464 = ((ss_tmp36452 = false, ss_tmp36453 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp36454 = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 }, ss_tmp36456 = ss_tmp36455, ss_tmp36458 = ss_tmp36457, ss_tmp36460 = ss_tmp36459, ss_tmp36462 = ss_tmp36461, ss_tmp36463 = (size_t)0, (InstanciasPreparadas){ .ok = ss_tmp36452, .con_partes = ss_tmp36453, .vistas = ss_tmp36454, .orden = ss_tmp36456, .nodos = ss_tmp36458, .modulos = ss_tmp36460, .duenos = ss_tmp36462, .n_concretos = ss_tmp36463 }));
+                ss_free(&ss_tmp36447);
+                for (size_t ss_i1547 = 0; ss_i1547 < escritas.length; ss_i1547++)
                 {
-                    ss_free(&escritas.e[ss_i1551]);
+                    ss_free(&escritas.e[ss_i1547]);
                 }
                 free(escritas.e);
                 escritas.e = NULL;
                 escritas.length = 0;
                 escritas.capacity = 0;
                 ss_drop_Cuenta(&borrador);
-                for (size_t ss_i1552 = 0; ss_i1552 < creados.length; ss_i1552++)
+                for (size_t ss_i1548 = 0; ss_i1548 < creados.length; ss_i1548++)
                 {
-                    ss_free(&creados.e[ss_i1552]);
+                    ss_free(&creados.e[ss_i1548]);
                 }
                 free(creados.e);
                 creados.e = NULL;
@@ -125845,9 +125780,9 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
                 creados.capacity = 0;
                 if (ss_vivo_orden)
                 {
-                    for (size_t ss_i1553 = 0; ss_i1553 < orden.length; ss_i1553++)
+                    for (size_t ss_i1549 = 0; ss_i1549 < orden.length; ss_i1549++)
                     {
-                        ss_free(&orden.e[ss_i1553]);
+                        ss_free(&orden.e[ss_i1549]);
                     }
                     free(orden.e);
                     orden.e = NULL;
@@ -125863,12 +125798,12 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
                     ss_mapa_libre_mapa_str_usize(&con_partes);
                 }
                 ss_mapa_libre_mapa_str_usize(&en_curso_st);
-                return ss_tmp36481;
+                return ss_tmp36464;
             }
-            ss_free(&ss_tmp36464);
-            for (size_t ss_i1554 = 0; ss_i1554 < escritas.length; ss_i1554++)
+            ss_free(&ss_tmp36447);
+            for (size_t ss_i1550 = 0; ss_i1550 < escritas.length; ss_i1550++)
             {
-                ss_free(&escritas.e[ss_i1554]);
+                ss_free(&escritas.e[ss_i1550]);
             }
             free(escritas.e);
             escritas.e = NULL;
@@ -125876,69 +125811,69 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
             escritas.capacity = 0;
             ss_drop_Cuenta(&borrador);
         }
-#line 3865 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36482;
-        size_t ss_tmp36483;
-#line 3865 "ejemplos/compilador/tcodec.t"
-        k_desc = ((ss_tmp36482 = k_desc, ss_tmp36483 = (size_t)1, ss_lang_suma_usize(ss_tmp36482, ss_tmp36483, "ejemplos/compilador/tcodec.t", 3865)));
+#line 3857 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36465;
+        size_t ss_tmp36466;
+#line 3857 "ejemplos/compilador/tcodec.t"
+        k_desc = ((ss_tmp36465 = k_desc, ss_tmp36466 = (size_t)1, ss_lang_suma_usize(ss_tmp36465, ss_tmp36466, "ejemplos/compilador/tcodec.t", 3857)));
     }
-#line 3867 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1555 = 0; ss_k1555 < creados.length; ss_k1555++)
+#line 3859 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1551 = 0; ss_k1551 < creados.length; ss_k1551++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* p = &creados.e[ss_k1555];
-#line 3868 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp36485;
-        size_t ss_tmp36486;
-        SafeString ss_tmp36484 = ((ss_tmp36485 = ss_view(p), ss_tmp36486 = (size_t)0, campo_pedido(ss_tmp36485, ss_tmp36486)));
-        size_t ss_tmp36487;
-        size_t ss_tmp36488;
-#line 3868 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp36487 = sv_len_of(ss_view(&ss_tmp36484)), ss_tmp36488 = (size_t)0, (ss_tmp36487 == ss_tmp36488))))
+        SS_LANG_QUIZA_SIN_USAR const SafeString* p = &creados.e[ss_k1551];
+#line 3860 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp36468;
+        size_t ss_tmp36469;
+        SafeString ss_tmp36467 = ((ss_tmp36468 = ss_view(p), ss_tmp36469 = (size_t)0, campo_pedido(ss_tmp36468, ss_tmp36469)));
+        size_t ss_tmp36470;
+        size_t ss_tmp36471;
+#line 3860 "ejemplos/compilador/tcodec.t"
+        if (((ss_tmp36470 = sv_len_of(ss_view(&ss_tmp36467)), ss_tmp36471 = (size_t)0, (ss_tmp36470 == ss_tmp36471))))
         {
-#line 3869 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp36489;
-            size_t ss_tmp36490;
-            SS_LANG_QUIZA_SIN_USAR SafeString en_c_c = ((ss_tmp36489 = ss_view(p), ss_tmp36490 = (size_t)1, campo_pedido(ss_tmp36489, ss_tmp36490)));
-#line 3870 "ejemplos/compilador/tcodec.t"
+#line 3861 "ejemplos/compilador/tcodec.t"
+            SafeView ss_tmp36472;
+            size_t ss_tmp36473;
+            SS_LANG_QUIZA_SIN_USAR SafeString en_c_c = ((ss_tmp36472 = ss_view(p), ss_tmp36473 = (size_t)1, campo_pedido(ss_tmp36472, ss_tmp36473)));
+#line 3862 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR SafeString st_c = struct_de_cierre(ss_view(&en_c_c));
-#line 3871 "ejemplos/compilador/tcodec.t"
-            ss_lista_str ss_tmp36491 = { .e = NULL, .length = 0, .capacity = 0 };
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str cn = ss_tmp36491;
+#line 3863 "ejemplos/compilador/tcodec.t"
+            ss_lista_str ss_tmp36474 = { .e = NULL, .length = 0, .capacity = 0 };
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str cn = ss_tmp36474;
             bool ss_vivo_cn = true;
-#line 3872 "ejemplos/compilador/tcodec.t"
-            ss_lista_str ss_tmp36492 = { .e = NULL, .length = 0, .capacity = 0 };
-            SS_LANG_QUIZA_SIN_USAR ss_lista_str ct = ss_tmp36492;
+#line 3864 "ejemplos/compilador/tcodec.t"
+            ss_lista_str ss_tmp36475 = { .e = NULL, .length = 0, .capacity = 0 };
+            SS_LANG_QUIZA_SIN_USAR ss_lista_str ct = ss_tmp36475;
             bool ss_vivo_ct = true;
-#line 3873 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp36493;
-            ss_lista_str* ss_tmp36494;
-            ss_lista_str* ss_tmp36495;
-            ((ss_tmp36493 = ss_view(p), ss_tmp36494 = &cn, ss_tmp36495 = &ct, campos_de_cierre(ss_tmp36493, ss_tmp36494, ss_tmp36495)));
-#line 3874 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize* ss_tmp36496 = st_indice;
-#line 3874 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp36496, ss_view(&st_c), ((*st_nombres).length), "ejemplos/compilador/tcodec.t", 3874);
-#line 3875 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36497 = st_nombres;
-#line 3875 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36497, ss_clone(&st_c), "ejemplos/compilador/tcodec.t", 3875);
-#line 3876 "ejemplos/compilador/tcodec.t"
-            ss_lista_lista_str* ss_tmp36498 = st_campos;
-#line 3876 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_lista_str(ss_tmp36498, cn, "ejemplos/compilador/tcodec.t", 3876);
+#line 3865 "ejemplos/compilador/tcodec.t"
+            SafeView ss_tmp36476;
+            ss_lista_str* ss_tmp36477;
+            ss_lista_str* ss_tmp36478;
+            ((ss_tmp36476 = ss_view(p), ss_tmp36477 = &cn, ss_tmp36478 = &ct, campos_de_cierre(ss_tmp36476, ss_tmp36477, ss_tmp36478)));
+#line 3866 "ejemplos/compilador/tcodec.t"
+            ss_mapa_str_usize* ss_tmp36479 = st_indice;
+#line 3866 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_usize(ss_tmp36479, ss_view(&st_c), ((*st_nombres).length), "ejemplos/compilador/tcodec.t", 3866);
+#line 3867 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36480 = st_nombres;
+#line 3867 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36480, ss_clone(&st_c), "ejemplos/compilador/tcodec.t", 3867);
+#line 3868 "ejemplos/compilador/tcodec.t"
+            ss_lista_lista_str* ss_tmp36481 = st_campos;
+#line 3868 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_lista_str(ss_tmp36481, cn, "ejemplos/compilador/tcodec.t", 3868);
             ss_vivo_cn = false;
-#line 3877 "ejemplos/compilador/tcodec.t"
-            ss_lista_lista_str* ss_tmp36499 = st_tipos;
-#line 3877 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_lista_str(ss_tmp36499, ct, "ejemplos/compilador/tcodec.t", 3877);
+#line 3869 "ejemplos/compilador/tcodec.t"
+            ss_lista_lista_str* ss_tmp36482 = st_tipos;
+#line 3869 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_lista_str(ss_tmp36482, ct, "ejemplos/compilador/tcodec.t", 3869);
             ss_vivo_ct = false;
-#line 3878 "ejemplos/compilador/tcodec.t"
-            ss_free(&ss_tmp36484);
+#line 3870 "ejemplos/compilador/tcodec.t"
+            ss_free(&ss_tmp36467);
             if (ss_vivo_ct)
             {
-                for (size_t ss_i1556 = 0; ss_i1556 < ct.length; ss_i1556++)
+                for (size_t ss_i1552 = 0; ss_i1552 < ct.length; ss_i1552++)
                 {
-                    ss_free(&ct.e[ss_i1556]);
+                    ss_free(&ct.e[ss_i1552]);
                 }
                 free(ct.e);
                 ct.e = NULL;
@@ -125947,9 +125882,9 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
             }
             if (ss_vivo_cn)
             {
-                for (size_t ss_i1557 = 0; ss_i1557 < cn.length; ss_i1557++)
+                for (size_t ss_i1553 = 0; ss_i1553 < cn.length; ss_i1553++)
                 {
-                    ss_free(&cn.e[ss_i1557]);
+                    ss_free(&cn.e[ss_i1553]);
                 }
                 free(cn.e);
                 cn.e = NULL;
@@ -125960,174 +125895,174 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
             ss_free(&en_c_c);
             continue;
         }
-        ss_free(&ss_tmp36484);
-#line 3880 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp36500;
-        const ss_lista_Nodo* ss_tmp36501;
-        const ss_mapa_str_usize* ss_tmp36502;
-        const ss_mapa_str_usize* ss_tmp36503;
-        SS_LANG_QUIZA_SIN_USAR Nodo copia_r = ((ss_tmp36500 = ss_view(p), ss_tmp36501 = arboles, ss_tmp36502 = plantillas, ss_tmp36503 = &(*cierres).numeracion, nodo_instancia(ss_tmp36500, ss_tmp36501, ss_tmp36502, ss_tmp36503)));
-#line 3881 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp36504;
-        const ss_mapa_str_usize* ss_tmp36505;
-        const ss_lista_lista_str* ss_tmp36506;
-        const ss_lista_lista_str* ss_tmp36507;
-        const ss_lista_lista_str* ss_tmp36508;
-        ss_mapa_str_usize* ss_tmp36509;
-        ss_lista_str* ss_tmp36510;
-        ss_mapa_str_usize* ss_tmp36511;
-        ss_lista_lista_str* ss_tmp36512;
-        ss_lista_lista_str* ss_tmp36513;
-        Contexto* ss_tmp36514;
-        ((ss_tmp36504 = &copia_r, ss_tmp36505 = stp_indice, ss_tmp36506 = stp_params, ss_tmp36507 = stp_campos, ss_tmp36508 = stp_tipos, ss_tmp36509 = &en_curso_st, ss_tmp36510 = st_nombres, ss_tmp36511 = st_indice, ss_tmp36512 = st_campos, ss_tmp36513 = st_tipos, ss_tmp36514 = global, resolver_instancia(ss_tmp36504, ss_tmp36505, ss_tmp36506, ss_tmp36507, ss_tmp36508, ss_tmp36509, ss_tmp36510, ss_tmp36511, ss_tmp36512, ss_tmp36513, ss_tmp36514)));
+        ss_free(&ss_tmp36467);
+#line 3872 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp36483;
+        const ss_lista_Nodo* ss_tmp36484;
+        const ss_mapa_str_usize* ss_tmp36485;
+        const ss_mapa_str_usize* ss_tmp36486;
+        SS_LANG_QUIZA_SIN_USAR Nodo copia_r = ((ss_tmp36483 = ss_view(p), ss_tmp36484 = arboles, ss_tmp36485 = plantillas, ss_tmp36486 = &(*cierres).numeracion, nodo_instancia(ss_tmp36483, ss_tmp36484, ss_tmp36485, ss_tmp36486)));
+#line 3873 "ejemplos/compilador/tcodec.t"
+        const Nodo* ss_tmp36487;
+        const ss_mapa_str_usize* ss_tmp36488;
+        const ss_lista_lista_str* ss_tmp36489;
+        const ss_lista_lista_str* ss_tmp36490;
+        const ss_lista_lista_str* ss_tmp36491;
+        ss_mapa_str_usize* ss_tmp36492;
+        ss_lista_str* ss_tmp36493;
+        ss_mapa_str_usize* ss_tmp36494;
+        ss_lista_lista_str* ss_tmp36495;
+        ss_lista_lista_str* ss_tmp36496;
+        Contexto* ss_tmp36497;
+        ((ss_tmp36487 = &copia_r, ss_tmp36488 = stp_indice, ss_tmp36489 = stp_params, ss_tmp36490 = stp_campos, ss_tmp36491 = stp_tipos, ss_tmp36492 = &en_curso_st, ss_tmp36493 = st_nombres, ss_tmp36494 = st_indice, ss_tmp36495 = st_campos, ss_tmp36496 = st_tipos, ss_tmp36497 = global, resolver_instancia(ss_tmp36487, ss_tmp36488, ss_tmp36489, ss_tmp36490, ss_tmp36491, ss_tmp36492, ss_tmp36493, ss_tmp36494, ss_tmp36495, ss_tmp36496, ss_tmp36497)));
         ss_drop_Nodo(&copia_r);
     }
-#line 3885 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1558 = 0; ss_k1558 < (*revision).structs_aplicados.length; ss_k1558++)
+#line 3877 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1554 = 0; ss_k1554 < (*revision).structs_aplicados.length; ss_k1554++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* t_ap = &(*revision).structs_aplicados.e[ss_k1558];
-#line 3886 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp36515;
-        const ss_mapa_str_usize* ss_tmp36516;
-        const ss_lista_lista_str* ss_tmp36517;
-        const ss_lista_lista_str* ss_tmp36518;
-        const ss_lista_lista_str* ss_tmp36519;
-        ss_mapa_str_usize* ss_tmp36520;
-        ss_lista_str* ss_tmp36521;
-        ss_mapa_str_usize* ss_tmp36522;
-        ss_lista_lista_str* ss_tmp36523;
-        ss_lista_lista_str* ss_tmp36524;
-        Contexto* ss_tmp36525;
-        SS_LANG_QUIZA_SIN_USAR SafeString _r = ((ss_tmp36515 = ss_view(t_ap), ss_tmp36516 = stp_indice, ss_tmp36517 = stp_params, ss_tmp36518 = stp_campos, ss_tmp36519 = stp_tipos, ss_tmp36520 = &en_curso_st, ss_tmp36521 = st_nombres, ss_tmp36522 = st_indice, ss_tmp36523 = st_campos, ss_tmp36524 = st_tipos, ss_tmp36525 = global, resolver_reg(ss_tmp36515, ss_tmp36516, ss_tmp36517, ss_tmp36518, ss_tmp36519, ss_tmp36520, ss_tmp36521, ss_tmp36522, ss_tmp36523, ss_tmp36524, ss_tmp36525)));
+        SS_LANG_QUIZA_SIN_USAR const SafeString* t_ap = &(*revision).structs_aplicados.e[ss_k1554];
+#line 3878 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp36498;
+        const ss_mapa_str_usize* ss_tmp36499;
+        const ss_lista_lista_str* ss_tmp36500;
+        const ss_lista_lista_str* ss_tmp36501;
+        const ss_lista_lista_str* ss_tmp36502;
+        ss_mapa_str_usize* ss_tmp36503;
+        ss_lista_str* ss_tmp36504;
+        ss_mapa_str_usize* ss_tmp36505;
+        ss_lista_lista_str* ss_tmp36506;
+        ss_lista_lista_str* ss_tmp36507;
+        Contexto* ss_tmp36508;
+        SS_LANG_QUIZA_SIN_USAR SafeString _r = ((ss_tmp36498 = ss_view(t_ap), ss_tmp36499 = stp_indice, ss_tmp36500 = stp_params, ss_tmp36501 = stp_campos, ss_tmp36502 = stp_tipos, ss_tmp36503 = &en_curso_st, ss_tmp36504 = st_nombres, ss_tmp36505 = st_indice, ss_tmp36506 = st_campos, ss_tmp36507 = st_tipos, ss_tmp36508 = global, resolver_reg(ss_tmp36498, ss_tmp36499, ss_tmp36500, ss_tmp36501, ss_tmp36502, ss_tmp36503, ss_tmp36504, ss_tmp36505, ss_tmp36506, ss_tmp36507, ss_tmp36508)));
         ss_free(&_r);
     }
-#line 3890 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp36526;
-    const ss_lista_str* ss_tmp36527;
-    ss_lista_str* ss_tmp36528;
-    ss_mapa_str_usize* ss_tmp36529;
-    ss_lista_lista_str* ss_tmp36530;
-    ss_lista_lista_str* ss_tmp36531;
-    ((ss_tmp36526 = n_concretos, ss_tmp36527 = &(*revision).orden_structs, ss_tmp36528 = st_nombres, ss_tmp36529 = st_indice, ss_tmp36530 = st_campos, ss_tmp36531 = st_tipos, ordenar_como_comprobador(ss_tmp36526, ss_tmp36527, ss_tmp36528, ss_tmp36529, ss_tmp36530, ss_tmp36531)));
-#line 3892 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1559 = 0; ss_k1559 < (*st_nombres).length; ss_k1559++)
+#line 3882 "ejemplos/compilador/tcodec.t"
+    size_t ss_tmp36509;
+    const ss_lista_str* ss_tmp36510;
+    ss_lista_str* ss_tmp36511;
+    ss_mapa_str_usize* ss_tmp36512;
+    ss_lista_lista_str* ss_tmp36513;
+    ss_lista_lista_str* ss_tmp36514;
+    ((ss_tmp36509 = n_concretos, ss_tmp36510 = &(*revision).orden_structs, ss_tmp36511 = st_nombres, ss_tmp36512 = st_indice, ss_tmp36513 = st_campos, ss_tmp36514 = st_tipos, ordenar_como_comprobador(ss_tmp36509, ss_tmp36510, ss_tmp36511, ss_tmp36512, ss_tmp36513, ss_tmp36514)));
+#line 3884 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1555 = 0; ss_k1555 < (*st_nombres).length; ss_k1555++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1559];
-        ss_mapa_str_usize* ss_tmp36532 = &con_partes;
-#line 3892 "ejemplos/compilador/tcodec.t"
-        ss_mapa_poner_mapa_str_usize(ss_tmp36532, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3892);
+        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1555];
+        ss_mapa_str_usize* ss_tmp36515 = &con_partes;
+#line 3884 "ejemplos/compilador/tcodec.t"
+        ss_mapa_poner_mapa_str_usize(ss_tmp36515, ss_view(n), (size_t)1, "ejemplos/compilador/tcodec.t", 3884);
     }
-#line 3894 "ejemplos/compilador/tcodec.t"
-    ss_lista_Nodo ss_tmp36533 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo nodos = ss_tmp36533;
+#line 3886 "ejemplos/compilador/tcodec.t"
+    ss_lista_Nodo ss_tmp36516 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo nodos = ss_tmp36516;
     bool ss_vivo_nodos = true;
-#line 3895 "ejemplos/compilador/tcodec.t"
-    ss_lista_usize ss_tmp36534 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_usize modulos_i = ss_tmp36534;
+#line 3887 "ejemplos/compilador/tcodec.t"
+    ss_lista_usize ss_tmp36517 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_usize modulos_i = ss_tmp36517;
     bool ss_vivo_modulos_i = true;
-#line 3896 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36535 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str duenos = ss_tmp36535;
+#line 3888 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36518 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str duenos = ss_tmp36518;
     bool ss_vivo_duenos = true;
-#line 3897 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1560 = 0; ss_k1560 < orden.length; ss_k1560++)
+#line 3889 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1556 = 0; ss_k1556 < orden.length; ss_k1556++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* p = &orden.e[ss_k1560];
-#line 3898 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp36537;
-        size_t ss_tmp36538;
-        SafeString ss_tmp36536 = ((ss_tmp36537 = ss_view(p), ss_tmp36538 = (size_t)0, campo_pedido(ss_tmp36537, ss_tmp36538)));
-        size_t ss_tmp36539;
-        size_t ss_tmp36540;
-#line 3898 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp36539 = sv_len_of(ss_view(&ss_tmp36536)), ss_tmp36540 = (size_t)0, (ss_tmp36539 == ss_tmp36540))))
+        SS_LANG_QUIZA_SIN_USAR const SafeString* p = &orden.e[ss_k1556];
+#line 3890 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp36520;
+        size_t ss_tmp36521;
+        SafeString ss_tmp36519 = ((ss_tmp36520 = ss_view(p), ss_tmp36521 = (size_t)0, campo_pedido(ss_tmp36520, ss_tmp36521)));
+        size_t ss_tmp36522;
+        size_t ss_tmp36523;
+#line 3890 "ejemplos/compilador/tcodec.t"
+        if (((ss_tmp36522 = sv_len_of(ss_view(&ss_tmp36519)), ss_tmp36523 = (size_t)0, (ss_tmp36522 == ss_tmp36523))))
         {
-#line 3899 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp36541;
-            size_t ss_tmp36542;
-            SS_LANG_QUIZA_SIN_USAR SafeString en_c_i = ((ss_tmp36541 = ss_view(p), ss_tmp36542 = (size_t)1, campo_pedido(ss_tmp36541, ss_tmp36542)));
-#line 3900 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_usize* ss_tmp36544;
-            SafeView ss_tmp36545;
-#line 3900 "ejemplos/compilador/tcodec.t"
-            ss_res_usize ss_tmp36543 = ((ss_tmp36544 = &(*cierres).indice, ss_tmp36545 = ss_view(&en_c_i), ss_mapa_obtener_mapa_str_usize(ss_tmp36544, ss_tmp36545)));
-            size_t ss_tmp36546;
-            if (ss_tmp36543.motivo != NULL)
+#line 3891 "ejemplos/compilador/tcodec.t"
+            SafeView ss_tmp36524;
+            size_t ss_tmp36525;
+            SS_LANG_QUIZA_SIN_USAR SafeString en_c_i = ((ss_tmp36524 = ss_view(p), ss_tmp36525 = (size_t)1, campo_pedido(ss_tmp36524, ss_tmp36525)));
+#line 3892 "ejemplos/compilador/tcodec.t"
+            const ss_mapa_str_usize* ss_tmp36527;
+            SafeView ss_tmp36528;
+#line 3892 "ejemplos/compilador/tcodec.t"
+            ss_res_usize ss_tmp36526 = ((ss_tmp36527 = &(*cierres).indice, ss_tmp36528 = ss_view(&en_c_i), ss_mapa_obtener_mapa_str_usize(ss_tmp36527, ss_tmp36528)));
+            size_t ss_tmp36529;
+            if (ss_tmp36526.motivo != NULL)
             {
-                ss_tmp36546 = (size_t)0;
+                ss_tmp36529 = (size_t)0;
             }
             else
             {
-                ss_tmp36546 = ss_tmp36543.valor;
+                ss_tmp36529 = ss_tmp36526.valor;
             }
-            SS_LANG_QUIZA_SIN_USAR size_t k_ci = ss_tmp36546;
-#line 3901 "ejemplos/compilador/tcodec.t"
-            ss_lista_Nodo* ss_tmp36547 = &nodos;
-            const ss_lista_Nodo* ss_tmp36548;
-#line 3901 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_Nodo(ss_tmp36547, ss_copia_Nodo(&((ss_tmp36548 = &((*cierres).fns), &ss_tmp36548->e[ss_lang_indice_(k_ci, ss_tmp36548->length, "ejemplos/compilador/tcodec.t", 3901)])[0])), "ejemplos/compilador/tcodec.t", 3901);
-#line 3902 "ejemplos/compilador/tcodec.t"
-            ss_lista_usize* ss_tmp36549 = &modulos_i;
-            const ss_lista_usize* ss_tmp36550;
-#line 3902 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_usize(ss_tmp36549, ((ss_tmp36550 = &((*cierres).modulo), &ss_tmp36550->e[ss_lang_indice_(k_ci, ss_tmp36550->length, "ejemplos/compilador/tcodec.t", 3902)])[0]), "ejemplos/compilador/tcodec.t", 3902);
-#line 3903 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36551 = &duenos;
-            const ss_lista_Nodo* ss_tmp36552;
-#line 3903 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36551, ss_clone(&((ss_tmp36552 = &((*cierres).fns), &ss_tmp36552->e[ss_lang_indice_(k_ci, ss_tmp36552->length, "ejemplos/compilador/tcodec.t", 3903)])[0]).texto), "ejemplos/compilador/tcodec.t", 3903);
-#line 3904 "ejemplos/compilador/tcodec.t"
-            ss_free(&ss_tmp36536);
+            SS_LANG_QUIZA_SIN_USAR size_t k_ci = ss_tmp36529;
+#line 3893 "ejemplos/compilador/tcodec.t"
+            ss_lista_Nodo* ss_tmp36530 = &nodos;
+            const ss_lista_Nodo* ss_tmp36531;
+#line 3893 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_Nodo(ss_tmp36530, ss_copia_Nodo(&((ss_tmp36531 = &((*cierres).fns), &ss_tmp36531->e[ss_lang_indice_(k_ci, ss_tmp36531->length, "ejemplos/compilador/tcodec.t", 3893)])[0])), "ejemplos/compilador/tcodec.t", 3893);
+#line 3894 "ejemplos/compilador/tcodec.t"
+            ss_lista_usize* ss_tmp36532 = &modulos_i;
+            const ss_lista_usize* ss_tmp36533;
+#line 3894 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_usize(ss_tmp36532, ((ss_tmp36533 = &((*cierres).modulo), &ss_tmp36533->e[ss_lang_indice_(k_ci, ss_tmp36533->length, "ejemplos/compilador/tcodec.t", 3894)])[0]), "ejemplos/compilador/tcodec.t", 3894);
+#line 3895 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36534 = &duenos;
+            const ss_lista_Nodo* ss_tmp36535;
+#line 3895 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36534, ss_clone(&((ss_tmp36535 = &((*cierres).fns), &ss_tmp36535->e[ss_lang_indice_(k_ci, ss_tmp36535->length, "ejemplos/compilador/tcodec.t", 3895)])[0]).texto), "ejemplos/compilador/tcodec.t", 3895);
+#line 3896 "ejemplos/compilador/tcodec.t"
+            ss_free(&ss_tmp36519);
             ss_free(&en_c_i);
             continue;
         }
-        ss_free(&ss_tmp36536);
-#line 3906 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp36553 = &nodos;
-        SafeView ss_tmp36554;
-        const ss_lista_Nodo* ss_tmp36555;
-        const ss_mapa_str_usize* ss_tmp36556;
-        const ss_mapa_str_usize* ss_tmp36557;
-#line 3906 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_Nodo(ss_tmp36553, ((ss_tmp36554 = ss_view(p), ss_tmp36555 = arboles, ss_tmp36556 = plantillas, ss_tmp36557 = &(*cierres).numeracion, nodo_instancia(ss_tmp36554, ss_tmp36555, ss_tmp36556, ss_tmp36557))), "ejemplos/compilador/tcodec.t", 3906);
-#line 3907 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp36558 = &duenos;
-#line 3907 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36558, dueno_de_pedido(ss_view(p)), "ejemplos/compilador/tcodec.t", 3907);
-#line 3908 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp36559;
-        size_t ss_tmp36560;
-        SS_LANG_QUIZA_SIN_USAR SafeString plantilla = ((ss_tmp36559 = ss_view(p), ss_tmp36560 = (size_t)0, campo_pedido(ss_tmp36559, ss_tmp36560)));
-#line 3909 "ejemplos/compilador/tcodec.t"
-        ss_lista_usize* ss_tmp36561 = &modulos_i;
-        const ss_mapa_str_usize* ss_tmp36563;
-        SafeView ss_tmp36564;
-#line 3909 "ejemplos/compilador/tcodec.t"
-        ss_res_usize ss_tmp36562 = ((ss_tmp36563 = plantillas, ss_tmp36564 = ss_view(&plantilla), ss_mapa_obtener_mapa_str_usize(ss_tmp36563, ss_tmp36564)));
-        size_t ss_tmp36565;
-        if (ss_tmp36562.motivo != NULL)
+        ss_free(&ss_tmp36519);
+#line 3898 "ejemplos/compilador/tcodec.t"
+        ss_lista_Nodo* ss_tmp36536 = &nodos;
+        SafeView ss_tmp36537;
+        const ss_lista_Nodo* ss_tmp36538;
+        const ss_mapa_str_usize* ss_tmp36539;
+        const ss_mapa_str_usize* ss_tmp36540;
+#line 3898 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_Nodo(ss_tmp36536, ((ss_tmp36537 = ss_view(p), ss_tmp36538 = arboles, ss_tmp36539 = plantillas, ss_tmp36540 = &(*cierres).numeracion, nodo_instancia(ss_tmp36537, ss_tmp36538, ss_tmp36539, ss_tmp36540))), "ejemplos/compilador/tcodec.t", 3898);
+#line 3899 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp36541 = &duenos;
+#line 3899 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36541, dueno_de_pedido(ss_view(p)), "ejemplos/compilador/tcodec.t", 3899);
+#line 3900 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp36542;
+        size_t ss_tmp36543;
+        SS_LANG_QUIZA_SIN_USAR SafeString plantilla = ((ss_tmp36542 = ss_view(p), ss_tmp36543 = (size_t)0, campo_pedido(ss_tmp36542, ss_tmp36543)));
+#line 3901 "ejemplos/compilador/tcodec.t"
+        ss_lista_usize* ss_tmp36544 = &modulos_i;
+        const ss_mapa_str_usize* ss_tmp36546;
+        SafeView ss_tmp36547;
+#line 3901 "ejemplos/compilador/tcodec.t"
+        ss_res_usize ss_tmp36545 = ((ss_tmp36546 = plantillas, ss_tmp36547 = ss_view(&plantilla), ss_mapa_obtener_mapa_str_usize(ss_tmp36546, ss_tmp36547)));
+        size_t ss_tmp36548;
+        if (ss_tmp36545.motivo != NULL)
         {
-            ss_tmp36565 = (size_t)0;
+            ss_tmp36548 = (size_t)0;
         }
         else
         {
-            ss_tmp36565 = ss_tmp36562.valor;
+            ss_tmp36548 = ss_tmp36545.valor;
         }
-#line 3909 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_usize(ss_tmp36561, ss_tmp36565, "ejemplos/compilador/tcodec.t", 3909);
+#line 3901 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_usize(ss_tmp36544, ss_tmp36548, "ejemplos/compilador/tcodec.t", 3901);
         ss_free(&plantilla);
     }
-#line 3911 "ejemplos/compilador/tcodec.t"
-    bool ss_tmp36566;
-    ss_mapa_str_usize ss_tmp36567;
-    ss_mapa_str_usize ss_tmp36568;
-    ss_lista_str ss_tmp36569;
-    ss_lista_Nodo ss_tmp36570;
-    ss_lista_usize ss_tmp36571;
-    ss_lista_str ss_tmp36572;
-    size_t ss_tmp36573;
-#line 3911 "ejemplos/compilador/tcodec.t"
-    InstanciasPreparadas ss_tmp36574 = ((ss_tmp36566 = true, ss_tmp36567 = con_partes, ss_tmp36568 = vistas, ss_tmp36569 = orden, ss_tmp36570 = nodos, ss_tmp36571 = modulos_i, ss_tmp36572 = duenos, ss_tmp36573 = n_concretos, (InstanciasPreparadas){ .ok = ss_tmp36566, .con_partes = ss_tmp36567, .vistas = ss_tmp36568, .orden = ss_tmp36569, .nodos = ss_tmp36570, .modulos = ss_tmp36571, .duenos = ss_tmp36572, .n_concretos = ss_tmp36573 }));
+#line 3903 "ejemplos/compilador/tcodec.t"
+    bool ss_tmp36549;
+    ss_mapa_str_usize ss_tmp36550;
+    ss_mapa_str_usize ss_tmp36551;
+    ss_lista_str ss_tmp36552;
+    ss_lista_Nodo ss_tmp36553;
+    ss_lista_usize ss_tmp36554;
+    ss_lista_str ss_tmp36555;
+    size_t ss_tmp36556;
+#line 3903 "ejemplos/compilador/tcodec.t"
+    InstanciasPreparadas ss_tmp36557 = ((ss_tmp36549 = true, ss_tmp36550 = con_partes, ss_tmp36551 = vistas, ss_tmp36552 = orden, ss_tmp36553 = nodos, ss_tmp36554 = modulos_i, ss_tmp36555 = duenos, ss_tmp36556 = n_concretos, (InstanciasPreparadas){ .ok = ss_tmp36549, .con_partes = ss_tmp36550, .vistas = ss_tmp36551, .orden = ss_tmp36552, .nodos = ss_tmp36553, .modulos = ss_tmp36554, .duenos = ss_tmp36555, .n_concretos = ss_tmp36556 }));
     ss_vivo_con_partes = false;
     ss_vivo_vistas = false;
     ss_vivo_orden = false;
@@ -126136,9 +126071,9 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
     ss_vivo_duenos = false;
     if (ss_vivo_duenos)
     {
-        for (size_t ss_i1561 = 0; ss_i1561 < duenos.length; ss_i1561++)
+        for (size_t ss_i1557 = 0; ss_i1557 < duenos.length; ss_i1557++)
         {
-            ss_free(&duenos.e[ss_i1561]);
+            ss_free(&duenos.e[ss_i1557]);
         }
         free(duenos.e);
         duenos.e = NULL;
@@ -126154,18 +126089,18 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
     }
     if (ss_vivo_nodos)
     {
-        for (size_t ss_i1562 = 0; ss_i1562 < nodos.length; ss_i1562++)
+        for (size_t ss_i1558 = 0; ss_i1558 < nodos.length; ss_i1558++)
         {
-            ss_drop_Nodo(&nodos.e[ss_i1562]);
+            ss_drop_Nodo(&nodos.e[ss_i1558]);
         }
         free(nodos.e);
         nodos.e = NULL;
         nodos.length = 0;
         nodos.capacity = 0;
     }
-    for (size_t ss_i1563 = 0; ss_i1563 < creados.length; ss_i1563++)
+    for (size_t ss_i1559 = 0; ss_i1559 < creados.length; ss_i1559++)
     {
-        ss_free(&creados.e[ss_i1563]);
+        ss_free(&creados.e[ss_i1559]);
     }
     free(creados.e);
     creados.e = NULL;
@@ -126173,9 +126108,9 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
     creados.capacity = 0;
     if (ss_vivo_orden)
     {
-        for (size_t ss_i1564 = 0; ss_i1564 < orden.length; ss_i1564++)
+        for (size_t ss_i1560 = 0; ss_i1560 < orden.length; ss_i1560++)
         {
-            ss_free(&orden.e[ss_i1564]);
+            ss_free(&orden.e[ss_i1560]);
         }
         free(orden.e);
         orden.e = NULL;
@@ -126191,192 +126126,192 @@ SS_LANG_QUIZA_SIN_USAR static InstanciasPreparadas preparar_instancias(SS_LANG_Q
         ss_mapa_libre_mapa_str_usize(&con_partes);
     }
     ss_mapa_libre_mapa_str_usize(&en_curso_st);
-    return ss_tmp36574;
+    return ss_tmp36557;
 }
 
-#line 3916 "ejemplos/compilador/tcodec.t"
+#line 3908 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUIZA_SIN_USAR SafeView raiz, SS_LANG_QUIZA_SIN_USAR const ss_lista_Nodo* arboles, SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR const Cierres* cierres, SS_LANG_QUIZA_SIN_USAR Registro* reg, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* con_partes, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* st_nombres, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* st_indice, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* st_campos, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* st_tipos, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* en_nombres, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* en_variantes, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* en_lleva)
 {
-#line 3923 "ejemplos/compilador/tcodec.t"
+#line 3915 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR bool usa_leer_archivo = false;
-#line 3924 "ejemplos/compilador/tcodec.t"
+#line 3916 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR bool usa_leer_parte_archivo = false;
-#line 3925 "ejemplos/compilador/tcodec.t"
+#line 3917 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR bool usa_escribir_archivo = false;
-#line 3926 "ejemplos/compilador/tcodec.t"
+#line 3918 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR bool da_texto = false;
-#line 3927 "ejemplos/compilador/tcodec.t"
+#line 3919 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize usa_sistema = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
-#line 3928 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1565 = 0; ss_k1565 < (*arboles).length; ss_k1565++)
+#line 3920 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1561 = 0; ss_k1561 < (*arboles).length; ss_k1561++)
     {
-        SS_LANG_QUIZA_SIN_USAR const Nodo* arbol = &(*arboles).e[ss_k1565];
-#line 3929 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp36575;
-        SafeView ss_tmp36576;
-        if (((ss_tmp36575 = arbol, ss_tmp36576 = sv_len("leer_archivo", 12), llama_a(ss_tmp36575, ss_tmp36576))))
+        SS_LANG_QUIZA_SIN_USAR const Nodo* arbol = &(*arboles).e[ss_k1561];
+#line 3921 "ejemplos/compilador/tcodec.t"
+        const Nodo* ss_tmp36558;
+        SafeView ss_tmp36559;
+        if (((ss_tmp36558 = arbol, ss_tmp36559 = sv_len("leer_archivo", 12), llama_a(ss_tmp36558, ss_tmp36559))))
         {
             usa_leer_archivo = true;
         }
-#line 3930 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp36577;
-        SafeView ss_tmp36578;
-        if (((ss_tmp36577 = arbol, ss_tmp36578 = sv_len("leer_parte_archivo", 18), llama_a(ss_tmp36577, ss_tmp36578))))
+#line 3922 "ejemplos/compilador/tcodec.t"
+        const Nodo* ss_tmp36560;
+        SafeView ss_tmp36561;
+        if (((ss_tmp36560 = arbol, ss_tmp36561 = sv_len("leer_parte_archivo", 18), llama_a(ss_tmp36560, ss_tmp36561))))
         {
             usa_leer_parte_archivo = true;
         }
-#line 3931 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp36579;
-        SafeView ss_tmp36580;
-        if (((ss_tmp36579 = arbol, ss_tmp36580 = sv_len("escribir_archivo", 16), llama_a(ss_tmp36579, ss_tmp36580))))
+#line 3923 "ejemplos/compilador/tcodec.t"
+        const Nodo* ss_tmp36562;
+        SafeView ss_tmp36563;
+        if (((ss_tmp36562 = arbol, ss_tmp36563 = sv_len("escribir_archivo", 16), llama_a(ss_tmp36562, ss_tmp36563))))
         {
             usa_escribir_archivo = true;
         }
+#line 3924 "ejemplos/compilador/tcodec.t"
+        const Nodo* ss_tmp36564;
+        SafeView ss_tmp36565;
+        if (((ss_tmp36564 = arbol, ss_tmp36565 = sv_len("leer_linea", 10), llama_a(ss_tmp36564, ss_tmp36565))))
+        {
+#line 3925 "ejemplos/compilador/tcodec.t"
+            da_texto = true;
+#line 3926 "ejemplos/compilador/tcodec.t"
+            ss_mapa_str_usize* ss_tmp36566 = &usa_sistema;
+#line 3926 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_usize(ss_tmp36566, sv_len("leer_linea", 10), (size_t)1, "ejemplos/compilador/tcodec.t", 3926);
+        }
+#line 3928 "ejemplos/compilador/tcodec.t"
+        const Nodo* ss_tmp36567;
+        SafeView ss_tmp36568;
+        if (((ss_tmp36567 = arbol, ss_tmp36568 = sv_len("entrada_completa", 16), llama_a(ss_tmp36567, ss_tmp36568))))
+        {
+#line 3929 "ejemplos/compilador/tcodec.t"
+            da_texto = true;
+#line 3930 "ejemplos/compilador/tcodec.t"
+            ss_mapa_str_usize* ss_tmp36569 = &usa_sistema;
+#line 3930 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_usize(ss_tmp36569, sv_len("entrada_completa", 16), (size_t)1, "ejemplos/compilador/tcodec.t", 3930);
+        }
 #line 3932 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp36581;
-        SafeView ss_tmp36582;
-        if (((ss_tmp36581 = arbol, ss_tmp36582 = sv_len("leer_linea", 10), llama_a(ss_tmp36581, ss_tmp36582))))
+        const Nodo* ss_tmp36570;
+        SafeView ss_tmp36571;
+        if (((ss_tmp36570 = arbol, ss_tmp36571 = sv_len("variable_entorno", 16), llama_a(ss_tmp36570, ss_tmp36571))))
         {
 #line 3933 "ejemplos/compilador/tcodec.t"
             da_texto = true;
 #line 3934 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize* ss_tmp36583 = &usa_sistema;
+            ss_mapa_str_usize* ss_tmp36572 = &usa_sistema;
 #line 3934 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp36583, sv_len("leer_linea", 10), (size_t)1, "ejemplos/compilador/tcodec.t", 3934);
+            ss_mapa_poner_mapa_str_usize(ss_tmp36572, sv_len("variable_entorno", 16), (size_t)1, "ejemplos/compilador/tcodec.t", 3934);
         }
 #line 3936 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp36584;
-        SafeView ss_tmp36585;
-        if (((ss_tmp36584 = arbol, ss_tmp36585 = sv_len("entrada_completa", 16), llama_a(ss_tmp36584, ss_tmp36585))))
+        const Nodo* ss_tmp36573;
+        SafeView ss_tmp36574;
+        if (((ss_tmp36573 = arbol, ss_tmp36574 = sv_len("ahora_ms", 8), llama_a(ss_tmp36573, ss_tmp36574))))
         {
+            ss_mapa_str_usize* ss_tmp36575 = &usa_sistema;
+#line 3936 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_usize(ss_tmp36575, sv_len("ahora_ms", 8), (size_t)1, "ejemplos/compilador/tcodec.t", 3936);
+        }
 #line 3937 "ejemplos/compilador/tcodec.t"
-            da_texto = true;
+        const Nodo* ss_tmp36576;
+        SafeView ss_tmp36577;
+        if (((ss_tmp36576 = arbol, ss_tmp36577 = sv_len("monotono_ms", 11), llama_a(ss_tmp36576, ss_tmp36577))))
+        {
+            ss_mapa_str_usize* ss_tmp36578 = &usa_sistema;
+#line 3937 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_usize(ss_tmp36578, sv_len("monotono_ms", 11), (size_t)1, "ejemplos/compilador/tcodec.t", 3937);
+        }
 #line 3938 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize* ss_tmp36586 = &usa_sistema;
-#line 3938 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp36586, sv_len("entrada_completa", 16), (size_t)1, "ejemplos/compilador/tcodec.t", 3938);
-        }
-#line 3940 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp36587;
-        SafeView ss_tmp36588;
-        if (((ss_tmp36587 = arbol, ss_tmp36588 = sv_len("variable_entorno", 16), llama_a(ss_tmp36587, ss_tmp36588))))
+        const Nodo* ss_tmp36579;
+        SafeView ss_tmp36580;
+        const Nodo* ss_tmp36581;
+        SafeView ss_tmp36582;
+        if ((((ss_tmp36579 = arbol, ss_tmp36580 = sv_len("azar", 4), llama_a(ss_tmp36579, ss_tmp36580))) || ((ss_tmp36581 = arbol, ss_tmp36582 = sv_len("sembrar", 7), llama_a(ss_tmp36581, ss_tmp36582)))))
         {
-#line 3941 "ejemplos/compilador/tcodec.t"
-            da_texto = true;
-#line 3942 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize* ss_tmp36589 = &usa_sistema;
-#line 3942 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp36589, sv_len("variable_entorno", 16), (size_t)1, "ejemplos/compilador/tcodec.t", 3942);
-        }
-#line 3944 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp36590;
-        SafeView ss_tmp36591;
-        if (((ss_tmp36590 = arbol, ss_tmp36591 = sv_len("ahora_ms", 8), llama_a(ss_tmp36590, ss_tmp36591))))
-        {
-            ss_mapa_str_usize* ss_tmp36592 = &usa_sistema;
-#line 3944 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp36592, sv_len("ahora_ms", 8), (size_t)1, "ejemplos/compilador/tcodec.t", 3944);
-        }
-#line 3945 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp36593;
-        SafeView ss_tmp36594;
-        if (((ss_tmp36593 = arbol, ss_tmp36594 = sv_len("monotono_ms", 11), llama_a(ss_tmp36593, ss_tmp36594))))
-        {
-            ss_mapa_str_usize* ss_tmp36595 = &usa_sistema;
-#line 3945 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp36595, sv_len("monotono_ms", 11), (size_t)1, "ejemplos/compilador/tcodec.t", 3945);
-        }
-#line 3946 "ejemplos/compilador/tcodec.t"
-        const Nodo* ss_tmp36596;
-        SafeView ss_tmp36597;
-        const Nodo* ss_tmp36598;
-        SafeView ss_tmp36599;
-        if ((((ss_tmp36596 = arbol, ss_tmp36597 = sv_len("azar", 4), llama_a(ss_tmp36596, ss_tmp36597))) || ((ss_tmp36598 = arbol, ss_tmp36599 = sv_len("sembrar", 7), llama_a(ss_tmp36598, ss_tmp36599)))))
-        {
-#line 3947 "ejemplos/compilador/tcodec.t"
-            ss_mapa_str_usize* ss_tmp36600 = &usa_sistema;
-#line 3947 "ejemplos/compilador/tcodec.t"
-            ss_mapa_poner_mapa_str_usize(ss_tmp36600, sv_len("semilla", 7), (size_t)1, "ejemplos/compilador/tcodec.t", 3947);
+#line 3939 "ejemplos/compilador/tcodec.t"
+            ss_mapa_str_usize* ss_tmp36583 = &usa_sistema;
+#line 3939 "ejemplos/compilador/tcodec.t"
+            ss_mapa_poner_mapa_str_usize(ss_tmp36583, sv_len("semilla", 7), (size_t)1, "ejemplos/compilador/tcodec.t", 3939);
         }
     }
-#line 3950 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1566 = 0; ss_k1566 < (*arboles).length; ss_k1566++)
+#line 3942 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1562 = 0; ss_k1562 < (*arboles).length; ss_k1562++)
     {
-        SS_LANG_QUIZA_SIN_USAR const Nodo* arbol = &(*arboles).e[ss_k1566];
-        const Nodo* ss_tmp36601;
-        const Cierres* ss_tmp36602;
-        Registro* ss_tmp36603;
-        ((ss_tmp36601 = arbol, ss_tmp36602 = cierres, ss_tmp36603 = reg, resultados_de_internas(ss_tmp36601, ss_tmp36602, ss_tmp36603)));
+        SS_LANG_QUIZA_SIN_USAR const Nodo* arbol = &(*arboles).e[ss_k1562];
+        const Nodo* ss_tmp36584;
+        const Cierres* ss_tmp36585;
+        Registro* ss_tmp36586;
+        ((ss_tmp36584 = arbol, ss_tmp36585 = cierres, ss_tmp36586 = reg, resultados_de_internas(ss_tmp36584, ss_tmp36585, ss_tmp36586)));
     }
-#line 3951 "ejemplos/compilador/tcodec.t"
+#line 3943 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR bool _t = da_texto;
-#line 3954 "ejemplos/compilador/tcodec.t"
+#line 3946 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize listos = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
-#line 3955 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36604 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str orden = ss_tmp36604;
-#line 3956 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1567 = 0; ss_k1567 < (*st_nombres).length; ss_k1567++)
+#line 3947 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36587 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str orden = ss_tmp36587;
+#line 3948 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1563 = 0; ss_k1563 < (*st_nombres).length; ss_k1563++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1567];
-        SafeView ss_tmp36605;
-        const ss_mapa_str_usize* ss_tmp36606;
-        const ss_lista_lista_str* ss_tmp36607;
-        ss_mapa_str_usize* ss_tmp36608;
-        ss_lista_str* ss_tmp36609;
-        ((ss_tmp36605 = ss_view(n), ss_tmp36606 = st_indice, ss_tmp36607 = st_tipos, ss_tmp36608 = &listos, ss_tmp36609 = &orden, visitar_struct(ss_tmp36605, ss_tmp36606, ss_tmp36607, ss_tmp36608, ss_tmp36609)));
+        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1563];
+        SafeView ss_tmp36588;
+        const ss_mapa_str_usize* ss_tmp36589;
+        const ss_lista_lista_str* ss_tmp36590;
+        ss_mapa_str_usize* ss_tmp36591;
+        ss_lista_str* ss_tmp36592;
+        ((ss_tmp36588 = ss_view(n), ss_tmp36589 = st_indice, ss_tmp36590 = st_tipos, ss_tmp36591 = &listos, ss_tmp36592 = &orden, visitar_struct(ss_tmp36588, ss_tmp36589, ss_tmp36590, ss_tmp36591, ss_tmp36592)));
     }
-#line 3957 "ejemplos/compilador/tcodec.t"
+#line 3949 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR Cuenta cta = cuenta_nueva();
     bool ss_vivo_cta = true;
-#line 3958 "ejemplos/compilador/tcodec.t"
-    ss_mapa_str_usize ss_tmp36610 = ss_copia_mapa_str_usize(&(*cierres).sacados);
+#line 3950 "ejemplos/compilador/tcodec.t"
+    ss_mapa_str_usize ss_tmp36593 = ss_copia_mapa_str_usize(&(*cierres).sacados);
     ss_mapa_libre_mapa_str_usize(&cta.sacados);
-    cta.sacados = ss_tmp36610;
-#line 3960 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36611 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str partes = ss_tmp36611;
+    cta.sacados = ss_tmp36593;
+#line 3952 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36594 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str partes = ss_tmp36594;
     bool ss_vivo_partes = true;
-#line 3961 "ejemplos/compilador/tcodec.t"
+#line 3953 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp36595;
+    const ss_lista_str* ss_tmp36596;
+    const ss_lista_str* ss_tmp36597;
+    const ss_lista_lista_str* ss_tmp36598;
+    const Registro* ss_tmp36599;
+    SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize adelantados = ((ss_tmp36595 = &partes, ss_tmp36596 = st_nombres, ss_tmp36597 = en_nombres, ss_tmp36598 = en_variantes, ss_tmp36599 = reg, declarar_tipos(ss_tmp36595, ss_tmp36596, ss_tmp36597, ss_tmp36598, ss_tmp36599)));
+#line 3954 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp36600;
+    const ss_lista_str* ss_tmp36601;
+    const ss_lista_lista_str* ss_tmp36602;
+    const ss_lista_lista_str* ss_tmp36603;
+    const ss_mapa_str_usize* ss_tmp36604;
+    const ss_lista_lista_str* ss_tmp36605;
+    const ss_lista_lista_str* ss_tmp36606;
+    const ss_lista_str* ss_tmp36607;
+    const ss_mapa_str_usize* ss_tmp36608;
+    const Contexto* ss_tmp36609;
+    const Registro* ss_tmp36610;
+    ((ss_tmp36600 = &partes, ss_tmp36601 = en_nombres, ss_tmp36602 = en_variantes, ss_tmp36603 = en_lleva, ss_tmp36604 = st_indice, ss_tmp36605 = st_campos, ss_tmp36606 = st_tipos, ss_tmp36607 = &orden, ss_tmp36608 = &adelantados, ss_tmp36609 = global, ss_tmp36610 = reg, definir_tipos(ss_tmp36600, ss_tmp36601, ss_tmp36602, ss_tmp36603, ss_tmp36604, ss_tmp36605, ss_tmp36606, ss_tmp36607, ss_tmp36608, ss_tmp36609, ss_tmp36610)));
+#line 3956 "ejemplos/compilador/tcodec.t"
     ss_lista_str* ss_tmp36612;
-    const ss_lista_str* ss_tmp36613;
-    const ss_lista_str* ss_tmp36614;
-    const ss_lista_lista_str* ss_tmp36615;
-    const Registro* ss_tmp36616;
-    SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize adelantados = ((ss_tmp36612 = &partes, ss_tmp36613 = st_nombres, ss_tmp36614 = en_nombres, ss_tmp36615 = en_variantes, ss_tmp36616 = reg, declarar_tipos(ss_tmp36612, ss_tmp36613, ss_tmp36614, ss_tmp36615, ss_tmp36616)));
-#line 3962 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp36617;
-    const ss_lista_str* ss_tmp36618;
-    const ss_lista_lista_str* ss_tmp36619;
-    const ss_lista_lista_str* ss_tmp36620;
-    const ss_mapa_str_usize* ss_tmp36621;
-    const ss_lista_lista_str* ss_tmp36622;
-    const ss_lista_lista_str* ss_tmp36623;
-    const ss_lista_str* ss_tmp36624;
-    const ss_mapa_str_usize* ss_tmp36625;
-    const Contexto* ss_tmp36626;
-    const Registro* ss_tmp36627;
-    ((ss_tmp36617 = &partes, ss_tmp36618 = en_nombres, ss_tmp36619 = en_variantes, ss_tmp36620 = en_lleva, ss_tmp36621 = st_indice, ss_tmp36622 = st_campos, ss_tmp36623 = st_tipos, ss_tmp36624 = &orden, ss_tmp36625 = &adelantados, ss_tmp36626 = global, ss_tmp36627 = reg, definir_tipos(ss_tmp36617, ss_tmp36618, ss_tmp36619, ss_tmp36620, ss_tmp36621, ss_tmp36622, ss_tmp36623, ss_tmp36624, ss_tmp36625, ss_tmp36626, ss_tmp36627)));
-#line 3964 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp36629;
-    SafeView ss_tmp36630;
-    const ss_mapa_str_usize* ss_tmp36631;
-    bool ss_tmp36632;
-    bool ss_tmp36633;
-    bool ss_tmp36634;
-    const Registro* ss_tmp36635;
-    const Contexto* ss_tmp36636;
-    const ss_mapa_str_usize* ss_tmp36637;
-    Cuenta* ss_tmp36638;
-    ss_res_unidad ss_tmp36628 = ((ss_tmp36629 = &partes, ss_tmp36630 = raiz, ss_tmp36631 = &usa_sistema, ss_tmp36632 = usa_escribir_archivo, ss_tmp36633 = usa_leer_archivo, ss_tmp36634 = usa_leer_parte_archivo, ss_tmp36635 = reg, ss_tmp36636 = global, ss_tmp36637 = con_partes, ss_tmp36638 = &cta, internas_del_sistema(ss_tmp36629, ss_tmp36630, ss_tmp36631, ss_tmp36632, ss_tmp36633, ss_tmp36634, ss_tmp36635, ss_tmp36636, ss_tmp36637, ss_tmp36638)));
-    if (ss_tmp36628.motivo != NULL)
+    SafeView ss_tmp36613;
+    const ss_mapa_str_usize* ss_tmp36614;
+    bool ss_tmp36615;
+    bool ss_tmp36616;
+    bool ss_tmp36617;
+    const Registro* ss_tmp36618;
+    const Contexto* ss_tmp36619;
+    const ss_mapa_str_usize* ss_tmp36620;
+    Cuenta* ss_tmp36621;
+    ss_res_unidad ss_tmp36611 = ((ss_tmp36612 = &partes, ss_tmp36613 = raiz, ss_tmp36614 = &usa_sistema, ss_tmp36615 = usa_escribir_archivo, ss_tmp36616 = usa_leer_archivo, ss_tmp36617 = usa_leer_parte_archivo, ss_tmp36618 = reg, ss_tmp36619 = global, ss_tmp36620 = con_partes, ss_tmp36621 = &cta, internas_del_sistema(ss_tmp36612, ss_tmp36613, ss_tmp36614, ss_tmp36615, ss_tmp36616, ss_tmp36617, ss_tmp36618, ss_tmp36619, ss_tmp36620, ss_tmp36621)));
+    if (ss_tmp36611.motivo != NULL)
     {
         ss_mapa_libre_mapa_str_usize(&adelantados);
         if (ss_vivo_partes)
         {
-            for (size_t ss_i1568 = 0; ss_i1568 < partes.length; ss_i1568++)
+            for (size_t ss_i1564 = 0; ss_i1564 < partes.length; ss_i1564++)
             {
-                ss_free(&partes.e[ss_i1568]);
+                ss_free(&partes.e[ss_i1564]);
             }
             free(partes.e);
             partes.e = NULL;
@@ -126387,9 +126322,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
         {
             ss_drop_Cuenta(&cta);
         }
-        for (size_t ss_i1569 = 0; ss_i1569 < orden.length; ss_i1569++)
+        for (size_t ss_i1565 = 0; ss_i1565 < orden.length; ss_i1565++)
         {
-            ss_free(&orden.e[ss_i1569]);
+            ss_free(&orden.e[ss_i1565]);
         }
         free(orden.e);
         orden.e = NULL;
@@ -126397,38 +126332,38 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
         orden.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&listos);
         ss_mapa_libre_mapa_str_usize(&usa_sistema);
-        return (ss_res_SoporteGenerado){ .motivo = ss_tmp36628.motivo };
+        return (ss_res_SoporteGenerado){ .motivo = ss_tmp36611.motivo };
     }
-#line 3966 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp36639;
-    const ss_lista_str* ss_tmp36640;
-    const ss_mapa_str_usize* ss_tmp36641;
-    const ss_lista_lista_str* ss_tmp36642;
-    const ss_lista_lista_str* ss_tmp36643;
-    const Contexto* ss_tmp36644;
-    Cuenta* ss_tmp36645;
-    ((ss_tmp36639 = &partes, ss_tmp36640 = &orden, ss_tmp36641 = st_indice, ss_tmp36642 = st_campos, ss_tmp36643 = st_tipos, ss_tmp36644 = global, ss_tmp36645 = &cta, soltar_structs(ss_tmp36639, ss_tmp36640, ss_tmp36641, ss_tmp36642, ss_tmp36643, ss_tmp36644, ss_tmp36645)));
-#line 3968 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp36646;
-    const ss_lista_str* ss_tmp36647;
-    const ss_lista_lista_str* ss_tmp36648;
-    const ss_lista_lista_str* ss_tmp36649;
-    const Contexto* ss_tmp36650;
-    Cuenta* ss_tmp36651;
-    ((ss_tmp36646 = &partes, ss_tmp36647 = en_nombres, ss_tmp36648 = en_variantes, ss_tmp36649 = en_lleva, ss_tmp36650 = global, ss_tmp36651 = &cta, soltar_enums(ss_tmp36646, ss_tmp36647, ss_tmp36648, ss_tmp36649, ss_tmp36650, ss_tmp36651)));
-#line 3969 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36652;
-    Cuenta ss_tmp36653;
-#line 3969 "ejemplos/compilador/tcodec.t"
-    SoporteGenerado ss_tmp36654 = ((ss_tmp36652 = partes, ss_tmp36653 = cta, (SoporteGenerado){ .partes = ss_tmp36652, .cta = ss_tmp36653 }));
+#line 3958 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp36622;
+    const ss_lista_str* ss_tmp36623;
+    const ss_mapa_str_usize* ss_tmp36624;
+    const ss_lista_lista_str* ss_tmp36625;
+    const ss_lista_lista_str* ss_tmp36626;
+    const Contexto* ss_tmp36627;
+    Cuenta* ss_tmp36628;
+    ((ss_tmp36622 = &partes, ss_tmp36623 = &orden, ss_tmp36624 = st_indice, ss_tmp36625 = st_campos, ss_tmp36626 = st_tipos, ss_tmp36627 = global, ss_tmp36628 = &cta, soltar_structs(ss_tmp36622, ss_tmp36623, ss_tmp36624, ss_tmp36625, ss_tmp36626, ss_tmp36627, ss_tmp36628)));
+#line 3960 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp36629;
+    const ss_lista_str* ss_tmp36630;
+    const ss_lista_lista_str* ss_tmp36631;
+    const ss_lista_lista_str* ss_tmp36632;
+    const Contexto* ss_tmp36633;
+    Cuenta* ss_tmp36634;
+    ((ss_tmp36629 = &partes, ss_tmp36630 = en_nombres, ss_tmp36631 = en_variantes, ss_tmp36632 = en_lleva, ss_tmp36633 = global, ss_tmp36634 = &cta, soltar_enums(ss_tmp36629, ss_tmp36630, ss_tmp36631, ss_tmp36632, ss_tmp36633, ss_tmp36634)));
+#line 3961 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36635;
+    Cuenta ss_tmp36636;
+#line 3961 "ejemplos/compilador/tcodec.t"
+    SoporteGenerado ss_tmp36637 = ((ss_tmp36635 = partes, ss_tmp36636 = cta, (SoporteGenerado){ .partes = ss_tmp36635, .cta = ss_tmp36636 }));
     ss_vivo_partes = false;
     ss_vivo_cta = false;
     ss_mapa_libre_mapa_str_usize(&adelantados);
     if (ss_vivo_partes)
     {
-        for (size_t ss_i1570 = 0; ss_i1570 < partes.length; ss_i1570++)
+        for (size_t ss_i1566 = 0; ss_i1566 < partes.length; ss_i1566++)
         {
-            ss_free(&partes.e[ss_i1570]);
+            ss_free(&partes.e[ss_i1566]);
         }
         free(partes.e);
         partes.e = NULL;
@@ -126439,9 +126374,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
     {
         ss_drop_Cuenta(&cta);
     }
-    for (size_t ss_i1571 = 0; ss_i1571 < orden.length; ss_i1571++)
+    for (size_t ss_i1567 = 0; ss_i1567 < orden.length; ss_i1567++)
     {
-        ss_free(&orden.e[ss_i1571]);
+        ss_free(&orden.e[ss_i1567]);
     }
     free(orden.e);
     orden.e = NULL;
@@ -126449,238 +126384,238 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_SoporteGenerado generar_soporte(SS_LANG_QUI
     orden.capacity = 0;
     ss_mapa_libre_mapa_str_usize(&listos);
     ss_mapa_libre_mapa_str_usize(&usa_sistema);
-    return (ss_res_SoporteGenerado){ .motivo = NULL, .valor = ss_tmp36654 };
+    return (ss_res_SoporteGenerado){ .motivo = NULL, .valor = ss_tmp36637 };
 }
 
-#line 3971 "ejemplos/compilador/tcodec.t"
+#line 3963 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static ss_mapa_str_usize declarar_tipos(SS_LANG_QUIZA_SIN_USAR ss_lista_str* partes, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* st_nombres, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* en_nombres, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* en_variantes, SS_LANG_QUIZA_SIN_USAR const Registro* reg)
 {
-#line 3976 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1572 = 0; ss_k1572 < (*st_nombres).length; ss_k1572++)
+#line 3968 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1568 = 0; ss_k1568 < (*st_nombres).length; ss_k1568++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1572];
-        ss_lista_str* ss_tmp36655 = partes;
-        SafeString ss_tmp36656 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp36656, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 3976);
-        ss_lang_agregar_texto_(&ss_tmp36656, ss_view(n), "ejemplos/compilador/tcodec.t", 3976);
-        ss_lang_agregar_texto_(&ss_tmp36656, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3976);
-        ss_lang_agregar_texto_(&ss_tmp36656, ss_view(n), "ejemplos/compilador/tcodec.t", 3976);
-        ss_lang_agregar_texto_(&ss_tmp36656, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3976);
-#line 3976 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36655, ss_tmp36656, "ejemplos/compilador/tcodec.t", 3976);
+        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*st_nombres).e[ss_k1568];
+        ss_lista_str* ss_tmp36638 = partes;
+        SafeString ss_tmp36639 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp36639, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 3968);
+        ss_lang_agregar_texto_(&ss_tmp36639, ss_view(n), "ejemplos/compilador/tcodec.t", 3968);
+        ss_lang_agregar_texto_(&ss_tmp36639, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3968);
+        ss_lang_agregar_texto_(&ss_tmp36639, ss_view(n), "ejemplos/compilador/tcodec.t", 3968);
+        ss_lang_agregar_texto_(&ss_tmp36639, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3968);
+#line 3968 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36638, ss_tmp36639, "ejemplos/compilador/tcodec.t", 3968);
     }
-#line 3977 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp36657;
-    size_t ss_tmp36658;
-#line 3977 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp36657 = ((*st_nombres).length), ss_tmp36658 = (size_t)0, (ss_tmp36657 > ss_tmp36658))))
+#line 3969 "ejemplos/compilador/tcodec.t"
+    size_t ss_tmp36640;
+    size_t ss_tmp36641;
+#line 3969 "ejemplos/compilador/tcodec.t"
+    if (((ss_tmp36640 = ((*st_nombres).length), ss_tmp36641 = (size_t)0, (ss_tmp36640 > ss_tmp36641))))
     {
-        ss_lista_str* ss_tmp36659 = partes;
-#line 3977 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36659, ss_new(), "ejemplos/compilador/tcodec.t", 3977);
+        ss_lista_str* ss_tmp36642 = partes;
+#line 3969 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36642, ss_new(), "ejemplos/compilador/tcodec.t", 3969);
     }
-#line 3979 "ejemplos/compilador/tcodec.t"
+#line 3971 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t ie_t = (size_t)0;
-#line 3980 "ejemplos/compilador/tcodec.t"
+#line 3972 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36660;
-        size_t ss_tmp36661;
-#line 3980 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp36660 = ie_t, ss_tmp36661 = ((*en_nombres).length), (ss_tmp36660 < ss_tmp36661)))))
+        size_t ss_tmp36643;
+        size_t ss_tmp36644;
+#line 3972 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp36643 = ie_t, ss_tmp36644 = ((*en_nombres).length), (ss_tmp36643 < ss_tmp36644)))))
         {
             break;
         }
-#line 3981 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp36662 = partes;
-        SafeString ss_tmp36663 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp36663, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 3981);
-        const ss_lista_str* ss_tmp36664;
-        ss_lang_agregar_texto_(&ss_tmp36663, ss_view(&((ss_tmp36664 = &((*en_nombres)), &ss_tmp36664->e[ss_lang_indice_(ie_t, ss_tmp36664->length, "ejemplos/compilador/tcodec.t", 3981)])[0])), "ejemplos/compilador/tcodec.t", 3981);
-        ss_lang_agregar_texto_(&ss_tmp36663, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3981);
-        const ss_lista_str* ss_tmp36665;
-        ss_lang_agregar_texto_(&ss_tmp36663, ss_view(&((ss_tmp36665 = &((*en_nombres)), &ss_tmp36665->e[ss_lang_indice_(ie_t, ss_tmp36665->length, "ejemplos/compilador/tcodec.t", 3981)])[0])), "ejemplos/compilador/tcodec.t", 3981);
-        ss_lang_agregar_texto_(&ss_tmp36663, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3981);
-#line 3981 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36662, ss_tmp36663, "ejemplos/compilador/tcodec.t", 3981);
-#line 3982 "ejemplos/compilador/tcodec.t"
+#line 3973 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp36645 = partes;
+        SafeString ss_tmp36646 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp36646, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 3973);
+        const ss_lista_str* ss_tmp36647;
+        ss_lang_agregar_texto_(&ss_tmp36646, ss_view(&((ss_tmp36647 = &((*en_nombres)), &ss_tmp36647->e[ss_lang_indice_(ie_t, ss_tmp36647->length, "ejemplos/compilador/tcodec.t", 3973)])[0])), "ejemplos/compilador/tcodec.t", 3973);
+        ss_lang_agregar_texto_(&ss_tmp36646, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3973);
+        const ss_lista_str* ss_tmp36648;
+        ss_lang_agregar_texto_(&ss_tmp36646, ss_view(&((ss_tmp36648 = &((*en_nombres)), &ss_tmp36648->e[ss_lang_indice_(ie_t, ss_tmp36648->length, "ejemplos/compilador/tcodec.t", 3973)])[0])), "ejemplos/compilador/tcodec.t", 3973);
+        ss_lang_agregar_texto_(&ss_tmp36646, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 3973);
+#line 3973 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36645, ss_tmp36646, "ejemplos/compilador/tcodec.t", 3973);
+#line 3974 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t iv_t = (size_t)0;
-#line 3983 "ejemplos/compilador/tcodec.t"
+#line 3975 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            const ss_lista_lista_str* ss_tmp36666;
-            size_t ss_tmp36667;
-            size_t ss_tmp36668;
-#line 3983 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp36667 = iv_t, ss_tmp36668 = (((ss_tmp36666 = &((*en_variantes)), &ss_tmp36666->e[ss_lang_indice_(ie_t, ss_tmp36666->length, "ejemplos/compilador/tcodec.t", 3983)])[0]).length), (ss_tmp36667 < ss_tmp36668)))))
+            const ss_lista_lista_str* ss_tmp36649;
+            size_t ss_tmp36650;
+            size_t ss_tmp36651;
+#line 3975 "ejemplos/compilador/tcodec.t"
+            if (!(((ss_tmp36650 = iv_t, ss_tmp36651 = (((ss_tmp36649 = &((*en_variantes)), &ss_tmp36649->e[ss_lang_indice_(ie_t, ss_tmp36649->length, "ejemplos/compilador/tcodec.t", 3975)])[0]).length), (ss_tmp36650 < ss_tmp36651)))))
             {
                 break;
             }
-#line 3984 "ejemplos/compilador/tcodec.t"
-            const ss_lista_str* ss_tmp36669;
-            SafeView ss_tmp36670;
-            const ss_lista_lista_str* ss_tmp36671;
-            const ss_lista_str* ss_tmp36672;
-            SafeView ss_tmp36673;
-            SS_LANG_QUIZA_SIN_USAR SafeString etq = ((ss_tmp36670 = ss_view(&((ss_tmp36669 = &((*en_nombres)), &ss_tmp36669->e[ss_lang_indice_(ie_t, ss_tmp36669->length, "ejemplos/compilador/tcodec.t", 3984)])[0])), ss_tmp36673 = ss_view(&((ss_tmp36672 = &(((ss_tmp36671 = &((*en_variantes)), &ss_tmp36671->e[ss_lang_indice_(ie_t, ss_tmp36671->length, "ejemplos/compilador/tcodec.t", 3984)])[0])), &ss_tmp36672->e[ss_lang_indice_(iv_t, ss_tmp36672->length, "ejemplos/compilador/tcodec.t", 3984)])[0])), etiqueta(ss_tmp36670, ss_tmp36673)));
-#line 3985 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36674 = partes;
-            SafeString ss_tmp36675 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp36675, sv_len("#define ", 8), "ejemplos/compilador/tcodec.t", 3985);
-            ss_lang_agregar_texto_(&ss_tmp36675, ss_view(&etq), "ejemplos/compilador/tcodec.t", 3985);
-            ss_lang_agregar_texto_(&ss_tmp36675, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3985);
-            SafeString ss_tmp36676 = ss_lang_texto_usize_(iv_t, "ejemplos/compilador/tcodec.t", 3985);
-            ss_lang_agregar_texto_(&ss_tmp36675, ss_view(&ss_tmp36676), "ejemplos/compilador/tcodec.t", 3985);
-#line 3985 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36674, ss_tmp36675, "ejemplos/compilador/tcodec.t", 3985);
-            ss_free(&ss_tmp36676);
-#line 3986 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp36677;
-            size_t ss_tmp36678;
-#line 3986 "ejemplos/compilador/tcodec.t"
-            iv_t = ((ss_tmp36677 = iv_t, ss_tmp36678 = (size_t)1, ss_lang_suma_usize(ss_tmp36677, ss_tmp36678, "ejemplos/compilador/tcodec.t", 3986)));
+#line 3976 "ejemplos/compilador/tcodec.t"
+            const ss_lista_str* ss_tmp36652;
+            SafeView ss_tmp36653;
+            const ss_lista_lista_str* ss_tmp36654;
+            const ss_lista_str* ss_tmp36655;
+            SafeView ss_tmp36656;
+            SS_LANG_QUIZA_SIN_USAR SafeString etq = ((ss_tmp36653 = ss_view(&((ss_tmp36652 = &((*en_nombres)), &ss_tmp36652->e[ss_lang_indice_(ie_t, ss_tmp36652->length, "ejemplos/compilador/tcodec.t", 3976)])[0])), ss_tmp36656 = ss_view(&((ss_tmp36655 = &(((ss_tmp36654 = &((*en_variantes)), &ss_tmp36654->e[ss_lang_indice_(ie_t, ss_tmp36654->length, "ejemplos/compilador/tcodec.t", 3976)])[0])), &ss_tmp36655->e[ss_lang_indice_(iv_t, ss_tmp36655->length, "ejemplos/compilador/tcodec.t", 3976)])[0])), etiqueta(ss_tmp36653, ss_tmp36656)));
+#line 3977 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36657 = partes;
+            SafeString ss_tmp36658 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp36658, sv_len("#define ", 8), "ejemplos/compilador/tcodec.t", 3977);
+            ss_lang_agregar_texto_(&ss_tmp36658, ss_view(&etq), "ejemplos/compilador/tcodec.t", 3977);
+            ss_lang_agregar_texto_(&ss_tmp36658, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 3977);
+            SafeString ss_tmp36659 = ss_lang_texto_usize_(iv_t, "ejemplos/compilador/tcodec.t", 3977);
+            ss_lang_agregar_texto_(&ss_tmp36658, ss_view(&ss_tmp36659), "ejemplos/compilador/tcodec.t", 3977);
+#line 3977 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36657, ss_tmp36658, "ejemplos/compilador/tcodec.t", 3977);
+            ss_free(&ss_tmp36659);
+#line 3978 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp36660;
+            size_t ss_tmp36661;
+#line 3978 "ejemplos/compilador/tcodec.t"
+            iv_t = ((ss_tmp36660 = iv_t, ss_tmp36661 = (size_t)1, ss_lang_suma_usize(ss_tmp36660, ss_tmp36661, "ejemplos/compilador/tcodec.t", 3978)));
             ss_free(&etq);
         }
-#line 3988 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36679;
-        size_t ss_tmp36680;
-#line 3988 "ejemplos/compilador/tcodec.t"
-        ie_t = ((ss_tmp36679 = ie_t, ss_tmp36680 = (size_t)1, ss_lang_suma_usize(ss_tmp36679, ss_tmp36680, "ejemplos/compilador/tcodec.t", 3988)));
+#line 3980 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36662;
+        size_t ss_tmp36663;
+#line 3980 "ejemplos/compilador/tcodec.t"
+        ie_t = ((ss_tmp36662 = ie_t, ss_tmp36663 = (size_t)1, ss_lang_suma_usize(ss_tmp36662, ss_tmp36663, "ejemplos/compilador/tcodec.t", 3980)));
     }
-#line 3990 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp36681;
-    size_t ss_tmp36682;
-#line 3990 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp36681 = ((*en_nombres).length), ss_tmp36682 = (size_t)0, (ss_tmp36681 > ss_tmp36682))))
+#line 3982 "ejemplos/compilador/tcodec.t"
+    size_t ss_tmp36664;
+    size_t ss_tmp36665;
+#line 3982 "ejemplos/compilador/tcodec.t"
+    if (((ss_tmp36664 = ((*en_nombres).length), ss_tmp36665 = (size_t)0, (ss_tmp36664 > ss_tmp36665))))
     {
-        ss_lista_str* ss_tmp36683 = partes;
-#line 3990 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36683, ss_new(), "ejemplos/compilador/tcodec.t", 3990);
+        ss_lista_str* ss_tmp36666 = partes;
+#line 3982 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36666, ss_new(), "ejemplos/compilador/tcodec.t", 3982);
     }
-#line 3991 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36684 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str ordenadas = ss_tmp36684;
-#line 3992 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1573 = 0; ss_k1573 < (*reg).bloques.length; ss_k1573++)
+#line 3983 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36667 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str ordenadas = ss_tmp36667;
+#line 3984 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1569 = 0; ss_k1569 < (*reg).bloques.length; ss_k1569++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).bloques.e[ss_k1573];
-        ss_lista_str* ss_tmp36685 = &ordenadas;
-#line 3992 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36685, ss_clone(x), "ejemplos/compilador/tcodec.t", 3992);
+        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).bloques.e[ss_k1569];
+        ss_lista_str* ss_tmp36668 = &ordenadas;
+#line 3984 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36668, ss_clone(x), "ejemplos/compilador/tcodec.t", 3984);
     }
-#line 3993 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1574 = 0; ss_k1574 < (*reg).listas.length; ss_k1574++)
+#line 3985 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1570 = 0; ss_k1570 < (*reg).listas.length; ss_k1570++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).listas.e[ss_k1574];
-        ss_lista_str* ss_tmp36686 = &ordenadas;
-#line 3993 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36686, ss_clone(x), "ejemplos/compilador/tcodec.t", 3993);
+        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).listas.e[ss_k1570];
+        ss_lista_str* ss_tmp36669 = &ordenadas;
+#line 3985 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36669, ss_clone(x), "ejemplos/compilador/tcodec.t", 3985);
     }
-#line 3994 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1575 = 0; ss_k1575 < (*reg).mapas.length; ss_k1575++)
+#line 3986 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1571 = 0; ss_k1571 < (*reg).mapas.length; ss_k1571++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).mapas.e[ss_k1575];
-        ss_lista_str* ss_tmp36687 = &ordenadas;
-#line 3994 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36687, ss_clone(x), "ejemplos/compilador/tcodec.t", 3994);
+        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).mapas.e[ss_k1571];
+        ss_lista_str* ss_tmp36670 = &ordenadas;
+#line 3986 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36670, ss_clone(x), "ejemplos/compilador/tcodec.t", 3986);
     }
-#line 3995 "ejemplos/compilador/tcodec.t"
+#line 3987 "ejemplos/compilador/tcodec.t"
     ss_ordenar_lista_str(&ordenadas);
-#line 3999 "ejemplos/compilador/tcodec.t"
+#line 3991 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize adelantados = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
-#line 4000 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36688 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str adelantados_orden = ss_tmp36688;
-#line 4001 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1576 = 0; ss_k1576 < ordenadas.length; ss_k1576++)
+#line 3992 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36671 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str adelantados_orden = ss_tmp36671;
+#line 3993 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1572 = 0; ss_k1572 < ordenadas.length; ss_k1572++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &ordenadas.e[ss_k1576];
-#line 4002 "ejemplos/compilador/tcodec.t"
+        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &ordenadas.e[ss_k1572];
+#line 3994 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR ss_lista_str dependencias = dependencias_de_agregado(ss_view(x));
-#line 4003 "ejemplos/compilador/tcodec.t"
-        for (size_t ss_k1577 = 0; ss_k1577 < dependencias.length; ss_k1577++)
+#line 3995 "ejemplos/compilador/tcodec.t"
+        for (size_t ss_k1573 = 0; ss_k1573 < dependencias.length; ss_k1573++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* d = &dependencias.e[ss_k1577];
-#line 4004 "ejemplos/compilador/tcodec.t"
-            const ss_mapa_str_usize* ss_tmp36689;
-            SafeView ss_tmp36690;
-#line 4004 "ejemplos/compilador/tcodec.t"
-            if ((es_arreglo(ss_view(d)) && (!((ss_tmp36689 = &adelantados, ss_tmp36690 = ss_view(d), ss_mapa_tiene_mapa_str_usize(ss_tmp36689, ss_tmp36690))))))
+            SS_LANG_QUIZA_SIN_USAR const SafeString* d = &dependencias.e[ss_k1573];
+#line 3996 "ejemplos/compilador/tcodec.t"
+            const ss_mapa_str_usize* ss_tmp36672;
+            SafeView ss_tmp36673;
+#line 3996 "ejemplos/compilador/tcodec.t"
+            if ((es_arreglo(ss_view(d)) && (!((ss_tmp36672 = &adelantados, ss_tmp36673 = ss_view(d), ss_mapa_tiene_mapa_str_usize(ss_tmp36672, ss_tmp36673))))))
             {
-#line 4005 "ejemplos/compilador/tcodec.t"
-                ss_mapa_str_usize* ss_tmp36691 = &adelantados;
-#line 4005 "ejemplos/compilador/tcodec.t"
-                ss_mapa_poner_mapa_str_usize(ss_tmp36691, ss_view(d), (size_t)1, "ejemplos/compilador/tcodec.t", 4005);
-#line 4006 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp36692 = &adelantados_orden;
-#line 4006 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp36692, ss_clone(d), "ejemplos/compilador/tcodec.t", 4006);
+#line 3997 "ejemplos/compilador/tcodec.t"
+                ss_mapa_str_usize* ss_tmp36674 = &adelantados;
+#line 3997 "ejemplos/compilador/tcodec.t"
+                ss_mapa_poner_mapa_str_usize(ss_tmp36674, ss_view(d), (size_t)1, "ejemplos/compilador/tcodec.t", 3997);
+#line 3998 "ejemplos/compilador/tcodec.t"
+                ss_lista_str* ss_tmp36675 = &adelantados_orden;
+#line 3998 "ejemplos/compilador/tcodec.t"
+                ss_push_lista_str(ss_tmp36675, ss_clone(d), "ejemplos/compilador/tcodec.t", 3998);
             }
         }
-        for (size_t ss_i1578 = 0; ss_i1578 < dependencias.length; ss_i1578++)
+        for (size_t ss_i1574 = 0; ss_i1574 < dependencias.length; ss_i1574++)
         {
-            ss_free(&dependencias.e[ss_i1578]);
+            ss_free(&dependencias.e[ss_i1574]);
         }
         free(dependencias.e);
         dependencias.e = NULL;
         dependencias.length = 0;
         dependencias.capacity = 0;
     }
-#line 4010 "ejemplos/compilador/tcodec.t"
+#line 4002 "ejemplos/compilador/tcodec.t"
     ss_ordenar_lista_str(&adelantados_orden);
-#line 4011 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1579 = 0; ss_k1579 < adelantados_orden.length; ss_k1579++)
+#line 4003 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1575 = 0; ss_k1575 < adelantados_orden.length; ss_k1575++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* d = &adelantados_orden.e[ss_k1579];
-#line 4012 "ejemplos/compilador/tcodec.t"
+        SS_LANG_QUIZA_SIN_USAR const SafeString* d = &adelantados_orden.e[ss_k1575];
+#line 4004 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeString tc_d = tipo_c(ss_view(d));
-#line 4013 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp36693 = partes;
-        SafeString ss_tmp36694 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp36694, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 4013);
-        ss_lang_agregar_texto_(&ss_tmp36694, ss_view(&tc_d), "ejemplos/compilador/tcodec.t", 4013);
-        ss_lang_agregar_texto_(&ss_tmp36694, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 4013);
-        ss_lang_agregar_texto_(&ss_tmp36694, ss_view(&tc_d), "ejemplos/compilador/tcodec.t", 4013);
-        ss_lang_agregar_texto_(&ss_tmp36694, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 4013);
-#line 4013 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36693, ss_tmp36694, "ejemplos/compilador/tcodec.t", 4013);
+#line 4005 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp36676 = partes;
+        SafeString ss_tmp36677 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp36677, sv_len("typedef struct ", 15), "ejemplos/compilador/tcodec.t", 4005);
+        ss_lang_agregar_texto_(&ss_tmp36677, ss_view(&tc_d), "ejemplos/compilador/tcodec.t", 4005);
+        ss_lang_agregar_texto_(&ss_tmp36677, sv_len(" ", 1), "ejemplos/compilador/tcodec.t", 4005);
+        ss_lang_agregar_texto_(&ss_tmp36677, ss_view(&tc_d), "ejemplos/compilador/tcodec.t", 4005);
+        ss_lang_agregar_texto_(&ss_tmp36677, sv_len(";", 1), "ejemplos/compilador/tcodec.t", 4005);
+#line 4005 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36676, ss_tmp36677, "ejemplos/compilador/tcodec.t", 4005);
         ss_free(&tc_d);
     }
-#line 4015 "ejemplos/compilador/tcodec.t"
+#line 4007 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize puestos = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
-#line 4016 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1580 = 0; ss_k1580 < ordenadas.length; ss_k1580++)
+#line 4008 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1576 = 0; ss_k1576 < ordenadas.length; ss_k1576++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &ordenadas.e[ss_k1580];
-        SafeView ss_tmp36695;
-        const Registro* ss_tmp36696;
-        ss_mapa_str_usize* ss_tmp36697;
-        ss_lista_str* ss_tmp36698;
-        ((ss_tmp36695 = ss_view(x), ss_tmp36696 = reg, ss_tmp36697 = &puestos, ss_tmp36698 = partes, poner_typedef(ss_tmp36695, ss_tmp36696, ss_tmp36697, ss_tmp36698)));
+        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &ordenadas.e[ss_k1576];
+        SafeView ss_tmp36678;
+        const Registro* ss_tmp36679;
+        ss_mapa_str_usize* ss_tmp36680;
+        ss_lista_str* ss_tmp36681;
+        ((ss_tmp36678 = ss_view(x), ss_tmp36679 = reg, ss_tmp36680 = &puestos, ss_tmp36681 = partes, poner_typedef(ss_tmp36678, ss_tmp36679, ss_tmp36680, ss_tmp36681)));
     }
-#line 4017 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp36699;
-    size_t ss_tmp36700;
-#line 4017 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp36699 = (ordenadas.length), ss_tmp36700 = (size_t)0, (ss_tmp36699 > ss_tmp36700))))
+#line 4009 "ejemplos/compilador/tcodec.t"
+    size_t ss_tmp36682;
+    size_t ss_tmp36683;
+#line 4009 "ejemplos/compilador/tcodec.t"
+    if (((ss_tmp36682 = (ordenadas.length), ss_tmp36683 = (size_t)0, (ss_tmp36682 > ss_tmp36683))))
     {
-        ss_lista_str* ss_tmp36701 = partes;
-#line 4017 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36701, ss_new(), "ejemplos/compilador/tcodec.t", 4017);
+        ss_lista_str* ss_tmp36684 = partes;
+#line 4009 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36684, ss_new(), "ejemplos/compilador/tcodec.t", 4009);
     }
-#line 4018 "ejemplos/compilador/tcodec.t"
+#line 4010 "ejemplos/compilador/tcodec.t"
     ss_mapa_libre_mapa_str_usize(&puestos);
-    for (size_t ss_i1581 = 0; ss_i1581 < adelantados_orden.length; ss_i1581++)
+    for (size_t ss_i1577 = 0; ss_i1577 < adelantados_orden.length; ss_i1577++)
     {
-        ss_free(&adelantados_orden.e[ss_i1581]);
+        ss_free(&adelantados_orden.e[ss_i1577]);
     }
     free(adelantados_orden.e);
     adelantados_orden.e = NULL;
     adelantados_orden.length = 0;
     adelantados_orden.capacity = 0;
-    for (size_t ss_i1582 = 0; ss_i1582 < ordenadas.length; ss_i1582++)
+    for (size_t ss_i1578 = 0; ss_i1578 < ordenadas.length; ss_i1578++)
     {
-        ss_free(&ordenadas.e[ss_i1582]);
+        ss_free(&ordenadas.e[ss_i1578]);
     }
     free(ordenadas.e);
     ordenadas.e = NULL;
@@ -126689,205 +126624,205 @@ SS_LANG_QUIZA_SIN_USAR static ss_mapa_str_usize declarar_tipos(SS_LANG_QUIZA_SIN
     return adelantados;
 }
 
-#line 4021 "ejemplos/compilador/tcodec.t"
+#line 4013 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static void definir_tipos(SS_LANG_QUIZA_SIN_USAR ss_lista_str* partes, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* en_nombres, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* en_variantes, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* en_lleva, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* st_indice, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* st_campos, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* st_tipos, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* orden, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* adelantados, SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR const Registro* reg)
 {
-#line 4034 "ejemplos/compilador/tcodec.t"
+#line 4026 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize definidos = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
-#line 4035 "ejemplos/compilador/tcodec.t"
+#line 4027 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize envueltos = (ss_mapa_str_usize){ .claves = NULL, .valores = NULL, .largo = 0, .capacidad = 0 };
+#line 4028 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1579 = 0; ss_k1579 < (*en_nombres).length; ss_k1579++)
+    {
+        SS_LANG_QUIZA_SIN_USAR const SafeString* en_n = &(*en_nombres).e[ss_k1579];
+#line 4029 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp36685;
+        const ss_lista_str* ss_tmp36686;
+        const ss_lista_lista_str* ss_tmp36687;
+        const ss_lista_lista_str* ss_tmp36688;
+        const ss_mapa_str_usize* ss_tmp36689;
+        const ss_lista_lista_str* ss_tmp36690;
+        const ss_lista_lista_str* ss_tmp36691;
+        ss_mapa_str_usize* ss_tmp36692;
+        ss_mapa_str_usize* ss_tmp36693;
+        const ss_mapa_str_usize* ss_tmp36694;
+        ss_lista_str* ss_tmp36695;
+        ((ss_tmp36685 = ss_view(en_n), ss_tmp36686 = en_nombres, ss_tmp36687 = en_variantes, ss_tmp36688 = en_lleva, ss_tmp36689 = st_indice, ss_tmp36690 = st_campos, ss_tmp36691 = st_tipos, ss_tmp36692 = &definidos, ss_tmp36693 = &envueltos, ss_tmp36694 = adelantados, ss_tmp36695 = partes, definir_tipo_c(ss_tmp36685, ss_tmp36686, ss_tmp36687, ss_tmp36688, ss_tmp36689, ss_tmp36690, ss_tmp36691, ss_tmp36692, ss_tmp36693, ss_tmp36694, ss_tmp36695)));
+    }
+#line 4032 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1580 = 0; ss_k1580 < (*orden).length; ss_k1580++)
+    {
+        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*orden).e[ss_k1580];
+#line 4033 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp36696;
+        const ss_lista_str* ss_tmp36697;
+        const ss_lista_lista_str* ss_tmp36698;
+        const ss_lista_lista_str* ss_tmp36699;
+        const ss_mapa_str_usize* ss_tmp36700;
+        const ss_lista_lista_str* ss_tmp36701;
+        const ss_lista_lista_str* ss_tmp36702;
+        ss_mapa_str_usize* ss_tmp36703;
+        ss_mapa_str_usize* ss_tmp36704;
+        const ss_mapa_str_usize* ss_tmp36705;
+        ss_lista_str* ss_tmp36706;
+        ((ss_tmp36696 = ss_view(n), ss_tmp36697 = en_nombres, ss_tmp36698 = en_variantes, ss_tmp36699 = en_lleva, ss_tmp36700 = st_indice, ss_tmp36701 = st_campos, ss_tmp36702 = st_tipos, ss_tmp36703 = &definidos, ss_tmp36704 = &envueltos, ss_tmp36705 = adelantados, ss_tmp36706 = partes, definir_tipo_c(ss_tmp36696, ss_tmp36697, ss_tmp36698, ss_tmp36699, ss_tmp36700, ss_tmp36701, ss_tmp36702, ss_tmp36703, ss_tmp36704, ss_tmp36705, ss_tmp36706)));
+    }
 #line 4036 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1583 = 0; ss_k1583 < (*en_nombres).length; ss_k1583++)
-    {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* en_n = &(*en_nombres).e[ss_k1583];
-#line 4037 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp36702;
-        const ss_lista_str* ss_tmp36703;
-        const ss_lista_lista_str* ss_tmp36704;
-        const ss_lista_lista_str* ss_tmp36705;
-        const ss_mapa_str_usize* ss_tmp36706;
-        const ss_lista_lista_str* ss_tmp36707;
-        const ss_lista_lista_str* ss_tmp36708;
-        ss_mapa_str_usize* ss_tmp36709;
-        ss_mapa_str_usize* ss_tmp36710;
-        const ss_mapa_str_usize* ss_tmp36711;
-        ss_lista_str* ss_tmp36712;
-        ((ss_tmp36702 = ss_view(en_n), ss_tmp36703 = en_nombres, ss_tmp36704 = en_variantes, ss_tmp36705 = en_lleva, ss_tmp36706 = st_indice, ss_tmp36707 = st_campos, ss_tmp36708 = st_tipos, ss_tmp36709 = &definidos, ss_tmp36710 = &envueltos, ss_tmp36711 = adelantados, ss_tmp36712 = partes, definir_tipo_c(ss_tmp36702, ss_tmp36703, ss_tmp36704, ss_tmp36705, ss_tmp36706, ss_tmp36707, ss_tmp36708, ss_tmp36709, ss_tmp36710, ss_tmp36711, ss_tmp36712)));
-    }
-#line 4040 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1584 = 0; ss_k1584 < (*orden).length; ss_k1584++)
-    {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*orden).e[ss_k1584];
-#line 4041 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp36713;
-        const ss_lista_str* ss_tmp36714;
-        const ss_lista_lista_str* ss_tmp36715;
-        const ss_lista_lista_str* ss_tmp36716;
-        const ss_mapa_str_usize* ss_tmp36717;
-        const ss_lista_lista_str* ss_tmp36718;
-        const ss_lista_lista_str* ss_tmp36719;
-        ss_mapa_str_usize* ss_tmp36720;
-        ss_mapa_str_usize* ss_tmp36721;
-        const ss_mapa_str_usize* ss_tmp36722;
-        ss_lista_str* ss_tmp36723;
-        ((ss_tmp36713 = ss_view(n), ss_tmp36714 = en_nombres, ss_tmp36715 = en_variantes, ss_tmp36716 = en_lleva, ss_tmp36717 = st_indice, ss_tmp36718 = st_campos, ss_tmp36719 = st_tipos, ss_tmp36720 = &definidos, ss_tmp36721 = &envueltos, ss_tmp36722 = adelantados, ss_tmp36723 = partes, definir_tipo_c(ss_tmp36713, ss_tmp36714, ss_tmp36715, ss_tmp36716, ss_tmp36717, ss_tmp36718, ss_tmp36719, ss_tmp36720, ss_tmp36721, ss_tmp36722, ss_tmp36723)));
-    }
-#line 4044 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR bool alguno_posee = false;
+#line 4037 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1581 = 0; ss_k1581 < (*orden).length; ss_k1581++)
+    {
+        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*orden).e[ss_k1581];
+#line 4038 "ejemplos/compilador/tcodec.t"
+        const Contexto* ss_tmp36707;
+        SafeView ss_tmp36708;
+        if (((ss_tmp36707 = global, ss_tmp36708 = ss_view(n), posee_con_formas(ss_tmp36707, ss_tmp36708))))
+        {
+#line 4039 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36709 = partes;
+            SafeString ss_tmp36710 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp36710, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 4039);
+            ss_lang_agregar_texto_(&ss_tmp36710, ss_view(n), "ejemplos/compilador/tcodec.t", 4039);
+            ss_lang_agregar_texto_(&ss_tmp36710, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 4039);
+            ss_lang_agregar_texto_(&ss_tmp36710, ss_view(n), "ejemplos/compilador/tcodec.t", 4039);
+            ss_lang_agregar_texto_(&ss_tmp36710, sv_len("* p);", 5), "ejemplos/compilador/tcodec.t", 4039);
+#line 4039 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36709, ss_tmp36710, "ejemplos/compilador/tcodec.t", 4039);
+#line 4040 "ejemplos/compilador/tcodec.t"
+            alguno_posee = true;
+        }
+    }
+#line 4043 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1582 = 0; ss_k1582 < (*en_nombres).length; ss_k1582++)
+    {
+        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*en_nombres).e[ss_k1582];
+#line 4044 "ejemplos/compilador/tcodec.t"
+        const Contexto* ss_tmp36711;
+        SafeView ss_tmp36712;
+        if (((ss_tmp36711 = global, ss_tmp36712 = ss_view(n), posee_con_formas(ss_tmp36711, ss_tmp36712))))
+        {
 #line 4045 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1585 = 0; ss_k1585 < (*orden).length; ss_k1585++)
-    {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*orden).e[ss_k1585];
+            ss_lista_str* ss_tmp36713 = partes;
+            SafeString ss_tmp36714 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp36714, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 4045);
+            ss_lang_agregar_texto_(&ss_tmp36714, ss_view(n), "ejemplos/compilador/tcodec.t", 4045);
+            ss_lang_agregar_texto_(&ss_tmp36714, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 4045);
+            ss_lang_agregar_texto_(&ss_tmp36714, ss_view(n), "ejemplos/compilador/tcodec.t", 4045);
+            ss_lang_agregar_texto_(&ss_tmp36714, sv_len("* p);", 5), "ejemplos/compilador/tcodec.t", 4045);
+#line 4045 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36713, ss_tmp36714, "ejemplos/compilador/tcodec.t", 4045);
 #line 4046 "ejemplos/compilador/tcodec.t"
-        const Contexto* ss_tmp36724;
-        SafeView ss_tmp36725;
-        if (((ss_tmp36724 = global, ss_tmp36725 = ss_view(n), posee_con_formas(ss_tmp36724, ss_tmp36725))))
-        {
-#line 4047 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36726 = partes;
-            SafeString ss_tmp36727 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp36727, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 4047);
-            ss_lang_agregar_texto_(&ss_tmp36727, ss_view(n), "ejemplos/compilador/tcodec.t", 4047);
-            ss_lang_agregar_texto_(&ss_tmp36727, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 4047);
-            ss_lang_agregar_texto_(&ss_tmp36727, ss_view(n), "ejemplos/compilador/tcodec.t", 4047);
-            ss_lang_agregar_texto_(&ss_tmp36727, sv_len("* p);", 5), "ejemplos/compilador/tcodec.t", 4047);
-#line 4047 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36726, ss_tmp36727, "ejemplos/compilador/tcodec.t", 4047);
-#line 4048 "ejemplos/compilador/tcodec.t"
             alguno_posee = true;
         }
     }
-#line 4051 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1586 = 0; ss_k1586 < (*en_nombres).length; ss_k1586++)
-    {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*en_nombres).e[ss_k1586];
-#line 4052 "ejemplos/compilador/tcodec.t"
-        const Contexto* ss_tmp36728;
-        SafeView ss_tmp36729;
-        if (((ss_tmp36728 = global, ss_tmp36729 = ss_view(n), posee_con_formas(ss_tmp36728, ss_tmp36729))))
-        {
-#line 4053 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36730 = partes;
-            SafeString ss_tmp36731 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp36731, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 4053);
-            ss_lang_agregar_texto_(&ss_tmp36731, ss_view(n), "ejemplos/compilador/tcodec.t", 4053);
-            ss_lang_agregar_texto_(&ss_tmp36731, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 4053);
-            ss_lang_agregar_texto_(&ss_tmp36731, ss_view(n), "ejemplos/compilador/tcodec.t", 4053);
-            ss_lang_agregar_texto_(&ss_tmp36731, sv_len("* p);", 5), "ejemplos/compilador/tcodec.t", 4053);
-#line 4053 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36730, ss_tmp36731, "ejemplos/compilador/tcodec.t", 4053);
-#line 4054 "ejemplos/compilador/tcodec.t"
-            alguno_posee = true;
-        }
-    }
-#line 4057 "ejemplos/compilador/tcodec.t"
+#line 4049 "ejemplos/compilador/tcodec.t"
     if (alguno_posee)
     {
-        ss_lista_str* ss_tmp36732 = partes;
-#line 4057 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36732, ss_new(), "ejemplos/compilador/tcodec.t", 4057);
+        ss_lista_str* ss_tmp36715 = partes;
+#line 4049 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36715, ss_new(), "ejemplos/compilador/tcodec.t", 4049);
     }
-#line 4060 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36733 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str arr_orden = ss_tmp36733;
-#line 4061 "ejemplos/compilador/tcodec.t"
+#line 4052 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36716 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str arr_orden = ss_tmp36716;
+#line 4053 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t hondo_a = (size_t)0;
-#line 4062 "ejemplos/compilador/tcodec.t"
+#line 4054 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t quedan_a = ((*reg).arreglos.length);
-#line 4063 "ejemplos/compilador/tcodec.t"
+#line 4055 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36734;
-        size_t ss_tmp36735;
-#line 4063 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp36734 = quedan_a, ss_tmp36735 = (size_t)0, (ss_tmp36734 > ss_tmp36735)))))
+        size_t ss_tmp36717;
+        size_t ss_tmp36718;
+#line 4055 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp36717 = quedan_a, ss_tmp36718 = (size_t)0, (ss_tmp36717 > ss_tmp36718)))))
         {
             break;
         }
-#line 4064 "ejemplos/compilador/tcodec.t"
-        for (size_t ss_k1587 = 0; ss_k1587 < (*reg).arreglos.length; ss_k1587++)
+#line 4056 "ejemplos/compilador/tcodec.t"
+        for (size_t ss_k1583 = 0; ss_k1583 < (*reg).arreglos.length; ss_k1583++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* t = &(*reg).arreglos.e[ss_k1587];
-#line 4065 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp36736;
-            size_t ss_tmp36737;
-#line 4065 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp36736 = arreglos_dentro(ss_view(t)), ss_tmp36737 = hondo_a, (ss_tmp36736 == ss_tmp36737))))
+            SS_LANG_QUIZA_SIN_USAR const SafeString* t = &(*reg).arreglos.e[ss_k1583];
+#line 4057 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp36719;
+            size_t ss_tmp36720;
+#line 4057 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp36719 = arreglos_dentro(ss_view(t)), ss_tmp36720 = hondo_a, (ss_tmp36719 == ss_tmp36720))))
             {
-#line 4066 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp36738 = &arr_orden;
-#line 4066 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp36738, ss_clone(t), "ejemplos/compilador/tcodec.t", 4066);
-#line 4067 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp36739;
-                size_t ss_tmp36740;
-#line 4067 "ejemplos/compilador/tcodec.t"
-                quedan_a = ((ss_tmp36739 = quedan_a, ss_tmp36740 = (size_t)1, ss_lang_resta_usize(ss_tmp36739, ss_tmp36740, "ejemplos/compilador/tcodec.t", 4067)));
+#line 4058 "ejemplos/compilador/tcodec.t"
+                ss_lista_str* ss_tmp36721 = &arr_orden;
+#line 4058 "ejemplos/compilador/tcodec.t"
+                ss_push_lista_str(ss_tmp36721, ss_clone(t), "ejemplos/compilador/tcodec.t", 4058);
+#line 4059 "ejemplos/compilador/tcodec.t"
+                size_t ss_tmp36722;
+                size_t ss_tmp36723;
+#line 4059 "ejemplos/compilador/tcodec.t"
+                quedan_a = ((ss_tmp36722 = quedan_a, ss_tmp36723 = (size_t)1, ss_lang_resta_usize(ss_tmp36722, ss_tmp36723, "ejemplos/compilador/tcodec.t", 4059)));
             }
         }
-#line 4070 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36741;
-        size_t ss_tmp36742;
-#line 4070 "ejemplos/compilador/tcodec.t"
-        hondo_a = ((ss_tmp36741 = hondo_a, ss_tmp36742 = (size_t)1, ss_lang_suma_usize(ss_tmp36741, ss_tmp36742, "ejemplos/compilador/tcodec.t", 4070)));
+#line 4062 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36724;
+        size_t ss_tmp36725;
+#line 4062 "ejemplos/compilador/tcodec.t"
+        hondo_a = ((ss_tmp36724 = hondo_a, ss_tmp36725 = (size_t)1, ss_lang_suma_usize(ss_tmp36724, ss_tmp36725, "ejemplos/compilador/tcodec.t", 4062)));
     }
-#line 4072 "ejemplos/compilador/tcodec.t"
+#line 4064 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t sueltos = (size_t)0;
-#line 4073 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1588 = 0; ss_k1588 < arr_orden.length; ss_k1588++)
+#line 4065 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1584 = 0; ss_k1584 < arr_orden.length; ss_k1584++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* t = &arr_orden.e[ss_k1588];
-#line 4074 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp36743;
-        SafeView ss_tmp36744;
-#line 4074 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp36743 = &envueltos, ss_tmp36744 = ss_view(t), ss_mapa_tiene_mapa_str_usize(ss_tmp36743, ss_tmp36744))))
+        SS_LANG_QUIZA_SIN_USAR const SafeString* t = &arr_orden.e[ss_k1584];
+#line 4066 "ejemplos/compilador/tcodec.t"
+        const ss_mapa_str_usize* ss_tmp36726;
+        SafeView ss_tmp36727;
+#line 4066 "ejemplos/compilador/tcodec.t"
+        if (((ss_tmp36726 = &envueltos, ss_tmp36727 = ss_view(t), ss_mapa_tiene_mapa_str_usize(ss_tmp36726, ss_tmp36727))))
         {
             continue;
         }
-#line 4075 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp36745 = partes;
-        SafeView ss_tmp36746;
-        const ss_mapa_str_usize* ss_tmp36747;
-#line 4075 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36745, ((ss_tmp36746 = ss_view(t), ss_tmp36747 = adelantados, linea_arreglo(ss_tmp36746, ss_tmp36747))), "ejemplos/compilador/tcodec.t", 4075);
-#line 4076 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36748;
-        size_t ss_tmp36749;
-#line 4076 "ejemplos/compilador/tcodec.t"
-        sueltos = ((ss_tmp36748 = sueltos, ss_tmp36749 = (size_t)1, ss_lang_suma_usize(ss_tmp36748, ss_tmp36749, "ejemplos/compilador/tcodec.t", 4076)));
+#line 4067 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp36728 = partes;
+        SafeView ss_tmp36729;
+        const ss_mapa_str_usize* ss_tmp36730;
+#line 4067 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36728, ((ss_tmp36729 = ss_view(t), ss_tmp36730 = adelantados, linea_arreglo(ss_tmp36729, ss_tmp36730))), "ejemplos/compilador/tcodec.t", 4067);
+#line 4068 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36731;
+        size_t ss_tmp36732;
+#line 4068 "ejemplos/compilador/tcodec.t"
+        sueltos = ((ss_tmp36731 = sueltos, ss_tmp36732 = (size_t)1, ss_lang_suma_usize(ss_tmp36731, ss_tmp36732, "ejemplos/compilador/tcodec.t", 4068)));
     }
-#line 4078 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp36750;
-    size_t ss_tmp36751;
-#line 4078 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp36750 = sueltos, ss_tmp36751 = (size_t)0, (ss_tmp36750 > ss_tmp36751))))
+#line 4070 "ejemplos/compilador/tcodec.t"
+    size_t ss_tmp36733;
+    size_t ss_tmp36734;
+#line 4070 "ejemplos/compilador/tcodec.t"
+    if (((ss_tmp36733 = sueltos, ss_tmp36734 = (size_t)0, (ss_tmp36733 > ss_tmp36734))))
     {
-        ss_lista_str* ss_tmp36752 = partes;
-#line 4078 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36752, ss_new(), "ejemplos/compilador/tcodec.t", 4078);
+        ss_lista_str* ss_tmp36735 = partes;
+#line 4070 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36735, ss_new(), "ejemplos/compilador/tcodec.t", 4070);
     }
-#line 4079 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1589 = 0; ss_k1589 < (*reg).resultados.length; ss_k1589++)
+#line 4071 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1585 = 0; ss_k1585 < (*reg).resultados.length; ss_k1585++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* r = &(*reg).resultados.e[ss_k1589];
-        ss_lista_str* ss_tmp36753 = partes;
-#line 4079 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36753, typedef_resultado(ss_view(r)), "ejemplos/compilador/tcodec.t", 4079);
+        SS_LANG_QUIZA_SIN_USAR const SafeString* r = &(*reg).resultados.e[ss_k1585];
+        ss_lista_str* ss_tmp36736 = partes;
+#line 4071 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36736, typedef_resultado(ss_view(r)), "ejemplos/compilador/tcodec.t", 4071);
     }
-#line 4080 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp36754;
-    size_t ss_tmp36755;
-#line 4080 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp36754 = ((*reg).resultados.length), ss_tmp36755 = (size_t)0, (ss_tmp36754 > ss_tmp36755))))
+#line 4072 "ejemplos/compilador/tcodec.t"
+    size_t ss_tmp36737;
+    size_t ss_tmp36738;
+#line 4072 "ejemplos/compilador/tcodec.t"
+    if (((ss_tmp36737 = ((*reg).resultados.length), ss_tmp36738 = (size_t)0, (ss_tmp36737 > ss_tmp36738))))
     {
-        ss_lista_str* ss_tmp36756 = partes;
-#line 4080 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36756, ss_new(), "ejemplos/compilador/tcodec.t", 4080);
+        ss_lista_str* ss_tmp36739 = partes;
+#line 4072 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36739, ss_new(), "ejemplos/compilador/tcodec.t", 4072);
     }
-    for (size_t ss_i1590 = 0; ss_i1590 < arr_orden.length; ss_i1590++)
+    for (size_t ss_i1586 = 0; ss_i1586 < arr_orden.length; ss_i1586++)
     {
-        ss_free(&arr_orden.e[ss_i1590]);
+        ss_free(&arr_orden.e[ss_i1586]);
     }
     free(arr_orden.e);
     arr_orden.e = NULL;
@@ -126897,214 +126832,214 @@ SS_LANG_QUIZA_SIN_USAR static void definir_tipos(SS_LANG_QUIZA_SIN_USAR ss_lista
     ss_mapa_libre_mapa_str_usize(&definidos);
 }
 
-#line 4083 "ejemplos/compilador/tcodec.t"
+#line 4075 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static ss_res_unidad internas_del_sistema(SS_LANG_QUIZA_SIN_USAR ss_lista_str* partes, SS_LANG_QUIZA_SIN_USAR SafeView raiz, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* usa_sistema, SS_LANG_QUIZA_SIN_USAR bool usa_escribir_archivo, SS_LANG_QUIZA_SIN_USAR bool usa_leer_archivo, SS_LANG_QUIZA_SIN_USAR bool usa_leer_parte_archivo, SS_LANG_QUIZA_SIN_USAR const Registro* reg, SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* con_partes, SS_LANG_QUIZA_SIN_USAR Cuenta* cta)
 {
-#line 4094 "ejemplos/compilador/tcodec.t"
+#line 4086 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString res_texto = tipo_resultado(sv_len("str", 3));
-#line 4095 "ejemplos/compilador/tcodec.t"
-    ss_lista_str ss_tmp36757 = { .e = NULL, .length = 0, .capacity = 0 };
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str internas_orden = ss_tmp36757;
-#line 4096 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp36758 = &internas_orden;
-#line 4096 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp36758, ss_from_view(sv_len("ahora_ms", 8)), "ejemplos/compilador/tcodec.t", 4096);
-#line 4097 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp36759 = &internas_orden;
-#line 4097 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp36759, ss_from_view(sv_len("monotono_ms", 11)), "ejemplos/compilador/tcodec.t", 4097);
-#line 4098 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp36760 = &internas_orden;
-#line 4098 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp36760, ss_from_view(sv_len("semilla", 7)), "ejemplos/compilador/tcodec.t", 4098);
-#line 4099 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp36761 = &internas_orden;
-#line 4099 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp36761, ss_from_view(sv_len("leer_linea", 10)), "ejemplos/compilador/tcodec.t", 4099);
-#line 4100 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp36762 = &internas_orden;
-#line 4100 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp36762, ss_from_view(sv_len("entrada_completa", 16)), "ejemplos/compilador/tcodec.t", 4100);
-#line 4101 "ejemplos/compilador/tcodec.t"
-    ss_lista_str* ss_tmp36763 = &internas_orden;
-#line 4101 "ejemplos/compilador/tcodec.t"
-    ss_push_lista_str(ss_tmp36763, ss_from_view(sv_len("variable_entorno", 16)), "ejemplos/compilador/tcodec.t", 4101);
-#line 4102 "ejemplos/compilador/tcodec.t"
+#line 4087 "ejemplos/compilador/tcodec.t"
+    ss_lista_str ss_tmp36740 = { .e = NULL, .length = 0, .capacity = 0 };
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str internas_orden = ss_tmp36740;
+#line 4088 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp36741 = &internas_orden;
+#line 4088 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp36741, ss_from_view(sv_len("ahora_ms", 8)), "ejemplos/compilador/tcodec.t", 4088);
+#line 4089 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp36742 = &internas_orden;
+#line 4089 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp36742, ss_from_view(sv_len("monotono_ms", 11)), "ejemplos/compilador/tcodec.t", 4089);
+#line 4090 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp36743 = &internas_orden;
+#line 4090 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp36743, ss_from_view(sv_len("semilla", 7)), "ejemplos/compilador/tcodec.t", 4090);
+#line 4091 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp36744 = &internas_orden;
+#line 4091 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp36744, ss_from_view(sv_len("leer_linea", 10)), "ejemplos/compilador/tcodec.t", 4091);
+#line 4092 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp36745 = &internas_orden;
+#line 4092 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp36745, ss_from_view(sv_len("entrada_completa", 16)), "ejemplos/compilador/tcodec.t", 4092);
+#line 4093 "ejemplos/compilador/tcodec.t"
+    ss_lista_str* ss_tmp36746 = &internas_orden;
+#line 4093 "ejemplos/compilador/tcodec.t"
+    ss_push_lista_str(ss_tmp36746, ss_from_view(sv_len("variable_entorno", 16)), "ejemplos/compilador/tcodec.t", 4093);
+#line 4094 "ejemplos/compilador/tcodec.t"
     if (usa_escribir_archivo)
     {
         ayudante_escribir_archivo(partes);
     }
-#line 4103 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1591 = 0; ss_k1591 < internas_orden.length; ss_k1591++)
+#line 4095 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1587 = 0; ss_k1587 < internas_orden.length; ss_k1587++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* interna = &internas_orden.e[ss_k1591];
-#line 4104 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp36764;
-        SafeView ss_tmp36765;
-#line 4104 "ejemplos/compilador/tcodec.t"
-        if ((!((ss_tmp36764 = usa_sistema, ss_tmp36765 = ss_view(interna), ss_mapa_tiene_mapa_str_usize(ss_tmp36764, ss_tmp36765)))))
+        SS_LANG_QUIZA_SIN_USAR const SafeString* interna = &internas_orden.e[ss_k1587];
+#line 4096 "ejemplos/compilador/tcodec.t"
+        const ss_mapa_str_usize* ss_tmp36747;
+        SafeView ss_tmp36748;
+#line 4096 "ejemplos/compilador/tcodec.t"
+        if ((!((ss_tmp36747 = usa_sistema, ss_tmp36748 = ss_view(interna), ss_mapa_tiene_mapa_str_usize(ss_tmp36747, ss_tmp36748)))))
         {
             continue;
         }
-#line 4105 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp36768 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp36768, raiz, "ejemplos/compilador/tcodec.t", 4105);
-        ss_lang_agregar_texto_(&ss_tmp36768, sv_len("/runtime/sistema/", 17), "ejemplos/compilador/tcodec.t", 4105);
-        ss_lang_agregar_texto_(&ss_tmp36768, ss_view(interna), "ejemplos/compilador/tcodec.t", 4105);
-        ss_lang_agregar_texto_(&ss_tmp36768, sv_len(".inc", 4), "ejemplos/compilador/tcodec.t", 4105);
-        SafeString ss_tmp36767 = ss_tmp36768;
-        ss_res_str ss_tmp36766 = ss_lang_leer_archivo_(ss_view(&ss_tmp36767));
-        if (ss_tmp36766.motivo != NULL)
+#line 4097 "ejemplos/compilador/tcodec.t"
+        SafeString ss_tmp36751 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp36751, raiz, "ejemplos/compilador/tcodec.t", 4097);
+        ss_lang_agregar_texto_(&ss_tmp36751, sv_len("/runtime/sistema/", 17), "ejemplos/compilador/tcodec.t", 4097);
+        ss_lang_agregar_texto_(&ss_tmp36751, ss_view(interna), "ejemplos/compilador/tcodec.t", 4097);
+        ss_lang_agregar_texto_(&ss_tmp36751, sv_len(".inc", 4), "ejemplos/compilador/tcodec.t", 4097);
+        SafeString ss_tmp36750 = ss_tmp36751;
+        ss_res_str ss_tmp36749 = ss_lang_leer_archivo_(ss_view(&ss_tmp36750));
+        if (ss_tmp36749.motivo != NULL)
         {
-            ss_free(&ss_tmp36767);
-            for (size_t ss_i1592 = 0; ss_i1592 < internas_orden.length; ss_i1592++)
+            ss_free(&ss_tmp36750);
+            for (size_t ss_i1588 = 0; ss_i1588 < internas_orden.length; ss_i1588++)
             {
-                ss_free(&internas_orden.e[ss_i1592]);
+                ss_free(&internas_orden.e[ss_i1588]);
             }
             free(internas_orden.e);
             internas_orden.e = NULL;
             internas_orden.length = 0;
             internas_orden.capacity = 0;
             ss_free(&res_texto);
-            return (ss_res_unidad){ .motivo = ss_tmp36766.motivo };
+            return (ss_res_unidad){ .motivo = ss_tmp36749.motivo };
         }
-        SS_LANG_QUIZA_SIN_USAR SafeString crudo = ss_tmp36766.valor;
-        ss_free(&ss_tmp36767);
-#line 4106 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp36770;
-        SafeView ss_tmp36771;
-        SafeView ss_tmp36772;
-        ss_res_str ss_tmp36769 = ((ss_tmp36770 = ss_view(&crudo), ss_tmp36771 = sv_len("@RES_STR@", 9), ss_tmp36772 = ss_view(&res_texto), reemplazar(ss_tmp36770, ss_tmp36771, ss_tmp36772)));
-        if (ss_tmp36769.motivo != NULL)
+        SS_LANG_QUIZA_SIN_USAR SafeString crudo = ss_tmp36749.valor;
+        ss_free(&ss_tmp36750);
+#line 4098 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp36753;
+        SafeView ss_tmp36754;
+        SafeView ss_tmp36755;
+        ss_res_str ss_tmp36752 = ((ss_tmp36753 = ss_view(&crudo), ss_tmp36754 = sv_len("@RES_STR@", 9), ss_tmp36755 = ss_view(&res_texto), reemplazar(ss_tmp36753, ss_tmp36754, ss_tmp36755)));
+        if (ss_tmp36752.motivo != NULL)
         {
             ss_free(&crudo);
-            for (size_t ss_i1593 = 0; ss_i1593 < internas_orden.length; ss_i1593++)
+            for (size_t ss_i1589 = 0; ss_i1589 < internas_orden.length; ss_i1589++)
             {
-                ss_free(&internas_orden.e[ss_i1593]);
+                ss_free(&internas_orden.e[ss_i1589]);
             }
             free(internas_orden.e);
             internas_orden.e = NULL;
             internas_orden.length = 0;
             internas_orden.capacity = 0;
             ss_free(&res_texto);
-            return (ss_res_unidad){ .motivo = ss_tmp36769.motivo };
+            return (ss_res_unidad){ .motivo = ss_tmp36752.motivo };
         }
-        SS_LANG_QUIZA_SIN_USAR SafeString hecho = ss_tmp36769.valor;
-#line 4107 "ejemplos/compilador/tcodec.t"
+        SS_LANG_QUIZA_SIN_USAR SafeString hecho = ss_tmp36752.valor;
+#line 4099 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t desde = (size_t)0;
-#line 4108 "ejemplos/compilador/tcodec.t"
+#line 4100 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t k_l = (size_t)0;
-#line 4109 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36773;
-        size_t ss_tmp36774;
-#line 4109 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp36775;
-        size_t ss_tmp36776;
-        size_t ss_tmp36777;
-#line 4109 "ejemplos/compilador/tcodec.t"
-        SS_LANG_QUIZA_SIN_USAR SafeView cuerpo_c = ((ss_tmp36775 = ss_view(&hecho), ss_tmp36776 = (size_t)0, ss_tmp36777 = ((ss_tmp36773 = sv_len_of(ss_view(&hecho)), ss_tmp36774 = (size_t)1, ss_lang_resta_usize(ss_tmp36773, ss_tmp36774, "ejemplos/compilador/tcodec.t", 4109))), ss_lang_rebanar_(ss_tmp36775, ss_tmp36776, ss_tmp36777, "ejemplos/compilador/tcodec.t", 4109)));
-#line 4110 "ejemplos/compilador/tcodec.t"
+#line 4101 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36756;
+        size_t ss_tmp36757;
+#line 4101 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp36758;
+        size_t ss_tmp36759;
+        size_t ss_tmp36760;
+#line 4101 "ejemplos/compilador/tcodec.t"
+        SS_LANG_QUIZA_SIN_USAR SafeView cuerpo_c = ((ss_tmp36758 = ss_view(&hecho), ss_tmp36759 = (size_t)0, ss_tmp36760 = ((ss_tmp36756 = sv_len_of(ss_view(&hecho)), ss_tmp36757 = (size_t)1, ss_lang_resta_usize(ss_tmp36756, ss_tmp36757, "ejemplos/compilador/tcodec.t", 4101))), ss_lang_rebanar_(ss_tmp36758, ss_tmp36759, ss_tmp36760, "ejemplos/compilador/tcodec.t", 4101)));
+#line 4102 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            size_t ss_tmp36778;
-            size_t ss_tmp36779;
-#line 4110 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp36778 = k_l, ss_tmp36779 = sv_len_of(cuerpo_c), (ss_tmp36778 <= ss_tmp36779)))))
+            size_t ss_tmp36761;
+            size_t ss_tmp36762;
+#line 4102 "ejemplos/compilador/tcodec.t"
+            if (!(((ss_tmp36761 = k_l, ss_tmp36762 = sv_len_of(cuerpo_c), (ss_tmp36761 <= ss_tmp36762)))))
             {
                 break;
             }
-#line 4111 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp36780;
-            size_t ss_tmp36781;
-#line 4111 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp36785 = ((ss_tmp36780 = k_l, ss_tmp36781 = sv_len_of(cuerpo_c), (ss_tmp36780 == ss_tmp36781)));
-            if (!ss_tmp36785)
+#line 4103 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp36763;
+            size_t ss_tmp36764;
+#line 4103 "ejemplos/compilador/tcodec.t"
+            bool ss_tmp36768 = ((ss_tmp36763 = k_l, ss_tmp36764 = sv_len_of(cuerpo_c), (ss_tmp36763 == ss_tmp36764)));
+            if (!ss_tmp36768)
             {
-                SafeView ss_tmp36782 = cuerpo_c;
-                size_t ss_tmp36783;
-                size_t ss_tmp36784;
-#line 4111 "ejemplos/compilador/tcodec.t"
-                ss_tmp36785 = ((ss_tmp36783 = ((size_t)(unsigned char)ss_tmp36782.ptr[ss_lang_indice_(k_l, ss_tmp36782.len, "ejemplos/compilador/tcodec.t", 4111)]), ss_tmp36784 = (size_t)10, (ss_tmp36783 == ss_tmp36784)));
+                SafeView ss_tmp36765 = cuerpo_c;
+                size_t ss_tmp36766;
+                size_t ss_tmp36767;
+#line 4103 "ejemplos/compilador/tcodec.t"
+                ss_tmp36768 = ((ss_tmp36766 = ((size_t)(unsigned char)ss_tmp36765.ptr[ss_lang_indice_(k_l, ss_tmp36765.len, "ejemplos/compilador/tcodec.t", 4103)]), ss_tmp36767 = (size_t)10, (ss_tmp36766 == ss_tmp36767)));
             }
-            if (ss_tmp36785)
+            if (ss_tmp36768)
             {
-#line 4112 "ejemplos/compilador/tcodec.t"
-                ss_lista_str* ss_tmp36786 = partes;
-                SafeView ss_tmp36787;
-                size_t ss_tmp36788;
-                size_t ss_tmp36789;
-#line 4112 "ejemplos/compilador/tcodec.t"
-#line 4112 "ejemplos/compilador/tcodec.t"
-                ss_push_lista_str(ss_tmp36786, ss_from_view(((ss_tmp36787 = cuerpo_c, ss_tmp36788 = desde, ss_tmp36789 = k_l, ss_lang_rebanar_(ss_tmp36787, ss_tmp36788, ss_tmp36789, "ejemplos/compilador/tcodec.t", 4112)))), "ejemplos/compilador/tcodec.t", 4112);
-#line 4113 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp36790;
-                size_t ss_tmp36791;
-#line 4113 "ejemplos/compilador/tcodec.t"
-                desde = ((ss_tmp36790 = k_l, ss_tmp36791 = (size_t)1, ss_lang_suma_usize(ss_tmp36790, ss_tmp36791, "ejemplos/compilador/tcodec.t", 4113)));
+#line 4104 "ejemplos/compilador/tcodec.t"
+                ss_lista_str* ss_tmp36769 = partes;
+                SafeView ss_tmp36770;
+                size_t ss_tmp36771;
+                size_t ss_tmp36772;
+#line 4104 "ejemplos/compilador/tcodec.t"
+#line 4104 "ejemplos/compilador/tcodec.t"
+                ss_push_lista_str(ss_tmp36769, ss_from_view(((ss_tmp36770 = cuerpo_c, ss_tmp36771 = desde, ss_tmp36772 = k_l, ss_lang_rebanar_(ss_tmp36770, ss_tmp36771, ss_tmp36772, "ejemplos/compilador/tcodec.t", 4104)))), "ejemplos/compilador/tcodec.t", 4104);
+#line 4105 "ejemplos/compilador/tcodec.t"
+                size_t ss_tmp36773;
+                size_t ss_tmp36774;
+#line 4105 "ejemplos/compilador/tcodec.t"
+                desde = ((ss_tmp36773 = k_l, ss_tmp36774 = (size_t)1, ss_lang_suma_usize(ss_tmp36773, ss_tmp36774, "ejemplos/compilador/tcodec.t", 4105)));
             }
-#line 4115 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp36792;
-            size_t ss_tmp36793;
-#line 4115 "ejemplos/compilador/tcodec.t"
-            k_l = ((ss_tmp36792 = k_l, ss_tmp36793 = (size_t)1, ss_lang_suma_usize(ss_tmp36792, ss_tmp36793, "ejemplos/compilador/tcodec.t", 4115)));
+#line 4107 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp36775;
+            size_t ss_tmp36776;
+#line 4107 "ejemplos/compilador/tcodec.t"
+            k_l = ((ss_tmp36775 = k_l, ss_tmp36776 = (size_t)1, ss_lang_suma_usize(ss_tmp36775, ss_tmp36776, "ejemplos/compilador/tcodec.t", 4107)));
         }
-#line 4117 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp36794 = partes;
-#line 4117 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36794, ss_new(), "ejemplos/compilador/tcodec.t", 4117);
+#line 4109 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp36777 = partes;
+#line 4109 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36777, ss_new(), "ejemplos/compilador/tcodec.t", 4109);
         ss_free(&hecho);
         ss_free(&crudo);
     }
-#line 4119 "ejemplos/compilador/tcodec.t"
+#line 4111 "ejemplos/compilador/tcodec.t"
     if (usa_leer_archivo)
     {
         ayudante_leer_archivo(partes);
     }
-#line 4120 "ejemplos/compilador/tcodec.t"
+#line 4112 "ejemplos/compilador/tcodec.t"
     if (usa_leer_parte_archivo)
     {
         ayudante_leer_parte_archivo(partes);
     }
-#line 4121 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1594 = 0; ss_k1594 < (*reg).bloques.length; ss_k1594++)
+#line 4113 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1590 = 0; ss_k1590 < (*reg).bloques.length; ss_k1590++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).bloques.e[ss_k1594];
-        SafeView ss_tmp36795;
-        const Contexto* ss_tmp36796;
-        Cuenta* ss_tmp36797;
-        ss_lista_str* ss_tmp36798;
-        ((ss_tmp36795 = ss_view(x), ss_tmp36796 = global, ss_tmp36797 = cta, ss_tmp36798 = partes, funcion_bloque(ss_tmp36795, ss_tmp36796, ss_tmp36797, ss_tmp36798)));
+        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).bloques.e[ss_k1590];
+        SafeView ss_tmp36778;
+        const Contexto* ss_tmp36779;
+        Cuenta* ss_tmp36780;
+        ss_lista_str* ss_tmp36781;
+        ((ss_tmp36778 = ss_view(x), ss_tmp36779 = global, ss_tmp36780 = cta, ss_tmp36781 = partes, funcion_bloque(ss_tmp36778, ss_tmp36779, ss_tmp36780, ss_tmp36781)));
     }
-#line 4122 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1595 = 0; ss_k1595 < (*reg).listas.length; ss_k1595++)
+#line 4114 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1591 = 0; ss_k1591 < (*reg).listas.length; ss_k1591++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).listas.e[ss_k1595];
-        SafeView ss_tmp36799;
-        ss_lista_str* ss_tmp36800;
-        ((ss_tmp36799 = ss_view(x), ss_tmp36800 = partes, funcion_push(ss_tmp36799, ss_tmp36800)));
+        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).listas.e[ss_k1591];
+        SafeView ss_tmp36782;
+        ss_lista_str* ss_tmp36783;
+        ((ss_tmp36782 = ss_view(x), ss_tmp36783 = partes, funcion_push(ss_tmp36782, ss_tmp36783)));
     }
-#line 4123 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1596 = 0; ss_k1596 < (*reg).listas.length; ss_k1596++)
+#line 4115 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1592 = 0; ss_k1592 < (*reg).listas.length; ss_k1592++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).listas.e[ss_k1596];
-        SafeView ss_tmp36801;
-        ss_lista_str* ss_tmp36802;
-        ((ss_tmp36801 = ss_view(x), ss_tmp36802 = partes, funcion_ordenar(ss_tmp36801, ss_tmp36802)));
+        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).listas.e[ss_k1592];
+        SafeView ss_tmp36784;
+        ss_lista_str* ss_tmp36785;
+        ((ss_tmp36784 = ss_view(x), ss_tmp36785 = partes, funcion_ordenar(ss_tmp36784, ss_tmp36785)));
     }
-#line 4124 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1597 = 0; ss_k1597 < (*reg).mapas.length; ss_k1597++)
+#line 4116 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1593 = 0; ss_k1593 < (*reg).mapas.length; ss_k1593++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).mapas.e[ss_k1597];
-        SafeView ss_tmp36803;
-        const Contexto* ss_tmp36804;
-        const ss_mapa_str_usize* ss_tmp36805;
-        Cuenta* ss_tmp36806;
-        ss_lista_str* ss_tmp36807;
-        ((ss_tmp36803 = ss_view(x), ss_tmp36804 = global, ss_tmp36805 = con_partes, ss_tmp36806 = cta, ss_tmp36807 = partes, funcion_mapa(ss_tmp36803, ss_tmp36804, ss_tmp36805, ss_tmp36806, ss_tmp36807)));
+        SS_LANG_QUIZA_SIN_USAR const SafeString* x = &(*reg).mapas.e[ss_k1593];
+        SafeView ss_tmp36786;
+        const Contexto* ss_tmp36787;
+        const ss_mapa_str_usize* ss_tmp36788;
+        Cuenta* ss_tmp36789;
+        ss_lista_str* ss_tmp36790;
+        ((ss_tmp36786 = ss_view(x), ss_tmp36787 = global, ss_tmp36788 = con_partes, ss_tmp36789 = cta, ss_tmp36790 = partes, funcion_mapa(ss_tmp36786, ss_tmp36787, ss_tmp36788, ss_tmp36789, ss_tmp36790)));
     }
-    for (size_t ss_i1598 = 0; ss_i1598 < internas_orden.length; ss_i1598++)
+    for (size_t ss_i1594 = 0; ss_i1594 < internas_orden.length; ss_i1594++)
     {
-        ss_free(&internas_orden.e[ss_i1598]);
+        ss_free(&internas_orden.e[ss_i1594]);
     }
     free(internas_orden.e);
     internas_orden.e = NULL;
@@ -127114,386 +127049,386 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_unidad internas_del_sistema(SS_LANG_QUIZA_S
     return (ss_res_unidad){ .motivo = NULL };
 }
 
-#line 4127 "ejemplos/compilador/tcodec.t"
+#line 4119 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static void soltar_structs(SS_LANG_QUIZA_SIN_USAR ss_lista_str* partes, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* orden, SS_LANG_QUIZA_SIN_USAR const ss_mapa_str_usize* st_indice, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* st_campos, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* st_tipos, SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR Cuenta* cta)
 {
-#line 4135 "ejemplos/compilador/tcodec.t"
-    for (size_t ss_k1599 = 0; ss_k1599 < (*orden).length; ss_k1599++)
+#line 4127 "ejemplos/compilador/tcodec.t"
+    for (size_t ss_k1595 = 0; ss_k1595 < (*orden).length; ss_k1595++)
     {
-        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*orden).e[ss_k1599];
-#line 4136 "ejemplos/compilador/tcodec.t"
-        const Contexto* ss_tmp36808;
-        SafeView ss_tmp36809;
-        if ((!((ss_tmp36808 = global, ss_tmp36809 = ss_view(n), posee_con_formas(ss_tmp36808, ss_tmp36809)))))
+        SS_LANG_QUIZA_SIN_USAR const SafeString* n = &(*orden).e[ss_k1595];
+#line 4128 "ejemplos/compilador/tcodec.t"
+        const Contexto* ss_tmp36791;
+        SafeView ss_tmp36792;
+        if ((!((ss_tmp36791 = global, ss_tmp36792 = ss_view(n), posee_con_formas(ss_tmp36791, ss_tmp36792)))))
         {
             continue;
         }
-#line 4137 "ejemplos/compilador/tcodec.t"
-        const ss_mapa_str_usize* ss_tmp36811;
-        SafeView ss_tmp36812;
-#line 4137 "ejemplos/compilador/tcodec.t"
-        ss_res_usize ss_tmp36810 = ((ss_tmp36811 = st_indice, ss_tmp36812 = ss_view(n), ss_mapa_obtener_mapa_str_usize(ss_tmp36811, ss_tmp36812)));
-        size_t ss_tmp36813;
-        if (ss_tmp36810.motivo != NULL)
+#line 4129 "ejemplos/compilador/tcodec.t"
+        const ss_mapa_str_usize* ss_tmp36794;
+        SafeView ss_tmp36795;
+#line 4129 "ejemplos/compilador/tcodec.t"
+        ss_res_usize ss_tmp36793 = ((ss_tmp36794 = st_indice, ss_tmp36795 = ss_view(n), ss_mapa_obtener_mapa_str_usize(ss_tmp36794, ss_tmp36795)));
+        size_t ss_tmp36796;
+        if (ss_tmp36793.motivo != NULL)
         {
-            ss_tmp36813 = (size_t)0;
+            ss_tmp36796 = (size_t)0;
         }
         else
         {
-            ss_tmp36813 = ss_tmp36810.valor;
+            ss_tmp36796 = ss_tmp36793.valor;
         }
-        SS_LANG_QUIZA_SIN_USAR size_t k = ss_tmp36813;
-#line 4138 "ejemplos/compilador/tcodec.t"
+        SS_LANG_QUIZA_SIN_USAR size_t k = ss_tmp36796;
+#line 4130 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR Cuerpo b = cuerpo();
-#line 4139 "ejemplos/compilador/tcodec.t"
+#line 4131 "ejemplos/compilador/tcodec.t"
         b.temporal = (*cta).temporal;
-#line 4140 "ejemplos/compilador/tcodec.t"
+#line 4132 "ejemplos/compilador/tcodec.t"
         b.bucle = (*cta).bucle;
-#line 4141 "ejemplos/compilador/tcodec.t"
+#line 4133 "ejemplos/compilador/tcodec.t"
         b.etiquetas = (*cta).etiquetas;
-#line 4142 "ejemplos/compilador/tcodec.t"
+#line 4134 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t j = (size_t)0;
-#line 4143 "ejemplos/compilador/tcodec.t"
+#line 4135 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            const ss_lista_lista_str* ss_tmp36814;
-            size_t ss_tmp36815;
-            size_t ss_tmp36816;
-#line 4143 "ejemplos/compilador/tcodec.t"
-            if (!(((ss_tmp36815 = j, ss_tmp36816 = (((ss_tmp36814 = &((*st_campos)), &ss_tmp36814->e[ss_lang_indice_(k, ss_tmp36814->length, "ejemplos/compilador/tcodec.t", 4143)])[0]).length), (ss_tmp36815 < ss_tmp36816)))))
+            const ss_lista_lista_str* ss_tmp36797;
+            size_t ss_tmp36798;
+            size_t ss_tmp36799;
+#line 4135 "ejemplos/compilador/tcodec.t"
+            if (!(((ss_tmp36798 = j, ss_tmp36799 = (((ss_tmp36797 = &((*st_campos)), &ss_tmp36797->e[ss_lang_indice_(k, ss_tmp36797->length, "ejemplos/compilador/tcodec.t", 4135)])[0]).length), (ss_tmp36798 < ss_tmp36799)))))
             {
                 break;
             }
-#line 4144 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp36817 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp36817, sv_len("p->", 3), "ejemplos/compilador/tcodec.t", 4144);
-            const ss_lista_lista_str* ss_tmp36818;
-            const ss_lista_str* ss_tmp36819;
-            ss_lang_agregar_texto_(&ss_tmp36817, ss_view(&((ss_tmp36819 = &(((ss_tmp36818 = &((*st_campos)), &ss_tmp36818->e[ss_lang_indice_(k, ss_tmp36818->length, "ejemplos/compilador/tcodec.t", 4144)])[0])), &ss_tmp36819->e[ss_lang_indice_(j, ss_tmp36819->length, "ejemplos/compilador/tcodec.t", 4144)])[0])), "ejemplos/compilador/tcodec.t", 4144);
-            SS_LANG_QUIZA_SIN_USAR SafeString donde = ss_tmp36817;
-#line 4145 "ejemplos/compilador/tcodec.t"
-            Cuerpo* ss_tmp36820;
-            const Contexto* ss_tmp36821;
-            SafeView ss_tmp36822;
-            const ss_lista_lista_str* ss_tmp36823;
-            const ss_lista_str* ss_tmp36824;
-            SafeView ss_tmp36825;
-            ((ss_tmp36820 = &b, ss_tmp36821 = global, ss_tmp36822 = ss_view(&donde), ss_tmp36825 = ss_view(&((ss_tmp36824 = &(((ss_tmp36823 = &((*st_tipos)), &ss_tmp36823->e[ss_lang_indice_(k, ss_tmp36823->length, "ejemplos/compilador/tcodec.t", 4145)])[0])), &ss_tmp36824->e[ss_lang_indice_(j, ss_tmp36824->length, "ejemplos/compilador/tcodec.t", 4145)])[0])), liberacion(ss_tmp36820, ss_tmp36821, ss_tmp36822, ss_tmp36825)));
-#line 4146 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp36826;
-            size_t ss_tmp36827;
-#line 4146 "ejemplos/compilador/tcodec.t"
-            j = ((ss_tmp36826 = j, ss_tmp36827 = (size_t)1, ss_lang_suma_usize(ss_tmp36826, ss_tmp36827, "ejemplos/compilador/tcodec.t", 4146)));
+#line 4136 "ejemplos/compilador/tcodec.t"
+            SafeString ss_tmp36800 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp36800, sv_len("p->", 3), "ejemplos/compilador/tcodec.t", 4136);
+            const ss_lista_lista_str* ss_tmp36801;
+            const ss_lista_str* ss_tmp36802;
+            ss_lang_agregar_texto_(&ss_tmp36800, ss_view(&((ss_tmp36802 = &(((ss_tmp36801 = &((*st_campos)), &ss_tmp36801->e[ss_lang_indice_(k, ss_tmp36801->length, "ejemplos/compilador/tcodec.t", 4136)])[0])), &ss_tmp36802->e[ss_lang_indice_(j, ss_tmp36802->length, "ejemplos/compilador/tcodec.t", 4136)])[0])), "ejemplos/compilador/tcodec.t", 4136);
+            SS_LANG_QUIZA_SIN_USAR SafeString donde = ss_tmp36800;
+#line 4137 "ejemplos/compilador/tcodec.t"
+            Cuerpo* ss_tmp36803;
+            const Contexto* ss_tmp36804;
+            SafeView ss_tmp36805;
+            const ss_lista_lista_str* ss_tmp36806;
+            const ss_lista_str* ss_tmp36807;
+            SafeView ss_tmp36808;
+            ((ss_tmp36803 = &b, ss_tmp36804 = global, ss_tmp36805 = ss_view(&donde), ss_tmp36808 = ss_view(&((ss_tmp36807 = &(((ss_tmp36806 = &((*st_tipos)), &ss_tmp36806->e[ss_lang_indice_(k, ss_tmp36806->length, "ejemplos/compilador/tcodec.t", 4137)])[0])), &ss_tmp36807->e[ss_lang_indice_(j, ss_tmp36807->length, "ejemplos/compilador/tcodec.t", 4137)])[0])), liberacion(ss_tmp36803, ss_tmp36804, ss_tmp36805, ss_tmp36808)));
+#line 4138 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp36809;
+            size_t ss_tmp36810;
+#line 4138 "ejemplos/compilador/tcodec.t"
+            j = ((ss_tmp36809 = j, ss_tmp36810 = (size_t)1, ss_lang_suma_usize(ss_tmp36809, ss_tmp36810, "ejemplos/compilador/tcodec.t", 4138)));
             ss_free(&donde);
         }
-#line 4148 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp36828 = partes;
-#line 4148 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36828, ss_from_view(sv_len("SS_LANG_QUIZA_SIN_USAR", 22)), "ejemplos/compilador/tcodec.t", 4148);
-#line 4149 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp36829 = partes;
-        SafeString ss_tmp36830 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp36830, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 4149);
-        ss_lang_agregar_texto_(&ss_tmp36830, ss_view(n), "ejemplos/compilador/tcodec.t", 4149);
-        ss_lang_agregar_texto_(&ss_tmp36830, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 4149);
-        ss_lang_agregar_texto_(&ss_tmp36830, ss_view(n), "ejemplos/compilador/tcodec.t", 4149);
-        ss_lang_agregar_texto_(&ss_tmp36830, sv_len("* p)", 4), "ejemplos/compilador/tcodec.t", 4149);
-#line 4149 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36829, ss_tmp36830, "ejemplos/compilador/tcodec.t", 4149);
-#line 4150 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp36831 = partes;
-#line 4150 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36831, ss_from_view(sv_len("{", 1)), "ejemplos/compilador/tcodec.t", 4150);
-#line 4151 "ejemplos/compilador/tcodec.t"
-        for (size_t ss_k1600 = 0; ss_k1600 < b.lineas.length; ss_k1600++)
+#line 4140 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp36811 = partes;
+#line 4140 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36811, ss_from_view(sv_len("SS_LANG_QUIZA_SIN_USAR", 22)), "ejemplos/compilador/tcodec.t", 4140);
+#line 4141 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp36812 = partes;
+        SafeString ss_tmp36813 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp36813, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 4141);
+        ss_lang_agregar_texto_(&ss_tmp36813, ss_view(n), "ejemplos/compilador/tcodec.t", 4141);
+        ss_lang_agregar_texto_(&ss_tmp36813, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 4141);
+        ss_lang_agregar_texto_(&ss_tmp36813, ss_view(n), "ejemplos/compilador/tcodec.t", 4141);
+        ss_lang_agregar_texto_(&ss_tmp36813, sv_len("* p)", 4), "ejemplos/compilador/tcodec.t", 4141);
+#line 4141 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36812, ss_tmp36813, "ejemplos/compilador/tcodec.t", 4141);
+#line 4142 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp36814 = partes;
+#line 4142 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36814, ss_from_view(sv_len("{", 1)), "ejemplos/compilador/tcodec.t", 4142);
+#line 4143 "ejemplos/compilador/tcodec.t"
+        for (size_t ss_k1596 = 0; ss_k1596 < b.lineas.length; ss_k1596++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* l = &b.lineas.e[ss_k1600];
-            ss_lista_str* ss_tmp36832 = partes;
-#line 4151 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36832, ss_clone(l), "ejemplos/compilador/tcodec.t", 4151);
+            SS_LANG_QUIZA_SIN_USAR const SafeString* l = &b.lineas.e[ss_k1596];
+            ss_lista_str* ss_tmp36815 = partes;
+#line 4143 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36815, ss_clone(l), "ejemplos/compilador/tcodec.t", 4143);
         }
-#line 4152 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp36833 = partes;
-#line 4152 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36833, ss_from_view(sv_len("}", 1)), "ejemplos/compilador/tcodec.t", 4152);
-#line 4153 "ejemplos/compilador/tcodec.t"
-        ss_lista_str* ss_tmp36834 = partes;
-#line 4153 "ejemplos/compilador/tcodec.t"
-        ss_push_lista_str(ss_tmp36834, ss_new(), "ejemplos/compilador/tcodec.t", 4153);
-#line 4154 "ejemplos/compilador/tcodec.t"
+#line 4144 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp36816 = partes;
+#line 4144 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36816, ss_from_view(sv_len("}", 1)), "ejemplos/compilador/tcodec.t", 4144);
+#line 4145 "ejemplos/compilador/tcodec.t"
+        ss_lista_str* ss_tmp36817 = partes;
+#line 4145 "ejemplos/compilador/tcodec.t"
+        ss_push_lista_str(ss_tmp36817, ss_new(), "ejemplos/compilador/tcodec.t", 4145);
+#line 4146 "ejemplos/compilador/tcodec.t"
         (*cta).temporal = b.temporal;
-#line 4155 "ejemplos/compilador/tcodec.t"
+#line 4147 "ejemplos/compilador/tcodec.t"
         (*cta).bucle = b.bucle;
-#line 4156 "ejemplos/compilador/tcodec.t"
+#line 4148 "ejemplos/compilador/tcodec.t"
         (*cta).etiquetas = b.etiquetas;
         ss_drop_Cuerpo(&b);
     }
 }
 
-#line 4160 "ejemplos/compilador/tcodec.t"
+#line 4152 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static void soltar_enums(SS_LANG_QUIZA_SIN_USAR ss_lista_str* partes, SS_LANG_QUIZA_SIN_USAR const ss_lista_str* en_nombres, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* en_variantes, SS_LANG_QUIZA_SIN_USAR const ss_lista_lista_str* en_lleva, SS_LANG_QUIZA_SIN_USAR const Contexto* global, SS_LANG_QUIZA_SIN_USAR Cuenta* cta)
 {
-#line 4167 "ejemplos/compilador/tcodec.t"
+#line 4159 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t ie_d = (size_t)0;
-#line 4168 "ejemplos/compilador/tcodec.t"
+#line 4160 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36835;
-        size_t ss_tmp36836;
-#line 4168 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp36835 = ie_d, ss_tmp36836 = ((*en_nombres).length), (ss_tmp36835 < ss_tmp36836)))))
+        size_t ss_tmp36818;
+        size_t ss_tmp36819;
+#line 4160 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp36818 = ie_d, ss_tmp36819 = ((*en_nombres).length), (ss_tmp36818 < ss_tmp36819)))))
         {
             break;
         }
-#line 4169 "ejemplos/compilador/tcodec.t"
-        const ss_lista_str* ss_tmp36837;
-        SS_LANG_QUIZA_SIN_USAR SafeString en_n = ss_clone(&((ss_tmp36837 = &((*en_nombres)), &ss_tmp36837->e[ss_lang_indice_(ie_d, ss_tmp36837->length, "ejemplos/compilador/tcodec.t", 4169)])[0]));
-#line 4170 "ejemplos/compilador/tcodec.t"
-        const Contexto* ss_tmp36838;
-        SafeView ss_tmp36839;
-        if (((ss_tmp36838 = global, ss_tmp36839 = ss_view(&en_n), posee_con_formas(ss_tmp36838, ss_tmp36839))))
+#line 4161 "ejemplos/compilador/tcodec.t"
+        const ss_lista_str* ss_tmp36820;
+        SS_LANG_QUIZA_SIN_USAR SafeString en_n = ss_clone(&((ss_tmp36820 = &((*en_nombres)), &ss_tmp36820->e[ss_lang_indice_(ie_d, ss_tmp36820->length, "ejemplos/compilador/tcodec.t", 4161)])[0]));
+#line 4162 "ejemplos/compilador/tcodec.t"
+        const Contexto* ss_tmp36821;
+        SafeView ss_tmp36822;
+        if (((ss_tmp36821 = global, ss_tmp36822 = ss_view(&en_n), posee_con_formas(ss_tmp36821, ss_tmp36822))))
         {
-#line 4171 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36840 = partes;
-#line 4171 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36840, ss_from_view(sv_len("SS_LANG_QUIZA_SIN_USAR", 22)), "ejemplos/compilador/tcodec.t", 4171);
-#line 4172 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36841 = partes;
-            SafeString ss_tmp36842 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp36842, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 4172);
-            ss_lang_agregar_texto_(&ss_tmp36842, ss_view(&en_n), "ejemplos/compilador/tcodec.t", 4172);
-            ss_lang_agregar_texto_(&ss_tmp36842, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 4172);
-            ss_lang_agregar_texto_(&ss_tmp36842, ss_view(&en_n), "ejemplos/compilador/tcodec.t", 4172);
-            ss_lang_agregar_texto_(&ss_tmp36842, sv_len("* p)", 4), "ejemplos/compilador/tcodec.t", 4172);
-#line 4172 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36841, ss_tmp36842, "ejemplos/compilador/tcodec.t", 4172);
-#line 4173 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36843 = partes;
-#line 4173 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36843, ss_from_view(sv_len("{", 1)), "ejemplos/compilador/tcodec.t", 4173);
-#line 4174 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36844 = partes;
-#line 4174 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36844, ss_from_view(sv_len("    switch (p->etiqueta)", 24)), "ejemplos/compilador/tcodec.t", 4174);
-#line 4175 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36845 = partes;
-#line 4175 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36845, ss_from_view(sv_len("    {", 5)), "ejemplos/compilador/tcodec.t", 4175);
-#line 4176 "ejemplos/compilador/tcodec.t"
+#line 4163 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36823 = partes;
+#line 4163 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36823, ss_from_view(sv_len("SS_LANG_QUIZA_SIN_USAR", 22)), "ejemplos/compilador/tcodec.t", 4163);
+#line 4164 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36824 = partes;
+            SafeString ss_tmp36825 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp36825, sv_len("static void ss_drop_", 20), "ejemplos/compilador/tcodec.t", 4164);
+            ss_lang_agregar_texto_(&ss_tmp36825, ss_view(&en_n), "ejemplos/compilador/tcodec.t", 4164);
+            ss_lang_agregar_texto_(&ss_tmp36825, sv_len("(", 1), "ejemplos/compilador/tcodec.t", 4164);
+            ss_lang_agregar_texto_(&ss_tmp36825, ss_view(&en_n), "ejemplos/compilador/tcodec.t", 4164);
+            ss_lang_agregar_texto_(&ss_tmp36825, sv_len("* p)", 4), "ejemplos/compilador/tcodec.t", 4164);
+#line 4164 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36824, ss_tmp36825, "ejemplos/compilador/tcodec.t", 4164);
+#line 4165 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36826 = partes;
+#line 4165 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36826, ss_from_view(sv_len("{", 1)), "ejemplos/compilador/tcodec.t", 4165);
+#line 4166 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36827 = partes;
+#line 4166 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36827, ss_from_view(sv_len("    switch (p->etiqueta)", 24)), "ejemplos/compilador/tcodec.t", 4166);
+#line 4167 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36828 = partes;
+#line 4167 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36828, ss_from_view(sv_len("    {", 5)), "ejemplos/compilador/tcodec.t", 4167);
+#line 4168 "ejemplos/compilador/tcodec.t"
             SS_LANG_QUIZA_SIN_USAR size_t iv = (size_t)0;
-#line 4177 "ejemplos/compilador/tcodec.t"
+#line 4169 "ejemplos/compilador/tcodec.t"
             while (true)
             {
-                const ss_lista_lista_str* ss_tmp36846;
-                size_t ss_tmp36847;
-                size_t ss_tmp36848;
-#line 4177 "ejemplos/compilador/tcodec.t"
-                if (!(((ss_tmp36847 = iv, ss_tmp36848 = (((ss_tmp36846 = &((*en_variantes)), &ss_tmp36846->e[ss_lang_indice_(ie_d, ss_tmp36846->length, "ejemplos/compilador/tcodec.t", 4177)])[0]).length), (ss_tmp36847 < ss_tmp36848)))))
+                const ss_lista_lista_str* ss_tmp36829;
+                size_t ss_tmp36830;
+                size_t ss_tmp36831;
+#line 4169 "ejemplos/compilador/tcodec.t"
+                if (!(((ss_tmp36830 = iv, ss_tmp36831 = (((ss_tmp36829 = &((*en_variantes)), &ss_tmp36829->e[ss_lang_indice_(ie_d, ss_tmp36829->length, "ejemplos/compilador/tcodec.t", 4169)])[0]).length), (ss_tmp36830 < ss_tmp36831)))))
                 {
                     break;
                 }
-#line 4178 "ejemplos/compilador/tcodec.t"
-                const ss_lista_lista_str* ss_tmp36849;
-                const ss_lista_str* ss_tmp36850;
-                SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_v = partir_tab(ss_view(&((ss_tmp36850 = &(((ss_tmp36849 = &((*en_lleva)), &ss_tmp36849->e[ss_lang_indice_(ie_d, ss_tmp36849->length, "ejemplos/compilador/tcodec.t", 4178)])[0])), &ss_tmp36850->e[ss_lang_indice_(iv, ss_tmp36850->length, "ejemplos/compilador/tcodec.t", 4178)])[0])));
-#line 4179 "ejemplos/compilador/tcodec.t"
+#line 4170 "ejemplos/compilador/tcodec.t"
+                const ss_lista_lista_str* ss_tmp36832;
+                const ss_lista_str* ss_tmp36833;
+                SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_v = partir_tab(ss_view(&((ss_tmp36833 = &(((ss_tmp36832 = &((*en_lleva)), &ss_tmp36832->e[ss_lang_indice_(ie_d, ss_tmp36832->length, "ejemplos/compilador/tcodec.t", 4170)])[0])), &ss_tmp36833->e[ss_lang_indice_(iv, ss_tmp36833->length, "ejemplos/compilador/tcodec.t", 4170)])[0])));
+#line 4171 "ejemplos/compilador/tcodec.t"
                 SS_LANG_QUIZA_SIN_USAR bool alguna = false;
-#line 4180 "ejemplos/compilador/tcodec.t"
-                for (size_t ss_k1601 = 0; ss_k1601 < tipos_v.length; ss_k1601++)
+#line 4172 "ejemplos/compilador/tcodec.t"
+                for (size_t ss_k1597 = 0; ss_k1597 < tipos_v.length; ss_k1597++)
                 {
-                    SS_LANG_QUIZA_SIN_USAR const SafeString* tt = &tipos_v.e[ss_k1601];
-#line 4181 "ejemplos/compilador/tcodec.t"
-                    const Contexto* ss_tmp36851;
-                    SafeView ss_tmp36852;
-                    if (((ss_tmp36851 = global, ss_tmp36852 = ss_view(tt), posee_con_formas(ss_tmp36851, ss_tmp36852))))
+                    SS_LANG_QUIZA_SIN_USAR const SafeString* tt = &tipos_v.e[ss_k1597];
+#line 4173 "ejemplos/compilador/tcodec.t"
+                    const Contexto* ss_tmp36834;
+                    SafeView ss_tmp36835;
+                    if (((ss_tmp36834 = global, ss_tmp36835 = ss_view(tt), posee_con_formas(ss_tmp36834, ss_tmp36835))))
                     {
                         alguna = true;
                     }
                 }
-#line 4183 "ejemplos/compilador/tcodec.t"
+#line 4175 "ejemplos/compilador/tcodec.t"
                 if (alguna)
                 {
-#line 4184 "ejemplos/compilador/tcodec.t"
-                    SafeView ss_tmp36853;
-                    const ss_lista_lista_str* ss_tmp36854;
-                    const ss_lista_str* ss_tmp36855;
-                    SafeView ss_tmp36856;
-                    SS_LANG_QUIZA_SIN_USAR SafeString etq = ((ss_tmp36853 = ss_view(&en_n), ss_tmp36856 = ss_view(&((ss_tmp36855 = &(((ss_tmp36854 = &((*en_variantes)), &ss_tmp36854->e[ss_lang_indice_(ie_d, ss_tmp36854->length, "ejemplos/compilador/tcodec.t", 4184)])[0])), &ss_tmp36855->e[ss_lang_indice_(iv, ss_tmp36855->length, "ejemplos/compilador/tcodec.t", 4184)])[0])), etiqueta(ss_tmp36853, ss_tmp36856)));
-#line 4185 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp36857 = partes;
-                    SafeString ss_tmp36858 = ss_new();
-                    ss_lang_agregar_texto_(&ss_tmp36858, sv_len("    case ", 9), "ejemplos/compilador/tcodec.t", 4185);
-                    ss_lang_agregar_texto_(&ss_tmp36858, ss_view(&etq), "ejemplos/compilador/tcodec.t", 4185);
-                    ss_lang_agregar_texto_(&ss_tmp36858, sv_len(":", 1), "ejemplos/compilador/tcodec.t", 4185);
-#line 4185 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp36857, ss_tmp36858, "ejemplos/compilador/tcodec.t", 4185);
-#line 4186 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp36859 = partes;
-#line 4186 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp36859, ss_from_view(sv_len("    {", 5)), "ejemplos/compilador/tcodec.t", 4186);
-#line 4187 "ejemplos/compilador/tcodec.t"
+#line 4176 "ejemplos/compilador/tcodec.t"
+                    SafeView ss_tmp36836;
+                    const ss_lista_lista_str* ss_tmp36837;
+                    const ss_lista_str* ss_tmp36838;
+                    SafeView ss_tmp36839;
+                    SS_LANG_QUIZA_SIN_USAR SafeString etq = ((ss_tmp36836 = ss_view(&en_n), ss_tmp36839 = ss_view(&((ss_tmp36838 = &(((ss_tmp36837 = &((*en_variantes)), &ss_tmp36837->e[ss_lang_indice_(ie_d, ss_tmp36837->length, "ejemplos/compilador/tcodec.t", 4176)])[0])), &ss_tmp36838->e[ss_lang_indice_(iv, ss_tmp36838->length, "ejemplos/compilador/tcodec.t", 4176)])[0])), etiqueta(ss_tmp36836, ss_tmp36839)));
+#line 4177 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str* ss_tmp36840 = partes;
+                    SafeString ss_tmp36841 = ss_new();
+                    ss_lang_agregar_texto_(&ss_tmp36841, sv_len("    case ", 9), "ejemplos/compilador/tcodec.t", 4177);
+                    ss_lang_agregar_texto_(&ss_tmp36841, ss_view(&etq), "ejemplos/compilador/tcodec.t", 4177);
+                    ss_lang_agregar_texto_(&ss_tmp36841, sv_len(":", 1), "ejemplos/compilador/tcodec.t", 4177);
+#line 4177 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_str(ss_tmp36840, ss_tmp36841, "ejemplos/compilador/tcodec.t", 4177);
+#line 4178 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str* ss_tmp36842 = partes;
+#line 4178 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_str(ss_tmp36842, ss_from_view(sv_len("    {", 5)), "ejemplos/compilador/tcodec.t", 4178);
+#line 4179 "ejemplos/compilador/tcodec.t"
                     SS_LANG_QUIZA_SIN_USAR size_t q = (size_t)0;
-#line 4188 "ejemplos/compilador/tcodec.t"
+#line 4180 "ejemplos/compilador/tcodec.t"
                     while (true)
                     {
-                        size_t ss_tmp36860;
-                        size_t ss_tmp36861;
-#line 4188 "ejemplos/compilador/tcodec.t"
-                        if (!(((ss_tmp36860 = q, ss_tmp36861 = (tipos_v.length), (ss_tmp36860 < ss_tmp36861)))))
+                        size_t ss_tmp36843;
+                        size_t ss_tmp36844;
+#line 4180 "ejemplos/compilador/tcodec.t"
+                        if (!(((ss_tmp36843 = q, ss_tmp36844 = (tipos_v.length), (ss_tmp36843 < ss_tmp36844)))))
                         {
                             break;
                         }
-#line 4189 "ejemplos/compilador/tcodec.t"
-                        const Contexto* ss_tmp36862;
-                        ss_lista_str* ss_tmp36863;
-                        SafeView ss_tmp36864;
-                        if (((ss_tmp36862 = global, ss_tmp36864 = ss_view(&((ss_tmp36863 = &(tipos_v), &ss_tmp36863->e[ss_lang_indice_(q, ss_tmp36863->length, "ejemplos/compilador/tcodec.t", 4189)])[0])), posee_con_formas(ss_tmp36862, ss_tmp36864))))
+#line 4181 "ejemplos/compilador/tcodec.t"
+                        const Contexto* ss_tmp36845;
+                        ss_lista_str* ss_tmp36846;
+                        SafeView ss_tmp36847;
+                        if (((ss_tmp36845 = global, ss_tmp36847 = ss_view(&((ss_tmp36846 = &(tipos_v), &ss_tmp36846->e[ss_lang_indice_(q, ss_tmp36846->length, "ejemplos/compilador/tcodec.t", 4181)])[0])), posee_con_formas(ss_tmp36845, ss_tmp36847))))
                         {
-#line 4190 "ejemplos/compilador/tcodec.t"
-                            SafeString ss_tmp36865 = ss_new();
-                            ss_lang_agregar_texto_(&ss_tmp36865, sv_len("p->dato.v_", 10), "ejemplos/compilador/tcodec.t", 4190);
-                            const ss_lista_lista_str* ss_tmp36866;
-                            const ss_lista_str* ss_tmp36867;
-                            ss_lang_agregar_texto_(&ss_tmp36865, ss_view(&((ss_tmp36867 = &(((ss_tmp36866 = &((*en_variantes)), &ss_tmp36866->e[ss_lang_indice_(ie_d, ss_tmp36866->length, "ejemplos/compilador/tcodec.t", 4190)])[0])), &ss_tmp36867->e[ss_lang_indice_(iv, ss_tmp36867->length, "ejemplos/compilador/tcodec.t", 4190)])[0])), "ejemplos/compilador/tcodec.t", 4190);
-                            ss_lang_agregar_texto_(&ss_tmp36865, sv_len("._", 2), "ejemplos/compilador/tcodec.t", 4190);
-                            SafeString ss_tmp36868 = ss_lang_texto_usize_(q, "ejemplos/compilador/tcodec.t", 4190);
-                            ss_lang_agregar_texto_(&ss_tmp36865, ss_view(&ss_tmp36868), "ejemplos/compilador/tcodec.t", 4190);
-                            SS_LANG_QUIZA_SIN_USAR SafeString donde = ss_tmp36865;
-                            ss_free(&ss_tmp36868);
-#line 4191 "ejemplos/compilador/tcodec.t"
-                            const Contexto* ss_tmp36869;
-                            SafeView ss_tmp36870;
-                            ss_lista_str* ss_tmp36871;
-                            SafeView ss_tmp36872;
-                            size_t ss_tmp36873;
-                            Cuenta* ss_tmp36874;
-                            ss_lista_str* ss_tmp36875;
-                            ((ss_tmp36869 = global, ss_tmp36870 = ss_view(&donde), ss_tmp36872 = ss_view(&((ss_tmp36871 = &(tipos_v), &ss_tmp36871->e[ss_lang_indice_(q, ss_tmp36871->length, "ejemplos/compilador/tcodec.t", 4191)])[0])), ss_tmp36873 = (size_t)2, ss_tmp36874 = cta, ss_tmp36875 = partes, lineas_liberacion(ss_tmp36869, ss_tmp36870, ss_tmp36872, ss_tmp36873, ss_tmp36874, ss_tmp36875)));
+#line 4182 "ejemplos/compilador/tcodec.t"
+                            SafeString ss_tmp36848 = ss_new();
+                            ss_lang_agregar_texto_(&ss_tmp36848, sv_len("p->dato.v_", 10), "ejemplos/compilador/tcodec.t", 4182);
+                            const ss_lista_lista_str* ss_tmp36849;
+                            const ss_lista_str* ss_tmp36850;
+                            ss_lang_agregar_texto_(&ss_tmp36848, ss_view(&((ss_tmp36850 = &(((ss_tmp36849 = &((*en_variantes)), &ss_tmp36849->e[ss_lang_indice_(ie_d, ss_tmp36849->length, "ejemplos/compilador/tcodec.t", 4182)])[0])), &ss_tmp36850->e[ss_lang_indice_(iv, ss_tmp36850->length, "ejemplos/compilador/tcodec.t", 4182)])[0])), "ejemplos/compilador/tcodec.t", 4182);
+                            ss_lang_agregar_texto_(&ss_tmp36848, sv_len("._", 2), "ejemplos/compilador/tcodec.t", 4182);
+                            SafeString ss_tmp36851 = ss_lang_texto_usize_(q, "ejemplos/compilador/tcodec.t", 4182);
+                            ss_lang_agregar_texto_(&ss_tmp36848, ss_view(&ss_tmp36851), "ejemplos/compilador/tcodec.t", 4182);
+                            SS_LANG_QUIZA_SIN_USAR SafeString donde = ss_tmp36848;
+                            ss_free(&ss_tmp36851);
+#line 4183 "ejemplos/compilador/tcodec.t"
+                            const Contexto* ss_tmp36852;
+                            SafeView ss_tmp36853;
+                            ss_lista_str* ss_tmp36854;
+                            SafeView ss_tmp36855;
+                            size_t ss_tmp36856;
+                            Cuenta* ss_tmp36857;
+                            ss_lista_str* ss_tmp36858;
+                            ((ss_tmp36852 = global, ss_tmp36853 = ss_view(&donde), ss_tmp36855 = ss_view(&((ss_tmp36854 = &(tipos_v), &ss_tmp36854->e[ss_lang_indice_(q, ss_tmp36854->length, "ejemplos/compilador/tcodec.t", 4183)])[0])), ss_tmp36856 = (size_t)2, ss_tmp36857 = cta, ss_tmp36858 = partes, lineas_liberacion(ss_tmp36852, ss_tmp36853, ss_tmp36855, ss_tmp36856, ss_tmp36857, ss_tmp36858)));
                             ss_free(&donde);
                         }
-#line 4194 "ejemplos/compilador/tcodec.t"
-                        size_t ss_tmp36876;
-                        size_t ss_tmp36877;
-#line 4194 "ejemplos/compilador/tcodec.t"
-                        q = ((ss_tmp36876 = q, ss_tmp36877 = (size_t)1, ss_lang_suma_usize(ss_tmp36876, ss_tmp36877, "ejemplos/compilador/tcodec.t", 4194)));
+#line 4186 "ejemplos/compilador/tcodec.t"
+                        size_t ss_tmp36859;
+                        size_t ss_tmp36860;
+#line 4186 "ejemplos/compilador/tcodec.t"
+                        q = ((ss_tmp36859 = q, ss_tmp36860 = (size_t)1, ss_lang_suma_usize(ss_tmp36859, ss_tmp36860, "ejemplos/compilador/tcodec.t", 4186)));
                     }
-#line 4196 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp36878 = partes;
-#line 4196 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp36878, ss_from_view(sv_len("        break;", 14)), "ejemplos/compilador/tcodec.t", 4196);
-#line 4197 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp36879 = partes;
-#line 4197 "ejemplos/compilador/tcodec.t"
-                    ss_push_lista_str(ss_tmp36879, ss_from_view(sv_len("    }", 5)), "ejemplos/compilador/tcodec.t", 4197);
+#line 4188 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str* ss_tmp36861 = partes;
+#line 4188 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_str(ss_tmp36861, ss_from_view(sv_len("        break;", 14)), "ejemplos/compilador/tcodec.t", 4188);
+#line 4189 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str* ss_tmp36862 = partes;
+#line 4189 "ejemplos/compilador/tcodec.t"
+                    ss_push_lista_str(ss_tmp36862, ss_from_view(sv_len("    }", 5)), "ejemplos/compilador/tcodec.t", 4189);
                     ss_free(&etq);
                 }
-#line 4199 "ejemplos/compilador/tcodec.t"
-                size_t ss_tmp36880;
-                size_t ss_tmp36881;
-#line 4199 "ejemplos/compilador/tcodec.t"
-                iv = ((ss_tmp36880 = iv, ss_tmp36881 = (size_t)1, ss_lang_suma_usize(ss_tmp36880, ss_tmp36881, "ejemplos/compilador/tcodec.t", 4199)));
-                for (size_t ss_i1602 = 0; ss_i1602 < tipos_v.length; ss_i1602++)
+#line 4191 "ejemplos/compilador/tcodec.t"
+                size_t ss_tmp36863;
+                size_t ss_tmp36864;
+#line 4191 "ejemplos/compilador/tcodec.t"
+                iv = ((ss_tmp36863 = iv, ss_tmp36864 = (size_t)1, ss_lang_suma_usize(ss_tmp36863, ss_tmp36864, "ejemplos/compilador/tcodec.t", 4191)));
+                for (size_t ss_i1598 = 0; ss_i1598 < tipos_v.length; ss_i1598++)
                 {
-                    ss_free(&tipos_v.e[ss_i1602]);
+                    ss_free(&tipos_v.e[ss_i1598]);
                 }
                 free(tipos_v.e);
                 tipos_v.e = NULL;
                 tipos_v.length = 0;
                 tipos_v.capacity = 0;
             }
-#line 4201 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36882 = partes;
-#line 4201 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36882, ss_from_view(sv_len("    default: break;", 19)), "ejemplos/compilador/tcodec.t", 4201);
-#line 4202 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36883 = partes;
-#line 4202 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36883, ss_from_view(sv_len("    }", 5)), "ejemplos/compilador/tcodec.t", 4202);
-#line 4203 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36884 = partes;
-#line 4203 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36884, ss_from_view(sv_len("}", 1)), "ejemplos/compilador/tcodec.t", 4203);
-#line 4204 "ejemplos/compilador/tcodec.t"
-            ss_lista_str* ss_tmp36885 = partes;
-#line 4204 "ejemplos/compilador/tcodec.t"
-            ss_push_lista_str(ss_tmp36885, ss_new(), "ejemplos/compilador/tcodec.t", 4204);
+#line 4193 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36865 = partes;
+#line 4193 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36865, ss_from_view(sv_len("    default: break;", 19)), "ejemplos/compilador/tcodec.t", 4193);
+#line 4194 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36866 = partes;
+#line 4194 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36866, ss_from_view(sv_len("    }", 5)), "ejemplos/compilador/tcodec.t", 4194);
+#line 4195 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36867 = partes;
+#line 4195 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36867, ss_from_view(sv_len("}", 1)), "ejemplos/compilador/tcodec.t", 4195);
+#line 4196 "ejemplos/compilador/tcodec.t"
+            ss_lista_str* ss_tmp36868 = partes;
+#line 4196 "ejemplos/compilador/tcodec.t"
+            ss_push_lista_str(ss_tmp36868, ss_new(), "ejemplos/compilador/tcodec.t", 4196);
         }
-#line 4206 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36886;
-        size_t ss_tmp36887;
-#line 4206 "ejemplos/compilador/tcodec.t"
-        ie_d = ((ss_tmp36886 = ie_d, ss_tmp36887 = (size_t)1, ss_lang_suma_usize(ss_tmp36886, ss_tmp36887, "ejemplos/compilador/tcodec.t", 4206)));
+#line 4198 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36869;
+        size_t ss_tmp36870;
+#line 4198 "ejemplos/compilador/tcodec.t"
+        ie_d = ((ss_tmp36869 = ie_d, ss_tmp36870 = (size_t)1, ss_lang_suma_usize(ss_tmp36869, ss_tmp36870, "ejemplos/compilador/tcodec.t", 4198)));
         ss_free(&en_n);
     }
 }
 
-#line 4210 "ejemplos/compilador/tcodec.t"
+#line 4202 "ejemplos/compilador/tcodec.t"
 SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
 {
-#line 4212 "ejemplos/compilador/tcodec.t"
+#line 4204 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR int32_t _pila = tcodec_pila_honda();
-#line 4213 "ejemplos/compilador/tcodec.t"
+#line 4205 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR Opciones opciones = leer_opciones();
-#line 4214 "ejemplos/compilador/tcodec.t"
+#line 4206 "ejemplos/compilador/tcodec.t"
     if (opciones.terminar)
     {
-        size_t ss_tmp36888 = opciones.codigo;
+        size_t ss_tmp36871 = opciones.codigo;
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36888 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36871 };
     }
-#line 4215 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp36889;
-    SafeView ss_tmp36890;
-    if (((ss_tmp36889 = ss_view(&opciones.modo), ss_tmp36890 = sv_len("formatear", 9), sv_equals(ss_tmp36889, ss_tmp36890))))
+#line 4207 "ejemplos/compilador/tcodec.t"
+    SafeView ss_tmp36872;
+    SafeView ss_tmp36873;
+    if (((ss_tmp36872 = ss_view(&opciones.modo), ss_tmp36873 = sv_len("formatear", 9), sv_equals(ss_tmp36872, ss_tmp36873))))
     {
-#line 4216 "ejemplos/compilador/tcodec.t"
-        SafeView ss_tmp36891;
-        bool ss_tmp36892;
-        size_t ss_tmp36893 = ((ss_tmp36891 = ss_view(&opciones.fuente), ss_tmp36892 = opciones.escribir, formatear_archivo(ss_tmp36891, ss_tmp36892)));
+#line 4208 "ejemplos/compilador/tcodec.t"
+        SafeView ss_tmp36874;
+        bool ss_tmp36875;
+        size_t ss_tmp36876 = ((ss_tmp36874 = ss_view(&opciones.fuente), ss_tmp36875 = opciones.escribir, formatear_archivo(ss_tmp36874, ss_tmp36875)));
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36893 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36876 };
     }
-#line 4218 "ejemplos/compilador/tcodec.t"
+#line 4210 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString fuente = ss_clone(&opciones.fuente);
-#line 4219 "ejemplos/compilador/tcodec.t"
+#line 4211 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString salida = ss_clone(&opciones.salida);
-#line 4220 "ejemplos/compilador/tcodec.t"
+#line 4212 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString nivel = ss_clone(&opciones.nivel);
-#line 4221 "ejemplos/compilador/tcodec.t"
+#line 4213 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString cc = ss_clone(&opciones.cc);
-#line 4222 "ejemplos/compilador/tcodec.t"
+#line 4214 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR SafeString modo = ss_clone(&opciones.modo);
-#line 4223 "ejemplos/compilador/tcodec.t"
+#line 4215 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR bool sin_avisos = opciones.sin_avisos;
-#line 4224 "ejemplos/compilador/tcodec.t"
+#line 4216 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR bool avisos_como_errores = opciones.avisos_como_errores;
-#line 4226 "ejemplos/compilador/tcodec.t"
-    ss_res_str ss_tmp36894 = ss_lang_variable_entorno_(sv_len("TCODE_RAIZ", 10));
-    SafeString ss_tmp36895;
-    if (ss_tmp36894.motivo != NULL)
+#line 4218 "ejemplos/compilador/tcodec.t"
+    ss_res_str ss_tmp36877 = ss_lang_variable_entorno_(sv_len("TCODE_RAIZ", 10));
+    SafeString ss_tmp36878;
+    if (ss_tmp36877.motivo != NULL)
     {
-        ss_tmp36895 = raiz_instalada();
+        ss_tmp36878 = raiz_instalada();
     }
     else
     {
-        ss_tmp36895 = ss_tmp36894.valor;
+        ss_tmp36878 = ss_tmp36877.valor;
     }
-    SS_LANG_QUIZA_SIN_USAR SafeString raiz = ss_tmp36895;
-#line 4227 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp36896;
-    size_t ss_tmp36897;
-#line 4227 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp36896 = sv_len_of(ss_view(&raiz)), ss_tmp36897 = (size_t)0, (ss_tmp36896 == ss_tmp36897))))
+    SS_LANG_QUIZA_SIN_USAR SafeString raiz = ss_tmp36878;
+#line 4219 "ejemplos/compilador/tcodec.t"
+    size_t ss_tmp36879;
+    size_t ss_tmp36880;
+#line 4219 "ejemplos/compilador/tcodec.t"
+    if (((ss_tmp36879 = sv_len_of(ss_view(&raiz)), ss_tmp36880 = (size_t)0, (ss_tmp36879 == ss_tmp36880))))
     {
-        SafeString ss_tmp36898 = ss_from_view(sv_len(".", 1));
+        SafeString ss_tmp36881 = ss_from_view(sv_len(".", 1));
         ss_free(&raiz);
-        raiz = ss_tmp36898;
+        raiz = ss_tmp36881;
     }
-#line 4228 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp36900;
-    SafeView ss_tmp36901;
-    ss_res_ProgramaLeido ss_tmp36899 = ((ss_tmp36900 = ss_view(&fuente), ss_tmp36901 = ss_view(&raiz), leer_programa(ss_tmp36900, ss_tmp36901)));
-    if (ss_tmp36899.motivo != NULL)
+#line 4220 "ejemplos/compilador/tcodec.t"
+    SafeView ss_tmp36883;
+    SafeView ss_tmp36884;
+    ss_res_ProgramaLeido ss_tmp36882 = ((ss_tmp36883 = ss_view(&fuente), ss_tmp36884 = ss_view(&raiz), leer_programa(ss_tmp36883, ss_tmp36884)));
+    if (ss_tmp36882.motivo != NULL)
     {
         ss_free(&raiz);
         ss_free(&modo);
@@ -127502,13 +127437,13 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = ss_tmp36899.motivo };
+        return (ss_res_usize){ .motivo = ss_tmp36882.motivo };
     }
-    SS_LANG_QUIZA_SIN_USAR ProgramaLeido leido = ss_tmp36899.valor;
-#line 4229 "ejemplos/compilador/tcodec.t"
+    SS_LANG_QUIZA_SIN_USAR ProgramaLeido leido = ss_tmp36882.valor;
+#line 4221 "ejemplos/compilador/tcodec.t"
     if ((!leido.ok))
     {
-        size_t ss_tmp36902 = (size_t)1;
+        size_t ss_tmp36885 = (size_t)1;
         ss_drop_ProgramaLeido(&leido);
         ss_free(&raiz);
         ss_free(&modo);
@@ -127517,234 +127452,234 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36902 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36885 };
     }
-#line 4230 "ejemplos/compilador/tcodec.t"
+#line 4222 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str modulos = ss_copia_lista_str(&leido.modulos);
-#line 4231 "ejemplos/compilador/tcodec.t"
+#line 4223 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR Contexto global = ss_copia_Contexto(&leido.global);
-#line 4232 "ejemplos/compilador/tcodec.t"
+#line 4224 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo arboles = ss_copia_lista_Nodo(&leido.arboles);
-#line 4233 "ejemplos/compilador/tcodec.t"
+#line 4225 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_Contexto contextos = ss_copia_lista_Contexto(&leido.contextos);
-#line 4234 "ejemplos/compilador/tcodec.t"
+#line 4226 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str st_nombres = ss_copia_lista_str(&leido.structs.nombres);
-#line 4235 "ejemplos/compilador/tcodec.t"
+#line 4227 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str st_campos = ss_copia_lista_lista_str(&leido.structs.campos);
-#line 4236 "ejemplos/compilador/tcodec.t"
+#line 4228 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str st_tipos = ss_copia_lista_lista_str(&leido.structs.tipos);
-#line 4237 "ejemplos/compilador/tcodec.t"
+#line 4229 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize st_indice = ss_copia_mapa_str_usize(&leido.structs.indice);
-#line 4238 "ejemplos/compilador/tcodec.t"
+#line 4230 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize stp_indice = ss_copia_mapa_str_usize(&leido.genericos.indice);
-#line 4239 "ejemplos/compilador/tcodec.t"
+#line 4231 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_params = ss_copia_lista_lista_str(&leido.genericos.params);
-#line 4240 "ejemplos/compilador/tcodec.t"
+#line 4232 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_campos = ss_copia_lista_lista_str(&leido.genericos.campos);
-#line 4241 "ejemplos/compilador/tcodec.t"
+#line 4233 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str stp_tipos = ss_copia_lista_lista_str(&leido.genericos.tipos);
-#line 4242 "ejemplos/compilador/tcodec.t"
+#line 4234 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_cabeceras = ss_copia_lista_str(&leido.externos.cabeceras);
-#line 4243 "ejemplos/compilador/tcodec.t"
+#line 4235 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_modulos = ss_copia_lista_str(&leido.externos.modulos);
-#line 4244 "ejemplos/compilador/tcodec.t"
+#line 4236 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str ext_protos = ss_copia_lista_str(&leido.externos.protos);
-#line 4245 "ejemplos/compilador/tcodec.t"
+#line 4237 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str en_nombres = ss_copia_lista_str(&leido.enums.nombres);
-#line 4246 "ejemplos/compilador/tcodec.t"
+#line 4238 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize en_indice = ss_copia_mapa_str_usize(&leido.enums.indice);
-#line 4247 "ejemplos/compilador/tcodec.t"
+#line 4239 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str en_variantes = ss_copia_lista_lista_str(&leido.enums.variantes);
-#line 4248 "ejemplos/compilador/tcodec.t"
+#line 4240 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_lista_str en_lleva = ss_copia_lista_lista_str(&leido.enums.lleva);
-#line 4249 "ejemplos/compilador/tcodec.t"
+#line 4241 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize plantillas = ss_copia_mapa_str_usize(&leido.plantillas);
-#line 4253 "ejemplos/compilador/tcodec.t"
-    const ss_lista_Nodo* ss_tmp36903;
-    const ss_lista_str* ss_tmp36904;
-    const ss_lista_Contexto* ss_tmp36905;
-    SS_LANG_QUIZA_SIN_USAR Revision revision = ((ss_tmp36903 = &arboles, ss_tmp36904 = &modulos, ss_tmp36905 = &contextos, comprobar_programa(ss_tmp36903, ss_tmp36904, ss_tmp36905)));
-#line 4256 "ejemplos/compilador/tcodec.t"
+#line 4245 "ejemplos/compilador/tcodec.t"
+    const ss_lista_Nodo* ss_tmp36886;
+    const ss_lista_str* ss_tmp36887;
+    const ss_lista_Contexto* ss_tmp36888;
+    SS_LANG_QUIZA_SIN_USAR Revision revision = ((ss_tmp36886 = &arboles, ss_tmp36887 = &modulos, ss_tmp36888 = &contextos, comprobar_programa(ss_tmp36886, ss_tmp36887, ss_tmp36888)));
+#line 4248 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_anot = (size_t)0;
-#line 4257 "ejemplos/compilador/tcodec.t"
+#line 4249 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36906;
-        size_t ss_tmp36907;
-#line 4257 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36908;
-        size_t ss_tmp36909;
-#line 4257 "ejemplos/compilador/tcodec.t"
-        if (!((((ss_tmp36906 = k_anot, ss_tmp36907 = (contextos.length), (ss_tmp36906 < ss_tmp36907))) && ((ss_tmp36908 = k_anot, ss_tmp36909 = (revision.anotados.length), (ss_tmp36908 < ss_tmp36909))))))
+        size_t ss_tmp36889;
+        size_t ss_tmp36890;
+#line 4249 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36891;
+        size_t ss_tmp36892;
+#line 4249 "ejemplos/compilador/tcodec.t"
+        if (!((((ss_tmp36889 = k_anot, ss_tmp36890 = (contextos.length), (ss_tmp36889 < ss_tmp36890))) && ((ss_tmp36891 = k_anot, ss_tmp36892 = (revision.anotados.length), (ss_tmp36891 < ss_tmp36892))))))
         {
             break;
         }
-#line 4258 "ejemplos/compilador/tcodec.t"
-        ss_lista_Contexto* ss_tmp36910;
-        ss_lista_mapa_str_Tipo* ss_tmp36911;
-        ss_mapa_str_Tipo ss_tmp36912 = ss_copia_mapa_str_Tipo(&((ss_tmp36911 = &(revision.anotados), &ss_tmp36911->e[ss_lang_indice_(k_anot, ss_tmp36911->length, "ejemplos/compilador/tcodec.t", 4258)])[0]));
-        ss_mapa_libre_mapa_str_Tipo(&((ss_tmp36910 = &(contextos), &ss_tmp36910->e[ss_lang_indice_(k_anot, ss_tmp36910->length, "ejemplos/compilador/tcodec.t", 4258)])[0]).anotados);
-        ((ss_tmp36910 = &(contextos), &ss_tmp36910->e[ss_lang_indice_(k_anot, ss_tmp36910->length, "ejemplos/compilador/tcodec.t", 4258)])[0]).anotados = ss_tmp36912;
-#line 4259 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36913;
-        size_t ss_tmp36914;
-#line 4259 "ejemplos/compilador/tcodec.t"
-        k_anot = ((ss_tmp36913 = k_anot, ss_tmp36914 = (size_t)1, ss_lang_suma_usize(ss_tmp36913, ss_tmp36914, "ejemplos/compilador/tcodec.t", 4259)));
+#line 4250 "ejemplos/compilador/tcodec.t"
+        ss_lista_Contexto* ss_tmp36893;
+        ss_lista_mapa_str_Tipo* ss_tmp36894;
+        ss_mapa_str_Tipo ss_tmp36895 = ss_copia_mapa_str_Tipo(&((ss_tmp36894 = &(revision.anotados), &ss_tmp36894->e[ss_lang_indice_(k_anot, ss_tmp36894->length, "ejemplos/compilador/tcodec.t", 4250)])[0]));
+        ss_mapa_libre_mapa_str_Tipo(&((ss_tmp36893 = &(contextos), &ss_tmp36893->e[ss_lang_indice_(k_anot, ss_tmp36893->length, "ejemplos/compilador/tcodec.t", 4250)])[0]).anotados);
+        ((ss_tmp36893 = &(contextos), &ss_tmp36893->e[ss_lang_indice_(k_anot, ss_tmp36893->length, "ejemplos/compilador/tcodec.t", 4250)])[0]).anotados = ss_tmp36895;
+#line 4251 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36896;
+        size_t ss_tmp36897;
+#line 4251 "ejemplos/compilador/tcodec.t"
+        k_anot = ((ss_tmp36896 = k_anot, ss_tmp36897 = (size_t)1, ss_lang_suma_usize(ss_tmp36896, ss_tmp36897, "ejemplos/compilador/tcodec.t", 4251)));
     }
-#line 4261 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp36915;
-    size_t ss_tmp36916;
-#line 4261 "ejemplos/compilador/tcodec.t"
-    if (((ss_tmp36915 = (revision.errores.length), ss_tmp36916 = (size_t)0, (ss_tmp36915 > ss_tmp36916))))
+#line 4253 "ejemplos/compilador/tcodec.t"
+    size_t ss_tmp36898;
+    size_t ss_tmp36899;
+#line 4253 "ejemplos/compilador/tcodec.t"
+    if (((ss_tmp36898 = (revision.errores.length), ss_tmp36899 = (size_t)0, (ss_tmp36898 > ss_tmp36899))))
     {
-#line 4262 "ejemplos/compilador/tcodec.t"
-        for (size_t ss_k1603 = 0; ss_k1603 < revision.errores.length; ss_k1603++)
+#line 4254 "ejemplos/compilador/tcodec.t"
+        for (size_t ss_k1599 = 0; ss_k1599 < revision.errores.length; ss_k1599++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* e = &revision.errores.e[ss_k1603];
-            SafeString ss_tmp36918 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp36918, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 4262);
-            ss_lang_agregar_texto_(&ss_tmp36918, ss_view(e), "ejemplos/compilador/tcodec.t", 4262);
-            ss_lang_agregar_texto_(&ss_tmp36918, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4262);
-            SafeString ss_tmp36917 = ss_tmp36918;
-            SafeView ss_tmp36919 = ss_view(&ss_tmp36917);
-#line 4262 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp36919);
-            ss_free(&ss_tmp36917);
+            SS_LANG_QUIZA_SIN_USAR const SafeString* e = &revision.errores.e[ss_k1599];
+            SafeString ss_tmp36901 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp36901, sv_len("error: ", 7), "ejemplos/compilador/tcodec.t", 4254);
+            ss_lang_agregar_texto_(&ss_tmp36901, ss_view(e), "ejemplos/compilador/tcodec.t", 4254);
+            ss_lang_agregar_texto_(&ss_tmp36901, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4254);
+            SafeString ss_tmp36900 = ss_tmp36901;
+            SafeView ss_tmp36902 = ss_view(&ss_tmp36900);
+#line 4254 "ejemplos/compilador/tcodec.t"
+            ss_lang_escribir_(stderr, ss_tmp36902);
+            ss_free(&ss_tmp36900);
         }
-#line 4263 "ejemplos/compilador/tcodec.t"
+#line 4255 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t n = (revision.errores.length);
-#line 4264 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36920;
-        size_t ss_tmp36921;
-#line 4264 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp36920 = n, ss_tmp36921 = (size_t)1, (ss_tmp36920 == ss_tmp36921))))
+#line 4256 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36903;
+        size_t ss_tmp36904;
+#line 4256 "ejemplos/compilador/tcodec.t"
+        if (((ss_tmp36903 = n, ss_tmp36904 = (size_t)1, (ss_tmp36903 == ss_tmp36904))))
         {
-            SafeView ss_tmp36922 = sv_len("\n1 error. No se genero nada.\n", 29);
-#line 4264 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp36922);
+            SafeView ss_tmp36905 = sv_len("\n1 error. No se genero nada.\n", 29);
+#line 4256 "ejemplos/compilador/tcodec.t"
+            ss_lang_escribir_(stderr, ss_tmp36905);
         }
         else
         {
-#line 4265 "ejemplos/compilador/tcodec.t"
-            SafeString ss_tmp36924 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp36924, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4265);
-            SafeString ss_tmp36925 = ss_lang_texto_usize_(n, "ejemplos/compilador/tcodec.t", 4265);
-            ss_lang_agregar_texto_(&ss_tmp36924, ss_view(&ss_tmp36925), "ejemplos/compilador/tcodec.t", 4265);
-            ss_lang_agregar_texto_(&ss_tmp36924, sv_len(" errores. No se genero nada.\n", 29), "ejemplos/compilador/tcodec.t", 4265);
-            SafeString ss_tmp36923 = ss_tmp36924;
-            SafeView ss_tmp36926 = ss_view(&ss_tmp36923);
-#line 4265 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp36926);
-            ss_free(&ss_tmp36925);
-            ss_free(&ss_tmp36923);
+#line 4257 "ejemplos/compilador/tcodec.t"
+            SafeString ss_tmp36907 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp36907, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4257);
+            SafeString ss_tmp36908 = ss_lang_texto_usize_(n, "ejemplos/compilador/tcodec.t", 4257);
+            ss_lang_agregar_texto_(&ss_tmp36907, ss_view(&ss_tmp36908), "ejemplos/compilador/tcodec.t", 4257);
+            ss_lang_agregar_texto_(&ss_tmp36907, sv_len(" errores. No se genero nada.\n", 29), "ejemplos/compilador/tcodec.t", 4257);
+            SafeString ss_tmp36906 = ss_tmp36907;
+            SafeView ss_tmp36909 = ss_view(&ss_tmp36906);
+#line 4257 "ejemplos/compilador/tcodec.t"
+            ss_lang_escribir_(stderr, ss_tmp36909);
+            ss_free(&ss_tmp36908);
+            ss_free(&ss_tmp36906);
         }
-#line 4266 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36927 = (size_t)1;
+#line 4258 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36910 = (size_t)1;
         ss_drop_Revision(&revision);
         ss_mapa_libre_mapa_str_usize(&plantillas);
-        for (size_t ss_i1604 = 0; ss_i1604 < en_lleva.length; ss_i1604++)
+        for (size_t ss_i1600 = 0; ss_i1600 < en_lleva.length; ss_i1600++)
         {
-            for (size_t ss_i1605 = 0; ss_i1605 < en_lleva.e[ss_i1604].length; ss_i1605++)
+            for (size_t ss_i1601 = 0; ss_i1601 < en_lleva.e[ss_i1600].length; ss_i1601++)
             {
-                ss_free(&en_lleva.e[ss_i1604].e[ss_i1605]);
+                ss_free(&en_lleva.e[ss_i1600].e[ss_i1601]);
             }
-            free(en_lleva.e[ss_i1604].e);
-            en_lleva.e[ss_i1604].e = NULL;
-            en_lleva.e[ss_i1604].length = 0;
-            en_lleva.e[ss_i1604].capacity = 0;
+            free(en_lleva.e[ss_i1600].e);
+            en_lleva.e[ss_i1600].e = NULL;
+            en_lleva.e[ss_i1600].length = 0;
+            en_lleva.e[ss_i1600].capacity = 0;
         }
         free(en_lleva.e);
         en_lleva.e = NULL;
         en_lleva.length = 0;
         en_lleva.capacity = 0;
-        for (size_t ss_i1606 = 0; ss_i1606 < en_variantes.length; ss_i1606++)
+        for (size_t ss_i1602 = 0; ss_i1602 < en_variantes.length; ss_i1602++)
         {
-            for (size_t ss_i1607 = 0; ss_i1607 < en_variantes.e[ss_i1606].length; ss_i1607++)
+            for (size_t ss_i1603 = 0; ss_i1603 < en_variantes.e[ss_i1602].length; ss_i1603++)
             {
-                ss_free(&en_variantes.e[ss_i1606].e[ss_i1607]);
+                ss_free(&en_variantes.e[ss_i1602].e[ss_i1603]);
             }
-            free(en_variantes.e[ss_i1606].e);
-            en_variantes.e[ss_i1606].e = NULL;
-            en_variantes.e[ss_i1606].length = 0;
-            en_variantes.e[ss_i1606].capacity = 0;
+            free(en_variantes.e[ss_i1602].e);
+            en_variantes.e[ss_i1602].e = NULL;
+            en_variantes.e[ss_i1602].length = 0;
+            en_variantes.e[ss_i1602].capacity = 0;
         }
         free(en_variantes.e);
         en_variantes.e = NULL;
         en_variantes.length = 0;
         en_variantes.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&en_indice);
-        for (size_t ss_i1608 = 0; ss_i1608 < en_nombres.length; ss_i1608++)
+        for (size_t ss_i1604 = 0; ss_i1604 < en_nombres.length; ss_i1604++)
         {
-            ss_free(&en_nombres.e[ss_i1608]);
+            ss_free(&en_nombres.e[ss_i1604]);
         }
         free(en_nombres.e);
         en_nombres.e = NULL;
         en_nombres.length = 0;
         en_nombres.capacity = 0;
-        for (size_t ss_i1609 = 0; ss_i1609 < ext_protos.length; ss_i1609++)
+        for (size_t ss_i1605 = 0; ss_i1605 < ext_protos.length; ss_i1605++)
         {
-            ss_free(&ext_protos.e[ss_i1609]);
+            ss_free(&ext_protos.e[ss_i1605]);
         }
         free(ext_protos.e);
         ext_protos.e = NULL;
         ext_protos.length = 0;
         ext_protos.capacity = 0;
-        for (size_t ss_i1610 = 0; ss_i1610 < ext_modulos.length; ss_i1610++)
+        for (size_t ss_i1606 = 0; ss_i1606 < ext_modulos.length; ss_i1606++)
         {
-            ss_free(&ext_modulos.e[ss_i1610]);
+            ss_free(&ext_modulos.e[ss_i1606]);
         }
         free(ext_modulos.e);
         ext_modulos.e = NULL;
         ext_modulos.length = 0;
         ext_modulos.capacity = 0;
-        for (size_t ss_i1611 = 0; ss_i1611 < ext_cabeceras.length; ss_i1611++)
+        for (size_t ss_i1607 = 0; ss_i1607 < ext_cabeceras.length; ss_i1607++)
         {
-            ss_free(&ext_cabeceras.e[ss_i1611]);
+            ss_free(&ext_cabeceras.e[ss_i1607]);
         }
         free(ext_cabeceras.e);
         ext_cabeceras.e = NULL;
         ext_cabeceras.length = 0;
         ext_cabeceras.capacity = 0;
-        for (size_t ss_i1612 = 0; ss_i1612 < stp_tipos.length; ss_i1612++)
+        for (size_t ss_i1608 = 0; ss_i1608 < stp_tipos.length; ss_i1608++)
         {
-            for (size_t ss_i1613 = 0; ss_i1613 < stp_tipos.e[ss_i1612].length; ss_i1613++)
+            for (size_t ss_i1609 = 0; ss_i1609 < stp_tipos.e[ss_i1608].length; ss_i1609++)
             {
-                ss_free(&stp_tipos.e[ss_i1612].e[ss_i1613]);
+                ss_free(&stp_tipos.e[ss_i1608].e[ss_i1609]);
             }
-            free(stp_tipos.e[ss_i1612].e);
-            stp_tipos.e[ss_i1612].e = NULL;
-            stp_tipos.e[ss_i1612].length = 0;
-            stp_tipos.e[ss_i1612].capacity = 0;
+            free(stp_tipos.e[ss_i1608].e);
+            stp_tipos.e[ss_i1608].e = NULL;
+            stp_tipos.e[ss_i1608].length = 0;
+            stp_tipos.e[ss_i1608].capacity = 0;
         }
         free(stp_tipos.e);
         stp_tipos.e = NULL;
         stp_tipos.length = 0;
         stp_tipos.capacity = 0;
-        for (size_t ss_i1614 = 0; ss_i1614 < stp_campos.length; ss_i1614++)
+        for (size_t ss_i1610 = 0; ss_i1610 < stp_campos.length; ss_i1610++)
         {
-            for (size_t ss_i1615 = 0; ss_i1615 < stp_campos.e[ss_i1614].length; ss_i1615++)
+            for (size_t ss_i1611 = 0; ss_i1611 < stp_campos.e[ss_i1610].length; ss_i1611++)
             {
-                ss_free(&stp_campos.e[ss_i1614].e[ss_i1615]);
+                ss_free(&stp_campos.e[ss_i1610].e[ss_i1611]);
             }
-            free(stp_campos.e[ss_i1614].e);
-            stp_campos.e[ss_i1614].e = NULL;
-            stp_campos.e[ss_i1614].length = 0;
-            stp_campos.e[ss_i1614].capacity = 0;
+            free(stp_campos.e[ss_i1610].e);
+            stp_campos.e[ss_i1610].e = NULL;
+            stp_campos.e[ss_i1610].length = 0;
+            stp_campos.e[ss_i1610].capacity = 0;
         }
         free(stp_campos.e);
         stp_campos.e = NULL;
         stp_campos.length = 0;
         stp_campos.capacity = 0;
-        for (size_t ss_i1616 = 0; ss_i1616 < stp_params.length; ss_i1616++)
+        for (size_t ss_i1612 = 0; ss_i1612 < stp_params.length; ss_i1612++)
         {
-            for (size_t ss_i1617 = 0; ss_i1617 < stp_params.e[ss_i1616].length; ss_i1617++)
+            for (size_t ss_i1613 = 0; ss_i1613 < stp_params.e[ss_i1612].length; ss_i1613++)
             {
-                ss_free(&stp_params.e[ss_i1616].e[ss_i1617]);
+                ss_free(&stp_params.e[ss_i1612].e[ss_i1613]);
             }
-            free(stp_params.e[ss_i1616].e);
-            stp_params.e[ss_i1616].e = NULL;
-            stp_params.e[ss_i1616].length = 0;
-            stp_params.e[ss_i1616].capacity = 0;
+            free(stp_params.e[ss_i1612].e);
+            stp_params.e[ss_i1612].e = NULL;
+            stp_params.e[ss_i1612].length = 0;
+            stp_params.e[ss_i1612].capacity = 0;
         }
         free(stp_params.e);
         stp_params.e = NULL;
@@ -127752,64 +127687,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         stp_params.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&stp_indice);
         ss_mapa_libre_mapa_str_usize(&st_indice);
-        for (size_t ss_i1618 = 0; ss_i1618 < st_tipos.length; ss_i1618++)
+        for (size_t ss_i1614 = 0; ss_i1614 < st_tipos.length; ss_i1614++)
         {
-            for (size_t ss_i1619 = 0; ss_i1619 < st_tipos.e[ss_i1618].length; ss_i1619++)
+            for (size_t ss_i1615 = 0; ss_i1615 < st_tipos.e[ss_i1614].length; ss_i1615++)
             {
-                ss_free(&st_tipos.e[ss_i1618].e[ss_i1619]);
+                ss_free(&st_tipos.e[ss_i1614].e[ss_i1615]);
             }
-            free(st_tipos.e[ss_i1618].e);
-            st_tipos.e[ss_i1618].e = NULL;
-            st_tipos.e[ss_i1618].length = 0;
-            st_tipos.e[ss_i1618].capacity = 0;
+            free(st_tipos.e[ss_i1614].e);
+            st_tipos.e[ss_i1614].e = NULL;
+            st_tipos.e[ss_i1614].length = 0;
+            st_tipos.e[ss_i1614].capacity = 0;
         }
         free(st_tipos.e);
         st_tipos.e = NULL;
         st_tipos.length = 0;
         st_tipos.capacity = 0;
-        for (size_t ss_i1620 = 0; ss_i1620 < st_campos.length; ss_i1620++)
+        for (size_t ss_i1616 = 0; ss_i1616 < st_campos.length; ss_i1616++)
         {
-            for (size_t ss_i1621 = 0; ss_i1621 < st_campos.e[ss_i1620].length; ss_i1621++)
+            for (size_t ss_i1617 = 0; ss_i1617 < st_campos.e[ss_i1616].length; ss_i1617++)
             {
-                ss_free(&st_campos.e[ss_i1620].e[ss_i1621]);
+                ss_free(&st_campos.e[ss_i1616].e[ss_i1617]);
             }
-            free(st_campos.e[ss_i1620].e);
-            st_campos.e[ss_i1620].e = NULL;
-            st_campos.e[ss_i1620].length = 0;
-            st_campos.e[ss_i1620].capacity = 0;
+            free(st_campos.e[ss_i1616].e);
+            st_campos.e[ss_i1616].e = NULL;
+            st_campos.e[ss_i1616].length = 0;
+            st_campos.e[ss_i1616].capacity = 0;
         }
         free(st_campos.e);
         st_campos.e = NULL;
         st_campos.length = 0;
         st_campos.capacity = 0;
-        for (size_t ss_i1622 = 0; ss_i1622 < st_nombres.length; ss_i1622++)
+        for (size_t ss_i1618 = 0; ss_i1618 < st_nombres.length; ss_i1618++)
         {
-            ss_free(&st_nombres.e[ss_i1622]);
+            ss_free(&st_nombres.e[ss_i1618]);
         }
         free(st_nombres.e);
         st_nombres.e = NULL;
         st_nombres.length = 0;
         st_nombres.capacity = 0;
-        for (size_t ss_i1623 = 0; ss_i1623 < contextos.length; ss_i1623++)
+        for (size_t ss_i1619 = 0; ss_i1619 < contextos.length; ss_i1619++)
         {
-            ss_drop_Contexto(&contextos.e[ss_i1623]);
+            ss_drop_Contexto(&contextos.e[ss_i1619]);
         }
         free(contextos.e);
         contextos.e = NULL;
         contextos.length = 0;
         contextos.capacity = 0;
-        for (size_t ss_i1624 = 0; ss_i1624 < arboles.length; ss_i1624++)
+        for (size_t ss_i1620 = 0; ss_i1620 < arboles.length; ss_i1620++)
         {
-            ss_drop_Nodo(&arboles.e[ss_i1624]);
+            ss_drop_Nodo(&arboles.e[ss_i1620]);
         }
         free(arboles.e);
         arboles.e = NULL;
         arboles.length = 0;
         arboles.capacity = 0;
         ss_drop_Contexto(&global);
-        for (size_t ss_i1625 = 0; ss_i1625 < modulos.length; ss_i1625++)
+        for (size_t ss_i1621 = 0; ss_i1621 < modulos.length; ss_i1621++)
         {
-            ss_free(&modulos.e[ss_i1625]);
+            ss_free(&modulos.e[ss_i1621]);
         }
         free(modulos.e);
         modulos.e = NULL;
@@ -127823,166 +127758,166 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36927 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36910 };
     }
-#line 4269 "ejemplos/compilador/tcodec.t"
+#line 4261 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t n_avisos = (revision.avisos.length);
-#line 4270 "ejemplos/compilador/tcodec.t"
-    size_t ss_tmp36928;
-    size_t ss_tmp36929;
-#line 4270 "ejemplos/compilador/tcodec.t"
-    if ((((ss_tmp36928 = n_avisos, ss_tmp36929 = (size_t)0, (ss_tmp36928 > ss_tmp36929))) && (!sin_avisos)))
+#line 4262 "ejemplos/compilador/tcodec.t"
+    size_t ss_tmp36911;
+    size_t ss_tmp36912;
+#line 4262 "ejemplos/compilador/tcodec.t"
+    if ((((ss_tmp36911 = n_avisos, ss_tmp36912 = (size_t)0, (ss_tmp36911 > ss_tmp36912))) && (!sin_avisos)))
     {
-#line 4271 "ejemplos/compilador/tcodec.t"
-        for (size_t ss_k1626 = 0; ss_k1626 < revision.avisos.length; ss_k1626++)
+#line 4263 "ejemplos/compilador/tcodec.t"
+        for (size_t ss_k1622 = 0; ss_k1622 < revision.avisos.length; ss_k1622++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* a = &revision.avisos.e[ss_k1626];
-            SafeString ss_tmp36931 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp36931, sv_len("aviso: ", 7), "ejemplos/compilador/tcodec.t", 4271);
-            ss_lang_agregar_texto_(&ss_tmp36931, ss_view(a), "ejemplos/compilador/tcodec.t", 4271);
-            ss_lang_agregar_texto_(&ss_tmp36931, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4271);
-            SafeString ss_tmp36930 = ss_tmp36931;
-            SafeView ss_tmp36932 = ss_view(&ss_tmp36930);
-#line 4271 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stderr, ss_tmp36932);
-            ss_free(&ss_tmp36930);
+            SS_LANG_QUIZA_SIN_USAR const SafeString* a = &revision.avisos.e[ss_k1622];
+            SafeString ss_tmp36914 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp36914, sv_len("aviso: ", 7), "ejemplos/compilador/tcodec.t", 4263);
+            ss_lang_agregar_texto_(&ss_tmp36914, ss_view(a), "ejemplos/compilador/tcodec.t", 4263);
+            ss_lang_agregar_texto_(&ss_tmp36914, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4263);
+            SafeString ss_tmp36913 = ss_tmp36914;
+            SafeView ss_tmp36915 = ss_view(&ss_tmp36913);
+#line 4263 "ejemplos/compilador/tcodec.t"
+            ss_lang_escribir_(stderr, ss_tmp36915);
+            ss_free(&ss_tmp36913);
         }
-#line 4272 "ejemplos/compilador/tcodec.t"
+#line 4264 "ejemplos/compilador/tcodec.t"
         if (avisos_como_errores)
         {
-#line 4273 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp36933;
-            size_t ss_tmp36934;
-#line 4273 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp36933 = n_avisos, ss_tmp36934 = (size_t)1, (ss_tmp36933 == ss_tmp36934))))
+#line 4265 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp36916;
+            size_t ss_tmp36917;
+#line 4265 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp36916 = n_avisos, ss_tmp36917 = (size_t)1, (ss_tmp36916 == ss_tmp36917))))
             {
-#line 4274 "ejemplos/compilador/tcodec.t"
-                SafeView ss_tmp36935 = sv_len("\n1 aviso tratado como error. No se genero nada.\n", 48);
-#line 4274 "ejemplos/compilador/tcodec.t"
-                ss_lang_escribir_(stderr, ss_tmp36935);
+#line 4266 "ejemplos/compilador/tcodec.t"
+                SafeView ss_tmp36918 = sv_len("\n1 aviso tratado como error. No se genero nada.\n", 48);
+#line 4266 "ejemplos/compilador/tcodec.t"
+                ss_lang_escribir_(stderr, ss_tmp36918);
             }
             else
             {
-#line 4276 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp36937 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp36937, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4276);
-                SafeString ss_tmp36938 = ss_lang_texto_usize_(n_avisos, "ejemplos/compilador/tcodec.t", 4276);
-                ss_lang_agregar_texto_(&ss_tmp36937, ss_view(&ss_tmp36938), "ejemplos/compilador/tcodec.t", 4276);
-                ss_lang_agregar_texto_(&ss_tmp36937, sv_len(" avisos tratados como error. No se genero nada.\n", 48), "ejemplos/compilador/tcodec.t", 4276);
-                SafeString ss_tmp36936 = ss_tmp36937;
-                SafeView ss_tmp36939 = ss_view(&ss_tmp36936);
-#line 4276 "ejemplos/compilador/tcodec.t"
-                ss_lang_escribir_(stderr, ss_tmp36939);
-                ss_free(&ss_tmp36938);
-                ss_free(&ss_tmp36936);
+#line 4268 "ejemplos/compilador/tcodec.t"
+                SafeString ss_tmp36920 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp36920, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4268);
+                SafeString ss_tmp36921 = ss_lang_texto_usize_(n_avisos, "ejemplos/compilador/tcodec.t", 4268);
+                ss_lang_agregar_texto_(&ss_tmp36920, ss_view(&ss_tmp36921), "ejemplos/compilador/tcodec.t", 4268);
+                ss_lang_agregar_texto_(&ss_tmp36920, sv_len(" avisos tratados como error. No se genero nada.\n", 48), "ejemplos/compilador/tcodec.t", 4268);
+                SafeString ss_tmp36919 = ss_tmp36920;
+                SafeView ss_tmp36922 = ss_view(&ss_tmp36919);
+#line 4268 "ejemplos/compilador/tcodec.t"
+                ss_lang_escribir_(stderr, ss_tmp36922);
+                ss_free(&ss_tmp36921);
+                ss_free(&ss_tmp36919);
             }
-#line 4278 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp36940 = (size_t)1;
+#line 4270 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp36923 = (size_t)1;
             ss_drop_Revision(&revision);
             ss_mapa_libre_mapa_str_usize(&plantillas);
-            for (size_t ss_i1627 = 0; ss_i1627 < en_lleva.length; ss_i1627++)
+            for (size_t ss_i1623 = 0; ss_i1623 < en_lleva.length; ss_i1623++)
             {
-                for (size_t ss_i1628 = 0; ss_i1628 < en_lleva.e[ss_i1627].length; ss_i1628++)
+                for (size_t ss_i1624 = 0; ss_i1624 < en_lleva.e[ss_i1623].length; ss_i1624++)
                 {
-                    ss_free(&en_lleva.e[ss_i1627].e[ss_i1628]);
+                    ss_free(&en_lleva.e[ss_i1623].e[ss_i1624]);
                 }
-                free(en_lleva.e[ss_i1627].e);
-                en_lleva.e[ss_i1627].e = NULL;
-                en_lleva.e[ss_i1627].length = 0;
-                en_lleva.e[ss_i1627].capacity = 0;
+                free(en_lleva.e[ss_i1623].e);
+                en_lleva.e[ss_i1623].e = NULL;
+                en_lleva.e[ss_i1623].length = 0;
+                en_lleva.e[ss_i1623].capacity = 0;
             }
             free(en_lleva.e);
             en_lleva.e = NULL;
             en_lleva.length = 0;
             en_lleva.capacity = 0;
-            for (size_t ss_i1629 = 0; ss_i1629 < en_variantes.length; ss_i1629++)
+            for (size_t ss_i1625 = 0; ss_i1625 < en_variantes.length; ss_i1625++)
             {
-                for (size_t ss_i1630 = 0; ss_i1630 < en_variantes.e[ss_i1629].length; ss_i1630++)
+                for (size_t ss_i1626 = 0; ss_i1626 < en_variantes.e[ss_i1625].length; ss_i1626++)
                 {
-                    ss_free(&en_variantes.e[ss_i1629].e[ss_i1630]);
+                    ss_free(&en_variantes.e[ss_i1625].e[ss_i1626]);
                 }
-                free(en_variantes.e[ss_i1629].e);
-                en_variantes.e[ss_i1629].e = NULL;
-                en_variantes.e[ss_i1629].length = 0;
-                en_variantes.e[ss_i1629].capacity = 0;
+                free(en_variantes.e[ss_i1625].e);
+                en_variantes.e[ss_i1625].e = NULL;
+                en_variantes.e[ss_i1625].length = 0;
+                en_variantes.e[ss_i1625].capacity = 0;
             }
             free(en_variantes.e);
             en_variantes.e = NULL;
             en_variantes.length = 0;
             en_variantes.capacity = 0;
             ss_mapa_libre_mapa_str_usize(&en_indice);
-            for (size_t ss_i1631 = 0; ss_i1631 < en_nombres.length; ss_i1631++)
+            for (size_t ss_i1627 = 0; ss_i1627 < en_nombres.length; ss_i1627++)
             {
-                ss_free(&en_nombres.e[ss_i1631]);
+                ss_free(&en_nombres.e[ss_i1627]);
             }
             free(en_nombres.e);
             en_nombres.e = NULL;
             en_nombres.length = 0;
             en_nombres.capacity = 0;
-            for (size_t ss_i1632 = 0; ss_i1632 < ext_protos.length; ss_i1632++)
+            for (size_t ss_i1628 = 0; ss_i1628 < ext_protos.length; ss_i1628++)
             {
-                ss_free(&ext_protos.e[ss_i1632]);
+                ss_free(&ext_protos.e[ss_i1628]);
             }
             free(ext_protos.e);
             ext_protos.e = NULL;
             ext_protos.length = 0;
             ext_protos.capacity = 0;
-            for (size_t ss_i1633 = 0; ss_i1633 < ext_modulos.length; ss_i1633++)
+            for (size_t ss_i1629 = 0; ss_i1629 < ext_modulos.length; ss_i1629++)
             {
-                ss_free(&ext_modulos.e[ss_i1633]);
+                ss_free(&ext_modulos.e[ss_i1629]);
             }
             free(ext_modulos.e);
             ext_modulos.e = NULL;
             ext_modulos.length = 0;
             ext_modulos.capacity = 0;
-            for (size_t ss_i1634 = 0; ss_i1634 < ext_cabeceras.length; ss_i1634++)
+            for (size_t ss_i1630 = 0; ss_i1630 < ext_cabeceras.length; ss_i1630++)
             {
-                ss_free(&ext_cabeceras.e[ss_i1634]);
+                ss_free(&ext_cabeceras.e[ss_i1630]);
             }
             free(ext_cabeceras.e);
             ext_cabeceras.e = NULL;
             ext_cabeceras.length = 0;
             ext_cabeceras.capacity = 0;
-            for (size_t ss_i1635 = 0; ss_i1635 < stp_tipos.length; ss_i1635++)
+            for (size_t ss_i1631 = 0; ss_i1631 < stp_tipos.length; ss_i1631++)
             {
-                for (size_t ss_i1636 = 0; ss_i1636 < stp_tipos.e[ss_i1635].length; ss_i1636++)
+                for (size_t ss_i1632 = 0; ss_i1632 < stp_tipos.e[ss_i1631].length; ss_i1632++)
                 {
-                    ss_free(&stp_tipos.e[ss_i1635].e[ss_i1636]);
+                    ss_free(&stp_tipos.e[ss_i1631].e[ss_i1632]);
                 }
-                free(stp_tipos.e[ss_i1635].e);
-                stp_tipos.e[ss_i1635].e = NULL;
-                stp_tipos.e[ss_i1635].length = 0;
-                stp_tipos.e[ss_i1635].capacity = 0;
+                free(stp_tipos.e[ss_i1631].e);
+                stp_tipos.e[ss_i1631].e = NULL;
+                stp_tipos.e[ss_i1631].length = 0;
+                stp_tipos.e[ss_i1631].capacity = 0;
             }
             free(stp_tipos.e);
             stp_tipos.e = NULL;
             stp_tipos.length = 0;
             stp_tipos.capacity = 0;
-            for (size_t ss_i1637 = 0; ss_i1637 < stp_campos.length; ss_i1637++)
+            for (size_t ss_i1633 = 0; ss_i1633 < stp_campos.length; ss_i1633++)
             {
-                for (size_t ss_i1638 = 0; ss_i1638 < stp_campos.e[ss_i1637].length; ss_i1638++)
+                for (size_t ss_i1634 = 0; ss_i1634 < stp_campos.e[ss_i1633].length; ss_i1634++)
                 {
-                    ss_free(&stp_campos.e[ss_i1637].e[ss_i1638]);
+                    ss_free(&stp_campos.e[ss_i1633].e[ss_i1634]);
                 }
-                free(stp_campos.e[ss_i1637].e);
-                stp_campos.e[ss_i1637].e = NULL;
-                stp_campos.e[ss_i1637].length = 0;
-                stp_campos.e[ss_i1637].capacity = 0;
+                free(stp_campos.e[ss_i1633].e);
+                stp_campos.e[ss_i1633].e = NULL;
+                stp_campos.e[ss_i1633].length = 0;
+                stp_campos.e[ss_i1633].capacity = 0;
             }
             free(stp_campos.e);
             stp_campos.e = NULL;
             stp_campos.length = 0;
             stp_campos.capacity = 0;
-            for (size_t ss_i1639 = 0; ss_i1639 < stp_params.length; ss_i1639++)
+            for (size_t ss_i1635 = 0; ss_i1635 < stp_params.length; ss_i1635++)
             {
-                for (size_t ss_i1640 = 0; ss_i1640 < stp_params.e[ss_i1639].length; ss_i1640++)
+                for (size_t ss_i1636 = 0; ss_i1636 < stp_params.e[ss_i1635].length; ss_i1636++)
                 {
-                    ss_free(&stp_params.e[ss_i1639].e[ss_i1640]);
+                    ss_free(&stp_params.e[ss_i1635].e[ss_i1636]);
                 }
-                free(stp_params.e[ss_i1639].e);
-                stp_params.e[ss_i1639].e = NULL;
-                stp_params.e[ss_i1639].length = 0;
-                stp_params.e[ss_i1639].capacity = 0;
+                free(stp_params.e[ss_i1635].e);
+                stp_params.e[ss_i1635].e = NULL;
+                stp_params.e[ss_i1635].length = 0;
+                stp_params.e[ss_i1635].capacity = 0;
             }
             free(stp_params.e);
             stp_params.e = NULL;
@@ -127990,64 +127925,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
             stp_params.capacity = 0;
             ss_mapa_libre_mapa_str_usize(&stp_indice);
             ss_mapa_libre_mapa_str_usize(&st_indice);
-            for (size_t ss_i1641 = 0; ss_i1641 < st_tipos.length; ss_i1641++)
+            for (size_t ss_i1637 = 0; ss_i1637 < st_tipos.length; ss_i1637++)
             {
-                for (size_t ss_i1642 = 0; ss_i1642 < st_tipos.e[ss_i1641].length; ss_i1642++)
+                for (size_t ss_i1638 = 0; ss_i1638 < st_tipos.e[ss_i1637].length; ss_i1638++)
                 {
-                    ss_free(&st_tipos.e[ss_i1641].e[ss_i1642]);
+                    ss_free(&st_tipos.e[ss_i1637].e[ss_i1638]);
                 }
-                free(st_tipos.e[ss_i1641].e);
-                st_tipos.e[ss_i1641].e = NULL;
-                st_tipos.e[ss_i1641].length = 0;
-                st_tipos.e[ss_i1641].capacity = 0;
+                free(st_tipos.e[ss_i1637].e);
+                st_tipos.e[ss_i1637].e = NULL;
+                st_tipos.e[ss_i1637].length = 0;
+                st_tipos.e[ss_i1637].capacity = 0;
             }
             free(st_tipos.e);
             st_tipos.e = NULL;
             st_tipos.length = 0;
             st_tipos.capacity = 0;
-            for (size_t ss_i1643 = 0; ss_i1643 < st_campos.length; ss_i1643++)
+            for (size_t ss_i1639 = 0; ss_i1639 < st_campos.length; ss_i1639++)
             {
-                for (size_t ss_i1644 = 0; ss_i1644 < st_campos.e[ss_i1643].length; ss_i1644++)
+                for (size_t ss_i1640 = 0; ss_i1640 < st_campos.e[ss_i1639].length; ss_i1640++)
                 {
-                    ss_free(&st_campos.e[ss_i1643].e[ss_i1644]);
+                    ss_free(&st_campos.e[ss_i1639].e[ss_i1640]);
                 }
-                free(st_campos.e[ss_i1643].e);
-                st_campos.e[ss_i1643].e = NULL;
-                st_campos.e[ss_i1643].length = 0;
-                st_campos.e[ss_i1643].capacity = 0;
+                free(st_campos.e[ss_i1639].e);
+                st_campos.e[ss_i1639].e = NULL;
+                st_campos.e[ss_i1639].length = 0;
+                st_campos.e[ss_i1639].capacity = 0;
             }
             free(st_campos.e);
             st_campos.e = NULL;
             st_campos.length = 0;
             st_campos.capacity = 0;
-            for (size_t ss_i1645 = 0; ss_i1645 < st_nombres.length; ss_i1645++)
+            for (size_t ss_i1641 = 0; ss_i1641 < st_nombres.length; ss_i1641++)
             {
-                ss_free(&st_nombres.e[ss_i1645]);
+                ss_free(&st_nombres.e[ss_i1641]);
             }
             free(st_nombres.e);
             st_nombres.e = NULL;
             st_nombres.length = 0;
             st_nombres.capacity = 0;
-            for (size_t ss_i1646 = 0; ss_i1646 < contextos.length; ss_i1646++)
+            for (size_t ss_i1642 = 0; ss_i1642 < contextos.length; ss_i1642++)
             {
-                ss_drop_Contexto(&contextos.e[ss_i1646]);
+                ss_drop_Contexto(&contextos.e[ss_i1642]);
             }
             free(contextos.e);
             contextos.e = NULL;
             contextos.length = 0;
             contextos.capacity = 0;
-            for (size_t ss_i1647 = 0; ss_i1647 < arboles.length; ss_i1647++)
+            for (size_t ss_i1643 = 0; ss_i1643 < arboles.length; ss_i1643++)
             {
-                ss_drop_Nodo(&arboles.e[ss_i1647]);
+                ss_drop_Nodo(&arboles.e[ss_i1643]);
             }
             free(arboles.e);
             arboles.e = NULL;
             arboles.length = 0;
             arboles.capacity = 0;
             ss_drop_Contexto(&global);
-            for (size_t ss_i1648 = 0; ss_i1648 < modulos.length; ss_i1648++)
+            for (size_t ss_i1644 = 0; ss_i1644 < modulos.length; ss_i1644++)
             {
-                ss_free(&modulos.e[ss_i1648]);
+                ss_free(&modulos.e[ss_i1644]);
             }
             free(modulos.e);
             modulos.e = NULL;
@@ -128061,163 +127996,163 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
             ss_free(&salida);
             ss_free(&fuente);
             ss_drop_Opciones(&opciones);
-            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36940 };
+            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36923 };
         }
     }
-#line 4283 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp36941;
-    SafeView ss_tmp36942;
-    if (((ss_tmp36941 = ss_view(&modo), ss_tmp36942 = sv_len("explicar", 8), sv_equals(ss_tmp36941, ss_tmp36942))))
+#line 4275 "ejemplos/compilador/tcodec.t"
+    SafeView ss_tmp36924;
+    SafeView ss_tmp36925;
+    if (((ss_tmp36924 = ss_view(&modo), ss_tmp36925 = sv_len("explicar", 8), sv_equals(ss_tmp36924, ss_tmp36925))))
     {
-#line 4284 "ejemplos/compilador/tcodec.t"
+#line 4276 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR SafeView texto_e = ss_view(&revision.explicacion);
-#line 4285 "ejemplos/compilador/tcodec.t"
+#line 4277 "ejemplos/compilador/tcodec.t"
         SS_LANG_QUIZA_SIN_USAR size_t salto = (size_t)0;
-#line 4286 "ejemplos/compilador/tcodec.t"
+#line 4278 "ejemplos/compilador/tcodec.t"
         while (true)
         {
-            size_t ss_tmp36943;
-            size_t ss_tmp36944;
-#line 4286 "ejemplos/compilador/tcodec.t"
-            bool ss_tmp36948 = ((ss_tmp36943 = salto, ss_tmp36944 = sv_len_of(texto_e), (ss_tmp36943 < ss_tmp36944)));
-            if (ss_tmp36948)
+            size_t ss_tmp36926;
+            size_t ss_tmp36927;
+#line 4278 "ejemplos/compilador/tcodec.t"
+            bool ss_tmp36931 = ((ss_tmp36926 = salto, ss_tmp36927 = sv_len_of(texto_e), (ss_tmp36926 < ss_tmp36927)));
+            if (ss_tmp36931)
             {
-                SafeView ss_tmp36945 = texto_e;
-                size_t ss_tmp36946;
-                size_t ss_tmp36947;
-#line 4286 "ejemplos/compilador/tcodec.t"
-                ss_tmp36948 = ((ss_tmp36946 = ((size_t)(unsigned char)ss_tmp36945.ptr[ss_lang_indice_(salto, ss_tmp36945.len, "ejemplos/compilador/tcodec.t", 4286)]), ss_tmp36947 = (size_t)10, (ss_tmp36946 != ss_tmp36947)));
+                SafeView ss_tmp36928 = texto_e;
+                size_t ss_tmp36929;
+                size_t ss_tmp36930;
+#line 4278 "ejemplos/compilador/tcodec.t"
+                ss_tmp36931 = ((ss_tmp36929 = ((size_t)(unsigned char)ss_tmp36928.ptr[ss_lang_indice_(salto, ss_tmp36928.len, "ejemplos/compilador/tcodec.t", 4278)]), ss_tmp36930 = (size_t)10, (ss_tmp36929 != ss_tmp36930)));
             }
-            if (!(ss_tmp36948))
+            if (!(ss_tmp36931))
             {
                 break;
             }
-            size_t ss_tmp36949;
-            size_t ss_tmp36950;
-#line 4286 "ejemplos/compilador/tcodec.t"
-            salto = ((ss_tmp36949 = salto, ss_tmp36950 = (size_t)1, ss_lang_suma_usize(ss_tmp36949, ss_tmp36950, "ejemplos/compilador/tcodec.t", 4286)));
+            size_t ss_tmp36932;
+            size_t ss_tmp36933;
+#line 4278 "ejemplos/compilador/tcodec.t"
+            salto = ((ss_tmp36932 = salto, ss_tmp36933 = (size_t)1, ss_lang_suma_usize(ss_tmp36932, ss_tmp36933, "ejemplos/compilador/tcodec.t", 4278)));
         }
-#line 4287 "ejemplos/compilador/tcodec.t"
-        SafeString ss_tmp36952 = ss_new();
-        ss_lang_agregar_texto_(&ss_tmp36952, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4287);
-        SafeView ss_tmp36953;
-        size_t ss_tmp36954;
-        size_t ss_tmp36955;
-#line 4287 "ejemplos/compilador/tcodec.t"
-        ss_lang_agregar_texto_(&ss_tmp36952, ((ss_tmp36953 = texto_e, ss_tmp36954 = salto, ss_tmp36955 = sv_len_of(texto_e), ss_lang_rebanar_(ss_tmp36953, ss_tmp36954, ss_tmp36955, "ejemplos/compilador/tcodec.t", 4287))), "ejemplos/compilador/tcodec.t", 4287);
-        ss_lang_agregar_texto_(&ss_tmp36952, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4287);
-        SafeString ss_tmp36951 = ss_tmp36952;
-        SafeView ss_tmp36956 = ss_view(&ss_tmp36951);
-#line 4287 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stdout, ss_tmp36956);
-        ss_free(&ss_tmp36951);
-#line 4288 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36957 = (size_t)0;
+#line 4279 "ejemplos/compilador/tcodec.t"
+        SafeString ss_tmp36935 = ss_new();
+        ss_lang_agregar_texto_(&ss_tmp36935, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4279);
+        SafeView ss_tmp36936;
+        size_t ss_tmp36937;
+        size_t ss_tmp36938;
+#line 4279 "ejemplos/compilador/tcodec.t"
+        ss_lang_agregar_texto_(&ss_tmp36935, ((ss_tmp36936 = texto_e, ss_tmp36937 = salto, ss_tmp36938 = sv_len_of(texto_e), ss_lang_rebanar_(ss_tmp36936, ss_tmp36937, ss_tmp36938, "ejemplos/compilador/tcodec.t", 4279))), "ejemplos/compilador/tcodec.t", 4279);
+        ss_lang_agregar_texto_(&ss_tmp36935, sv_len("\n", 1), "ejemplos/compilador/tcodec.t", 4279);
+        SafeString ss_tmp36934 = ss_tmp36935;
+        SafeView ss_tmp36939 = ss_view(&ss_tmp36934);
+#line 4279 "ejemplos/compilador/tcodec.t"
+        ss_lang_escribir_(stdout, ss_tmp36939);
+        ss_free(&ss_tmp36934);
+#line 4280 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36940 = (size_t)0;
         ss_drop_Revision(&revision);
         ss_mapa_libre_mapa_str_usize(&plantillas);
-        for (size_t ss_i1649 = 0; ss_i1649 < en_lleva.length; ss_i1649++)
+        for (size_t ss_i1645 = 0; ss_i1645 < en_lleva.length; ss_i1645++)
         {
-            for (size_t ss_i1650 = 0; ss_i1650 < en_lleva.e[ss_i1649].length; ss_i1650++)
+            for (size_t ss_i1646 = 0; ss_i1646 < en_lleva.e[ss_i1645].length; ss_i1646++)
             {
-                ss_free(&en_lleva.e[ss_i1649].e[ss_i1650]);
+                ss_free(&en_lleva.e[ss_i1645].e[ss_i1646]);
             }
-            free(en_lleva.e[ss_i1649].e);
-            en_lleva.e[ss_i1649].e = NULL;
-            en_lleva.e[ss_i1649].length = 0;
-            en_lleva.e[ss_i1649].capacity = 0;
+            free(en_lleva.e[ss_i1645].e);
+            en_lleva.e[ss_i1645].e = NULL;
+            en_lleva.e[ss_i1645].length = 0;
+            en_lleva.e[ss_i1645].capacity = 0;
         }
         free(en_lleva.e);
         en_lleva.e = NULL;
         en_lleva.length = 0;
         en_lleva.capacity = 0;
-        for (size_t ss_i1651 = 0; ss_i1651 < en_variantes.length; ss_i1651++)
+        for (size_t ss_i1647 = 0; ss_i1647 < en_variantes.length; ss_i1647++)
         {
-            for (size_t ss_i1652 = 0; ss_i1652 < en_variantes.e[ss_i1651].length; ss_i1652++)
+            for (size_t ss_i1648 = 0; ss_i1648 < en_variantes.e[ss_i1647].length; ss_i1648++)
             {
-                ss_free(&en_variantes.e[ss_i1651].e[ss_i1652]);
+                ss_free(&en_variantes.e[ss_i1647].e[ss_i1648]);
             }
-            free(en_variantes.e[ss_i1651].e);
-            en_variantes.e[ss_i1651].e = NULL;
-            en_variantes.e[ss_i1651].length = 0;
-            en_variantes.e[ss_i1651].capacity = 0;
+            free(en_variantes.e[ss_i1647].e);
+            en_variantes.e[ss_i1647].e = NULL;
+            en_variantes.e[ss_i1647].length = 0;
+            en_variantes.e[ss_i1647].capacity = 0;
         }
         free(en_variantes.e);
         en_variantes.e = NULL;
         en_variantes.length = 0;
         en_variantes.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&en_indice);
-        for (size_t ss_i1653 = 0; ss_i1653 < en_nombres.length; ss_i1653++)
+        for (size_t ss_i1649 = 0; ss_i1649 < en_nombres.length; ss_i1649++)
         {
-            ss_free(&en_nombres.e[ss_i1653]);
+            ss_free(&en_nombres.e[ss_i1649]);
         }
         free(en_nombres.e);
         en_nombres.e = NULL;
         en_nombres.length = 0;
         en_nombres.capacity = 0;
-        for (size_t ss_i1654 = 0; ss_i1654 < ext_protos.length; ss_i1654++)
+        for (size_t ss_i1650 = 0; ss_i1650 < ext_protos.length; ss_i1650++)
         {
-            ss_free(&ext_protos.e[ss_i1654]);
+            ss_free(&ext_protos.e[ss_i1650]);
         }
         free(ext_protos.e);
         ext_protos.e = NULL;
         ext_protos.length = 0;
         ext_protos.capacity = 0;
-        for (size_t ss_i1655 = 0; ss_i1655 < ext_modulos.length; ss_i1655++)
+        for (size_t ss_i1651 = 0; ss_i1651 < ext_modulos.length; ss_i1651++)
         {
-            ss_free(&ext_modulos.e[ss_i1655]);
+            ss_free(&ext_modulos.e[ss_i1651]);
         }
         free(ext_modulos.e);
         ext_modulos.e = NULL;
         ext_modulos.length = 0;
         ext_modulos.capacity = 0;
-        for (size_t ss_i1656 = 0; ss_i1656 < ext_cabeceras.length; ss_i1656++)
+        for (size_t ss_i1652 = 0; ss_i1652 < ext_cabeceras.length; ss_i1652++)
         {
-            ss_free(&ext_cabeceras.e[ss_i1656]);
+            ss_free(&ext_cabeceras.e[ss_i1652]);
         }
         free(ext_cabeceras.e);
         ext_cabeceras.e = NULL;
         ext_cabeceras.length = 0;
         ext_cabeceras.capacity = 0;
-        for (size_t ss_i1657 = 0; ss_i1657 < stp_tipos.length; ss_i1657++)
+        for (size_t ss_i1653 = 0; ss_i1653 < stp_tipos.length; ss_i1653++)
         {
-            for (size_t ss_i1658 = 0; ss_i1658 < stp_tipos.e[ss_i1657].length; ss_i1658++)
+            for (size_t ss_i1654 = 0; ss_i1654 < stp_tipos.e[ss_i1653].length; ss_i1654++)
             {
-                ss_free(&stp_tipos.e[ss_i1657].e[ss_i1658]);
+                ss_free(&stp_tipos.e[ss_i1653].e[ss_i1654]);
             }
-            free(stp_tipos.e[ss_i1657].e);
-            stp_tipos.e[ss_i1657].e = NULL;
-            stp_tipos.e[ss_i1657].length = 0;
-            stp_tipos.e[ss_i1657].capacity = 0;
+            free(stp_tipos.e[ss_i1653].e);
+            stp_tipos.e[ss_i1653].e = NULL;
+            stp_tipos.e[ss_i1653].length = 0;
+            stp_tipos.e[ss_i1653].capacity = 0;
         }
         free(stp_tipos.e);
         stp_tipos.e = NULL;
         stp_tipos.length = 0;
         stp_tipos.capacity = 0;
-        for (size_t ss_i1659 = 0; ss_i1659 < stp_campos.length; ss_i1659++)
+        for (size_t ss_i1655 = 0; ss_i1655 < stp_campos.length; ss_i1655++)
         {
-            for (size_t ss_i1660 = 0; ss_i1660 < stp_campos.e[ss_i1659].length; ss_i1660++)
+            for (size_t ss_i1656 = 0; ss_i1656 < stp_campos.e[ss_i1655].length; ss_i1656++)
             {
-                ss_free(&stp_campos.e[ss_i1659].e[ss_i1660]);
+                ss_free(&stp_campos.e[ss_i1655].e[ss_i1656]);
             }
-            free(stp_campos.e[ss_i1659].e);
-            stp_campos.e[ss_i1659].e = NULL;
-            stp_campos.e[ss_i1659].length = 0;
-            stp_campos.e[ss_i1659].capacity = 0;
+            free(stp_campos.e[ss_i1655].e);
+            stp_campos.e[ss_i1655].e = NULL;
+            stp_campos.e[ss_i1655].length = 0;
+            stp_campos.e[ss_i1655].capacity = 0;
         }
         free(stp_campos.e);
         stp_campos.e = NULL;
         stp_campos.length = 0;
         stp_campos.capacity = 0;
-        for (size_t ss_i1661 = 0; ss_i1661 < stp_params.length; ss_i1661++)
+        for (size_t ss_i1657 = 0; ss_i1657 < stp_params.length; ss_i1657++)
         {
-            for (size_t ss_i1662 = 0; ss_i1662 < stp_params.e[ss_i1661].length; ss_i1662++)
+            for (size_t ss_i1658 = 0; ss_i1658 < stp_params.e[ss_i1657].length; ss_i1658++)
             {
-                ss_free(&stp_params.e[ss_i1661].e[ss_i1662]);
+                ss_free(&stp_params.e[ss_i1657].e[ss_i1658]);
             }
-            free(stp_params.e[ss_i1661].e);
-            stp_params.e[ss_i1661].e = NULL;
-            stp_params.e[ss_i1661].length = 0;
-            stp_params.e[ss_i1661].capacity = 0;
+            free(stp_params.e[ss_i1657].e);
+            stp_params.e[ss_i1657].e = NULL;
+            stp_params.e[ss_i1657].length = 0;
+            stp_params.e[ss_i1657].capacity = 0;
         }
         free(stp_params.e);
         stp_params.e = NULL;
@@ -128225,64 +128160,305 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         stp_params.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&stp_indice);
         ss_mapa_libre_mapa_str_usize(&st_indice);
-        for (size_t ss_i1663 = 0; ss_i1663 < st_tipos.length; ss_i1663++)
+        for (size_t ss_i1659 = 0; ss_i1659 < st_tipos.length; ss_i1659++)
         {
-            for (size_t ss_i1664 = 0; ss_i1664 < st_tipos.e[ss_i1663].length; ss_i1664++)
+            for (size_t ss_i1660 = 0; ss_i1660 < st_tipos.e[ss_i1659].length; ss_i1660++)
             {
-                ss_free(&st_tipos.e[ss_i1663].e[ss_i1664]);
+                ss_free(&st_tipos.e[ss_i1659].e[ss_i1660]);
             }
-            free(st_tipos.e[ss_i1663].e);
-            st_tipos.e[ss_i1663].e = NULL;
-            st_tipos.e[ss_i1663].length = 0;
-            st_tipos.e[ss_i1663].capacity = 0;
+            free(st_tipos.e[ss_i1659].e);
+            st_tipos.e[ss_i1659].e = NULL;
+            st_tipos.e[ss_i1659].length = 0;
+            st_tipos.e[ss_i1659].capacity = 0;
         }
         free(st_tipos.e);
         st_tipos.e = NULL;
         st_tipos.length = 0;
         st_tipos.capacity = 0;
-        for (size_t ss_i1665 = 0; ss_i1665 < st_campos.length; ss_i1665++)
+        for (size_t ss_i1661 = 0; ss_i1661 < st_campos.length; ss_i1661++)
         {
-            for (size_t ss_i1666 = 0; ss_i1666 < st_campos.e[ss_i1665].length; ss_i1666++)
+            for (size_t ss_i1662 = 0; ss_i1662 < st_campos.e[ss_i1661].length; ss_i1662++)
             {
-                ss_free(&st_campos.e[ss_i1665].e[ss_i1666]);
+                ss_free(&st_campos.e[ss_i1661].e[ss_i1662]);
             }
-            free(st_campos.e[ss_i1665].e);
-            st_campos.e[ss_i1665].e = NULL;
-            st_campos.e[ss_i1665].length = 0;
-            st_campos.e[ss_i1665].capacity = 0;
+            free(st_campos.e[ss_i1661].e);
+            st_campos.e[ss_i1661].e = NULL;
+            st_campos.e[ss_i1661].length = 0;
+            st_campos.e[ss_i1661].capacity = 0;
         }
         free(st_campos.e);
         st_campos.e = NULL;
         st_campos.length = 0;
         st_campos.capacity = 0;
-        for (size_t ss_i1667 = 0; ss_i1667 < st_nombres.length; ss_i1667++)
+        for (size_t ss_i1663 = 0; ss_i1663 < st_nombres.length; ss_i1663++)
         {
-            ss_free(&st_nombres.e[ss_i1667]);
+            ss_free(&st_nombres.e[ss_i1663]);
         }
         free(st_nombres.e);
         st_nombres.e = NULL;
         st_nombres.length = 0;
         st_nombres.capacity = 0;
-        for (size_t ss_i1668 = 0; ss_i1668 < contextos.length; ss_i1668++)
+        for (size_t ss_i1664 = 0; ss_i1664 < contextos.length; ss_i1664++)
         {
-            ss_drop_Contexto(&contextos.e[ss_i1668]);
+            ss_drop_Contexto(&contextos.e[ss_i1664]);
         }
         free(contextos.e);
         contextos.e = NULL;
         contextos.length = 0;
         contextos.capacity = 0;
-        for (size_t ss_i1669 = 0; ss_i1669 < arboles.length; ss_i1669++)
+        for (size_t ss_i1665 = 0; ss_i1665 < arboles.length; ss_i1665++)
         {
-            ss_drop_Nodo(&arboles.e[ss_i1669]);
+            ss_drop_Nodo(&arboles.e[ss_i1665]);
         }
         free(arboles.e);
         arboles.e = NULL;
         arboles.length = 0;
         arboles.capacity = 0;
         ss_drop_Contexto(&global);
-        for (size_t ss_i1670 = 0; ss_i1670 < modulos.length; ss_i1670++)
+        for (size_t ss_i1666 = 0; ss_i1666 < modulos.length; ss_i1666++)
         {
-            ss_free(&modulos.e[ss_i1670]);
+            ss_free(&modulos.e[ss_i1666]);
+        }
+        free(modulos.e);
+        modulos.e = NULL;
+        modulos.length = 0;
+        modulos.capacity = 0;
+        ss_drop_ProgramaLeido(&leido);
+        ss_free(&raiz);
+        ss_free(&modo);
+        ss_free(&cc);
+        ss_free(&nivel);
+        ss_free(&salida);
+        ss_free(&fuente);
+        ss_drop_Opciones(&opciones);
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36940 };
+    }
+#line 4282 "ejemplos/compilador/tcodec.t"
+    SafeView ss_tmp36941;
+    SafeView ss_tmp36942;
+    if (((ss_tmp36941 = ss_view(&modo), ss_tmp36942 = sv_len("comprobar", 9), sv_equals(ss_tmp36941, ss_tmp36942))))
+    {
+#line 4283 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36943;
+        size_t ss_tmp36944;
+#line 4283 "ejemplos/compilador/tcodec.t"
+        if (((ss_tmp36943 = n_avisos, ss_tmp36944 = (size_t)0, (ss_tmp36943 == ss_tmp36944))))
+        {
+            SafeString ss_tmp36946 = ss_new();
+            ss_lang_agregar_texto_(&ss_tmp36946, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4283);
+            ss_lang_agregar_texto_(&ss_tmp36946, sv_len(": sin errores\n", 14), "ejemplos/compilador/tcodec.t", 4283);
+            SafeString ss_tmp36945 = ss_tmp36946;
+            SafeView ss_tmp36947 = ss_view(&ss_tmp36945);
+#line 4283 "ejemplos/compilador/tcodec.t"
+            ss_lang_escribir_(stdout, ss_tmp36947);
+            ss_free(&ss_tmp36945);
+        }
+        else
+        {
+#line 4284 "ejemplos/compilador/tcodec.t"
+            size_t ss_tmp36948;
+            size_t ss_tmp36949;
+#line 4284 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp36948 = n_avisos, ss_tmp36949 = (size_t)1, (ss_tmp36948 == ss_tmp36949))))
+            {
+                SafeString ss_tmp36951 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp36951, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4284);
+                ss_lang_agregar_texto_(&ss_tmp36951, sv_len(": sin errores, 1 aviso\n", 23), "ejemplos/compilador/tcodec.t", 4284);
+                SafeString ss_tmp36950 = ss_tmp36951;
+                SafeView ss_tmp36952 = ss_view(&ss_tmp36950);
+#line 4284 "ejemplos/compilador/tcodec.t"
+                ss_lang_escribir_(stdout, ss_tmp36952);
+                ss_free(&ss_tmp36950);
+            }
+            else
+            {
+#line 4285 "ejemplos/compilador/tcodec.t"
+                SafeString ss_tmp36954 = ss_new();
+                ss_lang_agregar_texto_(&ss_tmp36954, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4285);
+                ss_lang_agregar_texto_(&ss_tmp36954, sv_len(": sin errores, ", 15), "ejemplos/compilador/tcodec.t", 4285);
+                SafeString ss_tmp36955 = ss_lang_texto_usize_(n_avisos, "ejemplos/compilador/tcodec.t", 4285);
+                ss_lang_agregar_texto_(&ss_tmp36954, ss_view(&ss_tmp36955), "ejemplos/compilador/tcodec.t", 4285);
+                ss_lang_agregar_texto_(&ss_tmp36954, sv_len(" avisos\n", 8), "ejemplos/compilador/tcodec.t", 4285);
+                SafeString ss_tmp36953 = ss_tmp36954;
+                SafeView ss_tmp36956 = ss_view(&ss_tmp36953);
+#line 4285 "ejemplos/compilador/tcodec.t"
+                ss_lang_escribir_(stdout, ss_tmp36956);
+                ss_free(&ss_tmp36955);
+                ss_free(&ss_tmp36953);
+            }
+        }
+#line 4286 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp36957 = (size_t)0;
+        ss_drop_Revision(&revision);
+        ss_mapa_libre_mapa_str_usize(&plantillas);
+        for (size_t ss_i1667 = 0; ss_i1667 < en_lleva.length; ss_i1667++)
+        {
+            for (size_t ss_i1668 = 0; ss_i1668 < en_lleva.e[ss_i1667].length; ss_i1668++)
+            {
+                ss_free(&en_lleva.e[ss_i1667].e[ss_i1668]);
+            }
+            free(en_lleva.e[ss_i1667].e);
+            en_lleva.e[ss_i1667].e = NULL;
+            en_lleva.e[ss_i1667].length = 0;
+            en_lleva.e[ss_i1667].capacity = 0;
+        }
+        free(en_lleva.e);
+        en_lleva.e = NULL;
+        en_lleva.length = 0;
+        en_lleva.capacity = 0;
+        for (size_t ss_i1669 = 0; ss_i1669 < en_variantes.length; ss_i1669++)
+        {
+            for (size_t ss_i1670 = 0; ss_i1670 < en_variantes.e[ss_i1669].length; ss_i1670++)
+            {
+                ss_free(&en_variantes.e[ss_i1669].e[ss_i1670]);
+            }
+            free(en_variantes.e[ss_i1669].e);
+            en_variantes.e[ss_i1669].e = NULL;
+            en_variantes.e[ss_i1669].length = 0;
+            en_variantes.e[ss_i1669].capacity = 0;
+        }
+        free(en_variantes.e);
+        en_variantes.e = NULL;
+        en_variantes.length = 0;
+        en_variantes.capacity = 0;
+        ss_mapa_libre_mapa_str_usize(&en_indice);
+        for (size_t ss_i1671 = 0; ss_i1671 < en_nombres.length; ss_i1671++)
+        {
+            ss_free(&en_nombres.e[ss_i1671]);
+        }
+        free(en_nombres.e);
+        en_nombres.e = NULL;
+        en_nombres.length = 0;
+        en_nombres.capacity = 0;
+        for (size_t ss_i1672 = 0; ss_i1672 < ext_protos.length; ss_i1672++)
+        {
+            ss_free(&ext_protos.e[ss_i1672]);
+        }
+        free(ext_protos.e);
+        ext_protos.e = NULL;
+        ext_protos.length = 0;
+        ext_protos.capacity = 0;
+        for (size_t ss_i1673 = 0; ss_i1673 < ext_modulos.length; ss_i1673++)
+        {
+            ss_free(&ext_modulos.e[ss_i1673]);
+        }
+        free(ext_modulos.e);
+        ext_modulos.e = NULL;
+        ext_modulos.length = 0;
+        ext_modulos.capacity = 0;
+        for (size_t ss_i1674 = 0; ss_i1674 < ext_cabeceras.length; ss_i1674++)
+        {
+            ss_free(&ext_cabeceras.e[ss_i1674]);
+        }
+        free(ext_cabeceras.e);
+        ext_cabeceras.e = NULL;
+        ext_cabeceras.length = 0;
+        ext_cabeceras.capacity = 0;
+        for (size_t ss_i1675 = 0; ss_i1675 < stp_tipos.length; ss_i1675++)
+        {
+            for (size_t ss_i1676 = 0; ss_i1676 < stp_tipos.e[ss_i1675].length; ss_i1676++)
+            {
+                ss_free(&stp_tipos.e[ss_i1675].e[ss_i1676]);
+            }
+            free(stp_tipos.e[ss_i1675].e);
+            stp_tipos.e[ss_i1675].e = NULL;
+            stp_tipos.e[ss_i1675].length = 0;
+            stp_tipos.e[ss_i1675].capacity = 0;
+        }
+        free(stp_tipos.e);
+        stp_tipos.e = NULL;
+        stp_tipos.length = 0;
+        stp_tipos.capacity = 0;
+        for (size_t ss_i1677 = 0; ss_i1677 < stp_campos.length; ss_i1677++)
+        {
+            for (size_t ss_i1678 = 0; ss_i1678 < stp_campos.e[ss_i1677].length; ss_i1678++)
+            {
+                ss_free(&stp_campos.e[ss_i1677].e[ss_i1678]);
+            }
+            free(stp_campos.e[ss_i1677].e);
+            stp_campos.e[ss_i1677].e = NULL;
+            stp_campos.e[ss_i1677].length = 0;
+            stp_campos.e[ss_i1677].capacity = 0;
+        }
+        free(stp_campos.e);
+        stp_campos.e = NULL;
+        stp_campos.length = 0;
+        stp_campos.capacity = 0;
+        for (size_t ss_i1679 = 0; ss_i1679 < stp_params.length; ss_i1679++)
+        {
+            for (size_t ss_i1680 = 0; ss_i1680 < stp_params.e[ss_i1679].length; ss_i1680++)
+            {
+                ss_free(&stp_params.e[ss_i1679].e[ss_i1680]);
+            }
+            free(stp_params.e[ss_i1679].e);
+            stp_params.e[ss_i1679].e = NULL;
+            stp_params.e[ss_i1679].length = 0;
+            stp_params.e[ss_i1679].capacity = 0;
+        }
+        free(stp_params.e);
+        stp_params.e = NULL;
+        stp_params.length = 0;
+        stp_params.capacity = 0;
+        ss_mapa_libre_mapa_str_usize(&stp_indice);
+        ss_mapa_libre_mapa_str_usize(&st_indice);
+        for (size_t ss_i1681 = 0; ss_i1681 < st_tipos.length; ss_i1681++)
+        {
+            for (size_t ss_i1682 = 0; ss_i1682 < st_tipos.e[ss_i1681].length; ss_i1682++)
+            {
+                ss_free(&st_tipos.e[ss_i1681].e[ss_i1682]);
+            }
+            free(st_tipos.e[ss_i1681].e);
+            st_tipos.e[ss_i1681].e = NULL;
+            st_tipos.e[ss_i1681].length = 0;
+            st_tipos.e[ss_i1681].capacity = 0;
+        }
+        free(st_tipos.e);
+        st_tipos.e = NULL;
+        st_tipos.length = 0;
+        st_tipos.capacity = 0;
+        for (size_t ss_i1683 = 0; ss_i1683 < st_campos.length; ss_i1683++)
+        {
+            for (size_t ss_i1684 = 0; ss_i1684 < st_campos.e[ss_i1683].length; ss_i1684++)
+            {
+                ss_free(&st_campos.e[ss_i1683].e[ss_i1684]);
+            }
+            free(st_campos.e[ss_i1683].e);
+            st_campos.e[ss_i1683].e = NULL;
+            st_campos.e[ss_i1683].length = 0;
+            st_campos.e[ss_i1683].capacity = 0;
+        }
+        free(st_campos.e);
+        st_campos.e = NULL;
+        st_campos.length = 0;
+        st_campos.capacity = 0;
+        for (size_t ss_i1685 = 0; ss_i1685 < st_nombres.length; ss_i1685++)
+        {
+            ss_free(&st_nombres.e[ss_i1685]);
+        }
+        free(st_nombres.e);
+        st_nombres.e = NULL;
+        st_nombres.length = 0;
+        st_nombres.capacity = 0;
+        for (size_t ss_i1686 = 0; ss_i1686 < contextos.length; ss_i1686++)
+        {
+            ss_drop_Contexto(&contextos.e[ss_i1686]);
+        }
+        free(contextos.e);
+        contextos.e = NULL;
+        contextos.length = 0;
+        contextos.capacity = 0;
+        for (size_t ss_i1687 = 0; ss_i1687 < arboles.length; ss_i1687++)
+        {
+            ss_drop_Nodo(&arboles.e[ss_i1687]);
+        }
+        free(arboles.e);
+        arboles.e = NULL;
+        arboles.length = 0;
+        arboles.capacity = 0;
+        ss_drop_Contexto(&global);
+        for (size_t ss_i1688 = 0; ss_i1688 < modulos.length; ss_i1688++)
+        {
+            ss_free(&modulos.e[ss_i1688]);
         }
         free(modulos.e);
         modulos.e = NULL;
@@ -128298,382 +128474,141 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_drop_Opciones(&opciones);
         return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36957 };
     }
-#line 4290 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp36958;
-    SafeView ss_tmp36959;
-    if (((ss_tmp36958 = ss_view(&modo), ss_tmp36959 = sv_len("comprobar", 9), sv_equals(ss_tmp36958, ss_tmp36959))))
-    {
 #line 4291 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36960;
-        size_t ss_tmp36961;
-#line 4291 "ejemplos/compilador/tcodec.t"
-        if (((ss_tmp36960 = n_avisos, ss_tmp36961 = (size_t)0, (ss_tmp36960 == ss_tmp36961))))
-        {
-            SafeString ss_tmp36963 = ss_new();
-            ss_lang_agregar_texto_(&ss_tmp36963, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4291);
-            ss_lang_agregar_texto_(&ss_tmp36963, sv_len(": sin errores\n", 14), "ejemplos/compilador/tcodec.t", 4291);
-            SafeString ss_tmp36962 = ss_tmp36963;
-            SafeView ss_tmp36964 = ss_view(&ss_tmp36962);
-#line 4291 "ejemplos/compilador/tcodec.t"
-            ss_lang_escribir_(stdout, ss_tmp36964);
-            ss_free(&ss_tmp36962);
-        }
-        else
-        {
-#line 4292 "ejemplos/compilador/tcodec.t"
-            size_t ss_tmp36965;
-            size_t ss_tmp36966;
-#line 4292 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp36965 = n_avisos, ss_tmp36966 = (size_t)1, (ss_tmp36965 == ss_tmp36966))))
-            {
-                SafeString ss_tmp36968 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp36968, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4292);
-                ss_lang_agregar_texto_(&ss_tmp36968, sv_len(": sin errores, 1 aviso\n", 23), "ejemplos/compilador/tcodec.t", 4292);
-                SafeString ss_tmp36967 = ss_tmp36968;
-                SafeView ss_tmp36969 = ss_view(&ss_tmp36967);
-#line 4292 "ejemplos/compilador/tcodec.t"
-                ss_lang_escribir_(stdout, ss_tmp36969);
-                ss_free(&ss_tmp36967);
-            }
-            else
-            {
+    const Revision* ss_tmp36958;
+    ss_lista_Nodo* ss_tmp36959;
+    ss_lista_Contexto* ss_tmp36960;
+    Contexto* ss_tmp36961;
+    SS_LANG_QUIZA_SIN_USAR Cierres cierres = ((ss_tmp36958 = &revision, ss_tmp36959 = &arboles, ss_tmp36960 = &contextos, ss_tmp36961 = &global, preparar_cierres(ss_tmp36958, ss_tmp36959, ss_tmp36960, ss_tmp36961)));
 #line 4293 "ejemplos/compilador/tcodec.t"
-                SafeString ss_tmp36971 = ss_new();
-                ss_lang_agregar_texto_(&ss_tmp36971, ss_view(&fuente), "ejemplos/compilador/tcodec.t", 4293);
-                ss_lang_agregar_texto_(&ss_tmp36971, sv_len(": sin errores, ", 15), "ejemplos/compilador/tcodec.t", 4293);
-                SafeString ss_tmp36972 = ss_lang_texto_usize_(n_avisos, "ejemplos/compilador/tcodec.t", 4293);
-                ss_lang_agregar_texto_(&ss_tmp36971, ss_view(&ss_tmp36972), "ejemplos/compilador/tcodec.t", 4293);
-                ss_lang_agregar_texto_(&ss_tmp36971, sv_len(" avisos\n", 8), "ejemplos/compilador/tcodec.t", 4293);
-                SafeString ss_tmp36970 = ss_tmp36971;
-                SafeView ss_tmp36973 = ss_view(&ss_tmp36970);
-#line 4293 "ejemplos/compilador/tcodec.t"
-                ss_lang_escribir_(stdout, ss_tmp36973);
-                ss_free(&ss_tmp36972);
-                ss_free(&ss_tmp36970);
-            }
-        }
-#line 4294 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp36974 = (size_t)0;
-        ss_drop_Revision(&revision);
-        ss_mapa_libre_mapa_str_usize(&plantillas);
-        for (size_t ss_i1671 = 0; ss_i1671 < en_lleva.length; ss_i1671++)
-        {
-            for (size_t ss_i1672 = 0; ss_i1672 < en_lleva.e[ss_i1671].length; ss_i1672++)
-            {
-                ss_free(&en_lleva.e[ss_i1671].e[ss_i1672]);
-            }
-            free(en_lleva.e[ss_i1671].e);
-            en_lleva.e[ss_i1671].e = NULL;
-            en_lleva.e[ss_i1671].length = 0;
-            en_lleva.e[ss_i1671].capacity = 0;
-        }
-        free(en_lleva.e);
-        en_lleva.e = NULL;
-        en_lleva.length = 0;
-        en_lleva.capacity = 0;
-        for (size_t ss_i1673 = 0; ss_i1673 < en_variantes.length; ss_i1673++)
-        {
-            for (size_t ss_i1674 = 0; ss_i1674 < en_variantes.e[ss_i1673].length; ss_i1674++)
-            {
-                ss_free(&en_variantes.e[ss_i1673].e[ss_i1674]);
-            }
-            free(en_variantes.e[ss_i1673].e);
-            en_variantes.e[ss_i1673].e = NULL;
-            en_variantes.e[ss_i1673].length = 0;
-            en_variantes.e[ss_i1673].capacity = 0;
-        }
-        free(en_variantes.e);
-        en_variantes.e = NULL;
-        en_variantes.length = 0;
-        en_variantes.capacity = 0;
-        ss_mapa_libre_mapa_str_usize(&en_indice);
-        for (size_t ss_i1675 = 0; ss_i1675 < en_nombres.length; ss_i1675++)
-        {
-            ss_free(&en_nombres.e[ss_i1675]);
-        }
-        free(en_nombres.e);
-        en_nombres.e = NULL;
-        en_nombres.length = 0;
-        en_nombres.capacity = 0;
-        for (size_t ss_i1676 = 0; ss_i1676 < ext_protos.length; ss_i1676++)
-        {
-            ss_free(&ext_protos.e[ss_i1676]);
-        }
-        free(ext_protos.e);
-        ext_protos.e = NULL;
-        ext_protos.length = 0;
-        ext_protos.capacity = 0;
-        for (size_t ss_i1677 = 0; ss_i1677 < ext_modulos.length; ss_i1677++)
-        {
-            ss_free(&ext_modulos.e[ss_i1677]);
-        }
-        free(ext_modulos.e);
-        ext_modulos.e = NULL;
-        ext_modulos.length = 0;
-        ext_modulos.capacity = 0;
-        for (size_t ss_i1678 = 0; ss_i1678 < ext_cabeceras.length; ss_i1678++)
-        {
-            ss_free(&ext_cabeceras.e[ss_i1678]);
-        }
-        free(ext_cabeceras.e);
-        ext_cabeceras.e = NULL;
-        ext_cabeceras.length = 0;
-        ext_cabeceras.capacity = 0;
-        for (size_t ss_i1679 = 0; ss_i1679 < stp_tipos.length; ss_i1679++)
-        {
-            for (size_t ss_i1680 = 0; ss_i1680 < stp_tipos.e[ss_i1679].length; ss_i1680++)
-            {
-                ss_free(&stp_tipos.e[ss_i1679].e[ss_i1680]);
-            }
-            free(stp_tipos.e[ss_i1679].e);
-            stp_tipos.e[ss_i1679].e = NULL;
-            stp_tipos.e[ss_i1679].length = 0;
-            stp_tipos.e[ss_i1679].capacity = 0;
-        }
-        free(stp_tipos.e);
-        stp_tipos.e = NULL;
-        stp_tipos.length = 0;
-        stp_tipos.capacity = 0;
-        for (size_t ss_i1681 = 0; ss_i1681 < stp_campos.length; ss_i1681++)
-        {
-            for (size_t ss_i1682 = 0; ss_i1682 < stp_campos.e[ss_i1681].length; ss_i1682++)
-            {
-                ss_free(&stp_campos.e[ss_i1681].e[ss_i1682]);
-            }
-            free(stp_campos.e[ss_i1681].e);
-            stp_campos.e[ss_i1681].e = NULL;
-            stp_campos.e[ss_i1681].length = 0;
-            stp_campos.e[ss_i1681].capacity = 0;
-        }
-        free(stp_campos.e);
-        stp_campos.e = NULL;
-        stp_campos.length = 0;
-        stp_campos.capacity = 0;
-        for (size_t ss_i1683 = 0; ss_i1683 < stp_params.length; ss_i1683++)
-        {
-            for (size_t ss_i1684 = 0; ss_i1684 < stp_params.e[ss_i1683].length; ss_i1684++)
-            {
-                ss_free(&stp_params.e[ss_i1683].e[ss_i1684]);
-            }
-            free(stp_params.e[ss_i1683].e);
-            stp_params.e[ss_i1683].e = NULL;
-            stp_params.e[ss_i1683].length = 0;
-            stp_params.e[ss_i1683].capacity = 0;
-        }
-        free(stp_params.e);
-        stp_params.e = NULL;
-        stp_params.length = 0;
-        stp_params.capacity = 0;
-        ss_mapa_libre_mapa_str_usize(&stp_indice);
-        ss_mapa_libre_mapa_str_usize(&st_indice);
-        for (size_t ss_i1685 = 0; ss_i1685 < st_tipos.length; ss_i1685++)
-        {
-            for (size_t ss_i1686 = 0; ss_i1686 < st_tipos.e[ss_i1685].length; ss_i1686++)
-            {
-                ss_free(&st_tipos.e[ss_i1685].e[ss_i1686]);
-            }
-            free(st_tipos.e[ss_i1685].e);
-            st_tipos.e[ss_i1685].e = NULL;
-            st_tipos.e[ss_i1685].length = 0;
-            st_tipos.e[ss_i1685].capacity = 0;
-        }
-        free(st_tipos.e);
-        st_tipos.e = NULL;
-        st_tipos.length = 0;
-        st_tipos.capacity = 0;
-        for (size_t ss_i1687 = 0; ss_i1687 < st_campos.length; ss_i1687++)
-        {
-            for (size_t ss_i1688 = 0; ss_i1688 < st_campos.e[ss_i1687].length; ss_i1688++)
-            {
-                ss_free(&st_campos.e[ss_i1687].e[ss_i1688]);
-            }
-            free(st_campos.e[ss_i1687].e);
-            st_campos.e[ss_i1687].e = NULL;
-            st_campos.e[ss_i1687].length = 0;
-            st_campos.e[ss_i1687].capacity = 0;
-        }
-        free(st_campos.e);
-        st_campos.e = NULL;
-        st_campos.length = 0;
-        st_campos.capacity = 0;
-        for (size_t ss_i1689 = 0; ss_i1689 < st_nombres.length; ss_i1689++)
-        {
-            ss_free(&st_nombres.e[ss_i1689]);
-        }
-        free(st_nombres.e);
-        st_nombres.e = NULL;
-        st_nombres.length = 0;
-        st_nombres.capacity = 0;
-        for (size_t ss_i1690 = 0; ss_i1690 < contextos.length; ss_i1690++)
-        {
-            ss_drop_Contexto(&contextos.e[ss_i1690]);
-        }
-        free(contextos.e);
-        contextos.e = NULL;
-        contextos.length = 0;
-        contextos.capacity = 0;
-        for (size_t ss_i1691 = 0; ss_i1691 < arboles.length; ss_i1691++)
-        {
-            ss_drop_Nodo(&arboles.e[ss_i1691]);
-        }
-        free(arboles.e);
-        arboles.e = NULL;
-        arboles.length = 0;
-        arboles.capacity = 0;
-        ss_drop_Contexto(&global);
-        for (size_t ss_i1692 = 0; ss_i1692 < modulos.length; ss_i1692++)
-        {
-            ss_free(&modulos.e[ss_i1692]);
-        }
-        free(modulos.e);
-        modulos.e = NULL;
-        modulos.length = 0;
-        modulos.capacity = 0;
-        ss_drop_ProgramaLeido(&leido);
-        ss_free(&raiz);
-        ss_free(&modo);
-        ss_free(&cc);
-        ss_free(&nivel);
-        ss_free(&salida);
-        ss_free(&fuente);
-        ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36974 };
-    }
-#line 4299 "ejemplos/compilador/tcodec.t"
-    const Revision* ss_tmp36975;
-    ss_lista_Nodo* ss_tmp36976;
-    ss_lista_Contexto* ss_tmp36977;
-    Contexto* ss_tmp36978;
-    SS_LANG_QUIZA_SIN_USAR Cierres cierres = ((ss_tmp36975 = &revision, ss_tmp36976 = &arboles, ss_tmp36977 = &contextos, ss_tmp36978 = &global, preparar_cierres(ss_tmp36975, ss_tmp36976, ss_tmp36977, ss_tmp36978)));
-#line 4301 "ejemplos/compilador/tcodec.t"
-    const Revision* ss_tmp36979;
-    const ss_lista_Nodo* ss_tmp36980;
-    ss_lista_Contexto* ss_tmp36981;
-    const ss_lista_str* ss_tmp36982;
-    Contexto* ss_tmp36983;
-    const Cierres* ss_tmp36984;
-    const ss_mapa_str_usize* ss_tmp36985;
-    const ss_mapa_str_usize* ss_tmp36986;
-    const ss_lista_lista_str* ss_tmp36987;
-    const ss_lista_lista_str* ss_tmp36988;
-    const ss_lista_lista_str* ss_tmp36989;
-    ss_lista_str* ss_tmp36990;
-    ss_mapa_str_usize* ss_tmp36991;
-    ss_lista_lista_str* ss_tmp36992;
-    ss_lista_lista_str* ss_tmp36993;
-    const ss_lista_str* ss_tmp36994;
-    SS_LANG_QUIZA_SIN_USAR InstanciasPreparadas preparadas = ((ss_tmp36979 = &revision, ss_tmp36980 = &arboles, ss_tmp36981 = &contextos, ss_tmp36982 = &modulos, ss_tmp36983 = &global, ss_tmp36984 = &cierres, ss_tmp36985 = &plantillas, ss_tmp36986 = &stp_indice, ss_tmp36987 = &stp_params, ss_tmp36988 = &stp_campos, ss_tmp36989 = &stp_tipos, ss_tmp36990 = &st_nombres, ss_tmp36991 = &st_indice, ss_tmp36992 = &st_campos, ss_tmp36993 = &st_tipos, ss_tmp36994 = &en_nombres, preparar_instancias(ss_tmp36979, ss_tmp36980, ss_tmp36981, ss_tmp36982, ss_tmp36983, ss_tmp36984, ss_tmp36985, ss_tmp36986, ss_tmp36987, ss_tmp36988, ss_tmp36989, ss_tmp36990, ss_tmp36991, ss_tmp36992, ss_tmp36993, ss_tmp36994)));
-#line 4304 "ejemplos/compilador/tcodec.t"
+    const Revision* ss_tmp36962;
+    const ss_lista_Nodo* ss_tmp36963;
+    ss_lista_Contexto* ss_tmp36964;
+    const ss_lista_str* ss_tmp36965;
+    Contexto* ss_tmp36966;
+    const Cierres* ss_tmp36967;
+    const ss_mapa_str_usize* ss_tmp36968;
+    const ss_mapa_str_usize* ss_tmp36969;
+    const ss_lista_lista_str* ss_tmp36970;
+    const ss_lista_lista_str* ss_tmp36971;
+    const ss_lista_lista_str* ss_tmp36972;
+    ss_lista_str* ss_tmp36973;
+    ss_mapa_str_usize* ss_tmp36974;
+    ss_lista_lista_str* ss_tmp36975;
+    ss_lista_lista_str* ss_tmp36976;
+    const ss_lista_str* ss_tmp36977;
+    SS_LANG_QUIZA_SIN_USAR InstanciasPreparadas preparadas = ((ss_tmp36962 = &revision, ss_tmp36963 = &arboles, ss_tmp36964 = &contextos, ss_tmp36965 = &modulos, ss_tmp36966 = &global, ss_tmp36967 = &cierres, ss_tmp36968 = &plantillas, ss_tmp36969 = &stp_indice, ss_tmp36970 = &stp_params, ss_tmp36971 = &stp_campos, ss_tmp36972 = &stp_tipos, ss_tmp36973 = &st_nombres, ss_tmp36974 = &st_indice, ss_tmp36975 = &st_campos, ss_tmp36976 = &st_tipos, ss_tmp36977 = &en_nombres, preparar_instancias(ss_tmp36962, ss_tmp36963, ss_tmp36964, ss_tmp36965, ss_tmp36966, ss_tmp36967, ss_tmp36968, ss_tmp36969, ss_tmp36970, ss_tmp36971, ss_tmp36972, ss_tmp36973, ss_tmp36974, ss_tmp36975, ss_tmp36976, ss_tmp36977)));
+#line 4296 "ejemplos/compilador/tcodec.t"
     if ((!preparadas.ok))
     {
-        size_t ss_tmp36995 = (size_t)1;
+        size_t ss_tmp36978 = (size_t)1;
         ss_drop_InstanciasPreparadas(&preparadas);
         ss_drop_Cierres(&cierres);
         ss_drop_Revision(&revision);
         ss_mapa_libre_mapa_str_usize(&plantillas);
-        for (size_t ss_i1693 = 0; ss_i1693 < en_lleva.length; ss_i1693++)
+        for (size_t ss_i1689 = 0; ss_i1689 < en_lleva.length; ss_i1689++)
         {
-            for (size_t ss_i1694 = 0; ss_i1694 < en_lleva.e[ss_i1693].length; ss_i1694++)
+            for (size_t ss_i1690 = 0; ss_i1690 < en_lleva.e[ss_i1689].length; ss_i1690++)
             {
-                ss_free(&en_lleva.e[ss_i1693].e[ss_i1694]);
+                ss_free(&en_lleva.e[ss_i1689].e[ss_i1690]);
             }
-            free(en_lleva.e[ss_i1693].e);
-            en_lleva.e[ss_i1693].e = NULL;
-            en_lleva.e[ss_i1693].length = 0;
-            en_lleva.e[ss_i1693].capacity = 0;
+            free(en_lleva.e[ss_i1689].e);
+            en_lleva.e[ss_i1689].e = NULL;
+            en_lleva.e[ss_i1689].length = 0;
+            en_lleva.e[ss_i1689].capacity = 0;
         }
         free(en_lleva.e);
         en_lleva.e = NULL;
         en_lleva.length = 0;
         en_lleva.capacity = 0;
-        for (size_t ss_i1695 = 0; ss_i1695 < en_variantes.length; ss_i1695++)
+        for (size_t ss_i1691 = 0; ss_i1691 < en_variantes.length; ss_i1691++)
         {
-            for (size_t ss_i1696 = 0; ss_i1696 < en_variantes.e[ss_i1695].length; ss_i1696++)
+            for (size_t ss_i1692 = 0; ss_i1692 < en_variantes.e[ss_i1691].length; ss_i1692++)
             {
-                ss_free(&en_variantes.e[ss_i1695].e[ss_i1696]);
+                ss_free(&en_variantes.e[ss_i1691].e[ss_i1692]);
             }
-            free(en_variantes.e[ss_i1695].e);
-            en_variantes.e[ss_i1695].e = NULL;
-            en_variantes.e[ss_i1695].length = 0;
-            en_variantes.e[ss_i1695].capacity = 0;
+            free(en_variantes.e[ss_i1691].e);
+            en_variantes.e[ss_i1691].e = NULL;
+            en_variantes.e[ss_i1691].length = 0;
+            en_variantes.e[ss_i1691].capacity = 0;
         }
         free(en_variantes.e);
         en_variantes.e = NULL;
         en_variantes.length = 0;
         en_variantes.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&en_indice);
-        for (size_t ss_i1697 = 0; ss_i1697 < en_nombres.length; ss_i1697++)
+        for (size_t ss_i1693 = 0; ss_i1693 < en_nombres.length; ss_i1693++)
         {
-            ss_free(&en_nombres.e[ss_i1697]);
+            ss_free(&en_nombres.e[ss_i1693]);
         }
         free(en_nombres.e);
         en_nombres.e = NULL;
         en_nombres.length = 0;
         en_nombres.capacity = 0;
-        for (size_t ss_i1698 = 0; ss_i1698 < ext_protos.length; ss_i1698++)
+        for (size_t ss_i1694 = 0; ss_i1694 < ext_protos.length; ss_i1694++)
         {
-            ss_free(&ext_protos.e[ss_i1698]);
+            ss_free(&ext_protos.e[ss_i1694]);
         }
         free(ext_protos.e);
         ext_protos.e = NULL;
         ext_protos.length = 0;
         ext_protos.capacity = 0;
-        for (size_t ss_i1699 = 0; ss_i1699 < ext_modulos.length; ss_i1699++)
+        for (size_t ss_i1695 = 0; ss_i1695 < ext_modulos.length; ss_i1695++)
         {
-            ss_free(&ext_modulos.e[ss_i1699]);
+            ss_free(&ext_modulos.e[ss_i1695]);
         }
         free(ext_modulos.e);
         ext_modulos.e = NULL;
         ext_modulos.length = 0;
         ext_modulos.capacity = 0;
-        for (size_t ss_i1700 = 0; ss_i1700 < ext_cabeceras.length; ss_i1700++)
+        for (size_t ss_i1696 = 0; ss_i1696 < ext_cabeceras.length; ss_i1696++)
         {
-            ss_free(&ext_cabeceras.e[ss_i1700]);
+            ss_free(&ext_cabeceras.e[ss_i1696]);
         }
         free(ext_cabeceras.e);
         ext_cabeceras.e = NULL;
         ext_cabeceras.length = 0;
         ext_cabeceras.capacity = 0;
-        for (size_t ss_i1701 = 0; ss_i1701 < stp_tipos.length; ss_i1701++)
+        for (size_t ss_i1697 = 0; ss_i1697 < stp_tipos.length; ss_i1697++)
         {
-            for (size_t ss_i1702 = 0; ss_i1702 < stp_tipos.e[ss_i1701].length; ss_i1702++)
+            for (size_t ss_i1698 = 0; ss_i1698 < stp_tipos.e[ss_i1697].length; ss_i1698++)
             {
-                ss_free(&stp_tipos.e[ss_i1701].e[ss_i1702]);
+                ss_free(&stp_tipos.e[ss_i1697].e[ss_i1698]);
             }
-            free(stp_tipos.e[ss_i1701].e);
-            stp_tipos.e[ss_i1701].e = NULL;
-            stp_tipos.e[ss_i1701].length = 0;
-            stp_tipos.e[ss_i1701].capacity = 0;
+            free(stp_tipos.e[ss_i1697].e);
+            stp_tipos.e[ss_i1697].e = NULL;
+            stp_tipos.e[ss_i1697].length = 0;
+            stp_tipos.e[ss_i1697].capacity = 0;
         }
         free(stp_tipos.e);
         stp_tipos.e = NULL;
         stp_tipos.length = 0;
         stp_tipos.capacity = 0;
-        for (size_t ss_i1703 = 0; ss_i1703 < stp_campos.length; ss_i1703++)
+        for (size_t ss_i1699 = 0; ss_i1699 < stp_campos.length; ss_i1699++)
         {
-            for (size_t ss_i1704 = 0; ss_i1704 < stp_campos.e[ss_i1703].length; ss_i1704++)
+            for (size_t ss_i1700 = 0; ss_i1700 < stp_campos.e[ss_i1699].length; ss_i1700++)
             {
-                ss_free(&stp_campos.e[ss_i1703].e[ss_i1704]);
+                ss_free(&stp_campos.e[ss_i1699].e[ss_i1700]);
             }
-            free(stp_campos.e[ss_i1703].e);
-            stp_campos.e[ss_i1703].e = NULL;
-            stp_campos.e[ss_i1703].length = 0;
-            stp_campos.e[ss_i1703].capacity = 0;
+            free(stp_campos.e[ss_i1699].e);
+            stp_campos.e[ss_i1699].e = NULL;
+            stp_campos.e[ss_i1699].length = 0;
+            stp_campos.e[ss_i1699].capacity = 0;
         }
         free(stp_campos.e);
         stp_campos.e = NULL;
         stp_campos.length = 0;
         stp_campos.capacity = 0;
-        for (size_t ss_i1705 = 0; ss_i1705 < stp_params.length; ss_i1705++)
+        for (size_t ss_i1701 = 0; ss_i1701 < stp_params.length; ss_i1701++)
         {
-            for (size_t ss_i1706 = 0; ss_i1706 < stp_params.e[ss_i1705].length; ss_i1706++)
+            for (size_t ss_i1702 = 0; ss_i1702 < stp_params.e[ss_i1701].length; ss_i1702++)
             {
-                ss_free(&stp_params.e[ss_i1705].e[ss_i1706]);
+                ss_free(&stp_params.e[ss_i1701].e[ss_i1702]);
             }
-            free(stp_params.e[ss_i1705].e);
-            stp_params.e[ss_i1705].e = NULL;
-            stp_params.e[ss_i1705].length = 0;
-            stp_params.e[ss_i1705].capacity = 0;
+            free(stp_params.e[ss_i1701].e);
+            stp_params.e[ss_i1701].e = NULL;
+            stp_params.e[ss_i1701].length = 0;
+            stp_params.e[ss_i1701].capacity = 0;
         }
         free(stp_params.e);
         stp_params.e = NULL;
@@ -128681,64 +128616,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         stp_params.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&stp_indice);
         ss_mapa_libre_mapa_str_usize(&st_indice);
-        for (size_t ss_i1707 = 0; ss_i1707 < st_tipos.length; ss_i1707++)
+        for (size_t ss_i1703 = 0; ss_i1703 < st_tipos.length; ss_i1703++)
         {
-            for (size_t ss_i1708 = 0; ss_i1708 < st_tipos.e[ss_i1707].length; ss_i1708++)
+            for (size_t ss_i1704 = 0; ss_i1704 < st_tipos.e[ss_i1703].length; ss_i1704++)
             {
-                ss_free(&st_tipos.e[ss_i1707].e[ss_i1708]);
+                ss_free(&st_tipos.e[ss_i1703].e[ss_i1704]);
             }
-            free(st_tipos.e[ss_i1707].e);
-            st_tipos.e[ss_i1707].e = NULL;
-            st_tipos.e[ss_i1707].length = 0;
-            st_tipos.e[ss_i1707].capacity = 0;
+            free(st_tipos.e[ss_i1703].e);
+            st_tipos.e[ss_i1703].e = NULL;
+            st_tipos.e[ss_i1703].length = 0;
+            st_tipos.e[ss_i1703].capacity = 0;
         }
         free(st_tipos.e);
         st_tipos.e = NULL;
         st_tipos.length = 0;
         st_tipos.capacity = 0;
-        for (size_t ss_i1709 = 0; ss_i1709 < st_campos.length; ss_i1709++)
+        for (size_t ss_i1705 = 0; ss_i1705 < st_campos.length; ss_i1705++)
         {
-            for (size_t ss_i1710 = 0; ss_i1710 < st_campos.e[ss_i1709].length; ss_i1710++)
+            for (size_t ss_i1706 = 0; ss_i1706 < st_campos.e[ss_i1705].length; ss_i1706++)
             {
-                ss_free(&st_campos.e[ss_i1709].e[ss_i1710]);
+                ss_free(&st_campos.e[ss_i1705].e[ss_i1706]);
             }
-            free(st_campos.e[ss_i1709].e);
-            st_campos.e[ss_i1709].e = NULL;
-            st_campos.e[ss_i1709].length = 0;
-            st_campos.e[ss_i1709].capacity = 0;
+            free(st_campos.e[ss_i1705].e);
+            st_campos.e[ss_i1705].e = NULL;
+            st_campos.e[ss_i1705].length = 0;
+            st_campos.e[ss_i1705].capacity = 0;
         }
         free(st_campos.e);
         st_campos.e = NULL;
         st_campos.length = 0;
         st_campos.capacity = 0;
-        for (size_t ss_i1711 = 0; ss_i1711 < st_nombres.length; ss_i1711++)
+        for (size_t ss_i1707 = 0; ss_i1707 < st_nombres.length; ss_i1707++)
         {
-            ss_free(&st_nombres.e[ss_i1711]);
+            ss_free(&st_nombres.e[ss_i1707]);
         }
         free(st_nombres.e);
         st_nombres.e = NULL;
         st_nombres.length = 0;
         st_nombres.capacity = 0;
-        for (size_t ss_i1712 = 0; ss_i1712 < contextos.length; ss_i1712++)
+        for (size_t ss_i1708 = 0; ss_i1708 < contextos.length; ss_i1708++)
         {
-            ss_drop_Contexto(&contextos.e[ss_i1712]);
+            ss_drop_Contexto(&contextos.e[ss_i1708]);
         }
         free(contextos.e);
         contextos.e = NULL;
         contextos.length = 0;
         contextos.capacity = 0;
-        for (size_t ss_i1713 = 0; ss_i1713 < arboles.length; ss_i1713++)
+        for (size_t ss_i1709 = 0; ss_i1709 < arboles.length; ss_i1709++)
         {
-            ss_drop_Nodo(&arboles.e[ss_i1713]);
+            ss_drop_Nodo(&arboles.e[ss_i1709]);
         }
         free(arboles.e);
         arboles.e = NULL;
         arboles.length = 0;
         arboles.capacity = 0;
         ss_drop_Contexto(&global);
-        for (size_t ss_i1714 = 0; ss_i1714 < modulos.length; ss_i1714++)
+        for (size_t ss_i1710 = 0; ss_i1710 < modulos.length; ss_i1710++)
         {
-            ss_free(&modulos.e[ss_i1714]);
+            ss_free(&modulos.e[ss_i1710]);
         }
         free(modulos.e);
         modulos.e = NULL;
@@ -128752,87 +128687,87 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36995 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36978 };
     }
-#line 4305 "ejemplos/compilador/tcodec.t"
+#line 4297 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize con_partes = ss_copia_mapa_str_usize(&preparadas.con_partes);
-#line 4306 "ejemplos/compilador/tcodec.t"
+#line 4298 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize vistas_inst = ss_copia_mapa_str_usize(&preparadas.vistas);
-#line 4307 "ejemplos/compilador/tcodec.t"
+#line 4299 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str orden_inst = ss_copia_lista_str(&preparadas.orden);
-#line 4308 "ejemplos/compilador/tcodec.t"
+#line 4300 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_Nodo instancias = ss_copia_lista_Nodo(&preparadas.nodos);
-#line 4309 "ejemplos/compilador/tcodec.t"
+#line 4301 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_usize modulo_de = ss_copia_lista_usize(&preparadas.modulos);
-#line 4310 "ejemplos/compilador/tcodec.t"
+#line 4302 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str duenos_inst = ss_copia_lista_str(&preparadas.duenos);
-#line 4311 "ejemplos/compilador/tcodec.t"
+#line 4303 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t n_concretos = preparadas.n_concretos;
-#line 4315 "ejemplos/compilador/tcodec.t"
+#line 4307 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR Registro reg = registro();
-#line 4316 "ejemplos/compilador/tcodec.t"
+#line 4308 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t im = (size_t)0;
-#line 4317 "ejemplos/compilador/tcodec.t"
+#line 4309 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp36996;
-        size_t ss_tmp36997;
-#line 4317 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp36996 = im, ss_tmp36997 = (arboles.length), (ss_tmp36996 < ss_tmp36997)))))
+        size_t ss_tmp36979;
+        size_t ss_tmp36980;
+#line 4309 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp36979 = im, ss_tmp36980 = (arboles.length), (ss_tmp36979 < ss_tmp36980)))))
         {
             break;
         }
-#line 4318 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp36998;
-        for (size_t ss_k1715 = 0; ss_k1715 < ((ss_tmp36998 = &(arboles), &ss_tmp36998->e[ss_lang_indice_(im, ss_tmp36998->length, "ejemplos/compilador/tcodec.t", 4318)])[0]).hijos.length; ss_k1715++)
+#line 4310 "ejemplos/compilador/tcodec.t"
+        ss_lista_Nodo* ss_tmp36981;
+        for (size_t ss_k1711 = 0; ss_k1711 < ((ss_tmp36981 = &(arboles), &ss_tmp36981->e[ss_lang_indice_(im, ss_tmp36981->length, "ejemplos/compilador/tcodec.t", 4310)])[0]).hijos.length; ss_k1711++)
         {
-            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp36998 = &(arboles), &ss_tmp36998->e[ss_lang_indice_(im, ss_tmp36998->length, "ejemplos/compilador/tcodec.t", 4318)])[0]).hijos.e[ss_k1715];
-#line 4319 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp36999;
-            Clase ss_tmp37000;
-#line 4319 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp36999 = (*d).clase, ss_tmp37000 = (Clase){ .etiqueta = SS_CLASE_STRUCT }, (ss_tmp36999.etiqueta == ss_tmp37000.etiqueta))) && (!tiene_tipo_param(d))))
+            SS_LANG_QUIZA_SIN_USAR const Nodo* d = &((ss_tmp36981 = &(arboles), &ss_tmp36981->e[ss_lang_indice_(im, ss_tmp36981->length, "ejemplos/compilador/tcodec.t", 4310)])[0]).hijos.e[ss_k1711];
+#line 4311 "ejemplos/compilador/tcodec.t"
+            Clase ss_tmp36982;
+            Clase ss_tmp36983;
+#line 4311 "ejemplos/compilador/tcodec.t"
+            if ((((ss_tmp36982 = (*d).clase, ss_tmp36983 = (Clase){ .etiqueta = SS_CLASE_STRUCT }, (ss_tmp36982.etiqueta == ss_tmp36983.etiqueta))) && (!tiene_tipo_param(d))))
             {
-#line 4320 "ejemplos/compilador/tcodec.t"
-                for (size_t ss_k1716 = 0; ss_k1716 < (*d).hijos.length; ss_k1716++)
+#line 4312 "ejemplos/compilador/tcodec.t"
+                for (size_t ss_k1712 = 0; ss_k1712 < (*d).hijos.length; ss_k1712++)
                 {
-                    SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1716];
-#line 4321 "ejemplos/compilador/tcodec.t"
-                    Clase ss_tmp37001;
-                    Clase ss_tmp37002;
-#line 4321 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp37001 = (*h).clase, ss_tmp37002 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp37001.etiqueta == ss_tmp37002.etiqueta))))
+                    SS_LANG_QUIZA_SIN_USAR const Nodo* h = &(*d).hijos.e[ss_k1712];
+#line 4313 "ejemplos/compilador/tcodec.t"
+                    Clase ss_tmp36984;
+                    Clase ss_tmp36985;
+#line 4313 "ejemplos/compilador/tcodec.t"
+                    if (((ss_tmp36984 = (*h).clase, ss_tmp36985 = (Clase){ .etiqueta = SS_CLASE_CAMPODEF }, (ss_tmp36984.etiqueta == ss_tmp36985.etiqueta))))
                     {
-#line 4322 "ejemplos/compilador/tcodec.t"
+#line 4314 "ejemplos/compilador/tcodec.t"
                         SS_LANG_QUIZA_SIN_USAR SafeString t = tipo_pelado(ss_view(&(*h).texto));
-#line 4323 "ejemplos/compilador/tcodec.t"
-                        SafeView ss_tmp37003;
-                        Registro* ss_tmp37004;
-                        const Contexto* ss_tmp37005;
-                        const ss_mapa_str_usize* ss_tmp37006;
-                        if ((!((ss_tmp37003 = ss_view(&t), ss_tmp37004 = &reg, ss_tmp37005 = &global, ss_tmp37006 = &con_partes, mirar_tipo(ss_tmp37003, ss_tmp37004, ss_tmp37005, ss_tmp37006)))))
+#line 4315 "ejemplos/compilador/tcodec.t"
+                        SafeView ss_tmp36986;
+                        Registro* ss_tmp36987;
+                        const Contexto* ss_tmp36988;
+                        const ss_mapa_str_usize* ss_tmp36989;
+                        if ((!((ss_tmp36986 = ss_view(&t), ss_tmp36987 = &reg, ss_tmp36988 = &global, ss_tmp36989 = &con_partes, mirar_tipo(ss_tmp36986, ss_tmp36987, ss_tmp36988, ss_tmp36989)))))
                         {
-#line 4324 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp37008;
-                            SafeView ss_tmp37009;
-                            size_t ss_tmp37010;
-                            SafeString ss_tmp37007 = ((ss_tmp37009 = ss_view(&((ss_tmp37008 = &(modulos), &ss_tmp37008->e[ss_lang_indice_(im, ss_tmp37008->length, "ejemplos/compilador/tcodec.t", 4324)])[0])), ss_tmp37010 = (*h).linea, sitio(ss_tmp37009, ss_tmp37010)));
-                            SafeView ss_tmp37011;
-                            SafeString ss_tmp37013 = ss_new();
-                            SafeView ss_tmp37014 = ss_view(&ss_tmp37007);
-                            ss_lang_agregar_texto_(&ss_tmp37013, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4325);
-                            ss_lang_agregar_texto_(&ss_tmp37013, ss_view(&t), "ejemplos/compilador/tcodec.t", 4325);
-                            ss_lang_agregar_texto_(&ss_tmp37013, sv_len("` en un campo", 13), "ejemplos/compilador/tcodec.t", 4325);
-                            SafeString ss_tmp37012 = ss_tmp37013;
-                            SafeView ss_tmp37015;
-                            size_t ss_tmp37016 = ((ss_tmp37011 = ss_tmp37014, ss_tmp37015 = ss_view(&ss_tmp37012), rechazo(ss_tmp37011, ss_tmp37015)));
-                            ss_free(&ss_tmp37007);
-                            ss_free(&ss_tmp37012);
+#line 4316 "ejemplos/compilador/tcodec.t"
+                            ss_lista_str* ss_tmp36991;
+                            SafeView ss_tmp36992;
+                            size_t ss_tmp36993;
+                            SafeString ss_tmp36990 = ((ss_tmp36992 = ss_view(&((ss_tmp36991 = &(modulos), &ss_tmp36991->e[ss_lang_indice_(im, ss_tmp36991->length, "ejemplos/compilador/tcodec.t", 4316)])[0])), ss_tmp36993 = (*h).linea, sitio(ss_tmp36992, ss_tmp36993)));
+                            SafeView ss_tmp36994;
+                            SafeString ss_tmp36996 = ss_new();
+                            SafeView ss_tmp36997 = ss_view(&ss_tmp36990);
+                            ss_lang_agregar_texto_(&ss_tmp36996, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4317);
+                            ss_lang_agregar_texto_(&ss_tmp36996, ss_view(&t), "ejemplos/compilador/tcodec.t", 4317);
+                            ss_lang_agregar_texto_(&ss_tmp36996, sv_len("` en un campo", 13), "ejemplos/compilador/tcodec.t", 4317);
+                            SafeString ss_tmp36995 = ss_tmp36996;
+                            SafeView ss_tmp36998;
+                            size_t ss_tmp36999 = ((ss_tmp36994 = ss_tmp36997, ss_tmp36998 = ss_view(&ss_tmp36995), rechazo(ss_tmp36994, ss_tmp36998)));
+                            ss_free(&ss_tmp36990);
+                            ss_free(&ss_tmp36995);
                             ss_free(&t);
                             ss_drop_Registro(&reg);
-                            for (size_t ss_i1717 = 0; ss_i1717 < duenos_inst.length; ss_i1717++)
+                            for (size_t ss_i1713 = 0; ss_i1713 < duenos_inst.length; ss_i1713++)
                             {
-                                ss_free(&duenos_inst.e[ss_i1717]);
+                                ss_free(&duenos_inst.e[ss_i1713]);
                             }
                             free(duenos_inst.e);
                             duenos_inst.e = NULL;
@@ -128842,17 +128777,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                             modulo_de.e = NULL;
                             modulo_de.length = 0;
                             modulo_de.capacity = 0;
-                            for (size_t ss_i1718 = 0; ss_i1718 < instancias.length; ss_i1718++)
+                            for (size_t ss_i1714 = 0; ss_i1714 < instancias.length; ss_i1714++)
                             {
-                                ss_drop_Nodo(&instancias.e[ss_i1718]);
+                                ss_drop_Nodo(&instancias.e[ss_i1714]);
                             }
                             free(instancias.e);
                             instancias.e = NULL;
                             instancias.length = 0;
                             instancias.capacity = 0;
-                            for (size_t ss_i1719 = 0; ss_i1719 < orden_inst.length; ss_i1719++)
+                            for (size_t ss_i1715 = 0; ss_i1715 < orden_inst.length; ss_i1715++)
                             {
-                                ss_free(&orden_inst.e[ss_i1719]);
+                                ss_free(&orden_inst.e[ss_i1715]);
                             }
                             free(orden_inst.e);
                             orden_inst.e = NULL;
@@ -128864,109 +128799,109 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                             ss_drop_Cierres(&cierres);
                             ss_drop_Revision(&revision);
                             ss_mapa_libre_mapa_str_usize(&plantillas);
-                            for (size_t ss_i1720 = 0; ss_i1720 < en_lleva.length; ss_i1720++)
+                            for (size_t ss_i1716 = 0; ss_i1716 < en_lleva.length; ss_i1716++)
                             {
-                                for (size_t ss_i1721 = 0; ss_i1721 < en_lleva.e[ss_i1720].length; ss_i1721++)
+                                for (size_t ss_i1717 = 0; ss_i1717 < en_lleva.e[ss_i1716].length; ss_i1717++)
                                 {
-                                    ss_free(&en_lleva.e[ss_i1720].e[ss_i1721]);
+                                    ss_free(&en_lleva.e[ss_i1716].e[ss_i1717]);
                                 }
-                                free(en_lleva.e[ss_i1720].e);
-                                en_lleva.e[ss_i1720].e = NULL;
-                                en_lleva.e[ss_i1720].length = 0;
-                                en_lleva.e[ss_i1720].capacity = 0;
+                                free(en_lleva.e[ss_i1716].e);
+                                en_lleva.e[ss_i1716].e = NULL;
+                                en_lleva.e[ss_i1716].length = 0;
+                                en_lleva.e[ss_i1716].capacity = 0;
                             }
                             free(en_lleva.e);
                             en_lleva.e = NULL;
                             en_lleva.length = 0;
                             en_lleva.capacity = 0;
-                            for (size_t ss_i1722 = 0; ss_i1722 < en_variantes.length; ss_i1722++)
+                            for (size_t ss_i1718 = 0; ss_i1718 < en_variantes.length; ss_i1718++)
                             {
-                                for (size_t ss_i1723 = 0; ss_i1723 < en_variantes.e[ss_i1722].length; ss_i1723++)
+                                for (size_t ss_i1719 = 0; ss_i1719 < en_variantes.e[ss_i1718].length; ss_i1719++)
                                 {
-                                    ss_free(&en_variantes.e[ss_i1722].e[ss_i1723]);
+                                    ss_free(&en_variantes.e[ss_i1718].e[ss_i1719]);
                                 }
-                                free(en_variantes.e[ss_i1722].e);
-                                en_variantes.e[ss_i1722].e = NULL;
-                                en_variantes.e[ss_i1722].length = 0;
-                                en_variantes.e[ss_i1722].capacity = 0;
+                                free(en_variantes.e[ss_i1718].e);
+                                en_variantes.e[ss_i1718].e = NULL;
+                                en_variantes.e[ss_i1718].length = 0;
+                                en_variantes.e[ss_i1718].capacity = 0;
                             }
                             free(en_variantes.e);
                             en_variantes.e = NULL;
                             en_variantes.length = 0;
                             en_variantes.capacity = 0;
                             ss_mapa_libre_mapa_str_usize(&en_indice);
-                            for (size_t ss_i1724 = 0; ss_i1724 < en_nombres.length; ss_i1724++)
+                            for (size_t ss_i1720 = 0; ss_i1720 < en_nombres.length; ss_i1720++)
                             {
-                                ss_free(&en_nombres.e[ss_i1724]);
+                                ss_free(&en_nombres.e[ss_i1720]);
                             }
                             free(en_nombres.e);
                             en_nombres.e = NULL;
                             en_nombres.length = 0;
                             en_nombres.capacity = 0;
-                            for (size_t ss_i1725 = 0; ss_i1725 < ext_protos.length; ss_i1725++)
+                            for (size_t ss_i1721 = 0; ss_i1721 < ext_protos.length; ss_i1721++)
                             {
-                                ss_free(&ext_protos.e[ss_i1725]);
+                                ss_free(&ext_protos.e[ss_i1721]);
                             }
                             free(ext_protos.e);
                             ext_protos.e = NULL;
                             ext_protos.length = 0;
                             ext_protos.capacity = 0;
-                            for (size_t ss_i1726 = 0; ss_i1726 < ext_modulos.length; ss_i1726++)
+                            for (size_t ss_i1722 = 0; ss_i1722 < ext_modulos.length; ss_i1722++)
                             {
-                                ss_free(&ext_modulos.e[ss_i1726]);
+                                ss_free(&ext_modulos.e[ss_i1722]);
                             }
                             free(ext_modulos.e);
                             ext_modulos.e = NULL;
                             ext_modulos.length = 0;
                             ext_modulos.capacity = 0;
-                            for (size_t ss_i1727 = 0; ss_i1727 < ext_cabeceras.length; ss_i1727++)
+                            for (size_t ss_i1723 = 0; ss_i1723 < ext_cabeceras.length; ss_i1723++)
                             {
-                                ss_free(&ext_cabeceras.e[ss_i1727]);
+                                ss_free(&ext_cabeceras.e[ss_i1723]);
                             }
                             free(ext_cabeceras.e);
                             ext_cabeceras.e = NULL;
                             ext_cabeceras.length = 0;
                             ext_cabeceras.capacity = 0;
-                            for (size_t ss_i1728 = 0; ss_i1728 < stp_tipos.length; ss_i1728++)
+                            for (size_t ss_i1724 = 0; ss_i1724 < stp_tipos.length; ss_i1724++)
                             {
-                                for (size_t ss_i1729 = 0; ss_i1729 < stp_tipos.e[ss_i1728].length; ss_i1729++)
+                                for (size_t ss_i1725 = 0; ss_i1725 < stp_tipos.e[ss_i1724].length; ss_i1725++)
                                 {
-                                    ss_free(&stp_tipos.e[ss_i1728].e[ss_i1729]);
+                                    ss_free(&stp_tipos.e[ss_i1724].e[ss_i1725]);
                                 }
-                                free(stp_tipos.e[ss_i1728].e);
-                                stp_tipos.e[ss_i1728].e = NULL;
-                                stp_tipos.e[ss_i1728].length = 0;
-                                stp_tipos.e[ss_i1728].capacity = 0;
+                                free(stp_tipos.e[ss_i1724].e);
+                                stp_tipos.e[ss_i1724].e = NULL;
+                                stp_tipos.e[ss_i1724].length = 0;
+                                stp_tipos.e[ss_i1724].capacity = 0;
                             }
                             free(stp_tipos.e);
                             stp_tipos.e = NULL;
                             stp_tipos.length = 0;
                             stp_tipos.capacity = 0;
-                            for (size_t ss_i1730 = 0; ss_i1730 < stp_campos.length; ss_i1730++)
+                            for (size_t ss_i1726 = 0; ss_i1726 < stp_campos.length; ss_i1726++)
                             {
-                                for (size_t ss_i1731 = 0; ss_i1731 < stp_campos.e[ss_i1730].length; ss_i1731++)
+                                for (size_t ss_i1727 = 0; ss_i1727 < stp_campos.e[ss_i1726].length; ss_i1727++)
                                 {
-                                    ss_free(&stp_campos.e[ss_i1730].e[ss_i1731]);
+                                    ss_free(&stp_campos.e[ss_i1726].e[ss_i1727]);
                                 }
-                                free(stp_campos.e[ss_i1730].e);
-                                stp_campos.e[ss_i1730].e = NULL;
-                                stp_campos.e[ss_i1730].length = 0;
-                                stp_campos.e[ss_i1730].capacity = 0;
+                                free(stp_campos.e[ss_i1726].e);
+                                stp_campos.e[ss_i1726].e = NULL;
+                                stp_campos.e[ss_i1726].length = 0;
+                                stp_campos.e[ss_i1726].capacity = 0;
                             }
                             free(stp_campos.e);
                             stp_campos.e = NULL;
                             stp_campos.length = 0;
                             stp_campos.capacity = 0;
-                            for (size_t ss_i1732 = 0; ss_i1732 < stp_params.length; ss_i1732++)
+                            for (size_t ss_i1728 = 0; ss_i1728 < stp_params.length; ss_i1728++)
                             {
-                                for (size_t ss_i1733 = 0; ss_i1733 < stp_params.e[ss_i1732].length; ss_i1733++)
+                                for (size_t ss_i1729 = 0; ss_i1729 < stp_params.e[ss_i1728].length; ss_i1729++)
                                 {
-                                    ss_free(&stp_params.e[ss_i1732].e[ss_i1733]);
+                                    ss_free(&stp_params.e[ss_i1728].e[ss_i1729]);
                                 }
-                                free(stp_params.e[ss_i1732].e);
-                                stp_params.e[ss_i1732].e = NULL;
-                                stp_params.e[ss_i1732].length = 0;
-                                stp_params.e[ss_i1732].capacity = 0;
+                                free(stp_params.e[ss_i1728].e);
+                                stp_params.e[ss_i1728].e = NULL;
+                                stp_params.e[ss_i1728].length = 0;
+                                stp_params.e[ss_i1728].capacity = 0;
                             }
                             free(stp_params.e);
                             stp_params.e = NULL;
@@ -128974,64 +128909,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                             stp_params.capacity = 0;
                             ss_mapa_libre_mapa_str_usize(&stp_indice);
                             ss_mapa_libre_mapa_str_usize(&st_indice);
-                            for (size_t ss_i1734 = 0; ss_i1734 < st_tipos.length; ss_i1734++)
+                            for (size_t ss_i1730 = 0; ss_i1730 < st_tipos.length; ss_i1730++)
                             {
-                                for (size_t ss_i1735 = 0; ss_i1735 < st_tipos.e[ss_i1734].length; ss_i1735++)
+                                for (size_t ss_i1731 = 0; ss_i1731 < st_tipos.e[ss_i1730].length; ss_i1731++)
                                 {
-                                    ss_free(&st_tipos.e[ss_i1734].e[ss_i1735]);
+                                    ss_free(&st_tipos.e[ss_i1730].e[ss_i1731]);
                                 }
-                                free(st_tipos.e[ss_i1734].e);
-                                st_tipos.e[ss_i1734].e = NULL;
-                                st_tipos.e[ss_i1734].length = 0;
-                                st_tipos.e[ss_i1734].capacity = 0;
+                                free(st_tipos.e[ss_i1730].e);
+                                st_tipos.e[ss_i1730].e = NULL;
+                                st_tipos.e[ss_i1730].length = 0;
+                                st_tipos.e[ss_i1730].capacity = 0;
                             }
                             free(st_tipos.e);
                             st_tipos.e = NULL;
                             st_tipos.length = 0;
                             st_tipos.capacity = 0;
-                            for (size_t ss_i1736 = 0; ss_i1736 < st_campos.length; ss_i1736++)
+                            for (size_t ss_i1732 = 0; ss_i1732 < st_campos.length; ss_i1732++)
                             {
-                                for (size_t ss_i1737 = 0; ss_i1737 < st_campos.e[ss_i1736].length; ss_i1737++)
+                                for (size_t ss_i1733 = 0; ss_i1733 < st_campos.e[ss_i1732].length; ss_i1733++)
                                 {
-                                    ss_free(&st_campos.e[ss_i1736].e[ss_i1737]);
+                                    ss_free(&st_campos.e[ss_i1732].e[ss_i1733]);
                                 }
-                                free(st_campos.e[ss_i1736].e);
-                                st_campos.e[ss_i1736].e = NULL;
-                                st_campos.e[ss_i1736].length = 0;
-                                st_campos.e[ss_i1736].capacity = 0;
+                                free(st_campos.e[ss_i1732].e);
+                                st_campos.e[ss_i1732].e = NULL;
+                                st_campos.e[ss_i1732].length = 0;
+                                st_campos.e[ss_i1732].capacity = 0;
                             }
                             free(st_campos.e);
                             st_campos.e = NULL;
                             st_campos.length = 0;
                             st_campos.capacity = 0;
-                            for (size_t ss_i1738 = 0; ss_i1738 < st_nombres.length; ss_i1738++)
+                            for (size_t ss_i1734 = 0; ss_i1734 < st_nombres.length; ss_i1734++)
                             {
-                                ss_free(&st_nombres.e[ss_i1738]);
+                                ss_free(&st_nombres.e[ss_i1734]);
                             }
                             free(st_nombres.e);
                             st_nombres.e = NULL;
                             st_nombres.length = 0;
                             st_nombres.capacity = 0;
-                            for (size_t ss_i1739 = 0; ss_i1739 < contextos.length; ss_i1739++)
+                            for (size_t ss_i1735 = 0; ss_i1735 < contextos.length; ss_i1735++)
                             {
-                                ss_drop_Contexto(&contextos.e[ss_i1739]);
+                                ss_drop_Contexto(&contextos.e[ss_i1735]);
                             }
                             free(contextos.e);
                             contextos.e = NULL;
                             contextos.length = 0;
                             contextos.capacity = 0;
-                            for (size_t ss_i1740 = 0; ss_i1740 < arboles.length; ss_i1740++)
+                            for (size_t ss_i1736 = 0; ss_i1736 < arboles.length; ss_i1736++)
                             {
-                                ss_drop_Nodo(&arboles.e[ss_i1740]);
+                                ss_drop_Nodo(&arboles.e[ss_i1736]);
                             }
                             free(arboles.e);
                             arboles.e = NULL;
                             arboles.length = 0;
                             arboles.capacity = 0;
                             ss_drop_Contexto(&global);
-                            for (size_t ss_i1741 = 0; ss_i1741 < modulos.length; ss_i1741++)
+                            for (size_t ss_i1737 = 0; ss_i1737 < modulos.length; ss_i1737++)
                             {
-                                ss_free(&modulos.e[ss_i1741]);
+                                ss_free(&modulos.e[ss_i1737]);
                             }
                             free(modulos.e);
                             modulos.e = NULL;
@@ -129045,69 +128980,69 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                             ss_free(&salida);
                             ss_free(&fuente);
                             ss_drop_Opciones(&opciones);
-                            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37016 };
+                            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp36999 };
                         }
                         ss_free(&t);
                     }
                 }
             }
-#line 4330 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp37017;
-            Clase ss_tmp37018;
-#line 4330 "ejemplos/compilador/tcodec.t"
-            if (((ss_tmp37017 = (*d).clase, ss_tmp37018 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp37017.etiqueta == ss_tmp37018.etiqueta))))
+#line 4322 "ejemplos/compilador/tcodec.t"
+            Clase ss_tmp37000;
+            Clase ss_tmp37001;
+#line 4322 "ejemplos/compilador/tcodec.t"
+            if (((ss_tmp37000 = (*d).clase, ss_tmp37001 = (Clase){ .etiqueta = SS_CLASE_ENUM }, (ss_tmp37000.etiqueta == ss_tmp37001.etiqueta))))
             {
-#line 4334 "ejemplos/compilador/tcodec.t"
-                for (size_t ss_k1742 = 0; ss_k1742 < (*d).hijos.length; ss_k1742++)
+#line 4326 "ejemplos/compilador/tcodec.t"
+                for (size_t ss_k1738 = 0; ss_k1738 < (*d).hijos.length; ss_k1738++)
                 {
-                    SS_LANG_QUIZA_SIN_USAR const Nodo* v = &(*d).hijos.e[ss_k1742];
-#line 4335 "ejemplos/compilador/tcodec.t"
-                    Clase ss_tmp37019;
-                    Clase ss_tmp37020;
-#line 4335 "ejemplos/compilador/tcodec.t"
-                    if (((ss_tmp37019 = (*v).clase, ss_tmp37020 = (Clase){ .etiqueta = SS_CLASE_VARIANTE }, (ss_tmp37019.etiqueta != ss_tmp37020.etiqueta))))
+                    SS_LANG_QUIZA_SIN_USAR const Nodo* v = &(*d).hijos.e[ss_k1738];
+#line 4327 "ejemplos/compilador/tcodec.t"
+                    Clase ss_tmp37002;
+                    Clase ss_tmp37003;
+#line 4327 "ejemplos/compilador/tcodec.t"
+                    if (((ss_tmp37002 = (*v).clase, ss_tmp37003 = (Clase){ .etiqueta = SS_CLASE_VARIANTE }, (ss_tmp37002.etiqueta != ss_tmp37003.etiqueta))))
                     {
                         continue;
                     }
-#line 4336 "ejemplos/compilador/tcodec.t"
-                    for (size_t ss_k1743 = 0; ss_k1743 < (*v).hijos.length; ss_k1743++)
+#line 4328 "ejemplos/compilador/tcodec.t"
+                    for (size_t ss_k1739 = 0; ss_k1739 < (*v).hijos.length; ss_k1739++)
                     {
-                        SS_LANG_QUIZA_SIN_USAR const Nodo* x = &(*v).hijos.e[ss_k1743];
-#line 4337 "ejemplos/compilador/tcodec.t"
-                        Clase ss_tmp37021;
-                        Clase ss_tmp37022;
-#line 4337 "ejemplos/compilador/tcodec.t"
-                        if (((ss_tmp37021 = (*x).clase, ss_tmp37022 = (Clase){ .etiqueta = SS_CLASE_LLEVA }, (ss_tmp37021.etiqueta != ss_tmp37022.etiqueta))))
+                        SS_LANG_QUIZA_SIN_USAR const Nodo* x = &(*v).hijos.e[ss_k1739];
+#line 4329 "ejemplos/compilador/tcodec.t"
+                        Clase ss_tmp37004;
+                        Clase ss_tmp37005;
+#line 4329 "ejemplos/compilador/tcodec.t"
+                        if (((ss_tmp37004 = (*x).clase, ss_tmp37005 = (Clase){ .etiqueta = SS_CLASE_LLEVA }, (ss_tmp37004.etiqueta != ss_tmp37005.etiqueta))))
                         {
                             continue;
                         }
-#line 4338 "ejemplos/compilador/tcodec.t"
-                        SafeView ss_tmp37023;
-                        Registro* ss_tmp37024;
-                        const Contexto* ss_tmp37025;
-                        const ss_mapa_str_usize* ss_tmp37026;
-                        if ((!((ss_tmp37023 = ss_view(&(*x).texto), ss_tmp37024 = &reg, ss_tmp37025 = &global, ss_tmp37026 = &con_partes, mirar_tipo(ss_tmp37023, ss_tmp37024, ss_tmp37025, ss_tmp37026)))))
+#line 4330 "ejemplos/compilador/tcodec.t"
+                        SafeView ss_tmp37006;
+                        Registro* ss_tmp37007;
+                        const Contexto* ss_tmp37008;
+                        const ss_mapa_str_usize* ss_tmp37009;
+                        if ((!((ss_tmp37006 = ss_view(&(*x).texto), ss_tmp37007 = &reg, ss_tmp37008 = &global, ss_tmp37009 = &con_partes, mirar_tipo(ss_tmp37006, ss_tmp37007, ss_tmp37008, ss_tmp37009)))))
                         {
-#line 4339 "ejemplos/compilador/tcodec.t"
-                            ss_lista_str* ss_tmp37028;
-                            SafeView ss_tmp37029;
-                            size_t ss_tmp37030;
-                            SafeString ss_tmp37027 = ((ss_tmp37029 = ss_view(&((ss_tmp37028 = &(modulos), &ss_tmp37028->e[ss_lang_indice_(im, ss_tmp37028->length, "ejemplos/compilador/tcodec.t", 4339)])[0])), ss_tmp37030 = (*x).linea, sitio(ss_tmp37029, ss_tmp37030)));
-                            SafeView ss_tmp37031;
-                            SafeString ss_tmp37033 = ss_new();
-                            SafeView ss_tmp37034 = ss_view(&ss_tmp37027);
-                            ss_lang_agregar_texto_(&ss_tmp37033, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4340);
-                            ss_lang_agregar_texto_(&ss_tmp37033, ss_view(&(*x).texto), "ejemplos/compilador/tcodec.t", 4340);
-                            ss_lang_agregar_texto_(&ss_tmp37033, sv_len("` en una carga", 14), "ejemplos/compilador/tcodec.t", 4340);
-                            SafeString ss_tmp37032 = ss_tmp37033;
-                            SafeView ss_tmp37035;
-                            size_t ss_tmp37036 = ((ss_tmp37031 = ss_tmp37034, ss_tmp37035 = ss_view(&ss_tmp37032), rechazo(ss_tmp37031, ss_tmp37035)));
-                            ss_free(&ss_tmp37027);
-                            ss_free(&ss_tmp37032);
+#line 4331 "ejemplos/compilador/tcodec.t"
+                            ss_lista_str* ss_tmp37011;
+                            SafeView ss_tmp37012;
+                            size_t ss_tmp37013;
+                            SafeString ss_tmp37010 = ((ss_tmp37012 = ss_view(&((ss_tmp37011 = &(modulos), &ss_tmp37011->e[ss_lang_indice_(im, ss_tmp37011->length, "ejemplos/compilador/tcodec.t", 4331)])[0])), ss_tmp37013 = (*x).linea, sitio(ss_tmp37012, ss_tmp37013)));
+                            SafeView ss_tmp37014;
+                            SafeString ss_tmp37016 = ss_new();
+                            SafeView ss_tmp37017 = ss_view(&ss_tmp37010);
+                            ss_lang_agregar_texto_(&ss_tmp37016, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4332);
+                            ss_lang_agregar_texto_(&ss_tmp37016, ss_view(&(*x).texto), "ejemplos/compilador/tcodec.t", 4332);
+                            ss_lang_agregar_texto_(&ss_tmp37016, sv_len("` en una carga", 14), "ejemplos/compilador/tcodec.t", 4332);
+                            SafeString ss_tmp37015 = ss_tmp37016;
+                            SafeView ss_tmp37018;
+                            size_t ss_tmp37019 = ((ss_tmp37014 = ss_tmp37017, ss_tmp37018 = ss_view(&ss_tmp37015), rechazo(ss_tmp37014, ss_tmp37018)));
+                            ss_free(&ss_tmp37010);
+                            ss_free(&ss_tmp37015);
                             ss_drop_Registro(&reg);
-                            for (size_t ss_i1744 = 0; ss_i1744 < duenos_inst.length; ss_i1744++)
+                            for (size_t ss_i1740 = 0; ss_i1740 < duenos_inst.length; ss_i1740++)
                             {
-                                ss_free(&duenos_inst.e[ss_i1744]);
+                                ss_free(&duenos_inst.e[ss_i1740]);
                             }
                             free(duenos_inst.e);
                             duenos_inst.e = NULL;
@@ -129117,17 +129052,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                             modulo_de.e = NULL;
                             modulo_de.length = 0;
                             modulo_de.capacity = 0;
-                            for (size_t ss_i1745 = 0; ss_i1745 < instancias.length; ss_i1745++)
+                            for (size_t ss_i1741 = 0; ss_i1741 < instancias.length; ss_i1741++)
                             {
-                                ss_drop_Nodo(&instancias.e[ss_i1745]);
+                                ss_drop_Nodo(&instancias.e[ss_i1741]);
                             }
                             free(instancias.e);
                             instancias.e = NULL;
                             instancias.length = 0;
                             instancias.capacity = 0;
-                            for (size_t ss_i1746 = 0; ss_i1746 < orden_inst.length; ss_i1746++)
+                            for (size_t ss_i1742 = 0; ss_i1742 < orden_inst.length; ss_i1742++)
                             {
-                                ss_free(&orden_inst.e[ss_i1746]);
+                                ss_free(&orden_inst.e[ss_i1742]);
                             }
                             free(orden_inst.e);
                             orden_inst.e = NULL;
@@ -129139,109 +129074,109 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                             ss_drop_Cierres(&cierres);
                             ss_drop_Revision(&revision);
                             ss_mapa_libre_mapa_str_usize(&plantillas);
-                            for (size_t ss_i1747 = 0; ss_i1747 < en_lleva.length; ss_i1747++)
+                            for (size_t ss_i1743 = 0; ss_i1743 < en_lleva.length; ss_i1743++)
                             {
-                                for (size_t ss_i1748 = 0; ss_i1748 < en_lleva.e[ss_i1747].length; ss_i1748++)
+                                for (size_t ss_i1744 = 0; ss_i1744 < en_lleva.e[ss_i1743].length; ss_i1744++)
                                 {
-                                    ss_free(&en_lleva.e[ss_i1747].e[ss_i1748]);
+                                    ss_free(&en_lleva.e[ss_i1743].e[ss_i1744]);
                                 }
-                                free(en_lleva.e[ss_i1747].e);
-                                en_lleva.e[ss_i1747].e = NULL;
-                                en_lleva.e[ss_i1747].length = 0;
-                                en_lleva.e[ss_i1747].capacity = 0;
+                                free(en_lleva.e[ss_i1743].e);
+                                en_lleva.e[ss_i1743].e = NULL;
+                                en_lleva.e[ss_i1743].length = 0;
+                                en_lleva.e[ss_i1743].capacity = 0;
                             }
                             free(en_lleva.e);
                             en_lleva.e = NULL;
                             en_lleva.length = 0;
                             en_lleva.capacity = 0;
-                            for (size_t ss_i1749 = 0; ss_i1749 < en_variantes.length; ss_i1749++)
+                            for (size_t ss_i1745 = 0; ss_i1745 < en_variantes.length; ss_i1745++)
                             {
-                                for (size_t ss_i1750 = 0; ss_i1750 < en_variantes.e[ss_i1749].length; ss_i1750++)
+                                for (size_t ss_i1746 = 0; ss_i1746 < en_variantes.e[ss_i1745].length; ss_i1746++)
                                 {
-                                    ss_free(&en_variantes.e[ss_i1749].e[ss_i1750]);
+                                    ss_free(&en_variantes.e[ss_i1745].e[ss_i1746]);
                                 }
-                                free(en_variantes.e[ss_i1749].e);
-                                en_variantes.e[ss_i1749].e = NULL;
-                                en_variantes.e[ss_i1749].length = 0;
-                                en_variantes.e[ss_i1749].capacity = 0;
+                                free(en_variantes.e[ss_i1745].e);
+                                en_variantes.e[ss_i1745].e = NULL;
+                                en_variantes.e[ss_i1745].length = 0;
+                                en_variantes.e[ss_i1745].capacity = 0;
                             }
                             free(en_variantes.e);
                             en_variantes.e = NULL;
                             en_variantes.length = 0;
                             en_variantes.capacity = 0;
                             ss_mapa_libre_mapa_str_usize(&en_indice);
-                            for (size_t ss_i1751 = 0; ss_i1751 < en_nombres.length; ss_i1751++)
+                            for (size_t ss_i1747 = 0; ss_i1747 < en_nombres.length; ss_i1747++)
                             {
-                                ss_free(&en_nombres.e[ss_i1751]);
+                                ss_free(&en_nombres.e[ss_i1747]);
                             }
                             free(en_nombres.e);
                             en_nombres.e = NULL;
                             en_nombres.length = 0;
                             en_nombres.capacity = 0;
-                            for (size_t ss_i1752 = 0; ss_i1752 < ext_protos.length; ss_i1752++)
+                            for (size_t ss_i1748 = 0; ss_i1748 < ext_protos.length; ss_i1748++)
                             {
-                                ss_free(&ext_protos.e[ss_i1752]);
+                                ss_free(&ext_protos.e[ss_i1748]);
                             }
                             free(ext_protos.e);
                             ext_protos.e = NULL;
                             ext_protos.length = 0;
                             ext_protos.capacity = 0;
-                            for (size_t ss_i1753 = 0; ss_i1753 < ext_modulos.length; ss_i1753++)
+                            for (size_t ss_i1749 = 0; ss_i1749 < ext_modulos.length; ss_i1749++)
                             {
-                                ss_free(&ext_modulos.e[ss_i1753]);
+                                ss_free(&ext_modulos.e[ss_i1749]);
                             }
                             free(ext_modulos.e);
                             ext_modulos.e = NULL;
                             ext_modulos.length = 0;
                             ext_modulos.capacity = 0;
-                            for (size_t ss_i1754 = 0; ss_i1754 < ext_cabeceras.length; ss_i1754++)
+                            for (size_t ss_i1750 = 0; ss_i1750 < ext_cabeceras.length; ss_i1750++)
                             {
-                                ss_free(&ext_cabeceras.e[ss_i1754]);
+                                ss_free(&ext_cabeceras.e[ss_i1750]);
                             }
                             free(ext_cabeceras.e);
                             ext_cabeceras.e = NULL;
                             ext_cabeceras.length = 0;
                             ext_cabeceras.capacity = 0;
-                            for (size_t ss_i1755 = 0; ss_i1755 < stp_tipos.length; ss_i1755++)
+                            for (size_t ss_i1751 = 0; ss_i1751 < stp_tipos.length; ss_i1751++)
                             {
-                                for (size_t ss_i1756 = 0; ss_i1756 < stp_tipos.e[ss_i1755].length; ss_i1756++)
+                                for (size_t ss_i1752 = 0; ss_i1752 < stp_tipos.e[ss_i1751].length; ss_i1752++)
                                 {
-                                    ss_free(&stp_tipos.e[ss_i1755].e[ss_i1756]);
+                                    ss_free(&stp_tipos.e[ss_i1751].e[ss_i1752]);
                                 }
-                                free(stp_tipos.e[ss_i1755].e);
-                                stp_tipos.e[ss_i1755].e = NULL;
-                                stp_tipos.e[ss_i1755].length = 0;
-                                stp_tipos.e[ss_i1755].capacity = 0;
+                                free(stp_tipos.e[ss_i1751].e);
+                                stp_tipos.e[ss_i1751].e = NULL;
+                                stp_tipos.e[ss_i1751].length = 0;
+                                stp_tipos.e[ss_i1751].capacity = 0;
                             }
                             free(stp_tipos.e);
                             stp_tipos.e = NULL;
                             stp_tipos.length = 0;
                             stp_tipos.capacity = 0;
-                            for (size_t ss_i1757 = 0; ss_i1757 < stp_campos.length; ss_i1757++)
+                            for (size_t ss_i1753 = 0; ss_i1753 < stp_campos.length; ss_i1753++)
                             {
-                                for (size_t ss_i1758 = 0; ss_i1758 < stp_campos.e[ss_i1757].length; ss_i1758++)
+                                for (size_t ss_i1754 = 0; ss_i1754 < stp_campos.e[ss_i1753].length; ss_i1754++)
                                 {
-                                    ss_free(&stp_campos.e[ss_i1757].e[ss_i1758]);
+                                    ss_free(&stp_campos.e[ss_i1753].e[ss_i1754]);
                                 }
-                                free(stp_campos.e[ss_i1757].e);
-                                stp_campos.e[ss_i1757].e = NULL;
-                                stp_campos.e[ss_i1757].length = 0;
-                                stp_campos.e[ss_i1757].capacity = 0;
+                                free(stp_campos.e[ss_i1753].e);
+                                stp_campos.e[ss_i1753].e = NULL;
+                                stp_campos.e[ss_i1753].length = 0;
+                                stp_campos.e[ss_i1753].capacity = 0;
                             }
                             free(stp_campos.e);
                             stp_campos.e = NULL;
                             stp_campos.length = 0;
                             stp_campos.capacity = 0;
-                            for (size_t ss_i1759 = 0; ss_i1759 < stp_params.length; ss_i1759++)
+                            for (size_t ss_i1755 = 0; ss_i1755 < stp_params.length; ss_i1755++)
                             {
-                                for (size_t ss_i1760 = 0; ss_i1760 < stp_params.e[ss_i1759].length; ss_i1760++)
+                                for (size_t ss_i1756 = 0; ss_i1756 < stp_params.e[ss_i1755].length; ss_i1756++)
                                 {
-                                    ss_free(&stp_params.e[ss_i1759].e[ss_i1760]);
+                                    ss_free(&stp_params.e[ss_i1755].e[ss_i1756]);
                                 }
-                                free(stp_params.e[ss_i1759].e);
-                                stp_params.e[ss_i1759].e = NULL;
-                                stp_params.e[ss_i1759].length = 0;
-                                stp_params.e[ss_i1759].capacity = 0;
+                                free(stp_params.e[ss_i1755].e);
+                                stp_params.e[ss_i1755].e = NULL;
+                                stp_params.e[ss_i1755].length = 0;
+                                stp_params.e[ss_i1755].capacity = 0;
                             }
                             free(stp_params.e);
                             stp_params.e = NULL;
@@ -129249,64 +129184,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                             stp_params.capacity = 0;
                             ss_mapa_libre_mapa_str_usize(&stp_indice);
                             ss_mapa_libre_mapa_str_usize(&st_indice);
-                            for (size_t ss_i1761 = 0; ss_i1761 < st_tipos.length; ss_i1761++)
+                            for (size_t ss_i1757 = 0; ss_i1757 < st_tipos.length; ss_i1757++)
                             {
-                                for (size_t ss_i1762 = 0; ss_i1762 < st_tipos.e[ss_i1761].length; ss_i1762++)
+                                for (size_t ss_i1758 = 0; ss_i1758 < st_tipos.e[ss_i1757].length; ss_i1758++)
                                 {
-                                    ss_free(&st_tipos.e[ss_i1761].e[ss_i1762]);
+                                    ss_free(&st_tipos.e[ss_i1757].e[ss_i1758]);
                                 }
-                                free(st_tipos.e[ss_i1761].e);
-                                st_tipos.e[ss_i1761].e = NULL;
-                                st_tipos.e[ss_i1761].length = 0;
-                                st_tipos.e[ss_i1761].capacity = 0;
+                                free(st_tipos.e[ss_i1757].e);
+                                st_tipos.e[ss_i1757].e = NULL;
+                                st_tipos.e[ss_i1757].length = 0;
+                                st_tipos.e[ss_i1757].capacity = 0;
                             }
                             free(st_tipos.e);
                             st_tipos.e = NULL;
                             st_tipos.length = 0;
                             st_tipos.capacity = 0;
-                            for (size_t ss_i1763 = 0; ss_i1763 < st_campos.length; ss_i1763++)
+                            for (size_t ss_i1759 = 0; ss_i1759 < st_campos.length; ss_i1759++)
                             {
-                                for (size_t ss_i1764 = 0; ss_i1764 < st_campos.e[ss_i1763].length; ss_i1764++)
+                                for (size_t ss_i1760 = 0; ss_i1760 < st_campos.e[ss_i1759].length; ss_i1760++)
                                 {
-                                    ss_free(&st_campos.e[ss_i1763].e[ss_i1764]);
+                                    ss_free(&st_campos.e[ss_i1759].e[ss_i1760]);
                                 }
-                                free(st_campos.e[ss_i1763].e);
-                                st_campos.e[ss_i1763].e = NULL;
-                                st_campos.e[ss_i1763].length = 0;
-                                st_campos.e[ss_i1763].capacity = 0;
+                                free(st_campos.e[ss_i1759].e);
+                                st_campos.e[ss_i1759].e = NULL;
+                                st_campos.e[ss_i1759].length = 0;
+                                st_campos.e[ss_i1759].capacity = 0;
                             }
                             free(st_campos.e);
                             st_campos.e = NULL;
                             st_campos.length = 0;
                             st_campos.capacity = 0;
-                            for (size_t ss_i1765 = 0; ss_i1765 < st_nombres.length; ss_i1765++)
+                            for (size_t ss_i1761 = 0; ss_i1761 < st_nombres.length; ss_i1761++)
                             {
-                                ss_free(&st_nombres.e[ss_i1765]);
+                                ss_free(&st_nombres.e[ss_i1761]);
                             }
                             free(st_nombres.e);
                             st_nombres.e = NULL;
                             st_nombres.length = 0;
                             st_nombres.capacity = 0;
-                            for (size_t ss_i1766 = 0; ss_i1766 < contextos.length; ss_i1766++)
+                            for (size_t ss_i1762 = 0; ss_i1762 < contextos.length; ss_i1762++)
                             {
-                                ss_drop_Contexto(&contextos.e[ss_i1766]);
+                                ss_drop_Contexto(&contextos.e[ss_i1762]);
                             }
                             free(contextos.e);
                             contextos.e = NULL;
                             contextos.length = 0;
                             contextos.capacity = 0;
-                            for (size_t ss_i1767 = 0; ss_i1767 < arboles.length; ss_i1767++)
+                            for (size_t ss_i1763 = 0; ss_i1763 < arboles.length; ss_i1763++)
                             {
-                                ss_drop_Nodo(&arboles.e[ss_i1767]);
+                                ss_drop_Nodo(&arboles.e[ss_i1763]);
                             }
                             free(arboles.e);
                             arboles.e = NULL;
                             arboles.length = 0;
                             arboles.capacity = 0;
                             ss_drop_Contexto(&global);
-                            for (size_t ss_i1768 = 0; ss_i1768 < modulos.length; ss_i1768++)
+                            for (size_t ss_i1764 = 0; ss_i1764 < modulos.length; ss_i1764++)
                             {
-                                ss_free(&modulos.e[ss_i1768]);
+                                ss_free(&modulos.e[ss_i1764]);
                             }
                             free(modulos.e);
                             modulos.e = NULL;
@@ -129320,46 +129255,46 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                             ss_free(&salida);
                             ss_free(&fuente);
                             ss_drop_Opciones(&opciones);
-                            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37036 };
+                            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37019 };
                         }
                     }
                 }
             }
-#line 4345 "ejemplos/compilador/tcodec.t"
-            Clase ss_tmp37037;
-            Clase ss_tmp37038;
-#line 4345 "ejemplos/compilador/tcodec.t"
-            if ((((ss_tmp37037 = (*d).clase, ss_tmp37038 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp37037.etiqueta == ss_tmp37038.etiqueta))) && (!es_generica(d))))
+#line 4337 "ejemplos/compilador/tcodec.t"
+            Clase ss_tmp37020;
+            Clase ss_tmp37021;
+#line 4337 "ejemplos/compilador/tcodec.t"
+            if ((((ss_tmp37020 = (*d).clase, ss_tmp37021 = (Clase){ .etiqueta = SS_CLASE_FN }, (ss_tmp37020.etiqueta == ss_tmp37021.etiqueta))) && (!es_generica(d))))
             {
-#line 4346 "ejemplos/compilador/tcodec.t"
-                const Nodo* ss_tmp37039;
-                ss_lista_Contexto* ss_tmp37040;
-                Contexto* ss_tmp37041;
-                Registro* ss_tmp37042;
-                const Contexto* ss_tmp37043;
-                const ss_mapa_str_usize* ss_tmp37044;
-                if ((!((ss_tmp37039 = d, ss_tmp37041 = &((ss_tmp37040 = &(contextos), &ss_tmp37040->e[ss_lang_indice_(im, ss_tmp37040->length, "ejemplos/compilador/tcodec.t", 4346)])[0]), ss_tmp37042 = &reg, ss_tmp37043 = &global, ss_tmp37044 = &con_partes, mirar_funcion(ss_tmp37039, ss_tmp37041, ss_tmp37042, ss_tmp37043, ss_tmp37044)))))
+#line 4338 "ejemplos/compilador/tcodec.t"
+                const Nodo* ss_tmp37022;
+                ss_lista_Contexto* ss_tmp37023;
+                Contexto* ss_tmp37024;
+                Registro* ss_tmp37025;
+                const Contexto* ss_tmp37026;
+                const ss_mapa_str_usize* ss_tmp37027;
+                if ((!((ss_tmp37022 = d, ss_tmp37024 = &((ss_tmp37023 = &(contextos), &ss_tmp37023->e[ss_lang_indice_(im, ss_tmp37023->length, "ejemplos/compilador/tcodec.t", 4338)])[0]), ss_tmp37025 = &reg, ss_tmp37026 = &global, ss_tmp37027 = &con_partes, mirar_funcion(ss_tmp37022, ss_tmp37024, ss_tmp37025, ss_tmp37026, ss_tmp37027)))))
                 {
-#line 4347 "ejemplos/compilador/tcodec.t"
-                    ss_lista_str* ss_tmp37046;
-                    SafeView ss_tmp37047;
-                    size_t ss_tmp37048;
-                    SafeString ss_tmp37045 = ((ss_tmp37047 = ss_view(&((ss_tmp37046 = &(modulos), &ss_tmp37046->e[ss_lang_indice_(im, ss_tmp37046->length, "ejemplos/compilador/tcodec.t", 4347)])[0])), ss_tmp37048 = (*d).linea, sitio(ss_tmp37047, ss_tmp37048)));
-                    SafeView ss_tmp37049;
-                    SafeString ss_tmp37051 = ss_new();
-                    SafeView ss_tmp37052 = ss_view(&ss_tmp37045);
-                    ss_lang_agregar_texto_(&ss_tmp37051, sv_len("no escribe los tipos de `", 25), "ejemplos/compilador/tcodec.t", 4348);
-                    ss_lang_agregar_texto_(&ss_tmp37051, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 4348);
-                    ss_lang_agregar_texto_(&ss_tmp37051, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4348);
-                    SafeString ss_tmp37050 = ss_tmp37051;
-                    SafeView ss_tmp37053;
-                    size_t ss_tmp37054 = ((ss_tmp37049 = ss_tmp37052, ss_tmp37053 = ss_view(&ss_tmp37050), rechazo(ss_tmp37049, ss_tmp37053)));
-                    ss_free(&ss_tmp37045);
-                    ss_free(&ss_tmp37050);
+#line 4339 "ejemplos/compilador/tcodec.t"
+                    ss_lista_str* ss_tmp37029;
+                    SafeView ss_tmp37030;
+                    size_t ss_tmp37031;
+                    SafeString ss_tmp37028 = ((ss_tmp37030 = ss_view(&((ss_tmp37029 = &(modulos), &ss_tmp37029->e[ss_lang_indice_(im, ss_tmp37029->length, "ejemplos/compilador/tcodec.t", 4339)])[0])), ss_tmp37031 = (*d).linea, sitio(ss_tmp37030, ss_tmp37031)));
+                    SafeView ss_tmp37032;
+                    SafeString ss_tmp37034 = ss_new();
+                    SafeView ss_tmp37035 = ss_view(&ss_tmp37028);
+                    ss_lang_agregar_texto_(&ss_tmp37034, sv_len("no escribe los tipos de `", 25), "ejemplos/compilador/tcodec.t", 4340);
+                    ss_lang_agregar_texto_(&ss_tmp37034, ss_view(&(*d).texto), "ejemplos/compilador/tcodec.t", 4340);
+                    ss_lang_agregar_texto_(&ss_tmp37034, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4340);
+                    SafeString ss_tmp37033 = ss_tmp37034;
+                    SafeView ss_tmp37036;
+                    size_t ss_tmp37037 = ((ss_tmp37032 = ss_tmp37035, ss_tmp37036 = ss_view(&ss_tmp37033), rechazo(ss_tmp37032, ss_tmp37036)));
+                    ss_free(&ss_tmp37028);
+                    ss_free(&ss_tmp37033);
                     ss_drop_Registro(&reg);
-                    for (size_t ss_i1769 = 0; ss_i1769 < duenos_inst.length; ss_i1769++)
+                    for (size_t ss_i1765 = 0; ss_i1765 < duenos_inst.length; ss_i1765++)
                     {
-                        ss_free(&duenos_inst.e[ss_i1769]);
+                        ss_free(&duenos_inst.e[ss_i1765]);
                     }
                     free(duenos_inst.e);
                     duenos_inst.e = NULL;
@@ -129369,17 +129304,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                     modulo_de.e = NULL;
                     modulo_de.length = 0;
                     modulo_de.capacity = 0;
-                    for (size_t ss_i1770 = 0; ss_i1770 < instancias.length; ss_i1770++)
+                    for (size_t ss_i1766 = 0; ss_i1766 < instancias.length; ss_i1766++)
                     {
-                        ss_drop_Nodo(&instancias.e[ss_i1770]);
+                        ss_drop_Nodo(&instancias.e[ss_i1766]);
                     }
                     free(instancias.e);
                     instancias.e = NULL;
                     instancias.length = 0;
                     instancias.capacity = 0;
-                    for (size_t ss_i1771 = 0; ss_i1771 < orden_inst.length; ss_i1771++)
+                    for (size_t ss_i1767 = 0; ss_i1767 < orden_inst.length; ss_i1767++)
                     {
-                        ss_free(&orden_inst.e[ss_i1771]);
+                        ss_free(&orden_inst.e[ss_i1767]);
                     }
                     free(orden_inst.e);
                     orden_inst.e = NULL;
@@ -129391,109 +129326,109 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                     ss_drop_Cierres(&cierres);
                     ss_drop_Revision(&revision);
                     ss_mapa_libre_mapa_str_usize(&plantillas);
-                    for (size_t ss_i1772 = 0; ss_i1772 < en_lleva.length; ss_i1772++)
+                    for (size_t ss_i1768 = 0; ss_i1768 < en_lleva.length; ss_i1768++)
                     {
-                        for (size_t ss_i1773 = 0; ss_i1773 < en_lleva.e[ss_i1772].length; ss_i1773++)
+                        for (size_t ss_i1769 = 0; ss_i1769 < en_lleva.e[ss_i1768].length; ss_i1769++)
                         {
-                            ss_free(&en_lleva.e[ss_i1772].e[ss_i1773]);
+                            ss_free(&en_lleva.e[ss_i1768].e[ss_i1769]);
                         }
-                        free(en_lleva.e[ss_i1772].e);
-                        en_lleva.e[ss_i1772].e = NULL;
-                        en_lleva.e[ss_i1772].length = 0;
-                        en_lleva.e[ss_i1772].capacity = 0;
+                        free(en_lleva.e[ss_i1768].e);
+                        en_lleva.e[ss_i1768].e = NULL;
+                        en_lleva.e[ss_i1768].length = 0;
+                        en_lleva.e[ss_i1768].capacity = 0;
                     }
                     free(en_lleva.e);
                     en_lleva.e = NULL;
                     en_lleva.length = 0;
                     en_lleva.capacity = 0;
-                    for (size_t ss_i1774 = 0; ss_i1774 < en_variantes.length; ss_i1774++)
+                    for (size_t ss_i1770 = 0; ss_i1770 < en_variantes.length; ss_i1770++)
                     {
-                        for (size_t ss_i1775 = 0; ss_i1775 < en_variantes.e[ss_i1774].length; ss_i1775++)
+                        for (size_t ss_i1771 = 0; ss_i1771 < en_variantes.e[ss_i1770].length; ss_i1771++)
                         {
-                            ss_free(&en_variantes.e[ss_i1774].e[ss_i1775]);
+                            ss_free(&en_variantes.e[ss_i1770].e[ss_i1771]);
                         }
-                        free(en_variantes.e[ss_i1774].e);
-                        en_variantes.e[ss_i1774].e = NULL;
-                        en_variantes.e[ss_i1774].length = 0;
-                        en_variantes.e[ss_i1774].capacity = 0;
+                        free(en_variantes.e[ss_i1770].e);
+                        en_variantes.e[ss_i1770].e = NULL;
+                        en_variantes.e[ss_i1770].length = 0;
+                        en_variantes.e[ss_i1770].capacity = 0;
                     }
                     free(en_variantes.e);
                     en_variantes.e = NULL;
                     en_variantes.length = 0;
                     en_variantes.capacity = 0;
                     ss_mapa_libre_mapa_str_usize(&en_indice);
-                    for (size_t ss_i1776 = 0; ss_i1776 < en_nombres.length; ss_i1776++)
+                    for (size_t ss_i1772 = 0; ss_i1772 < en_nombres.length; ss_i1772++)
                     {
-                        ss_free(&en_nombres.e[ss_i1776]);
+                        ss_free(&en_nombres.e[ss_i1772]);
                     }
                     free(en_nombres.e);
                     en_nombres.e = NULL;
                     en_nombres.length = 0;
                     en_nombres.capacity = 0;
-                    for (size_t ss_i1777 = 0; ss_i1777 < ext_protos.length; ss_i1777++)
+                    for (size_t ss_i1773 = 0; ss_i1773 < ext_protos.length; ss_i1773++)
                     {
-                        ss_free(&ext_protos.e[ss_i1777]);
+                        ss_free(&ext_protos.e[ss_i1773]);
                     }
                     free(ext_protos.e);
                     ext_protos.e = NULL;
                     ext_protos.length = 0;
                     ext_protos.capacity = 0;
-                    for (size_t ss_i1778 = 0; ss_i1778 < ext_modulos.length; ss_i1778++)
+                    for (size_t ss_i1774 = 0; ss_i1774 < ext_modulos.length; ss_i1774++)
                     {
-                        ss_free(&ext_modulos.e[ss_i1778]);
+                        ss_free(&ext_modulos.e[ss_i1774]);
                     }
                     free(ext_modulos.e);
                     ext_modulos.e = NULL;
                     ext_modulos.length = 0;
                     ext_modulos.capacity = 0;
-                    for (size_t ss_i1779 = 0; ss_i1779 < ext_cabeceras.length; ss_i1779++)
+                    for (size_t ss_i1775 = 0; ss_i1775 < ext_cabeceras.length; ss_i1775++)
                     {
-                        ss_free(&ext_cabeceras.e[ss_i1779]);
+                        ss_free(&ext_cabeceras.e[ss_i1775]);
                     }
                     free(ext_cabeceras.e);
                     ext_cabeceras.e = NULL;
                     ext_cabeceras.length = 0;
                     ext_cabeceras.capacity = 0;
-                    for (size_t ss_i1780 = 0; ss_i1780 < stp_tipos.length; ss_i1780++)
+                    for (size_t ss_i1776 = 0; ss_i1776 < stp_tipos.length; ss_i1776++)
                     {
-                        for (size_t ss_i1781 = 0; ss_i1781 < stp_tipos.e[ss_i1780].length; ss_i1781++)
+                        for (size_t ss_i1777 = 0; ss_i1777 < stp_tipos.e[ss_i1776].length; ss_i1777++)
                         {
-                            ss_free(&stp_tipos.e[ss_i1780].e[ss_i1781]);
+                            ss_free(&stp_tipos.e[ss_i1776].e[ss_i1777]);
                         }
-                        free(stp_tipos.e[ss_i1780].e);
-                        stp_tipos.e[ss_i1780].e = NULL;
-                        stp_tipos.e[ss_i1780].length = 0;
-                        stp_tipos.e[ss_i1780].capacity = 0;
+                        free(stp_tipos.e[ss_i1776].e);
+                        stp_tipos.e[ss_i1776].e = NULL;
+                        stp_tipos.e[ss_i1776].length = 0;
+                        stp_tipos.e[ss_i1776].capacity = 0;
                     }
                     free(stp_tipos.e);
                     stp_tipos.e = NULL;
                     stp_tipos.length = 0;
                     stp_tipos.capacity = 0;
-                    for (size_t ss_i1782 = 0; ss_i1782 < stp_campos.length; ss_i1782++)
+                    for (size_t ss_i1778 = 0; ss_i1778 < stp_campos.length; ss_i1778++)
                     {
-                        for (size_t ss_i1783 = 0; ss_i1783 < stp_campos.e[ss_i1782].length; ss_i1783++)
+                        for (size_t ss_i1779 = 0; ss_i1779 < stp_campos.e[ss_i1778].length; ss_i1779++)
                         {
-                            ss_free(&stp_campos.e[ss_i1782].e[ss_i1783]);
+                            ss_free(&stp_campos.e[ss_i1778].e[ss_i1779]);
                         }
-                        free(stp_campos.e[ss_i1782].e);
-                        stp_campos.e[ss_i1782].e = NULL;
-                        stp_campos.e[ss_i1782].length = 0;
-                        stp_campos.e[ss_i1782].capacity = 0;
+                        free(stp_campos.e[ss_i1778].e);
+                        stp_campos.e[ss_i1778].e = NULL;
+                        stp_campos.e[ss_i1778].length = 0;
+                        stp_campos.e[ss_i1778].capacity = 0;
                     }
                     free(stp_campos.e);
                     stp_campos.e = NULL;
                     stp_campos.length = 0;
                     stp_campos.capacity = 0;
-                    for (size_t ss_i1784 = 0; ss_i1784 < stp_params.length; ss_i1784++)
+                    for (size_t ss_i1780 = 0; ss_i1780 < stp_params.length; ss_i1780++)
                     {
-                        for (size_t ss_i1785 = 0; ss_i1785 < stp_params.e[ss_i1784].length; ss_i1785++)
+                        for (size_t ss_i1781 = 0; ss_i1781 < stp_params.e[ss_i1780].length; ss_i1781++)
                         {
-                            ss_free(&stp_params.e[ss_i1784].e[ss_i1785]);
+                            ss_free(&stp_params.e[ss_i1780].e[ss_i1781]);
                         }
-                        free(stp_params.e[ss_i1784].e);
-                        stp_params.e[ss_i1784].e = NULL;
-                        stp_params.e[ss_i1784].length = 0;
-                        stp_params.e[ss_i1784].capacity = 0;
+                        free(stp_params.e[ss_i1780].e);
+                        stp_params.e[ss_i1780].e = NULL;
+                        stp_params.e[ss_i1780].length = 0;
+                        stp_params.e[ss_i1780].capacity = 0;
                     }
                     free(stp_params.e);
                     stp_params.e = NULL;
@@ -129501,64 +129436,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                     stp_params.capacity = 0;
                     ss_mapa_libre_mapa_str_usize(&stp_indice);
                     ss_mapa_libre_mapa_str_usize(&st_indice);
-                    for (size_t ss_i1786 = 0; ss_i1786 < st_tipos.length; ss_i1786++)
+                    for (size_t ss_i1782 = 0; ss_i1782 < st_tipos.length; ss_i1782++)
                     {
-                        for (size_t ss_i1787 = 0; ss_i1787 < st_tipos.e[ss_i1786].length; ss_i1787++)
+                        for (size_t ss_i1783 = 0; ss_i1783 < st_tipos.e[ss_i1782].length; ss_i1783++)
                         {
-                            ss_free(&st_tipos.e[ss_i1786].e[ss_i1787]);
+                            ss_free(&st_tipos.e[ss_i1782].e[ss_i1783]);
                         }
-                        free(st_tipos.e[ss_i1786].e);
-                        st_tipos.e[ss_i1786].e = NULL;
-                        st_tipos.e[ss_i1786].length = 0;
-                        st_tipos.e[ss_i1786].capacity = 0;
+                        free(st_tipos.e[ss_i1782].e);
+                        st_tipos.e[ss_i1782].e = NULL;
+                        st_tipos.e[ss_i1782].length = 0;
+                        st_tipos.e[ss_i1782].capacity = 0;
                     }
                     free(st_tipos.e);
                     st_tipos.e = NULL;
                     st_tipos.length = 0;
                     st_tipos.capacity = 0;
-                    for (size_t ss_i1788 = 0; ss_i1788 < st_campos.length; ss_i1788++)
+                    for (size_t ss_i1784 = 0; ss_i1784 < st_campos.length; ss_i1784++)
                     {
-                        for (size_t ss_i1789 = 0; ss_i1789 < st_campos.e[ss_i1788].length; ss_i1789++)
+                        for (size_t ss_i1785 = 0; ss_i1785 < st_campos.e[ss_i1784].length; ss_i1785++)
                         {
-                            ss_free(&st_campos.e[ss_i1788].e[ss_i1789]);
+                            ss_free(&st_campos.e[ss_i1784].e[ss_i1785]);
                         }
-                        free(st_campos.e[ss_i1788].e);
-                        st_campos.e[ss_i1788].e = NULL;
-                        st_campos.e[ss_i1788].length = 0;
-                        st_campos.e[ss_i1788].capacity = 0;
+                        free(st_campos.e[ss_i1784].e);
+                        st_campos.e[ss_i1784].e = NULL;
+                        st_campos.e[ss_i1784].length = 0;
+                        st_campos.e[ss_i1784].capacity = 0;
                     }
                     free(st_campos.e);
                     st_campos.e = NULL;
                     st_campos.length = 0;
                     st_campos.capacity = 0;
-                    for (size_t ss_i1790 = 0; ss_i1790 < st_nombres.length; ss_i1790++)
+                    for (size_t ss_i1786 = 0; ss_i1786 < st_nombres.length; ss_i1786++)
                     {
-                        ss_free(&st_nombres.e[ss_i1790]);
+                        ss_free(&st_nombres.e[ss_i1786]);
                     }
                     free(st_nombres.e);
                     st_nombres.e = NULL;
                     st_nombres.length = 0;
                     st_nombres.capacity = 0;
-                    for (size_t ss_i1791 = 0; ss_i1791 < contextos.length; ss_i1791++)
+                    for (size_t ss_i1787 = 0; ss_i1787 < contextos.length; ss_i1787++)
                     {
-                        ss_drop_Contexto(&contextos.e[ss_i1791]);
+                        ss_drop_Contexto(&contextos.e[ss_i1787]);
                     }
                     free(contextos.e);
                     contextos.e = NULL;
                     contextos.length = 0;
                     contextos.capacity = 0;
-                    for (size_t ss_i1792 = 0; ss_i1792 < arboles.length; ss_i1792++)
+                    for (size_t ss_i1788 = 0; ss_i1788 < arboles.length; ss_i1788++)
                     {
-                        ss_drop_Nodo(&arboles.e[ss_i1792]);
+                        ss_drop_Nodo(&arboles.e[ss_i1788]);
                     }
                     free(arboles.e);
                     arboles.e = NULL;
                     arboles.length = 0;
                     arboles.capacity = 0;
                     ss_drop_Contexto(&global);
-                    for (size_t ss_i1793 = 0; ss_i1793 < modulos.length; ss_i1793++)
+                    for (size_t ss_i1789 = 0; ss_i1789 < modulos.length; ss_i1789++)
                     {
-                        ss_free(&modulos.e[ss_i1793]);
+                        ss_free(&modulos.e[ss_i1789]);
                     }
                     free(modulos.e);
                     modulos.e = NULL;
@@ -129572,74 +129507,74 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                     ss_free(&salida);
                     ss_free(&fuente);
                     ss_drop_Opciones(&opciones);
-                    return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37054 };
+                    return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37037 };
                 }
             }
         }
-#line 4352 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp37055;
-        size_t ss_tmp37056;
-#line 4352 "ejemplos/compilador/tcodec.t"
-        im = ((ss_tmp37055 = im, ss_tmp37056 = (size_t)1, ss_lang_suma_usize(ss_tmp37055, ss_tmp37056, "ejemplos/compilador/tcodec.t", 4352)));
+#line 4344 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp37038;
+        size_t ss_tmp37039;
+#line 4344 "ejemplos/compilador/tcodec.t"
+        im = ((ss_tmp37038 = im, ss_tmp37039 = (size_t)1, ss_lang_suma_usize(ss_tmp37038, ss_tmp37039, "ejemplos/compilador/tcodec.t", 4344)));
     }
-#line 4355 "ejemplos/compilador/tcodec.t"
+#line 4347 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_ist = n_concretos;
-#line 4356 "ejemplos/compilador/tcodec.t"
+#line 4348 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp37057;
-        size_t ss_tmp37058;
-#line 4356 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp37057 = k_ist, ss_tmp37058 = (st_nombres.length), (ss_tmp37057 < ss_tmp37058)))))
+        size_t ss_tmp37040;
+        size_t ss_tmp37041;
+#line 4348 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp37040 = k_ist, ss_tmp37041 = (st_nombres.length), (ss_tmp37040 < ss_tmp37041)))))
         {
             break;
         }
-#line 4357 "ejemplos/compilador/tcodec.t"
-        ss_lista_lista_str* ss_tmp37059;
-        SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_ist = ss_copia_lista_str(&((ss_tmp37059 = &(st_tipos), &ss_tmp37059->e[ss_lang_indice_(k_ist, ss_tmp37059->length, "ejemplos/compilador/tcodec.t", 4357)])[0]));
-#line 4358 "ejemplos/compilador/tcodec.t"
-        for (size_t ss_k1794 = 0; ss_k1794 < tipos_ist.length; ss_k1794++)
+#line 4349 "ejemplos/compilador/tcodec.t"
+        ss_lista_lista_str* ss_tmp37042;
+        SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_ist = ss_copia_lista_str(&((ss_tmp37042 = &(st_tipos), &ss_tmp37042->e[ss_lang_indice_(k_ist, ss_tmp37042->length, "ejemplos/compilador/tcodec.t", 4349)])[0]));
+#line 4350 "ejemplos/compilador/tcodec.t"
+        for (size_t ss_k1790 = 0; ss_k1790 < tipos_ist.length; ss_k1790++)
         {
-            SS_LANG_QUIZA_SIN_USAR const SafeString* tt = &tipos_ist.e[ss_k1794];
-#line 4359 "ejemplos/compilador/tcodec.t"
-            SafeView ss_tmp37060;
-            Registro* ss_tmp37061;
-            const Contexto* ss_tmp37062;
-            const ss_mapa_str_usize* ss_tmp37063;
-            if ((!((ss_tmp37060 = ss_view(tt), ss_tmp37061 = &reg, ss_tmp37062 = &global, ss_tmp37063 = &con_partes, mirar_tipo(ss_tmp37060, ss_tmp37061, ss_tmp37062, ss_tmp37063)))))
+            SS_LANG_QUIZA_SIN_USAR const SafeString* tt = &tipos_ist.e[ss_k1790];
+#line 4351 "ejemplos/compilador/tcodec.t"
+            SafeView ss_tmp37043;
+            Registro* ss_tmp37044;
+            const Contexto* ss_tmp37045;
+            const ss_mapa_str_usize* ss_tmp37046;
+            if ((!((ss_tmp37043 = ss_view(tt), ss_tmp37044 = &reg, ss_tmp37045 = &global, ss_tmp37046 = &con_partes, mirar_tipo(ss_tmp37043, ss_tmp37044, ss_tmp37045, ss_tmp37046)))))
             {
-#line 4360 "ejemplos/compilador/tcodec.t"
-                const ss_lista_Nodo* ss_tmp37065;
-                const ss_lista_str* ss_tmp37066;
-                ss_lista_str* ss_tmp37067;
-                SafeView ss_tmp37068;
-                SafeString ss_tmp37064 = ((ss_tmp37065 = &arboles, ss_tmp37066 = &modulos, ss_tmp37068 = ss_view(&((ss_tmp37067 = &(st_nombres), &ss_tmp37067->e[ss_lang_indice_(k_ist, ss_tmp37067->length, "ejemplos/compilador/tcodec.t", 4360)])[0])), sitio_de_nombre(ss_tmp37065, ss_tmp37066, ss_tmp37068)));
-                SafeView ss_tmp37069;
-                SafeString ss_tmp37071 = ss_new();
-                SafeView ss_tmp37072 = ss_view(&ss_tmp37064);
-                ss_lang_agregar_texto_(&ss_tmp37071, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4361);
-                ss_lang_agregar_texto_(&ss_tmp37071, ss_view(tt), "ejemplos/compilador/tcodec.t", 4361);
-                ss_lang_agregar_texto_(&ss_tmp37071, sv_len("` de `", 6), "ejemplos/compilador/tcodec.t", 4361);
-                ss_lista_str* ss_tmp37073;
-                ss_lang_agregar_texto_(&ss_tmp37071, ss_view(&((ss_tmp37073 = &(st_nombres), &ss_tmp37073->e[ss_lang_indice_(k_ist, ss_tmp37073->length, "ejemplos/compilador/tcodec.t", 4361)])[0])), "ejemplos/compilador/tcodec.t", 4361);
-                ss_lang_agregar_texto_(&ss_tmp37071, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4361);
-                SafeString ss_tmp37070 = ss_tmp37071;
-                SafeView ss_tmp37074;
-                size_t ss_tmp37075 = ((ss_tmp37069 = ss_tmp37072, ss_tmp37074 = ss_view(&ss_tmp37070), rechazo(ss_tmp37069, ss_tmp37074)));
-                ss_free(&ss_tmp37064);
-                ss_free(&ss_tmp37070);
-                for (size_t ss_i1795 = 0; ss_i1795 < tipos_ist.length; ss_i1795++)
+#line 4352 "ejemplos/compilador/tcodec.t"
+                const ss_lista_Nodo* ss_tmp37048;
+                const ss_lista_str* ss_tmp37049;
+                ss_lista_str* ss_tmp37050;
+                SafeView ss_tmp37051;
+                SafeString ss_tmp37047 = ((ss_tmp37048 = &arboles, ss_tmp37049 = &modulos, ss_tmp37051 = ss_view(&((ss_tmp37050 = &(st_nombres), &ss_tmp37050->e[ss_lang_indice_(k_ist, ss_tmp37050->length, "ejemplos/compilador/tcodec.t", 4352)])[0])), sitio_de_nombre(ss_tmp37048, ss_tmp37049, ss_tmp37051)));
+                SafeView ss_tmp37052;
+                SafeString ss_tmp37054 = ss_new();
+                SafeView ss_tmp37055 = ss_view(&ss_tmp37047);
+                ss_lang_agregar_texto_(&ss_tmp37054, sv_len("no escribe el tipo `", 20), "ejemplos/compilador/tcodec.t", 4353);
+                ss_lang_agregar_texto_(&ss_tmp37054, ss_view(tt), "ejemplos/compilador/tcodec.t", 4353);
+                ss_lang_agregar_texto_(&ss_tmp37054, sv_len("` de `", 6), "ejemplos/compilador/tcodec.t", 4353);
+                ss_lista_str* ss_tmp37056;
+                ss_lang_agregar_texto_(&ss_tmp37054, ss_view(&((ss_tmp37056 = &(st_nombres), &ss_tmp37056->e[ss_lang_indice_(k_ist, ss_tmp37056->length, "ejemplos/compilador/tcodec.t", 4353)])[0])), "ejemplos/compilador/tcodec.t", 4353);
+                ss_lang_agregar_texto_(&ss_tmp37054, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4353);
+                SafeString ss_tmp37053 = ss_tmp37054;
+                SafeView ss_tmp37057;
+                size_t ss_tmp37058 = ((ss_tmp37052 = ss_tmp37055, ss_tmp37057 = ss_view(&ss_tmp37053), rechazo(ss_tmp37052, ss_tmp37057)));
+                ss_free(&ss_tmp37047);
+                ss_free(&ss_tmp37053);
+                for (size_t ss_i1791 = 0; ss_i1791 < tipos_ist.length; ss_i1791++)
                 {
-                    ss_free(&tipos_ist.e[ss_i1795]);
+                    ss_free(&tipos_ist.e[ss_i1791]);
                 }
                 free(tipos_ist.e);
                 tipos_ist.e = NULL;
                 tipos_ist.length = 0;
                 tipos_ist.capacity = 0;
                 ss_drop_Registro(&reg);
-                for (size_t ss_i1796 = 0; ss_i1796 < duenos_inst.length; ss_i1796++)
+                for (size_t ss_i1792 = 0; ss_i1792 < duenos_inst.length; ss_i1792++)
                 {
-                    ss_free(&duenos_inst.e[ss_i1796]);
+                    ss_free(&duenos_inst.e[ss_i1792]);
                 }
                 free(duenos_inst.e);
                 duenos_inst.e = NULL;
@@ -129649,17 +129584,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                 modulo_de.e = NULL;
                 modulo_de.length = 0;
                 modulo_de.capacity = 0;
-                for (size_t ss_i1797 = 0; ss_i1797 < instancias.length; ss_i1797++)
+                for (size_t ss_i1793 = 0; ss_i1793 < instancias.length; ss_i1793++)
                 {
-                    ss_drop_Nodo(&instancias.e[ss_i1797]);
+                    ss_drop_Nodo(&instancias.e[ss_i1793]);
                 }
                 free(instancias.e);
                 instancias.e = NULL;
                 instancias.length = 0;
                 instancias.capacity = 0;
-                for (size_t ss_i1798 = 0; ss_i1798 < orden_inst.length; ss_i1798++)
+                for (size_t ss_i1794 = 0; ss_i1794 < orden_inst.length; ss_i1794++)
                 {
-                    ss_free(&orden_inst.e[ss_i1798]);
+                    ss_free(&orden_inst.e[ss_i1794]);
                 }
                 free(orden_inst.e);
                 orden_inst.e = NULL;
@@ -129671,109 +129606,109 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                 ss_drop_Cierres(&cierres);
                 ss_drop_Revision(&revision);
                 ss_mapa_libre_mapa_str_usize(&plantillas);
-                for (size_t ss_i1799 = 0; ss_i1799 < en_lleva.length; ss_i1799++)
+                for (size_t ss_i1795 = 0; ss_i1795 < en_lleva.length; ss_i1795++)
                 {
-                    for (size_t ss_i1800 = 0; ss_i1800 < en_lleva.e[ss_i1799].length; ss_i1800++)
+                    for (size_t ss_i1796 = 0; ss_i1796 < en_lleva.e[ss_i1795].length; ss_i1796++)
                     {
-                        ss_free(&en_lleva.e[ss_i1799].e[ss_i1800]);
+                        ss_free(&en_lleva.e[ss_i1795].e[ss_i1796]);
                     }
-                    free(en_lleva.e[ss_i1799].e);
-                    en_lleva.e[ss_i1799].e = NULL;
-                    en_lleva.e[ss_i1799].length = 0;
-                    en_lleva.e[ss_i1799].capacity = 0;
+                    free(en_lleva.e[ss_i1795].e);
+                    en_lleva.e[ss_i1795].e = NULL;
+                    en_lleva.e[ss_i1795].length = 0;
+                    en_lleva.e[ss_i1795].capacity = 0;
                 }
                 free(en_lleva.e);
                 en_lleva.e = NULL;
                 en_lleva.length = 0;
                 en_lleva.capacity = 0;
-                for (size_t ss_i1801 = 0; ss_i1801 < en_variantes.length; ss_i1801++)
+                for (size_t ss_i1797 = 0; ss_i1797 < en_variantes.length; ss_i1797++)
                 {
-                    for (size_t ss_i1802 = 0; ss_i1802 < en_variantes.e[ss_i1801].length; ss_i1802++)
+                    for (size_t ss_i1798 = 0; ss_i1798 < en_variantes.e[ss_i1797].length; ss_i1798++)
                     {
-                        ss_free(&en_variantes.e[ss_i1801].e[ss_i1802]);
+                        ss_free(&en_variantes.e[ss_i1797].e[ss_i1798]);
                     }
-                    free(en_variantes.e[ss_i1801].e);
-                    en_variantes.e[ss_i1801].e = NULL;
-                    en_variantes.e[ss_i1801].length = 0;
-                    en_variantes.e[ss_i1801].capacity = 0;
+                    free(en_variantes.e[ss_i1797].e);
+                    en_variantes.e[ss_i1797].e = NULL;
+                    en_variantes.e[ss_i1797].length = 0;
+                    en_variantes.e[ss_i1797].capacity = 0;
                 }
                 free(en_variantes.e);
                 en_variantes.e = NULL;
                 en_variantes.length = 0;
                 en_variantes.capacity = 0;
                 ss_mapa_libre_mapa_str_usize(&en_indice);
-                for (size_t ss_i1803 = 0; ss_i1803 < en_nombres.length; ss_i1803++)
+                for (size_t ss_i1799 = 0; ss_i1799 < en_nombres.length; ss_i1799++)
                 {
-                    ss_free(&en_nombres.e[ss_i1803]);
+                    ss_free(&en_nombres.e[ss_i1799]);
                 }
                 free(en_nombres.e);
                 en_nombres.e = NULL;
                 en_nombres.length = 0;
                 en_nombres.capacity = 0;
-                for (size_t ss_i1804 = 0; ss_i1804 < ext_protos.length; ss_i1804++)
+                for (size_t ss_i1800 = 0; ss_i1800 < ext_protos.length; ss_i1800++)
                 {
-                    ss_free(&ext_protos.e[ss_i1804]);
+                    ss_free(&ext_protos.e[ss_i1800]);
                 }
                 free(ext_protos.e);
                 ext_protos.e = NULL;
                 ext_protos.length = 0;
                 ext_protos.capacity = 0;
-                for (size_t ss_i1805 = 0; ss_i1805 < ext_modulos.length; ss_i1805++)
+                for (size_t ss_i1801 = 0; ss_i1801 < ext_modulos.length; ss_i1801++)
                 {
-                    ss_free(&ext_modulos.e[ss_i1805]);
+                    ss_free(&ext_modulos.e[ss_i1801]);
                 }
                 free(ext_modulos.e);
                 ext_modulos.e = NULL;
                 ext_modulos.length = 0;
                 ext_modulos.capacity = 0;
-                for (size_t ss_i1806 = 0; ss_i1806 < ext_cabeceras.length; ss_i1806++)
+                for (size_t ss_i1802 = 0; ss_i1802 < ext_cabeceras.length; ss_i1802++)
                 {
-                    ss_free(&ext_cabeceras.e[ss_i1806]);
+                    ss_free(&ext_cabeceras.e[ss_i1802]);
                 }
                 free(ext_cabeceras.e);
                 ext_cabeceras.e = NULL;
                 ext_cabeceras.length = 0;
                 ext_cabeceras.capacity = 0;
-                for (size_t ss_i1807 = 0; ss_i1807 < stp_tipos.length; ss_i1807++)
+                for (size_t ss_i1803 = 0; ss_i1803 < stp_tipos.length; ss_i1803++)
                 {
-                    for (size_t ss_i1808 = 0; ss_i1808 < stp_tipos.e[ss_i1807].length; ss_i1808++)
+                    for (size_t ss_i1804 = 0; ss_i1804 < stp_tipos.e[ss_i1803].length; ss_i1804++)
                     {
-                        ss_free(&stp_tipos.e[ss_i1807].e[ss_i1808]);
+                        ss_free(&stp_tipos.e[ss_i1803].e[ss_i1804]);
                     }
-                    free(stp_tipos.e[ss_i1807].e);
-                    stp_tipos.e[ss_i1807].e = NULL;
-                    stp_tipos.e[ss_i1807].length = 0;
-                    stp_tipos.e[ss_i1807].capacity = 0;
+                    free(stp_tipos.e[ss_i1803].e);
+                    stp_tipos.e[ss_i1803].e = NULL;
+                    stp_tipos.e[ss_i1803].length = 0;
+                    stp_tipos.e[ss_i1803].capacity = 0;
                 }
                 free(stp_tipos.e);
                 stp_tipos.e = NULL;
                 stp_tipos.length = 0;
                 stp_tipos.capacity = 0;
-                for (size_t ss_i1809 = 0; ss_i1809 < stp_campos.length; ss_i1809++)
+                for (size_t ss_i1805 = 0; ss_i1805 < stp_campos.length; ss_i1805++)
                 {
-                    for (size_t ss_i1810 = 0; ss_i1810 < stp_campos.e[ss_i1809].length; ss_i1810++)
+                    for (size_t ss_i1806 = 0; ss_i1806 < stp_campos.e[ss_i1805].length; ss_i1806++)
                     {
-                        ss_free(&stp_campos.e[ss_i1809].e[ss_i1810]);
+                        ss_free(&stp_campos.e[ss_i1805].e[ss_i1806]);
                     }
-                    free(stp_campos.e[ss_i1809].e);
-                    stp_campos.e[ss_i1809].e = NULL;
-                    stp_campos.e[ss_i1809].length = 0;
-                    stp_campos.e[ss_i1809].capacity = 0;
+                    free(stp_campos.e[ss_i1805].e);
+                    stp_campos.e[ss_i1805].e = NULL;
+                    stp_campos.e[ss_i1805].length = 0;
+                    stp_campos.e[ss_i1805].capacity = 0;
                 }
                 free(stp_campos.e);
                 stp_campos.e = NULL;
                 stp_campos.length = 0;
                 stp_campos.capacity = 0;
-                for (size_t ss_i1811 = 0; ss_i1811 < stp_params.length; ss_i1811++)
+                for (size_t ss_i1807 = 0; ss_i1807 < stp_params.length; ss_i1807++)
                 {
-                    for (size_t ss_i1812 = 0; ss_i1812 < stp_params.e[ss_i1811].length; ss_i1812++)
+                    for (size_t ss_i1808 = 0; ss_i1808 < stp_params.e[ss_i1807].length; ss_i1808++)
                     {
-                        ss_free(&stp_params.e[ss_i1811].e[ss_i1812]);
+                        ss_free(&stp_params.e[ss_i1807].e[ss_i1808]);
                     }
-                    free(stp_params.e[ss_i1811].e);
-                    stp_params.e[ss_i1811].e = NULL;
-                    stp_params.e[ss_i1811].length = 0;
-                    stp_params.e[ss_i1811].capacity = 0;
+                    free(stp_params.e[ss_i1807].e);
+                    stp_params.e[ss_i1807].e = NULL;
+                    stp_params.e[ss_i1807].length = 0;
+                    stp_params.e[ss_i1807].capacity = 0;
                 }
                 free(stp_params.e);
                 stp_params.e = NULL;
@@ -129781,64 +129716,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                 stp_params.capacity = 0;
                 ss_mapa_libre_mapa_str_usize(&stp_indice);
                 ss_mapa_libre_mapa_str_usize(&st_indice);
-                for (size_t ss_i1813 = 0; ss_i1813 < st_tipos.length; ss_i1813++)
+                for (size_t ss_i1809 = 0; ss_i1809 < st_tipos.length; ss_i1809++)
                 {
-                    for (size_t ss_i1814 = 0; ss_i1814 < st_tipos.e[ss_i1813].length; ss_i1814++)
+                    for (size_t ss_i1810 = 0; ss_i1810 < st_tipos.e[ss_i1809].length; ss_i1810++)
                     {
-                        ss_free(&st_tipos.e[ss_i1813].e[ss_i1814]);
+                        ss_free(&st_tipos.e[ss_i1809].e[ss_i1810]);
                     }
-                    free(st_tipos.e[ss_i1813].e);
-                    st_tipos.e[ss_i1813].e = NULL;
-                    st_tipos.e[ss_i1813].length = 0;
-                    st_tipos.e[ss_i1813].capacity = 0;
+                    free(st_tipos.e[ss_i1809].e);
+                    st_tipos.e[ss_i1809].e = NULL;
+                    st_tipos.e[ss_i1809].length = 0;
+                    st_tipos.e[ss_i1809].capacity = 0;
                 }
                 free(st_tipos.e);
                 st_tipos.e = NULL;
                 st_tipos.length = 0;
                 st_tipos.capacity = 0;
-                for (size_t ss_i1815 = 0; ss_i1815 < st_campos.length; ss_i1815++)
+                for (size_t ss_i1811 = 0; ss_i1811 < st_campos.length; ss_i1811++)
                 {
-                    for (size_t ss_i1816 = 0; ss_i1816 < st_campos.e[ss_i1815].length; ss_i1816++)
+                    for (size_t ss_i1812 = 0; ss_i1812 < st_campos.e[ss_i1811].length; ss_i1812++)
                     {
-                        ss_free(&st_campos.e[ss_i1815].e[ss_i1816]);
+                        ss_free(&st_campos.e[ss_i1811].e[ss_i1812]);
                     }
-                    free(st_campos.e[ss_i1815].e);
-                    st_campos.e[ss_i1815].e = NULL;
-                    st_campos.e[ss_i1815].length = 0;
-                    st_campos.e[ss_i1815].capacity = 0;
+                    free(st_campos.e[ss_i1811].e);
+                    st_campos.e[ss_i1811].e = NULL;
+                    st_campos.e[ss_i1811].length = 0;
+                    st_campos.e[ss_i1811].capacity = 0;
                 }
                 free(st_campos.e);
                 st_campos.e = NULL;
                 st_campos.length = 0;
                 st_campos.capacity = 0;
-                for (size_t ss_i1817 = 0; ss_i1817 < st_nombres.length; ss_i1817++)
+                for (size_t ss_i1813 = 0; ss_i1813 < st_nombres.length; ss_i1813++)
                 {
-                    ss_free(&st_nombres.e[ss_i1817]);
+                    ss_free(&st_nombres.e[ss_i1813]);
                 }
                 free(st_nombres.e);
                 st_nombres.e = NULL;
                 st_nombres.length = 0;
                 st_nombres.capacity = 0;
-                for (size_t ss_i1818 = 0; ss_i1818 < contextos.length; ss_i1818++)
+                for (size_t ss_i1814 = 0; ss_i1814 < contextos.length; ss_i1814++)
                 {
-                    ss_drop_Contexto(&contextos.e[ss_i1818]);
+                    ss_drop_Contexto(&contextos.e[ss_i1814]);
                 }
                 free(contextos.e);
                 contextos.e = NULL;
                 contextos.length = 0;
                 contextos.capacity = 0;
-                for (size_t ss_i1819 = 0; ss_i1819 < arboles.length; ss_i1819++)
+                for (size_t ss_i1815 = 0; ss_i1815 < arboles.length; ss_i1815++)
                 {
-                    ss_drop_Nodo(&arboles.e[ss_i1819]);
+                    ss_drop_Nodo(&arboles.e[ss_i1815]);
                 }
                 free(arboles.e);
                 arboles.e = NULL;
                 arboles.length = 0;
                 arboles.capacity = 0;
                 ss_drop_Contexto(&global);
-                for (size_t ss_i1820 = 0; ss_i1820 < modulos.length; ss_i1820++)
+                for (size_t ss_i1816 = 0; ss_i1816 < modulos.length; ss_i1816++)
                 {
-                    ss_free(&modulos.e[ss_i1820]);
+                    ss_free(&modulos.e[ss_i1816]);
                 }
                 free(modulos.e);
                 modulos.e = NULL;
@@ -129852,68 +129787,68 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
                 ss_free(&salida);
                 ss_free(&fuente);
                 ss_drop_Opciones(&opciones);
-                return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37075 };
+                return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37058 };
             }
         }
-#line 4364 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp37076;
-        size_t ss_tmp37077;
-#line 4364 "ejemplos/compilador/tcodec.t"
-        k_ist = ((ss_tmp37076 = k_ist, ss_tmp37077 = (size_t)1, ss_lang_suma_usize(ss_tmp37076, ss_tmp37077, "ejemplos/compilador/tcodec.t", 4364)));
-        for (size_t ss_i1821 = 0; ss_i1821 < tipos_ist.length; ss_i1821++)
+#line 4356 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp37059;
+        size_t ss_tmp37060;
+#line 4356 "ejemplos/compilador/tcodec.t"
+        k_ist = ((ss_tmp37059 = k_ist, ss_tmp37060 = (size_t)1, ss_lang_suma_usize(ss_tmp37059, ss_tmp37060, "ejemplos/compilador/tcodec.t", 4356)));
+        for (size_t ss_i1817 = 0; ss_i1817 < tipos_ist.length; ss_i1817++)
         {
-            ss_free(&tipos_ist.e[ss_i1821]);
+            ss_free(&tipos_ist.e[ss_i1817]);
         }
         free(tipos_ist.e);
         tipos_ist.e = NULL;
         tipos_ist.length = 0;
         tipos_ist.capacity = 0;
     }
-#line 4366 "ejemplos/compilador/tcodec.t"
+#line 4358 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR size_t k_mira = (size_t)0;
-#line 4367 "ejemplos/compilador/tcodec.t"
+#line 4359 "ejemplos/compilador/tcodec.t"
     while (true)
     {
-        size_t ss_tmp37078;
-        size_t ss_tmp37079;
-#line 4367 "ejemplos/compilador/tcodec.t"
-        if (!(((ss_tmp37078 = k_mira, ss_tmp37079 = (instancias.length), (ss_tmp37078 < ss_tmp37079)))))
+        size_t ss_tmp37061;
+        size_t ss_tmp37062;
+#line 4359 "ejemplos/compilador/tcodec.t"
+        if (!(((ss_tmp37061 = k_mira, ss_tmp37062 = (instancias.length), (ss_tmp37061 < ss_tmp37062)))))
         {
             break;
         }
-#line 4368 "ejemplos/compilador/tcodec.t"
-        ss_lista_Nodo* ss_tmp37080;
-        const Nodo* ss_tmp37081;
-        ss_lista_usize* ss_tmp37082;
-        ss_lista_Contexto* ss_tmp37083;
-        Contexto* ss_tmp37084;
-        Registro* ss_tmp37085;
-        const Contexto* ss_tmp37086;
-        const ss_mapa_str_usize* ss_tmp37087;
-        if ((!((ss_tmp37081 = &((ss_tmp37080 = &(instancias), &ss_tmp37080->e[ss_lang_indice_(k_mira, ss_tmp37080->length, "ejemplos/compilador/tcodec.t", 4368)])[0]), ss_tmp37084 = &((ss_tmp37083 = &(contextos), &ss_tmp37083->e[ss_lang_indice_(((ss_tmp37082 = &(modulo_de), &ss_tmp37082->e[ss_lang_indice_(k_mira, ss_tmp37082->length, "ejemplos/compilador/tcodec.t", 4368)])[0]), ss_tmp37083->length, "ejemplos/compilador/tcodec.t", 4368)])[0]), ss_tmp37085 = &reg, ss_tmp37086 = &global, ss_tmp37087 = &con_partes, mirar_funcion(ss_tmp37081, ss_tmp37084, ss_tmp37085, ss_tmp37086, ss_tmp37087)))))
+#line 4360 "ejemplos/compilador/tcodec.t"
+        ss_lista_Nodo* ss_tmp37063;
+        const Nodo* ss_tmp37064;
+        ss_lista_usize* ss_tmp37065;
+        ss_lista_Contexto* ss_tmp37066;
+        Contexto* ss_tmp37067;
+        Registro* ss_tmp37068;
+        const Contexto* ss_tmp37069;
+        const ss_mapa_str_usize* ss_tmp37070;
+        if ((!((ss_tmp37064 = &((ss_tmp37063 = &(instancias), &ss_tmp37063->e[ss_lang_indice_(k_mira, ss_tmp37063->length, "ejemplos/compilador/tcodec.t", 4360)])[0]), ss_tmp37067 = &((ss_tmp37066 = &(contextos), &ss_tmp37066->e[ss_lang_indice_(((ss_tmp37065 = &(modulo_de), &ss_tmp37065->e[ss_lang_indice_(k_mira, ss_tmp37065->length, "ejemplos/compilador/tcodec.t", 4360)])[0]), ss_tmp37066->length, "ejemplos/compilador/tcodec.t", 4360)])[0]), ss_tmp37068 = &reg, ss_tmp37069 = &global, ss_tmp37070 = &con_partes, mirar_funcion(ss_tmp37064, ss_tmp37067, ss_tmp37068, ss_tmp37069, ss_tmp37070)))))
         {
-#line 4370 "ejemplos/compilador/tcodec.t"
-            const ss_lista_Nodo* ss_tmp37089;
-            const ss_lista_str* ss_tmp37090;
-            ss_lista_Nodo* ss_tmp37091;
-            SafeView ss_tmp37092;
-            SafeString ss_tmp37088 = ((ss_tmp37089 = &arboles, ss_tmp37090 = &modulos, ss_tmp37092 = ss_view(&((ss_tmp37091 = &(instancias), &ss_tmp37091->e[ss_lang_indice_(k_mira, ss_tmp37091->length, "ejemplos/compilador/tcodec.t", 4371)])[0]).texto), sitio_de_nombre(ss_tmp37089, ss_tmp37090, ss_tmp37092)));
-            SafeView ss_tmp37093;
-            SafeString ss_tmp37095 = ss_new();
-            SafeView ss_tmp37096 = ss_view(&ss_tmp37088);
-            ss_lang_agregar_texto_(&ss_tmp37095, sv_len("no escribe los tipos de `", 25), "ejemplos/compilador/tcodec.t", 4372);
-            ss_lista_Nodo* ss_tmp37097;
-            ss_lang_agregar_texto_(&ss_tmp37095, ss_view(&((ss_tmp37097 = &(instancias), &ss_tmp37097->e[ss_lang_indice_(k_mira, ss_tmp37097->length, "ejemplos/compilador/tcodec.t", 4372)])[0]).texto), "ejemplos/compilador/tcodec.t", 4372);
-            ss_lang_agregar_texto_(&ss_tmp37095, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4372);
-            SafeString ss_tmp37094 = ss_tmp37095;
-            SafeView ss_tmp37098;
-            size_t ss_tmp37099 = ((ss_tmp37093 = ss_tmp37096, ss_tmp37098 = ss_view(&ss_tmp37094), rechazo(ss_tmp37093, ss_tmp37098)));
-            ss_free(&ss_tmp37088);
-            ss_free(&ss_tmp37094);
+#line 4362 "ejemplos/compilador/tcodec.t"
+            const ss_lista_Nodo* ss_tmp37072;
+            const ss_lista_str* ss_tmp37073;
+            ss_lista_Nodo* ss_tmp37074;
+            SafeView ss_tmp37075;
+            SafeString ss_tmp37071 = ((ss_tmp37072 = &arboles, ss_tmp37073 = &modulos, ss_tmp37075 = ss_view(&((ss_tmp37074 = &(instancias), &ss_tmp37074->e[ss_lang_indice_(k_mira, ss_tmp37074->length, "ejemplos/compilador/tcodec.t", 4363)])[0]).texto), sitio_de_nombre(ss_tmp37072, ss_tmp37073, ss_tmp37075)));
+            SafeView ss_tmp37076;
+            SafeString ss_tmp37078 = ss_new();
+            SafeView ss_tmp37079 = ss_view(&ss_tmp37071);
+            ss_lang_agregar_texto_(&ss_tmp37078, sv_len("no escribe los tipos de `", 25), "ejemplos/compilador/tcodec.t", 4364);
+            ss_lista_Nodo* ss_tmp37080;
+            ss_lang_agregar_texto_(&ss_tmp37078, ss_view(&((ss_tmp37080 = &(instancias), &ss_tmp37080->e[ss_lang_indice_(k_mira, ss_tmp37080->length, "ejemplos/compilador/tcodec.t", 4364)])[0]).texto), "ejemplos/compilador/tcodec.t", 4364);
+            ss_lang_agregar_texto_(&ss_tmp37078, sv_len("`", 1), "ejemplos/compilador/tcodec.t", 4364);
+            SafeString ss_tmp37077 = ss_tmp37078;
+            SafeView ss_tmp37081;
+            size_t ss_tmp37082 = ((ss_tmp37076 = ss_tmp37079, ss_tmp37081 = ss_view(&ss_tmp37077), rechazo(ss_tmp37076, ss_tmp37081)));
+            ss_free(&ss_tmp37071);
+            ss_free(&ss_tmp37077);
             ss_drop_Registro(&reg);
-            for (size_t ss_i1822 = 0; ss_i1822 < duenos_inst.length; ss_i1822++)
+            for (size_t ss_i1818 = 0; ss_i1818 < duenos_inst.length; ss_i1818++)
             {
-                ss_free(&duenos_inst.e[ss_i1822]);
+                ss_free(&duenos_inst.e[ss_i1818]);
             }
             free(duenos_inst.e);
             duenos_inst.e = NULL;
@@ -129923,17 +129858,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
             modulo_de.e = NULL;
             modulo_de.length = 0;
             modulo_de.capacity = 0;
-            for (size_t ss_i1823 = 0; ss_i1823 < instancias.length; ss_i1823++)
+            for (size_t ss_i1819 = 0; ss_i1819 < instancias.length; ss_i1819++)
             {
-                ss_drop_Nodo(&instancias.e[ss_i1823]);
+                ss_drop_Nodo(&instancias.e[ss_i1819]);
             }
             free(instancias.e);
             instancias.e = NULL;
             instancias.length = 0;
             instancias.capacity = 0;
-            for (size_t ss_i1824 = 0; ss_i1824 < orden_inst.length; ss_i1824++)
+            for (size_t ss_i1820 = 0; ss_i1820 < orden_inst.length; ss_i1820++)
             {
-                ss_free(&orden_inst.e[ss_i1824]);
+                ss_free(&orden_inst.e[ss_i1820]);
             }
             free(orden_inst.e);
             orden_inst.e = NULL;
@@ -129945,109 +129880,109 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
             ss_drop_Cierres(&cierres);
             ss_drop_Revision(&revision);
             ss_mapa_libre_mapa_str_usize(&plantillas);
-            for (size_t ss_i1825 = 0; ss_i1825 < en_lleva.length; ss_i1825++)
+            for (size_t ss_i1821 = 0; ss_i1821 < en_lleva.length; ss_i1821++)
             {
-                for (size_t ss_i1826 = 0; ss_i1826 < en_lleva.e[ss_i1825].length; ss_i1826++)
+                for (size_t ss_i1822 = 0; ss_i1822 < en_lleva.e[ss_i1821].length; ss_i1822++)
                 {
-                    ss_free(&en_lleva.e[ss_i1825].e[ss_i1826]);
+                    ss_free(&en_lleva.e[ss_i1821].e[ss_i1822]);
                 }
-                free(en_lleva.e[ss_i1825].e);
-                en_lleva.e[ss_i1825].e = NULL;
-                en_lleva.e[ss_i1825].length = 0;
-                en_lleva.e[ss_i1825].capacity = 0;
+                free(en_lleva.e[ss_i1821].e);
+                en_lleva.e[ss_i1821].e = NULL;
+                en_lleva.e[ss_i1821].length = 0;
+                en_lleva.e[ss_i1821].capacity = 0;
             }
             free(en_lleva.e);
             en_lleva.e = NULL;
             en_lleva.length = 0;
             en_lleva.capacity = 0;
-            for (size_t ss_i1827 = 0; ss_i1827 < en_variantes.length; ss_i1827++)
+            for (size_t ss_i1823 = 0; ss_i1823 < en_variantes.length; ss_i1823++)
             {
-                for (size_t ss_i1828 = 0; ss_i1828 < en_variantes.e[ss_i1827].length; ss_i1828++)
+                for (size_t ss_i1824 = 0; ss_i1824 < en_variantes.e[ss_i1823].length; ss_i1824++)
                 {
-                    ss_free(&en_variantes.e[ss_i1827].e[ss_i1828]);
+                    ss_free(&en_variantes.e[ss_i1823].e[ss_i1824]);
                 }
-                free(en_variantes.e[ss_i1827].e);
-                en_variantes.e[ss_i1827].e = NULL;
-                en_variantes.e[ss_i1827].length = 0;
-                en_variantes.e[ss_i1827].capacity = 0;
+                free(en_variantes.e[ss_i1823].e);
+                en_variantes.e[ss_i1823].e = NULL;
+                en_variantes.e[ss_i1823].length = 0;
+                en_variantes.e[ss_i1823].capacity = 0;
             }
             free(en_variantes.e);
             en_variantes.e = NULL;
             en_variantes.length = 0;
             en_variantes.capacity = 0;
             ss_mapa_libre_mapa_str_usize(&en_indice);
-            for (size_t ss_i1829 = 0; ss_i1829 < en_nombres.length; ss_i1829++)
+            for (size_t ss_i1825 = 0; ss_i1825 < en_nombres.length; ss_i1825++)
             {
-                ss_free(&en_nombres.e[ss_i1829]);
+                ss_free(&en_nombres.e[ss_i1825]);
             }
             free(en_nombres.e);
             en_nombres.e = NULL;
             en_nombres.length = 0;
             en_nombres.capacity = 0;
-            for (size_t ss_i1830 = 0; ss_i1830 < ext_protos.length; ss_i1830++)
+            for (size_t ss_i1826 = 0; ss_i1826 < ext_protos.length; ss_i1826++)
             {
-                ss_free(&ext_protos.e[ss_i1830]);
+                ss_free(&ext_protos.e[ss_i1826]);
             }
             free(ext_protos.e);
             ext_protos.e = NULL;
             ext_protos.length = 0;
             ext_protos.capacity = 0;
-            for (size_t ss_i1831 = 0; ss_i1831 < ext_modulos.length; ss_i1831++)
+            for (size_t ss_i1827 = 0; ss_i1827 < ext_modulos.length; ss_i1827++)
             {
-                ss_free(&ext_modulos.e[ss_i1831]);
+                ss_free(&ext_modulos.e[ss_i1827]);
             }
             free(ext_modulos.e);
             ext_modulos.e = NULL;
             ext_modulos.length = 0;
             ext_modulos.capacity = 0;
-            for (size_t ss_i1832 = 0; ss_i1832 < ext_cabeceras.length; ss_i1832++)
+            for (size_t ss_i1828 = 0; ss_i1828 < ext_cabeceras.length; ss_i1828++)
             {
-                ss_free(&ext_cabeceras.e[ss_i1832]);
+                ss_free(&ext_cabeceras.e[ss_i1828]);
             }
             free(ext_cabeceras.e);
             ext_cabeceras.e = NULL;
             ext_cabeceras.length = 0;
             ext_cabeceras.capacity = 0;
-            for (size_t ss_i1833 = 0; ss_i1833 < stp_tipos.length; ss_i1833++)
+            for (size_t ss_i1829 = 0; ss_i1829 < stp_tipos.length; ss_i1829++)
             {
-                for (size_t ss_i1834 = 0; ss_i1834 < stp_tipos.e[ss_i1833].length; ss_i1834++)
+                for (size_t ss_i1830 = 0; ss_i1830 < stp_tipos.e[ss_i1829].length; ss_i1830++)
                 {
-                    ss_free(&stp_tipos.e[ss_i1833].e[ss_i1834]);
+                    ss_free(&stp_tipos.e[ss_i1829].e[ss_i1830]);
                 }
-                free(stp_tipos.e[ss_i1833].e);
-                stp_tipos.e[ss_i1833].e = NULL;
-                stp_tipos.e[ss_i1833].length = 0;
-                stp_tipos.e[ss_i1833].capacity = 0;
+                free(stp_tipos.e[ss_i1829].e);
+                stp_tipos.e[ss_i1829].e = NULL;
+                stp_tipos.e[ss_i1829].length = 0;
+                stp_tipos.e[ss_i1829].capacity = 0;
             }
             free(stp_tipos.e);
             stp_tipos.e = NULL;
             stp_tipos.length = 0;
             stp_tipos.capacity = 0;
-            for (size_t ss_i1835 = 0; ss_i1835 < stp_campos.length; ss_i1835++)
+            for (size_t ss_i1831 = 0; ss_i1831 < stp_campos.length; ss_i1831++)
             {
-                for (size_t ss_i1836 = 0; ss_i1836 < stp_campos.e[ss_i1835].length; ss_i1836++)
+                for (size_t ss_i1832 = 0; ss_i1832 < stp_campos.e[ss_i1831].length; ss_i1832++)
                 {
-                    ss_free(&stp_campos.e[ss_i1835].e[ss_i1836]);
+                    ss_free(&stp_campos.e[ss_i1831].e[ss_i1832]);
                 }
-                free(stp_campos.e[ss_i1835].e);
-                stp_campos.e[ss_i1835].e = NULL;
-                stp_campos.e[ss_i1835].length = 0;
-                stp_campos.e[ss_i1835].capacity = 0;
+                free(stp_campos.e[ss_i1831].e);
+                stp_campos.e[ss_i1831].e = NULL;
+                stp_campos.e[ss_i1831].length = 0;
+                stp_campos.e[ss_i1831].capacity = 0;
             }
             free(stp_campos.e);
             stp_campos.e = NULL;
             stp_campos.length = 0;
             stp_campos.capacity = 0;
-            for (size_t ss_i1837 = 0; ss_i1837 < stp_params.length; ss_i1837++)
+            for (size_t ss_i1833 = 0; ss_i1833 < stp_params.length; ss_i1833++)
             {
-                for (size_t ss_i1838 = 0; ss_i1838 < stp_params.e[ss_i1837].length; ss_i1838++)
+                for (size_t ss_i1834 = 0; ss_i1834 < stp_params.e[ss_i1833].length; ss_i1834++)
                 {
-                    ss_free(&stp_params.e[ss_i1837].e[ss_i1838]);
+                    ss_free(&stp_params.e[ss_i1833].e[ss_i1834]);
                 }
-                free(stp_params.e[ss_i1837].e);
-                stp_params.e[ss_i1837].e = NULL;
-                stp_params.e[ss_i1837].length = 0;
-                stp_params.e[ss_i1837].capacity = 0;
+                free(stp_params.e[ss_i1833].e);
+                stp_params.e[ss_i1833].e = NULL;
+                stp_params.e[ss_i1833].length = 0;
+                stp_params.e[ss_i1833].capacity = 0;
             }
             free(stp_params.e);
             stp_params.e = NULL;
@@ -130055,64 +129990,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
             stp_params.capacity = 0;
             ss_mapa_libre_mapa_str_usize(&stp_indice);
             ss_mapa_libre_mapa_str_usize(&st_indice);
-            for (size_t ss_i1839 = 0; ss_i1839 < st_tipos.length; ss_i1839++)
+            for (size_t ss_i1835 = 0; ss_i1835 < st_tipos.length; ss_i1835++)
             {
-                for (size_t ss_i1840 = 0; ss_i1840 < st_tipos.e[ss_i1839].length; ss_i1840++)
+                for (size_t ss_i1836 = 0; ss_i1836 < st_tipos.e[ss_i1835].length; ss_i1836++)
                 {
-                    ss_free(&st_tipos.e[ss_i1839].e[ss_i1840]);
+                    ss_free(&st_tipos.e[ss_i1835].e[ss_i1836]);
                 }
-                free(st_tipos.e[ss_i1839].e);
-                st_tipos.e[ss_i1839].e = NULL;
-                st_tipos.e[ss_i1839].length = 0;
-                st_tipos.e[ss_i1839].capacity = 0;
+                free(st_tipos.e[ss_i1835].e);
+                st_tipos.e[ss_i1835].e = NULL;
+                st_tipos.e[ss_i1835].length = 0;
+                st_tipos.e[ss_i1835].capacity = 0;
             }
             free(st_tipos.e);
             st_tipos.e = NULL;
             st_tipos.length = 0;
             st_tipos.capacity = 0;
-            for (size_t ss_i1841 = 0; ss_i1841 < st_campos.length; ss_i1841++)
+            for (size_t ss_i1837 = 0; ss_i1837 < st_campos.length; ss_i1837++)
             {
-                for (size_t ss_i1842 = 0; ss_i1842 < st_campos.e[ss_i1841].length; ss_i1842++)
+                for (size_t ss_i1838 = 0; ss_i1838 < st_campos.e[ss_i1837].length; ss_i1838++)
                 {
-                    ss_free(&st_campos.e[ss_i1841].e[ss_i1842]);
+                    ss_free(&st_campos.e[ss_i1837].e[ss_i1838]);
                 }
-                free(st_campos.e[ss_i1841].e);
-                st_campos.e[ss_i1841].e = NULL;
-                st_campos.e[ss_i1841].length = 0;
-                st_campos.e[ss_i1841].capacity = 0;
+                free(st_campos.e[ss_i1837].e);
+                st_campos.e[ss_i1837].e = NULL;
+                st_campos.e[ss_i1837].length = 0;
+                st_campos.e[ss_i1837].capacity = 0;
             }
             free(st_campos.e);
             st_campos.e = NULL;
             st_campos.length = 0;
             st_campos.capacity = 0;
-            for (size_t ss_i1843 = 0; ss_i1843 < st_nombres.length; ss_i1843++)
+            for (size_t ss_i1839 = 0; ss_i1839 < st_nombres.length; ss_i1839++)
             {
-                ss_free(&st_nombres.e[ss_i1843]);
+                ss_free(&st_nombres.e[ss_i1839]);
             }
             free(st_nombres.e);
             st_nombres.e = NULL;
             st_nombres.length = 0;
             st_nombres.capacity = 0;
-            for (size_t ss_i1844 = 0; ss_i1844 < contextos.length; ss_i1844++)
+            for (size_t ss_i1840 = 0; ss_i1840 < contextos.length; ss_i1840++)
             {
-                ss_drop_Contexto(&contextos.e[ss_i1844]);
+                ss_drop_Contexto(&contextos.e[ss_i1840]);
             }
             free(contextos.e);
             contextos.e = NULL;
             contextos.length = 0;
             contextos.capacity = 0;
-            for (size_t ss_i1845 = 0; ss_i1845 < arboles.length; ss_i1845++)
+            for (size_t ss_i1841 = 0; ss_i1841 < arboles.length; ss_i1841++)
             {
-                ss_drop_Nodo(&arboles.e[ss_i1845]);
+                ss_drop_Nodo(&arboles.e[ss_i1841]);
             }
             free(arboles.e);
             arboles.e = NULL;
             arboles.length = 0;
             arboles.capacity = 0;
             ss_drop_Contexto(&global);
-            for (size_t ss_i1846 = 0; ss_i1846 < modulos.length; ss_i1846++)
+            for (size_t ss_i1842 = 0; ss_i1842 < modulos.length; ss_i1842++)
             {
-                ss_free(&modulos.e[ss_i1846]);
+                ss_free(&modulos.e[ss_i1842]);
             }
             free(modulos.e);
             modulos.e = NULL;
@@ -130126,35 +130061,35 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
             ss_free(&salida);
             ss_free(&fuente);
             ss_drop_Opciones(&opciones);
-            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37099 };
+            return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37082 };
         }
-#line 4374 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp37100;
-        size_t ss_tmp37101;
-#line 4374 "ejemplos/compilador/tcodec.t"
-        k_mira = ((ss_tmp37100 = k_mira, ss_tmp37101 = (size_t)1, ss_lang_suma_usize(ss_tmp37100, ss_tmp37101, "ejemplos/compilador/tcodec.t", 4374)));
+#line 4366 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp37083;
+        size_t ss_tmp37084;
+#line 4366 "ejemplos/compilador/tcodec.t"
+        k_mira = ((ss_tmp37083 = k_mira, ss_tmp37084 = (size_t)1, ss_lang_suma_usize(ss_tmp37083, ss_tmp37084, "ejemplos/compilador/tcodec.t", 4366)));
     }
-#line 4377 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp37103;
-    const ss_lista_Nodo* ss_tmp37104;
-    const Contexto* ss_tmp37105;
-    const Cierres* ss_tmp37106;
-    Registro* ss_tmp37107;
-    const ss_mapa_str_usize* ss_tmp37108;
-    const ss_lista_str* ss_tmp37109;
-    const ss_mapa_str_usize* ss_tmp37110;
-    const ss_lista_lista_str* ss_tmp37111;
-    const ss_lista_lista_str* ss_tmp37112;
-    const ss_lista_str* ss_tmp37113;
-    const ss_lista_lista_str* ss_tmp37114;
-    const ss_lista_lista_str* ss_tmp37115;
-    ss_res_SoporteGenerado ss_tmp37102 = ((ss_tmp37103 = ss_view(&raiz), ss_tmp37104 = &arboles, ss_tmp37105 = &global, ss_tmp37106 = &cierres, ss_tmp37107 = &reg, ss_tmp37108 = &con_partes, ss_tmp37109 = &st_nombres, ss_tmp37110 = &st_indice, ss_tmp37111 = &st_campos, ss_tmp37112 = &st_tipos, ss_tmp37113 = &en_nombres, ss_tmp37114 = &en_variantes, ss_tmp37115 = &en_lleva, generar_soporte(ss_tmp37103, ss_tmp37104, ss_tmp37105, ss_tmp37106, ss_tmp37107, ss_tmp37108, ss_tmp37109, ss_tmp37110, ss_tmp37111, ss_tmp37112, ss_tmp37113, ss_tmp37114, ss_tmp37115)));
-    if (ss_tmp37102.motivo != NULL)
+#line 4369 "ejemplos/compilador/tcodec.t"
+    SafeView ss_tmp37086;
+    const ss_lista_Nodo* ss_tmp37087;
+    const Contexto* ss_tmp37088;
+    const Cierres* ss_tmp37089;
+    Registro* ss_tmp37090;
+    const ss_mapa_str_usize* ss_tmp37091;
+    const ss_lista_str* ss_tmp37092;
+    const ss_mapa_str_usize* ss_tmp37093;
+    const ss_lista_lista_str* ss_tmp37094;
+    const ss_lista_lista_str* ss_tmp37095;
+    const ss_lista_str* ss_tmp37096;
+    const ss_lista_lista_str* ss_tmp37097;
+    const ss_lista_lista_str* ss_tmp37098;
+    ss_res_SoporteGenerado ss_tmp37085 = ((ss_tmp37086 = ss_view(&raiz), ss_tmp37087 = &arboles, ss_tmp37088 = &global, ss_tmp37089 = &cierres, ss_tmp37090 = &reg, ss_tmp37091 = &con_partes, ss_tmp37092 = &st_nombres, ss_tmp37093 = &st_indice, ss_tmp37094 = &st_campos, ss_tmp37095 = &st_tipos, ss_tmp37096 = &en_nombres, ss_tmp37097 = &en_variantes, ss_tmp37098 = &en_lleva, generar_soporte(ss_tmp37086, ss_tmp37087, ss_tmp37088, ss_tmp37089, ss_tmp37090, ss_tmp37091, ss_tmp37092, ss_tmp37093, ss_tmp37094, ss_tmp37095, ss_tmp37096, ss_tmp37097, ss_tmp37098)));
+    if (ss_tmp37085.motivo != NULL)
     {
         ss_drop_Registro(&reg);
-        for (size_t ss_i1847 = 0; ss_i1847 < duenos_inst.length; ss_i1847++)
+        for (size_t ss_i1843 = 0; ss_i1843 < duenos_inst.length; ss_i1843++)
         {
-            ss_free(&duenos_inst.e[ss_i1847]);
+            ss_free(&duenos_inst.e[ss_i1843]);
         }
         free(duenos_inst.e);
         duenos_inst.e = NULL;
@@ -130164,17 +130099,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         modulo_de.e = NULL;
         modulo_de.length = 0;
         modulo_de.capacity = 0;
-        for (size_t ss_i1848 = 0; ss_i1848 < instancias.length; ss_i1848++)
+        for (size_t ss_i1844 = 0; ss_i1844 < instancias.length; ss_i1844++)
         {
-            ss_drop_Nodo(&instancias.e[ss_i1848]);
+            ss_drop_Nodo(&instancias.e[ss_i1844]);
         }
         free(instancias.e);
         instancias.e = NULL;
         instancias.length = 0;
         instancias.capacity = 0;
-        for (size_t ss_i1849 = 0; ss_i1849 < orden_inst.length; ss_i1849++)
+        for (size_t ss_i1845 = 0; ss_i1845 < orden_inst.length; ss_i1845++)
         {
-            ss_free(&orden_inst.e[ss_i1849]);
+            ss_free(&orden_inst.e[ss_i1845]);
         }
         free(orden_inst.e);
         orden_inst.e = NULL;
@@ -130186,109 +130121,109 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_drop_Cierres(&cierres);
         ss_drop_Revision(&revision);
         ss_mapa_libre_mapa_str_usize(&plantillas);
-        for (size_t ss_i1850 = 0; ss_i1850 < en_lleva.length; ss_i1850++)
+        for (size_t ss_i1846 = 0; ss_i1846 < en_lleva.length; ss_i1846++)
         {
-            for (size_t ss_i1851 = 0; ss_i1851 < en_lleva.e[ss_i1850].length; ss_i1851++)
+            for (size_t ss_i1847 = 0; ss_i1847 < en_lleva.e[ss_i1846].length; ss_i1847++)
             {
-                ss_free(&en_lleva.e[ss_i1850].e[ss_i1851]);
+                ss_free(&en_lleva.e[ss_i1846].e[ss_i1847]);
             }
-            free(en_lleva.e[ss_i1850].e);
-            en_lleva.e[ss_i1850].e = NULL;
-            en_lleva.e[ss_i1850].length = 0;
-            en_lleva.e[ss_i1850].capacity = 0;
+            free(en_lleva.e[ss_i1846].e);
+            en_lleva.e[ss_i1846].e = NULL;
+            en_lleva.e[ss_i1846].length = 0;
+            en_lleva.e[ss_i1846].capacity = 0;
         }
         free(en_lleva.e);
         en_lleva.e = NULL;
         en_lleva.length = 0;
         en_lleva.capacity = 0;
-        for (size_t ss_i1852 = 0; ss_i1852 < en_variantes.length; ss_i1852++)
+        for (size_t ss_i1848 = 0; ss_i1848 < en_variantes.length; ss_i1848++)
         {
-            for (size_t ss_i1853 = 0; ss_i1853 < en_variantes.e[ss_i1852].length; ss_i1853++)
+            for (size_t ss_i1849 = 0; ss_i1849 < en_variantes.e[ss_i1848].length; ss_i1849++)
             {
-                ss_free(&en_variantes.e[ss_i1852].e[ss_i1853]);
+                ss_free(&en_variantes.e[ss_i1848].e[ss_i1849]);
             }
-            free(en_variantes.e[ss_i1852].e);
-            en_variantes.e[ss_i1852].e = NULL;
-            en_variantes.e[ss_i1852].length = 0;
-            en_variantes.e[ss_i1852].capacity = 0;
+            free(en_variantes.e[ss_i1848].e);
+            en_variantes.e[ss_i1848].e = NULL;
+            en_variantes.e[ss_i1848].length = 0;
+            en_variantes.e[ss_i1848].capacity = 0;
         }
         free(en_variantes.e);
         en_variantes.e = NULL;
         en_variantes.length = 0;
         en_variantes.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&en_indice);
-        for (size_t ss_i1854 = 0; ss_i1854 < en_nombres.length; ss_i1854++)
+        for (size_t ss_i1850 = 0; ss_i1850 < en_nombres.length; ss_i1850++)
         {
-            ss_free(&en_nombres.e[ss_i1854]);
+            ss_free(&en_nombres.e[ss_i1850]);
         }
         free(en_nombres.e);
         en_nombres.e = NULL;
         en_nombres.length = 0;
         en_nombres.capacity = 0;
-        for (size_t ss_i1855 = 0; ss_i1855 < ext_protos.length; ss_i1855++)
+        for (size_t ss_i1851 = 0; ss_i1851 < ext_protos.length; ss_i1851++)
         {
-            ss_free(&ext_protos.e[ss_i1855]);
+            ss_free(&ext_protos.e[ss_i1851]);
         }
         free(ext_protos.e);
         ext_protos.e = NULL;
         ext_protos.length = 0;
         ext_protos.capacity = 0;
-        for (size_t ss_i1856 = 0; ss_i1856 < ext_modulos.length; ss_i1856++)
+        for (size_t ss_i1852 = 0; ss_i1852 < ext_modulos.length; ss_i1852++)
         {
-            ss_free(&ext_modulos.e[ss_i1856]);
+            ss_free(&ext_modulos.e[ss_i1852]);
         }
         free(ext_modulos.e);
         ext_modulos.e = NULL;
         ext_modulos.length = 0;
         ext_modulos.capacity = 0;
-        for (size_t ss_i1857 = 0; ss_i1857 < ext_cabeceras.length; ss_i1857++)
+        for (size_t ss_i1853 = 0; ss_i1853 < ext_cabeceras.length; ss_i1853++)
         {
-            ss_free(&ext_cabeceras.e[ss_i1857]);
+            ss_free(&ext_cabeceras.e[ss_i1853]);
         }
         free(ext_cabeceras.e);
         ext_cabeceras.e = NULL;
         ext_cabeceras.length = 0;
         ext_cabeceras.capacity = 0;
-        for (size_t ss_i1858 = 0; ss_i1858 < stp_tipos.length; ss_i1858++)
+        for (size_t ss_i1854 = 0; ss_i1854 < stp_tipos.length; ss_i1854++)
         {
-            for (size_t ss_i1859 = 0; ss_i1859 < stp_tipos.e[ss_i1858].length; ss_i1859++)
+            for (size_t ss_i1855 = 0; ss_i1855 < stp_tipos.e[ss_i1854].length; ss_i1855++)
             {
-                ss_free(&stp_tipos.e[ss_i1858].e[ss_i1859]);
+                ss_free(&stp_tipos.e[ss_i1854].e[ss_i1855]);
             }
-            free(stp_tipos.e[ss_i1858].e);
-            stp_tipos.e[ss_i1858].e = NULL;
-            stp_tipos.e[ss_i1858].length = 0;
-            stp_tipos.e[ss_i1858].capacity = 0;
+            free(stp_tipos.e[ss_i1854].e);
+            stp_tipos.e[ss_i1854].e = NULL;
+            stp_tipos.e[ss_i1854].length = 0;
+            stp_tipos.e[ss_i1854].capacity = 0;
         }
         free(stp_tipos.e);
         stp_tipos.e = NULL;
         stp_tipos.length = 0;
         stp_tipos.capacity = 0;
-        for (size_t ss_i1860 = 0; ss_i1860 < stp_campos.length; ss_i1860++)
+        for (size_t ss_i1856 = 0; ss_i1856 < stp_campos.length; ss_i1856++)
         {
-            for (size_t ss_i1861 = 0; ss_i1861 < stp_campos.e[ss_i1860].length; ss_i1861++)
+            for (size_t ss_i1857 = 0; ss_i1857 < stp_campos.e[ss_i1856].length; ss_i1857++)
             {
-                ss_free(&stp_campos.e[ss_i1860].e[ss_i1861]);
+                ss_free(&stp_campos.e[ss_i1856].e[ss_i1857]);
             }
-            free(stp_campos.e[ss_i1860].e);
-            stp_campos.e[ss_i1860].e = NULL;
-            stp_campos.e[ss_i1860].length = 0;
-            stp_campos.e[ss_i1860].capacity = 0;
+            free(stp_campos.e[ss_i1856].e);
+            stp_campos.e[ss_i1856].e = NULL;
+            stp_campos.e[ss_i1856].length = 0;
+            stp_campos.e[ss_i1856].capacity = 0;
         }
         free(stp_campos.e);
         stp_campos.e = NULL;
         stp_campos.length = 0;
         stp_campos.capacity = 0;
-        for (size_t ss_i1862 = 0; ss_i1862 < stp_params.length; ss_i1862++)
+        for (size_t ss_i1858 = 0; ss_i1858 < stp_params.length; ss_i1858++)
         {
-            for (size_t ss_i1863 = 0; ss_i1863 < stp_params.e[ss_i1862].length; ss_i1863++)
+            for (size_t ss_i1859 = 0; ss_i1859 < stp_params.e[ss_i1858].length; ss_i1859++)
             {
-                ss_free(&stp_params.e[ss_i1862].e[ss_i1863]);
+                ss_free(&stp_params.e[ss_i1858].e[ss_i1859]);
             }
-            free(stp_params.e[ss_i1862].e);
-            stp_params.e[ss_i1862].e = NULL;
-            stp_params.e[ss_i1862].length = 0;
-            stp_params.e[ss_i1862].capacity = 0;
+            free(stp_params.e[ss_i1858].e);
+            stp_params.e[ss_i1858].e = NULL;
+            stp_params.e[ss_i1858].length = 0;
+            stp_params.e[ss_i1858].capacity = 0;
         }
         free(stp_params.e);
         stp_params.e = NULL;
@@ -130296,64 +130231,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         stp_params.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&stp_indice);
         ss_mapa_libre_mapa_str_usize(&st_indice);
-        for (size_t ss_i1864 = 0; ss_i1864 < st_tipos.length; ss_i1864++)
+        for (size_t ss_i1860 = 0; ss_i1860 < st_tipos.length; ss_i1860++)
         {
-            for (size_t ss_i1865 = 0; ss_i1865 < st_tipos.e[ss_i1864].length; ss_i1865++)
+            for (size_t ss_i1861 = 0; ss_i1861 < st_tipos.e[ss_i1860].length; ss_i1861++)
             {
-                ss_free(&st_tipos.e[ss_i1864].e[ss_i1865]);
+                ss_free(&st_tipos.e[ss_i1860].e[ss_i1861]);
             }
-            free(st_tipos.e[ss_i1864].e);
-            st_tipos.e[ss_i1864].e = NULL;
-            st_tipos.e[ss_i1864].length = 0;
-            st_tipos.e[ss_i1864].capacity = 0;
+            free(st_tipos.e[ss_i1860].e);
+            st_tipos.e[ss_i1860].e = NULL;
+            st_tipos.e[ss_i1860].length = 0;
+            st_tipos.e[ss_i1860].capacity = 0;
         }
         free(st_tipos.e);
         st_tipos.e = NULL;
         st_tipos.length = 0;
         st_tipos.capacity = 0;
-        for (size_t ss_i1866 = 0; ss_i1866 < st_campos.length; ss_i1866++)
+        for (size_t ss_i1862 = 0; ss_i1862 < st_campos.length; ss_i1862++)
         {
-            for (size_t ss_i1867 = 0; ss_i1867 < st_campos.e[ss_i1866].length; ss_i1867++)
+            for (size_t ss_i1863 = 0; ss_i1863 < st_campos.e[ss_i1862].length; ss_i1863++)
             {
-                ss_free(&st_campos.e[ss_i1866].e[ss_i1867]);
+                ss_free(&st_campos.e[ss_i1862].e[ss_i1863]);
             }
-            free(st_campos.e[ss_i1866].e);
-            st_campos.e[ss_i1866].e = NULL;
-            st_campos.e[ss_i1866].length = 0;
-            st_campos.e[ss_i1866].capacity = 0;
+            free(st_campos.e[ss_i1862].e);
+            st_campos.e[ss_i1862].e = NULL;
+            st_campos.e[ss_i1862].length = 0;
+            st_campos.e[ss_i1862].capacity = 0;
         }
         free(st_campos.e);
         st_campos.e = NULL;
         st_campos.length = 0;
         st_campos.capacity = 0;
-        for (size_t ss_i1868 = 0; ss_i1868 < st_nombres.length; ss_i1868++)
+        for (size_t ss_i1864 = 0; ss_i1864 < st_nombres.length; ss_i1864++)
         {
-            ss_free(&st_nombres.e[ss_i1868]);
+            ss_free(&st_nombres.e[ss_i1864]);
         }
         free(st_nombres.e);
         st_nombres.e = NULL;
         st_nombres.length = 0;
         st_nombres.capacity = 0;
-        for (size_t ss_i1869 = 0; ss_i1869 < contextos.length; ss_i1869++)
+        for (size_t ss_i1865 = 0; ss_i1865 < contextos.length; ss_i1865++)
         {
-            ss_drop_Contexto(&contextos.e[ss_i1869]);
+            ss_drop_Contexto(&contextos.e[ss_i1865]);
         }
         free(contextos.e);
         contextos.e = NULL;
         contextos.length = 0;
         contextos.capacity = 0;
-        for (size_t ss_i1870 = 0; ss_i1870 < arboles.length; ss_i1870++)
+        for (size_t ss_i1866 = 0; ss_i1866 < arboles.length; ss_i1866++)
         {
-            ss_drop_Nodo(&arboles.e[ss_i1870]);
+            ss_drop_Nodo(&arboles.e[ss_i1866]);
         }
         free(arboles.e);
         arboles.e = NULL;
         arboles.length = 0;
         arboles.capacity = 0;
         ss_drop_Contexto(&global);
-        for (size_t ss_i1871 = 0; ss_i1871 < modulos.length; ss_i1871++)
+        for (size_t ss_i1867 = 0; ss_i1867 < modulos.length; ss_i1867++)
         {
-            ss_free(&modulos.e[ss_i1871]);
+            ss_free(&modulos.e[ss_i1867]);
         }
         free(modulos.e);
         modulos.e = NULL;
@@ -130367,33 +130302,33 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = ss_tmp37102.motivo };
+        return (ss_res_usize){ .motivo = ss_tmp37085.motivo };
     }
-    SS_LANG_QUIZA_SIN_USAR SoporteGenerado soporte = ss_tmp37102.valor;
-#line 4380 "ejemplos/compilador/tcodec.t"
+    SS_LANG_QUIZA_SIN_USAR SoporteGenerado soporte = ss_tmp37085.valor;
+#line 4372 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str partes = ss_copia_lista_str(&soporte.partes);
-#line 4381 "ejemplos/compilador/tcodec.t"
+#line 4373 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR Cuenta cta = ss_copia_Cuenta(&soporte.cta);
-#line 4383 "ejemplos/compilador/tcodec.t"
-    const ss_lista_Nodo* ss_tmp37116;
-    ss_lista_Contexto* ss_tmp37117;
-    const ss_lista_str* ss_tmp37118;
-    const ss_lista_Nodo* ss_tmp37119;
-    const ss_lista_usize* ss_tmp37120;
-    const ss_lista_str* ss_tmp37121;
-    const ss_lista_str* ss_tmp37122;
-    const ss_lista_str* ss_tmp37123;
-    Cuenta* ss_tmp37124;
-    SS_LANG_QUIZA_SIN_USAR FuncionesGeneradas funciones = ((ss_tmp37116 = &arboles, ss_tmp37117 = &contextos, ss_tmp37118 = &modulos, ss_tmp37119 = &instancias, ss_tmp37120 = &modulo_de, ss_tmp37121 = &duenos_inst, ss_tmp37122 = &orden_inst, ss_tmp37123 = &revision.orden_copias, ss_tmp37124 = &cta, generar_funciones(ss_tmp37116, ss_tmp37117, ss_tmp37118, ss_tmp37119, ss_tmp37120, ss_tmp37121, ss_tmp37122, ss_tmp37123, ss_tmp37124)));
-#line 4385 "ejemplos/compilador/tcodec.t"
+#line 4375 "ejemplos/compilador/tcodec.t"
+    const ss_lista_Nodo* ss_tmp37099;
+    ss_lista_Contexto* ss_tmp37100;
+    const ss_lista_str* ss_tmp37101;
+    const ss_lista_Nodo* ss_tmp37102;
+    const ss_lista_usize* ss_tmp37103;
+    const ss_lista_str* ss_tmp37104;
+    const ss_lista_str* ss_tmp37105;
+    const ss_lista_str* ss_tmp37106;
+    Cuenta* ss_tmp37107;
+    SS_LANG_QUIZA_SIN_USAR FuncionesGeneradas funciones = ((ss_tmp37099 = &arboles, ss_tmp37100 = &contextos, ss_tmp37101 = &modulos, ss_tmp37102 = &instancias, ss_tmp37103 = &modulo_de, ss_tmp37104 = &duenos_inst, ss_tmp37105 = &orden_inst, ss_tmp37106 = &revision.orden_copias, ss_tmp37107 = &cta, generar_funciones(ss_tmp37099, ss_tmp37100, ss_tmp37101, ss_tmp37102, ss_tmp37103, ss_tmp37104, ss_tmp37105, ss_tmp37106, ss_tmp37107)));
+#line 4377 "ejemplos/compilador/tcodec.t"
     if ((!funciones.ok))
     {
-        size_t ss_tmp37125 = (size_t)1;
+        size_t ss_tmp37108 = (size_t)1;
         ss_drop_FuncionesGeneradas(&funciones);
         ss_drop_Cuenta(&cta);
-        for (size_t ss_i1872 = 0; ss_i1872 < partes.length; ss_i1872++)
+        for (size_t ss_i1868 = 0; ss_i1868 < partes.length; ss_i1868++)
         {
-            ss_free(&partes.e[ss_i1872]);
+            ss_free(&partes.e[ss_i1868]);
         }
         free(partes.e);
         partes.e = NULL;
@@ -130401,9 +130336,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         partes.capacity = 0;
         ss_drop_SoporteGenerado(&soporte);
         ss_drop_Registro(&reg);
-        for (size_t ss_i1873 = 0; ss_i1873 < duenos_inst.length; ss_i1873++)
+        for (size_t ss_i1869 = 0; ss_i1869 < duenos_inst.length; ss_i1869++)
         {
-            ss_free(&duenos_inst.e[ss_i1873]);
+            ss_free(&duenos_inst.e[ss_i1869]);
         }
         free(duenos_inst.e);
         duenos_inst.e = NULL;
@@ -130413,17 +130348,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         modulo_de.e = NULL;
         modulo_de.length = 0;
         modulo_de.capacity = 0;
-        for (size_t ss_i1874 = 0; ss_i1874 < instancias.length; ss_i1874++)
+        for (size_t ss_i1870 = 0; ss_i1870 < instancias.length; ss_i1870++)
         {
-            ss_drop_Nodo(&instancias.e[ss_i1874]);
+            ss_drop_Nodo(&instancias.e[ss_i1870]);
         }
         free(instancias.e);
         instancias.e = NULL;
         instancias.length = 0;
         instancias.capacity = 0;
-        for (size_t ss_i1875 = 0; ss_i1875 < orden_inst.length; ss_i1875++)
+        for (size_t ss_i1871 = 0; ss_i1871 < orden_inst.length; ss_i1871++)
         {
-            ss_free(&orden_inst.e[ss_i1875]);
+            ss_free(&orden_inst.e[ss_i1871]);
         }
         free(orden_inst.e);
         orden_inst.e = NULL;
@@ -130435,109 +130370,109 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_drop_Cierres(&cierres);
         ss_drop_Revision(&revision);
         ss_mapa_libre_mapa_str_usize(&plantillas);
-        for (size_t ss_i1876 = 0; ss_i1876 < en_lleva.length; ss_i1876++)
+        for (size_t ss_i1872 = 0; ss_i1872 < en_lleva.length; ss_i1872++)
         {
-            for (size_t ss_i1877 = 0; ss_i1877 < en_lleva.e[ss_i1876].length; ss_i1877++)
+            for (size_t ss_i1873 = 0; ss_i1873 < en_lleva.e[ss_i1872].length; ss_i1873++)
             {
-                ss_free(&en_lleva.e[ss_i1876].e[ss_i1877]);
+                ss_free(&en_lleva.e[ss_i1872].e[ss_i1873]);
             }
-            free(en_lleva.e[ss_i1876].e);
-            en_lleva.e[ss_i1876].e = NULL;
-            en_lleva.e[ss_i1876].length = 0;
-            en_lleva.e[ss_i1876].capacity = 0;
+            free(en_lleva.e[ss_i1872].e);
+            en_lleva.e[ss_i1872].e = NULL;
+            en_lleva.e[ss_i1872].length = 0;
+            en_lleva.e[ss_i1872].capacity = 0;
         }
         free(en_lleva.e);
         en_lleva.e = NULL;
         en_lleva.length = 0;
         en_lleva.capacity = 0;
-        for (size_t ss_i1878 = 0; ss_i1878 < en_variantes.length; ss_i1878++)
+        for (size_t ss_i1874 = 0; ss_i1874 < en_variantes.length; ss_i1874++)
         {
-            for (size_t ss_i1879 = 0; ss_i1879 < en_variantes.e[ss_i1878].length; ss_i1879++)
+            for (size_t ss_i1875 = 0; ss_i1875 < en_variantes.e[ss_i1874].length; ss_i1875++)
             {
-                ss_free(&en_variantes.e[ss_i1878].e[ss_i1879]);
+                ss_free(&en_variantes.e[ss_i1874].e[ss_i1875]);
             }
-            free(en_variantes.e[ss_i1878].e);
-            en_variantes.e[ss_i1878].e = NULL;
-            en_variantes.e[ss_i1878].length = 0;
-            en_variantes.e[ss_i1878].capacity = 0;
+            free(en_variantes.e[ss_i1874].e);
+            en_variantes.e[ss_i1874].e = NULL;
+            en_variantes.e[ss_i1874].length = 0;
+            en_variantes.e[ss_i1874].capacity = 0;
         }
         free(en_variantes.e);
         en_variantes.e = NULL;
         en_variantes.length = 0;
         en_variantes.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&en_indice);
-        for (size_t ss_i1880 = 0; ss_i1880 < en_nombres.length; ss_i1880++)
+        for (size_t ss_i1876 = 0; ss_i1876 < en_nombres.length; ss_i1876++)
         {
-            ss_free(&en_nombres.e[ss_i1880]);
+            ss_free(&en_nombres.e[ss_i1876]);
         }
         free(en_nombres.e);
         en_nombres.e = NULL;
         en_nombres.length = 0;
         en_nombres.capacity = 0;
-        for (size_t ss_i1881 = 0; ss_i1881 < ext_protos.length; ss_i1881++)
+        for (size_t ss_i1877 = 0; ss_i1877 < ext_protos.length; ss_i1877++)
         {
-            ss_free(&ext_protos.e[ss_i1881]);
+            ss_free(&ext_protos.e[ss_i1877]);
         }
         free(ext_protos.e);
         ext_protos.e = NULL;
         ext_protos.length = 0;
         ext_protos.capacity = 0;
-        for (size_t ss_i1882 = 0; ss_i1882 < ext_modulos.length; ss_i1882++)
+        for (size_t ss_i1878 = 0; ss_i1878 < ext_modulos.length; ss_i1878++)
         {
-            ss_free(&ext_modulos.e[ss_i1882]);
+            ss_free(&ext_modulos.e[ss_i1878]);
         }
         free(ext_modulos.e);
         ext_modulos.e = NULL;
         ext_modulos.length = 0;
         ext_modulos.capacity = 0;
-        for (size_t ss_i1883 = 0; ss_i1883 < ext_cabeceras.length; ss_i1883++)
+        for (size_t ss_i1879 = 0; ss_i1879 < ext_cabeceras.length; ss_i1879++)
         {
-            ss_free(&ext_cabeceras.e[ss_i1883]);
+            ss_free(&ext_cabeceras.e[ss_i1879]);
         }
         free(ext_cabeceras.e);
         ext_cabeceras.e = NULL;
         ext_cabeceras.length = 0;
         ext_cabeceras.capacity = 0;
-        for (size_t ss_i1884 = 0; ss_i1884 < stp_tipos.length; ss_i1884++)
+        for (size_t ss_i1880 = 0; ss_i1880 < stp_tipos.length; ss_i1880++)
         {
-            for (size_t ss_i1885 = 0; ss_i1885 < stp_tipos.e[ss_i1884].length; ss_i1885++)
+            for (size_t ss_i1881 = 0; ss_i1881 < stp_tipos.e[ss_i1880].length; ss_i1881++)
             {
-                ss_free(&stp_tipos.e[ss_i1884].e[ss_i1885]);
+                ss_free(&stp_tipos.e[ss_i1880].e[ss_i1881]);
             }
-            free(stp_tipos.e[ss_i1884].e);
-            stp_tipos.e[ss_i1884].e = NULL;
-            stp_tipos.e[ss_i1884].length = 0;
-            stp_tipos.e[ss_i1884].capacity = 0;
+            free(stp_tipos.e[ss_i1880].e);
+            stp_tipos.e[ss_i1880].e = NULL;
+            stp_tipos.e[ss_i1880].length = 0;
+            stp_tipos.e[ss_i1880].capacity = 0;
         }
         free(stp_tipos.e);
         stp_tipos.e = NULL;
         stp_tipos.length = 0;
         stp_tipos.capacity = 0;
-        for (size_t ss_i1886 = 0; ss_i1886 < stp_campos.length; ss_i1886++)
+        for (size_t ss_i1882 = 0; ss_i1882 < stp_campos.length; ss_i1882++)
         {
-            for (size_t ss_i1887 = 0; ss_i1887 < stp_campos.e[ss_i1886].length; ss_i1887++)
+            for (size_t ss_i1883 = 0; ss_i1883 < stp_campos.e[ss_i1882].length; ss_i1883++)
             {
-                ss_free(&stp_campos.e[ss_i1886].e[ss_i1887]);
+                ss_free(&stp_campos.e[ss_i1882].e[ss_i1883]);
             }
-            free(stp_campos.e[ss_i1886].e);
-            stp_campos.e[ss_i1886].e = NULL;
-            stp_campos.e[ss_i1886].length = 0;
-            stp_campos.e[ss_i1886].capacity = 0;
+            free(stp_campos.e[ss_i1882].e);
+            stp_campos.e[ss_i1882].e = NULL;
+            stp_campos.e[ss_i1882].length = 0;
+            stp_campos.e[ss_i1882].capacity = 0;
         }
         free(stp_campos.e);
         stp_campos.e = NULL;
         stp_campos.length = 0;
         stp_campos.capacity = 0;
-        for (size_t ss_i1888 = 0; ss_i1888 < stp_params.length; ss_i1888++)
+        for (size_t ss_i1884 = 0; ss_i1884 < stp_params.length; ss_i1884++)
         {
-            for (size_t ss_i1889 = 0; ss_i1889 < stp_params.e[ss_i1888].length; ss_i1889++)
+            for (size_t ss_i1885 = 0; ss_i1885 < stp_params.e[ss_i1884].length; ss_i1885++)
             {
-                ss_free(&stp_params.e[ss_i1888].e[ss_i1889]);
+                ss_free(&stp_params.e[ss_i1884].e[ss_i1885]);
             }
-            free(stp_params.e[ss_i1888].e);
-            stp_params.e[ss_i1888].e = NULL;
-            stp_params.e[ss_i1888].length = 0;
-            stp_params.e[ss_i1888].capacity = 0;
+            free(stp_params.e[ss_i1884].e);
+            stp_params.e[ss_i1884].e = NULL;
+            stp_params.e[ss_i1884].length = 0;
+            stp_params.e[ss_i1884].capacity = 0;
         }
         free(stp_params.e);
         stp_params.e = NULL;
@@ -130545,64 +130480,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         stp_params.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&stp_indice);
         ss_mapa_libre_mapa_str_usize(&st_indice);
-        for (size_t ss_i1890 = 0; ss_i1890 < st_tipos.length; ss_i1890++)
+        for (size_t ss_i1886 = 0; ss_i1886 < st_tipos.length; ss_i1886++)
         {
-            for (size_t ss_i1891 = 0; ss_i1891 < st_tipos.e[ss_i1890].length; ss_i1891++)
+            for (size_t ss_i1887 = 0; ss_i1887 < st_tipos.e[ss_i1886].length; ss_i1887++)
             {
-                ss_free(&st_tipos.e[ss_i1890].e[ss_i1891]);
+                ss_free(&st_tipos.e[ss_i1886].e[ss_i1887]);
             }
-            free(st_tipos.e[ss_i1890].e);
-            st_tipos.e[ss_i1890].e = NULL;
-            st_tipos.e[ss_i1890].length = 0;
-            st_tipos.e[ss_i1890].capacity = 0;
+            free(st_tipos.e[ss_i1886].e);
+            st_tipos.e[ss_i1886].e = NULL;
+            st_tipos.e[ss_i1886].length = 0;
+            st_tipos.e[ss_i1886].capacity = 0;
         }
         free(st_tipos.e);
         st_tipos.e = NULL;
         st_tipos.length = 0;
         st_tipos.capacity = 0;
-        for (size_t ss_i1892 = 0; ss_i1892 < st_campos.length; ss_i1892++)
+        for (size_t ss_i1888 = 0; ss_i1888 < st_campos.length; ss_i1888++)
         {
-            for (size_t ss_i1893 = 0; ss_i1893 < st_campos.e[ss_i1892].length; ss_i1893++)
+            for (size_t ss_i1889 = 0; ss_i1889 < st_campos.e[ss_i1888].length; ss_i1889++)
             {
-                ss_free(&st_campos.e[ss_i1892].e[ss_i1893]);
+                ss_free(&st_campos.e[ss_i1888].e[ss_i1889]);
             }
-            free(st_campos.e[ss_i1892].e);
-            st_campos.e[ss_i1892].e = NULL;
-            st_campos.e[ss_i1892].length = 0;
-            st_campos.e[ss_i1892].capacity = 0;
+            free(st_campos.e[ss_i1888].e);
+            st_campos.e[ss_i1888].e = NULL;
+            st_campos.e[ss_i1888].length = 0;
+            st_campos.e[ss_i1888].capacity = 0;
         }
         free(st_campos.e);
         st_campos.e = NULL;
         st_campos.length = 0;
         st_campos.capacity = 0;
-        for (size_t ss_i1894 = 0; ss_i1894 < st_nombres.length; ss_i1894++)
+        for (size_t ss_i1890 = 0; ss_i1890 < st_nombres.length; ss_i1890++)
         {
-            ss_free(&st_nombres.e[ss_i1894]);
+            ss_free(&st_nombres.e[ss_i1890]);
         }
         free(st_nombres.e);
         st_nombres.e = NULL;
         st_nombres.length = 0;
         st_nombres.capacity = 0;
-        for (size_t ss_i1895 = 0; ss_i1895 < contextos.length; ss_i1895++)
+        for (size_t ss_i1891 = 0; ss_i1891 < contextos.length; ss_i1891++)
         {
-            ss_drop_Contexto(&contextos.e[ss_i1895]);
+            ss_drop_Contexto(&contextos.e[ss_i1891]);
         }
         free(contextos.e);
         contextos.e = NULL;
         contextos.length = 0;
         contextos.capacity = 0;
-        for (size_t ss_i1896 = 0; ss_i1896 < arboles.length; ss_i1896++)
+        for (size_t ss_i1892 = 0; ss_i1892 < arboles.length; ss_i1892++)
         {
-            ss_drop_Nodo(&arboles.e[ss_i1896]);
+            ss_drop_Nodo(&arboles.e[ss_i1892]);
         }
         free(arboles.e);
         arboles.e = NULL;
         arboles.length = 0;
         arboles.capacity = 0;
         ss_drop_Contexto(&global);
-        for (size_t ss_i1897 = 0; ss_i1897 < modulos.length; ss_i1897++)
+        for (size_t ss_i1893 = 0; ss_i1893 < modulos.length; ss_i1893++)
         {
-            ss_free(&modulos.e[ss_i1897]);
+            ss_free(&modulos.e[ss_i1893]);
         }
         free(modulos.e);
         modulos.e = NULL;
@@ -130616,44 +130551,44 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37125 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37108 };
     }
-#line 4386 "ejemplos/compilador/tcodec.t"
+#line 4378 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str protos = ss_copia_lista_str(&funciones.protos);
-#line 4387 "ejemplos/compilador/tcodec.t"
+#line 4379 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str cuerpos = ss_copia_lista_str(&funciones.cuerpos);
-#line 4388 "ejemplos/compilador/tcodec.t"
+#line 4380 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize anchos = ss_copia_mapa_str_usize(&funciones.anchos);
-#line 4389 "ejemplos/compilador/tcodec.t"
+#line 4381 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize decimales = ss_copia_mapa_str_usize(&funciones.decimales);
-#line 4390 "ejemplos/compilador/tcodec.t"
+#line 4382 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_mapa_str_usize conversiones = ss_copia_mapa_str_usize(&funciones.conversiones);
-#line 4392 "ejemplos/compilador/tcodec.t"
-    const ss_lista_str* ss_tmp37126;
-    const Registro* ss_tmp37127;
-    const Cuenta* ss_tmp37128;
-    const ss_mapa_str_usize* ss_tmp37129;
-    const ss_mapa_str_usize* ss_tmp37130;
-    SS_LANG_QUIZA_SIN_USAR UsosGenerados usos = ((ss_tmp37126 = &cuerpos, ss_tmp37127 = &reg, ss_tmp37128 = &cta, ss_tmp37129 = &plantillas, ss_tmp37130 = &vistas_inst, revisar_usos_generados(ss_tmp37126, ss_tmp37127, ss_tmp37128, ss_tmp37129, ss_tmp37130)));
-#line 4393 "ejemplos/compilador/tcodec.t"
+#line 4384 "ejemplos/compilador/tcodec.t"
+    const ss_lista_str* ss_tmp37109;
+    const Registro* ss_tmp37110;
+    const Cuenta* ss_tmp37111;
+    const ss_mapa_str_usize* ss_tmp37112;
+    const ss_mapa_str_usize* ss_tmp37113;
+    SS_LANG_QUIZA_SIN_USAR UsosGenerados usos = ((ss_tmp37109 = &cuerpos, ss_tmp37110 = &reg, ss_tmp37111 = &cta, ss_tmp37112 = &plantillas, ss_tmp37113 = &vistas_inst, revisar_usos_generados(ss_tmp37109, ss_tmp37110, ss_tmp37111, ss_tmp37112, ss_tmp37113)));
+#line 4385 "ejemplos/compilador/tcodec.t"
     if ((!usos.ok))
     {
-        size_t ss_tmp37131 = (size_t)1;
+        size_t ss_tmp37114 = (size_t)1;
         ss_drop_UsosGenerados(&usos);
         ss_mapa_libre_mapa_str_usize(&conversiones);
         ss_mapa_libre_mapa_str_usize(&decimales);
         ss_mapa_libre_mapa_str_usize(&anchos);
-        for (size_t ss_i1898 = 0; ss_i1898 < cuerpos.length; ss_i1898++)
+        for (size_t ss_i1894 = 0; ss_i1894 < cuerpos.length; ss_i1894++)
         {
-            ss_free(&cuerpos.e[ss_i1898]);
+            ss_free(&cuerpos.e[ss_i1894]);
         }
         free(cuerpos.e);
         cuerpos.e = NULL;
         cuerpos.length = 0;
         cuerpos.capacity = 0;
-        for (size_t ss_i1899 = 0; ss_i1899 < protos.length; ss_i1899++)
+        for (size_t ss_i1895 = 0; ss_i1895 < protos.length; ss_i1895++)
         {
-            ss_free(&protos.e[ss_i1899]);
+            ss_free(&protos.e[ss_i1895]);
         }
         free(protos.e);
         protos.e = NULL;
@@ -130661,9 +130596,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         protos.capacity = 0;
         ss_drop_FuncionesGeneradas(&funciones);
         ss_drop_Cuenta(&cta);
-        for (size_t ss_i1900 = 0; ss_i1900 < partes.length; ss_i1900++)
+        for (size_t ss_i1896 = 0; ss_i1896 < partes.length; ss_i1896++)
         {
-            ss_free(&partes.e[ss_i1900]);
+            ss_free(&partes.e[ss_i1896]);
         }
         free(partes.e);
         partes.e = NULL;
@@ -130671,9 +130606,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         partes.capacity = 0;
         ss_drop_SoporteGenerado(&soporte);
         ss_drop_Registro(&reg);
-        for (size_t ss_i1901 = 0; ss_i1901 < duenos_inst.length; ss_i1901++)
+        for (size_t ss_i1897 = 0; ss_i1897 < duenos_inst.length; ss_i1897++)
         {
-            ss_free(&duenos_inst.e[ss_i1901]);
+            ss_free(&duenos_inst.e[ss_i1897]);
         }
         free(duenos_inst.e);
         duenos_inst.e = NULL;
@@ -130683,17 +130618,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         modulo_de.e = NULL;
         modulo_de.length = 0;
         modulo_de.capacity = 0;
-        for (size_t ss_i1902 = 0; ss_i1902 < instancias.length; ss_i1902++)
+        for (size_t ss_i1898 = 0; ss_i1898 < instancias.length; ss_i1898++)
         {
-            ss_drop_Nodo(&instancias.e[ss_i1902]);
+            ss_drop_Nodo(&instancias.e[ss_i1898]);
         }
         free(instancias.e);
         instancias.e = NULL;
         instancias.length = 0;
         instancias.capacity = 0;
-        for (size_t ss_i1903 = 0; ss_i1903 < orden_inst.length; ss_i1903++)
+        for (size_t ss_i1899 = 0; ss_i1899 < orden_inst.length; ss_i1899++)
         {
-            ss_free(&orden_inst.e[ss_i1903]);
+            ss_free(&orden_inst.e[ss_i1899]);
         }
         free(orden_inst.e);
         orden_inst.e = NULL;
@@ -130705,109 +130640,109 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_drop_Cierres(&cierres);
         ss_drop_Revision(&revision);
         ss_mapa_libre_mapa_str_usize(&plantillas);
-        for (size_t ss_i1904 = 0; ss_i1904 < en_lleva.length; ss_i1904++)
+        for (size_t ss_i1900 = 0; ss_i1900 < en_lleva.length; ss_i1900++)
         {
-            for (size_t ss_i1905 = 0; ss_i1905 < en_lleva.e[ss_i1904].length; ss_i1905++)
+            for (size_t ss_i1901 = 0; ss_i1901 < en_lleva.e[ss_i1900].length; ss_i1901++)
             {
-                ss_free(&en_lleva.e[ss_i1904].e[ss_i1905]);
+                ss_free(&en_lleva.e[ss_i1900].e[ss_i1901]);
             }
-            free(en_lleva.e[ss_i1904].e);
-            en_lleva.e[ss_i1904].e = NULL;
-            en_lleva.e[ss_i1904].length = 0;
-            en_lleva.e[ss_i1904].capacity = 0;
+            free(en_lleva.e[ss_i1900].e);
+            en_lleva.e[ss_i1900].e = NULL;
+            en_lleva.e[ss_i1900].length = 0;
+            en_lleva.e[ss_i1900].capacity = 0;
         }
         free(en_lleva.e);
         en_lleva.e = NULL;
         en_lleva.length = 0;
         en_lleva.capacity = 0;
-        for (size_t ss_i1906 = 0; ss_i1906 < en_variantes.length; ss_i1906++)
+        for (size_t ss_i1902 = 0; ss_i1902 < en_variantes.length; ss_i1902++)
         {
-            for (size_t ss_i1907 = 0; ss_i1907 < en_variantes.e[ss_i1906].length; ss_i1907++)
+            for (size_t ss_i1903 = 0; ss_i1903 < en_variantes.e[ss_i1902].length; ss_i1903++)
             {
-                ss_free(&en_variantes.e[ss_i1906].e[ss_i1907]);
+                ss_free(&en_variantes.e[ss_i1902].e[ss_i1903]);
             }
-            free(en_variantes.e[ss_i1906].e);
-            en_variantes.e[ss_i1906].e = NULL;
-            en_variantes.e[ss_i1906].length = 0;
-            en_variantes.e[ss_i1906].capacity = 0;
+            free(en_variantes.e[ss_i1902].e);
+            en_variantes.e[ss_i1902].e = NULL;
+            en_variantes.e[ss_i1902].length = 0;
+            en_variantes.e[ss_i1902].capacity = 0;
         }
         free(en_variantes.e);
         en_variantes.e = NULL;
         en_variantes.length = 0;
         en_variantes.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&en_indice);
-        for (size_t ss_i1908 = 0; ss_i1908 < en_nombres.length; ss_i1908++)
+        for (size_t ss_i1904 = 0; ss_i1904 < en_nombres.length; ss_i1904++)
         {
-            ss_free(&en_nombres.e[ss_i1908]);
+            ss_free(&en_nombres.e[ss_i1904]);
         }
         free(en_nombres.e);
         en_nombres.e = NULL;
         en_nombres.length = 0;
         en_nombres.capacity = 0;
-        for (size_t ss_i1909 = 0; ss_i1909 < ext_protos.length; ss_i1909++)
+        for (size_t ss_i1905 = 0; ss_i1905 < ext_protos.length; ss_i1905++)
         {
-            ss_free(&ext_protos.e[ss_i1909]);
+            ss_free(&ext_protos.e[ss_i1905]);
         }
         free(ext_protos.e);
         ext_protos.e = NULL;
         ext_protos.length = 0;
         ext_protos.capacity = 0;
-        for (size_t ss_i1910 = 0; ss_i1910 < ext_modulos.length; ss_i1910++)
+        for (size_t ss_i1906 = 0; ss_i1906 < ext_modulos.length; ss_i1906++)
         {
-            ss_free(&ext_modulos.e[ss_i1910]);
+            ss_free(&ext_modulos.e[ss_i1906]);
         }
         free(ext_modulos.e);
         ext_modulos.e = NULL;
         ext_modulos.length = 0;
         ext_modulos.capacity = 0;
-        for (size_t ss_i1911 = 0; ss_i1911 < ext_cabeceras.length; ss_i1911++)
+        for (size_t ss_i1907 = 0; ss_i1907 < ext_cabeceras.length; ss_i1907++)
         {
-            ss_free(&ext_cabeceras.e[ss_i1911]);
+            ss_free(&ext_cabeceras.e[ss_i1907]);
         }
         free(ext_cabeceras.e);
         ext_cabeceras.e = NULL;
         ext_cabeceras.length = 0;
         ext_cabeceras.capacity = 0;
-        for (size_t ss_i1912 = 0; ss_i1912 < stp_tipos.length; ss_i1912++)
+        for (size_t ss_i1908 = 0; ss_i1908 < stp_tipos.length; ss_i1908++)
         {
-            for (size_t ss_i1913 = 0; ss_i1913 < stp_tipos.e[ss_i1912].length; ss_i1913++)
+            for (size_t ss_i1909 = 0; ss_i1909 < stp_tipos.e[ss_i1908].length; ss_i1909++)
             {
-                ss_free(&stp_tipos.e[ss_i1912].e[ss_i1913]);
+                ss_free(&stp_tipos.e[ss_i1908].e[ss_i1909]);
             }
-            free(stp_tipos.e[ss_i1912].e);
-            stp_tipos.e[ss_i1912].e = NULL;
-            stp_tipos.e[ss_i1912].length = 0;
-            stp_tipos.e[ss_i1912].capacity = 0;
+            free(stp_tipos.e[ss_i1908].e);
+            stp_tipos.e[ss_i1908].e = NULL;
+            stp_tipos.e[ss_i1908].length = 0;
+            stp_tipos.e[ss_i1908].capacity = 0;
         }
         free(stp_tipos.e);
         stp_tipos.e = NULL;
         stp_tipos.length = 0;
         stp_tipos.capacity = 0;
-        for (size_t ss_i1914 = 0; ss_i1914 < stp_campos.length; ss_i1914++)
+        for (size_t ss_i1910 = 0; ss_i1910 < stp_campos.length; ss_i1910++)
         {
-            for (size_t ss_i1915 = 0; ss_i1915 < stp_campos.e[ss_i1914].length; ss_i1915++)
+            for (size_t ss_i1911 = 0; ss_i1911 < stp_campos.e[ss_i1910].length; ss_i1911++)
             {
-                ss_free(&stp_campos.e[ss_i1914].e[ss_i1915]);
+                ss_free(&stp_campos.e[ss_i1910].e[ss_i1911]);
             }
-            free(stp_campos.e[ss_i1914].e);
-            stp_campos.e[ss_i1914].e = NULL;
-            stp_campos.e[ss_i1914].length = 0;
-            stp_campos.e[ss_i1914].capacity = 0;
+            free(stp_campos.e[ss_i1910].e);
+            stp_campos.e[ss_i1910].e = NULL;
+            stp_campos.e[ss_i1910].length = 0;
+            stp_campos.e[ss_i1910].capacity = 0;
         }
         free(stp_campos.e);
         stp_campos.e = NULL;
         stp_campos.length = 0;
         stp_campos.capacity = 0;
-        for (size_t ss_i1916 = 0; ss_i1916 < stp_params.length; ss_i1916++)
+        for (size_t ss_i1912 = 0; ss_i1912 < stp_params.length; ss_i1912++)
         {
-            for (size_t ss_i1917 = 0; ss_i1917 < stp_params.e[ss_i1916].length; ss_i1917++)
+            for (size_t ss_i1913 = 0; ss_i1913 < stp_params.e[ss_i1912].length; ss_i1913++)
             {
-                ss_free(&stp_params.e[ss_i1916].e[ss_i1917]);
+                ss_free(&stp_params.e[ss_i1912].e[ss_i1913]);
             }
-            free(stp_params.e[ss_i1916].e);
-            stp_params.e[ss_i1916].e = NULL;
-            stp_params.e[ss_i1916].length = 0;
-            stp_params.e[ss_i1916].capacity = 0;
+            free(stp_params.e[ss_i1912].e);
+            stp_params.e[ss_i1912].e = NULL;
+            stp_params.e[ss_i1912].length = 0;
+            stp_params.e[ss_i1912].capacity = 0;
         }
         free(stp_params.e);
         stp_params.e = NULL;
@@ -130815,64 +130750,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         stp_params.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&stp_indice);
         ss_mapa_libre_mapa_str_usize(&st_indice);
-        for (size_t ss_i1918 = 0; ss_i1918 < st_tipos.length; ss_i1918++)
+        for (size_t ss_i1914 = 0; ss_i1914 < st_tipos.length; ss_i1914++)
         {
-            for (size_t ss_i1919 = 0; ss_i1919 < st_tipos.e[ss_i1918].length; ss_i1919++)
+            for (size_t ss_i1915 = 0; ss_i1915 < st_tipos.e[ss_i1914].length; ss_i1915++)
             {
-                ss_free(&st_tipos.e[ss_i1918].e[ss_i1919]);
+                ss_free(&st_tipos.e[ss_i1914].e[ss_i1915]);
             }
-            free(st_tipos.e[ss_i1918].e);
-            st_tipos.e[ss_i1918].e = NULL;
-            st_tipos.e[ss_i1918].length = 0;
-            st_tipos.e[ss_i1918].capacity = 0;
+            free(st_tipos.e[ss_i1914].e);
+            st_tipos.e[ss_i1914].e = NULL;
+            st_tipos.e[ss_i1914].length = 0;
+            st_tipos.e[ss_i1914].capacity = 0;
         }
         free(st_tipos.e);
         st_tipos.e = NULL;
         st_tipos.length = 0;
         st_tipos.capacity = 0;
-        for (size_t ss_i1920 = 0; ss_i1920 < st_campos.length; ss_i1920++)
+        for (size_t ss_i1916 = 0; ss_i1916 < st_campos.length; ss_i1916++)
         {
-            for (size_t ss_i1921 = 0; ss_i1921 < st_campos.e[ss_i1920].length; ss_i1921++)
+            for (size_t ss_i1917 = 0; ss_i1917 < st_campos.e[ss_i1916].length; ss_i1917++)
             {
-                ss_free(&st_campos.e[ss_i1920].e[ss_i1921]);
+                ss_free(&st_campos.e[ss_i1916].e[ss_i1917]);
             }
-            free(st_campos.e[ss_i1920].e);
-            st_campos.e[ss_i1920].e = NULL;
-            st_campos.e[ss_i1920].length = 0;
-            st_campos.e[ss_i1920].capacity = 0;
+            free(st_campos.e[ss_i1916].e);
+            st_campos.e[ss_i1916].e = NULL;
+            st_campos.e[ss_i1916].length = 0;
+            st_campos.e[ss_i1916].capacity = 0;
         }
         free(st_campos.e);
         st_campos.e = NULL;
         st_campos.length = 0;
         st_campos.capacity = 0;
-        for (size_t ss_i1922 = 0; ss_i1922 < st_nombres.length; ss_i1922++)
+        for (size_t ss_i1918 = 0; ss_i1918 < st_nombres.length; ss_i1918++)
         {
-            ss_free(&st_nombres.e[ss_i1922]);
+            ss_free(&st_nombres.e[ss_i1918]);
         }
         free(st_nombres.e);
         st_nombres.e = NULL;
         st_nombres.length = 0;
         st_nombres.capacity = 0;
-        for (size_t ss_i1923 = 0; ss_i1923 < contextos.length; ss_i1923++)
+        for (size_t ss_i1919 = 0; ss_i1919 < contextos.length; ss_i1919++)
         {
-            ss_drop_Contexto(&contextos.e[ss_i1923]);
+            ss_drop_Contexto(&contextos.e[ss_i1919]);
         }
         free(contextos.e);
         contextos.e = NULL;
         contextos.length = 0;
         contextos.capacity = 0;
-        for (size_t ss_i1924 = 0; ss_i1924 < arboles.length; ss_i1924++)
+        for (size_t ss_i1920 = 0; ss_i1920 < arboles.length; ss_i1920++)
         {
-            ss_drop_Nodo(&arboles.e[ss_i1924]);
+            ss_drop_Nodo(&arboles.e[ss_i1920]);
         }
         free(arboles.e);
         arboles.e = NULL;
         arboles.length = 0;
         arboles.capacity = 0;
         ss_drop_Contexto(&global);
-        for (size_t ss_i1925 = 0; ss_i1925 < modulos.length; ss_i1925++)
+        for (size_t ss_i1921 = 0; ss_i1921 < modulos.length; ss_i1921++)
         {
-            ss_free(&modulos.e[ss_i1925]);
+            ss_free(&modulos.e[ss_i1921]);
         }
         free(modulos.e);
         modulos.e = NULL;
@@ -130886,41 +130821,41 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37131 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37114 };
     }
-#line 4394 "ejemplos/compilador/tcodec.t"
+#line 4386 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str limpios = ss_copia_lista_str(&usos.limpios);
-#line 4395 "ejemplos/compilador/tcodec.t"
+#line 4387 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str envoltorios = ss_copia_lista_str(&usos.envoltorios);
-#line 4397 "ejemplos/compilador/tcodec.t"
-    const Cuenta* ss_tmp37132;
-    const Contexto* ss_tmp37133;
-    const ss_mapa_str_usize* ss_tmp37134;
-    const ss_lista_lista_str* ss_tmp37135;
-    const ss_lista_lista_str* ss_tmp37136;
-    const ss_mapa_str_usize* ss_tmp37137;
-    const ss_lista_lista_str* ss_tmp37138;
-    const ss_lista_lista_str* ss_tmp37139;
-    const ss_lista_str* ss_tmp37140;
-    const ss_lista_Nodo* ss_tmp37141;
-    const ss_lista_str* ss_tmp37142;
-    SS_LANG_QUIZA_SIN_USAR CopiadoresGenerados copias_c = ((ss_tmp37132 = &cta, ss_tmp37133 = &global, ss_tmp37134 = &st_indice, ss_tmp37135 = &st_campos, ss_tmp37136 = &st_tipos, ss_tmp37137 = &en_indice, ss_tmp37138 = &en_variantes, ss_tmp37139 = &en_lleva, ss_tmp37140 = &limpios, ss_tmp37141 = &arboles, ss_tmp37142 = &modulos, generar_copiadores(ss_tmp37132, ss_tmp37133, ss_tmp37134, ss_tmp37135, ss_tmp37136, ss_tmp37137, ss_tmp37138, ss_tmp37139, ss_tmp37140, ss_tmp37141, ss_tmp37142)));
-#line 4399 "ejemplos/compilador/tcodec.t"
+#line 4389 "ejemplos/compilador/tcodec.t"
+    const Cuenta* ss_tmp37115;
+    const Contexto* ss_tmp37116;
+    const ss_mapa_str_usize* ss_tmp37117;
+    const ss_lista_lista_str* ss_tmp37118;
+    const ss_lista_lista_str* ss_tmp37119;
+    const ss_mapa_str_usize* ss_tmp37120;
+    const ss_lista_lista_str* ss_tmp37121;
+    const ss_lista_lista_str* ss_tmp37122;
+    const ss_lista_str* ss_tmp37123;
+    const ss_lista_Nodo* ss_tmp37124;
+    const ss_lista_str* ss_tmp37125;
+    SS_LANG_QUIZA_SIN_USAR CopiadoresGenerados copias_c = ((ss_tmp37115 = &cta, ss_tmp37116 = &global, ss_tmp37117 = &st_indice, ss_tmp37118 = &st_campos, ss_tmp37119 = &st_tipos, ss_tmp37120 = &en_indice, ss_tmp37121 = &en_variantes, ss_tmp37122 = &en_lleva, ss_tmp37123 = &limpios, ss_tmp37124 = &arboles, ss_tmp37125 = &modulos, generar_copiadores(ss_tmp37115, ss_tmp37116, ss_tmp37117, ss_tmp37118, ss_tmp37119, ss_tmp37120, ss_tmp37121, ss_tmp37122, ss_tmp37123, ss_tmp37124, ss_tmp37125)));
+#line 4391 "ejemplos/compilador/tcodec.t"
     if ((!copias_c.ok))
     {
-        size_t ss_tmp37143 = (size_t)1;
+        size_t ss_tmp37126 = (size_t)1;
         ss_drop_CopiadoresGenerados(&copias_c);
-        for (size_t ss_i1926 = 0; ss_i1926 < envoltorios.length; ss_i1926++)
+        for (size_t ss_i1922 = 0; ss_i1922 < envoltorios.length; ss_i1922++)
         {
-            ss_free(&envoltorios.e[ss_i1926]);
+            ss_free(&envoltorios.e[ss_i1922]);
         }
         free(envoltorios.e);
         envoltorios.e = NULL;
         envoltorios.length = 0;
         envoltorios.capacity = 0;
-        for (size_t ss_i1927 = 0; ss_i1927 < limpios.length; ss_i1927++)
+        for (size_t ss_i1923 = 0; ss_i1923 < limpios.length; ss_i1923++)
         {
-            ss_free(&limpios.e[ss_i1927]);
+            ss_free(&limpios.e[ss_i1923]);
         }
         free(limpios.e);
         limpios.e = NULL;
@@ -130930,17 +130865,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_mapa_libre_mapa_str_usize(&conversiones);
         ss_mapa_libre_mapa_str_usize(&decimales);
         ss_mapa_libre_mapa_str_usize(&anchos);
-        for (size_t ss_i1928 = 0; ss_i1928 < cuerpos.length; ss_i1928++)
+        for (size_t ss_i1924 = 0; ss_i1924 < cuerpos.length; ss_i1924++)
         {
-            ss_free(&cuerpos.e[ss_i1928]);
+            ss_free(&cuerpos.e[ss_i1924]);
         }
         free(cuerpos.e);
         cuerpos.e = NULL;
         cuerpos.length = 0;
         cuerpos.capacity = 0;
-        for (size_t ss_i1929 = 0; ss_i1929 < protos.length; ss_i1929++)
+        for (size_t ss_i1925 = 0; ss_i1925 < protos.length; ss_i1925++)
         {
-            ss_free(&protos.e[ss_i1929]);
+            ss_free(&protos.e[ss_i1925]);
         }
         free(protos.e);
         protos.e = NULL;
@@ -130948,9 +130883,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         protos.capacity = 0;
         ss_drop_FuncionesGeneradas(&funciones);
         ss_drop_Cuenta(&cta);
-        for (size_t ss_i1930 = 0; ss_i1930 < partes.length; ss_i1930++)
+        for (size_t ss_i1926 = 0; ss_i1926 < partes.length; ss_i1926++)
         {
-            ss_free(&partes.e[ss_i1930]);
+            ss_free(&partes.e[ss_i1926]);
         }
         free(partes.e);
         partes.e = NULL;
@@ -130958,9 +130893,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         partes.capacity = 0;
         ss_drop_SoporteGenerado(&soporte);
         ss_drop_Registro(&reg);
-        for (size_t ss_i1931 = 0; ss_i1931 < duenos_inst.length; ss_i1931++)
+        for (size_t ss_i1927 = 0; ss_i1927 < duenos_inst.length; ss_i1927++)
         {
-            ss_free(&duenos_inst.e[ss_i1931]);
+            ss_free(&duenos_inst.e[ss_i1927]);
         }
         free(duenos_inst.e);
         duenos_inst.e = NULL;
@@ -130970,17 +130905,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         modulo_de.e = NULL;
         modulo_de.length = 0;
         modulo_de.capacity = 0;
-        for (size_t ss_i1932 = 0; ss_i1932 < instancias.length; ss_i1932++)
+        for (size_t ss_i1928 = 0; ss_i1928 < instancias.length; ss_i1928++)
         {
-            ss_drop_Nodo(&instancias.e[ss_i1932]);
+            ss_drop_Nodo(&instancias.e[ss_i1928]);
         }
         free(instancias.e);
         instancias.e = NULL;
         instancias.length = 0;
         instancias.capacity = 0;
-        for (size_t ss_i1933 = 0; ss_i1933 < orden_inst.length; ss_i1933++)
+        for (size_t ss_i1929 = 0; ss_i1929 < orden_inst.length; ss_i1929++)
         {
-            ss_free(&orden_inst.e[ss_i1933]);
+            ss_free(&orden_inst.e[ss_i1929]);
         }
         free(orden_inst.e);
         orden_inst.e = NULL;
@@ -130992,109 +130927,109 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_drop_Cierres(&cierres);
         ss_drop_Revision(&revision);
         ss_mapa_libre_mapa_str_usize(&plantillas);
-        for (size_t ss_i1934 = 0; ss_i1934 < en_lleva.length; ss_i1934++)
+        for (size_t ss_i1930 = 0; ss_i1930 < en_lleva.length; ss_i1930++)
         {
-            for (size_t ss_i1935 = 0; ss_i1935 < en_lleva.e[ss_i1934].length; ss_i1935++)
+            for (size_t ss_i1931 = 0; ss_i1931 < en_lleva.e[ss_i1930].length; ss_i1931++)
             {
-                ss_free(&en_lleva.e[ss_i1934].e[ss_i1935]);
+                ss_free(&en_lleva.e[ss_i1930].e[ss_i1931]);
             }
-            free(en_lleva.e[ss_i1934].e);
-            en_lleva.e[ss_i1934].e = NULL;
-            en_lleva.e[ss_i1934].length = 0;
-            en_lleva.e[ss_i1934].capacity = 0;
+            free(en_lleva.e[ss_i1930].e);
+            en_lleva.e[ss_i1930].e = NULL;
+            en_lleva.e[ss_i1930].length = 0;
+            en_lleva.e[ss_i1930].capacity = 0;
         }
         free(en_lleva.e);
         en_lleva.e = NULL;
         en_lleva.length = 0;
         en_lleva.capacity = 0;
-        for (size_t ss_i1936 = 0; ss_i1936 < en_variantes.length; ss_i1936++)
+        for (size_t ss_i1932 = 0; ss_i1932 < en_variantes.length; ss_i1932++)
         {
-            for (size_t ss_i1937 = 0; ss_i1937 < en_variantes.e[ss_i1936].length; ss_i1937++)
+            for (size_t ss_i1933 = 0; ss_i1933 < en_variantes.e[ss_i1932].length; ss_i1933++)
             {
-                ss_free(&en_variantes.e[ss_i1936].e[ss_i1937]);
+                ss_free(&en_variantes.e[ss_i1932].e[ss_i1933]);
             }
-            free(en_variantes.e[ss_i1936].e);
-            en_variantes.e[ss_i1936].e = NULL;
-            en_variantes.e[ss_i1936].length = 0;
-            en_variantes.e[ss_i1936].capacity = 0;
+            free(en_variantes.e[ss_i1932].e);
+            en_variantes.e[ss_i1932].e = NULL;
+            en_variantes.e[ss_i1932].length = 0;
+            en_variantes.e[ss_i1932].capacity = 0;
         }
         free(en_variantes.e);
         en_variantes.e = NULL;
         en_variantes.length = 0;
         en_variantes.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&en_indice);
-        for (size_t ss_i1938 = 0; ss_i1938 < en_nombres.length; ss_i1938++)
+        for (size_t ss_i1934 = 0; ss_i1934 < en_nombres.length; ss_i1934++)
         {
-            ss_free(&en_nombres.e[ss_i1938]);
+            ss_free(&en_nombres.e[ss_i1934]);
         }
         free(en_nombres.e);
         en_nombres.e = NULL;
         en_nombres.length = 0;
         en_nombres.capacity = 0;
-        for (size_t ss_i1939 = 0; ss_i1939 < ext_protos.length; ss_i1939++)
+        for (size_t ss_i1935 = 0; ss_i1935 < ext_protos.length; ss_i1935++)
         {
-            ss_free(&ext_protos.e[ss_i1939]);
+            ss_free(&ext_protos.e[ss_i1935]);
         }
         free(ext_protos.e);
         ext_protos.e = NULL;
         ext_protos.length = 0;
         ext_protos.capacity = 0;
-        for (size_t ss_i1940 = 0; ss_i1940 < ext_modulos.length; ss_i1940++)
+        for (size_t ss_i1936 = 0; ss_i1936 < ext_modulos.length; ss_i1936++)
         {
-            ss_free(&ext_modulos.e[ss_i1940]);
+            ss_free(&ext_modulos.e[ss_i1936]);
         }
         free(ext_modulos.e);
         ext_modulos.e = NULL;
         ext_modulos.length = 0;
         ext_modulos.capacity = 0;
-        for (size_t ss_i1941 = 0; ss_i1941 < ext_cabeceras.length; ss_i1941++)
+        for (size_t ss_i1937 = 0; ss_i1937 < ext_cabeceras.length; ss_i1937++)
         {
-            ss_free(&ext_cabeceras.e[ss_i1941]);
+            ss_free(&ext_cabeceras.e[ss_i1937]);
         }
         free(ext_cabeceras.e);
         ext_cabeceras.e = NULL;
         ext_cabeceras.length = 0;
         ext_cabeceras.capacity = 0;
-        for (size_t ss_i1942 = 0; ss_i1942 < stp_tipos.length; ss_i1942++)
+        for (size_t ss_i1938 = 0; ss_i1938 < stp_tipos.length; ss_i1938++)
         {
-            for (size_t ss_i1943 = 0; ss_i1943 < stp_tipos.e[ss_i1942].length; ss_i1943++)
+            for (size_t ss_i1939 = 0; ss_i1939 < stp_tipos.e[ss_i1938].length; ss_i1939++)
             {
-                ss_free(&stp_tipos.e[ss_i1942].e[ss_i1943]);
+                ss_free(&stp_tipos.e[ss_i1938].e[ss_i1939]);
             }
-            free(stp_tipos.e[ss_i1942].e);
-            stp_tipos.e[ss_i1942].e = NULL;
-            stp_tipos.e[ss_i1942].length = 0;
-            stp_tipos.e[ss_i1942].capacity = 0;
+            free(stp_tipos.e[ss_i1938].e);
+            stp_tipos.e[ss_i1938].e = NULL;
+            stp_tipos.e[ss_i1938].length = 0;
+            stp_tipos.e[ss_i1938].capacity = 0;
         }
         free(stp_tipos.e);
         stp_tipos.e = NULL;
         stp_tipos.length = 0;
         stp_tipos.capacity = 0;
-        for (size_t ss_i1944 = 0; ss_i1944 < stp_campos.length; ss_i1944++)
+        for (size_t ss_i1940 = 0; ss_i1940 < stp_campos.length; ss_i1940++)
         {
-            for (size_t ss_i1945 = 0; ss_i1945 < stp_campos.e[ss_i1944].length; ss_i1945++)
+            for (size_t ss_i1941 = 0; ss_i1941 < stp_campos.e[ss_i1940].length; ss_i1941++)
             {
-                ss_free(&stp_campos.e[ss_i1944].e[ss_i1945]);
+                ss_free(&stp_campos.e[ss_i1940].e[ss_i1941]);
             }
-            free(stp_campos.e[ss_i1944].e);
-            stp_campos.e[ss_i1944].e = NULL;
-            stp_campos.e[ss_i1944].length = 0;
-            stp_campos.e[ss_i1944].capacity = 0;
+            free(stp_campos.e[ss_i1940].e);
+            stp_campos.e[ss_i1940].e = NULL;
+            stp_campos.e[ss_i1940].length = 0;
+            stp_campos.e[ss_i1940].capacity = 0;
         }
         free(stp_campos.e);
         stp_campos.e = NULL;
         stp_campos.length = 0;
         stp_campos.capacity = 0;
-        for (size_t ss_i1946 = 0; ss_i1946 < stp_params.length; ss_i1946++)
+        for (size_t ss_i1942 = 0; ss_i1942 < stp_params.length; ss_i1942++)
         {
-            for (size_t ss_i1947 = 0; ss_i1947 < stp_params.e[ss_i1946].length; ss_i1947++)
+            for (size_t ss_i1943 = 0; ss_i1943 < stp_params.e[ss_i1942].length; ss_i1943++)
             {
-                ss_free(&stp_params.e[ss_i1946].e[ss_i1947]);
+                ss_free(&stp_params.e[ss_i1942].e[ss_i1943]);
             }
-            free(stp_params.e[ss_i1946].e);
-            stp_params.e[ss_i1946].e = NULL;
-            stp_params.e[ss_i1946].length = 0;
-            stp_params.e[ss_i1946].capacity = 0;
+            free(stp_params.e[ss_i1942].e);
+            stp_params.e[ss_i1942].e = NULL;
+            stp_params.e[ss_i1942].length = 0;
+            stp_params.e[ss_i1942].capacity = 0;
         }
         free(stp_params.e);
         stp_params.e = NULL;
@@ -131102,64 +131037,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         stp_params.capacity = 0;
         ss_mapa_libre_mapa_str_usize(&stp_indice);
         ss_mapa_libre_mapa_str_usize(&st_indice);
-        for (size_t ss_i1948 = 0; ss_i1948 < st_tipos.length; ss_i1948++)
+        for (size_t ss_i1944 = 0; ss_i1944 < st_tipos.length; ss_i1944++)
         {
-            for (size_t ss_i1949 = 0; ss_i1949 < st_tipos.e[ss_i1948].length; ss_i1949++)
+            for (size_t ss_i1945 = 0; ss_i1945 < st_tipos.e[ss_i1944].length; ss_i1945++)
             {
-                ss_free(&st_tipos.e[ss_i1948].e[ss_i1949]);
+                ss_free(&st_tipos.e[ss_i1944].e[ss_i1945]);
             }
-            free(st_tipos.e[ss_i1948].e);
-            st_tipos.e[ss_i1948].e = NULL;
-            st_tipos.e[ss_i1948].length = 0;
-            st_tipos.e[ss_i1948].capacity = 0;
+            free(st_tipos.e[ss_i1944].e);
+            st_tipos.e[ss_i1944].e = NULL;
+            st_tipos.e[ss_i1944].length = 0;
+            st_tipos.e[ss_i1944].capacity = 0;
         }
         free(st_tipos.e);
         st_tipos.e = NULL;
         st_tipos.length = 0;
         st_tipos.capacity = 0;
-        for (size_t ss_i1950 = 0; ss_i1950 < st_campos.length; ss_i1950++)
+        for (size_t ss_i1946 = 0; ss_i1946 < st_campos.length; ss_i1946++)
         {
-            for (size_t ss_i1951 = 0; ss_i1951 < st_campos.e[ss_i1950].length; ss_i1951++)
+            for (size_t ss_i1947 = 0; ss_i1947 < st_campos.e[ss_i1946].length; ss_i1947++)
             {
-                ss_free(&st_campos.e[ss_i1950].e[ss_i1951]);
+                ss_free(&st_campos.e[ss_i1946].e[ss_i1947]);
             }
-            free(st_campos.e[ss_i1950].e);
-            st_campos.e[ss_i1950].e = NULL;
-            st_campos.e[ss_i1950].length = 0;
-            st_campos.e[ss_i1950].capacity = 0;
+            free(st_campos.e[ss_i1946].e);
+            st_campos.e[ss_i1946].e = NULL;
+            st_campos.e[ss_i1946].length = 0;
+            st_campos.e[ss_i1946].capacity = 0;
         }
         free(st_campos.e);
         st_campos.e = NULL;
         st_campos.length = 0;
         st_campos.capacity = 0;
-        for (size_t ss_i1952 = 0; ss_i1952 < st_nombres.length; ss_i1952++)
+        for (size_t ss_i1948 = 0; ss_i1948 < st_nombres.length; ss_i1948++)
         {
-            ss_free(&st_nombres.e[ss_i1952]);
+            ss_free(&st_nombres.e[ss_i1948]);
         }
         free(st_nombres.e);
         st_nombres.e = NULL;
         st_nombres.length = 0;
         st_nombres.capacity = 0;
-        for (size_t ss_i1953 = 0; ss_i1953 < contextos.length; ss_i1953++)
+        for (size_t ss_i1949 = 0; ss_i1949 < contextos.length; ss_i1949++)
         {
-            ss_drop_Contexto(&contextos.e[ss_i1953]);
+            ss_drop_Contexto(&contextos.e[ss_i1949]);
         }
         free(contextos.e);
         contextos.e = NULL;
         contextos.length = 0;
         contextos.capacity = 0;
-        for (size_t ss_i1954 = 0; ss_i1954 < arboles.length; ss_i1954++)
+        for (size_t ss_i1950 = 0; ss_i1950 < arboles.length; ss_i1950++)
         {
-            ss_drop_Nodo(&arboles.e[ss_i1954]);
+            ss_drop_Nodo(&arboles.e[ss_i1950]);
         }
         free(arboles.e);
         arboles.e = NULL;
         arboles.length = 0;
         arboles.capacity = 0;
         ss_drop_Contexto(&global);
-        for (size_t ss_i1955 = 0; ss_i1955 < modulos.length; ss_i1955++)
+        for (size_t ss_i1951 = 0; ss_i1951 < modulos.length; ss_i1951++)
         {
-            ss_free(&modulos.e[ss_i1955]);
+            ss_free(&modulos.e[ss_i1951]);
         }
         free(modulos.e);
         modulos.e = NULL;
@@ -131173,675 +131108,675 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
         ss_free(&salida);
         ss_free(&fuente);
         ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37143 };
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37126 };
     }
-#line 4400 "ejemplos/compilador/tcodec.t"
+#line 4392 "ejemplos/compilador/tcodec.t"
     SS_LANG_QUIZA_SIN_USAR ss_lista_str bloque_copias = ss_copia_lista_str(&copias_c.lineas);
+#line 4394 "ejemplos/compilador/tcodec.t"
+    const ss_mapa_str_usize* ss_tmp37127;
+    const ss_mapa_str_usize* ss_tmp37128;
+    const ss_mapa_str_usize* ss_tmp37129;
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str arit = ((ss_tmp37127 = &anchos, ss_tmp37128 = &decimales, ss_tmp37129 = &conversiones, aritmetica_usada(ss_tmp37127, ss_tmp37128, ss_tmp37129)));
+#line 4395 "ejemplos/compilador/tcodec.t"
+    const Contexto* ss_tmp37130;
+    const ss_lista_Nodo* ss_tmp37131;
+    const ss_lista_Nodo* ss_tmp37132;
+    const ss_lista_str* ss_tmp37133;
+    const ss_lista_str* ss_tmp37134;
+    SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_fn = ((ss_tmp37130 = &global, ss_tmp37131 = &arboles, ss_tmp37132 = &instancias, ss_tmp37133 = &protos, ss_tmp37134 = &limpios, tipos_funcion_usados(ss_tmp37130, ss_tmp37131, ss_tmp37132, ss_tmp37133, ss_tmp37134)));
+#line 4396 "ejemplos/compilador/tcodec.t"
+    SafeView ss_tmp37136;
+    const ss_lista_str* ss_tmp37137;
+    const ss_lista_str* ss_tmp37138;
+    const ss_lista_str* ss_tmp37139;
+    const ss_lista_str* ss_tmp37140;
+    const ss_lista_str* ss_tmp37141;
+    const ss_lista_str* ss_tmp37142;
+    const ss_lista_str* ss_tmp37143;
+    const ss_lista_str* ss_tmp37144;
+    const ss_lista_str* ss_tmp37145;
+    ss_res_str ss_tmp37135 = ((ss_tmp37136 = ss_view(&raiz), ss_tmp37137 = &ext_cabeceras, ss_tmp37138 = &ext_protos, ss_tmp37139 = &partes, ss_tmp37140 = &envoltorios, ss_tmp37141 = &tipos_fn, ss_tmp37142 = &arit, ss_tmp37143 = &bloque_copias, ss_tmp37144 = &protos, ss_tmp37145 = &cuerpos, ensamblar_c(ss_tmp37136, ss_tmp37137, ss_tmp37138, ss_tmp37139, ss_tmp37140, ss_tmp37141, ss_tmp37142, ss_tmp37143, ss_tmp37144, ss_tmp37145)));
+    if (ss_tmp37135.motivo != NULL)
+    {
+        for (size_t ss_i1952 = 0; ss_i1952 < tipos_fn.length; ss_i1952++)
+        {
+            ss_free(&tipos_fn.e[ss_i1952]);
+        }
+        free(tipos_fn.e);
+        tipos_fn.e = NULL;
+        tipos_fn.length = 0;
+        tipos_fn.capacity = 0;
+        for (size_t ss_i1953 = 0; ss_i1953 < arit.length; ss_i1953++)
+        {
+            ss_free(&arit.e[ss_i1953]);
+        }
+        free(arit.e);
+        arit.e = NULL;
+        arit.length = 0;
+        arit.capacity = 0;
+        for (size_t ss_i1954 = 0; ss_i1954 < bloque_copias.length; ss_i1954++)
+        {
+            ss_free(&bloque_copias.e[ss_i1954]);
+        }
+        free(bloque_copias.e);
+        bloque_copias.e = NULL;
+        bloque_copias.length = 0;
+        bloque_copias.capacity = 0;
+        ss_drop_CopiadoresGenerados(&copias_c);
+        for (size_t ss_i1955 = 0; ss_i1955 < envoltorios.length; ss_i1955++)
+        {
+            ss_free(&envoltorios.e[ss_i1955]);
+        }
+        free(envoltorios.e);
+        envoltorios.e = NULL;
+        envoltorios.length = 0;
+        envoltorios.capacity = 0;
+        for (size_t ss_i1956 = 0; ss_i1956 < limpios.length; ss_i1956++)
+        {
+            ss_free(&limpios.e[ss_i1956]);
+        }
+        free(limpios.e);
+        limpios.e = NULL;
+        limpios.length = 0;
+        limpios.capacity = 0;
+        ss_drop_UsosGenerados(&usos);
+        ss_mapa_libre_mapa_str_usize(&conversiones);
+        ss_mapa_libre_mapa_str_usize(&decimales);
+        ss_mapa_libre_mapa_str_usize(&anchos);
+        for (size_t ss_i1957 = 0; ss_i1957 < cuerpos.length; ss_i1957++)
+        {
+            ss_free(&cuerpos.e[ss_i1957]);
+        }
+        free(cuerpos.e);
+        cuerpos.e = NULL;
+        cuerpos.length = 0;
+        cuerpos.capacity = 0;
+        for (size_t ss_i1958 = 0; ss_i1958 < protos.length; ss_i1958++)
+        {
+            ss_free(&protos.e[ss_i1958]);
+        }
+        free(protos.e);
+        protos.e = NULL;
+        protos.length = 0;
+        protos.capacity = 0;
+        ss_drop_FuncionesGeneradas(&funciones);
+        ss_drop_Cuenta(&cta);
+        for (size_t ss_i1959 = 0; ss_i1959 < partes.length; ss_i1959++)
+        {
+            ss_free(&partes.e[ss_i1959]);
+        }
+        free(partes.e);
+        partes.e = NULL;
+        partes.length = 0;
+        partes.capacity = 0;
+        ss_drop_SoporteGenerado(&soporte);
+        ss_drop_Registro(&reg);
+        for (size_t ss_i1960 = 0; ss_i1960 < duenos_inst.length; ss_i1960++)
+        {
+            ss_free(&duenos_inst.e[ss_i1960]);
+        }
+        free(duenos_inst.e);
+        duenos_inst.e = NULL;
+        duenos_inst.length = 0;
+        duenos_inst.capacity = 0;
+        free(modulo_de.e);
+        modulo_de.e = NULL;
+        modulo_de.length = 0;
+        modulo_de.capacity = 0;
+        for (size_t ss_i1961 = 0; ss_i1961 < instancias.length; ss_i1961++)
+        {
+            ss_drop_Nodo(&instancias.e[ss_i1961]);
+        }
+        free(instancias.e);
+        instancias.e = NULL;
+        instancias.length = 0;
+        instancias.capacity = 0;
+        for (size_t ss_i1962 = 0; ss_i1962 < orden_inst.length; ss_i1962++)
+        {
+            ss_free(&orden_inst.e[ss_i1962]);
+        }
+        free(orden_inst.e);
+        orden_inst.e = NULL;
+        orden_inst.length = 0;
+        orden_inst.capacity = 0;
+        ss_mapa_libre_mapa_str_usize(&vistas_inst);
+        ss_mapa_libre_mapa_str_usize(&con_partes);
+        ss_drop_InstanciasPreparadas(&preparadas);
+        ss_drop_Cierres(&cierres);
+        ss_drop_Revision(&revision);
+        ss_mapa_libre_mapa_str_usize(&plantillas);
+        for (size_t ss_i1963 = 0; ss_i1963 < en_lleva.length; ss_i1963++)
+        {
+            for (size_t ss_i1964 = 0; ss_i1964 < en_lleva.e[ss_i1963].length; ss_i1964++)
+            {
+                ss_free(&en_lleva.e[ss_i1963].e[ss_i1964]);
+            }
+            free(en_lleva.e[ss_i1963].e);
+            en_lleva.e[ss_i1963].e = NULL;
+            en_lleva.e[ss_i1963].length = 0;
+            en_lleva.e[ss_i1963].capacity = 0;
+        }
+        free(en_lleva.e);
+        en_lleva.e = NULL;
+        en_lleva.length = 0;
+        en_lleva.capacity = 0;
+        for (size_t ss_i1965 = 0; ss_i1965 < en_variantes.length; ss_i1965++)
+        {
+            for (size_t ss_i1966 = 0; ss_i1966 < en_variantes.e[ss_i1965].length; ss_i1966++)
+            {
+                ss_free(&en_variantes.e[ss_i1965].e[ss_i1966]);
+            }
+            free(en_variantes.e[ss_i1965].e);
+            en_variantes.e[ss_i1965].e = NULL;
+            en_variantes.e[ss_i1965].length = 0;
+            en_variantes.e[ss_i1965].capacity = 0;
+        }
+        free(en_variantes.e);
+        en_variantes.e = NULL;
+        en_variantes.length = 0;
+        en_variantes.capacity = 0;
+        ss_mapa_libre_mapa_str_usize(&en_indice);
+        for (size_t ss_i1967 = 0; ss_i1967 < en_nombres.length; ss_i1967++)
+        {
+            ss_free(&en_nombres.e[ss_i1967]);
+        }
+        free(en_nombres.e);
+        en_nombres.e = NULL;
+        en_nombres.length = 0;
+        en_nombres.capacity = 0;
+        for (size_t ss_i1968 = 0; ss_i1968 < ext_protos.length; ss_i1968++)
+        {
+            ss_free(&ext_protos.e[ss_i1968]);
+        }
+        free(ext_protos.e);
+        ext_protos.e = NULL;
+        ext_protos.length = 0;
+        ext_protos.capacity = 0;
+        for (size_t ss_i1969 = 0; ss_i1969 < ext_modulos.length; ss_i1969++)
+        {
+            ss_free(&ext_modulos.e[ss_i1969]);
+        }
+        free(ext_modulos.e);
+        ext_modulos.e = NULL;
+        ext_modulos.length = 0;
+        ext_modulos.capacity = 0;
+        for (size_t ss_i1970 = 0; ss_i1970 < ext_cabeceras.length; ss_i1970++)
+        {
+            ss_free(&ext_cabeceras.e[ss_i1970]);
+        }
+        free(ext_cabeceras.e);
+        ext_cabeceras.e = NULL;
+        ext_cabeceras.length = 0;
+        ext_cabeceras.capacity = 0;
+        for (size_t ss_i1971 = 0; ss_i1971 < stp_tipos.length; ss_i1971++)
+        {
+            for (size_t ss_i1972 = 0; ss_i1972 < stp_tipos.e[ss_i1971].length; ss_i1972++)
+            {
+                ss_free(&stp_tipos.e[ss_i1971].e[ss_i1972]);
+            }
+            free(stp_tipos.e[ss_i1971].e);
+            stp_tipos.e[ss_i1971].e = NULL;
+            stp_tipos.e[ss_i1971].length = 0;
+            stp_tipos.e[ss_i1971].capacity = 0;
+        }
+        free(stp_tipos.e);
+        stp_tipos.e = NULL;
+        stp_tipos.length = 0;
+        stp_tipos.capacity = 0;
+        for (size_t ss_i1973 = 0; ss_i1973 < stp_campos.length; ss_i1973++)
+        {
+            for (size_t ss_i1974 = 0; ss_i1974 < stp_campos.e[ss_i1973].length; ss_i1974++)
+            {
+                ss_free(&stp_campos.e[ss_i1973].e[ss_i1974]);
+            }
+            free(stp_campos.e[ss_i1973].e);
+            stp_campos.e[ss_i1973].e = NULL;
+            stp_campos.e[ss_i1973].length = 0;
+            stp_campos.e[ss_i1973].capacity = 0;
+        }
+        free(stp_campos.e);
+        stp_campos.e = NULL;
+        stp_campos.length = 0;
+        stp_campos.capacity = 0;
+        for (size_t ss_i1975 = 0; ss_i1975 < stp_params.length; ss_i1975++)
+        {
+            for (size_t ss_i1976 = 0; ss_i1976 < stp_params.e[ss_i1975].length; ss_i1976++)
+            {
+                ss_free(&stp_params.e[ss_i1975].e[ss_i1976]);
+            }
+            free(stp_params.e[ss_i1975].e);
+            stp_params.e[ss_i1975].e = NULL;
+            stp_params.e[ss_i1975].length = 0;
+            stp_params.e[ss_i1975].capacity = 0;
+        }
+        free(stp_params.e);
+        stp_params.e = NULL;
+        stp_params.length = 0;
+        stp_params.capacity = 0;
+        ss_mapa_libre_mapa_str_usize(&stp_indice);
+        ss_mapa_libre_mapa_str_usize(&st_indice);
+        for (size_t ss_i1977 = 0; ss_i1977 < st_tipos.length; ss_i1977++)
+        {
+            for (size_t ss_i1978 = 0; ss_i1978 < st_tipos.e[ss_i1977].length; ss_i1978++)
+            {
+                ss_free(&st_tipos.e[ss_i1977].e[ss_i1978]);
+            }
+            free(st_tipos.e[ss_i1977].e);
+            st_tipos.e[ss_i1977].e = NULL;
+            st_tipos.e[ss_i1977].length = 0;
+            st_tipos.e[ss_i1977].capacity = 0;
+        }
+        free(st_tipos.e);
+        st_tipos.e = NULL;
+        st_tipos.length = 0;
+        st_tipos.capacity = 0;
+        for (size_t ss_i1979 = 0; ss_i1979 < st_campos.length; ss_i1979++)
+        {
+            for (size_t ss_i1980 = 0; ss_i1980 < st_campos.e[ss_i1979].length; ss_i1980++)
+            {
+                ss_free(&st_campos.e[ss_i1979].e[ss_i1980]);
+            }
+            free(st_campos.e[ss_i1979].e);
+            st_campos.e[ss_i1979].e = NULL;
+            st_campos.e[ss_i1979].length = 0;
+            st_campos.e[ss_i1979].capacity = 0;
+        }
+        free(st_campos.e);
+        st_campos.e = NULL;
+        st_campos.length = 0;
+        st_campos.capacity = 0;
+        for (size_t ss_i1981 = 0; ss_i1981 < st_nombres.length; ss_i1981++)
+        {
+            ss_free(&st_nombres.e[ss_i1981]);
+        }
+        free(st_nombres.e);
+        st_nombres.e = NULL;
+        st_nombres.length = 0;
+        st_nombres.capacity = 0;
+        for (size_t ss_i1982 = 0; ss_i1982 < contextos.length; ss_i1982++)
+        {
+            ss_drop_Contexto(&contextos.e[ss_i1982]);
+        }
+        free(contextos.e);
+        contextos.e = NULL;
+        contextos.length = 0;
+        contextos.capacity = 0;
+        for (size_t ss_i1983 = 0; ss_i1983 < arboles.length; ss_i1983++)
+        {
+            ss_drop_Nodo(&arboles.e[ss_i1983]);
+        }
+        free(arboles.e);
+        arboles.e = NULL;
+        arboles.length = 0;
+        arboles.capacity = 0;
+        ss_drop_Contexto(&global);
+        for (size_t ss_i1984 = 0; ss_i1984 < modulos.length; ss_i1984++)
+        {
+            ss_free(&modulos.e[ss_i1984]);
+        }
+        free(modulos.e);
+        modulos.e = NULL;
+        modulos.length = 0;
+        modulos.capacity = 0;
+        ss_drop_ProgramaLeido(&leido);
+        ss_free(&raiz);
+        ss_free(&modo);
+        ss_free(&cc);
+        ss_free(&nivel);
+        ss_free(&salida);
+        ss_free(&fuente);
+        ss_drop_Opciones(&opciones);
+        return (ss_res_usize){ .motivo = ss_tmp37135.motivo };
+    }
+    SS_LANG_QUIZA_SIN_USAR SafeString todo = ss_tmp37135.valor;
+#line 4398 "ejemplos/compilador/tcodec.t"
+    SafeView ss_tmp37146;
+    SafeView ss_tmp37147;
+    if (((ss_tmp37146 = ss_view(&modo), ss_tmp37147 = sv_len("mostrar", 7), sv_equals(ss_tmp37146, ss_tmp37147))))
+    {
+#line 4399 "ejemplos/compilador/tcodec.t"
+        ss_lang_escribir_(stdout, ss_view(&todo));
+#line 4400 "ejemplos/compilador/tcodec.t"
+        size_t ss_tmp37148 = (size_t)0;
+        ss_free(&todo);
+        for (size_t ss_i1985 = 0; ss_i1985 < tipos_fn.length; ss_i1985++)
+        {
+            ss_free(&tipos_fn.e[ss_i1985]);
+        }
+        free(tipos_fn.e);
+        tipos_fn.e = NULL;
+        tipos_fn.length = 0;
+        tipos_fn.capacity = 0;
+        for (size_t ss_i1986 = 0; ss_i1986 < arit.length; ss_i1986++)
+        {
+            ss_free(&arit.e[ss_i1986]);
+        }
+        free(arit.e);
+        arit.e = NULL;
+        arit.length = 0;
+        arit.capacity = 0;
+        for (size_t ss_i1987 = 0; ss_i1987 < bloque_copias.length; ss_i1987++)
+        {
+            ss_free(&bloque_copias.e[ss_i1987]);
+        }
+        free(bloque_copias.e);
+        bloque_copias.e = NULL;
+        bloque_copias.length = 0;
+        bloque_copias.capacity = 0;
+        ss_drop_CopiadoresGenerados(&copias_c);
+        for (size_t ss_i1988 = 0; ss_i1988 < envoltorios.length; ss_i1988++)
+        {
+            ss_free(&envoltorios.e[ss_i1988]);
+        }
+        free(envoltorios.e);
+        envoltorios.e = NULL;
+        envoltorios.length = 0;
+        envoltorios.capacity = 0;
+        for (size_t ss_i1989 = 0; ss_i1989 < limpios.length; ss_i1989++)
+        {
+            ss_free(&limpios.e[ss_i1989]);
+        }
+        free(limpios.e);
+        limpios.e = NULL;
+        limpios.length = 0;
+        limpios.capacity = 0;
+        ss_drop_UsosGenerados(&usos);
+        ss_mapa_libre_mapa_str_usize(&conversiones);
+        ss_mapa_libre_mapa_str_usize(&decimales);
+        ss_mapa_libre_mapa_str_usize(&anchos);
+        for (size_t ss_i1990 = 0; ss_i1990 < cuerpos.length; ss_i1990++)
+        {
+            ss_free(&cuerpos.e[ss_i1990]);
+        }
+        free(cuerpos.e);
+        cuerpos.e = NULL;
+        cuerpos.length = 0;
+        cuerpos.capacity = 0;
+        for (size_t ss_i1991 = 0; ss_i1991 < protos.length; ss_i1991++)
+        {
+            ss_free(&protos.e[ss_i1991]);
+        }
+        free(protos.e);
+        protos.e = NULL;
+        protos.length = 0;
+        protos.capacity = 0;
+        ss_drop_FuncionesGeneradas(&funciones);
+        ss_drop_Cuenta(&cta);
+        for (size_t ss_i1992 = 0; ss_i1992 < partes.length; ss_i1992++)
+        {
+            ss_free(&partes.e[ss_i1992]);
+        }
+        free(partes.e);
+        partes.e = NULL;
+        partes.length = 0;
+        partes.capacity = 0;
+        ss_drop_SoporteGenerado(&soporte);
+        ss_drop_Registro(&reg);
+        for (size_t ss_i1993 = 0; ss_i1993 < duenos_inst.length; ss_i1993++)
+        {
+            ss_free(&duenos_inst.e[ss_i1993]);
+        }
+        free(duenos_inst.e);
+        duenos_inst.e = NULL;
+        duenos_inst.length = 0;
+        duenos_inst.capacity = 0;
+        free(modulo_de.e);
+        modulo_de.e = NULL;
+        modulo_de.length = 0;
+        modulo_de.capacity = 0;
+        for (size_t ss_i1994 = 0; ss_i1994 < instancias.length; ss_i1994++)
+        {
+            ss_drop_Nodo(&instancias.e[ss_i1994]);
+        }
+        free(instancias.e);
+        instancias.e = NULL;
+        instancias.length = 0;
+        instancias.capacity = 0;
+        for (size_t ss_i1995 = 0; ss_i1995 < orden_inst.length; ss_i1995++)
+        {
+            ss_free(&orden_inst.e[ss_i1995]);
+        }
+        free(orden_inst.e);
+        orden_inst.e = NULL;
+        orden_inst.length = 0;
+        orden_inst.capacity = 0;
+        ss_mapa_libre_mapa_str_usize(&vistas_inst);
+        ss_mapa_libre_mapa_str_usize(&con_partes);
+        ss_drop_InstanciasPreparadas(&preparadas);
+        ss_drop_Cierres(&cierres);
+        ss_drop_Revision(&revision);
+        ss_mapa_libre_mapa_str_usize(&plantillas);
+        for (size_t ss_i1996 = 0; ss_i1996 < en_lleva.length; ss_i1996++)
+        {
+            for (size_t ss_i1997 = 0; ss_i1997 < en_lleva.e[ss_i1996].length; ss_i1997++)
+            {
+                ss_free(&en_lleva.e[ss_i1996].e[ss_i1997]);
+            }
+            free(en_lleva.e[ss_i1996].e);
+            en_lleva.e[ss_i1996].e = NULL;
+            en_lleva.e[ss_i1996].length = 0;
+            en_lleva.e[ss_i1996].capacity = 0;
+        }
+        free(en_lleva.e);
+        en_lleva.e = NULL;
+        en_lleva.length = 0;
+        en_lleva.capacity = 0;
+        for (size_t ss_i1998 = 0; ss_i1998 < en_variantes.length; ss_i1998++)
+        {
+            for (size_t ss_i1999 = 0; ss_i1999 < en_variantes.e[ss_i1998].length; ss_i1999++)
+            {
+                ss_free(&en_variantes.e[ss_i1998].e[ss_i1999]);
+            }
+            free(en_variantes.e[ss_i1998].e);
+            en_variantes.e[ss_i1998].e = NULL;
+            en_variantes.e[ss_i1998].length = 0;
+            en_variantes.e[ss_i1998].capacity = 0;
+        }
+        free(en_variantes.e);
+        en_variantes.e = NULL;
+        en_variantes.length = 0;
+        en_variantes.capacity = 0;
+        ss_mapa_libre_mapa_str_usize(&en_indice);
+        for (size_t ss_i2000 = 0; ss_i2000 < en_nombres.length; ss_i2000++)
+        {
+            ss_free(&en_nombres.e[ss_i2000]);
+        }
+        free(en_nombres.e);
+        en_nombres.e = NULL;
+        en_nombres.length = 0;
+        en_nombres.capacity = 0;
+        for (size_t ss_i2001 = 0; ss_i2001 < ext_protos.length; ss_i2001++)
+        {
+            ss_free(&ext_protos.e[ss_i2001]);
+        }
+        free(ext_protos.e);
+        ext_protos.e = NULL;
+        ext_protos.length = 0;
+        ext_protos.capacity = 0;
+        for (size_t ss_i2002 = 0; ss_i2002 < ext_modulos.length; ss_i2002++)
+        {
+            ss_free(&ext_modulos.e[ss_i2002]);
+        }
+        free(ext_modulos.e);
+        ext_modulos.e = NULL;
+        ext_modulos.length = 0;
+        ext_modulos.capacity = 0;
+        for (size_t ss_i2003 = 0; ss_i2003 < ext_cabeceras.length; ss_i2003++)
+        {
+            ss_free(&ext_cabeceras.e[ss_i2003]);
+        }
+        free(ext_cabeceras.e);
+        ext_cabeceras.e = NULL;
+        ext_cabeceras.length = 0;
+        ext_cabeceras.capacity = 0;
+        for (size_t ss_i2004 = 0; ss_i2004 < stp_tipos.length; ss_i2004++)
+        {
+            for (size_t ss_i2005 = 0; ss_i2005 < stp_tipos.e[ss_i2004].length; ss_i2005++)
+            {
+                ss_free(&stp_tipos.e[ss_i2004].e[ss_i2005]);
+            }
+            free(stp_tipos.e[ss_i2004].e);
+            stp_tipos.e[ss_i2004].e = NULL;
+            stp_tipos.e[ss_i2004].length = 0;
+            stp_tipos.e[ss_i2004].capacity = 0;
+        }
+        free(stp_tipos.e);
+        stp_tipos.e = NULL;
+        stp_tipos.length = 0;
+        stp_tipos.capacity = 0;
+        for (size_t ss_i2006 = 0; ss_i2006 < stp_campos.length; ss_i2006++)
+        {
+            for (size_t ss_i2007 = 0; ss_i2007 < stp_campos.e[ss_i2006].length; ss_i2007++)
+            {
+                ss_free(&stp_campos.e[ss_i2006].e[ss_i2007]);
+            }
+            free(stp_campos.e[ss_i2006].e);
+            stp_campos.e[ss_i2006].e = NULL;
+            stp_campos.e[ss_i2006].length = 0;
+            stp_campos.e[ss_i2006].capacity = 0;
+        }
+        free(stp_campos.e);
+        stp_campos.e = NULL;
+        stp_campos.length = 0;
+        stp_campos.capacity = 0;
+        for (size_t ss_i2008 = 0; ss_i2008 < stp_params.length; ss_i2008++)
+        {
+            for (size_t ss_i2009 = 0; ss_i2009 < stp_params.e[ss_i2008].length; ss_i2009++)
+            {
+                ss_free(&stp_params.e[ss_i2008].e[ss_i2009]);
+            }
+            free(stp_params.e[ss_i2008].e);
+            stp_params.e[ss_i2008].e = NULL;
+            stp_params.e[ss_i2008].length = 0;
+            stp_params.e[ss_i2008].capacity = 0;
+        }
+        free(stp_params.e);
+        stp_params.e = NULL;
+        stp_params.length = 0;
+        stp_params.capacity = 0;
+        ss_mapa_libre_mapa_str_usize(&stp_indice);
+        ss_mapa_libre_mapa_str_usize(&st_indice);
+        for (size_t ss_i2010 = 0; ss_i2010 < st_tipos.length; ss_i2010++)
+        {
+            for (size_t ss_i2011 = 0; ss_i2011 < st_tipos.e[ss_i2010].length; ss_i2011++)
+            {
+                ss_free(&st_tipos.e[ss_i2010].e[ss_i2011]);
+            }
+            free(st_tipos.e[ss_i2010].e);
+            st_tipos.e[ss_i2010].e = NULL;
+            st_tipos.e[ss_i2010].length = 0;
+            st_tipos.e[ss_i2010].capacity = 0;
+        }
+        free(st_tipos.e);
+        st_tipos.e = NULL;
+        st_tipos.length = 0;
+        st_tipos.capacity = 0;
+        for (size_t ss_i2012 = 0; ss_i2012 < st_campos.length; ss_i2012++)
+        {
+            for (size_t ss_i2013 = 0; ss_i2013 < st_campos.e[ss_i2012].length; ss_i2013++)
+            {
+                ss_free(&st_campos.e[ss_i2012].e[ss_i2013]);
+            }
+            free(st_campos.e[ss_i2012].e);
+            st_campos.e[ss_i2012].e = NULL;
+            st_campos.e[ss_i2012].length = 0;
+            st_campos.e[ss_i2012].capacity = 0;
+        }
+        free(st_campos.e);
+        st_campos.e = NULL;
+        st_campos.length = 0;
+        st_campos.capacity = 0;
+        for (size_t ss_i2014 = 0; ss_i2014 < st_nombres.length; ss_i2014++)
+        {
+            ss_free(&st_nombres.e[ss_i2014]);
+        }
+        free(st_nombres.e);
+        st_nombres.e = NULL;
+        st_nombres.length = 0;
+        st_nombres.capacity = 0;
+        for (size_t ss_i2015 = 0; ss_i2015 < contextos.length; ss_i2015++)
+        {
+            ss_drop_Contexto(&contextos.e[ss_i2015]);
+        }
+        free(contextos.e);
+        contextos.e = NULL;
+        contextos.length = 0;
+        contextos.capacity = 0;
+        for (size_t ss_i2016 = 0; ss_i2016 < arboles.length; ss_i2016++)
+        {
+            ss_drop_Nodo(&arboles.e[ss_i2016]);
+        }
+        free(arboles.e);
+        arboles.e = NULL;
+        arboles.length = 0;
+        arboles.capacity = 0;
+        ss_drop_Contexto(&global);
+        for (size_t ss_i2017 = 0; ss_i2017 < modulos.length; ss_i2017++)
+        {
+            ss_free(&modulos.e[ss_i2017]);
+        }
+        free(modulos.e);
+        modulos.e = NULL;
+        modulos.length = 0;
+        modulos.capacity = 0;
+        ss_drop_ProgramaLeido(&leido);
+        ss_free(&raiz);
+        ss_free(&modo);
+        ss_free(&cc);
+        ss_free(&nivel);
+        ss_free(&salida);
+        ss_free(&fuente);
+        ss_drop_Opciones(&opciones);
+        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37148 };
+    }
 #line 4402 "ejemplos/compilador/tcodec.t"
-    const ss_mapa_str_usize* ss_tmp37144;
-    const ss_mapa_str_usize* ss_tmp37145;
-    const ss_mapa_str_usize* ss_tmp37146;
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str arit = ((ss_tmp37144 = &anchos, ss_tmp37145 = &decimales, ss_tmp37146 = &conversiones, aritmetica_usada(ss_tmp37144, ss_tmp37145, ss_tmp37146)));
-#line 4403 "ejemplos/compilador/tcodec.t"
-    const Contexto* ss_tmp37147;
-    const ss_lista_Nodo* ss_tmp37148;
-    const ss_lista_Nodo* ss_tmp37149;
-    const ss_lista_str* ss_tmp37150;
-    const ss_lista_str* ss_tmp37151;
-    SS_LANG_QUIZA_SIN_USAR ss_lista_str tipos_fn = ((ss_tmp37147 = &global, ss_tmp37148 = &arboles, ss_tmp37149 = &instancias, ss_tmp37150 = &protos, ss_tmp37151 = &limpios, tipos_funcion_usados(ss_tmp37147, ss_tmp37148, ss_tmp37149, ss_tmp37150, ss_tmp37151)));
-#line 4404 "ejemplos/compilador/tcodec.t"
+    SafeView ss_tmp37149;
+    SafeView ss_tmp37150;
+    SafeView ss_tmp37151;
+    SafeView ss_tmp37152;
     SafeView ss_tmp37153;
-    const ss_lista_str* ss_tmp37154;
-    const ss_lista_str* ss_tmp37155;
+    SafeView ss_tmp37154;
+    SafeView ss_tmp37155;
     const ss_lista_str* ss_tmp37156;
     const ss_lista_str* ss_tmp37157;
-    const ss_lista_str* ss_tmp37158;
-    const ss_lista_str* ss_tmp37159;
-    const ss_lista_str* ss_tmp37160;
-    const ss_lista_str* ss_tmp37161;
-    const ss_lista_str* ss_tmp37162;
-    ss_res_str ss_tmp37152 = ((ss_tmp37153 = ss_view(&raiz), ss_tmp37154 = &ext_cabeceras, ss_tmp37155 = &ext_protos, ss_tmp37156 = &partes, ss_tmp37157 = &envoltorios, ss_tmp37158 = &tipos_fn, ss_tmp37159 = &arit, ss_tmp37160 = &bloque_copias, ss_tmp37161 = &protos, ss_tmp37162 = &cuerpos, ensamblar_c(ss_tmp37153, ss_tmp37154, ss_tmp37155, ss_tmp37156, ss_tmp37157, ss_tmp37158, ss_tmp37159, ss_tmp37160, ss_tmp37161, ss_tmp37162)));
-    if (ss_tmp37152.motivo != NULL)
-    {
-        for (size_t ss_i1956 = 0; ss_i1956 < tipos_fn.length; ss_i1956++)
-        {
-            ss_free(&tipos_fn.e[ss_i1956]);
-        }
-        free(tipos_fn.e);
-        tipos_fn.e = NULL;
-        tipos_fn.length = 0;
-        tipos_fn.capacity = 0;
-        for (size_t ss_i1957 = 0; ss_i1957 < arit.length; ss_i1957++)
-        {
-            ss_free(&arit.e[ss_i1957]);
-        }
-        free(arit.e);
-        arit.e = NULL;
-        arit.length = 0;
-        arit.capacity = 0;
-        for (size_t ss_i1958 = 0; ss_i1958 < bloque_copias.length; ss_i1958++)
-        {
-            ss_free(&bloque_copias.e[ss_i1958]);
-        }
-        free(bloque_copias.e);
-        bloque_copias.e = NULL;
-        bloque_copias.length = 0;
-        bloque_copias.capacity = 0;
-        ss_drop_CopiadoresGenerados(&copias_c);
-        for (size_t ss_i1959 = 0; ss_i1959 < envoltorios.length; ss_i1959++)
-        {
-            ss_free(&envoltorios.e[ss_i1959]);
-        }
-        free(envoltorios.e);
-        envoltorios.e = NULL;
-        envoltorios.length = 0;
-        envoltorios.capacity = 0;
-        for (size_t ss_i1960 = 0; ss_i1960 < limpios.length; ss_i1960++)
-        {
-            ss_free(&limpios.e[ss_i1960]);
-        }
-        free(limpios.e);
-        limpios.e = NULL;
-        limpios.length = 0;
-        limpios.capacity = 0;
-        ss_drop_UsosGenerados(&usos);
-        ss_mapa_libre_mapa_str_usize(&conversiones);
-        ss_mapa_libre_mapa_str_usize(&decimales);
-        ss_mapa_libre_mapa_str_usize(&anchos);
-        for (size_t ss_i1961 = 0; ss_i1961 < cuerpos.length; ss_i1961++)
-        {
-            ss_free(&cuerpos.e[ss_i1961]);
-        }
-        free(cuerpos.e);
-        cuerpos.e = NULL;
-        cuerpos.length = 0;
-        cuerpos.capacity = 0;
-        for (size_t ss_i1962 = 0; ss_i1962 < protos.length; ss_i1962++)
-        {
-            ss_free(&protos.e[ss_i1962]);
-        }
-        free(protos.e);
-        protos.e = NULL;
-        protos.length = 0;
-        protos.capacity = 0;
-        ss_drop_FuncionesGeneradas(&funciones);
-        ss_drop_Cuenta(&cta);
-        for (size_t ss_i1963 = 0; ss_i1963 < partes.length; ss_i1963++)
-        {
-            ss_free(&partes.e[ss_i1963]);
-        }
-        free(partes.e);
-        partes.e = NULL;
-        partes.length = 0;
-        partes.capacity = 0;
-        ss_drop_SoporteGenerado(&soporte);
-        ss_drop_Registro(&reg);
-        for (size_t ss_i1964 = 0; ss_i1964 < duenos_inst.length; ss_i1964++)
-        {
-            ss_free(&duenos_inst.e[ss_i1964]);
-        }
-        free(duenos_inst.e);
-        duenos_inst.e = NULL;
-        duenos_inst.length = 0;
-        duenos_inst.capacity = 0;
-        free(modulo_de.e);
-        modulo_de.e = NULL;
-        modulo_de.length = 0;
-        modulo_de.capacity = 0;
-        for (size_t ss_i1965 = 0; ss_i1965 < instancias.length; ss_i1965++)
-        {
-            ss_drop_Nodo(&instancias.e[ss_i1965]);
-        }
-        free(instancias.e);
-        instancias.e = NULL;
-        instancias.length = 0;
-        instancias.capacity = 0;
-        for (size_t ss_i1966 = 0; ss_i1966 < orden_inst.length; ss_i1966++)
-        {
-            ss_free(&orden_inst.e[ss_i1966]);
-        }
-        free(orden_inst.e);
-        orden_inst.e = NULL;
-        orden_inst.length = 0;
-        orden_inst.capacity = 0;
-        ss_mapa_libre_mapa_str_usize(&vistas_inst);
-        ss_mapa_libre_mapa_str_usize(&con_partes);
-        ss_drop_InstanciasPreparadas(&preparadas);
-        ss_drop_Cierres(&cierres);
-        ss_drop_Revision(&revision);
-        ss_mapa_libre_mapa_str_usize(&plantillas);
-        for (size_t ss_i1967 = 0; ss_i1967 < en_lleva.length; ss_i1967++)
-        {
-            for (size_t ss_i1968 = 0; ss_i1968 < en_lleva.e[ss_i1967].length; ss_i1968++)
-            {
-                ss_free(&en_lleva.e[ss_i1967].e[ss_i1968]);
-            }
-            free(en_lleva.e[ss_i1967].e);
-            en_lleva.e[ss_i1967].e = NULL;
-            en_lleva.e[ss_i1967].length = 0;
-            en_lleva.e[ss_i1967].capacity = 0;
-        }
-        free(en_lleva.e);
-        en_lleva.e = NULL;
-        en_lleva.length = 0;
-        en_lleva.capacity = 0;
-        for (size_t ss_i1969 = 0; ss_i1969 < en_variantes.length; ss_i1969++)
-        {
-            for (size_t ss_i1970 = 0; ss_i1970 < en_variantes.e[ss_i1969].length; ss_i1970++)
-            {
-                ss_free(&en_variantes.e[ss_i1969].e[ss_i1970]);
-            }
-            free(en_variantes.e[ss_i1969].e);
-            en_variantes.e[ss_i1969].e = NULL;
-            en_variantes.e[ss_i1969].length = 0;
-            en_variantes.e[ss_i1969].capacity = 0;
-        }
-        free(en_variantes.e);
-        en_variantes.e = NULL;
-        en_variantes.length = 0;
-        en_variantes.capacity = 0;
-        ss_mapa_libre_mapa_str_usize(&en_indice);
-        for (size_t ss_i1971 = 0; ss_i1971 < en_nombres.length; ss_i1971++)
-        {
-            ss_free(&en_nombres.e[ss_i1971]);
-        }
-        free(en_nombres.e);
-        en_nombres.e = NULL;
-        en_nombres.length = 0;
-        en_nombres.capacity = 0;
-        for (size_t ss_i1972 = 0; ss_i1972 < ext_protos.length; ss_i1972++)
-        {
-            ss_free(&ext_protos.e[ss_i1972]);
-        }
-        free(ext_protos.e);
-        ext_protos.e = NULL;
-        ext_protos.length = 0;
-        ext_protos.capacity = 0;
-        for (size_t ss_i1973 = 0; ss_i1973 < ext_modulos.length; ss_i1973++)
-        {
-            ss_free(&ext_modulos.e[ss_i1973]);
-        }
-        free(ext_modulos.e);
-        ext_modulos.e = NULL;
-        ext_modulos.length = 0;
-        ext_modulos.capacity = 0;
-        for (size_t ss_i1974 = 0; ss_i1974 < ext_cabeceras.length; ss_i1974++)
-        {
-            ss_free(&ext_cabeceras.e[ss_i1974]);
-        }
-        free(ext_cabeceras.e);
-        ext_cabeceras.e = NULL;
-        ext_cabeceras.length = 0;
-        ext_cabeceras.capacity = 0;
-        for (size_t ss_i1975 = 0; ss_i1975 < stp_tipos.length; ss_i1975++)
-        {
-            for (size_t ss_i1976 = 0; ss_i1976 < stp_tipos.e[ss_i1975].length; ss_i1976++)
-            {
-                ss_free(&stp_tipos.e[ss_i1975].e[ss_i1976]);
-            }
-            free(stp_tipos.e[ss_i1975].e);
-            stp_tipos.e[ss_i1975].e = NULL;
-            stp_tipos.e[ss_i1975].length = 0;
-            stp_tipos.e[ss_i1975].capacity = 0;
-        }
-        free(stp_tipos.e);
-        stp_tipos.e = NULL;
-        stp_tipos.length = 0;
-        stp_tipos.capacity = 0;
-        for (size_t ss_i1977 = 0; ss_i1977 < stp_campos.length; ss_i1977++)
-        {
-            for (size_t ss_i1978 = 0; ss_i1978 < stp_campos.e[ss_i1977].length; ss_i1978++)
-            {
-                ss_free(&stp_campos.e[ss_i1977].e[ss_i1978]);
-            }
-            free(stp_campos.e[ss_i1977].e);
-            stp_campos.e[ss_i1977].e = NULL;
-            stp_campos.e[ss_i1977].length = 0;
-            stp_campos.e[ss_i1977].capacity = 0;
-        }
-        free(stp_campos.e);
-        stp_campos.e = NULL;
-        stp_campos.length = 0;
-        stp_campos.capacity = 0;
-        for (size_t ss_i1979 = 0; ss_i1979 < stp_params.length; ss_i1979++)
-        {
-            for (size_t ss_i1980 = 0; ss_i1980 < stp_params.e[ss_i1979].length; ss_i1980++)
-            {
-                ss_free(&stp_params.e[ss_i1979].e[ss_i1980]);
-            }
-            free(stp_params.e[ss_i1979].e);
-            stp_params.e[ss_i1979].e = NULL;
-            stp_params.e[ss_i1979].length = 0;
-            stp_params.e[ss_i1979].capacity = 0;
-        }
-        free(stp_params.e);
-        stp_params.e = NULL;
-        stp_params.length = 0;
-        stp_params.capacity = 0;
-        ss_mapa_libre_mapa_str_usize(&stp_indice);
-        ss_mapa_libre_mapa_str_usize(&st_indice);
-        for (size_t ss_i1981 = 0; ss_i1981 < st_tipos.length; ss_i1981++)
-        {
-            for (size_t ss_i1982 = 0; ss_i1982 < st_tipos.e[ss_i1981].length; ss_i1982++)
-            {
-                ss_free(&st_tipos.e[ss_i1981].e[ss_i1982]);
-            }
-            free(st_tipos.e[ss_i1981].e);
-            st_tipos.e[ss_i1981].e = NULL;
-            st_tipos.e[ss_i1981].length = 0;
-            st_tipos.e[ss_i1981].capacity = 0;
-        }
-        free(st_tipos.e);
-        st_tipos.e = NULL;
-        st_tipos.length = 0;
-        st_tipos.capacity = 0;
-        for (size_t ss_i1983 = 0; ss_i1983 < st_campos.length; ss_i1983++)
-        {
-            for (size_t ss_i1984 = 0; ss_i1984 < st_campos.e[ss_i1983].length; ss_i1984++)
-            {
-                ss_free(&st_campos.e[ss_i1983].e[ss_i1984]);
-            }
-            free(st_campos.e[ss_i1983].e);
-            st_campos.e[ss_i1983].e = NULL;
-            st_campos.e[ss_i1983].length = 0;
-            st_campos.e[ss_i1983].capacity = 0;
-        }
-        free(st_campos.e);
-        st_campos.e = NULL;
-        st_campos.length = 0;
-        st_campos.capacity = 0;
-        for (size_t ss_i1985 = 0; ss_i1985 < st_nombres.length; ss_i1985++)
-        {
-            ss_free(&st_nombres.e[ss_i1985]);
-        }
-        free(st_nombres.e);
-        st_nombres.e = NULL;
-        st_nombres.length = 0;
-        st_nombres.capacity = 0;
-        for (size_t ss_i1986 = 0; ss_i1986 < contextos.length; ss_i1986++)
-        {
-            ss_drop_Contexto(&contextos.e[ss_i1986]);
-        }
-        free(contextos.e);
-        contextos.e = NULL;
-        contextos.length = 0;
-        contextos.capacity = 0;
-        for (size_t ss_i1987 = 0; ss_i1987 < arboles.length; ss_i1987++)
-        {
-            ss_drop_Nodo(&arboles.e[ss_i1987]);
-        }
-        free(arboles.e);
-        arboles.e = NULL;
-        arboles.length = 0;
-        arboles.capacity = 0;
-        ss_drop_Contexto(&global);
-        for (size_t ss_i1988 = 0; ss_i1988 < modulos.length; ss_i1988++)
-        {
-            ss_free(&modulos.e[ss_i1988]);
-        }
-        free(modulos.e);
-        modulos.e = NULL;
-        modulos.length = 0;
-        modulos.capacity = 0;
-        ss_drop_ProgramaLeido(&leido);
-        ss_free(&raiz);
-        ss_free(&modo);
-        ss_free(&cc);
-        ss_free(&nivel);
-        ss_free(&salida);
-        ss_free(&fuente);
-        ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = ss_tmp37152.motivo };
-    }
-    SS_LANG_QUIZA_SIN_USAR SafeString todo = ss_tmp37152.valor;
-#line 4406 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp37163;
-    SafeView ss_tmp37164;
-    if (((ss_tmp37163 = ss_view(&modo), ss_tmp37164 = sv_len("mostrar", 7), sv_equals(ss_tmp37163, ss_tmp37164))))
-    {
-#line 4407 "ejemplos/compilador/tcodec.t"
-        ss_lang_escribir_(stdout, ss_view(&todo));
-#line 4408 "ejemplos/compilador/tcodec.t"
-        size_t ss_tmp37165 = (size_t)0;
-        ss_free(&todo);
-        for (size_t ss_i1989 = 0; ss_i1989 < tipos_fn.length; ss_i1989++)
-        {
-            ss_free(&tipos_fn.e[ss_i1989]);
-        }
-        free(tipos_fn.e);
-        tipos_fn.e = NULL;
-        tipos_fn.length = 0;
-        tipos_fn.capacity = 0;
-        for (size_t ss_i1990 = 0; ss_i1990 < arit.length; ss_i1990++)
-        {
-            ss_free(&arit.e[ss_i1990]);
-        }
-        free(arit.e);
-        arit.e = NULL;
-        arit.length = 0;
-        arit.capacity = 0;
-        for (size_t ss_i1991 = 0; ss_i1991 < bloque_copias.length; ss_i1991++)
-        {
-            ss_free(&bloque_copias.e[ss_i1991]);
-        }
-        free(bloque_copias.e);
-        bloque_copias.e = NULL;
-        bloque_copias.length = 0;
-        bloque_copias.capacity = 0;
-        ss_drop_CopiadoresGenerados(&copias_c);
-        for (size_t ss_i1992 = 0; ss_i1992 < envoltorios.length; ss_i1992++)
-        {
-            ss_free(&envoltorios.e[ss_i1992]);
-        }
-        free(envoltorios.e);
-        envoltorios.e = NULL;
-        envoltorios.length = 0;
-        envoltorios.capacity = 0;
-        for (size_t ss_i1993 = 0; ss_i1993 < limpios.length; ss_i1993++)
-        {
-            ss_free(&limpios.e[ss_i1993]);
-        }
-        free(limpios.e);
-        limpios.e = NULL;
-        limpios.length = 0;
-        limpios.capacity = 0;
-        ss_drop_UsosGenerados(&usos);
-        ss_mapa_libre_mapa_str_usize(&conversiones);
-        ss_mapa_libre_mapa_str_usize(&decimales);
-        ss_mapa_libre_mapa_str_usize(&anchos);
-        for (size_t ss_i1994 = 0; ss_i1994 < cuerpos.length; ss_i1994++)
-        {
-            ss_free(&cuerpos.e[ss_i1994]);
-        }
-        free(cuerpos.e);
-        cuerpos.e = NULL;
-        cuerpos.length = 0;
-        cuerpos.capacity = 0;
-        for (size_t ss_i1995 = 0; ss_i1995 < protos.length; ss_i1995++)
-        {
-            ss_free(&protos.e[ss_i1995]);
-        }
-        free(protos.e);
-        protos.e = NULL;
-        protos.length = 0;
-        protos.capacity = 0;
-        ss_drop_FuncionesGeneradas(&funciones);
-        ss_drop_Cuenta(&cta);
-        for (size_t ss_i1996 = 0; ss_i1996 < partes.length; ss_i1996++)
-        {
-            ss_free(&partes.e[ss_i1996]);
-        }
-        free(partes.e);
-        partes.e = NULL;
-        partes.length = 0;
-        partes.capacity = 0;
-        ss_drop_SoporteGenerado(&soporte);
-        ss_drop_Registro(&reg);
-        for (size_t ss_i1997 = 0; ss_i1997 < duenos_inst.length; ss_i1997++)
-        {
-            ss_free(&duenos_inst.e[ss_i1997]);
-        }
-        free(duenos_inst.e);
-        duenos_inst.e = NULL;
-        duenos_inst.length = 0;
-        duenos_inst.capacity = 0;
-        free(modulo_de.e);
-        modulo_de.e = NULL;
-        modulo_de.length = 0;
-        modulo_de.capacity = 0;
-        for (size_t ss_i1998 = 0; ss_i1998 < instancias.length; ss_i1998++)
-        {
-            ss_drop_Nodo(&instancias.e[ss_i1998]);
-        }
-        free(instancias.e);
-        instancias.e = NULL;
-        instancias.length = 0;
-        instancias.capacity = 0;
-        for (size_t ss_i1999 = 0; ss_i1999 < orden_inst.length; ss_i1999++)
-        {
-            ss_free(&orden_inst.e[ss_i1999]);
-        }
-        free(orden_inst.e);
-        orden_inst.e = NULL;
-        orden_inst.length = 0;
-        orden_inst.capacity = 0;
-        ss_mapa_libre_mapa_str_usize(&vistas_inst);
-        ss_mapa_libre_mapa_str_usize(&con_partes);
-        ss_drop_InstanciasPreparadas(&preparadas);
-        ss_drop_Cierres(&cierres);
-        ss_drop_Revision(&revision);
-        ss_mapa_libre_mapa_str_usize(&plantillas);
-        for (size_t ss_i2000 = 0; ss_i2000 < en_lleva.length; ss_i2000++)
-        {
-            for (size_t ss_i2001 = 0; ss_i2001 < en_lleva.e[ss_i2000].length; ss_i2001++)
-            {
-                ss_free(&en_lleva.e[ss_i2000].e[ss_i2001]);
-            }
-            free(en_lleva.e[ss_i2000].e);
-            en_lleva.e[ss_i2000].e = NULL;
-            en_lleva.e[ss_i2000].length = 0;
-            en_lleva.e[ss_i2000].capacity = 0;
-        }
-        free(en_lleva.e);
-        en_lleva.e = NULL;
-        en_lleva.length = 0;
-        en_lleva.capacity = 0;
-        for (size_t ss_i2002 = 0; ss_i2002 < en_variantes.length; ss_i2002++)
-        {
-            for (size_t ss_i2003 = 0; ss_i2003 < en_variantes.e[ss_i2002].length; ss_i2003++)
-            {
-                ss_free(&en_variantes.e[ss_i2002].e[ss_i2003]);
-            }
-            free(en_variantes.e[ss_i2002].e);
-            en_variantes.e[ss_i2002].e = NULL;
-            en_variantes.e[ss_i2002].length = 0;
-            en_variantes.e[ss_i2002].capacity = 0;
-        }
-        free(en_variantes.e);
-        en_variantes.e = NULL;
-        en_variantes.length = 0;
-        en_variantes.capacity = 0;
-        ss_mapa_libre_mapa_str_usize(&en_indice);
-        for (size_t ss_i2004 = 0; ss_i2004 < en_nombres.length; ss_i2004++)
-        {
-            ss_free(&en_nombres.e[ss_i2004]);
-        }
-        free(en_nombres.e);
-        en_nombres.e = NULL;
-        en_nombres.length = 0;
-        en_nombres.capacity = 0;
-        for (size_t ss_i2005 = 0; ss_i2005 < ext_protos.length; ss_i2005++)
-        {
-            ss_free(&ext_protos.e[ss_i2005]);
-        }
-        free(ext_protos.e);
-        ext_protos.e = NULL;
-        ext_protos.length = 0;
-        ext_protos.capacity = 0;
-        for (size_t ss_i2006 = 0; ss_i2006 < ext_modulos.length; ss_i2006++)
-        {
-            ss_free(&ext_modulos.e[ss_i2006]);
-        }
-        free(ext_modulos.e);
-        ext_modulos.e = NULL;
-        ext_modulos.length = 0;
-        ext_modulos.capacity = 0;
-        for (size_t ss_i2007 = 0; ss_i2007 < ext_cabeceras.length; ss_i2007++)
-        {
-            ss_free(&ext_cabeceras.e[ss_i2007]);
-        }
-        free(ext_cabeceras.e);
-        ext_cabeceras.e = NULL;
-        ext_cabeceras.length = 0;
-        ext_cabeceras.capacity = 0;
-        for (size_t ss_i2008 = 0; ss_i2008 < stp_tipos.length; ss_i2008++)
-        {
-            for (size_t ss_i2009 = 0; ss_i2009 < stp_tipos.e[ss_i2008].length; ss_i2009++)
-            {
-                ss_free(&stp_tipos.e[ss_i2008].e[ss_i2009]);
-            }
-            free(stp_tipos.e[ss_i2008].e);
-            stp_tipos.e[ss_i2008].e = NULL;
-            stp_tipos.e[ss_i2008].length = 0;
-            stp_tipos.e[ss_i2008].capacity = 0;
-        }
-        free(stp_tipos.e);
-        stp_tipos.e = NULL;
-        stp_tipos.length = 0;
-        stp_tipos.capacity = 0;
-        for (size_t ss_i2010 = 0; ss_i2010 < stp_campos.length; ss_i2010++)
-        {
-            for (size_t ss_i2011 = 0; ss_i2011 < stp_campos.e[ss_i2010].length; ss_i2011++)
-            {
-                ss_free(&stp_campos.e[ss_i2010].e[ss_i2011]);
-            }
-            free(stp_campos.e[ss_i2010].e);
-            stp_campos.e[ss_i2010].e = NULL;
-            stp_campos.e[ss_i2010].length = 0;
-            stp_campos.e[ss_i2010].capacity = 0;
-        }
-        free(stp_campos.e);
-        stp_campos.e = NULL;
-        stp_campos.length = 0;
-        stp_campos.capacity = 0;
-        for (size_t ss_i2012 = 0; ss_i2012 < stp_params.length; ss_i2012++)
-        {
-            for (size_t ss_i2013 = 0; ss_i2013 < stp_params.e[ss_i2012].length; ss_i2013++)
-            {
-                ss_free(&stp_params.e[ss_i2012].e[ss_i2013]);
-            }
-            free(stp_params.e[ss_i2012].e);
-            stp_params.e[ss_i2012].e = NULL;
-            stp_params.e[ss_i2012].length = 0;
-            stp_params.e[ss_i2012].capacity = 0;
-        }
-        free(stp_params.e);
-        stp_params.e = NULL;
-        stp_params.length = 0;
-        stp_params.capacity = 0;
-        ss_mapa_libre_mapa_str_usize(&stp_indice);
-        ss_mapa_libre_mapa_str_usize(&st_indice);
-        for (size_t ss_i2014 = 0; ss_i2014 < st_tipos.length; ss_i2014++)
-        {
-            for (size_t ss_i2015 = 0; ss_i2015 < st_tipos.e[ss_i2014].length; ss_i2015++)
-            {
-                ss_free(&st_tipos.e[ss_i2014].e[ss_i2015]);
-            }
-            free(st_tipos.e[ss_i2014].e);
-            st_tipos.e[ss_i2014].e = NULL;
-            st_tipos.e[ss_i2014].length = 0;
-            st_tipos.e[ss_i2014].capacity = 0;
-        }
-        free(st_tipos.e);
-        st_tipos.e = NULL;
-        st_tipos.length = 0;
-        st_tipos.capacity = 0;
-        for (size_t ss_i2016 = 0; ss_i2016 < st_campos.length; ss_i2016++)
-        {
-            for (size_t ss_i2017 = 0; ss_i2017 < st_campos.e[ss_i2016].length; ss_i2017++)
-            {
-                ss_free(&st_campos.e[ss_i2016].e[ss_i2017]);
-            }
-            free(st_campos.e[ss_i2016].e);
-            st_campos.e[ss_i2016].e = NULL;
-            st_campos.e[ss_i2016].length = 0;
-            st_campos.e[ss_i2016].capacity = 0;
-        }
-        free(st_campos.e);
-        st_campos.e = NULL;
-        st_campos.length = 0;
-        st_campos.capacity = 0;
-        for (size_t ss_i2018 = 0; ss_i2018 < st_nombres.length; ss_i2018++)
-        {
-            ss_free(&st_nombres.e[ss_i2018]);
-        }
-        free(st_nombres.e);
-        st_nombres.e = NULL;
-        st_nombres.length = 0;
-        st_nombres.capacity = 0;
-        for (size_t ss_i2019 = 0; ss_i2019 < contextos.length; ss_i2019++)
-        {
-            ss_drop_Contexto(&contextos.e[ss_i2019]);
-        }
-        free(contextos.e);
-        contextos.e = NULL;
-        contextos.length = 0;
-        contextos.capacity = 0;
-        for (size_t ss_i2020 = 0; ss_i2020 < arboles.length; ss_i2020++)
-        {
-            ss_drop_Nodo(&arboles.e[ss_i2020]);
-        }
-        free(arboles.e);
-        arboles.e = NULL;
-        arboles.length = 0;
-        arboles.capacity = 0;
-        ss_drop_Contexto(&global);
-        for (size_t ss_i2021 = 0; ss_i2021 < modulos.length; ss_i2021++)
-        {
-            ss_free(&modulos.e[ss_i2021]);
-        }
-        free(modulos.e);
-        modulos.e = NULL;
-        modulos.length = 0;
-        modulos.capacity = 0;
-        ss_drop_ProgramaLeido(&leido);
-        ss_free(&raiz);
-        ss_free(&modo);
-        ss_free(&cc);
-        ss_free(&nivel);
-        ss_free(&salida);
-        ss_free(&fuente);
-        ss_drop_Opciones(&opciones);
-        return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37165 };
-    }
-#line 4410 "ejemplos/compilador/tcodec.t"
-    SafeView ss_tmp37166;
-    SafeView ss_tmp37167;
-    SafeView ss_tmp37168;
-    SafeView ss_tmp37169;
-    SafeView ss_tmp37170;
-    SafeView ss_tmp37171;
-    SafeView ss_tmp37172;
-    const ss_lista_str* ss_tmp37173;
-    const ss_lista_str* ss_tmp37174;
-    size_t ss_tmp37175 = ((ss_tmp37166 = ss_view(&todo), ss_tmp37167 = ss_view(&fuente), ss_tmp37168 = ss_view(&salida), ss_tmp37169 = ss_view(&modo), ss_tmp37170 = ss_view(&nivel), ss_tmp37171 = ss_view(&cc), ss_tmp37172 = ss_view(&raiz), ss_tmp37173 = &ext_cabeceras, ss_tmp37174 = &ext_modulos, construir(ss_tmp37166, ss_tmp37167, ss_tmp37168, ss_tmp37169, ss_tmp37170, ss_tmp37171, ss_tmp37172, ss_tmp37173, ss_tmp37174)));
+    size_t ss_tmp37158 = ((ss_tmp37149 = ss_view(&todo), ss_tmp37150 = ss_view(&fuente), ss_tmp37151 = ss_view(&salida), ss_tmp37152 = ss_view(&modo), ss_tmp37153 = ss_view(&nivel), ss_tmp37154 = ss_view(&cc), ss_tmp37155 = ss_view(&raiz), ss_tmp37156 = &ext_cabeceras, ss_tmp37157 = &ext_modulos, construir(ss_tmp37149, ss_tmp37150, ss_tmp37151, ss_tmp37152, ss_tmp37153, ss_tmp37154, ss_tmp37155, ss_tmp37156, ss_tmp37157)));
     ss_free(&todo);
-    for (size_t ss_i2022 = 0; ss_i2022 < tipos_fn.length; ss_i2022++)
+    for (size_t ss_i2018 = 0; ss_i2018 < tipos_fn.length; ss_i2018++)
     {
-        ss_free(&tipos_fn.e[ss_i2022]);
+        ss_free(&tipos_fn.e[ss_i2018]);
     }
     free(tipos_fn.e);
     tipos_fn.e = NULL;
     tipos_fn.length = 0;
     tipos_fn.capacity = 0;
-    for (size_t ss_i2023 = 0; ss_i2023 < arit.length; ss_i2023++)
+    for (size_t ss_i2019 = 0; ss_i2019 < arit.length; ss_i2019++)
     {
-        ss_free(&arit.e[ss_i2023]);
+        ss_free(&arit.e[ss_i2019]);
     }
     free(arit.e);
     arit.e = NULL;
     arit.length = 0;
     arit.capacity = 0;
-    for (size_t ss_i2024 = 0; ss_i2024 < bloque_copias.length; ss_i2024++)
+    for (size_t ss_i2020 = 0; ss_i2020 < bloque_copias.length; ss_i2020++)
     {
-        ss_free(&bloque_copias.e[ss_i2024]);
+        ss_free(&bloque_copias.e[ss_i2020]);
     }
     free(bloque_copias.e);
     bloque_copias.e = NULL;
     bloque_copias.length = 0;
     bloque_copias.capacity = 0;
     ss_drop_CopiadoresGenerados(&copias_c);
-    for (size_t ss_i2025 = 0; ss_i2025 < envoltorios.length; ss_i2025++)
+    for (size_t ss_i2021 = 0; ss_i2021 < envoltorios.length; ss_i2021++)
     {
-        ss_free(&envoltorios.e[ss_i2025]);
+        ss_free(&envoltorios.e[ss_i2021]);
     }
     free(envoltorios.e);
     envoltorios.e = NULL;
     envoltorios.length = 0;
     envoltorios.capacity = 0;
-    for (size_t ss_i2026 = 0; ss_i2026 < limpios.length; ss_i2026++)
+    for (size_t ss_i2022 = 0; ss_i2022 < limpios.length; ss_i2022++)
     {
-        ss_free(&limpios.e[ss_i2026]);
+        ss_free(&limpios.e[ss_i2022]);
     }
     free(limpios.e);
     limpios.e = NULL;
@@ -131851,17 +131786,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
     ss_mapa_libre_mapa_str_usize(&conversiones);
     ss_mapa_libre_mapa_str_usize(&decimales);
     ss_mapa_libre_mapa_str_usize(&anchos);
-    for (size_t ss_i2027 = 0; ss_i2027 < cuerpos.length; ss_i2027++)
+    for (size_t ss_i2023 = 0; ss_i2023 < cuerpos.length; ss_i2023++)
     {
-        ss_free(&cuerpos.e[ss_i2027]);
+        ss_free(&cuerpos.e[ss_i2023]);
     }
     free(cuerpos.e);
     cuerpos.e = NULL;
     cuerpos.length = 0;
     cuerpos.capacity = 0;
-    for (size_t ss_i2028 = 0; ss_i2028 < protos.length; ss_i2028++)
+    for (size_t ss_i2024 = 0; ss_i2024 < protos.length; ss_i2024++)
     {
-        ss_free(&protos.e[ss_i2028]);
+        ss_free(&protos.e[ss_i2024]);
     }
     free(protos.e);
     protos.e = NULL;
@@ -131869,9 +131804,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
     protos.capacity = 0;
     ss_drop_FuncionesGeneradas(&funciones);
     ss_drop_Cuenta(&cta);
-    for (size_t ss_i2029 = 0; ss_i2029 < partes.length; ss_i2029++)
+    for (size_t ss_i2025 = 0; ss_i2025 < partes.length; ss_i2025++)
     {
-        ss_free(&partes.e[ss_i2029]);
+        ss_free(&partes.e[ss_i2025]);
     }
     free(partes.e);
     partes.e = NULL;
@@ -131879,9 +131814,9 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
     partes.capacity = 0;
     ss_drop_SoporteGenerado(&soporte);
     ss_drop_Registro(&reg);
-    for (size_t ss_i2030 = 0; ss_i2030 < duenos_inst.length; ss_i2030++)
+    for (size_t ss_i2026 = 0; ss_i2026 < duenos_inst.length; ss_i2026++)
     {
-        ss_free(&duenos_inst.e[ss_i2030]);
+        ss_free(&duenos_inst.e[ss_i2026]);
     }
     free(duenos_inst.e);
     duenos_inst.e = NULL;
@@ -131891,17 +131826,17 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
     modulo_de.e = NULL;
     modulo_de.length = 0;
     modulo_de.capacity = 0;
-    for (size_t ss_i2031 = 0; ss_i2031 < instancias.length; ss_i2031++)
+    for (size_t ss_i2027 = 0; ss_i2027 < instancias.length; ss_i2027++)
     {
-        ss_drop_Nodo(&instancias.e[ss_i2031]);
+        ss_drop_Nodo(&instancias.e[ss_i2027]);
     }
     free(instancias.e);
     instancias.e = NULL;
     instancias.length = 0;
     instancias.capacity = 0;
-    for (size_t ss_i2032 = 0; ss_i2032 < orden_inst.length; ss_i2032++)
+    for (size_t ss_i2028 = 0; ss_i2028 < orden_inst.length; ss_i2028++)
     {
-        ss_free(&orden_inst.e[ss_i2032]);
+        ss_free(&orden_inst.e[ss_i2028]);
     }
     free(orden_inst.e);
     orden_inst.e = NULL;
@@ -131913,109 +131848,109 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
     ss_drop_Cierres(&cierres);
     ss_drop_Revision(&revision);
     ss_mapa_libre_mapa_str_usize(&plantillas);
-    for (size_t ss_i2033 = 0; ss_i2033 < en_lleva.length; ss_i2033++)
+    for (size_t ss_i2029 = 0; ss_i2029 < en_lleva.length; ss_i2029++)
     {
-        for (size_t ss_i2034 = 0; ss_i2034 < en_lleva.e[ss_i2033].length; ss_i2034++)
+        for (size_t ss_i2030 = 0; ss_i2030 < en_lleva.e[ss_i2029].length; ss_i2030++)
         {
-            ss_free(&en_lleva.e[ss_i2033].e[ss_i2034]);
+            ss_free(&en_lleva.e[ss_i2029].e[ss_i2030]);
         }
-        free(en_lleva.e[ss_i2033].e);
-        en_lleva.e[ss_i2033].e = NULL;
-        en_lleva.e[ss_i2033].length = 0;
-        en_lleva.e[ss_i2033].capacity = 0;
+        free(en_lleva.e[ss_i2029].e);
+        en_lleva.e[ss_i2029].e = NULL;
+        en_lleva.e[ss_i2029].length = 0;
+        en_lleva.e[ss_i2029].capacity = 0;
     }
     free(en_lleva.e);
     en_lleva.e = NULL;
     en_lleva.length = 0;
     en_lleva.capacity = 0;
-    for (size_t ss_i2035 = 0; ss_i2035 < en_variantes.length; ss_i2035++)
+    for (size_t ss_i2031 = 0; ss_i2031 < en_variantes.length; ss_i2031++)
     {
-        for (size_t ss_i2036 = 0; ss_i2036 < en_variantes.e[ss_i2035].length; ss_i2036++)
+        for (size_t ss_i2032 = 0; ss_i2032 < en_variantes.e[ss_i2031].length; ss_i2032++)
         {
-            ss_free(&en_variantes.e[ss_i2035].e[ss_i2036]);
+            ss_free(&en_variantes.e[ss_i2031].e[ss_i2032]);
         }
-        free(en_variantes.e[ss_i2035].e);
-        en_variantes.e[ss_i2035].e = NULL;
-        en_variantes.e[ss_i2035].length = 0;
-        en_variantes.e[ss_i2035].capacity = 0;
+        free(en_variantes.e[ss_i2031].e);
+        en_variantes.e[ss_i2031].e = NULL;
+        en_variantes.e[ss_i2031].length = 0;
+        en_variantes.e[ss_i2031].capacity = 0;
     }
     free(en_variantes.e);
     en_variantes.e = NULL;
     en_variantes.length = 0;
     en_variantes.capacity = 0;
     ss_mapa_libre_mapa_str_usize(&en_indice);
-    for (size_t ss_i2037 = 0; ss_i2037 < en_nombres.length; ss_i2037++)
+    for (size_t ss_i2033 = 0; ss_i2033 < en_nombres.length; ss_i2033++)
     {
-        ss_free(&en_nombres.e[ss_i2037]);
+        ss_free(&en_nombres.e[ss_i2033]);
     }
     free(en_nombres.e);
     en_nombres.e = NULL;
     en_nombres.length = 0;
     en_nombres.capacity = 0;
-    for (size_t ss_i2038 = 0; ss_i2038 < ext_protos.length; ss_i2038++)
+    for (size_t ss_i2034 = 0; ss_i2034 < ext_protos.length; ss_i2034++)
     {
-        ss_free(&ext_protos.e[ss_i2038]);
+        ss_free(&ext_protos.e[ss_i2034]);
     }
     free(ext_protos.e);
     ext_protos.e = NULL;
     ext_protos.length = 0;
     ext_protos.capacity = 0;
-    for (size_t ss_i2039 = 0; ss_i2039 < ext_modulos.length; ss_i2039++)
+    for (size_t ss_i2035 = 0; ss_i2035 < ext_modulos.length; ss_i2035++)
     {
-        ss_free(&ext_modulos.e[ss_i2039]);
+        ss_free(&ext_modulos.e[ss_i2035]);
     }
     free(ext_modulos.e);
     ext_modulos.e = NULL;
     ext_modulos.length = 0;
     ext_modulos.capacity = 0;
-    for (size_t ss_i2040 = 0; ss_i2040 < ext_cabeceras.length; ss_i2040++)
+    for (size_t ss_i2036 = 0; ss_i2036 < ext_cabeceras.length; ss_i2036++)
     {
-        ss_free(&ext_cabeceras.e[ss_i2040]);
+        ss_free(&ext_cabeceras.e[ss_i2036]);
     }
     free(ext_cabeceras.e);
     ext_cabeceras.e = NULL;
     ext_cabeceras.length = 0;
     ext_cabeceras.capacity = 0;
-    for (size_t ss_i2041 = 0; ss_i2041 < stp_tipos.length; ss_i2041++)
+    for (size_t ss_i2037 = 0; ss_i2037 < stp_tipos.length; ss_i2037++)
     {
-        for (size_t ss_i2042 = 0; ss_i2042 < stp_tipos.e[ss_i2041].length; ss_i2042++)
+        for (size_t ss_i2038 = 0; ss_i2038 < stp_tipos.e[ss_i2037].length; ss_i2038++)
         {
-            ss_free(&stp_tipos.e[ss_i2041].e[ss_i2042]);
+            ss_free(&stp_tipos.e[ss_i2037].e[ss_i2038]);
         }
-        free(stp_tipos.e[ss_i2041].e);
-        stp_tipos.e[ss_i2041].e = NULL;
-        stp_tipos.e[ss_i2041].length = 0;
-        stp_tipos.e[ss_i2041].capacity = 0;
+        free(stp_tipos.e[ss_i2037].e);
+        stp_tipos.e[ss_i2037].e = NULL;
+        stp_tipos.e[ss_i2037].length = 0;
+        stp_tipos.e[ss_i2037].capacity = 0;
     }
     free(stp_tipos.e);
     stp_tipos.e = NULL;
     stp_tipos.length = 0;
     stp_tipos.capacity = 0;
-    for (size_t ss_i2043 = 0; ss_i2043 < stp_campos.length; ss_i2043++)
+    for (size_t ss_i2039 = 0; ss_i2039 < stp_campos.length; ss_i2039++)
     {
-        for (size_t ss_i2044 = 0; ss_i2044 < stp_campos.e[ss_i2043].length; ss_i2044++)
+        for (size_t ss_i2040 = 0; ss_i2040 < stp_campos.e[ss_i2039].length; ss_i2040++)
         {
-            ss_free(&stp_campos.e[ss_i2043].e[ss_i2044]);
+            ss_free(&stp_campos.e[ss_i2039].e[ss_i2040]);
         }
-        free(stp_campos.e[ss_i2043].e);
-        stp_campos.e[ss_i2043].e = NULL;
-        stp_campos.e[ss_i2043].length = 0;
-        stp_campos.e[ss_i2043].capacity = 0;
+        free(stp_campos.e[ss_i2039].e);
+        stp_campos.e[ss_i2039].e = NULL;
+        stp_campos.e[ss_i2039].length = 0;
+        stp_campos.e[ss_i2039].capacity = 0;
     }
     free(stp_campos.e);
     stp_campos.e = NULL;
     stp_campos.length = 0;
     stp_campos.capacity = 0;
-    for (size_t ss_i2045 = 0; ss_i2045 < stp_params.length; ss_i2045++)
+    for (size_t ss_i2041 = 0; ss_i2041 < stp_params.length; ss_i2041++)
     {
-        for (size_t ss_i2046 = 0; ss_i2046 < stp_params.e[ss_i2045].length; ss_i2046++)
+        for (size_t ss_i2042 = 0; ss_i2042 < stp_params.e[ss_i2041].length; ss_i2042++)
         {
-            ss_free(&stp_params.e[ss_i2045].e[ss_i2046]);
+            ss_free(&stp_params.e[ss_i2041].e[ss_i2042]);
         }
-        free(stp_params.e[ss_i2045].e);
-        stp_params.e[ss_i2045].e = NULL;
-        stp_params.e[ss_i2045].length = 0;
-        stp_params.e[ss_i2045].capacity = 0;
+        free(stp_params.e[ss_i2041].e);
+        stp_params.e[ss_i2041].e = NULL;
+        stp_params.e[ss_i2041].length = 0;
+        stp_params.e[ss_i2041].capacity = 0;
     }
     free(stp_params.e);
     stp_params.e = NULL;
@@ -132023,64 +131958,64 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
     stp_params.capacity = 0;
     ss_mapa_libre_mapa_str_usize(&stp_indice);
     ss_mapa_libre_mapa_str_usize(&st_indice);
-    for (size_t ss_i2047 = 0; ss_i2047 < st_tipos.length; ss_i2047++)
+    for (size_t ss_i2043 = 0; ss_i2043 < st_tipos.length; ss_i2043++)
     {
-        for (size_t ss_i2048 = 0; ss_i2048 < st_tipos.e[ss_i2047].length; ss_i2048++)
+        for (size_t ss_i2044 = 0; ss_i2044 < st_tipos.e[ss_i2043].length; ss_i2044++)
         {
-            ss_free(&st_tipos.e[ss_i2047].e[ss_i2048]);
+            ss_free(&st_tipos.e[ss_i2043].e[ss_i2044]);
         }
-        free(st_tipos.e[ss_i2047].e);
-        st_tipos.e[ss_i2047].e = NULL;
-        st_tipos.e[ss_i2047].length = 0;
-        st_tipos.e[ss_i2047].capacity = 0;
+        free(st_tipos.e[ss_i2043].e);
+        st_tipos.e[ss_i2043].e = NULL;
+        st_tipos.e[ss_i2043].length = 0;
+        st_tipos.e[ss_i2043].capacity = 0;
     }
     free(st_tipos.e);
     st_tipos.e = NULL;
     st_tipos.length = 0;
     st_tipos.capacity = 0;
-    for (size_t ss_i2049 = 0; ss_i2049 < st_campos.length; ss_i2049++)
+    for (size_t ss_i2045 = 0; ss_i2045 < st_campos.length; ss_i2045++)
     {
-        for (size_t ss_i2050 = 0; ss_i2050 < st_campos.e[ss_i2049].length; ss_i2050++)
+        for (size_t ss_i2046 = 0; ss_i2046 < st_campos.e[ss_i2045].length; ss_i2046++)
         {
-            ss_free(&st_campos.e[ss_i2049].e[ss_i2050]);
+            ss_free(&st_campos.e[ss_i2045].e[ss_i2046]);
         }
-        free(st_campos.e[ss_i2049].e);
-        st_campos.e[ss_i2049].e = NULL;
-        st_campos.e[ss_i2049].length = 0;
-        st_campos.e[ss_i2049].capacity = 0;
+        free(st_campos.e[ss_i2045].e);
+        st_campos.e[ss_i2045].e = NULL;
+        st_campos.e[ss_i2045].length = 0;
+        st_campos.e[ss_i2045].capacity = 0;
     }
     free(st_campos.e);
     st_campos.e = NULL;
     st_campos.length = 0;
     st_campos.capacity = 0;
-    for (size_t ss_i2051 = 0; ss_i2051 < st_nombres.length; ss_i2051++)
+    for (size_t ss_i2047 = 0; ss_i2047 < st_nombres.length; ss_i2047++)
     {
-        ss_free(&st_nombres.e[ss_i2051]);
+        ss_free(&st_nombres.e[ss_i2047]);
     }
     free(st_nombres.e);
     st_nombres.e = NULL;
     st_nombres.length = 0;
     st_nombres.capacity = 0;
-    for (size_t ss_i2052 = 0; ss_i2052 < contextos.length; ss_i2052++)
+    for (size_t ss_i2048 = 0; ss_i2048 < contextos.length; ss_i2048++)
     {
-        ss_drop_Contexto(&contextos.e[ss_i2052]);
+        ss_drop_Contexto(&contextos.e[ss_i2048]);
     }
     free(contextos.e);
     contextos.e = NULL;
     contextos.length = 0;
     contextos.capacity = 0;
-    for (size_t ss_i2053 = 0; ss_i2053 < arboles.length; ss_i2053++)
+    for (size_t ss_i2049 = 0; ss_i2049 < arboles.length; ss_i2049++)
     {
-        ss_drop_Nodo(&arboles.e[ss_i2053]);
+        ss_drop_Nodo(&arboles.e[ss_i2049]);
     }
     free(arboles.e);
     arboles.e = NULL;
     arboles.length = 0;
     arboles.capacity = 0;
     ss_drop_Contexto(&global);
-    for (size_t ss_i2054 = 0; ss_i2054 < modulos.length; ss_i2054++)
+    for (size_t ss_i2050 = 0; ss_i2050 < modulos.length; ss_i2050++)
     {
-        ss_free(&modulos.e[ss_i2054]);
+        ss_free(&modulos.e[ss_i2050]);
     }
     free(modulos.e);
     modulos.e = NULL;
@@ -132094,7 +132029,7 @@ SS_LANG_QUIZA_SIN_USAR static ss_res_usize ss_main_(void)
     ss_free(&salida);
     ss_free(&fuente);
     ss_drop_Opciones(&opciones);
-    return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37175 };
+    return (ss_res_usize){ .motivo = NULL, .valor = ss_tmp37158 };
 }
 
 int main(int argc, char** argv)
@@ -132114,11 +132049,11 @@ int main(int argc, char** argv)
 SS_LANG_QUIZA_SIN_USAR static bool esta_vacia__usize(SS_LANG_QUIZA_SIN_USAR const ss_lista_usize* xs)
 {
 #line 21 "std/lista.t"
-    size_t ss_tmp37176;
-    size_t ss_tmp37177;
+    size_t ss_tmp37159;
+    size_t ss_tmp37160;
 #line 21 "std/lista.t"
-    bool ss_tmp37178 = ((ss_tmp37176 = ((*xs).length), ss_tmp37177 = (size_t)0, (ss_tmp37176 == ss_tmp37177)));
-    return ss_tmp37178;
+    bool ss_tmp37161 = ((ss_tmp37159 = ((*xs).length), ss_tmp37160 = (size_t)0, (ss_tmp37159 == ss_tmp37160)));
+    return ss_tmp37161;
 }
 
 #line 170 "std/lista.t"
@@ -132127,13 +132062,13 @@ SS_LANG_QUIZA_SIN_USAR static size_t suma__usize(SS_LANG_QUIZA_SIN_USAR const ss
 #line 171 "std/lista.t"
     SS_LANG_QUIZA_SIN_USAR size_t total = (size_t)0;
 #line 172 "std/lista.t"
-    for (size_t ss_k2055 = 0; ss_k2055 < (*ns).length; ss_k2055++)
+    for (size_t ss_k2051 = 0; ss_k2051 < (*ns).length; ss_k2051++)
     {
-        SS_LANG_QUIZA_SIN_USAR size_t n = (*ns).e[ss_k2055];
-        size_t ss_tmp37179;
-        size_t ss_tmp37180;
+        SS_LANG_QUIZA_SIN_USAR size_t n = (*ns).e[ss_k2051];
+        size_t ss_tmp37162;
+        size_t ss_tmp37163;
 #line 172 "std/lista.t"
-        total = ((ss_tmp37179 = total, ss_tmp37180 = n, ss_lang_suma_usize(ss_tmp37179, ss_tmp37180, "std/lista.t", 172)));
+        total = ((ss_tmp37162 = total, ss_tmp37163 = n, ss_lang_suma_usize(ss_tmp37162, ss_tmp37163, "std/lista.t", 172)));
     }
 #line 173 "std/lista.t"
     return total;
