@@ -701,7 +701,7 @@ fn expresion_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view, tipos: &I.C
         Clase.Match -> {
             var s_m = copiar(s);
             var t_m = copiar(tipos);
-            return match_valor(b, s_m, n, t_m, s.retorno, false);
+            return match_valor(b, s_m, n, t_m, s.retorno, false, false);
         }
         Clase.Decimal -> { return decimal_c(n, esperado); }
         Clase.LiteralLista -> { return literal_lista_c(b, s, n, esperado, tipos); }
@@ -2114,6 +2114,143 @@ fn interna_pura_rebanar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     return envolver_llamada_ordenada(r, previos);
 }
 
+// Si el comprobador grabo este nodo como leido: la clave es la de los tipos
+// anotados, `dueno#id`. La decision de leer o mover es suya y viaja por aqui;
+// el generador no la deduce de la forma.
+fn se_lee(s: &Sitio, tipos: &I.Contexto, n: &P.Nodo) -> bool {
+    if n.id == 0 { return false; }
+    return tiene(s.lecturas, $"{tipos.dueno}#{n.id}");
+}
+
+// Si el brazo de un `match` da un valor que el comprobador leyo.
+fn brazo_leido(s: &Sitio, tipos: &I.Contexto, brazo: &P.Nodo) -> bool {
+    for h en brazo.hijos {
+        if h.clase == Clase.Retorno && h.hijos.largo() == 1 {
+            return es_lectura(s, tipos, h.hijos[0]);
+        }
+    }
+    return false;
+}
+
+// Si el comprobador grabo que este nodo se lee y no se mueve: el mismo, o
+// —en un condicional o en lo que da un brazo de `match`— alguna de sus ramas
+// de valor. Es la senal de prestar en vez de bajar a un temporal con duenio.
+fn es_lectura(s: &Sitio, tipos: &I.Contexto, n: &P.Nodo) -> bool {
+    if se_lee(s, tipos, n) { return true; }
+    let clase = n.clase;
+    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
+        if es_lectura(s, tipos, n.hijos[1]) { return true; }
+        return es_lectura(s, tipos, n.hijos[2]);
+    }
+    if clase == Clase.Match {
+        var k = 1;
+        while k < n.hijos.largo() {
+            if brazo_leido(s, tipos, n.hijos[k]) { return true; }
+            k = k + 1;
+        }
+    }
+    return false;
+}
+
+// Si la direccion de este sitio es una expresion sin ramas propias: una
+// variable, un campo, un indice, o un condicional de esos. `campo_c` e
+// `indice_c` pueden declarar un temporal antes, que no cambia el orden de
+// nada; lo que no vale es un `if` o un `switch` escondido en una rama.
+fn direccion_pura(n: &P.Nodo) -> bool {
+    let clase = n.clase;
+    if clase == Clase.Variable || clase == Clase.Campo || clase == Clase.Indice {
+        return true;
+    }
+    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
+        return direccion_pura(n.hijos[1]) && direccion_pura(n.hijos[2]);
+    }
+    return false;
+}
+
+// El tipo en C de lo que devuelve `direccion_del_sitio`: la direccion de un
+// valor con duenio, o el prestamo tal cual cuando el valor ya es un puntero.
+fn tipo_del_prestamo(t: view) -> str {
+    if T.es_referencia(t) { return tipo_c(t); }
+    var r = tipo_c(t);
+    r.empujar("*");
+    return r;
+}
+
+// La direccion de la rama de un condicional leido. Si el comprobador la leyo
+// se presta; si nace sin sitio —una llamada, un literal— se guarda en el
+// temporal con duenio de la sentencia y se presta su direccion.
+fn direccion_de_rama(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, t: view,
+    propio: view, lee: bool, de_ref: bool, tipos: &I.Contexto) -> str {
+    if lee { return direccion_del_sitio(b, s, n, tipos); }
+    let valor = expresion_c(b, s, n, t, tipos);
+    if es_desconocido(valor) { return no_se(); }
+    if de_ref {
+        // El valor ya es la direccion; no hay temporal del que tomarla.
+        return valor;
+    }
+    reclamar(b, valor);
+    emitir(b, $"{propio} = {valor};");
+    var r = nuevo("&");
+    r.empujar(propio);
+    return r;
+}
+
+// La direccion de un `if` como valor leido: `c ? &p : &q`, y si alguna rama
+// nace sin sitio, un puntero que cada rama deja puesto.
+fn direccion_de_condicional(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    if n.hijos.largo() != 3 { return no_se(); }
+    let t = T.escribir_tipo(I.tipo_de(tipos, n));
+    if t.largo() == 0 { return no_se(); }
+    let a: &P.Nodo = n.hijos[1];
+    let d: &P.Nodo = n.hijos[2];
+    let lee_a = es_lectura(s, tipos, a);
+    let lee_d = es_lectura(s, tipos, d);
+    let de_ref = T.es_referencia(t);
+    // Las dos ramas se leen y su direccion es una expresion: el condicional
+    // entero es el prestamo, sin temporal de por medio.
+    if lee_a && lee_d && direccion_pura(a) && direccion_pura(d) {
+        let ca = direccion_del_sitio(b, s, a, tipos);
+        if es_desconocido(ca) { return no_se(); }
+        let cd = direccion_del_sitio(b, s, d, tipos);
+        if es_desconocido(cd) { return no_se(); }
+        let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
+        if es_desconocido(cond) { return no_se(); }
+        return $"(({cond}) ? {ca} : {cd})";
+    }
+    // Alguna rama nace sin sitio: un temporal con duenio de la sentencia la
+    // guarda, y el `if` deja en el puntero la direccion de la que corrio.
+    var propio = vacio();
+    if !de_ref && (!lee_a || !lee_d) {
+        propio = nuevo_temporal(b);
+        emitir(b, $"{tipo_c(t)} {propio} = {{0}};");
+        if I.posee_con_formas(tipos, t) {
+            apuntar_temporal(b, propio, t);
+        }
+    }
+    let ptr = nuevo_temporal(b);
+    emitir(b, $"{tipo_del_prestamo(t)} {ptr} = NULL;");
+    let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
+    if es_desconocido(cond) { return no_se(); }
+    emitir(b, $"if ({cond})");
+    emitir(b, "{");
+    b.sangria = b.sangria + 1;
+    let va = direccion_de_rama(b, s, a, t, propio, lee_a, de_ref, tipos);
+    if es_desconocido(va) { return no_se(); }
+    emitir(b, $"{ptr} = {va};");
+    b.sangria = b.sangria - 1;
+    emitir(b, "}");
+    emitir(b, "else");
+    emitir(b, "{");
+    b.sangria = b.sangria + 1;
+    let vd = direccion_de_rama(b, s, d, t, propio, lee_d, de_ref, tipos);
+    if es_desconocido(vd) { return no_se(); }
+    emitir(b, $"{ptr} = {vd};");
+    b.sangria = b.sangria - 1;
+    emitir(b, "}");
+    return copiar(ptr);
+}
+
 // La direccion de un sitio con nombre: `&x`, `&p.campo`, `&v.e[i]`. Prestar
 // algo recien hecho pediria un temporal del que tomar la direccion, y ese
 // temporal habria que soltarlo al acabar la sentencia: otra capa.
@@ -2135,6 +2272,14 @@ fn direccion_del_sitio(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto)
         r.empujar(donde);
         return r;
     }
+    // Un condicional que el comprobador leyo se presta: `c ? &p : &q`. Un
+    // `match` leido deja el puntero en un temporal y su `switch` lo pone.
+    if clase == Clase.SiExpr { return direccion_de_condicional(b, s, n, tipos); }
+    if clase == Clase.Match {
+        var s_m = copiar(s);
+        var t_m = copiar(tipos);
+        return match_valor(b, s_m, n, t_m, s.retorno, false, true);
+    }
     return no_se();
 }
 
@@ -2153,7 +2298,9 @@ fn como_vista(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if t.nombre == "str" {
         let clase = n.clase;
         if clase == Clase.Variable || clase == Clase.Campo
-        || clase == Clase.Indice {
+        || clase == Clase.Indice
+        || ((clase == Clase.SiExpr || clase == Clase.Match)
+            && es_lectura(s, tipos, n)) {
             let donde = direccion_del_sitio(b, s, n, tipos);
             if es_desconocido(donde) { return no_se(); }
             var r = nuevo("ss_view(");
@@ -2526,7 +2673,9 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
         if presta_el {
             let clase_h = h.clase;
             if clase_h == Clase.Variable || clase_h == Clase.Campo
-            || clase_h == Clase.Indice {
+            || clase_h == Clase.Indice
+            || ((clase_h == Clase.SiExpr || clase_h == Clase.Match)
+                && es_lectura(s, tipos, h)) {
                 var dir = vacio();
                 // Lo que se pide es `& &T`: el `&T` que hay en el sitio es el
                 // valor prestado, no la direccion que se busca, asi que hay
@@ -4046,7 +4195,7 @@ fn declaracion_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     } else if cual == Clase.Match {
         // Sus brazos pueden llevar sentencias: se genera desde aqui,
         // donde el sitio se puede modificar, como en `return`.
-        valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible);
+        valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible, false);
     } else if T.es_referencia(tipo) && (cual == Clase.Variable || cual == Clase.Campo
         || cual == Clase.Indice) && !T.es_referencia(T.escribir_tipo(I.tipo_de(tipos, n.hijos[0]))) {
         // `let x: &T = l[i];`: la direccion del sitio, sin copiarlo.
@@ -4217,7 +4366,7 @@ fn retorno_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     // solo se genera desde aqui, donde el sitio se puede modificar.
     var valor = vacio();
     if n.hijos[0].clase == Clase.Match {
-        valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible);
+        valor = match_valor(b, s, n.hijos[0], tipos, retorno, falible, false);
     } else {
         valor = expresion_c(b, s, n.hijos[0], retorno, tipos);
     }
@@ -4406,7 +4555,7 @@ fn asignacion_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     if es_desconocido(destino) { return false; }
     var valor = vacio();
     if n.hijos[1].clase == Clase.Match {
-        valor = match_valor(b, s, n.hijos[1], tipos, retorno, falible);
+        valor = match_valor(b, s, n.hijos[1], tipos, retorno, falible, false);
     } else {
         valor = expresion_c(b, s, n.hijos[1], tipo, tipos);
     }
@@ -5158,7 +5307,8 @@ fn ruta_de_campo_c(n: &P.Nodo) -> str {
 // `switch`: un brazo que no casa deja paso al siguiente. Ese va como una
 // fila de `if`, y el brazo que casa salta al final.
 fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
-    retorno: view, falible: bool, destino: view) -> bool {
+    retorno: view, falible: bool, destino: view, presta: bool,
+    propio: view) -> bool {
     if n.hijos.largo() < 2 { return false; }
     let crudo = I.tipo_de(tipos, n.hijos[0]);
     let apuntado = T.apuntado_si(T.escribir_tipo(crudo));
@@ -5172,8 +5322,8 @@ fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
         k = k + 1;
     }
     if match_condicionado(n) {
-        return match_condiciones(b, s, n, tipos, retorno, falible, destino, vista(base),
-            vista(sitio));
+        return match_condiciones(b, s, n, tipos, retorno, falible, destino, presta,
+            propio, vista(base), vista(sitio));
     }
 
     emitir(b, $"switch ({sitio}.etiqueta)");
@@ -5201,7 +5351,7 @@ fn match_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
                 return false;
             }
         }
-        if !cuerpo_brazo_c(b, s, brazo, tipos, retorno, falible, destino) { return false; }
+        if !cuerpo_brazo_c(b, s, brazo, tipos, retorno, falible, destino, presta, propio) { return false; }
         emitir(b, "break;");
         I.cerrar(tipos);
         b.sangria = b.sangria - 1;
@@ -5234,7 +5384,8 @@ fn match_condicionado(n: &P.Nodo) -> bool {
 // Un `if` por brazo, en orden: la forma, lo que pidan sus posiciones y,
 // dentro, la guarda. El que casa hace lo suyo y salta al final.
 fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
-    retorno: view, falible: bool, destino: view, base: view, sitio: view) -> bool {
+    retorno: view, falible: bool, destino: view, presta: bool, propio: view,
+    base: view, sitio: view) -> bool {
     let fin = nueva_etiqueta(b, "match");
     var k = 1;
     while k < n.hijos.largo() {
@@ -5277,7 +5428,7 @@ fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Conte
             h_i = h_i + 1;
         }
         if guarda < 0 {
-            if !cuerpo_brazo_c(b, s, brazo, tipos, retorno, falible, destino) { return false; }
+            if !cuerpo_brazo_c(b, s, brazo, tipos, retorno, falible, destino, presta, propio) { return false; }
             emitir(b, $"goto {fin};");
         } else {
             // La guarda, con sus temporales soltados en el acto: el brazo
@@ -5297,7 +5448,7 @@ fn match_condiciones(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Conte
             b.sangria = b.sangria + 1;
             abrir_bloque(b);
             I.abrir(tipos);
-            if !cuerpo_brazo_c(b, s, brazo, tipos, retorno, falible, destino) { return false; }
+            if !cuerpo_brazo_c(b, s, brazo, tipos, retorno, falible, destino, presta, propio) { return false; }
             emitir(b, $"goto {fin};");
             I.cerrar(tipos);
             b.sangria = b.sangria - 1;
@@ -5461,7 +5612,7 @@ fn descartar_expresion_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto,
         return si_expr_suelto_c(b, s, tipos, n, esperado, retorno, falible);
     }
     if clase == Clase.Match {
-        return match_c(b, s, n, tipos, retorno, falible, "");
+        return match_c(b, s, n, tipos, retorno, falible, "", false, "");
     }
     let hecha = expresion_c(b, s, n, esperado, tipos);
     if es_desconocido(hecha) { return false; }
@@ -5502,7 +5653,8 @@ fn caracter_de_nombre(c: usize) -> bool {
 }
 
 fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Contexto,
-    retorno: view, falible: bool, destino: view) -> bool {
+    retorno: view, falible: bool, destino: view, presta: bool,
+    propio: view) -> bool {
     for h en brazo.hijos {
         let que = h.clase;
         if que == Clase.Bloque {
@@ -5527,7 +5679,29 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
             for x en b.temporales { antes.anadir(copiar(x)); }
             olvidar_temporales(b);
             let tv = T.escribir_tipo(I.tipo_de(tipos, h.hijos[0]));
-            if destino.largo() > 0 {
+            if destino.largo() > 0 && presta {
+                // Contexto de lectura: lo que el comprobador leyo se presta y
+                // se deja su direccion en el destino, sin moverlo. Lo que
+                // nace sin sitio se guarda en el temporal de la sentencia.
+                if es_lectura(s, tipos, h.hijos[0]) {
+                    let dir = direccion_del_sitio(b, s, h.hijos[0], tipos);
+                    if es_desconocido(dir) { return false; }
+                    emitir(b, $"{destino} = {dir};");
+                } else {
+                    let valor = expresion_c(b, s, h.hijos[0], tv, tipos);
+                    if es_desconocido(valor) { return false; }
+                    if T.es_referencia(tv) {
+                        // El valor ya es la direccion.
+                        emitir(b, $"{destino} = {valor};");
+                    } else {
+                        reclamar(b, valor);
+                        emitir(b, $"{propio} = {valor};");
+                        emitir(b, $"{destino} = &{propio};");
+                    }
+                    // Este brazo si entrega: su bandera se apaga aqui.
+                    apagar_lo_de_rama(b, s, h.hijos[0], tipos);
+                }
+            } else if destino.largo() > 0 {
                 let valor = expresion_c(b, s, h.hijos[0], tv, tipos);
                 if es_desconocido(valor) { return false; }
                 reclamar(b, valor);
@@ -5573,10 +5747,30 @@ fn posiciones_patron_c(b: &P.Nodo) -> list<P.Nodo> {
 // El `match` usado como valor: un temporal a ceros y el `switch` encima. A
 // ceros porque en Tcode todo valor a ceros es valido, asi que el compilador
 // de C no tiene de que quejarse aunque no sepa que el `switch` lo cubre todo.
+//
+// Con `presta` el `match` va en un contexto de lectura: donde iba el valor va
+// su direccion, y lo que nace sin sitio —una llamada en un brazo— se guarda en
+// un temporal con duenio de la sentencia, en vez de mover lo que se lee.
 fn match_valor(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
-    retorno: view, falible: bool) -> str {
+    retorno: view, falible: bool, presta: bool) -> str {
     var t = T.escribir_tipo(I.tipo_de(tipos, n));
     if t.largo() == 0 { t = nuevo("usize"); }
+    if presta {
+        var propio = vacio();
+        if !T.es_referencia(t) && hay_brazo_sin_leer(s, tipos, n) {
+            propio = nuevo_temporal(b);
+            emitir(b, $"{tipo_c(t)} {propio} = {{0}};");
+            if I.posee_con_formas(tipos, t) {
+                apuntar_temporal(b, propio, t);
+            }
+        }
+        let ptr = nuevo_temporal(b);
+        emitir(b, $"{tipo_del_prestamo(t)} {ptr} = NULL;");
+        if !match_c(b, s, n, tipos, retorno, falible, ptr, true, vista(propio)) {
+            return no_se();
+        }
+        return copiar(ptr);
+    }
     let tmp = nuevo_temporal(b);
     var d = nuevo(tipo_c(t));
     d.empujar(" ");
@@ -5586,8 +5780,27 @@ fn match_valor(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
     if I.posee_con_formas(tipos, t) {
         apuntar_temporal(b, tmp, t);
     }
-    if !match_c(b, s, n, tipos, retorno, falible, tmp) { return no_se(); }
+    if !match_c(b, s, n, tipos, retorno, falible, tmp, false, "") {
+        return no_se();
+    }
     return copiar(tmp);
+}
+
+// Si algun brazo del `match` da un valor que no se lee y no es ya un
+// prestamo: ese necesita el temporal con duenio de la sentencia.
+fn hay_brazo_sin_leer(s: &Sitio, tipos: &I.Contexto, n: &P.Nodo) -> bool {
+    var k = 1;
+    while k < n.hijos.largo() {
+        for h en n.hijos[k].hijos {
+            if h.clase == Clase.Retorno && h.hijos.largo() == 1
+            && !es_lectura(s, tipos, h.hijos[0])
+            && !T.es_referencia(T.escribir_tipo(I.tipo_de(tipos, h.hijos[0]))) {
+                return true;
+            }
+        }
+        k = k + 1;
+    }
+    return false;
 }
 
 // De que tipo es lo que da una expresion suelta. Una llamada del programa

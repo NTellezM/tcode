@@ -671,10 +671,12 @@ graph TD
         compilador_lib_generar__decimal_c["decimal_c"]
         compilador_lib_generar__declaracion_c["declaracion_c"]
         compilador_lib_generar__descartar_c["descartar_c"]
+        compilador_lib_generar__direccion_de_condicional["direccion_de_condicional"]
         compilador_lib_generar__entrega_suelta["entrega_suelta"]
         compilador_lib_generar__enum_lit_c["enum_lit_c"]
         compilador_lib_generar__es_puntero["es_puntero"]
         compilador_lib_generar__escrito["escrito"]
+        compilador_lib_generar__hay_brazo_sin_leer["hay_brazo_sin_leer"]
         compilador_lib_generar__hueco_c["hueco_c"]
         compilador_lib_generar__indice_c["indice_c"]
         compilador_lib_generar__interna_pura_comparar["interna_pura_comparar"]
@@ -722,6 +724,7 @@ graph TD
         compilador_lib_generar__tiene_duenio["tiene_duenio"]
         compilador_lib_generar__tipo_c["tipo_c"]
         compilador_lib_generar__tipo_c_prestamo["tipo_c_prestamo"]
+        compilador_lib_generar__tipo_del_prestamo["tipo_del_prestamo"]
         compilador_lib_generar__tipo_escrito["tipo_escrito"]
         compilador_lib_generar__tipo_si_va_bien["tipo_si_va_bien"]
         compilador_lib_generar__tipo_suelto["tipo_suelto"]
@@ -838,6 +841,7 @@ graph TD
     compilador_lib_generar__cuantos_bytes --> lexer_lib_sintaxis__desescapar
     compilador_lib_generar__cuantos_de_arreglo --> std_texto__recortar
     compilador_lib_generar__cuerpo_brazo_c --> compilador_lib_tipar__tipo_de
+    compilador_lib_generar__cuerpo_brazo_c --> compilador_lib_tipos__es_referencia
     compilador_lib_generar__cuerpo_brazo_c --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__da_texto --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__da_texto --> compilador_lib_tipos__apuntado_si
@@ -850,6 +854,10 @@ graph TD
     compilador_lib_generar__declaracion_c --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__descartar_c --> compilador_lib_tipar__posee_con_formas
     compilador_lib_generar__descartar_c --> lexer_lib_sintaxis__es_lugar
+    compilador_lib_generar__direccion_de_condicional --> compilador_lib_tipar__posee_con_formas
+    compilador_lib_generar__direccion_de_condicional --> compilador_lib_tipar__tipo_de
+    compilador_lib_generar__direccion_de_condicional --> compilador_lib_tipos__es_referencia
+    compilador_lib_generar__direccion_de_condicional --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__entrega_suelta --> compilador_lib_tipar__posee_con_formas
     compilador_lib_generar__entrega_suelta --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__entrega_suelta --> compilador_lib_tipos__escribir_tipo
@@ -861,6 +869,9 @@ graph TD
     compilador_lib_generar__es_puntero --> compilador_lib_tipar__buscar
     compilador_lib_generar__es_puntero --> compilador_lib_tipos__es_referencia
     compilador_lib_generar__escrito --> std_texto__empieza_con
+    compilador_lib_generar__hay_brazo_sin_leer --> compilador_lib_tipar__tipo_de
+    compilador_lib_generar__hay_brazo_sin_leer --> compilador_lib_tipos__es_referencia
+    compilador_lib_generar__hay_brazo_sin_leer --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__hueco_c --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__hueco_c --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__indice_c --> compilador_lib_tipar__tipo_de
@@ -993,6 +1004,7 @@ graph TD
     compilador_lib_generar__match_condiciones --> compilador_lib_tipar__tras_el_punto
     compilador_lib_generar__match_valor --> compilador_lib_tipar__posee_con_formas
     compilador_lib_generar__match_valor --> compilador_lib_tipar__tipo_de
+    compilador_lib_generar__match_valor --> compilador_lib_tipos__es_referencia
     compilador_lib_generar__match_valor --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__mientras_c --> compilador_lib_tipar__abrir
     compilador_lib_generar__mientras_c --> compilador_lib_tipar__cerrar
@@ -1076,6 +1088,7 @@ graph TD
     compilador_lib_generar__tipo_c --> compilador_lib_tipos__es_referencia
     compilador_lib_generar__tipo_c --> compilador_lib_tipos__es_referencia_mutable
     compilador_lib_generar__tipo_c_prestamo --> compilador_lib_tipos__es_referencia
+    compilador_lib_generar__tipo_del_prestamo --> compilador_lib_tipos__es_referencia
     compilador_lib_generar__tipo_escrito --> std_texto__recortar
     compilador_lib_generar__tipo_si_va_bien --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__tipo_si_va_bien --> compilador_lib_tipos__escribir_de_mapa

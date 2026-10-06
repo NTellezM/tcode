@@ -2685,6 +2685,74 @@ fn main() {
         }''',
      "ab\nst\nab\nab\nabr\nabr\nabr\na\nok\n"),
 
+    # Un `if` o un `match` como valor que se pasa a un parametro prestado se
+    # lee: lo que el comprobador graba en el canal `lecturas` ahora lo consulta
+    # el generador. Antes bajaba la rama a un temporal con duenio y lo soltaba
+    # al acabar la sentencia, asi que el uso de la variable de despues leia
+    # memoria liberada (`mirar(if c { p } else { q })`, ASan). Ahora el C es el
+    # prestamo —`c ? &p : &q`— y no se mueve nada. Cubre las dos ramas que se
+    # leen, una rama que nace sin sitio (una llamada), un campo, un indice, la
+    # alternativa de un `sino` dentro de la rama y el `match` prestado; en
+    # todos, las variables se usan despues.
+    ("un if o un match leidos se prestan en vez de moverse",
+     '''struct P { s: str }
+        enum E { A, B }
+        fn mirar(x: &P) -> usize { return largo(x.s); }
+        fn mirar_texto(x: &str) -> usize { return largo(x); }
+        fn dame() -> P { return P { s: nuevo("z") }; }
+        fn bueno(k: usize) -> P ! {
+            if k == 0 { fail "no"; }
+            return P { s: nuevo("z") };
+        }
+        fn main() -> usize {
+            let c = true;
+            // Las dos ramas se leen: el condicional entero es el prestamo.
+            var p = P { s: nuevo("a") };
+            var q = P { s: nuevo("b") };
+            let n = mirar(if c { p } else { q });
+            imprimir($"{n} {p.s}{q.s}\\n");
+            // Una rama se lee y la otra nace sin sitio: la que nace se guarda
+            // en un temporal con duenio de la sentencia, no la que se lee.
+            // Aqui se toma la que nace; en el otro `if` de mas abajo, la que
+            // se lee, y las dos formas tienen que correr limpias.
+            var r = P { s: nuevo("r") };
+            let m = mirar(if c { dame() } else { r });
+            imprimir($"{m} {r.s}\\n");
+            var r2 = P { s: nuevo("r2") };
+            let m2 = mirar(if !c { dame() } else { r2 });
+            imprimir($"{m2} {r2.s}\\n");
+            // Un campo prestado.
+            var s1 = P { s: nuevo("s") };
+            var t1 = P { s: nuevo("t") };
+            let k = mirar_texto(if c { s1.s } else { t1.s });
+            imprimir($"{k} {s1.s}{t1.s}\\n");
+            // Una alternativa de `sino` dentro de la rama: lo que se lee es la
+            // otra rama, y la alternativa la mueve el comprobador. Aqui se
+            // toma la rama del `sino`, que nace sin sitio.
+            var u = P { s: nuevo("u") };
+            let j = mirar(if c { bueno(0) sino P { s: nuevo("v") } } else { u });
+            imprimir($"{j} {u.s}\\n");
+            // Un elemento de lista prestado.
+            var xs: list<P> = [];
+            anadir(xs, P { s: nuevo("x") });
+            var ys: list<P> = [];
+            anadir(ys, P { s: nuevo("y") });
+            let l = mirar(if c { xs[0] } else { ys[0] });
+            imprimir($"{l} {xs[0].s}{ys[0].s}\\n");
+            // Un `match` cuyos brazos se leen.
+            let e = E.A;
+            var pp = P { s: nuevo("A") };
+            var qq = P { s: nuevo("B") };
+            let o = mirar(match e { E.A -> pp, E.B -> qq });
+            imprimir($"{o} {pp.s}{qq.s}\\n");
+            // Y un brazo que nace sin sitio, prestado desde su temporal.
+            var rr = P { s: nuevo("R") };
+            let o2 = mirar(match e { E.A -> dame(), E.B -> rr });
+            imprimir($"{o2} {rr.s}\\n");
+            return 0;
+        }''',
+     "1 ab\n1 r\n2 r2\n1 st\n1 u\n1 xy\n1 AB\n1 R\n"),
+
     ("listas vacias usan el tipo de retorno y de argumento",
      '''fn vacia() -> list<usize> { return []; }
         fn contar(xs: list<usize>) -> usize { return largo(xs); }

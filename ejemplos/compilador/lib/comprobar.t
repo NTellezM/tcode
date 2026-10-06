@@ -3524,6 +3524,11 @@ fn campo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             if mover_variables && posee_memoria(m, ts[i]) && c.por_campo == 0
             && !ya_sacado {
                 sacar_campo(c, m, n, base, raiz, ruta, ir);
+            } else {
+                // Aqui el campo se lee: se graba por `dueno#id` como en
+                // `variable()`, para que el generador lo preste en vez de
+                // bajarlo a un temporal con duenio.
+                if n.id > 0 { c.lecturas.anadir(clave_anotada(c, n)); }
             }
             return tipo_de_escrito(copiar(ts[i]));
         }
@@ -3556,6 +3561,10 @@ fn indice(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         if T.es_bloque(b) { que = nuevo("un bloque"); }
         else if T.es_lista(b) { que = nuevo("una lista"); }
         error(c, m, n.linea, $"no se puede sacar un elemento de {que} y dejar el hueco sin duenio. Si solo quieres leerlo, prestalo: `let x: &{elem} = ...`; si lo necesitas tuyo, `copiar(...)`; si quieres sacarlo, di que dejas en su sitio: `intercambiar(...)`");
+    } else {
+        // Aqui el elemento se lee: se graba por `dueno#id`, como el campo y
+        // la variable, para que el generador lo preste.
+        if n.id > 0 { c.lecturas.anadir(clave_anotada(c, n)); }
     }
     return tipo_de_escrito(elem);
 }
