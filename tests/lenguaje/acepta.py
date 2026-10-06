@@ -1732,6 +1732,131 @@ fn main() {
         }''',
      "a 1\nb c\nd\nok\n"),
 
+    # Un `if` o un `match` que el comprobador leyo no se mueve: se presta. El
+    # generador decide con el canal `Sitio.lecturas` y `direccion_del_sitio`
+    # —`c ? &p : &q`—, el mismo camino que ya usan la vista implicita, el
+    # argumento prestado y el escrutinio de un `match`. `sitio_c` no lo
+    # consultaba y bajaba el `if` a un temporal con duenio, que se soltaba al
+    # acabar la sentencia: lo que la rama prestaba quedaba colgando, y el uso
+    # en una sentencia POSTERIOR daba `heap-use-after-free`. En la misma
+    # sentencia no se veia. Son las cinco rutas de lectura de `sitio_c`.
+    ("tomar un campo de un `if` leido no mueve la rama",
+     '''struct P { s: str, n: usize }
+        fn main() {
+            let c = true;
+            let p = P { s: nuevo("aa"), n: 1 };
+            let q = P { s: nuevo("bb"), n: 2 };
+            let r = (if c { p } else { q }).n;
+            imprimir($"{r}\\n");
+            // El temporal se soltaba al acabar la sentencia de arriba: esta
+            // lectura es la que moria.
+            imprimir($"{p.s} {q.s}\\n");
+        }''',
+     "1\naa bb\n"),
+
+    ("descartar el campo de un `if` leido tampoco mueve la rama",
+     '''struct P { s: str, n: usize }
+        fn main() {
+            let c = true;
+            let p = P { s: nuevo("aa"), n: 1 };
+            let q = P { s: nuevo("bb"), n: 2 };
+            (if c { p } else { q }).n;
+            imprimir($"{p.s} {q.s}\\n");
+        }''',
+     "aa bb\n"),
+
+    ("indexar un `if` leido no mueve la lista",
+     '''fn main() {
+            let c = true;
+            var xs: list<usize> = [1, 2];
+            var ys: list<usize> = [3, 4];
+            let v = (if c { xs } else { ys })[0];
+            imprimir($"{v}\\n");
+            imprimir($"{xs[0]} {ys[1]}\\n");
+        }''',
+     "1\n1 4\n"),
+
+    ("indexar un `match` leido no mueve la lista",
+     '''enum E { A, B }
+        fn main() {
+            let e = E.A;
+            var xs: list<usize> = [1, 2];
+            var ys: list<usize> = [3, 4];
+            let v = (match e { E.A -> xs, E.B -> ys })[0];
+            imprimir($"{v}\\n");
+            imprimir($"{xs[0]} {ys[1]}\\n");
+        }''',
+     "1\n1 4\n"),
+
+    ("el largo de un `if` leido, sobre una lista, no mueve la lista",
+     '''fn main() {
+            let c = true;
+            var xs: list<str> = [nuevo("aa")];
+            var ys: list<str> = [nuevo("bb")];
+            let n = largo(if c { xs } else { ys });
+            imprimir($"{n}\\n");
+            imprimir($"{xs[0]} {ys[0]}\\n");
+        }''',
+     "1\naa bb\n"),
+
+    ("el largo de un `if` leido, sobre un mapa, no vacia el mapa",
+     '''fn main() {
+            let c = true;
+            var m: map<str, usize> = [];
+            var n: map<str, usize> = [];
+            poner(m, nuevo("k"), 1);
+            let t = largo(if c { m } else { n });
+            imprimir($"{t}\\n");
+            // La tabla se movia y se liberaba al acabar la sentencia: recorrer
+            // sus claves despues leia memoria ya libre.
+            for k en m { imprimir($"{k}\\n"); }
+        }''',
+     "1\nk\n"),
+
+    ("recorrer un `if` leido, sobre una lista, no mueve la lista",
+     '''fn main() {
+            let c = true;
+            var xs: list<str> = [nuevo("aa")];
+            var ys: list<str> = [nuevo("bb")];
+            var n = 0;
+            for x en if c { xs } else { ys } { n = n + largo(x); }
+            imprimir($"{n}\\n");
+            imprimir($"{xs[0]} {ys[0]}\\n");
+        }''',
+     "2\naa bb\n"),
+
+    ("recorrer un `if` leido, sobre un mapa, no lo vacia",
+     '''fn main() {
+            let c = true;
+            var m: map<str, usize> = [];
+            var n: map<str, usize> = [];
+            poner(m, nuevo("k"), 1);
+            var t = 0;
+            for k en if c { m } else { n } { t = t + 1; }
+            imprimir($"{t}\\n");
+            for k en m { imprimir($"{k}\\n"); }
+        }''',
+     "1\nk\n"),
+
+    ("el escrutinio de un `match` con un `if` leido no mueve la rama",
+     '''enum E { A(str), B(str) }
+        fn main() {
+            let c = true;
+            var a = E.A(nuevo("aa"));
+            var b = E.B(nuevo("bb"));
+            match if c { a } else { b } {
+                E.A(s) -> imprimir($"{s}\\n"),
+                E.B(s) -> imprimir($"{s}\\n"),
+            }
+            // El enum se movia al escrutinio y se liberaba al acabar la
+            // sentencia: aqui ya estaba colgando.
+            match a {
+                E.A(s) -> imprimir($"{s}\\n"),
+                E.B(s) -> imprimir("b\\n"),
+            }
+        }''',
+     "aa\naa\n"),
+
     ("un temporal dentro de lo que se devuelve no se filtra",
      '''use "std/texto";
         fn etiqueta(v: view) -> str { return $"[{rellenar(v, 8)}]"; }

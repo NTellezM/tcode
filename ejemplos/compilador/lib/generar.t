@@ -1234,6 +1234,21 @@ fn sitio_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     || clase == Clase.Indice {
         return expresion_c(b, s, n, "", tipos);
     }
+    // Un `if` o un `match` que el comprobador leyo se presta: la direccion la
+    // da `direccion_del_sitio`, el mismo camino que para las ramas de un
+    // condicional, y se desreferencia aqui para que siga siendo el sitio del
+    // que se toman campos y elementos —igual que un prestamo con nombre sale
+    // como `(*x)`—. Sin esto bajaba a un temporal con duenio, que se soltaba
+    // al acabar la sentencia y dejaba colgando lo que la rama prestaba.
+    if (clase == Clase.SiExpr || clase == Clase.Match)
+    && es_lectura(s, tipos, n) {
+        let dir = direccion_del_sitio(b, s, n, tipos);
+        if es_desconocido(dir) { return no_se(); }
+        var r = nuevo("(*");
+        r.empujar(dir);
+        r.empujar(")");
+        return r;
+    }
     // Una llamada no es un sitio: `claves(m).length` la evaluaria una vez
     // por cada aparicion en el C, y lo que devuelve no lo soltaria nadie. Se
     // guarda en un temporal, que se suelta al acabar la sentencia.
@@ -4641,7 +4656,12 @@ fn para_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     if !T.es_lista(sobre) && !es_mapa_ && !es_arreglo_ { return false; }
     if dos.largo() > 0 && !es_mapa_ { return false; }
     var lugar = vacio();
-    if que == Clase.Variable || que == Clase.Campo || que == Clase.Indice {
+    // Un `if` o un `match` que el comprobador leyo es un sitio prestado, como
+    // una variable: la vuelta lo recorre sin moverlo. Si no se leyo, lo que
+    // hay es un valor recien hecho y baja por el temporal de abajo.
+    if que == Clase.Variable || que == Clase.Campo || que == Clase.Indice
+    || ((que == Clase.SiExpr || que == Clase.Match)
+        && es_lectura(s, tipos, n.hijos[0])) {
         lugar = sitio_c(b, s, n.hijos[0], tipos);
     } else {
         // `for x en f(...)`: la coleccion se calcula UNA vez. Dejar la
