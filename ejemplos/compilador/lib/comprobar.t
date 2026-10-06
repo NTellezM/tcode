@@ -351,6 +351,11 @@ struct Mundo {
     // numeros escritos ya decididos por su contexto. El generador lo lee de
     // aqui en vez de deducirlo otra vez.
     anotados: list<map<str, T.Tipo>>,
+    // Los nodos que el comprobador leyo en vez de mover, por `dueno#id`. Vive
+    // aqui y no en `Comprobacion` porque `probar_juego` copia `Comprobacion`
+    // entera una vez por candidato de instanciacion generica, y con la lista
+    // ya completa: tenerla alli salia cuadratico.
+    lecturas: list<str>,
     // Las copias de genericas y las clausuras, en el orden en que nacen: una
     // clausura al verla, una copia despues de comprobar su cuerpo. Es el
     // orden en que el generador las escribe.
@@ -766,10 +771,6 @@ struct Comprobacion {
     // Los campos sacados de su struct en todo el programa, para el
     // generador: `archivo\tlinea\tp.a.b`.
     sacados: list<str>,
-    // Los nodos que se leyeron en vez de moverse, por `dueno#id`: el
-    // generador no tiene que recalcular la decision, se la dice el
-    // comprobador. Es la misma clave que la de los tipos anotados.
-    lecturas: list<str>,
     // Las cuentas de numeros escritos que esperan su tipo, en el orden en
     // que se comprobaron, con el dueño de cada una; y las ya hechas, por su
     // clave anotada.
@@ -795,7 +796,7 @@ fn estado(archivo: view, modulo: usize) -> Comprobacion {
         en_bucle_directo: 0, movidas_en_bucle: [], en_retorno: 0, instanciando: [],
         dueno: vacio(), avisos: [], historia: [], informe: [], en_cierre: false,
         capturas_mut: [], modificadas: [], plantillas: [], en_guarda: 0,
-        por_campo: 0, escribiendo: 0, sacados: [], lecturas: [], escritas: [],
+        por_campo: 0, escribiendo: 0, sacados: [], escritas: [],
         escritas_duenos: [], contadas: [], hondura: 0, base: 0, cadena_clases: [],
         cadena_propias: [], cadena_despues: [], cadena_bloques: [] };
 }
@@ -2786,6 +2787,14 @@ fn anotar(c: &Comprobacion, m: mut Mundo, n: &P.Nodo, t: &T.Tipo) {
     poner(m.anotados[c.modulo], vista(clave), copiar(t));
 }
 
+// Aqui el comprobador decidio que un sitio se lee y no se mueve: se graba por
+// `dueno#id` —la clave de los anotados— para que el generador lo consulte en
+// vez de deducirlo por su cuenta.
+fn grabar_lectura(c: &Comprobacion, m: mut Mundo, n: &P.Nodo) {
+    if n.id == 0 { return; }
+    m.lecturas.anadir(clave_anotada(c, n));
+}
+
 // Un numero escrito ya sabe su tipo: se lo dice el otro lado de la operacion,
 // o el sitio donde va. Se anota en el y en todo lo que es numero escrito por
 // debajo; un desplazamiento cuenta en `usize`.
@@ -3170,7 +3179,7 @@ fn extremo_dicho(t: view) -> str {
     return $"`{t}`";
 }
 
-fn variable(c: mut Comprobacion, m: &Mundo, tipos: &I.Contexto, n: &P.Nodo,
+fn variable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     mover_variables: bool, directo: bool) -> T.Tipo {
     let nombre = vista(n.texto);
     let i = buscar_simbolo(c, nombre);
@@ -3199,7 +3208,7 @@ fn variable(c: mut Comprobacion, m: &Mundo, tipos: &I.Contexto, n: &P.Nodo,
         // Aqui el comprobador decidio que este nodo se lee y no se mueve. Se
         // graba por `dueno#id` —la clave de los anotados— para que el
         // generador lo consulte en vez de deducirlo por su cuenta.
-        if n.id > 0 { c.lecturas.anadir(clave_anotada(c, n)); }
+        grabar_lectura(c, m, n);
     }
     return tipo_de_escrito(t);
 }
@@ -3528,7 +3537,7 @@ fn campo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 // Aqui el campo se lee: se graba por `dueno#id` como en
                 // `variable()`, para que el generador lo preste en vez de
                 // bajarlo a un temporal con duenio.
-                if n.id > 0 { c.lecturas.anadir(clave_anotada(c, n)); }
+                grabar_lectura(c, m, n);
             }
             return tipo_de_escrito(copiar(ts[i]));
         }
@@ -3564,7 +3573,7 @@ fn indice(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     } else {
         // Aqui el elemento se lee: se graba por `dueno#id`, como el campo y
         // la variable, para que el generador lo preste.
-        if n.id > 0 { c.lecturas.anadir(clave_anotada(c, n)); }
+        grabar_lectura(c, m, n);
     }
     return tipo_de_escrito(elem);
 }
@@ -6114,7 +6123,7 @@ fn comprobar_programa(arboles: &list<P.Nodo>, modulos: &list<str>,
         cierres: [], cierres_mod: [], n_cierres: 0, cierres_mut: [], numeracion: [],
         arboles: copiar(arboles), modulos: copiar(modulos),
         contextos: copiar(contextos), copias: [], orden_structs: [], tipo_de_struct: [],
-        anotados: [], orden_copias: [] };
+        anotados: [], orden_copias: [], lecturas: [] };
     for _a en arboles {
         let vacio_m: map<str, T.Tipo> = [];
         m.anotados.anadir(vacio_m);
@@ -6147,7 +6156,7 @@ fn comprobar_programa(arboles: &list<P.Nodo>, modulos: &list<str>,
         explicacion: explicacion(m, c.informe, principal),
         cierres: copiar(m.cierres),
         cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion),
-        sacados: copiar(c.sacados), lecturas: copiar(c.lecturas),
+        sacados: copiar(c.sacados), lecturas: copiar(m.lecturas),
         anotados: copiar(m.anotados),
         orden_copias: copiar(m.orden_copias), structs_aplicados: aplicados,
         orden_structs: copiar(m.orden_structs) };
