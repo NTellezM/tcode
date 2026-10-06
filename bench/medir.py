@@ -35,8 +35,14 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RUNTIME = os.path.join(RAIZ, "runtime")
 BENCH = os.path.join(RAIZ, "bench")
 LIMITES = os.path.join(BENCH, "limites.json")
+# El compilador de referencia: la semilla fijada aqui, construida en la misma
+# maquina, para medir el compilador de hoy contra algo comparable.
+REFERENCIA_C = os.path.join(BENCH, "referencia", "tcodec.c")
 TCODEC = os.path.join(RAIZ, "tcodec")
 ENTORNO = dict(os.environ, TCODE_RAIZ=RAIZ)
+
+# Lo que tardo el compilador de referencia en esta pasada; `None` si no se pudo.
+T_REF = None
 
 REPS = 5
 # Cuanto por encima de lo medido se deja el limite con `--fijar`.
@@ -105,12 +111,11 @@ def cronometrar(orden, **kw):
 
 
 def medir(tmp):
-    """{"O2": {caso: razon}, "O3": {...}, "compilador": unidades}, y las
-    filas para las tablas."""
+    """{"O2": {caso: razon}, "O3": {...}, "compilador": veces el de
+    referencia}, y las filas para las tablas."""
     casos = sorted(f[:-2] for f in os.listdir(BENCH) if f.endswith(".t"))
     razones = {}
     filas = {}
-    unidad = None
     for nivel in NIVELES:
         razones[f"O{nivel}"] = {}
         filas[nivel] = []
@@ -132,15 +137,30 @@ def medir(tmp):
                     raise SystemExit(f"{caso}: C y Tcode dan resultados distintos "
                                      f"({s_c.strip()!r} contra {s_tc.strip()!r})")
                 razones[f"O{nivel}"][caso] = round(t_tc / t_c, 3)
-                if caso == UNIDAD and nivel == "2":
-                    unidad = t_c
             filas[nivel].append((caso, t_c, t_tc, t_sc))
 
-    # El compilador: `tcodec` escribiendo su propio C, en unidades.
-    t_comp, _ = cronometrar([TCODEC, os.path.join("ejemplos", "compilador",
-                                                  "tcodec.t"), "--mostrar-c"],
-                            cwd=RAIZ, env=ENTORNO)
-    razones["compilador"] = round(t_comp / unidad, 2)
+    # El compilador: `tcodec` escribiendo su propio C, contra el compilador de
+    # referencia construido aqui mismo. Antes se dividia por el C de
+    # `aritmetica`, que dura ~0,15 s: eso es ruido, y el numero que salia no era
+    # el mismo en dos maquinas, asi que el limite no significaba lo mismo en el
+    # CI que en local. La razon contra un compilador de la misma maquina si es
+    # comparable.
+    global T_REF
+    T_REF = None
+    fuente = os.path.join("ejemplos", "compilador", "tcodec.t")
+    t_comp, _ = cronometrar([TCODEC, fuente, "--mostrar-c"], cwd=RAIZ, env=ENTORNO)
+    razones["compilador"] = None
+    if os.path.exists(REFERENCIA_C):
+        ref = os.path.join(tmp, "tcodec_ref")
+        r = subprocess.run([os.environ.get("CC", "cc"), "-std=c17", "-O2",
+                            "-D_DEFAULT_SOURCE", "-D_XOPEN_SOURCE=700",
+                            "-I", RUNTIME, REFERENCIA_C, "-o", ref, "-lm"],
+                           capture_output=True, text=True)
+        if r.returncode == 0:
+            t_ref, _ = cronometrar([ref, fuente, "--mostrar-c"], cwd=RAIZ,
+                                   env=ENTORNO)
+            T_REF = t_ref
+            razones["compilador"] = round(t_comp / t_ref, 3)
     return razones, filas, t_comp
 
 
@@ -154,8 +174,13 @@ def imprimir(filas, razones, t_comp):
             c = f"{t_c:.3f}s" if t_c else "-"
             r = f"{t_tc / t_c:.2f}x" if t_c else "-"
             print(f"{caso:<24} {c:>10} {t_tc:>9.3f}s {t_sc:>9.3f}s {r:>11}")
-    print(f"\ntcodec escribe su propio C en {t_comp:.2f}s "
-          f"({razones['compilador']} unidades)")
+    if T_REF:
+        print(f"\ntcodec escribe su propio C en {t_comp:.2f}s "
+              f"({razones['compilador']}x el compilador de referencia, "
+              f"que tarda {T_REF:.2f}s)")
+    else:
+        print(f"\ntcodec escribe su propio C en {t_comp:.2f}s "
+              f"(sin compilador de referencia: no se mide la razon)")
 
 
 def comprobar(razones):
@@ -164,9 +189,12 @@ def comprobar(razones):
     fallas = []
     for nivel, por_caso in limites.items():
         if nivel == "compilador":
-            if razones["compilador"] > por_caso:
-                fallas.append(f"tcodec: {razones['compilador']} unidades, "
-                              f"limite {por_caso}")
+            if razones["compilador"] is None:
+                print("  AVISO: sin compilador de referencia, no se comprueba "
+                      "la razon del compilador")
+            elif razones["compilador"] > por_caso:
+                fallas.append(f"tcodec: {razones['compilador']}x el de "
+                              f"referencia, limite {por_caso}x")
             continue
         for caso, limite in por_caso.items():
             medido = razones.get(nivel, {}).get(caso)
@@ -195,7 +223,8 @@ def main():
     imprimir(filas, razones, t_comp)
     if a.fijar:
         limites = {k: ({c: round(r * MARGEN, 2) for c, r in v.items()}
-                       if isinstance(v, dict) else round(v * MARGEN, 1))
+                       if isinstance(v, dict)
+                       else (round(v * MARGEN, 2) if v else None))
                    for k, v in razones.items()}
         with open(LIMITES, "w", encoding="utf-8") as f:
             json.dump(limites, f, indent=2, sort_keys=True)

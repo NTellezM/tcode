@@ -1857,6 +1857,103 @@ fn main() {
         }''',
      "aa\naa\n"),
 
+    # Un `if` o un `match` sobre prestamos de solo lectura que se indexa: la
+    # direccion de la rama es `const T*`, asi que el puntero con el que se
+    # indexa —y el que deja el propio condicional o el `match`— tiene que ser
+    # `const T*` tambien. `sitio_solo_lectura` no miraba dentro del `SiExpr`
+    # ni de los brazos del `Match`, y `tipo_del_prestamo` no preguntaba si lo
+    # apuntado puede ser de solo lectura: salian `T*` y el C no compilaba con
+    # `-Werror=discarded-qualifiers`. En el arbol anterior a esto, el mismo
+    # programa compilaba y daba `heap-use-after-free`.
+    ("indexar un `if` de prestamos de solo lectura, y seguir usando las listas",
+     '''fn elegir(r: &list<usize>, s: &list<usize>, c: bool) -> usize {
+            return (if c { r } else { s })[0];
+        }
+        fn main() {
+            let r: list<usize> = [1, 2];
+            let s: list<usize> = [3, 4];
+            imprimir($"{elegir(r, s, true)} {elegir(r, s, false)}\\n");
+            imprimir($"{r[0]} {s[1]}\\n");
+        }''',
+     "1 3\n1 4\n"),
+
+    ("indexar un `match` de prestamos de solo lectura, y seguir usando las listas",
+     '''enum E { A, B }
+        fn elegir(e: E, r: &list<usize>, s: &list<usize>) -> usize {
+            return (match e { E.A -> r, E.B -> s })[0];
+        }
+        fn main() {
+            let r: list<usize> = [1, 2];
+            let s: list<usize> = [3, 4];
+            imprimir($"{elegir(E.A, r, s)} {elegir(E.B, r, s)}\\n");
+            imprimir($"{r[0]} {s[1]}\\n");
+        }''',
+     "1 3\n1 4\n"),
+
+    ("el camino lento de un `if` leido mezcla un prestamo con un valor nuevo",
+     '''fn nueva() -> list<usize> { return [7, 8]; }
+        fn elegir(r: &list<usize>, c: bool) -> usize {
+            return (if c { r } else { nueva() })[0];
+        }
+        fn main() {
+            let r: list<usize> = [1, 2];
+            imprimir($"{elegir(r, true)} {elegir(r, false)}\\n");
+            imprimir($"{r[0]} {r[1]}\\n");
+        }''',
+     "1 7\n1 2\n"),
+
+    ("y su hermano de `match`: un brazo prestado y otro que nace",
+     '''enum E { A, B }
+        fn nueva() -> list<usize> { return [7, 8]; }
+        fn elegir(e: E, r: &list<usize>) -> usize {
+            return (match e { E.A -> r, E.B -> nueva() })[0];
+        }
+        fn main() {
+            let r: list<usize> = [1, 2];
+            imprimir($"{elegir(E.A, r)} {elegir(E.B, r)}\\n");
+            imprimir($"{r[0]}\\n");
+        }''',
+     "1 7\n1\n"),
+
+    ("indexar un `if` de listas de mapas prestadas, y seguir usandolos",
+     '''fn cuenta(r: &list<map<str, usize>>, s: &list<map<str, usize>>, c: bool) -> usize {
+            return largo((if c { r } else { s })[0]);
+        }
+        fn main() {
+            var a: map<str, usize> = [];
+            poner(a, "k", 5);
+            var b: map<str, usize> = [];
+            poner(b, "k", 9);
+            var r: list<map<str, usize>> = [];
+            anadir(r, a);
+            var s: list<map<str, usize>> = [];
+            anadir(s, b);
+            imprimir($"{cuenta(r, s, true)} {cuenta(r, s, false)}\\n");
+            for m en r { imprimir($"{largo(m)}\\n"); }
+            for m en s { imprimir($"{largo(m)}\\n"); }
+        }''',
+     "1 1\n1\n1\n"),
+
+    ("y con un `match` de listas de mapas prestadas",
+     '''enum E { A, B }
+        fn cuenta(e: E, r: &list<map<str, usize>>, s: &list<map<str, usize>>) -> usize {
+            return largo((match e { E.A -> r, E.B -> s })[0]);
+        }
+        fn main() {
+            var a: map<str, usize> = [];
+            poner(a, "k", 5);
+            var b: map<str, usize> = [];
+            poner(b, "k", 9);
+            var r: list<map<str, usize>> = [];
+            anadir(r, a);
+            var s: list<map<str, usize>> = [];
+            anadir(s, b);
+            imprimir($"{cuenta(E.A, r, s)} {cuenta(E.B, r, s)}\\n");
+            for m en r { imprimir($"{largo(m)}\\n"); }
+            for m en s { imprimir($"{largo(m)}\\n"); }
+        }''',
+     "1 1\n1\n1\n"),
+
     ("un temporal dentro de lo que se devuelve no se filtra",
      '''use "std/texto";
         fn etiqueta(v: view) -> str { return $"[{rellenar(v, 8)}]"; }

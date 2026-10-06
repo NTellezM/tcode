@@ -1266,6 +1266,15 @@ fn sitio_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     return tmp;
 }
 
+// Si el sitio `n` puede ser de solo lectura, y por eso la direccion que se
+// toma de el tiene que salir `const T*`: una `T*` no acepta una `const T*`.
+// Un prestamo con nombre lo es; un campo o un indice lo heredan de donde
+// cuelgan. En un `if` o en un `match` BASTA con que lo sea UNA rama o UN
+// brazo —la otra direccion, si es escribible, entra en `const T*` sin queja—,
+// y por eso se pregunta rama a rama en vez de sobre el valor entero. Los tres
+// sitios que declaran un puntero de prestamo —`indice_c`,
+// `direccion_de_condicional` y `match_valor`, todos por `tipo_del_prestamo`—
+// preguntan esto mismo.
 fn sitio_solo_lectura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     let clase = n.clase;
     if clase == Clase.Variable {
@@ -1278,6 +1287,28 @@ fn sitio_solo_lectura(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     }
     if (clase == Clase.Campo || clase == Clase.Indice) && n.hijos.largo() > 0 {
         return sitio_solo_lectura(s, n.hijos[0], tipos);
+    }
+    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
+        if sitio_solo_lectura(s, n.hijos[1], tipos) { return true; }
+        return sitio_solo_lectura(s, n.hijos[2], tipos);
+    }
+    if clase == Clase.Match {
+        var k = 1;
+        while k < n.hijos.largo() {
+            if brazo_solo_lectura(s, n.hijos[k], tipos) { return true; }
+            k = k + 1;
+        }
+    }
+    return false;
+}
+
+// Si el brazo de un `match` da un sitio que puede ser de solo lectura. Como
+// `brazo_leido`, pero con `sitio_solo_lectura`.
+fn brazo_solo_lectura(s: &Sitio, brazo: &P.Nodo, tipos: &I.Contexto) -> bool {
+    for h en brazo.hijos {
+        if h.clase == Clase.Retorno && h.hijos.largo() == 1 {
+            return sitio_solo_lectura(s, h.hijos[0], tipos);
+        }
     }
     return false;
 }
@@ -1296,14 +1327,11 @@ fn indice_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
 
     // La direccion del contenedor se evalua una sola vez, aun cuando `sitio`
     // sea otro indice con efectos. La coma secuencia esa evaluacion y el [0]
-    // final deja un sitio asignable en C.
+    // final deja un sitio asignable en C. El puntero sale `const` cuando lo
+    // indexado es un prestamo de solo lectura: lo dice `tipo_del_prestamo`,
+    // que es la unica decision de `const` de los tres sitios que prestan.
     let ptr = nuevo_temporal(b);
-    let tc = tipo_c(base);
-    if sitio_solo_lectura(s, n.hijos[0], tipos) {
-        emitir(b, $"const {tc}* {ptr};");
-    } else {
-        emitir(b, $"{tc}* {ptr};");
-    }
+    emitir(b, $"{tipo_del_prestamo(base, s, n.hijos[0], tipos)} {ptr};");
 
     var cuantos = vacio();
     if T.es_lista(base) {
@@ -2182,13 +2210,16 @@ fn direccion_pura(n: &P.Nodo) -> bool {
     return false;
 }
 
-// El tipo en C de lo que devuelve `direccion_del_sitio`: la direccion de un
-// valor con duenio, o el prestamo tal cual cuando el valor ya es un puntero.
-fn tipo_del_prestamo(t: view) -> str {
+// El tipo en C del puntero a lo que da `direccion_del_sitio`: la direccion de
+// un valor con duenio —`T*`— o, si lo apuntado puede ser de solo lectura,
+// `const T*`. La decision es UNA y es `sitio_solo_lectura`: los tres sitios
+// que declaran un puntero de prestamo —`indice_c`,
+// `direccion_de_condicional` y `match_valor`— preguntan aqui. Cuando `t` ya
+// es un puntero —un prestamo con nombre— sale tal cual, que su `const` ya lo
+// decidio el tipo.
+fn tipo_del_prestamo(t: view, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     if T.es_referencia(t) { return tipo_c(t); }
-    var r = tipo_c(t);
-    r.empujar("*");
-    return r;
+    return tipo_c_prestamo(t, !sitio_solo_lectura(s, n, tipos));
 }
 
 // La direccion de la rama de un condicional leido. Si el comprobador la leyo
@@ -2244,7 +2275,7 @@ fn direccion_de_condicional(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         }
     }
     let ptr = nuevo_temporal(b);
-    emitir(b, $"{tipo_del_prestamo(t)} {ptr} = NULL;");
+    emitir(b, $"{tipo_del_prestamo(t, s, n, tipos)} {ptr} = NULL;");
     let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
     if es_desconocido(cond) { return no_se(); }
     emitir(b, $"if ({cond})");
@@ -5785,7 +5816,7 @@ fn match_valor(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo, tipos: mut I.Contexto,
             }
         }
         let ptr = nuevo_temporal(b);
-        emitir(b, $"{tipo_del_prestamo(t)} {ptr} = NULL;");
+        emitir(b, $"{tipo_del_prestamo(t, s, n, tipos)} {ptr} = NULL;");
         if !match_c(b, s, n, tipos, retorno, falible, ptr, true, vista(propio)) {
             return no_se();
         }

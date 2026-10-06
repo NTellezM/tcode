@@ -14,9 +14,13 @@ Los segundos dependen de la máquina; las razones mucho menos. Por eso
 `bench/limites.json` guarda razones:
 
 - **Tcode / C** en cada caso con C a mano, con `-O2` y con `-O3`.
-- **El compilador**: lo que tarda `tcodec` en escribir su propio C, en
-  *unidades* — el tiempo del caso `aritmetica` en C a mano con `-O2`, medido
-  en la misma máquina y en la misma pasada.
+- **El compilador**: lo que tarda `tcodec` en escribir su propio C **contra el
+  compilador de referencia** —la semilla fijada en `bench/referencia/tcodec.c`,
+  construida en la misma máquina y en la misma pasada—. El límite es una razón
+  (1,25), no un número absoluto: antes se dividía por el C de `aritmetica`, que
+  dura ~0,15 s, y eso es tan pequeño que el número salía distinto en cada
+  equipo. Fijar la referencia hace que el límite signifique lo mismo en la CI
+  que en local.
 
 `make bench-comprobar` corre en la CI completa. Si un cambio hace el código
 generado o el compilador más lento que su límite, falla; si la mejora es
