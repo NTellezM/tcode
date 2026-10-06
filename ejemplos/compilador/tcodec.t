@@ -2402,6 +2402,44 @@ fn dueno_de_funcion(d: &P.Nodo, tipos: &I.Contexto) -> str {
     return copiar(d.texto);
 }
 
+// Las lecturas que dejo el comprobador, ya separadas por dueno: el mapa de
+// cada funcion, para que al escribir una funcion se copien solo las suyas y
+// no las de todo el programa. Con el mapa entero, copiarlo en cada `Sitio`
+// costaba mas que compilar.
+struct IndiceLecturas {
+    // dueno -> su sitio en `mapas`.
+    puestos: map<str, usize>,
+    // Por sitio, las claves `dueno#id` de las lecturas de ese dueno.
+    mapas: list<map<str, usize>>,
+}
+
+fn indice_lecturas(claves: &list<str>) -> IndiceLecturas {
+    var ix = IndiceLecturas { puestos: [], mapas: [] };
+    for clave en claves {
+        // El dueno no lleva `#`: el primero separa el nombre del id.
+        let corte = buscar_desde(clave, "#", 0);
+        if corte >= clave.largo() { continue; }
+        let dueno = rebanar(clave, 0, corte);
+        var p = 0;
+        if tiene(ix.puestos, dueno) {
+            p = obtener(ix.puestos, dueno) sino 0;
+        } else {
+            let vacio_m: map<str, usize> = [];
+            ix.mapas.anadir(vacio_m);
+            p = ix.mapas.largo() - 1;
+            poner(ix.puestos, dueno, p);
+        }
+        poner(ix.mapas[p], clave, 1);
+    }
+    return ix;
+}
+
+fn lecturas_de(ix: &IndiceLecturas, dueno: view) -> map<str, usize> {
+    if !tiene(ix.puestos, dueno) { let vacio_m: map<str, usize> = []; return vacio_m; }
+    let p = obtener(ix.puestos, dueno) sino 0;
+    return copiar(ix.mapas[p]);
+}
+
 // Las funciones de las clausuras, el modulo de cada una y el indice de cada
 // nombre en C.
 struct Cierres {
@@ -2413,7 +2451,7 @@ struct Cierres {
     // Los campos que el comprobador vio sacar de su struct.
     sacados: map<str, usize>,
     // Los nodos que el comprobador leyo en vez de mover, por `dueno#id`.
-    lecturas: map<str, usize>,
+    lecturas: IndiceLecturas,
 }
 
 // Escribe en borrador cada copia pedida que no se haya visto, primero las
@@ -2454,8 +2492,8 @@ fn descubrir(pedidos: &list<str>, arboles: &list<P.Nodo>,
             let de = cierres.modulo[k];
             var borrador_c = F.cuenta_nueva();
             borrador_c.sacados = copiar(cierres.sacados);
-            borrador_c.lecturas = copiar(cierres.lecturas);
             borrador_c.dueno = copiar(cierres.fns[k].texto);
+            borrador_c.lecturas = lecturas_de(cierres.lecturas, borrador_c.dueno);
             let lineas_c = F.generar_funcion(cierres.fns[k], contextos[de],
                 vista(modulos[de]), borrador_c);
             if lineas_c.largo() == 0 {
@@ -2479,8 +2517,8 @@ fn descubrir(pedidos: &list<str>, arboles: &list<P.Nodo>,
         let copia = nodo_instancia(p, arboles, plantillas, cierres.numeracion);
         var borrador = F.cuenta_nueva();
         borrador.sacados = copiar(cierres.sacados);
-        borrador.lecturas = copiar(cierres.lecturas);
         borrador.dueno = dueno_de_pedido(p);
+        borrador.lecturas = lecturas_de(cierres.lecturas, borrador.dueno);
         let lineas = F.generar_funcion(copia, contextos[de], modulos[de], borrador);
         if lineas.largo() == 0 {
             let _r = rechazo(sitio(modulos[de], copia.linea),
@@ -3332,7 +3370,7 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
     modulos: &list<str>, instancias: &list<P.Nodo>,
     modulo_de: &list<usize>, duenos_inst: &list<str>,
     orden_inst: &list<str>, orden_copias_revision: &list<str>,
-    cta: mut F.Cuenta) -> FuncionesGeneradas {
+    lecturas: &IndiceLecturas, cta: mut F.Cuenta) -> FuncionesGeneradas {
     var protos: list<str> = [];
     var cuerpos: list<str> = [];
     var anchos: map<str, usize> = [];
@@ -3346,6 +3384,7 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
         for d en arboles[i].hijos {
             if d.clase != Clase.Fn || F.es_generica(d) { continue; }
             cta.dueno = dueno_de_funcion(d, contextos[i]);
+            cta.lecturas = lecturas_de(lecturas, cta.dueno);
             if !emitir_funcion(d, contextos[i], vista(modulos[i]), cta, protos,
                 cuerpos, anchos, decimales, conversiones) {
                 return FuncionesGeneradas { ok: false, protos: [], cuerpos: [],
@@ -3378,6 +3417,7 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
         if !igual(modulos[de], ultima_ruta) { cta.ultima_linea = 0; }
         ultima_ruta = copiar(modulos[de]);
         cta.dueno = copiar(duenos_inst[k_o]);
+        cta.lecturas = lecturas_de(lecturas, cta.dueno);
         if !emitir_funcion(instancias[k_o], contextos[de], vista(modulos[de]),
             cta, protos, cuerpos, anchos, decimales, conversiones) {
             return FuncionesGeneradas { ok: false, protos: [], cuerpos: [],
@@ -3743,12 +3783,10 @@ fn preparar_cierres(revision: &C.Revision, arboles: mut list<P.Nodo>,
     contextos: mut list<I.Contexto>, global: mut I.Contexto) -> Cierres {
     var sacados: map<str, usize> = [];
     for x en revision.sacados { poner(sacados, vista(x), 1); }
-    var lecturas: map<str, usize> = [];
-    for x en revision.lecturas { poner(lecturas, vista(x), 1); }
     var cierres = Cierres { fns: copiar(revision.cierres),
         modulo: copiar(revision.cierres_mod), indice: [],
         numeracion: copiar(revision.numeracion), sacados: sacados,
-        lecturas: lecturas };
+        lecturas: indice_lecturas(revision.lecturas) };
     var m_c = 0;
     while m_c < arboles.largo() {
         var k_d = 0;
@@ -3849,8 +3887,8 @@ fn preparar_instancias(revision: &C.Revision, arboles: &list<P.Nodo>,
             if d.clase != Clase.Fn || F.es_generica(d) { continue; }
             var borrador = F.cuenta_nueva();
             borrador.sacados = copiar(cierres.sacados);
-            borrador.lecturas = copiar(cierres.lecturas);
             borrador.dueno = dueno_de_funcion(d, contextos[k_desc]);
+            borrador.lecturas = lecturas_de(cierres.lecturas, borrador.dueno);
             let escritas = F.generar_funcion(d, contextos[k_desc],
                 vista(modulos[k_desc]), borrador);
             if escritas.largo() == 0 { continue; }
@@ -3956,7 +3994,6 @@ fn generar_soporte(raiz: view, arboles: &list<P.Nodo>, global: &I.Contexto,
     for n en st_nombres { visitar_struct(n, st_indice, st_tipos, listos, orden); }
     var cta = F.cuenta_nueva();
     cta.sacados = copiar(cierres.sacados);
-    cta.lecturas = copiar(cierres.lecturas);
 
     var partes: list<str> = [];
     let adelantados = declarar_tipos(partes, st_nombres, en_nombres, en_variantes, reg);
@@ -4382,7 +4419,8 @@ fn main() -> usize ! {
     var cta = copiar(soporte.cta);
 
     let funciones = generar_funciones(arboles, contextos, modulos, instancias,
-        modulo_de, duenos_inst, orden_inst, revision.orden_copias, cta);
+        modulo_de, duenos_inst, orden_inst, revision.orden_copias,
+        cierres.lecturas, cta);
     if !funciones.ok { return 1; }
     let protos = copiar(funciones.protos);
     let cuerpos = copiar(funciones.cuerpos);
