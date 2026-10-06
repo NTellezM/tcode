@@ -777,6 +777,7 @@ graph TD
         compilador_lib_tipos__valor_de_mapa["valor_de_mapa · tipos.t"]
         lexer_lib_lexico__cierre_de_hueco["cierre_de_hueco · lexico.t"]
         lexer_lib_sintaxis__desescapar["desescapar · sintaxis.t"]
+        lexer_lib_sintaxis__es_lugar["es_lugar · sintaxis.t"]
         lexer_lib_sintaxis__hoja["hoja · sintaxis.t"]
         lexer_lib_sintaxis__rama["rama · sintaxis.t"]
         std_texto__contiene["contiene · std/texto"]
@@ -847,6 +848,7 @@ graph TD
     compilador_lib_generar__declaracion_c --> compilador_lib_tipos__es_referencia
     compilador_lib_generar__declaracion_c --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__descartar_c --> compilador_lib_tipar__posee_con_formas
+    compilador_lib_generar__descartar_c --> lexer_lib_sintaxis__es_lugar
     compilador_lib_generar__entrega_suelta --> compilador_lib_tipar__posee_con_formas
     compilador_lib_generar__entrega_suelta --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__entrega_suelta --> compilador_lib_tipos__escribir_tipo

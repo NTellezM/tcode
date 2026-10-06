@@ -5272,8 +5272,18 @@ fn atrapar_c(b: mut Cuerpo, tipos: mut I.Contexto, base: view, variante: view,
 // ese valor tenia duenio, este es el sitio donde se devuelve: `try
 // espera(...)` como sentencia tira el `str` que devuelve, y nadie mas lo iba
 // a soltar.
+//
+// Un sitio —una variable, un campo, un elemento— no es un valor recien
+// hecho: leerlo y tirarlo no lo mueve. La memoria sigue siendo de quien lo
+// declaro, y ese la suelta al cerrar su bloque. Soltarla aqui dejaria el
+// sitio apuntando a memoria ya libre, que al cerrar el bloque se soltaria
+// otra vez: `p.s;` con `p: P` daba un doble `free`.
 fn descartar_c(b: mut Cuerpo, tipos: &I.Contexto, hecha: view, n: &P.Nodo) {
     let x = n.clase;
+    if P.es_lugar(n) {
+        if hecha.largo() > 0 { emitir(b, $"(void) ({hecha});"); }
+        return;
+    }
     let t = tipo_suelto(n, tipos);
     if hecha.largo() > 0 && t.largo() > 0 && t != "()"
     && I.posee_con_formas(tipos, t) {

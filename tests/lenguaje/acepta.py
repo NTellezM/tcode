@@ -1706,6 +1706,32 @@ fn main() {
         }''',
      "3 98 1\n"),
 
+    # Descartar una lectura no mueve: una variable, un campo o un elemento
+    # con duenio siguen siendo de su sitio, y el `(void)` no los suelta. El
+    # generador los copiaba a un temporal y soltaba el temporal, dejando el
+    # sitio colgando: `p.s;` daba un doble `free` al cerrar el bloque (y un
+    # uso despues de liberar al volver a leer el campo). Es la regla de
+    # `descartar_c`: solo se devuelve lo que nace sin sitio, como el `str`
+    # que da una llamada.
+    ("descartar una lectura de un sitio no lo mueve ni lo suelta",
+     '''struct P { s: str, n: usize }
+        fn hacer() -> P { return P { s: nuevo("t"), n: 7 }; }
+        fn main() {
+            let p = P { s: nuevo("a"), n: 1 };
+            p.s;
+            p.n;
+            imprimir($"{p.s} {p.n}\\n");
+            let xs: list<str> = [nuevo("b"), nuevo("c")];
+            xs[0];
+            imprimir($"{xs[0]} {xs[1]}\\n");
+            let s = nuevo("d");
+            s;
+            imprimir($"{s}\\n");
+            hacer().s;
+            imprimir("ok\\n");
+        }''',
+     "a 1\nb c\nd\nok\n"),
+
     ("un temporal dentro de lo que se devuelve no se filtra",
      '''use "std/texto";
         fn etiqueta(v: view) -> str { return $"[{rellenar(v, 8)}]"; }
