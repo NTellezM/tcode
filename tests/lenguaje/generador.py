@@ -31,6 +31,13 @@ cualquier cosa —el genero de comprobacion que no comprueba nada—. Y el terce
 es ademas el caso que distingue el gate **por rama** del gate por nodo entero:
 `if (if c { p } else { q }).n == 1` se lee entero, pero cada rama posee su
 memoria, y un gate por nodo —el que habia antes de `1c01c15`— lo rechazaba.
+
+Y hay un cuarto control, el de la ultima valvula: cuando la condicion **es**
+un `if` como valor y la entrega esta en una de sus ramas, esa rama la apaga el
+propio emisor del valor (`si_expr_c`, con `apagar_lo_de_rama`), asi que la
+sentencia si se sabe escribir. La valvula mira solo lo que corre siempre —la
+condicion de ese valor—: con la entrega ahi, en cambio, no hay quien apague la
+bandera y el generador sigue negandose.
 """
 
 import os
@@ -77,6 +84,19 @@ VALVULA = [
      ' let q = P { s: nuevo("b"), n: 2 };'
      ' if usa(if c { p } else { q }) { imprimir("si"); } }',
      "tcodec no sabe escribir esta si de `main`"),
+
+    # El control del caso de ACEPTA «la condicion de un `si` con una llamada
+    # que mueve en una rama»: alli la entrega esta en una RAMA del `if` como
+    # valor, y el emisor de ese valor (`si_expr_c`) apaga la bandera en la
+    # rama que se tomo. Aqui la entrega esta en la CONDICION del valor, que
+    # corre siempre y no la apaga nadie: el generador tiene que seguir
+    # negandose, o el programa suelta dos veces lo que la llamada se llevo.
+    ("mover la condicion del `if` que es la condicion",
+     'struct P { s: str, n: usize }'
+     ' fn usa(p: P) -> bool { return p.n == 1; }'
+     ' fn main() { let p = P { s: nuevo("a"), n: 1 };'
+     ' if if usa(p) { true } else { false } { imprimir("si"); } }',
+     "tcodec no sabe escribir esta si de `main`"),
 ]
 
 # Las mismas formas, con una condicion que solo se lee: compilan y corren.
@@ -119,6 +139,18 @@ CONTROLES = [
      ' let r = R { n: 2 };'
      ' if (if c { p } else { toma(r) }).n == 1 { imprimir("uno\\n"); } }',
      "uno\n"),
+
+    # El control del ultimo caso de la valvula: la entrega esta en una rama
+    # del `if` como valor que es la condicion, y el emisor de ese valor apaga
+    # la bandera en la rama que se tomo. `mueve_algo` miraba las ramas y lo
+    # vetaba; ahora mira solo lo que corre siempre, y este tiene que salir.
+    ("la condicion de un `si` con una llamada que mueve en una rama",
+     'struct P { s: str, n: usize }'
+     ' fn usa(p: P) -> bool { return p.n == 1; }'
+     ' fn main() { let c = true;'
+     ' let p = P { s: nuevo("a"), n: 1 };'
+     ' if if c { usa(p) } else { true } { imprimir("si\\n"); } }',
+     "si\n"),
 ]
 
 

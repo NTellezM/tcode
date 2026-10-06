@@ -672,6 +672,7 @@ graph TD
         compilador_lib_generar__declaracion_c["declaracion_c"]
         compilador_lib_generar__descartar_c["descartar_c"]
         compilador_lib_generar__direccion_de_condicional["direccion_de_condicional"]
+        compilador_lib_generar__entrega_grabada["entrega_grabada"]
         compilador_lib_generar__entrega_suelta["entrega_suelta"]
         compilador_lib_generar__enum_lit_c["enum_lit_c"]
         compilador_lib_generar__es_puntero["es_puntero"]
@@ -858,6 +859,9 @@ graph TD
     compilador_lib_generar__direccion_de_condicional --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__direccion_de_condicional --> compilador_lib_tipos__es_referencia
     compilador_lib_generar__direccion_de_condicional --> compilador_lib_tipos__escribir_tipo
+    compilador_lib_generar__entrega_grabada --> compilador_lib_tipar__posee_con_formas
+    compilador_lib_generar__entrega_grabada --> compilador_lib_tipar__tipo_de
+    compilador_lib_generar__entrega_grabada --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__entrega_suelta --> compilador_lib_tipar__posee_con_formas
     compilador_lib_generar__entrega_suelta --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__entrega_suelta --> compilador_lib_tipos__escribir_tipo

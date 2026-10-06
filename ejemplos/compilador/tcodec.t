@@ -2409,15 +2409,15 @@ fn dueno_de_funcion(d: &P.Nodo, tipos: &I.Contexto) -> str {
 //
 // Sirve para los dos sentidos de la misma decision —las lecturas y las
 // movidas—: el canal es uno, y lo unico que cambia es de donde sale la lista.
-struct IndiceLecturas {
+struct IndiceClaves {
     // dueno -> su sitio en `mapas`.
     puestos: map<str, usize>,
     // Por sitio, las claves `dueno#id` de ese dueno.
     mapas: list<map<str, usize>>,
 }
 
-fn indice_lecturas(claves: &list<str>) -> IndiceLecturas {
-    var ix = IndiceLecturas { puestos: [], mapas: [] };
+fn indice_claves(claves: &list<str>) -> IndiceClaves {
+    var ix = IndiceClaves { puestos: [], mapas: [] };
     for clave en claves {
         // El dueno no lleva `#`: el primero separa el nombre del id.
         let corte = buscar_desde(clave, "#", 0);
@@ -2437,7 +2437,7 @@ fn indice_lecturas(claves: &list<str>) -> IndiceLecturas {
     return ix;
 }
 
-fn lecturas_de(ix: &IndiceLecturas, dueno: view) -> map<str, usize> {
+fn claves_de(ix: &IndiceClaves, dueno: view) -> map<str, usize> {
     if !tiene(ix.puestos, dueno) { let vacio_m: map<str, usize> = []; return vacio_m; }
     let p = obtener(ix.puestos, dueno) sino 0;
     return copiar(ix.mapas[p]);
@@ -2454,9 +2454,9 @@ struct Cierres {
     // Los campos que el comprobador vio sacar de su struct.
     sacados: map<str, usize>,
     // Los nodos que el comprobador leyo en vez de mover, por `dueno#id`.
-    lecturas: IndiceLecturas,
+    lecturas: IndiceClaves,
     // Y los que movio: el mismo canal, la otra cara.
-    movidas: IndiceLecturas,
+    movidas: IndiceClaves,
 }
 
 // Escribe en borrador cada copia pedida que no se haya visto, primero las
@@ -2498,8 +2498,8 @@ fn descubrir(pedidos: &list<str>, arboles: &list<P.Nodo>,
             var borrador_c = F.cuenta_nueva();
             borrador_c.sacados = copiar(cierres.sacados);
             borrador_c.dueno = copiar(cierres.fns[k].texto);
-            borrador_c.lecturas = lecturas_de(cierres.lecturas, borrador_c.dueno);
-            borrador_c.movidas = lecturas_de(cierres.movidas, borrador_c.dueno);
+            borrador_c.lecturas = claves_de(cierres.lecturas, borrador_c.dueno);
+            borrador_c.movidas = claves_de(cierres.movidas, borrador_c.dueno);
             let lineas_c = F.generar_funcion(cierres.fns[k], contextos[de],
                 vista(modulos[de]), borrador_c);
             if lineas_c.largo() == 0 {
@@ -2524,8 +2524,8 @@ fn descubrir(pedidos: &list<str>, arboles: &list<P.Nodo>,
         var borrador = F.cuenta_nueva();
         borrador.sacados = copiar(cierres.sacados);
         borrador.dueno = dueno_de_pedido(p);
-        borrador.lecturas = lecturas_de(cierres.lecturas, borrador.dueno);
-        borrador.movidas = lecturas_de(cierres.movidas, borrador.dueno);
+        borrador.lecturas = claves_de(cierres.lecturas, borrador.dueno);
+        borrador.movidas = claves_de(cierres.movidas, borrador.dueno);
         let lineas = F.generar_funcion(copia, contextos[de], modulos[de], borrador);
         if lineas.largo() == 0 {
             let _r = rechazo(sitio(modulos[de], copia.linea),
@@ -3377,7 +3377,7 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
     modulos: &list<str>, instancias: &list<P.Nodo>,
     modulo_de: &list<usize>, duenos_inst: &list<str>,
     orden_inst: &list<str>, orden_copias_revision: &list<str>,
-    lecturas: &IndiceLecturas, movidas: &IndiceLecturas,
+    lecturas: &IndiceClaves, movidas: &IndiceClaves,
     cta: mut F.Cuenta) -> FuncionesGeneradas {
     var protos: list<str> = [];
     var cuerpos: list<str> = [];
@@ -3392,8 +3392,8 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
         for d en arboles[i].hijos {
             if d.clase != Clase.Fn || F.es_generica(d) { continue; }
             cta.dueno = dueno_de_funcion(d, contextos[i]);
-            cta.lecturas = lecturas_de(lecturas, cta.dueno);
-            cta.movidas = lecturas_de(movidas, cta.dueno);
+            cta.lecturas = claves_de(lecturas, cta.dueno);
+            cta.movidas = claves_de(movidas, cta.dueno);
             if !emitir_funcion(d, contextos[i], vista(modulos[i]), cta, protos,
                 cuerpos, anchos, decimales, conversiones) {
                 return FuncionesGeneradas { ok: false, protos: [], cuerpos: [],
@@ -3426,8 +3426,8 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
         if !igual(modulos[de], ultima_ruta) { cta.ultima_linea = 0; }
         ultima_ruta = copiar(modulos[de]);
         cta.dueno = copiar(duenos_inst[k_o]);
-        cta.lecturas = lecturas_de(lecturas, cta.dueno);
-        cta.movidas = lecturas_de(movidas, cta.dueno);
+        cta.lecturas = claves_de(lecturas, cta.dueno);
+        cta.movidas = claves_de(movidas, cta.dueno);
         if !emitir_funcion(instancias[k_o], contextos[de], vista(modulos[de]),
             cta, protos, cuerpos, anchos, decimales, conversiones) {
             return FuncionesGeneradas { ok: false, protos: [], cuerpos: [],
@@ -3796,8 +3796,8 @@ fn preparar_cierres(revision: &C.Revision, arboles: mut list<P.Nodo>,
     var cierres = Cierres { fns: copiar(revision.cierres),
         modulo: copiar(revision.cierres_mod), indice: [],
         numeracion: copiar(revision.numeracion), sacados: sacados,
-        lecturas: indice_lecturas(revision.lecturas),
-        movidas: indice_lecturas(revision.movidas) };
+        lecturas: indice_claves(revision.lecturas),
+        movidas: indice_claves(revision.movidas) };
     var m_c = 0;
     while m_c < arboles.largo() {
         var k_d = 0;
@@ -3899,8 +3899,8 @@ fn preparar_instancias(revision: &C.Revision, arboles: &list<P.Nodo>,
             var borrador = F.cuenta_nueva();
             borrador.sacados = copiar(cierres.sacados);
             borrador.dueno = dueno_de_funcion(d, contextos[k_desc]);
-            borrador.lecturas = lecturas_de(cierres.lecturas, borrador.dueno);
-            borrador.movidas = lecturas_de(cierres.movidas, borrador.dueno);
+            borrador.lecturas = claves_de(cierres.lecturas, borrador.dueno);
+            borrador.movidas = claves_de(cierres.movidas, borrador.dueno);
             let escritas = F.generar_funcion(d, contextos[k_desc],
                 vista(modulos[k_desc]), borrador);
             if escritas.largo() == 0 { continue; }

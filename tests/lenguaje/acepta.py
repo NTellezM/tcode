@@ -1898,6 +1898,35 @@ fn main() {
         }''',
      "2 a b\n"),
 
+    # Y la condicion no solo puede LEER: si es un `if` como valor, una rama
+    # puede ENTREGAR —`usa(p)` se queda con `p`—. El comprobador lo graba como
+    # movimiento, y el emisor de ese valor (`si_expr_c`) apaga la bandera en la
+    # rama que se tomo. `mueve_algo` miraba las ramas y vetaba la sentencia
+    # entera con `tcodec no sabe escribir esta si`. Lo que sigue vetado es la
+    # entrega en la condicion DEL valor, que corre siempre (ver GENERADOR).
+    ("la condicion de un `si` con una llamada que mueve en una rama",
+     '''struct P { s: str, n: usize }
+        fn usa(p: P) -> bool { return p.n == 1; }
+        fn main() {
+            let c = true;
+            let p = P { s: nuevo("a"), n: 1 };
+            if if c { usa(p) } else { true } { imprimir("si\\n"); }
+        }''',
+     "si\n"),
+
+    ("la condicion de un `mientras` con una llamada que mueve en una rama",
+     '''struct P { s: str, n: usize }
+        fn usa(p: P) -> bool { return p.n == 1; }
+        fn main() {
+            var c = true;
+            let p = P { s: nuevo("a"), n: 1 };
+            while if c { usa(p) } else { false } {
+                c = false;
+                imprimir("u\\n");
+            }
+        }''',
+     "u\n"),
+
     # Un `if` o un `match` sobre prestamos de solo lectura que se indexa: la
     # direccion de la rama es `const T*`, asi que el puntero con el que se
     # indexa —y el que deja el propio condicional o el `match`— tiene que ser

@@ -563,11 +563,13 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     let es_main = d.texto == "main";
 
     // Quien se entrega por algun camino lleva bandera. Se decide antes de
-    // emitir nada, porque la bandera nace pegada a la declaracion.
+    // emitir nada, porque la bandera nace pegada a la declaracion. Lo que se
+    // entrega no se deduce aqui: es lo que grabo el comprobador, que viaja en
+    // `cta.movidas`.
     var movidas: list<str> = [];
     for h en d.hijos {
         if h.clase == Clase.Bloque {
-            G.movidas_hondo(cta.lecturas, puntos, h, tipos, movidas);
+            G.movidas_hondo(cta.lecturas, cta.movidas, puntos, h, tipos, movidas);
         }
     }
     var banderas: map<str, usize> = [];
