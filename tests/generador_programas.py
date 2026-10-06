@@ -17,6 +17,14 @@ Las sentencias salen en fases —declarar, mutar, leer— porque asi ningun
 prestamo vivo se cruza con una mutacion. Eso no prueba el comprobador de
 prestamos (para eso estan los casos de rechazo), prueba que el generador de
 codigo no filtra ni libera de mas.
+
+La fase de leer incluye, ademas, las lecturas que atraviesan un `if` o un
+`match` como valor —`largo(if c { xs } else { ys })`, `for x en if ...`,
+`(if c { p } else { q }).campo`, `match if c { a } else { b } { ... }`, y la
+mixta— con duenio y usando la variable **despues**. Esa es la zona por la
+que salieron los defectos de memoria del generador de C, y la que casi no
+se tocaba: alli la rama se presta, no se mueve, y el duenio tiene que
+llegar entero a la sentencia siguiente (`lecturas_por_condicional`).
 """
 
 import random
@@ -29,6 +37,7 @@ class Generador:
     def __init__(self, semilla):
         self.r = random.Random(semilla)
         self.structs = []
+        self.enums = []
         self.funciones = []
 
     # ---------- utilidades ----------
@@ -101,6 +110,10 @@ class Generador:
         vars_usize, vars_bool, vars_str = [], [], []
         vars_struct = []          # (nombre, tipo) para poder prestarlos
         vars_usize_puros = []     # variables usize sueltas, no campos
+        vars_lista_duenia = []    # `list<str>`: cada elemento es un duenio
+        vars_lista_simple = []    # `list<usize>`: copiable, no posee nada
+        vars_mapa = []            # `map<str, usize>`
+        vars_enum = []            # (nombre, descripcion del enum)
         n = [0]
 
         def nombre(p):
@@ -130,20 +143,42 @@ class Generador:
                 lineas.append(f'{s}var {v}{anota} = nuevo("{self.palabra()}");')
                 vars_str.append(v)
 
-        if self.structs and self.r.random() < 0.5:
-            st = self.r.choice(self.structs)
-            v = nombre("e")
-            campos = ", ".join(
-                f"{c}: {self.expr_usize(vars_usize)}" for c in st["campos"])
-            if st.get("texto"):
-                campos = campos + f', t: nuevo("{self.palabra()}")'
-            lineas.append(f"{s}var {v}: {st['nombre']} = "
-                          f"{st['nombre']} {{ {campos} }};")
-            vars_struct.append((v, st["nombre"]))
-            for c in st["campos"]:
-                if self.r.random() < 0.4:
-                    lineas.append(f"{s}{v}.{c} = {self.expr_usize(vars_usize)};")
-                vars_usize.append(f"{v}.{c}")
+        if self.structs and self.r.random() < 0.7:
+            # Uno o dos valores: las formas de lectura que pasan por un `if`
+            # necesitan dos del mismo tipo, y con uno solo no hay condicional.
+            for _ in range(self.r.randint(1, 2)):
+                st = self.r.choice(self.structs)
+                v = nombre("e")
+                campos = ", ".join(
+                    f"{c}: {self.expr_usize(vars_usize)}" for c in st["campos"])
+                if st.get("texto"):
+                    campos = campos + f', t: nuevo("{self.palabra()}")'
+                lineas.append(f"{s}var {v}: {st['nombre']} = "
+                              f"{st['nombre']} {{ {campos} }};")
+                vars_struct.append((v, st["nombre"]))
+                for c in st["campos"]:
+                    if self.r.random() < 0.4:
+                        lineas.append(f"{s}{v}.{c} = "
+                                      f"{self.expr_usize(vars_usize)};")
+                    vars_usize.append(f"{v}.{c}")
+
+        # Un enum con duenio dentro: es lo que hace que mover un brazo de
+        # `match` se note, y lo que da escrutinio a `match if ...`. El
+        # primero siempre tiene valores: el `match` como valor lo necesita.
+        for i, e in enumerate(self.enums):
+            if i > 0 and self.r.random() >= 0.6:
+                continue
+            for _ in range(self.r.randint(1, 2)):
+                v = nombre("en")
+                rama = self.r.choice(["A", "B"])
+                if e["carga"] is None:
+                    lineas.append(f"{s}let {v}: {e['nombre']} = "
+                                  f"{e['nombre']}.{rama};")
+                else:
+                    lineas.append(f'{s}let {v}: {e["nombre"]} = '
+                                  f'{e["nombre"]}.{rama}'
+                                  f'(nuevo("{self.palabra()}"));')
+                vars_enum.append((v, e))
 
         if self.r.random() < 0.5:
             v = nombre("a")
@@ -160,6 +195,7 @@ class Generador:
             v = nombre("l")
             cuantos = self.r.randint(1, 8)
             lineas.append(f"{s}var {v}: list<usize> = [];")
+            vars_lista_simple.append(v)
             for _ in range(cuantos):
                 lineas.append(
                     f"{s}anadir({v}, {self.expr_usize(vars_usize)});")
@@ -186,6 +222,7 @@ class Generador:
             v = nombre("ls")
             cuantos = self.r.randint(1, 5)
             lineas.append(f"{s}var {v}: list<str> = [];")
+            vars_lista_duenia.append(v)
             for _ in range(cuantos):
                 if self.r.random() < 0.5:
                     lineas.append(f'{s}anadir({v}, nuevo("{self.palabra()}"));')
@@ -214,6 +251,7 @@ class Generador:
         if self.r.random() < 0.6:
             v = nombre("mp")
             lineas.append(f"{s}var {v}: map<str, usize> = [];")
+            vars_mapa.append(v)
             usadas = [self.palabra() for _ in range(self.r.randint(1, 6))]
             for k in usadas + [self.r.choice(usadas)]:
                 lineas.append(f'{s}poner({v}, "{k}", '
@@ -333,6 +371,14 @@ class Generador:
             lineas.append(f"{s}doblar({vu});")
             lineas.append(f"{s}imprimir({vu});")
 
+        # La zona que el generador casi no tocaba: una lectura con duenio que
+        # atraviesa un `if` o un `match` como valor, y el duenio usado despues.
+        lineas.extend(self.lecturas_por_condicional(s, nombre, {
+            "usize": vars_usize, "bool": vars_bool,
+            "lista_duenia": vars_lista_duenia,
+            "lista_simple": vars_lista_simple,
+            "mapa": vars_mapa, "struct": vars_struct, "enum": vars_enum}))
+
         # Cadenas interpoladas: sueltas y guardadas, con escalares y texto.
         if vars_usize and self.r.random() < 0.7:
             v = self.r.choice(vars_usize)
@@ -449,23 +495,322 @@ class Generador:
 
         return lineas, (libres[-1] if libres else None)
 
+    # ---------- lecturas que atraviesan un `if` o un `match` ----------
+
+    def lecturas_por_condicional(self, s, nombre, ctx):
+        """La zona que el generador casi no tocaba: una lectura con duenio
+        que pasa por un `if` o un `match` como valor, y **el uso del duenio
+        despues**.
+
+        La rama de un `if` o de un `match` leido se **presta**: no se mueve,
+        y la variable tiene que seguir viva y entera al acabar la sentencia.
+        Usarla despues es lo que hace visible el movimiento equivocado, que
+        es como salieron los defectos: doble `free`, uso tras liberar y
+        fugas. Cada forma se emite solo si el cuerpo declaro con que.
+        """
+        r = self.r
+        lineas = []
+        vusize, vbool = ctx["usize"], ctx["bool"]
+        listas_d = ctx["lista_duenia"]
+        listas_s = ctx["lista_simple"]
+        mapas = ctx["mapa"]
+        enums = ctx["enum"]
+
+        def cond():
+            # Con variable cuando la hay: asi las dos ramas se recorren de
+            # verdad, segun lo que valga en ejecucion, y no una sola.
+            return self.expr_bool(vusize, vbool)
+
+        def par_de(lista, tipo):
+            """Dos nombres distintos de la misma clase. Si solo hay uno, el
+            companero nace aqui, con `copiar`, y se usa en la misma forma:
+            asi no queda una declaracion sin uso, que el compilador avisa."""
+            if len(lista) >= 2:
+                return r.sample(lista, 2)
+            if len(lista) == 1:
+                y = nombre("p")
+                lineas.append(f"{s}let {y}: {tipo} = copiar({lista[0]});")
+                return [lista[0], y]
+            return None
+
+        # Structs que POSEEN memoria, por tipo: hacen falta dos del mismo
+        # tipo para que el `if` sea un condicional de verdad.
+        por_tipo = {}
+        for v, t in ctx["struct"]:
+            st = next((x for x in self.structs if x["nombre"] == t), None)
+            if st and st.get("texto"):
+                por_tipo.setdefault(t, []).append(v)
+        unitarios = [v for v, e in enums if e["carga"] is None]
+
+        # 1. `largo(if c { xs } else { ys })`, sobre una lista y sobre un
+        # mapa, y despues se recorre `xs`.
+        if r.random() < 0.7:
+            par = par_de(listas_d, "list<str>")
+            if par:
+                x, y = par
+                n1 = nombre("n")
+                lineas.append(f"{s}let {n1}: usize = "
+                              f"largo(if {cond()} {{ {x} }} else {{ {y} }});")
+                lineas.append(f"{s}imprimir({n1});")
+                lineas.append(f"{s}imprimir(largo({x}));")
+        if r.random() < 0.7:
+            par = par_de(mapas, "map<str, usize>")
+            if par:
+                x, y = par
+                n1, k1 = nombre("n"), nombre("k")
+                lineas.append(f"{s}let {n1}: usize = "
+                              f"largo(if {cond()} {{ {x} }} else {{ {y} }});")
+                lineas.append(f"{s}imprimir({n1});")
+                lineas.append(f"{s}for {k1} en {x} {{ "
+                              f"imprimir(largo(vista({k1}))); }}")
+        # La misma lectura, pero el condicional es un `match`: los brazos se
+        # prestan igual, y el duenio tiene que llegar entero detras.
+        if unitarios and r.random() < 0.6:
+            ev = r.choice(unitarios)
+            nombre_e = next(e["nombre"] for v, e in enums if v == ev)
+            par = par_de(listas_d, "list<str>")
+            if par:
+                x, y = par
+                n1 = nombre("n")
+                lineas.append(f"{s}let {n1}: usize = largo(match {ev} {{ "
+                              f"{nombre_e}.A -> {x}, {nombre_e}.B -> {y} }});")
+                lineas.append(f"{s}imprimir({n1});")
+                lineas.append(f"{s}imprimir(largo({x}));")
+
+        # 2. `for x en if c { xs } else { ys } { ... }`, y luego `xs`.
+        if r.random() < 0.7:
+            par = par_de(listas_s, "list<usize>")
+            if par:
+                x, y = par
+                acc, e2 = nombre("acc"), nombre("e")
+                lineas.append(f"{s}var {acc}: usize = 0;")
+                lineas.append(f"{s}for {e2} en if {cond()} "
+                              f"{{ {x} }} else {{ {y} }} {{")
+                lineas.append(f"{s}    {acc} = ({acc} + {e2}) % 1000;")
+                lineas.append(f"{s}}}")
+                lineas.append(f"{s}imprimir({acc});")
+                lineas.append(f"{s}imprimir({x}[0]);")
+        if r.random() < 0.7:
+            par = par_de(listas_d, "list<str>")
+            if par:
+                x, y = par
+                acc, e2 = nombre("acc"), nombre("e")
+                lineas.append(f"{s}var {acc}: usize = 0;")
+                lineas.append(f"{s}for {e2} en if {cond()} "
+                              f"{{ {x} }} else {{ {y} }} {{")
+                lineas.append(f"{s}    {acc} = {acc} + largo({e2});")
+                lineas.append(f"{s}}}")
+                lineas.append(f"{s}imprimir({acc});")
+                lineas.append(f"{s}imprimir(largo({x}));")
+        if r.random() < 0.7:
+            par = par_de(mapas, "map<str, usize>")
+            if par:
+                x, y = par
+                acc, k1, k2 = nombre("acc"), nombre("k"), nombre("k")
+                lineas.append(f"{s}var {acc}: usize = 0;")
+                lineas.append(f"{s}for {k1} en if {cond()} "
+                              f"{{ {x} }} else {{ {y} }} {{")
+                lineas.append(f"{s}    {acc} = {acc} + 1;")
+                lineas.append(f"{s}}}")
+                lineas.append(f"{s}imprimir({acc});")
+                lineas.append(f"{s}for {k2} en {x} {{ "
+                              f"imprimir(largo(vista({k2}))); }}")
+
+        # 3, 4, 5 y 7, con structs que poseen memoria: el campo de un `if`
+        # leido, guardado y descartado; la condicion de un `si` y de un
+        # `mientras`, que tambien son contexto de lectura; el `match` como
+        # valor leido; y la mixta, con una rama que es un sitio y la otra un
+        # valor recien hecho. En todas, `p` y `q` se usan despues.
+        for tipo, vs in sorted(por_tipo.items()):
+            if not vs or r.random() >= 0.85:
+                continue
+            st = next(x for x in self.structs if x["nombre"] == tipo)
+            campo = st["campos"][0]
+            pareja = list(vs)
+            if len(pareja) < 2:
+                comp = nombre("e")
+                campos = ", ".join(f"{c}: {self.num()}"
+                                   for c in st["campos"])
+                if st.get("texto"):
+                    campos += f', t: nuevo("{self.palabra()}")'
+                lineas.append(f"{s}let {comp}: {tipo} = "
+                              f"{tipo} {{ {campos} }};")
+                pareja.append(comp)
+            p, q = r.sample(pareja, 2)
+            r3 = nombre("r")
+            lineas.append(f"{s}let {r3}: usize = "
+                          f"(if {cond()} {{ {p} }} else {{ {q} }}).{campo};")
+            lineas.append(f"{s}imprimir({r3});")
+            lineas.append(f'{s}imprimir($"{{{p}.t}}");')
+            if r.random() < 0.7:
+                lineas.append(f"{s}(if {cond()} "
+                              f"{{ {p} }} else {{ {q} }}).{campo};")
+                lineas.append(f'{s}imprimir($"{{{q}.t}}");')
+            if r.random() < 0.7:
+                lineas.append(f"{s}if (if {cond()} {{ {p} }} else {{ {q} }})."
+                              f"{campo} == {p}.{campo} {{")
+                lineas.append(f'{s}    imprimir("leido");')
+                lineas.append(f"{s}}}")
+                lineas.append(f'{s}imprimir($"{{{p}.t}}");')
+            if r.random() < 0.5:
+                w = nombre("w")
+                lineas.append(f"{s}var {w}: usize = 0;")
+                lineas.append(f"{s}while {w} < 1 && (if {cond()} "
+                              f"{{ {p} }} else {{ {q} }}).{campo} == "
+                              f"{p}.{campo} {{")
+                lineas.append(f"{s}    {w} = {w} + 1;")
+                lineas.append(f"{s}}}")
+                lineas.append(f'{s}imprimir($"{{{q}.t}}");')
+            if unitarios and r.random() < 0.7:
+                ev = r.choice(unitarios)
+                nombre_e = next(e["nombre"] for v, e in enums if v == ev)
+                r6 = nombre("r")
+                lineas.append(f"{s}let {r6}: usize = leer_{tipo}(match {ev} {{ "
+                              f"{nombre_e}.A -> {p}, {nombre_e}.B -> {q} }});")
+                lineas.append(f"{s}imprimir({r6});")
+                lineas.append(f'{s}imprimir($"{{{p}.t}}");')
+                # El campo de un `match` leido, que es el mismo caso por el
+                # otro camino: el brazo se presta y `p` y `q` siguen ahi.
+                r9 = nombre("r")
+                lineas.append(f"{s}let {r9}: usize = (match {ev} {{ "
+                              f"{nombre_e}.A -> {p}, {nombre_e}.B -> {q} }})."
+                              f"{campo};")
+                lineas.append(f"{s}imprimir({r9});")
+                lineas.append(f'{s}imprimir($"{{{q}.t}}");')
+            if r.random() < 0.7:
+                r7 = nombre("r")
+                lineas.append(f"{s}let {r7}: usize = leer_{tipo}("
+                              f"if {cond()} {{ {p} }} "
+                              f"else {{ dame_{tipo}() }});")
+                lineas.append(f"{s}imprimir({r7});")
+                lineas.append(f'{s}imprimir($"{{{p}.t}}");')
+            if r.random() < 0.5:
+                r8 = nombre("r")
+                lineas.append(f"{s}let {r8}: usize = leer_{tipo}("
+                              f"if {cond()} {{ dame_{tipo}() }} "
+                              f"else {{ {p} }});")
+                lineas.append(f"{s}imprimir({r8});")
+                lineas.append(f'{s}imprimir($"{{{p}.t}}");')
+
+        # 5. `(if c { xs } else { ys })[0]`: se indexa la rama prestada. La
+        # lista es de elementos copiables, que es lo que deja indexar sin
+        # sacar nada del sitio.
+        if r.random() < 0.7:
+            par = par_de(listas_s, "list<usize>")
+            if par:
+                x, y = par
+                v5 = nombre("v")
+                lineas.append(f"{s}let {v5}: usize = "
+                              f"(if {cond()} {{ {x} }} else {{ {y} }})[0];")
+                lineas.append(f"{s}imprimir({v5});")
+                lineas.append(f"{s}imprimir({x}[0]);")
+        if unitarios and r.random() < 0.6:
+            ev = r.choice(unitarios)
+            nombre_e = next(e["nombre"] for v, e in enums if v == ev)
+            par = par_de(listas_s, "list<usize>")
+            if par:
+                x, y = par
+                v5 = nombre("v")
+                lineas.append(f"{s}let {v5}: usize = (match {ev} {{ "
+                              f"{nombre_e}.A -> {x}, {nombre_e}.B -> {y} }})[0];")
+                lineas.append(f"{s}imprimir({v5});")
+                lineas.append(f"{s}imprimir({y}[0]);")
+
+        # 6. `match if c { a } else { b } { ... }`: el escrutinio es una
+        # lectura, y el enum se vuelve a mirar despues.
+        por_enum = {}
+        for v, e in enums:
+            por_enum.setdefault(e["nombre"], []).append(v)
+        for nombre_e, vs in sorted(por_enum.items()):
+            if not vs or r.random() >= 0.8:
+                continue
+            e = next(x for x in self.enums if x["nombre"] == nombre_e)
+            pareja = list(vs)
+            if len(pareja) < 2:
+                comp, rama = nombre("en"), r.choice(["A", "B"])
+                if e["carga"] is None:
+                    lineas.append(f"{s}let {comp}: {nombre_e} = "
+                                  f"{nombre_e}.{rama};")
+                else:
+                    lineas.append(f'{s}let {comp}: {nombre_e} = '
+                                  f'{nombre_e}.{rama}'
+                                  f'(nuevo("{self.palabra()}"));')
+                pareja.append(comp)
+            a, b = r.sample(pareja, 2)
+            if e["carga"] is None:
+                linea_a = f'{s}    {nombre_e}.A -> imprimir("aa"),'
+                linea_b = f'{s}    {nombre_e}.B -> imprimir("bb"),'
+            else:
+                b1, b2 = nombre("b"), nombre("b")
+                linea_a = (f'{s}    {nombre_e}.A({b1}) -> '
+                           f"imprimir(largo({b1})),")
+                linea_b = (f'{s}    {nombre_e}.B({b2}) -> '
+                           f"imprimir(largo({b2})),")
+            lineas.append(f"{s}match if {cond()} {{ {a} }} else {{ {b} }} {{")
+            lineas.append(linea_a)
+            lineas.append(linea_b)
+            lineas.append(f"{s}}}")
+            if e["carga"] is None:
+                otra = f'{s}    {nombre_e}.A -> imprimir("aa"),'
+            else:
+                b3 = nombre("b")
+                otra = (f'{s}    {nombre_e}.A({b3}) -> '
+                        f"imprimir(largo({b3})),")
+            lineas.append(f"{s}match {a} {{")
+            lineas.append(otra)
+            lineas.append(linea_b)
+            lineas.append(f"{s}}}")
+
+        # 7, con una lista: una rama es el sitio y la otra una copia recien
+        # hecha. Es la mixta de la coleccion, como la de los structs.
+        if listas_d and r.random() < 0.5:
+            x = r.choice(listas_d)
+            copia, n7 = nombre("ls"), nombre("n")
+            lineas.append(f"{s}let {copia}: list<str> = copiar({x});")
+            lineas.append(f"{s}let {n7}: usize = "
+                          f"largo(if {cond()} {{ {x} }} else {{ {copia} }});")
+            lineas.append(f"{s}imprimir({n7});")
+            lineas.append(f"{s}imprimir(largo({x}));")
+
+        return lineas
+
     # ---------- programa ----------
 
     def programa(self):
         partes = []
 
-        for k in range(self.r.randint(0, 2)):
+        for k in range(self.r.randint(1, 2)):
             campos = [f"c{j}" for j in range(self.r.randint(1, 3))]
             nombre = f"S{k}"
             # Alguno con texto dentro: asi hay structs que POSEEN memoria, y
-            # un mapa que los guarde presta en vez de copiar.
-            con_texto = self.r.random() < 0.5
+            # un mapa que los guarde presta en vez de copiar. El primero
+            # siempre: las formas de lectura con duenio lo necesitan, y sin
+            # un struct que posea no habria nada que mover ni que soltar.
+            con_texto = k == 0 or self.r.random() < 0.5
             self.structs.append({"nombre": nombre, "campos": campos,
                                  "texto": "t" if con_texto else None})
             cuerpo = ", ".join(f"{c}: usize" for c in campos)
             if con_texto:
                 cuerpo = cuerpo + ", t: str"
             partes.append(f"struct {nombre} {{ {cuerpo} }}")
+
+        # Enums: el escrutinio de un `match if ...` y los brazos de un
+        # `match` como valor necesitan variantes. Unos llevan un `str`
+        # dentro —asi el enum POSEe memoria y moverlo o liberarlo se nota—
+        # y otros no, que es lo que deja que un brazo entregue un struct. El
+        # primero va sin carga: el `match` como valor lo necesita, y asi
+        # cualquier programa con enums recorre los dos caminos.
+        for k in range(self.r.randint(0, 2)):
+            nombre = f"E{k}"
+            if k == 0:
+                carga = None
+            else:
+                carga = "str" if self.r.random() < 0.6 else None
+            self.enums.append({"nombre": nombre, "carga": carga})
+            if carga is None:
+                partes.append(f"enum {nombre} {{ A, B }}")
+            else:
+                partes.append(f"enum {nombre} {{ A({carga}), B({carga}) }}")
 
         # Funciones que reciben PRESTAMOS. Es la parte del lenguaje con mas
         # reglas —no mover lo prestado, no modificar lo compartido, no
@@ -484,6 +829,14 @@ class Generador:
                 f"fn tocar_{n}(x: mut {n}, d: usize) {{\n"
                 f"    x.{c0} = (x.{c0} + d) % 1000;\n"
                 f"}}")
+            # Un struct recien hecho: es la rama que no es un sitio, la otra
+            # mitad de la forma mixta `if c { p } else { dame_S() }`.
+            valores = ", ".join(f"{c}: {self.r.randint(0, 99)}"
+                                for c in st["campos"])
+            if st.get("texto"):
+                valores = valores + f', t: nuevo("{self.palabra()}")'
+            partes.append(
+                f"fn dame_{n}() -> {n} {{ return {n} {{ {valores} }}; }}")
 
         # Prestamos de `str`: leer sin copiar y modificar en el sitio.
         partes.append("fn medir(s: &str) -> usize { return largo(vista(s)); }")
@@ -649,6 +1002,9 @@ class Generador:
 
         # Decimales. Los valores se eligen para que ninguna operacion salga
         # de los numeros: lo que se prueba es que el C sale limpio.
+        # El unico `if` como valor de aqui es numerico y sin duenio: los que
+        # POSEEN memoria, que son los que encontraron los defectos, los pone
+        # `lecturas_por_condicional` en cada cuerpo.
         lineas.append(f"    let d_a: f64 = {self.r.randint(1, 900)}.5;")
         lineas.append(f"    let d_b: f64 = {self.r.randint(1, 90)}.25;")
         lineas.append("    let d_cual = if d_a > d_b { d_a } else { d_b };")
