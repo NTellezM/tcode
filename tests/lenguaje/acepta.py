@@ -2560,6 +2560,51 @@ fn main() {
         }''',
      "resultado respaldo\n"),
 
+    # Un `if` como valor que entrega una variable mueve la rama que se tomo:
+    # su duenio queda apagado y no la vuelve a soltar, y la otra rama sigue
+    # viva y se suelta al cerrar su bloque. Antes las dos ramas se copiaban
+    # sin transferir la propiedad, y se soltaban `r` y la variable a la vez:
+    # doble `free`.
+    ("un if como valor mueve la rama que se tomo",
+     '''struct P { s: str }
+        fn elige(c: bool) -> P {
+            var p = P { s: nuevo("a") };
+            var q = P { s: nuevo("b") };
+            return if c { p } else { q };
+        }
+        fn main() -> usize {
+            let a = elige(true);
+            let b = elige(false);
+            var s = nuevo("uno");
+            var t = nuevo("dos");
+            let r = if true { s } else { t };
+            var u = nuevo("tres");
+            var v = nuevo("cuatro");
+            var w = nuevo("");
+            w = if false { u } else { v };
+            imprimir($"{a.s} {b.s} {r} {w}\\n");
+            return 0;
+        }''',
+     "a b uno cuatro\n"),
+
+    # Lo mismo en un `match` como valor: el brazo que se tomo entrega su
+    # variable, y el que no, la deja viva para que la suelte su bloque.
+    ("un match como valor mueve el brazo que se tomo",
+     '''struct P { s: str }
+        enum E { A, B }
+        fn toma(e: E) -> P {
+            var p = P { s: nuevo("a") };
+            var q = P { s: nuevo("b") };
+            return match e { E.A -> p, E.B -> q };
+        }
+        fn main() -> usize {
+            let a = toma(E.A);
+            let b = toma(E.B);
+            imprimir($"{a.s} {b.s}\\n");
+            return 0;
+        }''',
+     "a b\n"),
+
     ("listas vacias usan el tipo de retorno y de argumento",
      '''fn vacia() -> list<usize> { return []; }
         fn contar(xs: list<usize>) -> usize { return largo(xs); }

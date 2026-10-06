@@ -2884,13 +2884,21 @@ fn movidas_de_alternativa(punteros: &map<str, usize>, n: &P.Nodo,
 }
 
 // Lo que se entrega solo por un camino dentro de la sentencia: las
-// alternativas de sus `sino`. Tambien pide bandera, aunque no lo apague la
-// sentencia.
+// alternativas de sus `sino` y las ramas de un `if` como valor. Tambien pide
+// bandera, aunque no lo apague la sentencia: quien la apaga es la rama que se
+// tomo.
 fn movidas_por_caminos(punteros: &map<str, usize>, n: &P.Nodo,
     tipos: &I.Contexto, salida: mut list<str>) {
     if n.clase == Clase.Bloque { return; }
     if n.clase == Clase.Sino && n.hijos.largo() == 2 {
         movidas_de_alternativa(punteros, n.hijos[1], tipos, salida);
+    }
+    // Las dos ramas se comprueban como caminos que se excluyen, igual que el
+    // `if` sentencia: lo que una mueve, la otra no lo ha movido. Cada una
+    // entrega por su cuenta, asi que cada una pide su bandera.
+    if n.clase == Clase.SiExpr && n.hijos.largo() == 3 {
+        movidas_de_alternativa(punteros, n.hijos[1], tipos, salida);
+        movidas_de_alternativa(punteros, n.hijos[2], tipos, salida);
     }
     for h en n.hijos { movidas_por_caminos(punteros, h, tipos, salida); }
 }
@@ -2975,6 +2983,16 @@ fn movidas_en_brazos(punteros: &map<str, usize>, n: &P.Nodo, tipos: mut I.Contex
         for x en n.hijos {
             if x.clase == Clase.Bloque {
                 movidas_hondo_en(punteros, x, tipos, salida, visibles);
+            }
+            // Un brazo que da un valor —`-> p`— entrega la variable, igual
+            // que la rama de un `if`: pide bandera para que no se suelte
+            // ademas de quien se la quedo.
+            if x.clase == Clase.Retorno && x.hijos.largo() == 1 {
+                var sueltas: list<str> = [];
+                movidas_de_alternativa(punteros, x.hijos[0], tipos, sueltas);
+                for nm en sueltas {
+                    apuntar_movida(salida, visible_en(visibles, nm));
+                }
             }
         }
     }
@@ -3832,6 +3850,20 @@ fn despues_de_dos_puntos(t: view) -> str {
 fn apagar_las_de(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) {
     var salen: list<str> = [];
     movidas_en(s.punteros, n, tipos, salen);
+    var vivas: list<str> = [];
+    for nm en salen {
+        if lleva_bandera(b, s, nm) { vivas.anadir(copiar(nm)); }
+    }
+    apagar(b, vivas);
+}
+
+// Lo que entrega la rama de un `if` como valor, o el valor de un brazo de
+// `match`, apagado dentro de la rama. Fuera no se sabe cual se tomo: apagar
+// las dos dejaria viva la que no se movio, y no apagar ninguna suelta dos
+// veces lo que se entrego. Es lo que ya hacia la alternativa de un `sino`.
+fn apagar_lo_de_rama(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) {
+    var salen: list<str> = [];
+    movidas_de_alternativa(s.punteros, n, tipos, salen);
     var vivas: list<str> = [];
     for nm en salen {
         if lleva_bandera(b, s, nm) { vivas.anadir(copiar(nm)); }
@@ -4973,6 +5005,9 @@ fn si_expr_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
         emitir(b, "{");
         b.sangria = b.sangria + 1;
         if !valor_de_rama(b, s, n.hijos[k], t, tmp, tipos) { return no_se(); }
+        // Lo que esta rama entrega —una variable que se mueve a `tmp`— queda
+        // apagado aqui: es el camino que se tomo, y su duenio ya no la suelta.
+        apagar_lo_de_rama(b, s, n.hijos[k], tipos);
         b.sangria = b.sangria - 1;
         emitir(b, "}");
         k = k + 1;
@@ -5384,6 +5419,9 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
             if destino.largo() > 0 {
                 reclamar(b, valor);
                 emitir(b, $"{destino} = {valor};");
+                // Un brazo que da valor es el camino que se tomo: lo que
+                // entrega —la variable que se mueve— queda apagado aqui.
+                apagar_lo_de_rama(b, s, h.hijos[0], tipos);
             } else {
                 // Un `match` suelto: el brazo hace, y lo que da se tira.
                 descartar_c(b, tipos, valor, h.hijos[0]);
