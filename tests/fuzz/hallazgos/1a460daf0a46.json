@@ -1,0 +1,5 @@
+{
+  "origen": "std/grafo.t",
+  "firma": "C: <sitio>: error: statement with no effect [-Werror=unused-value]",
+  "mutacion": "'.' sustituida por 'var'; borrada la pieza 'return'"
+}

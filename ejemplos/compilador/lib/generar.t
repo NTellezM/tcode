@@ -5301,7 +5301,7 @@ fn descartar_c(b: mut Cuerpo, tipos: &I.Contexto, hecha: view, n: &P.Nodo) {
     // llamada, como el `0` de un brazo, se tira con `(void)`, que es como C
     // dice que es a proposito.
     if hecha.largo() > 0 && x != Clase.Try && x != Clase.Sino {
-        if x == Clase.Llamada {
+        if x == Clase.Llamada && llamada_de_verdad_c(hecha) {
             var l = nuevo(hecha);
             l.empujar(";");
             emitir(b, l);
@@ -5309,6 +5309,38 @@ fn descartar_c(b: mut Cuerpo, tipos: &I.Contexto, hecha: view, n: &P.Nodo) {
             emitir(b, $"(void) ({hecha});");
         }
     }
+}
+
+// No toda `Clase.Llamada` acaba llamando a nadie: las internas puras —`largo`
+// de una lista, `igual` de dos enteros— se bajan a una expresion de C sin
+// llamada propia, como `((*xs).length)`, `((a == b))` o el subindice de
+// `byte(...)`. Escrita como sentencia, C la rechaza con `-Wunused-value`, que
+// mira la operacion de fuera y no lo que haya dentro del subindice. Se
+// reconoce la llamada de verdad por su forma: un nombre y su `(` pegados, en
+// el primer nivel de parentesis.
+fn llamada_de_verdad_c(hecha: view) -> bool {
+    var hondo = 0;
+    var i = 0;
+    while i < hecha.largo() {
+        let c = byte(hecha, i);
+        if c == 40 {
+            if hondo == 0 && i > 0 && caracter_de_nombre(byte(hecha, i - 1)) {
+                return true;
+            }
+            hondo = hondo + 1;
+        } else if c == 41 {
+            if hondo > 0 { hondo = hondo - 1; }
+        }
+        i = i + 1;
+    }
+    return false;
+}
+
+fn caracter_de_nombre(c: usize) -> bool {
+    if c >= 97 && c <= 122 { return true; }
+    if c >= 65 && c <= 90 { return true; }
+    if c >= 48 && c <= 57 { return true; }
+    return c == 95;
 }
 
 fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Contexto,

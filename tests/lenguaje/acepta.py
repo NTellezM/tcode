@@ -1683,6 +1683,29 @@ fn main() {
         }''',
      "ok\n"),
 
+    # Una sentencia puede tirar el valor de una interna que no es una llamada
+    # en C: `largo` de una lista es `(xs.length)`, `igual` de dos enteros es
+    # una comparacion, y `byte` un subindice. Escritas a secas, C las rechaza
+    # con `-Wunused-value`; se tiran con `(void)`, como lo que no es llamada.
+    # Lo encontro el fuzzer en un mutante de `std/grafo.t` al que le sobraba
+    # un `return`.
+    ("descartar el valor de una interna que en C no llama a nada",
+     '''use "std/lista";
+        fn main() -> usize {
+            let xs: list<usize> = [1, 2, 3];
+            largo(xs);
+            var m: map<str, usize> = [];
+            poner(m, "a", 1);
+            largo(m);
+            igual(1, 2);
+            menor(1, 2);
+            byte("hola", 0);
+            xs[0];
+            imprimir($"{largo(xs)} {byte("abcd", 1)} {largo(m)}\\n");
+            return 0;
+        }''',
+     "3 98 1\n"),
+
     ("un temporal dentro de lo que se devuelve no se filtra",
      '''use "std/texto";
         fn etiqueta(v: view) -> str { return $"[{rellenar(v, 8)}]"; }
