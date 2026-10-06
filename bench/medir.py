@@ -152,15 +152,24 @@ def medir(tmp):
     razones["compilador"] = None
     if os.path.exists(REFERENCIA_C):
         ref = os.path.join(tmp, "tcodec_ref")
-        r = subprocess.run([os.environ.get("CC", "cc"), "-std=c17", "-O2",
-                            "-D_DEFAULT_SOURCE", "-D_XOPEN_SOURCE=700",
-                            "-I", RUNTIME, REFERENCIA_C, "-o", ref, "-lm"],
-                           capture_output=True, text=True)
+        # Las mismas piezas con las que el Makefile construye su semilla: el C
+        # de la referencia no se basta solo, necesita el runtime, el sistema y
+        # los dos acompanantes de `std/`.
+        r = subprocess.run([os.environ.get("CC", "cc"), "-std=c17", "-O1",
+                            "-Iruntime", REFERENCIA_C,
+                            "runtime/safestr.c",
+                            "ejemplos/compilador/lib/sistema_tcodec.c",
+                            "std/proceso.c", "std/terminal.c",
+                            "-o", ref, "-lm"],
+                           capture_output=True, text=True, cwd=RAIZ)
         if r.returncode == 0:
             t_ref, _ = cronometrar([ref, fuente, "--mostrar-c"], cwd=RAIZ,
                                    env=ENTORNO)
             T_REF = t_ref
             razones["compilador"] = round(t_comp / t_ref, 3)
+        else:
+            print("  AVISO: no se pudo construir el compilador de referencia:\n"
+                  + r.stderr.strip()[:400])
     return razones, filas, t_comp
 
 
