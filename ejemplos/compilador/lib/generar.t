@@ -2160,16 +2160,34 @@ fn interna_pura_rebanar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
 // Si el comprobador grabo este nodo como leido: la clave es la de los tipos
 // anotados, `dueno#id`. La decision de leer o mover es suya y viaja por aqui;
 // el generador no la deduce de la forma.
-fn se_lee(s: &Sitio, tipos: &I.Contexto, n: &P.Nodo) -> bool {
-    if n.id == 0 { return false; }
-    return tiene(s.lecturas, $"{tipos.dueno}#{n.id}");
+//
+// El mapa va suelto porque la pasada que decide las banderas corre antes de
+// que exista el `Sitio`: el canal tiene que llegarle igual, o esa pasada
+// volveria a deducir por forma lo que el comprobador ya decidio.
+fn es_lectura_en(lecturas: &map<str, usize>, tipos: &I.Contexto,
+    n: &P.Nodo) -> bool {
+    if n.id != 0 && tiene(lecturas, $"{tipos.dueno}#{n.id}") { return true; }
+    let clase = n.clase;
+    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
+        if es_lectura_en(lecturas, tipos, n.hijos[1]) { return true; }
+        return es_lectura_en(lecturas, tipos, n.hijos[2]);
+    }
+    if clase == Clase.Match {
+        var k = 1;
+        while k < n.hijos.largo() {
+            if brazo_leido(lecturas, tipos, n.hijos[k]) { return true; }
+            k = k + 1;
+        }
+    }
+    return false;
 }
 
 // Si el brazo de un `match` da un valor que el comprobador leyo.
-fn brazo_leido(s: &Sitio, tipos: &I.Contexto, brazo: &P.Nodo) -> bool {
+fn brazo_leido(lecturas: &map<str, usize>, tipos: &I.Contexto,
+    brazo: &P.Nodo) -> bool {
     for h en brazo.hijos {
         if h.clase == Clase.Retorno && h.hijos.largo() == 1 {
-            return es_lectura(s, tipos, h.hijos[0]);
+            return es_lectura_en(lecturas, tipos, h.hijos[0]);
         }
     }
     return false;
@@ -2179,20 +2197,7 @@ fn brazo_leido(s: &Sitio, tipos: &I.Contexto, brazo: &P.Nodo) -> bool {
 // —en un condicional o en lo que da un brazo de `match`— alguna de sus ramas
 // de valor. Es la senal de prestar en vez de bajar a un temporal con duenio.
 fn es_lectura(s: &Sitio, tipos: &I.Contexto, n: &P.Nodo) -> bool {
-    if se_lee(s, tipos, n) { return true; }
-    let clase = n.clase;
-    if clase == Clase.SiExpr && n.hijos.largo() == 3 {
-        if es_lectura(s, tipos, n.hijos[1]) { return true; }
-        return es_lectura(s, tipos, n.hijos[2]);
-    }
-    if clase == Clase.Match {
-        var k = 1;
-        while k < n.hijos.largo() {
-            if brazo_leido(s, tipos, n.hijos[k]) { return true; }
-            k = k + 1;
-        }
-    }
-    return false;
+    return es_lectura_en(s.lecturas, tipos, n);
 }
 
 // Si la direccion de este sitio es una expresion sin ramas propias: una
@@ -3116,20 +3121,33 @@ fn movidas_de_alternativa(punteros: &map<str, usize>, n: &P.Nodo,
 // alternativas de sus `sino` y las ramas de un `if` como valor. Tambien pide
 // bandera, aunque no lo apague la sentencia: quien la apaga es la rama que se
 // tomo.
-fn movidas_por_caminos(punteros: &map<str, usize>, n: &P.Nodo,
-    tipos: &I.Contexto, salida: mut list<str>) {
+fn movidas_por_caminos(lecturas: &map<str, usize>, punteros: &map<str, usize>,
+    n: &P.Nodo, tipos: &I.Contexto, salida: mut list<str>) {
     if n.clase == Clase.Bloque { return; }
     if n.clase == Clase.Sino && n.hijos.largo() == 2 {
         movidas_de_alternativa(punteros, n.hijos[1], tipos, salida);
     }
     // Las dos ramas se comprueban como caminos que se excluyen, igual que el
     // `if` sentencia: lo que una mueve, la otra no lo ha movido. Cada una
-    // entrega por su cuenta, asi que cada una pide su bandera.
+    // entrega por su cuenta, asi que cada una pide su bandera. Pero una rama
+    // que el comprobador grabo como lectura no entrega nada: se presta. Lo
+    // que se mueva DENTRO de una rama —el argumento de una llamada— sigue
+    // moviendose, y por eso `movidas_en` corre en los dos casos.
     if n.clase == Clase.SiExpr && n.hijos.largo() == 3 {
-        movidas_de_alternativa(punteros, n.hijos[1], tipos, salida);
-        movidas_de_alternativa(punteros, n.hijos[2], tipos, salida);
+        var k = 1;
+        while k < 3 {
+            let rama: &P.Nodo = n.hijos[k];
+            if !es_lectura_en(lecturas, tipos, rama)
+            && entrega_suelta(punteros, rama, tipos) {
+                apuntar_movida(salida, rama.texto);
+            }
+            movidas_en(punteros, rama, tipos, salida);
+            k = k + 1;
+        }
     }
-    for h en n.hijos { movidas_por_caminos(punteros, h, tipos, salida); }
+    for h en n.hijos {
+        movidas_por_caminos(lecturas, punteros, h, tipos, salida);
+    }
 }
 
 // Lo mismo entrando en los bloques de dentro: es la pasada que decide quien
@@ -3137,17 +3155,18 @@ fn movidas_por_caminos(punteros: &map<str, usize>, n: &P.Nodo,
 // saber si una variable se entrega hay que saber primero que tiene duenio, y
 // eso lo dice su tipo. Devolver una variable no cuenta: ahi ya no queda
 // nadie a quien mentirle.
-fn movidas_hondo(punteros: &map<str, usize>, bloque: &P.Nodo,
-    tipos: mut I.Contexto, salida: mut list<str>) {
+fn movidas_hondo(lecturas: &map<str, usize>, punteros: &map<str, usize>,
+    bloque: &P.Nodo, tipos: mut I.Contexto, salida: mut list<str>) {
     let ninguna: list<str> = [];
-    movidas_hondo_en(punteros, bloque, tipos, salida, ninguna);
+    movidas_hondo_en(lecturas, punteros, bloque, tipos, salida, ninguna);
 }
 
 // `visibles` son las declaraciones que se ven desde aqui, como
 // `nombre@linea`. Cada bloque trabaja sobre su propia copia: lo que se
 // declara dentro no se ve fuera, y asi no hace falta deshacer nada.
-fn movidas_hondo_en(punteros: &map<str, usize>, bloque: &P.Nodo,
-    tipos: mut I.Contexto, salida: mut list<str>, visibles: &list<str>) {
+fn movidas_hondo_en(lecturas: &map<str, usize>, punteros: &map<str, usize>,
+    bloque: &P.Nodo, tipos: mut I.Contexto, salida: mut list<str>,
+    visibles: &list<str>) {
     var mias: list<str> = [];
     for x en visibles { mias.anadir(copiar(x)); }
     I.abrir(tipos);
@@ -3156,7 +3175,7 @@ fn movidas_hondo_en(punteros: &map<str, usize>, bloque: &P.Nodo,
         // declara: `let y = x;` entrega la `x` de fuera.
         var salen: list<str> = [];
         movidas_en(punteros, st, tipos, salen);
-        movidas_por_caminos(punteros, st, tipos, salen);
+        movidas_por_caminos(lecturas, punteros, st, tipos, salen);
         for nm en salen {
             let k = visible_en(mias, nm);
             apuntar_movida(salida, k);
@@ -3193,10 +3212,10 @@ fn movidas_hondo_en(punteros: &map<str, usize>, bloque: &P.Nodo,
         }
         for h en st.hijos {
             if h.clase == Clase.Bloque {
-                movidas_hondo_en(punteros, h, tipos, salida, mias);
+                movidas_hondo_en(lecturas, punteros, h, tipos, salida, mias);
             }
         }
-        movidas_en_brazos(punteros, st, tipos, salida, mias);
+        movidas_en_brazos(lecturas, punteros, st, tipos, salida, mias);
         if es_para { I.cerrar(tipos); }
     }
     I.cerrar(tipos);
@@ -3205,27 +3224,34 @@ fn movidas_hondo_en(punteros: &map<str, usize>, bloque: &P.Nodo,
 // Los bloques de los brazos de un `match`, este donde este dentro de la
 // sentencia: tambien son caminos, y lo que se entrega en ellos pide bandera
 // igual que en las ramas de un `if`.
-fn movidas_en_brazos(punteros: &map<str, usize>, n: &P.Nodo, tipos: mut I.Contexto,
-    salida: mut list<str>, visibles: &list<str>) {
+fn movidas_en_brazos(lecturas: &map<str, usize>, punteros: &map<str, usize>,
+    n: &P.Nodo, tipos: mut I.Contexto, salida: mut list<str>,
+    visibles: &list<str>) {
     if n.clase == Clase.Bloque { return; }
     if n.clase == Clase.Brazo {
         for x en n.hijos {
             if x.clase == Clase.Bloque {
-                movidas_hondo_en(punteros, x, tipos, salida, visibles);
+                movidas_hondo_en(lecturas, punteros, x, tipos, salida, visibles);
             }
             // Un brazo que da un valor —`-> p`— entrega la variable, igual
             // que la rama de un `if`: pide bandera para que no se suelte
-            // ademas de quien se la quedo.
+            // ademas de quien se la quedo. Si el comprobador lo grabo como
+            // lectura, no la entrega: se presta, como la rama de un `if`
+            // leido.
             if x.clase == Clase.Retorno && x.hijos.largo() == 1 {
-                var sueltas: list<str> = [];
-                movidas_de_alternativa(punteros, x.hijos[0], tipos, sueltas);
-                for nm en sueltas {
-                    apuntar_movida(salida, visible_en(visibles, nm));
+                if !es_lectura_en(lecturas, tipos, x.hijos[0]) {
+                    var sueltas: list<str> = [];
+                    movidas_de_alternativa(punteros, x.hijos[0], tipos, sueltas);
+                    for nm en sueltas {
+                        apuntar_movida(salida, visible_en(visibles, nm));
+                    }
                 }
             }
         }
     }
-    for h en n.hijos { movidas_en_brazos(punteros, h, tipos, salida, visibles); }
+    for h en n.hijos {
+        movidas_en_brazos(lecturas, punteros, h, tipos, salida, visibles);
+    }
 }
 
 fn visible_en(visibles: &list<str>, nombre: view) -> str {
@@ -4123,7 +4149,7 @@ fn segundo_nombre(t: view) -> str {
 fn mueve_algo(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     var salen: list<str> = [];
     movidas_en(s.punteros, n, tipos, salen);
-    movidas_por_caminos(s.punteros, n, tipos, salen);
+    movidas_por_caminos(s.lecturas, s.punteros, n, tipos, salen);
     return salen.largo() > 0;
 }
 

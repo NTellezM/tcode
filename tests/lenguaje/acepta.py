@@ -1857,6 +1857,47 @@ fn main() {
         }''',
      "aa\naa\n"),
 
+    # La condicion de un `si` o de un `mientras` tambien es un contexto de
+    # lectura: el comprobador graba las ramas como lecturas, y esa decision
+    # tiene que llegar al generador. `mueve_algo` la rederivaba por forma, veia
+    # que la rama posee memoria y se negaba a escribir la sentencia entera:
+    # `tcodec no sabe escribir esta si`. El `match` como valor es el mismo caso
+    # por el otro camino.
+    ("la condicion de un `si` con un `if` leido no mueve la rama",
+     '''struct P { s: str, n: usize }
+        enum E { A, B }
+        fn main() {
+            let c = true;
+            let p = P { s: nuevo("a"), n: 1 };
+            let q = P { s: nuevo("b"), n: 2 };
+            if (if c { p } else { q }).n == 1 { imprimir("uno\\n"); }
+            let e = E.A;
+            if (match e { E.A -> p, E.B -> q }).n == 1 { imprimir("dos\\n"); }
+            imprimir($"{p.s} {q.s}\\n");
+        }''',
+     "uno\ndos\na b\n"),
+
+    ("la condicion de un `mientras` con un `if` leido no mueve la rama",
+     '''struct P { s: str, n: usize }
+        enum E { A, B }
+        fn main() {
+            var c = true;
+            let p = P { s: nuevo("a"), n: 1 };
+            let q = P { s: nuevo("b"), n: 2 };
+            var vueltas = 0;
+            while (if c { p } else { q }).n == 1 {
+                c = false;
+                vueltas = vueltas + 1;
+            }
+            var e = E.A;
+            while (match e { E.A -> p, E.B -> q }).n == 1 {
+                e = E.B;
+                vueltas = vueltas + 1;
+            }
+            imprimir($"{vueltas} {p.s} {q.s}\\n");
+        }''',
+     "2 a b\n"),
+
     # Un `if` o un `match` sobre prestamos de solo lectura que se indexa: la
     # direccion de la rama es `const T*`, asi que el puntero con el que se
     # indexa —y el que deja el propio condicional o el `match`— tiene que ser

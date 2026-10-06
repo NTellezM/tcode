@@ -752,6 +752,16 @@ RECHAZO = [
      'fn g(x: str) {} fn f() { var s: str = nuevo("a"); g(s); empujar(s, "b"); }',
      "ya se movio"),
 
+    # Mover en la condicion de un `si` es un movimiento como cualquier otro: el
+    # comprobador lo cuenta. `mueve_algo` sigue negandose a escribir la
+    # sentencia cuando la condicion entrega algo (`tcodec no sabe escribir esta
+    # si`); aqui se fija que el movimiento de la condicion no pasa inadvertido.
+    ("mover en la condicion de un `si` cuenta como movimiento",
+     'struct P { s: str } fn usa(p: P) -> bool { return largo(p.s) > 0; }'
+     ' fn f() { let p = P { s: nuevo("a") }; if usa(p) { imprimir("si"); }'
+     ' imprimir($"{p.s}"); }',
+     "ya se movio"),
+
     ("mover algo prestado",
      'fn g(x: str) {} fn f() { var s: str = nuevo("a");'
      ' let v: view = vista(s); g(s); imprimir(v); }',

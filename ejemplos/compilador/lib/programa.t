@@ -564,7 +564,7 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     var movidas: list<str> = [];
     for h en d.hijos {
         if h.clase == Clase.Bloque {
-            G.movidas_hondo(puntos, h, tipos, movidas);
+            G.movidas_hondo(cta.lecturas, puntos, h, tipos, movidas);
         }
     }
     var banderas: map<str, usize> = [];
