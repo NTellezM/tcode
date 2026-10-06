@@ -200,7 +200,7 @@ check: medir
 
 # Las secciones rapidas de la suite del lenguaje. Una sola se pide por su
 # nombre: `python3 tests/test_lenguaje.py ACEPTA`.
-RAPIDAS = RECHAZO AVISA ACEPTA SALIDA ARCHIVOS ABORTA MODULOS FORMATO LINEAS EJEMPLOS ESPECIFICACION
+RAPIDAS = RECHAZO AVISA ACEPTA GENERADOR SALIDA ARCHIVOS ABORTA MODULOS FORMATO LINEAS EJEMPLOS ESPECIFICACION
 
 rapido:
 	@$(PY) tests/test_lenguaje.py $(RAPIDAS)

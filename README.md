@@ -770,7 +770,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1549 casos, 0 fallas
+1555 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 
@@ -823,6 +823,19 @@ apareció una fuga real. Otros comprueban que la
 aritmética y los índices detienen el programa en vez de seguir con basura, y
 arman programas de varios archivos para probar módulos, ciclos y nombres
 repetidos.
+
+Hay una tercera cosa que comprobar, entre el comprobador y el generador: el
+comprobador acepta un programa cuya condición de `si` o de `mientras` mueve
+algo —es legal—, pero el generador no sabe escribir esa sentencia y para con
+«tcodec no sabe escribir esta si». Esa válvula no la veía nadie: los casos de
+rechazo compilan con `--solo-comprobar`, así que solo ven los errores del
+comprobador, y los de aceptación exigen que el programa corra, y este no debe
+correr. La sección GENERADOR los comprueba en dos pasos —el comprobador lo
+acepta, la compilación entera falla con ese mensaje— y les pone al lado la
+misma forma con una condición que solo se lee, que tiene que compilar y correr;
+sin esos controles la sección pasaría rechazando cualquier cosa. Por eso su
+caso estrella es `if (if c { p } else { q }).n == 1`: se lee entero, pero cada
+rama posee su memoria, y un gate por nodo en vez de por rama lo rechazaría.
 
 `make check` entera tarda unos cinco minutos en cuatro núcleos. Cada sección
 de la suite es un módulo de `tests/lenguaje/` —sus casos y cómo se
