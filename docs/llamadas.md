@@ -301,7 +301,7 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 - `antes_de_arroba` ← `visible_en` (generar.t)
 - `antes_de_dos_puntos` ← `clave_visible` (generar.t), `junta` (generar.t), `liberar_uno` (generar.t), `mientras_c` (generar.t), `reclamar` (generar.t), `soltar_fuera_desde` (generar.t), `soltar_temporales` (generar.t)
 - `apagar` ← `apagar_las_de` (generar.t), `apagar_lo_de_rama` (generar.t), `sino_c` (generar.t)
-- `apagar_las_de` ← `asignacion_c` (generar.t), `declaracion_c` (generar.t), `expresion_sentencia_c` (generar.t), `para_c` (generar.t), `retorno_c` (generar.t)
+- `apagar_las_de` ← `asignacion_c` (generar.t), `cuerpo_brazo_c` (generar.t), `declaracion_c` (generar.t), `expresion_sentencia_c` (generar.t), `para_c` (generar.t), `retorno_c` (generar.t)
 - `apagar_lo_de_rama` ← `cuerpo_brazo_c` (generar.t), `si_expr_c` (generar.t)
 - `apuntar_arreglo` ← `apuntar_arreglo` (generar.t), `literal_lista_c` (generar.t)
 - `apuntar_fallo` ← `bloque_c` (generar.t), `cuerpo_brazo_c` (generar.t), `mientras_c` (generar.t), `para_c` (generar.t), `para_rango_c` (generar.t), `generar_funcion` (programa.t)

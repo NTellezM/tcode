@@ -2605,6 +2605,41 @@ fn main() {
         }''',
      "a b\n"),
 
+    # Lo que una rama mueve se apaga dentro de la rama, no detras de la
+    # sentencia: detras se apagaria tambien la bandera del camino que no se
+    # tomo, y esa memoria se quedaria sin duenio. Vale para las ramas de un
+    # `if` como valor, los brazos de un `match` como valor y los de un `match`
+    # suelto, y tambien cuando lo que la rama mueve es el argumento de una
+    # llamada, no la variable que entrega. En HEAD, ASan ve cuatro fugas.
+    ("lo que mueve una rama se apaga en la rama, no detras",
+     '''struct P { s: str }
+        enum E { A, B }
+        fn envuelto(x: str) -> P { return P { s: x }; }
+        fn guardar(x: str) -> usize { return largo(x); }
+        fn main() {
+            let c = true;
+            var a = nuevo("aaa");
+            var b = nuevo("bbb");
+            let r = if c { envuelto(a) } else { envuelto(b) };
+            imprimir($"{r.s}\\n");
+            let e = E.A;
+            var d = nuevo("ddd");
+            var f = nuevo("fff");
+            let r2 = match e { E.A -> envuelto(d), E.B -> envuelto(f) };
+            imprimir($"{r2.s}\\n");
+            var g = nuevo("ggg");
+            var h = nuevo("hhh");
+            match e {
+                E.A -> guardar(g),
+                E.B -> guardar(h),
+            }
+            var i = nuevo("iii");
+            var j = nuevo("jjj");
+            (if c { envuelto(i) } else { envuelto(j) });
+            imprimir("ok\\n");
+        }''',
+     "aaa\nddd\nok\n"),
+
     ("listas vacias usan el tipo de retorno y de argumento",
      '''fn vacia() -> list<usize> { return []; }
         fn contar(xs: list<usize>) -> usize { return largo(xs); }

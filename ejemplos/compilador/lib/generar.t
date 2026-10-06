@@ -2805,6 +2805,26 @@ fn movidas_en(punteros: &map<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
                 return;
             }
         }
+        // Las ramas de un `if` como valor son el mismo caso que la
+        // alternativa de un `sino`: solo corre una, y lo que entrega la que
+        // corre lo apaga ella misma (`apagar_lo_de_rama`). Aqui solo se mira
+        // lo que se evalua siempre —la condicion—, que es lo que la
+        // sentencia si puede apagar al acabar.
+        Clase.SiExpr -> {
+            if n.hijos.largo() == 3 {
+                movidas_en(punteros, n.hijos[0], tipos, salida);
+                return;
+            }
+        }
+        // Los brazos de un `match` son el mismo caso: solo corre uno, y lo
+        // que entrega lo apaga ese brazo. Lo que se evalua siempre es lo
+        // mirado.
+        Clase.Match -> {
+            if n.hijos.largo() > 0 {
+                movidas_en(punteros, n.hijos[0], tipos, salida);
+                return;
+            }
+        }
         // `let y = x;` y `y = x;` mueven tanto como pasarla a una funcion.
         // `let y: &T = x;` no: solo la presta.
         Clase.Declaracion -> {
@@ -5425,6 +5445,11 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
             } else {
                 // Un `match` suelto: el brazo hace, y lo que da se tira.
                 descartar_c(b, tipos, valor, h.hijos[0]);
+                // Lo que mover la llamada de este brazo —sus argumentos— es
+                // cosa del brazo que corre: se apaga aqui, no detras del
+                // `switch`, donde se apagaria tambien lo del brazo que no se
+                // tomo y esa memoria se quedaria sin duenio.
+                apagar_las_de(b, s, h.hijos[0], tipos);
             }
             soltar_temporales(b, tipos);
             b.temporales = antes;
