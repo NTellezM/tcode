@@ -714,6 +714,7 @@ graph TD
         compilador_lib_generar__se_llama_como["se_llama_como"]
         compilador_lib_generar__segundo_nombre["segundo_nombre"]
         compilador_lib_generar__si_expr_c["si_expr_c"]
+        compilador_lib_generar__si_expr_suelto_c["si_expr_suelto_c"]
         compilador_lib_generar__sitio_c["sitio_c"]
         compilador_lib_generar__sitio_solo_lectura["sitio_solo_lectura"]
         compilador_lib_generar__texto_de["texto_de"]
@@ -1045,6 +1046,10 @@ graph TD
     compilador_lib_generar__si_expr_c --> compilador_lib_tipar__tipo_anotado
     compilador_lib_generar__si_expr_c --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__si_expr_c --> compilador_lib_tipos__escribir_tipo
+    compilador_lib_generar__si_expr_suelto_c --> compilador_lib_tipar__literal_de
+    compilador_lib_generar__si_expr_suelto_c --> compilador_lib_tipar__tipo_anotado
+    compilador_lib_generar__si_expr_suelto_c --> compilador_lib_tipar__tipo_de
+    compilador_lib_generar__si_expr_suelto_c --> compilador_lib_tipos__escribir_tipo
     compilador_lib_generar__sitio_c --> compilador_lib_tipar__posee_con_formas
     compilador_lib_generar__sitio_c --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__sitio_c --> compilador_lib_tipos__conocido

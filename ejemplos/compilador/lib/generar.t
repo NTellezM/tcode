@@ -4102,22 +4102,15 @@ fn expresion_sentencia_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
         apagar_las_de(b, s, n, tipos);
         return true;
     }
-    // Un `match` suelto mira y hace: el `switch` va tal cual, sin
-    // temporal donde dejar nada.
-    if n.hijos[0].clase == Clase.Match {
-        if !match_c(b, s, n.hijos[0], tipos, retorno, falible, "") {
-            return false;
-        }
-        apagar_las_de(b, s, n, tipos);
-        return true;
-    }
     // Cualquier otra expresion suelta. Descarta su valor, y si ese valor
     // tenia duenio, este es el sitio donde se devuelve: `try espera(...)`
     // como sentencia tira el `str` que devuelve, y nadie mas lo iba a
-    // soltar.
-    let hecha = expresion_c(b, s, n.hijos[0], "", tipos);
-    if es_desconocido(hecha) { return false; }
-    descartar_c(b, tipos, hecha, n.hijos[0]);
+    // soltar. Un `if` o un `match` como valor no se bajan a valor: no hay
+    // valor que entregar, asi que se bajan a sentencia y cada rama tira lo
+    // suyo. Asi la rama que es un sitio se lee y no se mueve.
+    if !descartar_expresion_c(b, s, tipos, n.hijos[0], "", retorno, falible) {
+        return false;
+    }
     apagar_las_de(b, s, n, tipos);
     return true;
 }
@@ -5038,6 +5031,66 @@ fn si_expr_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, esperado: view,
     return copiar(tmp);
 }
 
+// `if c { a } else { b }` como valor cuyo valor se tira. Se baja a la
+// sentencia `if` y cada rama tira lo suyo: no hay temporal donde entregar
+// nada, asi que la rama que es un sitio se lee —no se mueve— y la que nace
+// sin sitio se suelta donde nace. Es lo que hace el `match` suelto con
+// `match_c(..., "")`, y lo que `descartar_c` ya decidia para una expresion
+// suelta; aqui solo se reparte por ramas, que es lo unico que el `if` como
+// valor tiene de suyo.
+fn si_expr_suelto_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto,
+    n: &P.Nodo, esperado: view, retorno: view, falible: bool) -> bool {
+    if n.hijos.largo() != 3 { return false; }
+    var t = T.escribir_tipo(I.tipo_de(tipos, n));
+    if largo(I.tipo_anotado(tipos, n)) == 0 && largo(I.literal_de(n)) > 0
+    && es_aritmetico(esperado) {
+        t = nuevo(esperado);
+    }
+    if t.largo() == 0 { t = nuevo("usize"); }
+    let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
+    if es_desconocido(cond) { return false; }
+    var l = nuevo("if (");
+    l.empujar(cond);
+    l.empujar(")");
+    emitir(b, l);
+    var k = 1;
+    while k < 3 {
+        if k == 2 { emitir(b, "else"); }
+        emitir(b, "{");
+        b.sangria = b.sangria + 1;
+        if !tirar_rama_c(b, s, tipos, n.hijos[k], t, retorno, falible) {
+            return false;
+        }
+        b.sangria = b.sangria - 1;
+        emitir(b, "}");
+        k = k + 1;
+    }
+    return true;
+}
+
+// La rama de un `if` como valor que se tira. Es un bloque de C, y lo que
+// nace dentro se suelta dentro, antes de cerrar el bloque, como en
+// `valor_de_rama`: un temporal declarado ahi no existe fuera. Lo que mueve
+// una llamada de la rama —sus argumentos, no la rama misma— se apaga aqui,
+// que es el camino que se tomo.
+fn tirar_rama_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto,
+    n: &P.Nodo, esperado: view, retorno: view, falible: bool) -> bool {
+    var antes: list<str> = [];
+    for x en b.temporales { antes.anadir(copiar(x)); }
+    var de_fuera: list<str> = [];
+    for x en antes { de_fuera.anadir(copiar(x)); }
+    b.fuera.anadir(de_fuera);
+    olvidar_temporales(b);
+    if !descartar_expresion_c(b, s, tipos, n, esperado, retorno, falible) {
+        return false;
+    }
+    apagar_las_de(b, s, n, tipos);
+    soltar_temporales(b, tipos);
+    b.temporales = antes;
+    quitar_ultima_fuera(b);
+    return true;
+}
+
 // `SS_FIGURA_CIRCULO`: el nombre en C de una forma.
 fn etiqueta(enum_: view, variante: view) -> str {
     let a = mayusculas_c(enum_);
@@ -5376,6 +5429,32 @@ fn descartar_c(b: mut Cuerpo, tipos: &I.Contexto, hecha: view, n: &P.Nodo) {
     }
 }
 
+// Tira el valor de una expresion que nadie se queda. Un `if` o un `match`
+// como valor no se baja a valor: no hay valor que entregar, asi que se baja a
+// sentencia y cada rama tira lo suyo. Es la diferencia entre entregar —que es
+// mover— y descartar, que es leer: la rama que es un sitio se lee y no se
+// mueve, y solo lo que nace sin sitio se suelta. Cada rama lo decide por su
+// cuenta con `descartar_c`, asi que una rama variable y otra llamada se
+// tratan como toca sin saberlo de antemano.
+fn descartar_expresion_c(b: mut Cuerpo, s: mut Sitio, tipos: mut I.Contexto,
+    n: &P.Nodo, esperado: view, retorno: view, falible: bool) -> bool {
+    let clase = n.clase;
+    if clase == Clase.Expresion && n.hijos.largo() == 1 {
+        return descartar_expresion_c(b, s, tipos, n.hijos[0], esperado, retorno,
+            falible);
+    }
+    if clase == Clase.SiExpr {
+        return si_expr_suelto_c(b, s, tipos, n, esperado, retorno, falible);
+    }
+    if clase == Clase.Match {
+        return match_c(b, s, n, tipos, retorno, falible, "");
+    }
+    let hecha = expresion_c(b, s, n, esperado, tipos);
+    if es_desconocido(hecha) { return false; }
+    descartar_c(b, tipos, hecha, n);
+    return true;
+}
+
 // No toda `Clase.Llamada` acaba llamando a nadie: las internas puras —`largo`
 // de una lista, `igual` de dos enteros— se bajan a una expresion de C sin
 // llamada propia, como `((*xs).length)`, `((a == b))` o el subindice de
@@ -5434,17 +5513,23 @@ fn cuerpo_brazo_c(b: mut Cuerpo, s: mut Sitio, brazo: &P.Nodo, tipos: mut I.Cont
             for x en b.temporales { antes.anadir(copiar(x)); }
             olvidar_temporales(b);
             let tv = T.escribir_tipo(I.tipo_de(tipos, h.hijos[0]));
-            let valor = expresion_c(b, s, h.hijos[0], tv, tipos);
-            if es_desconocido(valor) { return false; }
             if destino.largo() > 0 {
+                let valor = expresion_c(b, s, h.hijos[0], tv, tipos);
+                if es_desconocido(valor) { return false; }
                 reclamar(b, valor);
                 emitir(b, $"{destino} = {valor};");
                 // Un brazo que da valor es el camino que se tomo: lo que
                 // entrega —la variable que se mueve— queda apagado aqui.
                 apagar_lo_de_rama(b, s, h.hijos[0], tipos);
             } else {
-                // Un `match` suelto: el brazo hace, y lo que da se tira.
-                descartar_c(b, tipos, valor, h.hijos[0]);
+                // Un `match` suelto: el brazo hace, y lo que da se tira. Un
+                // `if` o un `match` como valor de dentro tampoco se entrega:
+                // se baja a sentencia y cada rama tira lo suyo, para que la
+                // que es un sitio se lea y no se mueva.
+                if !descartar_expresion_c(b, s, tipos, h.hijos[0], tv, retorno,
+                    falible) {
+                    return false;
+                }
                 // Lo que mover la llamada de este brazo —sus argumentos— es
                 // cosa del brazo que corre: se apaga aqui, no detras del
                 // `switch`, donde se apagaria tambien lo del brazo que no se

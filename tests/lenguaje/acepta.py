@@ -2640,6 +2640,51 @@ fn main() {
         }''',
      "aaa\nddd\nok\n"),
 
+    # El valor de un `if` o un `match` que se tira no se entrega, asi que no
+    # mueve la rama: `(if c { p } else { q });` daba un uso despues de
+    # liberar. El comprobador ya lo trataba como lectura (`sentencia_expresion`
+    # comprueba con `mover_variables=false`) y `descartar_c` ya decia que una
+    # sentencia que lee un sitio no lo suelta; lo que fallaba es que el
+    # generador bajaba el `if` a valor —moviendo la rama a un temporal que
+    # luego soltaba—. Ahora se baja a sentencia y cada rama tira lo suyo:
+    # el sitio se lee y el valor recien hecho se suelta donde nace. Cubre la
+    # forma del informe, campos, `match`, anidados de las dos clases, la rama
+    # mixta de sitio y valor nuevo, y la llamada cuyos argumentos si se mueven.
+    ("tirar el valor de un if o un match no mueve la rama",
+     '''struct P { s: str }
+        enum E { A, B }
+        fn envuelto(x: str) -> P { return P { s: x }; }
+        fn main() {
+            let c = true;
+            var p = P { s: nuevo("a") };
+            var q = P { s: nuevo("b") };
+            (if c { p } else { q });
+            imprimir($"{p.s}{q.s}\\n");
+            var s = nuevo("s");
+            var t = nuevo("t");
+            (if c { s } else { t });
+            imprimir($"{s}{t}\\n");
+            (if c { p.s } else { q.s });
+            imprimir($"{p.s}{q.s}\\n");
+            let e = E.A;
+            (match e { E.A -> p, E.B -> q });
+            imprimir($"{p.s}{q.s}\\n");
+            var r = P { s: nuevo("r") };
+            (if c { if c { p } else { q } } else { r });
+            imprimir($"{p.s}{q.s}{r.s}\\n");
+            (match e { E.A -> match e { E.A -> p, E.B -> q }, E.B -> r });
+            imprimir($"{p.s}{q.s}{r.s}\\n");
+            (match e { E.A -> (if c { p } else { q }), E.B -> r });
+            imprimir($"{p.s}{q.s}{r.s}\\n");
+            (if c { p } else { P { s: nuevo("z") } });
+            imprimir($"{p.s}\\n");
+            var u = nuevo("u");
+            var v = nuevo("v");
+            (if c { envuelto(u) } else { envuelto(v) });
+            imprimir("ok\\n");
+        }''',
+     "ab\nst\nab\nab\nabr\nabr\nabr\na\nok\n"),
+
     ("listas vacias usan el tipo de retorno y de argumento",
      '''fn vacia() -> list<usize> { return []; }
         fn contar(xs: list<usize>) -> usize { return largo(xs); }
