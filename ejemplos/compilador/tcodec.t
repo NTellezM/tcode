@@ -2412,6 +2412,8 @@ struct Cierres {
     numeracion: map<str, usize>,
     // Los campos que el comprobador vio sacar de su struct.
     sacados: map<str, usize>,
+    // Los nodos que el comprobador leyo en vez de mover, por `dueno#id`.
+    lecturas: map<str, usize>,
 }
 
 // Escribe en borrador cada copia pedida que no se haya visto, primero las
@@ -2452,6 +2454,7 @@ fn descubrir(pedidos: &list<str>, arboles: &list<P.Nodo>,
             let de = cierres.modulo[k];
             var borrador_c = F.cuenta_nueva();
             borrador_c.sacados = copiar(cierres.sacados);
+            borrador_c.lecturas = copiar(cierres.lecturas);
             borrador_c.dueno = copiar(cierres.fns[k].texto);
             let lineas_c = F.generar_funcion(cierres.fns[k], contextos[de],
                 vista(modulos[de]), borrador_c);
@@ -2476,6 +2479,7 @@ fn descubrir(pedidos: &list<str>, arboles: &list<P.Nodo>,
         let copia = nodo_instancia(p, arboles, plantillas, cierres.numeracion);
         var borrador = F.cuenta_nueva();
         borrador.sacados = copiar(cierres.sacados);
+        borrador.lecturas = copiar(cierres.lecturas);
         borrador.dueno = dueno_de_pedido(p);
         let lineas = F.generar_funcion(copia, contextos[de], modulos[de], borrador);
         if lineas.largo() == 0 {
@@ -3739,9 +3743,12 @@ fn preparar_cierres(revision: &C.Revision, arboles: mut list<P.Nodo>,
     contextos: mut list<I.Contexto>, global: mut I.Contexto) -> Cierres {
     var sacados: map<str, usize> = [];
     for x en revision.sacados { poner(sacados, vista(x), 1); }
+    var lecturas: map<str, usize> = [];
+    for x en revision.lecturas { poner(lecturas, vista(x), 1); }
     var cierres = Cierres { fns: copiar(revision.cierres),
         modulo: copiar(revision.cierres_mod), indice: [],
-        numeracion: copiar(revision.numeracion), sacados: sacados };
+        numeracion: copiar(revision.numeracion), sacados: sacados,
+        lecturas: lecturas };
     var m_c = 0;
     while m_c < arboles.largo() {
         var k_d = 0;
@@ -3842,6 +3849,7 @@ fn preparar_instancias(revision: &C.Revision, arboles: &list<P.Nodo>,
             if d.clase != Clase.Fn || F.es_generica(d) { continue; }
             var borrador = F.cuenta_nueva();
             borrador.sacados = copiar(cierres.sacados);
+            borrador.lecturas = copiar(cierres.lecturas);
             borrador.dueno = dueno_de_funcion(d, contextos[k_desc]);
             let escritas = F.generar_funcion(d, contextos[k_desc],
                 vista(modulos[k_desc]), borrador);
@@ -3948,6 +3956,7 @@ fn generar_soporte(raiz: view, arboles: &list<P.Nodo>, global: &I.Contexto,
     for n en st_nombres { visitar_struct(n, st_indice, st_tipos, listos, orden); }
     var cta = F.cuenta_nueva();
     cta.sacados = copiar(cierres.sacados);
+    cta.lecturas = copiar(cierres.lecturas);
 
     var partes: list<str> = [];
     let adelantados = declarar_tipos(partes, st_nombres, en_nombres, en_variantes, reg);

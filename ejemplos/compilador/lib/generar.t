@@ -463,6 +463,11 @@ struct Sitio {
     // los campos que el comprobador vio sacar de su struct:
     // `archivo\tlinea\tp.a.b`
     sacados: map<str, usize>,
+    // los nodos que el comprobador leyo en vez de mover, por `dueno#id`: la
+    // clave se arma con `tipos.dueno`, que es el dueno de la funcion que se
+    // esta escribiendo. Vacio, no hay nada grabado y la decision se deduce
+    // aqui, como antes.
+    lecturas: map<str, usize>,
 }
 
 // Que nombres son un puntero en el C generado: los parametros prestados, y
@@ -2792,6 +2797,15 @@ fn apuntar_movida(salida: mut list<str>, nombre: view) {
 
 // Los nombres que este nodo entrega. Sin entrar en los bloques de dentro:
 // cada sentencia apaga las suyas, donde toca.
+//
+// OJO: decidir si algo se mueve tiene una SEGUNDA implementacion aqui, por
+// forma, paralela a la del comprobador (`variable`, `campo`, `indice`): los
+// cinco sitios son `movidas_en`, `movidas_por_caminos`, `movidas_hondo`,
+// `movidas_en_brazos` y `entrega_suelta`/`presta_argumento`. La decision del
+// comprobador viaja por el mapa `dueno#id` —`Revision.lecturas` ->
+// `Cierres.lecturas` -> `Cuenta.lecturas` -> `Sitio.lecturas`—, y es por ahi
+// por donde debe viajar. El arreglo que viene solo cubrira los contextos de
+// lectura, no todos los casos.
 fn movidas_en(punteros: &map<str, usize>, n: &P.Nodo, tipos: &I.Contexto,
     salida: mut list<str>) {
     let clase = n.clase;

@@ -766,6 +766,10 @@ struct Comprobacion {
     // Los campos sacados de su struct en todo el programa, para el
     // generador: `archivo\tlinea\tp.a.b`.
     sacados: list<str>,
+    // Los nodos que se leyeron en vez de moverse, por `dueno#id`: el
+    // generador no tiene que recalcular la decision, se la dice el
+    // comprobador. Es la misma clave que la de los tipos anotados.
+    lecturas: list<str>,
     // Las cuentas de numeros escritos que esperan su tipo, en el orden en
     // que se comprobaron, con el dueño de cada una; y las ya hechas, por su
     // clave anotada.
@@ -791,7 +795,7 @@ fn estado(archivo: view, modulo: usize) -> Comprobacion {
         en_bucle_directo: 0, movidas_en_bucle: [], en_retorno: 0, instanciando: [],
         dueno: vacio(), avisos: [], historia: [], informe: [], en_cierre: false,
         capturas_mut: [], modificadas: [], plantillas: [], en_guarda: 0,
-        por_campo: 0, escribiendo: 0, sacados: [], escritas: [],
+        por_campo: 0, escribiendo: 0, sacados: [], lecturas: [], escritas: [],
         escritas_duenos: [], contadas: [], hondura: 0, base: 0, cadena_clases: [],
         cadena_propias: [], cadena_despues: [], cadena_bloques: [] };
 }
@@ -3192,6 +3196,10 @@ fn variable(c: mut Comprobacion, m: &Mundo, tipos: &I.Contexto, n: &P.Nodo,
         mover(c, m, n.linea, i, directo);
     } else {
         let _leida = leer(c, m, n.linea, i);
+        // Aqui el comprobador decidio que este nodo se lee y no se mueve. Se
+        // graba por `dueno#id` —la clave de los anotados— para que el
+        // generador lo consulte en vez de deducirlo por su cuenta.
+        if n.id > 0 { c.lecturas.anadir(clave_anotada(c, n)); }
     }
     return tipo_de_escrito(t);
 }
@@ -6075,6 +6083,9 @@ struct Revision {
     numeracion: map<str, usize>,
     // Los campos sacados de su struct: `archivo\tlinea\tp.a.b`.
     sacados: list<str>,
+    // Los nodos que el comprobador leyo en vez de mover: `dueno#id`, el
+    // mismo canal por el que viaja la decision hasta el generador.
+    lecturas: list<str>,
     // El tipo de cada expresion, por modulo, para el generador.
     anotados: list<map<str, T.Tipo>>,
     // Las copias y las clausuras, en el orden en que se escriben.
@@ -6127,7 +6138,8 @@ fn comprobar_programa(arboles: &list<P.Nodo>, modulos: &list<str>,
         explicacion: explicacion(m, c.informe, principal),
         cierres: copiar(m.cierres),
         cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion),
-        sacados: copiar(c.sacados), anotados: copiar(m.anotados),
+        sacados: copiar(c.sacados), lecturas: copiar(c.lecturas),
+        anotados: copiar(m.anotados),
         orden_copias: copiar(m.orden_copias), structs_aplicados: aplicados,
         orden_structs: copiar(m.orden_structs) };
 }

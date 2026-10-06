@@ -199,7 +199,7 @@ fn main() -> usize ! {
             }
             let sitio = G.Sitio { archivo: nuevo(ruta), tipos: de_tipo,
                 punteros: puntos, pide_bandera: sin_banderas,
-                retorno: lo_que_devuelve, sacados: [] };
+                retorno: lo_que_devuelve, sacados: [], lecturas: [] };
 
             var lineas: list<usize> = [];
             var nodos: list<P.Nodo> = [];

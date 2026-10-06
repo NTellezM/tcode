@@ -54,7 +54,7 @@ de la que llama. Las funciones del lenguaje (`copiar`, `igual`,
 - `cerrar_ambito` ← `comprobar_bloque` (comprobar.t), `comprobar_funcion` (comprobar.t), `comprobar_match` (comprobar.t), `cuerpo_de_bucle` (comprobar.t), `sentencia_para` (comprobar.t)
 - `choque_prestamo` ← `llamada` (comprobar.t), `llamada_a_puntero` (comprobar.t)
 - `cierre` ← `comprobar_expresion_sin_anotar` (comprobar.t), `tipo_probable` (comprobar.t)
-- `clave_anotada` ← `anotar` (comprobar.t), `contar_pendientes` (comprobar.t), `fijar_literal` (comprobar.t), `fijar_literal_sin_contar` (comprobar.t), `valor_escrito` (comprobar.t)
+- `clave_anotada` ← `anotar` (comprobar.t), `contar_pendientes` (comprobar.t), `fijar_literal` (comprobar.t), `fijar_literal_sin_contar` (comprobar.t), `valor_escrito` (comprobar.t), `variable` (comprobar.t)
 - `comparables` ← `interna_comparar` (comprobar.t), `restriccion_admite` (comprobar.t)
 - `comprobar_bloque` ← `comprobar_funcion` (comprobar.t), `sentencia_si` (comprobar.t)
 - `comprobar_borde_c` ← `comprobar_programa` (comprobar.t)
