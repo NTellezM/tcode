@@ -2402,14 +2402,17 @@ fn dueno_de_funcion(d: &P.Nodo, tipos: &I.Contexto) -> str {
     return copiar(d.texto);
 }
 
-// Las lecturas que dejo el comprobador, ya separadas por dueno: el mapa de
-// cada funcion, para que al escribir una funcion se copien solo las suyas y
-// no las de todo el programa. Con el mapa entero, copiarlo en cada `Sitio`
-// costaba mas que compilar.
+// Las claves `dueno#id` que dejo el comprobador, ya separadas por dueno: el
+// mapa de cada funcion, para que al escribir una funcion se copien solo las
+// suyas y no las de todo el programa. Con el mapa entero, copiarlo en cada
+// `Sitio` costaba mas que compilar.
+//
+// Sirve para los dos sentidos de la misma decision —las lecturas y las
+// movidas—: el canal es uno, y lo unico que cambia es de donde sale la lista.
 struct IndiceLecturas {
     // dueno -> su sitio en `mapas`.
     puestos: map<str, usize>,
-    // Por sitio, las claves `dueno#id` de las lecturas de ese dueno.
+    // Por sitio, las claves `dueno#id` de ese dueno.
     mapas: list<map<str, usize>>,
 }
 
@@ -2452,6 +2455,8 @@ struct Cierres {
     sacados: map<str, usize>,
     // Los nodos que el comprobador leyo en vez de mover, por `dueno#id`.
     lecturas: IndiceLecturas,
+    // Y los que movio: el mismo canal, la otra cara.
+    movidas: IndiceLecturas,
 }
 
 // Escribe en borrador cada copia pedida que no se haya visto, primero las
@@ -2494,6 +2499,7 @@ fn descubrir(pedidos: &list<str>, arboles: &list<P.Nodo>,
             borrador_c.sacados = copiar(cierres.sacados);
             borrador_c.dueno = copiar(cierres.fns[k].texto);
             borrador_c.lecturas = lecturas_de(cierres.lecturas, borrador_c.dueno);
+            borrador_c.movidas = lecturas_de(cierres.movidas, borrador_c.dueno);
             let lineas_c = F.generar_funcion(cierres.fns[k], contextos[de],
                 vista(modulos[de]), borrador_c);
             if lineas_c.largo() == 0 {
@@ -2519,6 +2525,7 @@ fn descubrir(pedidos: &list<str>, arboles: &list<P.Nodo>,
         borrador.sacados = copiar(cierres.sacados);
         borrador.dueno = dueno_de_pedido(p);
         borrador.lecturas = lecturas_de(cierres.lecturas, borrador.dueno);
+        borrador.movidas = lecturas_de(cierres.movidas, borrador.dueno);
         let lineas = F.generar_funcion(copia, contextos[de], modulos[de], borrador);
         if lineas.largo() == 0 {
             let _r = rechazo(sitio(modulos[de], copia.linea),
@@ -3370,7 +3377,8 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
     modulos: &list<str>, instancias: &list<P.Nodo>,
     modulo_de: &list<usize>, duenos_inst: &list<str>,
     orden_inst: &list<str>, orden_copias_revision: &list<str>,
-    lecturas: &IndiceLecturas, cta: mut F.Cuenta) -> FuncionesGeneradas {
+    lecturas: &IndiceLecturas, movidas: &IndiceLecturas,
+    cta: mut F.Cuenta) -> FuncionesGeneradas {
     var protos: list<str> = [];
     var cuerpos: list<str> = [];
     var anchos: map<str, usize> = [];
@@ -3385,6 +3393,7 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
             if d.clase != Clase.Fn || F.es_generica(d) { continue; }
             cta.dueno = dueno_de_funcion(d, contextos[i]);
             cta.lecturas = lecturas_de(lecturas, cta.dueno);
+            cta.movidas = lecturas_de(movidas, cta.dueno);
             if !emitir_funcion(d, contextos[i], vista(modulos[i]), cta, protos,
                 cuerpos, anchos, decimales, conversiones) {
                 return FuncionesGeneradas { ok: false, protos: [], cuerpos: [],
@@ -3418,6 +3427,7 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
         ultima_ruta = copiar(modulos[de]);
         cta.dueno = copiar(duenos_inst[k_o]);
         cta.lecturas = lecturas_de(lecturas, cta.dueno);
+        cta.movidas = lecturas_de(movidas, cta.dueno);
         if !emitir_funcion(instancias[k_o], contextos[de], vista(modulos[de]),
             cta, protos, cuerpos, anchos, decimales, conversiones) {
             return FuncionesGeneradas { ok: false, protos: [], cuerpos: [],
@@ -3786,7 +3796,8 @@ fn preparar_cierres(revision: &C.Revision, arboles: mut list<P.Nodo>,
     var cierres = Cierres { fns: copiar(revision.cierres),
         modulo: copiar(revision.cierres_mod), indice: [],
         numeracion: copiar(revision.numeracion), sacados: sacados,
-        lecturas: indice_lecturas(revision.lecturas) };
+        lecturas: indice_lecturas(revision.lecturas),
+        movidas: indice_lecturas(revision.movidas) };
     var m_c = 0;
     while m_c < arboles.largo() {
         var k_d = 0;
@@ -3889,6 +3900,7 @@ fn preparar_instancias(revision: &C.Revision, arboles: &list<P.Nodo>,
             borrador.sacados = copiar(cierres.sacados);
             borrador.dueno = dueno_de_funcion(d, contextos[k_desc]);
             borrador.lecturas = lecturas_de(cierres.lecturas, borrador.dueno);
+            borrador.movidas = lecturas_de(cierres.movidas, borrador.dueno);
             let escritas = F.generar_funcion(d, contextos[k_desc],
                 vista(modulos[k_desc]), borrador);
             if escritas.largo() == 0 { continue; }
@@ -4420,7 +4432,7 @@ fn main() -> usize ! {
 
     let funciones = generar_funciones(arboles, contextos, modulos, instancias,
         modulo_de, duenos_inst, orden_inst, revision.orden_copias,
-        cierres.lecturas, cta);
+        cierres.lecturas, cierres.movidas, cta);
     if !funciones.ok { return 1; }
     let protos = copiar(funciones.protos);
     let cuerpos = copiar(funciones.cuerpos);

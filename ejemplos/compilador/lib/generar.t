@@ -468,6 +468,11 @@ struct Sitio {
     // esta escribiendo. Vacio, no hay nada grabado y la decision se deduce
     // aqui, como antes.
     lecturas: map<str, usize>,
+    // Y los que el comprobador movio, en el mismo canal y con la misma clave.
+    // Viaja hasta aqui para que `movidas_*` deje de rederivar por forma lo que
+    // el comprobador ya decidio; quien lo consuma tiene que hacerlo a la vez
+    // que el que graba, porque el C cambia.
+    movidas: map<str, usize>,
 }
 
 // Que nombres son un puntero en el C generado: los parametros prestados, y

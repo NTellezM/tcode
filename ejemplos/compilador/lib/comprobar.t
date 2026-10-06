@@ -356,6 +356,10 @@ struct Mundo {
     // entera una vez por candidato de instanciacion generica, y con la lista
     // ya completa: tenerla alli salia cuadratico.
     lecturas: list<str>,
+    // El complemento: los nodos que el comprobador MOVIO en vez de leer, por
+    // `dueno#id`, y con la misma clave. Es el canal por el que viaja la
+    // decision de mover para que el generador no la rederive por forma.
+    movidas: list<str>,
     // Las copias de genericas y las clausuras, en el orden en que nacen: una
     // clausura al verla, una copia despues de comprobar su cuerpo. Es el
     // orden en que el generador las escribe.
@@ -2795,6 +2799,14 @@ fn grabar_lectura(c: &Comprobacion, m: mut Mundo, n: &P.Nodo) {
     m.lecturas.anadir(clave_anotada(c, n));
 }
 
+// La otra cara: aqui el comprobador decidio mover, y se graba en el mismo
+// canal y con la misma clave. Quien lo consuma sabe asi, nodo a nodo, si lo
+// que hay es una entrega o una lectura, sin volver a mirar la forma.
+fn grabar_movimiento(c: &Comprobacion, m: mut Mundo, n: &P.Nodo) {
+    if n.id == 0 { return; }
+    m.movidas.anadir(clave_anotada(c, n));
+}
+
 // Un numero escrito ya sabe su tipo: se lo dice el otro lado de la operacion,
 // o el sitio donde va. Se anota en el y en todo lo que es numero escrito por
 // debajo; un desplazamiento cuenta en `usize`.
@@ -3203,6 +3215,10 @@ fn variable(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     let t = copiar(c.simbolos[i].tipo);
     if mover_variables && posee_memoria(m, t) {
         mover(c, m, n.linea, i, directo);
+        // El `return x` tambien entrega, pero no por un camino: sale de la
+        // funcion entera, y de esa bandera ya se ocupa `retorno_c`. Se graba
+        // lo que se entrega y sigue vivo, que es lo que hay que apagar.
+        if !directo { grabar_movimiento(c, m, n); }
     } else {
         let _leida = leer(c, m, n.linea, i);
         // Aqui el comprobador decidio que este nodo se lee y no se mueve. Se
@@ -6104,6 +6120,8 @@ struct Revision {
     // Los nodos que el comprobador leyo en vez de mover: `dueno#id`, el
     // mismo canal por el que viaja la decision hasta el generador.
     lecturas: list<str>,
+    // Y los que movio en vez de leer: el mismo canal, la otra cara.
+    movidas: list<str>,
     // El tipo de cada expresion, por modulo, para el generador.
     anotados: list<map<str, T.Tipo>>,
     // Las copias y las clausuras, en el orden en que se escriben.
@@ -6123,7 +6141,7 @@ fn comprobar_programa(arboles: &list<P.Nodo>, modulos: &list<str>,
         cierres: [], cierres_mod: [], n_cierres: 0, cierres_mut: [], numeracion: [],
         arboles: copiar(arboles), modulos: copiar(modulos),
         contextos: copiar(contextos), copias: [], orden_structs: [], tipo_de_struct: [],
-        anotados: [], orden_copias: [], lecturas: [] };
+        anotados: [], orden_copias: [], lecturas: [], movidas: [] };
     for _a en arboles {
         let vacio_m: map<str, T.Tipo> = [];
         m.anotados.anadir(vacio_m);
@@ -6157,6 +6175,7 @@ fn comprobar_programa(arboles: &list<P.Nodo>, modulos: &list<str>,
         cierres: copiar(m.cierres),
         cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion),
         sacados: copiar(c.sacados), lecturas: copiar(m.lecturas),
+        movidas: copiar(m.movidas),
         anotados: copiar(m.anotados),
         orden_copias: copiar(m.orden_copias), structs_aplicados: aplicados,
         orden_structs: copiar(m.orden_structs) };
