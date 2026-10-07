@@ -2,7 +2,7 @@
 # GitHub no lo cuente en la barra de lenguajes.
 bootstrap/tcodec.c linguist-generated=true -diff
 
-# La semilla fijada del banco de medidas: es el mismo C generado, congelado.
+# La semilla fijada del banco de medidas: el mismo C generado, congelado.
 bench/referencia/tcodec.c linguist-generated=true -diff
 
 # El parser de tree-sitter y sus tablas los genera `tree-sitter generate`.
@@ -10,7 +10,8 @@ contrib/tree-sitter-tcode/src/parser.c linguist-generated=true -diff
 contrib/tree-sitter-tcode/src/grammar.json linguist-generated=true -diff
 contrib/tree-sitter-tcode/src/node-types.json linguist-generated=true -diff
 
-# GitHub clasifica los `.t` por contenido y los confunde con C o con Perl.
-# Hasta que TCode este registrado en Linguist, se lo decimos aqui:
-# ver `contrib/linguist/README.md`, que ya trae los materiales para registrarlo.
-*.t linguist-language=TCode
+# GitHub clasifica los `.t` por contenido y los confunde con C. Mientras TCode
+# no este registrado en Linguist, se sacan de la barra: es lo que dice
+# `contrib/linguist/README.md`. Cuando la propuesta de ese directorio este
+# aceptada, esta linea se cambia por `*.t linguist-language=TCode`.
+*.t -linguist-detectable
