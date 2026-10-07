@@ -4,6 +4,8 @@ Suite del lenguaje Tcode. Cada seccion es un modulo de `tests/lenguaje/`.
 
 RECHAZO   -> el programa NO debe compilar, y el error debe explicar por que.
 ACEPTA    -> compila, corre bajo ASan+UBSan y da exactamente esta salida.
+EQUIVALE  -> y se comporta igual que una implementacion de referencia en C
+             escrita a mano: misma salida y mismo codigo de salida.
 GENERADOR -> el comprobador lo acepta y el generador se niega a escribirlo:
              es la valvula, y sin ella el programa se colaria hasta el C.
 
@@ -39,8 +41,8 @@ from lenguaje.comun import Resultado, construir_tcodec
 # Las secciones, en el orden en que corren en serie. Cada una se puede pedir
 # sola, y es el modulo de `tests/lenguaje/` que se llama como ella.
 SECCIONES = [
-    "RECHAZO", "AVISA", "ACEPTA", "GENERADOR", "SALIDA", "ARCHIVOS", "FORMATO",
-    "LINEAS", "ABORTA", "MODULOS", "EJEMPLOS", "PROGRAMAS", "REGLAS",
+    "RECHAZO", "AVISA", "ACEPTA", "EQUIVALE", "GENERADOR", "SALIDA", "ARCHIVOS",
+    "FORMATO", "LINEAS", "ABORTA", "MODULOS", "EJEMPLOS", "PROGRAMAS", "REGLAS",
     "ESPECIFICACION", "CONGELADO",
 ]
 # Las que mas tardan, en el orden en que conviene empezarlas: con una seccion

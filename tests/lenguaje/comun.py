@@ -154,6 +154,29 @@ def correr_c(codigo, tmp, con_sanitizers=True, apoyo=(), entrada=None):
     return e.returncode, e.stdout, e.stderr
 
 
+def correr_referencia(ruta, tmp, entrada=None):
+    """La implementacion de referencia en C de un caso EQUIVALE, compilada y
+    corrida: (codigo_de_salida, stdout, stderr).
+
+    Lleva las mismas banderas que el C de `tcodec` —`-std=c17 -g -Wall -Wextra
+    -Werror`— y **sin** los sanitizers de Tcode: la referencia no es el
+    programa que se prueba, es el original contra el que se compara. Se escribe
+    a mano; nunca es el C que emite el compilador.
+
+    `entrada`, si no es `None`, es el texto que lee el binario por un tubo.
+    """
+    binario = os.path.join(tmp, "referencia")
+    orden = ["cc", "-std=c17", "-g", "-Wall", "-Wextra", "-Werror",
+             f"-I{RUNTIME}", ruta, "-o", binario, "-lm"]
+
+    r = cc(orden, capture_output=True, text=True)
+    assert r.returncode == 0, "la referencia no compila:\n" + r.stderr
+
+    e = subprocess.run([binario], capture_output=True, text=True, timeout=60,
+                       input=entrada)
+    return e.returncode, e.stdout, e.stderr
+
+
 def hay_msan():
     """Si esta `clang`, que es el unico con MemorySanitizer."""
     return shutil.which("clang") is not None
