@@ -97,6 +97,28 @@ VALVULA = [
      ' fn main() { let p = P { s: nuevo("a"), n: 1 };'
      ' if if usa(p) { true } else { false } { imprimir("si"); } }',
      "tcodec no sabe escribir esta si de `main`"),
+
+    # La misma forma, pero en un `mientras`: la condicion corre en CADA
+    # vuelta, asi que la entrega de la rama se repite con la bandera ya
+    # apagada. `while match e { E.A -> usa(p), … }` compilaba y moria con
+    # doble liberacion en la segunda vuelta (ASan); ahora se veta, como antes
+    # de que el `si` aprendiera a escribir sus ramas.
+    ("mover una rama de la condicion de un `mientras`",
+     'struct P { s: str, n: usize }'
+     ' fn usa(p: P) -> bool { return p.n == 1; }'
+     ' fn main() { var c = true;'
+     ' let p = P { s: nuevo("a"), n: 1 };'
+     ' while if c { usa(p) } else { false } { c = false; imprimir("si"); } }',
+     "tcodec no sabe escribir esta mientras de `main`"),
+
+    ("mover un brazo del `match` que es la condicion de un `mientras`",
+     'struct P { s: str, n: usize }'
+     ' enum E { A, B }'
+     ' fn usa(p: P) -> bool { return p.n == 1; }'
+     ' fn main() { let e = E.A;'
+     ' let p = P { s: nuevo("a"), n: 1 };'
+     ' while match e { E.A -> usa(p), E.B -> false } { imprimir("si"); } }',
+     "tcodec no sabe escribir esta mientras de `main`"),
 ]
 
 # Las mismas formas, con una condicion que solo se lee: compilan y corren.
@@ -150,6 +172,19 @@ CONTROLES = [
      ' fn main() { let c = true;'
      ' let p = P { s: nuevo("a"), n: 1 };'
      ' if if c { usa(p) } else { true } { imprimir("si\\n"); } }',
+     "si\n"),
+
+    # La combinacion: la condicion de un `si` es un `match` como valor y un
+    # brazo entrega. Corre una sola vez, y el emisor del `match`
+    # (`match_valor`) apaga la bandera en el brazo que se tomo. Es la misma
+    # historia que el control de arriba, por el otro camino.
+    ("la condicion de un `si` con un brazo de `match` que mueve",
+     'struct P { s: str, n: usize }'
+     ' enum E { A, B }'
+     ' fn usa(p: P) -> bool { return p.n == 1; }'
+     ' fn main() { let e = E.A;'
+     ' let p = P { s: nuevo("a"), n: 1 };'
+     ' if match e { E.A -> usa(p), E.B -> true } { imprimir("si\\n"); } }',
      "si\n"),
 ]
 

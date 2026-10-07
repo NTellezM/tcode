@@ -1417,6 +1417,40 @@ RECHAZO = [
     ("`drop` no es un nombre",
      'fn main() -> usize { let drop = 1; return 0; }',
      "se esperaba 'ident'"),
+
+    # Casos dirigidos a caminos que la suite no pisaba: la recuperacion de
+    # errores de aridad (`evaluar_todos`), el rechazo del generador por un
+    # tipo que no sabe escribir (`rechazo`) y las formas de tipo y de patron
+    # del parser que no salian en ningun programa.
+    ("una interna con mas argumentos de los que tiene",
+     'fn main() { imprimir(largo(1, 2)); }',
+     "`largo` espera 1 argumento y recibio 2"),
+    ("un enum con un bloque dentro",
+     'enum E { A(bloque<str>), B } fn main() { let e = E.B; imprimir(2); }',
+     "no escribe bloques ni arreglos dentro de un enum"),
+    ("un arreglo de tamano cero",
+     'fn main() { let a: [usize; 0] = []; imprimir(1); }',
+     "un arreglo tiene que tener al menos un elemento"),
+    ("un mapa sin el tipo del valor",
+     'fn main() { let m: map<str> = []; imprimir(1); }',
+     "se esperaba ','"),
+    ("un tipo con dos argumentos y sin la coma",
+     'struct Par<A, B> { a: A, b: B }'
+     ' fn main() { let p: Par<usize str> = Par { a: 1, b: "x" };'
+     ' imprimir(p.a); }',
+     "se esperaba '>'"),
+    ("`cadena_c` en un tipo que se guarda",
+     'fn f() -> cadena_c { return "x"; } fn main() { imprimir(1); }',
+     "no se puede almacenar"),
+    ("un patron con dos posiciones y sin la coma",
+     'enum E2 { A, B(i64) } enum E { X, Y(i64), Z(str, E2) }'
+     ' fn main() { let e = E.Z(nuevo("a"), E2.A);'
+     ' match e { E.Z(s E2.A) -> imprimir(s), _ -> imprimir(1) } }',
+     "se esperaba ')'"),
+    ("un patron a medias",
+     'enum E { X, Y(i64) } fn main() { let e = E.Y(1);'
+     ' match e { E.Y( -> imprimir(1), _ -> imprimir(0) } }',
+     "en un patron va un nombre"),
 ]
 
 

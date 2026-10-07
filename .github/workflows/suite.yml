@@ -138,3 +138,22 @@ jobs:
         with:
           name: hallazgos-runtime
           path: .cache/safestr-hallazgos/
+
+  # La red que rompe reglas a proposito: una mutacion por familia, y la suite
+  # tiene que cazar cada una. Va en su propio job porque son ~15 minutos con
+  # cuatro obreros, y sumados a los 40 del fuzzer no caben en un timeout.
+  # Una red que no se ejecuta no es una red: si un mutante sobrevive, esto
+  # falla, y el mutante vive en `tests/mutar.py`.
+  mutar:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: sitio para AddressSanitizer
+        run: sudo sysctl -w vm.mmap_rnd_bits=28
+      - name: las mutaciones, y que ninguna sobreviva
+        run: make mutar

@@ -2942,13 +2942,14 @@ fn entrega_variable(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
 // Lo mismo sin el `Sitio`: la pasada que decide las banderas corre antes de
 // que el `Sitio` exista, porque el `Sitio` las lleva dentro.
 //
-// La decision —mover o leer— es la del comprobador: si el nodo no esta
-// grabado en `movidas`, no se movio, diga lo que diga la forma. El segundo
-// filtro no decide nada: dice si el generador tiene algo que hacer, porque su
-// mundo no siempre conoce los campos de un struct —el de una clausura recien
-// nacida— y entonces no puede soltarlo ni anotarle duenio. Es la misma regla
-// de `entrega_suelta`, y sin ella un cierre que el comprobador mueve se
-// quedaba sin bandera y la sentencia no se sabia escribir.
+// Dos papeles, y solo uno decide. El canal —`movidas`— decide si el nodo se
+// movio o se leyo: si no esta grabado, no se movio, diga lo que diga la
+// forma. La regla de propiedad no decide nada: dice si el generador tiene algo
+// que hacer con ello, porque su mundo no siempre conoce los campos de un
+// struct —el de una clausura recien nacida— y entonces no puede soltarlo ni
+// anotarle duenio. Es la misma regla de `entrega_suelta`, y sin ella un cierre
+// que el comprobador mueve se quedaba sin bandera y la sentencia no se sabia
+// escribir.
 fn entrega_grabada(movidas: &map<str, usize>, tipos: &I.Contexto,
     n: &P.Nodo) -> bool {
     if n.clase != Clase.Variable { return false; }
@@ -4179,13 +4180,13 @@ fn segundo_nombre(t: view) -> str {
     return vacio();
 }
 
-// Si la condicion de una sentencia `si`/`mientras` entrega algo que la
-// sentencia no sabe escribir. Una condicion que ES un `if` o un `match` como
-// valor entrega por sus ramas, y el emisor de ese valor (`si_expr_c`,
-// `match_valor`) apaga la bandera en la rama que se tomo: lo que hay que poder
-// manejar es lo que corre siempre, la condicion de ese valor. Mirar las ramas
-// aqui vetaba `if if c { usa(p) } else { true }`, que si se sabe escribir; lo
-// que se mueve en la condicion del valor —`if if usa(p) { … }`— sigue vetado.
+// Si la condicion de un `si` entrega algo que la sentencia no sabe escribir.
+// Una condicion que ES un `if` o un `match` como valor entrega por sus ramas,
+// y el emisor de ese valor (`si_expr_c`, `match_valor`) apaga la bandera en la
+// rama que se tomo: corre una sola vez, asi que lo que hay que poder manejar
+// es lo que corre siempre, la condicion de ese valor. Mirar las ramas aqui
+// vetaba `if if c { usa(p) } else { true }`, que si se sabe escribir; lo que
+// se mueve en la condicion del valor —`if if usa(p) { … }`— sigue vetado.
 fn mueve_algo(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     if (n.clase == Clase.SiExpr && n.hijos.largo() == 3)
     || (n.clase == Clase.Match && n.hijos.largo() > 0) {
@@ -4194,6 +4195,24 @@ fn mueve_algo(s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> bool {
     var salen: list<str> = [];
     movidas_en(s.movidas, s.punteros, n, tipos, salen);
     movidas_por_caminos(s.lecturas, s.movidas, s.punteros, n, tipos, salen);
+    return salen.largo() > 0;
+}
+
+// Lo mismo para la condicion de un `mientras`, que corre en CADA vuelta. Ahi
+// no vale mirar solo lo que corre siempre: lo que se mueve en una rama se
+// mueve otra vez en la vuelta siguiente, con la bandera ya apagada. Se mira
+// todo —incluidos los brazos de un `match`, que `movidas_por_caminos` no
+// marca por si sola—, como antes del arreglo del `si`. Sin esto,
+//
+//     while match e { E.A -> usa(p), E.B -> false } { … }
+//
+// compilaba y moria con doble liberacion en la segunda vuelta (ASan).
+fn mueve_algo_repetido(s: &Sitio, n: &P.Nodo, tipos: mut I.Contexto) -> bool {
+    var salen: list<str> = [];
+    movidas_en(s.movidas, s.punteros, n, tipos, salen);
+    movidas_por_caminos(s.lecturas, s.movidas, s.punteros, n, tipos, salen);
+    let ninguna: list<str> = [];
+    movidas_en_brazos(s.lecturas, s.movidas, s.punteros, n, tipos, salen, ninguna);
     return salen.largo() > 0;
 }
 
@@ -4530,7 +4549,7 @@ fn retorno_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
 fn mientras_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
     if n.hijos.largo() != 2 { return false; }
-    if mueve_algo(s, n.hijos[0], tipos) { return false; }
+    if mueve_algo_repetido(s, n.hijos[0], tipos) { return false; }
 
     // Casi toda condicion sale entera en una expresion de C y va donde
     // va. Pero alguna necesita lineas propias —`byte` guarda la vista en

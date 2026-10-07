@@ -178,6 +178,24 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
 ### Corregido
 
+- **Leer o mover: lo decide el comprobador, y la decisión llega entera al
+  generador.** Una tanda de ocho arreglos con la misma raíz —el generador
+  volvía a deducir por la forma lo que el comprobador ya había decidido—:
+  (1) tirar el valor de un `if` o de un `match` no mueve la rama; (2) lo que
+  mueve una rama se apaga dentro de esa rama, no detrás de la sentencia;
+  (3) un `if` o un `match` como valor mueven la rama que se toma; (4)
+  descartar la lectura de un sitio no lo suelta; (5) descartar el valor de una
+  interna pura escribe `(void)`; (6) la decisión de leer viaja al generador
+  por un canal con clave `dueño#id`; (7) ese canal viaja partido por dueño, no
+  entero; (8) un `if` o un `match` leídos se prestan en vez de moverse. Con el
+  canal cerrado, la condición de un `si` que entrega en una rama ya se
+  escribe —la bandera se apaga en la rama que se tomó—, mientras que la misma
+  forma en un `mientras` sigue vetada: allí la condición corre en cada vuelta
+  y la entrega se repetiría. **Sin cambios de lenguaje**: no hay sintaxis ni
+  reglas nuevas y no hay que tocar ningún programa; solo dejan de rechazarse
+  programas que ya eran seguros, y el generador deja de escribir los que no lo
+  eran.
+
 - `ejemplos/compilador/tipar.t`: al tipar `for clave, valor en mapa` con el
   mapa prestado (`&mapa<...>`), `valor_de` no quitaba el préstamo y el `valor`
   salía sin tipo. Lo destapó `std/json` al entrar al corpus; ahora la clave y

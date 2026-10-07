@@ -1905,7 +1905,9 @@ fn main() {
     # movimiento, y el emisor de ese valor (`si_expr_c`) apaga la bandera en la
     # rama que se tomo. `mueve_algo` miraba las ramas y vetaba la sentencia
     # entera con `tcodec no sabe escribir esta si`. Lo que sigue vetado es la
-    # entrega en la condicion DEL valor, que corre siempre (ver GENERADOR).
+    # entrega en la condicion DEL valor, que corre siempre, y la misma forma en
+    # un `mientras`: alli la condicion corre en cada vuelta y la entrega se
+    # repetiria con la bandera ya apagada (ver GENERADOR).
     ("la condicion de un `si` con una llamada que mueve en una rama",
      '''struct P { s: str, n: usize }
         fn usa(p: P) -> bool { return p.n == 1; }
@@ -1916,18 +1918,23 @@ fn main() {
         }''',
      "si\n"),
 
-    ("la condicion de un `mientras` con una llamada que mueve en una rama",
-     '''struct P { s: str, n: usize }
-        fn usa(p: P) -> bool { return p.n == 1; }
-        fn main() {
-            var c = true;
-            let p = P { s: nuevo("a"), n: 1 };
-            while if c { usa(p) } else { false } {
-                c = false;
-                imprimir("u\\n");
-            }
+    # Formas del parser que ningun programa de la suite pisaba: el tamaño de
+    # un arreglo fijo (`[T; N]`, con su numero escrito) y un tipo con dos
+    # argumentos (`Par<A, B>`, que recorre el bucle de `argumentos_de_tipo`).
+    ("un arreglo fijo con su tamano escrito",
+     '''fn main() {
+            let a: [usize; 3] = [1, 2, 3];
+            imprimir($"{a[0]} {a[1]} {a[2]}\\n");
         }''',
-     "u\n"),
+     "1 2 3\n"),
+
+    ("un struct generico con dos argumentos de tipo",
+     '''use "std/par";
+        fn main() {
+            let p: Par<usize, str> = Par { primero: 1, segundo: nuevo("x") };
+            imprimir($"{p.primero} {p.segundo}\\n");
+        }''',
+     "1 x\n"),
 
     # Un `if` o un `match` sobre prestamos de solo lectura que se indexa: la
     # direccion de la rama es `const T*`, asi que el puntero con el que se

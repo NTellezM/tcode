@@ -80,6 +80,13 @@ vista sigue viva.
 Esto es exactamente el caso 2 de la tabla, y también el "CONTRATO DE VIDA
 ÚTIL" que safestr documentaba y pedía respetar con criterio.
 
+Cuando el valor de una expresión se tira —una expresión suelta como `s;`,
+`p.n;` o `vista(s);`—, esa expresión solo **lee**: si lo que hay es un sitio
+(una variable, un campo, un elemento), el sitio no se mueve y sigue siendo de
+quien era. Mover es entregarlo: pasarlo a una función que se lo queda, meterlo
+en un literal o devolverlo. La decisión la toma el comprobador, no la forma de
+la expresión, y el generador solo la obedece.
+
 #### Vidas útiles: una vista no sobrevive a lo que presta
 
 La regla anterior vale dentro de una función. Cruzar un `return` necesita
