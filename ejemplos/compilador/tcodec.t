@@ -2442,6 +2442,8 @@ struct Cierres {
     lecturas: IndiceClaves,
     // Y los que movio: el mismo canal, la otra cara.
     movidas: IndiceClaves,
+    // Y los que presto —`&T`/`mut T`—: el mismo canal, el tercer valor.
+    prestamos: IndiceClaves,
 }
 
 // Escribe en borrador cada copia pedida que no se haya visto, primero las
@@ -2485,6 +2487,7 @@ fn descubrir(pedidos: &list<str>, arboles: &list<P.Nodo>,
             borrador_c.dueno = copiar(cierres.fns[k].texto);
             borrador_c.lecturas = claves_de(cierres.lecturas, borrador_c.dueno);
             borrador_c.movidas = claves_de(cierres.movidas, borrador_c.dueno);
+            borrador_c.prestamos = claves_de(cierres.prestamos, borrador_c.dueno);
             let lineas_c = F.generar_funcion(cierres.fns[k], contextos[de],
                 vista(modulos[de]), borrador_c);
             if lineas_c.largo() == 0 {
@@ -2511,6 +2514,7 @@ fn descubrir(pedidos: &list<str>, arboles: &list<P.Nodo>,
         borrador.dueno = dueno_de_pedido(p);
         borrador.lecturas = claves_de(cierres.lecturas, borrador.dueno);
         borrador.movidas = claves_de(cierres.movidas, borrador.dueno);
+        borrador.prestamos = claves_de(cierres.prestamos, borrador.dueno);
         let lineas = F.generar_funcion(copia, contextos[de], modulos[de], borrador);
         if lineas.largo() == 0 {
             let _r = rechazo(sitio(modulos[de], copia.linea),
@@ -3362,7 +3366,7 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
     modulos: &list<str>, instancias: &list<P.Nodo>,
     modulo_de: &list<usize>, duenos_inst: &list<str>,
     orden_inst: &list<str>, orden_copias_revision: &list<str>,
-    lecturas: &IndiceClaves, movidas: &IndiceClaves,
+    lecturas: &IndiceClaves, movidas: &IndiceClaves, prestamos: &IndiceClaves,
     cta: mut F.Cuenta) -> FuncionesGeneradas {
     var protos: list<str> = [];
     var cuerpos: list<str> = [];
@@ -3379,6 +3383,7 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
             cta.dueno = dueno_de_funcion(d, contextos[i]);
             cta.lecturas = claves_de(lecturas, cta.dueno);
             cta.movidas = claves_de(movidas, cta.dueno);
+            cta.prestamos = claves_de(prestamos, cta.dueno);
             if !emitir_funcion(d, contextos[i], vista(modulos[i]), cta, protos,
                 cuerpos, anchos, decimales, conversiones) {
                 return FuncionesGeneradas { ok: false, protos: [], cuerpos: [],
@@ -3413,6 +3418,7 @@ fn generar_funciones(arboles: &list<P.Nodo>, contextos: mut list<I.Contexto>,
         cta.dueno = copiar(duenos_inst[k_o]);
         cta.lecturas = claves_de(lecturas, cta.dueno);
         cta.movidas = claves_de(movidas, cta.dueno);
+        cta.prestamos = claves_de(prestamos, cta.dueno);
         if !emitir_funcion(instancias[k_o], contextos[de], vista(modulos[de]),
             cta, protos, cuerpos, anchos, decimales, conversiones) {
             return FuncionesGeneradas { ok: false, protos: [], cuerpos: [],
@@ -3782,7 +3788,8 @@ fn preparar_cierres(revision: &C.Revision, arboles: mut list<P.Nodo>,
         modulo: copiar(revision.cierres_mod), indice: [],
         numeracion: copiar(revision.numeracion), sacados: sacados,
         lecturas: indice_claves(revision.lecturas),
-        movidas: indice_claves(revision.movidas) };
+        movidas: indice_claves(revision.movidas),
+        prestamos: indice_claves(revision.prestamos) };
     var m_c = 0;
     while m_c < arboles.largo() {
         var k_d = 0;
@@ -3886,6 +3893,7 @@ fn preparar_instancias(revision: &C.Revision, arboles: &list<P.Nodo>,
             borrador.dueno = dueno_de_funcion(d, contextos[k_desc]);
             borrador.lecturas = claves_de(cierres.lecturas, borrador.dueno);
             borrador.movidas = claves_de(cierres.movidas, borrador.dueno);
+            borrador.prestamos = claves_de(cierres.prestamos, borrador.dueno);
             let escritas = F.generar_funcion(d, contextos[k_desc],
                 vista(modulos[k_desc]), borrador);
             if escritas.largo() == 0 { continue; }
@@ -4417,7 +4425,7 @@ fn main() -> usize ! {
 
     let funciones = generar_funciones(arboles, contextos, modulos, instancias,
         modulo_de, duenos_inst, orden_inst, revision.orden_copias,
-        cierres.lecturas, cierres.movidas, cta);
+        cierres.lecturas, cierres.movidas, cierres.prestamos, cta);
     if !funciones.ok { return 1; }
     let protos = copiar(funciones.protos);
     let cuerpos = copiar(funciones.cuerpos);

@@ -237,7 +237,7 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->22.835<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->22.900<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa).
 
 Y hace el último paso él solo: llama al compilador de C, enlaza lo que
@@ -277,7 +277,7 @@ otro programa.
 ### Y también sabe decir que no
 
 Un compilador no es sólo lo que escribe: es lo que se niega a escribir.
-`lib/comprobar.t` son <!--c:lineas_comprobar-->6.473<!--/c--> líneas con las reglas del comprobador
+`lib/comprobar.t` son <!--c:lineas_comprobar-->6.523<!--/c--> líneas con las reglas del comprobador
 —tipos, propiedad, préstamos, mutabilidad, fallos, literales, genéricas
 comprobadas en cada copia, clausuras—. `tcodec` lo pasa antes de escribir
 nada:
@@ -770,7 +770,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1604 casos, 0 fallas
+1608 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 

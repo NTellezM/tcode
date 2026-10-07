@@ -766,6 +766,14 @@ RECHAZO = [
      'fn g(x: str) {} fn f() { var s: str = nuevo("a");'
      ' let v: view = vista(s); g(s); imprimir(v); }',
      "no se puede mover"),
+    # El control negativo del canal de prestamos: prestar no mueve, y mover
+    # por valor si. Si las dos decisiones se confundieran, este caso pasaria.
+    ("mover por valor y despues prestarlo",
+     'fn por_valor(s: str) -> usize { return largo(s); }'
+     ' fn por_prestamo(s: &str) -> usize { return largo(s); }'
+     ' fn f() { let b = nuevo("bb"); let z = por_valor(b);'
+     ' let w = por_prestamo(b); imprimir($"{z} {w}"); }',
+     "ya se movio"),
     ("mover en un bucle algo declarado fuera",
      'fn g(s: str) {} fn f() { let s: str = nuevo("a"); var i: usize = 0;'
      ' while i < 3 { g(s); i = i + 1; } }',

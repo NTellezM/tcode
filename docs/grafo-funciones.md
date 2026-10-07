@@ -710,7 +710,6 @@ graph TD
         compilador_lib_generar__movidas_hondo_en["movidas_hondo_en"]
         compilador_lib_generar__para_c["para_c"]
         compilador_lib_generar__para_rango_c["para_rango_c"]
-        compilador_lib_generar__presta_argumento["presta_argumento"]
         compilador_lib_generar__primer_nombre["primer_nombre"]
         compilador_lib_generar__prototipo["prototipo"]
         compilador_lib_generar__reservar_c["reservar_c"]
@@ -1043,10 +1042,6 @@ graph TD
     compilador_lib_generar__para_rango_c --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__para_rango_c --> compilador_lib_tipos__elemento
     compilador_lib_generar__para_rango_c --> compilador_lib_tipos__escribir_tipo
-    compilador_lib_generar__presta_argumento --> compilador_lib_tipar__lista_de
-    compilador_lib_generar__presta_argumento --> compilador_lib_tipos__es_referencia
-    compilador_lib_generar__presta_argumento --> compilador_lib_tipos__tipos_de_mapa
-    compilador_lib_generar__presta_argumento --> std_texto__empieza_con
     compilador_lib_generar__primer_nombre --> std_texto__recortar
     compilador_lib_generar__prototipo --> compilador_lib_tipos__es_referencia
     compilador_lib_generar__prototipo --> compilador_lib_tipos__es_referencia_mutable

@@ -56,6 +56,63 @@ ACEPTA: list[Caso] = [
         }''',
      "6 1\n4 5 2\n3\n"),
 
+    # El prestamo es una decision del comprobador que viaja por su canal, no
+    # una regla que el generador rehaga por la firma. Estas tres formas la
+    # ejercitan: el prestatario es a la vez argumento prestado de otra llamada
+    # (la llamada y su entorno sintetizado no pueden compartir clave), el
+    # prestamo de una variable, un campo y un elemento dentro de un `if` y
+    # repetido en un bucle, y el contraste con mover por valor.
+    ("una llamada prestada que a su vez lleva una clausura",
+     '''fn mide(xs: &list<str>) -> usize { return largo(xs); }
+        fn con_clausura<F>(xs: &list<str>, cumple: F) -> list<str> {
+            var salida: list<str> = [];
+            for x en xs { if cumple(x) { anadir(salida, copiar(x)); } }
+            return salida;
+        }
+        fn main() {
+            var xs: list<str> = [];
+            anadir(xs, nuevo("hola"));
+            anadir(xs, nuevo("ab"));
+            // `con_clausura(...)` se presta a `mide` y ademas construye el
+            // entorno de su clausura: las dos cosas caen en la misma llamada.
+            imprimir($"{mide(con_clausura(xs, fn(s: &str) -> bool { return largo(s) > 2; }))}\\n");
+        }''',
+     "1\n"),
+
+    ("prestar variable, campo y elemento, en un `if` y en un bucle",
+     '''externo "string.h" { fn strlen(s: str) -> usize; }
+        struct C { s: str, n: usize }
+        fn mide(c: &C) -> usize { return largo(c.s) + c.n; }
+        fn sube(c: &mut C) { c.n = c.n + 1; }
+        fn cuenta(x: &str) -> usize { return largo(x); }
+        fn main() {
+            var c = C { s: nuevo("hola"), n: 1 };
+            var l: list<C> = [];
+            anadir(l, C { s: nuevo("ab"), n: 2 });
+            let bandera = true;
+            if bandera { imprimir($"{mide(c)} {cuenta(c.s)} {cuenta(l[0].s)}\\n"); }
+            var i: usize = 0;
+            while i < 2 { sube(c); sube(l[0]); i = i + 1; }
+            imprimir($"{c.n} {l[0].n} {strlen(c.s)}\\n");
+        }''',
+     "5 4 2\n3 4 4\n"),
+
+    ("prestar no mueve; mover por valor si",
+     '''fn por_valor(s: str) -> usize { return largo(s); }
+        fn por_prestamo(s: &str) -> usize { return largo(s); }
+        fn main() {
+            let a = nuevo("aa");
+            let b = nuevo("bb");
+            // Un prestamo se puede repetir: `a` sigue siendo su duenia.
+            let x = por_prestamo(a);
+            let y = por_prestamo(a);
+            imprimir($"{x} {y} {largo(a)}\\n");
+            // Mover por valor se lleva la variable; aqui no se vuelve a usar.
+            let z = por_valor(b);
+            imprimir($"{z}\\n");
+        }''',
+     "2 2 2\n2\n"),
+
     # Un local que se llama como una funcion y no se puede llamar: la llamada
     # es a la funcion, tambien cuando su resultado se guarda y hay que saber
     # su tipo. `tcodec` tomaba el tipo del local y no sabia escribir el `let`.

@@ -473,6 +473,11 @@ struct Sitio {
     // el comprobador ya decidio; quien lo consuma tiene que hacerlo a la vez
     // que el que graba, porque el C cambia.
     movidas: map<str, usize>,
+    // Y los que paso prestados —`&T`/`mut T`—, en el mismo canal y con la
+    // misma clave: la tercera cara de la misma decision. Quien pide la
+    // direccion de un argumento lo consulta aqui en vez de rehacer la regla
+    // por la firma, que era su segunda implementacion.
+    prestamos: map<str, usize>,
 }
 
 // Que nombres son un puntero en el C generado: los parametros prestados, y
@@ -2216,6 +2221,21 @@ fn es_lectura(s: &Sitio, tipos: &I.Contexto, n: &P.Nodo) -> bool {
     return es_lectura_en(s.lecturas, tipos, n);
 }
 
+// Si el comprobador grabo este argumento como prestado: la clave es la de los
+// anotados, `dueno#id`, y lo decide el, no la firma. Un argumento que el
+// compilador sintetiza —el entorno de una clausura, que no esta escrito en el
+// programa— no tiene id propio: su prestamo viaja bajo el id de la llamada,
+// con la marca `#entorno` que lo distingue de la llamada misma cuando tambien
+// es argumento prestado.
+fn es_prestamo(s: &Sitio, tipos: &I.Contexto, n: &P.Nodo,
+    llamada: &P.Nodo) -> bool {
+    if n.id != 0 { return tiene(s.prestamos, $"{tipos.dueno}#{n.id}"); }
+    if llamada.id != 0 {
+        return tiene(s.prestamos, $"{tipos.dueno}#{llamada.id}#entorno");
+    }
+    return false;
+}
+
 // Si la direccion de este sitio es una expresion sin ramas propias: una
 // variable, un campo, un indice, o un condicional de esos. `campo_c` e
 // `indice_c` pueden declarar un temporal antes, que no cambia el orden de
@@ -2685,6 +2705,10 @@ fn llamada_a_valor(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
     let de_cierre = I.funcion_de_cierre(t);
     if de_cierre.largo() > 0 {
         var otra = P.rama(Clase.Llamada, n.linea);
+        // El entorno es un argumento que el compilador pone, no el programa:
+        // no tiene id propio, y su prestamo viaja bajo el id de esta llamada.
+        // Las dos pasadas la construyen igual.
+        otra.id = n.id;
         otra.texto = copiar(de_cierre);
         otra.hijos.anadir(P.hoja(Clase.Variable, n.texto, n.linea));
         for h en n.hijos { otra.hijos.anadir(copiar(h)); }
@@ -2729,15 +2753,14 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
         if i < firmados.largo() { esperado = copiar(firmados[i]); }
 
         // Un parametro prestado recibe la direccion, no el valor. Si lo que
-        // se le pasa ya es un puntero, se pasa tal cual.
-        var presta_el = false;
+        // se le pasa ya es un puntero, se pasa tal cual. Que el argumento se
+        // preste lo decidio el comprobador y viaja por el canal; la marca de
+        // la firma solo dice si el prestamo es para modificar.
         var presta_mut = false;
         if i < marcados.largo() {
-            let m = vista(marcados[i]);
-            presta_el = T.es_referencia(m) || empieza_con(m, "mut ");
-            presta_mut = empieza_con(m, "mut ");
+            presta_mut = empieza_con(vista(marcados[i]), "mut ");
         }
-        if presta_el {
+        if es_prestamo(s, tipos, h, n) {
             let clase_h = h.clase;
             if clase_h == Clase.Variable || clase_h == Clase.Campo
             || clase_h == Clase.Indice
@@ -2814,8 +2837,10 @@ fn llamada_con_firma(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto,
         }
 
         // Pasar una variable con duenio a algo que se la queda es moverla.
-        // La bandera la apaga la sentencia; aqui basta con que exista.
-        if !presta_el && entrega_variable(s, h, tipos) {
+        // La bandera la apaga la sentencia; aqui basta con que exista. No hay
+        // que descontar el prestamo: si el argumento se prestara, el `continue`
+        // de la rama de arriba no habria llegado hasta aqui.
+        if entrega_variable(s, h, tipos) {
             if !lleva_bandera(b, s, h.texto) {
                 let _m = cerrar_marco(b);
                 return no_se();
@@ -3006,28 +3031,6 @@ fn entrega_suelta(punteros: &map<str, usize>, n: &P.Nodo,
 // Tcode cobra lo que Rust —un `bool` en la pila que el compilador de C borra
 // en cuanto puede demostrar que sobra— y no pide escribir nada.
 
-// Si el parametro `i` de `nombre` presta en vez de quedarse con el valor.
-fn presta_argumento(tipos: &I.Contexto, nombre: view, i: usize) -> bool {
-    // `anadir(xs, v)` y `poner(m, k, v)` prestan la coleccion y se quedan
-    // con lo demas. Las otras internas cubiertas toman vistas o escalares.
-    if nombre == "anadir" { return i == 0; }
-    // `intercambiar(sitio, v)` presta el sitio y se queda con `v`.
-    if nombre == "intercambiar" { return i == 0; }
-    // La clave se copia dentro de la tabla: se presta. Solo el valor se
-    // queda en el mapa.
-    if nombre == "poner" { return i < 2; }
-    if es_interna(nombre) { return true; }
-    // Un parametro `view` mira el texto, no se lo queda.
-    let firmados = T.tipos_de_mapa(tipos.params, nombre) sino [];
-    if i < firmados.largo() {
-        if firmados[i].nombre == "view" { return true; }
-    }
-    let marcados = I.lista_de(tipos.params_marcados, nombre) sino [];
-    if i >= marcados.largo() { return true; }
-    let m = vista(marcados[i]);
-    return T.es_referencia(m) || empieza_con(m, "mut ");
-}
-
 fn apuntar_movida(salida: mut list<str>, nombre: view) {
     for x en salida {
         if igual(x, nombre) { return; }
@@ -3132,15 +3135,16 @@ fn movidas_en(movidas: &map<str, usize>, punteros: &map<str, usize>,
                 }
             }
         }
+        // Lo que la llamada entrega es, argumento a argumento, lo que el
+        // comprobador grabo como movido. No hace falta descontar los
+        // parametros que prestan —lo que hacia `presta_argumento`—: por un
+        // parametro prestado el comprobador no mueve el argumento, asi que no
+        // hay nada grabado que descontar. La decision es una sola.
         Clase.Llamada -> {
-            var i = 0;
             for h en n.hijos {
-                if !presta_argumento(tipos, n.texto, i) {
-                    if entrega_grabada(movidas, tipos, h) {
-                        apuntar_movida(salida, h.texto);
-                    }
+                if entrega_grabada(movidas, tipos, h) {
+                    apuntar_movida(salida, h.texto);
                 }
-                i = i + 1;
             }
         }
         _ -> { }

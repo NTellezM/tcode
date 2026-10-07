@@ -349,6 +349,8 @@ struct Cuenta {
     lecturas: map<str, usize>,
     // Y los que movio: el mismo canal, la otra cara.
     movidas: map<str, usize>,
+    // Y los que presto —`&T`/`mut T`—: el mismo canal, el tercer valor.
+    prestamos: map<str, usize>,
     ultima_linea: usize,
     // Las copias de genericas que han pedido las funciones escritas.
     instancias: list<str>,
@@ -367,7 +369,7 @@ struct Cuenta {
 
 fn cuenta_nueva() -> Cuenta {
     return Cuenta { temporal: 0, bucle: 0, etiquetas: 0, sacados: [], lecturas: [],
-        movidas: [],
+        movidas: [], prestamos: [],
         ultima_linea: 0,
         instancias: [],
         copias: [], arreglos: [], dueno: vacio(), fallo: vacio() };
@@ -578,7 +580,8 @@ fn generar_funcion(d: &P.Nodo, tipos: mut I.Contexto, ruta: view,
     var sitio = G.Sitio { archivo: nuevo(ruta), tipos: de_tipo,
         punteros: puntos, pide_bandera: banderas,
         retorno: copiar(retorno), sacados: copiar(cta.sacados),
-        lecturas: copiar(cta.lecturas), movidas: copiar(cta.movidas) };
+        lecturas: copiar(cta.lecturas), movidas: copiar(cta.movidas),
+        prestamos: copiar(cta.prestamos) };
     var b = G.cuerpo();
     b.temporal = cta.temporal;
     b.bucle = cta.bucle;

@@ -357,6 +357,12 @@ struct Mundo {
     // `dueno#id`, y con la misma clave. Es el canal por el que viaja la
     // decision de mover para que el generador no la rederive por forma.
     movidas: list<str>,
+    // El tercer valor de la misma decision: los nodos que el comprobador paso
+    // PRESTADOS —la rama `prestado(p)`, un `&T` o un `mut T`—, por `dueno#id`
+    // y con la misma clave. Ni se leen ni se mueven: se prestan, y el
+    // generador tiene que saberlo para pedir la direccion en vez del valor sin
+    // volver a deducirlo por la forma ni por la firma.
+    prestamos: list<str>,
     // Las copias de genericas y las clausuras, en el orden en que nacen: una
     // clausura al verla, una copia despues de comprobar su cuerpo. Es el
     // orden en que el generador las escribe.
@@ -2804,6 +2810,32 @@ fn grabar_movimiento(c: &Comprobacion, m: mut Mundo, n: &P.Nodo) {
     m.movidas.anadir(clave_anotada(c, n));
 }
 
+// Y el tercer valor: aqui el comprobador decidio PRESTAR —`&T` o `mut T`—, que
+// no es leer ni mover. Se graba en el mismo canal y con la misma clave, para
+// que quien lo consuma pida la direccion en vez del valor sin rehacer la
+// decision por la forma ni por la firma.
+fn grabar_prestamo(c: &Comprobacion, m: mut Mundo, n: &P.Nodo) {
+    if n.id == 0 { return; }
+    m.prestamos.anadir(clave_anotada(c, n));
+}
+
+// El prestamo de un argumento. Por su nodo cuando el programa lo escribio; y
+// cuando lo sintetizo el compilador —el entorno de una clausura, que no tiene
+// nodo propio— bajo el id de la llamada, con una marca que lo distingue de
+// cuando esa misma llamada es, a su vez, argumento prestado de otra. La marca
+// es la misma que consulta el generador.
+fn grabar_prestamo_de(c: &Comprobacion, m: mut Mundo, arg: &P.Nodo,
+    llamada: &P.Nodo) {
+    if arg.id != 0 {
+        grabar_prestamo(c, m, arg);
+        return;
+    }
+    if llamada.id == 0 { return; }
+    var clave = clave_anotada(c, llamada);
+    clave.empujar("#entorno");
+    m.prestamos.anadir(clave);
+}
+
 // Un numero escrito ya sabe su tipo: se lo dice el otro lado de la operacion,
 // o el sitio donde va. Se anota en el y en todo lo que es numero escrito por
 // debajo; un desplazamiento cuenta en `usize`.
@@ -4308,6 +4340,10 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let de_cierre = I.funcion_de_cierre(tv);
         if de_cierre.largo() > 0 {
             var otra = P.rama(Clase.Llamada, n.linea);
+            // El entorno lo pone el compilador, no el programa: no tiene id
+            // propio. Su prestamo —el parametro 0 de `ss_cierre_N`— viaja bajo
+            // el id de esta llamada, que es la que el generador reconstruye.
+            otra.id = n.id;
             otra.texto = copiar(de_cierre);
             otra.hijos.anadir(P.hoja(Clase.Variable, escrito, n.linea));
             for h en n.hijos { otra.hijos.anadir(copiar(h)); }
@@ -4355,6 +4391,12 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
         let p: &Param = f.params[i];
         i = i + 1;
         if prestado(p) {
+            // Lo que se pasa a un parametro que presta no se lee ni se mueve:
+            // se presta. Queda grabado para que el generador pida la direccion
+            // porque este canal lo dice, y no porque la firma tenga un `&`. Un
+            // argumento sintetizado —el entorno de una clausura— no tiene id:
+            // se graba bajo el id de la llamada.
+            grabar_prestamo_de(c, m, arg, n);
             let base = variable_base(arg);
             let is = buscar_simbolo(c, base);
             if base.largo() == 0 || !existe(c, is) {
@@ -4491,6 +4533,10 @@ fn llamada_a_puntero(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &
         let t = comprobar_expresion(c, m, tipos, n.hijos[k], dentro, mueve);
         let cual = $"el argumento {k + 1}";
         if presta {
+            // La firma del puntero presta igual que la de una funcion con
+            // nombre: el argumento queda grabado como prestado, la misma
+            // decision y el mismo canal.
+            grabar_prestamo_de(c, m, n.hijos[k], n);
             let base = variable_base(n.hijos[k]);
             let is = buscar_simbolo(c, base);
             if base.largo() > 0 && existe(c, is) {
@@ -6128,6 +6174,9 @@ struct Revision {
     lecturas: list<str>,
     // Y los que movio en vez de leer: el mismo canal, la otra cara.
     movidas: list<str>,
+    // Y los que presto: el mismo canal, el tercer valor. `&T`/`mut T`, que ni
+    // se leen ni se mueven.
+    prestamos: list<str>,
     // El tipo de cada expresion, por modulo, para el generador.
     anotados: list<map<str, T.Tipo>>,
     // Las copias y las clausuras, en el orden en que se escriben.
@@ -6147,7 +6196,7 @@ fn comprobar_programa(arboles: &list<P.Nodo>, modulos: &list<str>,
         cierres: [], cierres_mod: [], n_cierres: 0, cierres_mut: [], numeracion: [],
         arboles: copiar(arboles), modulos: copiar(modulos),
         contextos: copiar(contextos), copias: [], orden_structs: [], tipo_de_struct: [],
-        anotados: [], orden_copias: [], lecturas: [], movidas: [] };
+        anotados: [], orden_copias: [], lecturas: [], movidas: [], prestamos: [] };
     for _a en arboles {
         let vacio_m: map<str, T.Tipo> = [];
         m.anotados.anadir(vacio_m);
@@ -6182,6 +6231,7 @@ fn comprobar_programa(arboles: &list<P.Nodo>, modulos: &list<str>,
         cierres_mod: copiar(m.cierres_mod), numeracion: copiar(m.numeracion),
         sacados: copiar(c.sacados), lecturas: copiar(m.lecturas),
         movidas: copiar(m.movidas),
+        prestamos: copiar(m.prestamos),
         anotados: copiar(m.anotados),
         orden_copias: copiar(m.orden_copias), structs_aplicados: aplicados,
         orden_structs: copiar(m.orden_structs) };
