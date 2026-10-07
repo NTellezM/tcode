@@ -81,6 +81,10 @@ ejemplos/genericos
 # Las herramientas que la suite compila, guardadas por el hash de su C
 .cache/
 
+# Los contadores de gcov, que deja `make cobertura`
+*.gcda
+*.gcno
+
 # El compilador que construye `make`
 /tcodec
 

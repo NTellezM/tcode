@@ -82,7 +82,9 @@ tcodec programa.t -O3
 
 `tcodec` escribe su propio C —unas 31.500 líneas de Tcode entre el
 compilador, el lexer y `std/`, 6 MB de C— en **1,5 s** (gcc 13, `-O1` en la
-semilla; unas 11 unidades).
+semilla). Lo que `make bench` mide no son esos segundos, sino la razón contra
+el compilador de referencia de `bench/referencia/tcodec.c`, construido en la
+misma máquina y en la misma pasada; el límite es 1,25 en `bench/limites.json`.
 
 Medido con gprof, lo que más pesaba (27 %) era una comprobación sobre el C
 ya escrito: que cada nombre compuesto que usan los cuerpos tenga su

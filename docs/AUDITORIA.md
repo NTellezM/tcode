@@ -5,11 +5,13 @@ de qué depende esa promesa, dónde está implementada cada parte, cómo se
 prueba ya, qué se decidió ser conservador a propósito y por dónde empezaría
 a buscar. Las referencias `archivo:línea` son de la rama `camino-1.0`.
 
-> **Aviso (2026-10-04).** Este documento es el registro de la auditoría previa
-> al 1.0. Entonces existía el compilador de Python (`tcode/`) y con él el DDC
-> y la cobertura; hoy no: `tcode/*.py` se borró (`13a2fb7`) y `tcodec` es el
-> único compilador (`docs/sin-oraculo.md`). Donde abajo se cita «Python»,
-> `tcode/`, `make ddc` o `make cobertura`, descríbese el estado de entonces.
+> **Aviso (2026-10-04; cobertura, 2026-10-07).** Este documento es el registro
+> de la auditoría previa al 1.0. Entonces existía el compilador de Python
+> (`tcode/`) y con él el DDC y la cobertura; hoy no: `tcode/*.py` se borró
+> (`13a2fb7`) y `tcodec` es el único compilador (`docs/sin-oraculo.md`). La
+> cobertura volvió, ya sin Python: `make cobertura` la mide sobre el C de
+> `tcodec` con `gcov`, no sobre el oráculo congelado. Donde abajo se cita
+> «Python», `tcode/` o `make ddc`, descríbese el estado de entonces.
 
 ## Qué se promete
 
@@ -253,7 +255,7 @@ make ddc              # (ya no existe: era la doble diversa contra Python)
 make fuzz FUZZ_SEGUNDOS=3600
 TCODE_PROGRAMAS=1000 make propiedades
 make compiladores COMPILADORES="gcc-12 gcc-13 clang-18"
-make cobertura        # (ya no existe: era la cobertura del oráculo de Python)
+make cobertura        # la cobertura de tcodec con gcov (a mano, no en `check`)
 make mutar            # rompe una regla en tcodec: tiene que notarse
 ./tcodec programa.t --explicar   # lo que el compilador infirió de cada valor
 ./tcodec programa.t --mostrar-c  # el C, con #line apuntando al .t

@@ -12,6 +12,7 @@
 #   make formato      deja todo el codigo Tcode en el formato canonico
 #   make lint         revisa el codigo Python con ruff y mypy
 #   make mutar        rompe una regla en tcodec, y exige que la suite lo note
+#   make cobertura    la cobertura de tcodec con gcov (a mano, no en `check`)
 #   make compiladores la semilla, el punto fijo y `rapido` con cada compilador de C
 #   make paquete      dist/tcode-VERSION.tar.gz, reproducible (arbol limpio)
 #   make probar-paquete  y desde el, sin Python, tcodec y un programa
@@ -23,7 +24,7 @@
 
 PY ?= python3
 
-.PHONY: all check rapido propiedades cifras grafo bench ejemplos limpiar formato lint mutar semilla compiladores con-un-cc punto-fijo-cc fuzz fuzz-safestr bench-comprobar instalar desinstalar paquete probar-paquete version icono
+.PHONY: all check rapido propiedades cifras grafo bench ejemplos limpiar formato lint mutar cobertura semilla compiladores con-un-cc punto-fijo-cc fuzz fuzz-safestr bench-comprobar instalar desinstalar paquete probar-paquete version icono
 
 all: tcodec
 
@@ -271,3 +272,12 @@ lint:
 # repositorio. Tarda minutos, que cada copia construye su tcodec.
 mutar:
 	@$(PY) tests/mutar.py
+
+# La cobertura del compilador, a mano: `make check` no la corre porque la CI
+# no tiene tiempo para esto. Construye `tcodec` desde su semilla con
+# `--coverage`, lo pasa por las secciones de `rapido` y por los casos del
+# banco, y pide a `gcov` las lineas, las funciones y las ramas, con la lista
+# de las funciones que no se ejecutan nunca. Todo lo que escribe vive en
+# `.cache/cobertura/`. Necesita el `gcov` de gcc; si falta, lo dice y no sigue.
+cobertura:
+	@$(PY) tests/cobertura.py $(RAPIDAS)

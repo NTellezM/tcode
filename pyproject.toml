@@ -22,8 +22,6 @@ ignore = ["B905"]
 python_version = "3.10"
 files = ["tests"]
 
-# `coverage` es opcional: lo pide `make cobertura`, la suite no, y en la CI no
-# esta instalado. Sin esto, mypy no sabe de que tipo es y falla el lint.
-[[tool.mypy.overrides]]
-module = "coverage"
-ignore_missing_imports = true
+# La cobertura del compilador la mide `make cobertura` con `gcov` sobre el C de
+# `tcodec` (`tests/cobertura.py`), no el paquete `coverage` de Python: ningun
+# modulo lo importa, asi que no hay excepcion que declarar.
