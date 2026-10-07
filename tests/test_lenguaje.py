@@ -41,7 +41,7 @@ from lenguaje.comun import Resultado, construir_tcodec
 SECCIONES = [
     "RECHAZO", "AVISA", "ACEPTA", "GENERADOR", "SALIDA", "ARCHIVOS", "FORMATO",
     "LINEAS", "ABORTA", "MODULOS", "EJEMPLOS", "PROGRAMAS", "REGLAS",
-    "ESPECIFICACION",
+    "ESPECIFICACION", "CONGELADO",
 ]
 # Las que mas tardan, en el orden en que conviene empezarlas: con una seccion
 # por proceso, la pasada entera dura lo que la mas larga.

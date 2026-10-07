@@ -1,4 +1,4 @@
-"""ACEPTA: compilan, corren limpio bajo ASan+UBSan."""
+"""ACEPTA: compilan, corren limpio bajo ASan+UBSan, y tambien bajo MSan."""
 
 import os
 import tempfile
@@ -7,7 +7,9 @@ from .comun import (
     Resultado,
     c_de,
     correr_c,
+    correr_c_msan,
     en_paralelo,
+    hay_msan,
 )
 
 # Un caso: el nombre, la fuente y la salida esperada; y, solo si le hace
@@ -3723,10 +3725,26 @@ def correr(suite: Resultado) -> None:
                 suite.falla(nombre, str(exc))
 
         def _correr_caso(trabajo):
+            nombre, salida, codigo, suyo, opciones = trabajo
             try:
-                return correr_c(trabajo[2], trabajo[3], **trabajo[4])
+                res = correr_c(codigo, suyo, **opciones)
             except AssertionError as exc:
                 return str(exc)
+            if not hay_msan():
+                return res
+            # Segundo camino, de otro implementador: ASan ve la memoria mal
+            # liberada; MSan, la que se lee sin inicializar. Tiene que dar lo
+            # mismo, y sin quejarse.
+            try:
+                rc_m, out_m, err_m = correr_c_msan(codigo, suyo, **opciones)
+            except AssertionError as exc:
+                return f"el C no compila con MSan:\n{exc}"
+            if "MemorySanitizer" in err_m or "uninitialized" in err_m:
+                return f"MemorySanitizer se quejo:\n{err_m[-400:]}"
+            if (rc_m, out_m) != (res[0], res[1]):
+                return (f"MSan corre distinto que ASan: codigo {rc_m} contra "
+                        f"{res[0]}, salida {out_m!r} contra {res[1]!r}")
+            return res
 
         for (nombre, salida, _, _, _), hecho in zip(trabajos,
                                                     en_paralelo(_correr_caso,

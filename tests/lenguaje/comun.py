@@ -152,3 +152,36 @@ def correr_c(codigo, tmp, con_sanitizers=True, apoyo=(), entrada=None):
     e = subprocess.run([binario], capture_output=True, text=True, timeout=60,
                        input=entrada)
     return e.returncode, e.stdout, e.stderr
+
+
+def hay_msan():
+    """Si esta `clang`, que es el unico con MemorySanitizer."""
+    return shutil.which("clang") is not None
+
+
+def correr_c_msan(codigo, tmp, apoyo=(), entrada=None):
+    """Lo mismo, con MemorySanitizer en vez de ASan+UBSan.
+
+    Es un segundo camino para la misma promesa de memoria, y de otro
+    implementador: ASan ve lo que se libera mal, MSan ve lo que se **lee sin
+    inicializar**, que ASan no mira. Los dos sanitizers no conviven en el
+    mismo binario, asi que van en dos pasadas. Necesita `clang`.
+    """
+    ruta_c = os.path.join(tmp, "m.c")
+    binario = os.path.join(tmp, "m")
+    with open(ruta_c, "w", encoding="utf-8") as f:
+        f.write(codigo)
+
+    orden = ["clang", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=memory", "-fno-omit-frame-pointer",
+             "-fno-sanitize-recover=all", f"-I{RUNTIME}", ruta_c,
+             *(os.path.join(RAIZ, a) for a in apoyo),
+             os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"]
+
+    r = subprocess.run(orden, capture_output=True, text=True)
+    assert r.returncode == 0, "el C generado no compila con MSan:\n" + r.stderr
+
+    e = subprocess.run([binario], capture_output=True, text=True, timeout=60,
+                       input=entrada)
+    return e.returncode, e.stdout, e.stderr

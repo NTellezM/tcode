@@ -29,9 +29,6 @@ fn unidad() -> view { return "()"; }
 
 // Los marcadores de un literal sin fijar, ya como `Tipo`: `{entero}` y
 // `{decimal}` no pasan por `leer_tipo`, asi que se preguntan por el nombre.
-fn es_literal(t: &T.Tipo) -> bool {
-    return es_literal_entero(t) || es_literal_decimal_t(t);
-}
 fn es_literal_entero(t: &T.Tipo) -> bool {
     return igual(t.nombre, literal());
 }

@@ -5,11 +5,11 @@ static int64_t ss_lang_monotono_ms_(void)
        no tiene ninguno, asi que se usa el de POSIX cuando esta; donde no
        este, cae al de pared, que es lo unico que hay. */
 #if defined(CLOCK_MONOTONIC)
-    struct timespec t;
+    struct timespec t = {0};
     if (clock_gettime(CLOCK_MONOTONIC, &t) == 0)
         return (int64_t) t.tv_sec * 1000 + (int64_t) (t.tv_nsec / 1000000);
 #endif
-    struct timespec p;
+    struct timespec p = {0};
     if (timespec_get(&p, TIME_UTC) != TIME_UTC) return 0;
     return (int64_t) p.tv_sec * 1000 + (int64_t) (p.tv_nsec / 1000000);
 }

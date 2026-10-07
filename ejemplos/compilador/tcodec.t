@@ -1000,21 +1000,6 @@ fn sitios_de_nombre(arboles: &list<P.Nodo>, modulos: &list<str>,
     return salida;
 }
 
-// "a.t:1 y b.t:2"; con mas, "a.t:1, b.t:2 y c.t:3".
-fn sitios_juntos(sitios: &list<str>) -> str {
-    var r = vacio();
-    var i = 0;
-    while i < sitios.largo() {
-        if i > 0 {
-            if i == sitios.largo() - 1 { r.empujar(" y "); }
-            else { r.empujar(", "); }
-        }
-        r.empujar(sitios[i]);
-        i = i + 1;
-    }
-    return r;
-}
-
 // Donde se declaro un struct, un enum o una funcion con este nombre. Si no
 // aparece se dice el archivo principal: solo pasa si el nombre lo invento el
 // propio compilador.
