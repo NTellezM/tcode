@@ -902,6 +902,7 @@ graph TD
     compilador_lib_generar__interna_pura_intercambiar --> compilador_lib_tipos__leer_tipo
     compilador_lib_generar__interna_pura_largo --> compilador_lib_tipar__tipo_de
     compilador_lib_generar__interna_pura_largo --> compilador_lib_tipos__apuntado_si
+    compilador_lib_generar__interna_pura_largo --> compilador_lib_tipos__es_arreglo
     compilador_lib_generar__interna_pura_largo --> compilador_lib_tipos__es_bloque
     compilador_lib_generar__interna_pura_largo --> compilador_lib_tipos__es_lista
     compilador_lib_generar__interna_pura_largo --> compilador_lib_tipos__es_mapa

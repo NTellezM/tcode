@@ -2210,6 +2210,50 @@ fn main() {
         }''',
      "2 99 20\n"),
 
+    # `largo` de un arreglo fijo: el largo esta en el tipo, no hay nada que
+    # medir en tiempo de ejecucion. El comprobador ya lo aceptaba —dice que
+    # `largo` opera sobre "texto, arreglos, listas o mapas"—, pero el
+    # generador se rendia, y la sentencia que lo usaba no se sabia escribir.
+    # Lo encontro un repro de dos lineas con `[nuevo("a")]`.
+    ("`largo` de un arreglo fijo de `str` frescos",
+     '''fn main() {
+            let xs = [nuevo("a"), nuevo("bb")];
+            imprimir($"{largo(xs)} {largo(xs[0])} {largo(xs[1])}\\n");
+        }''',
+     "2 1 2\n"),
+
+    ("`largo` de un arreglo fijo de un struct que posee",
+     '''struct N { s: str }
+        fn nuevo_n(t: view) -> N { return N { s: nuevo(t) }; }
+        fn main() {
+            let xs = [nuevo_n("a"), nuevo_n("bb"), nuevo_n("ccc")];
+            var total: usize = 0;
+            var i = 0;
+            while i < largo(xs) { total = total + largo(xs[i].s); i = i + 1; }
+            imprimir($"{largo(xs)} {total}\\n");
+        }''',
+     "3 6\n"),
+
+    ("`largo` de un arreglo fijo de escalares, por valor y prestado",
+     '''fn cuantos(xs: &[usize; 3]) -> usize { return largo(xs); }
+        fn main() {
+            let xs: [usize; 3] = [1, 2, 3];
+            let r: &[usize; 3] = xs;
+            imprimir($"{largo(xs)} {largo(r)} {cuantos(xs)}\\n");
+        }''',
+     "3 3 3\n"),
+
+    # El largo sale del tipo, pero el argumento se evalua igual: es una
+    # llamada, y la regla es de izquierda a derecha. Sin esto, `f()` dentro
+    # de un `largo` no corria.
+    ("`largo` de un arreglo evalua su argumento de izquierda a derecha",
+     '''fn siguiente(n: mut usize) -> usize { n = n + 1; return n; }
+        fn main() {
+            var n: usize = 0;
+            imprimir($"{largo([siguiente(n), siguiente(n)])} {n}\\n");
+        }''',
+     "2 2\n"),
+
     ("un struct devuelto se mueve, no se libera dos veces",
      '''struct Persona { nombre: str, edad: usize }
         fn crear(n: view) -> Persona { return Persona { nombre: nuevo(n), edad: 1 }; }

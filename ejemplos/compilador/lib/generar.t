@@ -1736,6 +1736,17 @@ fn interna_pura_largo(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
         if es_desconocido(donde) { return no_se(); }
         return $"({donde}.n)";
     }
+    if T.es_arreglo(sobre) {
+        // `[T; N]` lleva el largo en el tipo: no hay nada que medir, y el `N`
+        // del `;` de fuera —el mismo que usan el `for` y el indice— es la
+        // respuesta. El argumento se evalua igual, que la regla es de
+        // izquierda a derecha; lo que nazca ahi lo suelta el cierre, y el
+        // `(void)` deja dicho que del valor no se usa nada mas.
+        let medido = sitio_c(b, s, n.hijos[0], tipos);
+        if es_desconocido(medido) { return no_se(); }
+        emitir(b, $"(void)({medido});");
+        return $"((size_t){cuantos_de_arreglo(sobre)})";
+    }
     let v = como_vista(b, s, n.hijos[0], tipos);
     if es_desconocido(v) { return no_se(); }
     var r = nuevo("sv_len_of(");

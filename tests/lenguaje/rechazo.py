@@ -896,6 +896,12 @@ RECHAZO = [
      'fn f() { let n: usize = 1; imprimir(n[0]); }',
      "no es un arreglo"),
 
+    # El arreglo fijo si se mide —el largo esta en el tipo—, pero un escalar
+    # no. El generador tiene una rama por forma; esta es la que no.
+    ("`largo` no mide lo que no tiene largo",
+     'fn f() { let n: usize = 3; imprimir(largo(n)); }',
+     "`largo` opera sobre texto, arreglos, listas o mapas"),
+
     ("una lista no puede guardar vistas sin vidas utiles",
      'fn f() { let xs: list<view> = ["a"]; }',
      "no es un tipo almacenable"),
