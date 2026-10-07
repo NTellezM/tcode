@@ -5194,7 +5194,12 @@ fn cuerpo_de_bucle(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.
     comprobar_sentencias(c, m, tipos, n);
     cerrar_ambito(c);
     c.en_bucle_directo = anterior;
-    // Lo que sigue movido al cerrar la vuelta se moveria otra vez.
+    cerrar_movidas_de_bucle(c, m);
+}
+
+// Lo que sigue movido al cerrar la vuelta se moveria otra vez. Vale igual
+// para el cuerpo y para la condicion: las dos corren en cada vuelta.
+fn cerrar_movidas_de_bucle(c: mut Comprobacion, m: &Mundo) {
     let k = c.movidas_en_bucle.largo() - 1;
     let movidas = copiar(c.movidas_en_bucle[k]);
     var quedan: list<list<usize>> = [];
@@ -5655,12 +5660,16 @@ fn sentencia_para(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.N
 }
 
 fn sentencia_mientras(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nodo) {
+    // La condicion corre en cada vuelta, igual que el cuerpo: se comprueba al
+    // mismo nivel de bucle y sus movimientos entran en la misma lista, que
+    // `cuerpo_de_bucle` revisa al cerrar la vuelta. Si no, `while usa(p)`
+    // movia `p` en cada vuelta y nadie lo veia.
     c.en_condicion_bucle = c.en_condicion_bucle + 1;
-    let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
-    c.en_condicion_bucle = c.en_condicion_bucle - 1;
     c.en_bucle = c.en_bucle + 1;
     let vacia: list<usize> = [];
     c.movidas_en_bucle.anadir(vacia);
+    let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
+    c.en_condicion_bucle = c.en_condicion_bucle - 1;
     if T.conocido(t) && t.nombre != "bool" {
         error(c, m, s.linea, $"la condicion de `while` debe ser `bool`, es `{T.escribir_tipo(t)}`");
     }

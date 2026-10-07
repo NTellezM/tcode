@@ -776,6 +776,40 @@ RECHAZO = [
      ' while i < 3 { g(s); if c { s = nuevo("b"); } i = i + 1; } }',
      "se declaro fuera del bucle"),
 
+    # La condicion de un `mientras` corre en cada vuelta, igual que el cuerpo:
+    # un movimiento ahi es el mismo movimiento por vuelta, y el comprobador
+    # tiene que verlo. Antes lo aceptaba y solo lo vetaba el generador
+    # (`mueve_algo_repetido`), que es una red y no la decision.
+    ("mover en la condicion de un `mientras` algo declarado fuera",
+     'struct P { s: str, n: usize }'
+     ' fn usa(p: P) -> bool { return p.n == 1; }'
+     ' fn f() { let p = P { s: nuevo("a"), n: 1 };'
+     ' while usa(p) { imprimir("si"); } }',
+     "se declaro fuera del bucle"),
+
+    ("mover un brazo del `match` que es la condicion de un `mientras`",
+     'struct P { s: str, n: usize } enum E { A, B }'
+     ' fn usa(p: P) -> bool { return p.n == 1; }'
+     ' fn f() { let e = E.A; let p = P { s: nuevo("a"), n: 1 };'
+     ' while match e { E.A -> usa(p), E.B -> false } { imprimir("si"); } }',
+     "se declaro fuera del bucle"),
+
+    ("mover una rama del `if` que es la condicion de un `mientras`",
+     'struct P { s: str, n: usize }'
+     ' fn usa(p: P) -> bool { return p.n == 1; }'
+     ' fn f() { var c = true; let p = P { s: nuevo("a"), n: 1 };'
+     ' while if c { usa(p) } else { false } { c = false; imprimir("si"); } }',
+     "se declaro fuera del bucle"),
+
+    # Mismo nivel de bucle, otra regla que lo mira: sacar un campo. Vale para
+    # la condicion como valia para el cuerpo, y el mensaje ya lo decia asi.
+    ("sacar un campo en la condicion de un `mientras`",
+     'struct R { s: str } struct P { r: R, n: usize }'
+     ' fn toma(x: str) -> bool { return largo(x) > 0; }'
+     ' fn f() { let p = P { r: R { s: nuevo("a") }, n: 1 };'
+     ' while toma(p.r.s) { imprimir("si"); } }',
+     "no se puede sacar `p.r.s`"),
+
 
     # ---- mutabilidad ----
     ("modificar un let",

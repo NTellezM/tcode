@@ -127,6 +127,14 @@ REGLAS = [
           [],
           ["`s` se declaro fuera del bucle y se mueve aqui dentro"],
           en_bucle=False),
+    # La condicion corre en cada vuelta igual que el cuerpo: un movimiento ahi
+    # es el mismo movimiento repetido, y la regla es la misma.
+    Regla("mover en la condicion de un bucle",
+          [f"let s = nuevo({LARGO});"],
+          ["while leer(s) > 0 { break; }"],
+          [("while consumir(s) > 0 { break; }", "error")],
+          [],
+          ["`s` se declaro fuera del bucle y se mueve aqui dentro"]),
     Regla("prestar dos veces para modificar",
           [f"var s = nuevo({LARGO});", f"var t = nuevo({OTRO});"],
           ["g(s, t);"], [("g(s, s);", "error")],

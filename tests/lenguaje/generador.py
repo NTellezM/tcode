@@ -1,8 +1,9 @@
 """GENERADOR: la valvula. El comprobador acepta lo que el generador no escribe.
 
 Hay programas que el comprobador acepta y el generador se niega a bajar a C:
-una condicion de `si` o de `mientras` que **mueve** algo. Es legal moverlo
-—el comprobador lo cuenta—, pero el generador no sabe escribir esa sentencia,
+una condicion de `si` que **mueve** algo, o una de `mientras` que lo mueve y
+el cuerpo lo repone antes de cerrar la vuelta. Es legal moverlo —el
+comprobador lo cuenta—, pero el generador no sabe escribir esa sentencia,
 y para no escupir un C que no compila prefiere parar con
 
     error: <archivo>:<linea>: tcodec no sabe escribir esta si de main. Es un
@@ -11,6 +12,12 @@ y para no escupir un C que no compila prefiere parar con
 Esa es la valvula: `mueve_algo` (`ejemplos/compilador/lib/generar.t`) impide
 que una condicion que mueve llegue a emitir C. Si alguien la afloja, un
 programa que no se puede escribir se cuela hasta el C.
+
+En un `mientras` la condicion corre en cada vuelta, igual que el cuerpo: si
+lo movido sigue movido al cerrar la vuelta, quien para es el **comprobador**
+(ver RECHAZO), no la valvula. Lo que le queda a la valvula es el movimiento
+que el cuerpo repone antes de cerrar: el comprobador lo da por saldado —como
+el del propio cuerpo— y el generador sigue sin saber escribir la sentencia.
 
 Ni RECHAZO ni ACEPTA vigilan esto. RECHAZO compila con `--solo-comprobar`, asi
 que solo ve los errores del comprobador y aqui no hay ninguno. ACEPTA exige
@@ -65,12 +72,16 @@ VALVULA = [
      ' if usa(p) { imprimir("si"); } }',
      "tcodec no sabe escribir esta si de `main`"),
 
-    # Lo mismo en un `mientras`: el mismo movimiento, otra sentencia.
+    # Lo mismo en un `mientras`: el mismo movimiento, otra sentencia. Cuando
+    # el valor movido sigue movido al cerrar la vuelta, quien rechaza es el
+    # comprobador (ver el caso gemelo en RECHAZO), asi que aqui va con el
+    # cuerpo reponiendolo, que es lo que le deja a la valvula.
     ("una condicion de `mientras` que mueve por llamada",
      'struct P { s: str, n: usize }'
      ' fn usa(p: P) -> bool { return p.n == 1; }'
-     ' fn main() { let p = P { s: nuevo("a"), n: 1 };'
-     ' while usa(p) { imprimir("si"); } }',
+     ' fn main() { var p = P { s: nuevo("a"), n: 1 }; var i = 0;'
+     ' while usa(p) { p = P { s: nuevo("b"), n: 1 }; i = i + 1;'
+     ' if i > 2 { break; } } }',
      "tcodec no sabe escribir esta mientras de `main`"),
 
     # El movimiento por el argumento, no por la condicion: lo que la llamada
@@ -97,28 +108,6 @@ VALVULA = [
      ' fn main() { let p = P { s: nuevo("a"), n: 1 };'
      ' if if usa(p) { true } else { false } { imprimir("si"); } }',
      "tcodec no sabe escribir esta si de `main`"),
-
-    # La misma forma, pero en un `mientras`: la condicion corre en CADA
-    # vuelta, asi que la entrega de la rama se repite con la bandera ya
-    # apagada. `while match e { E.A -> usa(p), … }` compilaba y moria con
-    # doble liberacion en la segunda vuelta (ASan); ahora se veta, como antes
-    # de que el `si` aprendiera a escribir sus ramas.
-    ("mover una rama de la condicion de un `mientras`",
-     'struct P { s: str, n: usize }'
-     ' fn usa(p: P) -> bool { return p.n == 1; }'
-     ' fn main() { var c = true;'
-     ' let p = P { s: nuevo("a"), n: 1 };'
-     ' while if c { usa(p) } else { false } { c = false; imprimir("si"); } }',
-     "tcodec no sabe escribir esta mientras de `main`"),
-
-    ("mover un brazo del `match` que es la condicion de un `mientras`",
-     'struct P { s: str, n: usize }'
-     ' enum E { A, B }'
-     ' fn usa(p: P) -> bool { return p.n == 1; }'
-     ' fn main() { let e = E.A;'
-     ' let p = P { s: nuevo("a"), n: 1 };'
-     ' while match e { E.A -> usa(p), E.B -> false } { imprimir("si"); } }',
-     "tcodec no sabe escribir esta mientras de `main`"),
 ]
 
 # Las mismas formas, con una condicion que solo se lee: compilan y corren.
@@ -135,7 +124,8 @@ CONTROLES = [
      ' imprimir($"{p.s} {q.s}\\n"); }',
      "uno\na b\n"),
 
-    # Y su `mientras`.
+    # Y su `mientras`, que es la forma que ahora rechaza el comprobador si
+    # mueve: leida, tiene que seguir compilando y corriendo.
     ("el `mientras` de la misma forma con una condicion que solo se lee",
      'struct P { s: str, n: usize }'
      ' fn main() { var c = true;'

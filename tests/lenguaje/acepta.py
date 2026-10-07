@@ -740,6 +740,25 @@ ACEPTA: list[Caso] = [
         fn main() { imprimir($"{f()}\\n"); }''',
      "1\n"),
 
+    # La condicion de un `mientras` corre en cada vuelta, igual que el cuerpo:
+    # lo que se mira al cerrar la vuelta es si algo sigue movido. Por eso el
+    # movimiento del cuerpo que repone el valor antes de cerrar sigue siendo
+    # legal —y el de la condicion que el cuerpo repone, tambien, aunque el
+    # generador no sepa escribir esa sentencia (ver GENERADOR)—.
+    ("mover en el cuerpo de un bucle y reponer antes de cerrar la vuelta",
+     '''fn g(s: str) {}
+        fn main() {
+            var s: str = nuevo("a");
+            var i: usize = 0;
+            while i < 3 {
+                g(s);
+                s = nuevo("b");
+                i = i + 1;
+            }
+            imprimir($"{largo(s)}\\n");
+        }''',
+     "1\n"),
+
     ("asignar a una variable algo que la presta no la lee despues de soltarla",
      '''fn main() -> usize {
             var s = nuevo("lista<P.Nodo>");

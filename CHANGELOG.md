@@ -178,6 +178,21 @@ Las versiones siguen `docs/COMPATIBILIDAD.md`. La de ahora está en `VERSION`.
 
 ### Corregido
 
+- **Un movimiento en la condición de un `mientras` se revisa como uno del
+  cuerpo.** La condición corre en cada vuelta, así que `while usa(p)` movía
+  `p` otra vez en la segunda y liberaba el `str` dos veces; el comprobador lo
+  aceptaba y solo lo vetaba el generador (`mueve_algo_repetido`), que es una
+  red y no la decisión. Ahora la condición se comprueba al mismo nivel de
+  bucle que el cuerpo —lo que mueve entra en la misma lista y se revisa al
+  cerrar la vuelta—, así que se rechazan `while usa(p) { … }` con un struct
+  que posee, el `match` de la condición con un brazo que mueve y el `if` como
+  valor con una rama que mueve; y sacar un campo (`while toma(p.r.s)`) deja de
+  colarse, como ya no se colaba en el cuerpo. Lo que solo lee sigue igual, y
+  mover en el cuerpo con el valor repuesto antes de cerrar la vuelta sigue
+  siendo legal. La válvula del generador se queda para ese último caso —mover
+  en la condición y reponer en el cuerpo—, que el comprobador da por saldado y
+  el generador no sabe escribir.
+
 - **Leer o mover: lo decide el comprobador, y la decisión llega entera al
   generador.** Una tanda de ocho arreglos con la misma raíz —el generador
   volvía a deducir por la forma lo que el comprobador ya había decidido—:

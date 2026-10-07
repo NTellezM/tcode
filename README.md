@@ -237,7 +237,7 @@ Y dos capas más del comprobador, en `ejemplos/compilador/`:
 C entero** de un programa: cabecera, structs, listas y mapas con sus
 funciones, tipos resultado, liberadores, copiadores, las copias de cada
 genérica, los ayudantes del sistema, la aritmética que hace falta, los
-prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->22.815<!--/c--> líneas de Tcode** (lexer,
+prototipos y todas las funciones. Son **<!--c:lineas_tcodec-->22.824<!--/c--> líneas de Tcode** (lexer,
 parser, tipado, comprobador, generador, formateador y el programa).
 
 Y hace el último paso él solo: llama al compilador de C, enlaza lo que
@@ -277,7 +277,7 @@ otro programa.
 ### Y también sabe decir que no
 
 Un compilador no es sólo lo que escribe: es lo que se niega a escribir.
-`lib/comprobar.t` son <!--c:lineas_comprobar-->6.464<!--/c--> líneas con las reglas del comprobador
+`lib/comprobar.t` son <!--c:lineas_comprobar-->6.473<!--/c--> líneas con las reglas del comprobador
 —tipos, propiedad, préstamos, mutabilidad, fallos, literales, genéricas
 comprobadas en cada copia, clausuras—. `tcodec` lo pasa antes de escribir
 nada:
@@ -770,7 +770,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1577 casos, 0 fallas
+1594 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 
@@ -836,6 +836,20 @@ misma forma con una condición que solo se lee, que tiene que compilar y correr;
 sin esos controles la sección pasaría rechazando cualquier cosa. Por eso su
 caso estrella es `if (if c { p } else { q }).n == 1`: se lee entero, pero cada
 rama posee su memoria, y un gate por nodo en vez de por rama lo rechazaría.
+
+Y una cuarta, que es la que importa cuando se **traduce** código de otro
+lenguaje a Tcode: que se comporte igual que el original. La sección EQUIVALE
+lleva cada caso con su programa en Tcode, una **implementación de referencia en
+C escrita a mano** —`tests/lenguaje/equivale/*.c`— y, si le hace falta, la
+entrada que lee por `stdin`. El de Tcode se compila con `-Wall -Wextra -Werror`
+y corre bajo ASan y UBSan; la referencia se compila con las mismas banderas y
+sin los sanitizers de Tcode, porque no es el programa que se prueba. Los dos
+corren con la misma entrada y se exige la **misma salida y el mismo código de
+salida**. La referencia nunca es el C que emite el compilador —si lo fuera, el
+caso compararía el compilador consigo mismo—, y el runner lo vigila: el C
+generado lleva su marca, y un `.c` de `equivale/` que la traiga falla. La idea
+no es nueva —`bench/medir.py` ya compara el mismo programa en C a mano y en
+Tcode—; lo que faltaba era traerla a la suite como un género de caso.
 
 `make check` entera tarda unos cinco minutos en cuatro núcleos. Cada sección
 de la suite es un módulo de `tests/lenguaje/` —sus casos y cómo se
