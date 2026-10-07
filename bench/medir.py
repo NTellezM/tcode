@@ -13,8 +13,10 @@ cuestan las comprobaciones sobre codigo por lo demas identico.
 
 Los segundos dependen de la maquina; las razones no tanto. Por eso los
 limites de `bench/limites.json` son razones: Tcode / C en cada caso, y lo
-que tarda `tcodec` en escribir su propio C medido en "unidades", el tiempo
-del caso `aritmetica` en C a mano en esta misma maquina.
+que tarda `tcodec` en escribir su propio C contra el compilador de
+referencia (`REFERENCIA_C`, `bench/referencia/tcodec.c`, construido en la
+misma maquina y en la misma pasada). `medir()` devuelve esa razon en
+`"compilador"` y `T_REF` guarda el tiempo de la referencia.
 
     python3 bench/medir.py              las tablas
     python3 bench/medir.py --comprobar  falla si algo pasa de su limite
@@ -48,7 +50,6 @@ REPS = 5
 # Cuanto por encima de lo medido se deja el limite con `--fijar`.
 MARGEN = 1.25
 NIVELES = ("2", "3")
-UNIDAD = "aritmetica"
 
 
 def sin_comprobaciones(codigo):

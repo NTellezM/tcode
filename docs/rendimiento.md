@@ -1,10 +1,15 @@
 # Rendimiento del compilador
 
-Medido con `make bench-comprobar`, que calibra la máquina y expresa el tiempo
-en «unidades» (límites en `bench/limites.json`). La cifra es `tcodec`
-escribiendo su propio C.
+Medido con `make bench-comprobar`, que construye en la misma máquina y en la
+misma pasada el compilador de referencia de `bench/referencia/tcodec.c` y
+expresa el tiempo como la razón contra él (el límite, 1,25, está en
+`bench/limites.json`). La cifra es `tcodec` escribiendo su propio C.
 
-- **Base**: 1,58 s = **11,23 unidades** (límite 11,9, ~6 % de margen).
+- **Base** (criterio viejo, ya no el del banco; medido a principios de octubre
+  de 2026): 1,58 s = **11,23 unidades**, con el límite en 11,9. La «unidad» era
+  el C a mano de `aritmetica` (~0,15 s `-O2`); el banco lo dejó porque 0,15 s
+  es demasiado poco para que el número salga igual en dos máquinas, y ahora
+  mide la razón contra el compilador de referencia.
 
 ## El perfil
 
@@ -62,9 +67,11 @@ Cada paso se mide con `make bench-comprobar` y se valida con `make check`
 
 ## Progreso de la migración
 
-La unidad de medida fiable es el **perfil** (`gprof`), que cuenta las llamadas
-de forma determinista; el tiempo de pared del `bench` tiene ±3 % de ruido y
-solo sirve para confirmar el efecto acumulado.
+La medida fiable de esta migración fue el **perfil** (`gprof`), que cuenta las
+llamadas de forma determinista; el tiempo de pared del `bench` de entonces
+tenía ±3 % de ruido y solo servía para confirmar el efecto acumulado. Los
+números de esta sección son de aquella medición (principios de octubre de
+2026), hechos con el criterio viejo de «unidades».
 
 | commit | qué se quitó | `ss_clone` |
 |---|---|---:|
@@ -76,7 +83,8 @@ solo sirve para confirmar el efecto acumulado.
 en `probar_juego` para deshacer la comprobación especulativa recordando el
 largo de las listas y truncándolas (los mapas siguen copiándose). El perfil:
 `ss_copia_lista_str` 1,67 M → 529 K, `ss_copia_Funcion` 387 K → 8 K. El
-`bench` baja a ~10,8 unidades (base 11,23). Punto fijo byte a byte.
+`bench` bajó entonces a ~10,8 unidades (base 11,23; criterio viejo). Punto
+fijo byte a byte.
 
 Lo que queda:
 
