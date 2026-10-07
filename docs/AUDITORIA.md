@@ -180,6 +180,7 @@ tablas (`tests/generar_xid.py`).
 |---|---|---|
 | ACEPTA, EJEMPLOS | programas escritos a mano compilan y corren limpios | ASan/UBSan, salida esperada |
 | EQUIVALE | el mismo programa en Tcode y en C escrito a mano dan lo mismo | la implementación de referencia, `tests/lenguaje/equivale/*.c` |
+| EQUIVALE (dorados) | la salida del Tcode es la traza congelada, con su receta y su sha256 | `tests/dorados/*.golden`, regenerables desde su referencia y externos avisados en voz alta |
 | RECHAZO | programas que no deben compilar, con su mensaje | escrito a mano |
 | REGLAS | cada regla, en pares mínimos y siete contextos | la construcción del par |
 | P1–P13 (`tests/test_propiedades.py`) | programas generados al azar | ASan/UBSan, oráculo aritmético, Python |

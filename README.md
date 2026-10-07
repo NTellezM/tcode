@@ -770,7 +770,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1597 casos, 0 fallas
+1599 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 
@@ -850,6 +850,23 @@ caso compararía el compilador consigo mismo—, y el runner lo vigila: el C
 generado lleva su marca, y un `.c` de `equivale/` que la traiga falla. La idea
 no es nueva —`bench/medir.py` ya compara el mismo programa en C a mano y en
 Tcode—; lo que faltaba era traerla a la suite como un género de caso.
+
+Y una segunda forma, para cuando la referencia no se puede correr aquí: el
+mismo caso puede llevar un **dorado** congelado en `tests/dorados/<caso>.golden`,
+capturado de una implementación que no es `tcodec`, con su receta
+`<caso>.receta.json` al lado. La receta es obligatoria y **sin receta no hay
+dorado**: dice de dónde salió —herramienta, versión, commit—, el comando
+exacto, la entrada, si se puede regenerar en esta máquina y el **sha256** del
+fichero, que el runner comprueba antes de comparar, así que editarlo a mano se
+nota. `tests/dorados/vida.golden` es del primer tipo: lo produce aquí
+`tests/lenguaje/equivale/vida.c`, y `python3 tests/dorados/generar.py
+--comprobar` tiene que reproducirlo byte a byte en cada pasada. El otro,
+`tests/dorados/gb_cabecera.golden`, viene de la boot ROM de la Game Boy a
+través de un emulador, y esa herramienta no está instalada: la comprobación
+vale igual, pero el runner lo dice **en voz alta** —«NO REGENERABLE AQUÍ»,
+con el origen y lo que hace falta— en vez de darlo por bueno en silencio.
+`python3 tests/dorados/generar.py --externo gb_cabecera` enseña el comando que
+habría que correr en una máquina con el emulador.
 
 `make check` entera tarda unos cinco minutos en cuatro núcleos. Cada sección
 de la suite es un módulo de `tests/lenguaje/` —sus casos y cómo se

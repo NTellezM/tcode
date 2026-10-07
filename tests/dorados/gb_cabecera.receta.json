@@ -1,0 +1,17 @@
+{
+  "caso": "gb_cabecera",
+  "origen": "volcado del logo de la boot ROM DMG ($0104-$0133) y checksum de cabecera ($0134-$014C) calculado con la regla de la boot ROM, sobre una cabecera de prueba",
+  "herramienta": "boot ROM DMG a traves de PyBoy (emulador); los bytes del logo son los que publica Pan Docs",
+  "version": "PyBoy 2.5.1 (algoritmo de tests/test_basics.py::patch_cartridge)",
+  "commit": "PyBoy 4fbc81264086c000c9f07191733558b6d2e056a4; gbdev/pandocs (The Cartridge Header)",
+  "referencia": null,
+  "referencia_sha256": null,
+  "comando": "pyboy --window null --bootrom dmg_boot.bin cartucho.gb  # volcar $0104-$0133 y el checksum $0134-$014C",
+  "entrada": null,
+  "codigo_salida": 0,
+  "regenerable": false,
+  "motivo": "PyBoy no esta instalado en esta maquina y la boot ROM DMG no viaja en el repositorio",
+  "verificacion": "python3 tests/dorados/generar.py --verificar gb_cabecera",
+  "generador": "tests/dorados/generar.py",
+  "sha256": "9710a935bffcfbd88377ba6da8eaa9aaebbe48b72d59b943d889e6cdfea79753"
+}

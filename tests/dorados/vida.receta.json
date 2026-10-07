@@ -1,0 +1,15 @@
+{
+  "caso": "vida",
+  "origen": "salida de la referencia en C escrita a mano `tests/lenguaje/equivale/vida.c` (Juego de la Vida, 8x8 con bordes envueltos, 5 generaciones)",
+  "herramienta": "cc (GCC)",
+  "version": "gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0",
+  "commit": null,
+  "referencia": "tests/lenguaje/equivale/vida.c",
+  "referencia_sha256": "2ea5e63e73b81dddc914e068c714ee33bb743f32130c8ff4457c70012e7e276b",
+  "comando": "python3 tests/dorados/generar.py --escribir vida",
+  "entrada": null,
+  "codigo_salida": 0,
+  "regenerable": true,
+  "generador": "tests/dorados/generar.py",
+  "sha256": "c01c89239336cfe777392d8e4c2bcd2679448f8eec13721bf3686bc0b75078d6"
+}
