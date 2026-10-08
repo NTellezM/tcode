@@ -276,8 +276,11 @@ mutar:
 # La cobertura del compilador, a mano: `make check` no la corre porque la CI
 # no tiene tiempo para esto. Construye `tcodec` desde su semilla con
 # `--coverage`, lo pasa por las secciones de `rapido` y por los casos del
-# banco, y pide a `gcov` las lineas, las funciones y las ramas, con la lista
-# de las funciones que no se ejecutan nunca. Todo lo que escribe vive en
-# `.cache/cobertura/`. Necesita el `gcov` de gcc; si falta, lo dice y no sigue.
+# banco, y pide a `gcov` las lineas, las funciones y las ramas. El titular es
+# lo que de verdad no se ejecuta en el compilador (los `.t`); el runtime
+# emitido y `std/` van aparte, desglosados y con su motivo, porque el
+# instrumento solo mide el binario del compilador y no instrumenta los
+# programas compilados. Todo lo que escribe vive en `.cache/cobertura/`.
+# Necesita el `gcov` de gcc; si falta, lo dice y no sigue.
 cobertura:
 	@$(PY) tests/cobertura.py $(RAPIDAS)
