@@ -82,6 +82,13 @@ RECHAZO = [
      'fn main() { let x = \u00b2; }',
      "caracter inesperado U+00B2"),
 
+    # Los de arriba son bytes >= 128, que se nombran por su codigo. Uno ASCII
+    # que no es simbolo ni nada se nombra como lo escribe Python: entre
+    # comillas simples, y los de control con su escape.
+    ("un `@` suelto no es nada",
+     'fn main() { let x = 2 @ 3; }',
+     "caracter inesperado '@'"),
+
     # La marca de orden de bytes solo vale como primer caracter del archivo.
     # Al principio se salta, y el resto conserva sus lineas: el error de
     # abajo esta en la 3, no en la 4. En medio, o repetida, sigue siendo un
