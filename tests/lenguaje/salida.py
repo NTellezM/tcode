@@ -1,6 +1,7 @@
 """SALIDA: el compilador nunca reemplaza sus fuentes."""
 
 import os
+import shutil
 import subprocess
 import tempfile
 
@@ -163,3 +164,35 @@ def correr(suite: Resultado) -> None:
             suite.falla("instalado, por el PATH tambien encuentra su std/",
                         f"{malo.args[0]}: codigo {malo.returncode}, "
                         f"{(malo.stderr or malo.stdout)[:300]!r}")
+
+        # Lo mismo con el compilador de la suite —el que se esta probando—, no
+        # con el que construye `make instalar`. La copia vive en una raiz de
+        # mentira con `std/` y `runtime/`, y se invoca por el `PATH` con
+        # `argv[0]` suelto: `ruta_del_ejecutable` no tiene barra que resolver y
+        # recorre el `PATH`, y `raiz_instalada` sube desde ahi —resolviendo
+        # enlaces— hasta dar con `runtime/cabecera.inc`. Sin `TCODE_RAIZ`.
+        suite.total += 1
+        instalado_suite = os.path.join(tmp, "instalado-suite")
+        os.makedirs(os.path.join(instalado_suite, "bin"))
+        shutil.copy2(tcodec(), os.path.join(instalado_suite, "bin", "tcodec"))
+        os.symlink(os.path.join(RAIZ, "runtime"),
+                   os.path.join(instalado_suite, "runtime"))
+        os.symlink(os.path.join(RAIZ, "std"), os.path.join(instalado_suite, "std"))
+        fuera_suite = os.path.join(tmp, "fuera-suite")
+        os.makedirs(fuera_suite)
+        with open(os.path.join(fuera_suite, "q.t"), "w", encoding="utf-8") as f:
+            f.write('use "std/texto";\n'
+                    'fn main() { imprimir($"{mayusculas("hola")}\\n"); }\n')
+        entorno_suite = dict(sin_raiz)
+        entorno_suite["PATH"] = (os.path.join(instalado_suite, "bin") + os.pathsep
+                                 + sin_raiz.get("PATH", ""))
+        compila = subprocess.run(["tcodec", "q.t", "-o", "q"], cwd=fuera_suite,
+                                 env=entorno_suite, capture_output=True, text=True)
+        corre = subprocess.run([os.path.join(fuera_suite, "q")],
+                               capture_output=True, text=True, env=entorno_suite)
+        if compila.returncode != 0 or corre.stdout != "HOLA\n":
+            suite.falla("el compilador de la suite se encuentra por el PATH",
+                        f"codigo {compila.returncode}, salida {corre.stdout!r}, "
+                        f"{(compila.stderr or '')[:300]!r}")
+        shutil.rmtree(instalado_suite, ignore_errors=True)
+        shutil.rmtree(fuera_suite, ignore_errors=True)

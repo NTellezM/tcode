@@ -770,7 +770,7 @@ temporal.
 <!--c:bloque:check-->
 ```
 $ make check
-1612 casos, 0 fallas
+1613 casos, 0 fallas
 1891 comprobaciones sobre 60 programas, 0 fallas
 ```
 
