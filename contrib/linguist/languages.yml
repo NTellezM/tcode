@@ -1,13 +1,37 @@
-# Fragmento de referencia para `github/linguist` → `lib/linguist/languages.yml`.
-# `languages.yml` no admite comentarios; este archivo es solo una propuesta que
-# hay que integrar a mano. Ajusta `language_id` a un entero libre y `color` a
-# tu gusto.
+# Entrada para `lib/linguist/languages.yml` de github-linguist/linguist.
+#
+# ---------------------------------------------------------------------------
+# ATENCION: EL NOMBRE ES `Tcode`, NO `TCode`
+# ---------------------------------------------------------------------------
+# El material de partida (`contrib/linguist/languages.yml`) ponia `TCode`, pero
+# el propio repositorio del lenguaje usa `Tcode` de forma abrumadora:
+#   - `docs/ESPECIFICACION.md` se titula "# Tcode — especificacion del lenguaje"
+#   - `README.md` se titula "# Tcode"
+#   - 355 apariciones de `Tcode` contra 10 de `TCode` (y esas 10 estan casi
+#     todas en los ficheros de preparacion del PR y en dos comentarios)
+# Y el nombre EXACTO decide el `language_id`, porque Linguist lo deriva de el:
+#   Tcode -> 417935118        TCode -> 169691322
+# La variante con `TCode` esta en `languages-entry-TCode-variant.yml`.
+# Si cambias de nombre, cambia tambien `language:` en `heuristics-entry.yml`
+# (lo comprueba `verify/check_languages_entry.py`).
+# ---------------------------------------------------------------------------
+#
+# DONDE VA: entre los bloques `Tcl` y `Tcsh`, que es su sitio en el orden del
+# fichero (orden de bytes, mayusculas antes que minusculas:
+# `Tcl` < `Tcode` < `Tcsh`). En el languages.yml de la 9.7.0 eso es justo antes
+# de la linea de `Tcsh:`. El fichero NO admite comentarios: pega solo las lineas
+# de abajo.
+#
+# `language_id`: 417935118 NO es un numero elegido a mano. Es el que genera
+# `script/update-ids`, que es lo que exige el propio Linguist:
+#   Digest::SHA256.hexdigest("Tcode").to_i(16) % (2**30 - 1)
+# Lo comprueba `test/test_language_id.rb`. Con otro numero, el PR no pasa CI.
 
-TCode:
+Tcode:
   type: programming
   color: "#c2410c"
   extensions:
   - ".t"
   tm_scope: source.tcode
   ace_mode: text
-  language_id: 403937577   # TODO: elegir un id entero único, no usado en Linguist
+  language_id: 417935118

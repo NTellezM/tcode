@@ -1,0 +1,60 @@
+# Bloque propuesto para `lib/linguist/heuristics.yml` de github-linguist/linguist.
+#
+# SUSTITUYE al bloque `- extensions: ['.t']` que ya existe (hoy: Perl, Raku,
+# Turing). No hay que anadirlo: hay que reemplazarlo. El bloque va en su sitio
+# alfabetico actual, entre '.sw' y '.tact'.
+#
+# `language: Tcode` tiene que coincidir EXACTAMENTE con la clave de
+# `lib/linguist/languages.yml`. Aqui se usa `Tcode` (no `TCode`) porque es el
+# nombre que usa el propio repositorio del lenguaje; ver `languages-entry.yml`.
+# Si usas la variante `languages-entry-TCode-variant.yml`, cambia esta linea por
+# `language: TCode`.
+#
+# Por que TCode va PRIMERO y no ultimo:
+#   Los patrones de TCode de abajo no son validos en Perl (comprobado sobre
+#   127 ficheros .t reales de mojo, libwww-perl, perl-ldap y
+#   perlweeklychallenge-club, y sobre las 2 muestras .t de Perl del propio
+#   Linguist). Ponerlo primero evita el unico fallo real detectado: el patron
+#   de flecha de Perl (`[\s$]\w*(::\w+)*->[a-zA-Z_\[({]`) casa dentro de una
+#   cadena interpolada de TCode, p.ej.
+#       let origen = $"p->dato.v_{vn}._{q}";
+#   en `ejemplos/compilador/tcodec.t`, y le robaria el fichero a TCode.
+#
+# Por que NO se usan los marcadores del README original:
+#   `use ` a secas   -> un test de Perl con solo `use Test::More;` (sin
+#                       `use strict`) NO casa el named_pattern `perl` y caeria
+#                       en TCode. Aqui se exige `use "ruta"`, que en Perl no
+#                       es valido (`use` necesita un bareword).
+#   `var `/`let `    -> Turing (4/4 muestras) y Terra (3/3) usan `var`.
+#   `struct `        -> Terra usa `struct` (2/3 muestras).
+#   `//`             -> aparece en 1 de los 127 .t de Perl medidos.
+#   `$"`             -> en Perl `$"` es una variable especial (separador de
+#                       campos): 2 de los 127 ficheros la usan.
+#   `fail`           -> 2 de los 127 ficheros de Perl lo usan.
+#
+# Cada patron de abajo tiene 0 coincidencias en los 129 ficheros .t de Perl y
+# en las 9 muestras de Raku, 3 de Terra y 4 de Turing; y el conjunto cubre
+# 108/108 de los .t de TCode del repositorio.
+
+- extensions: ['.t']
+  rules:
+  - language: Tcode
+    pattern:
+    - '^\s*use\s+"'
+    - '^\s*#importar\s+"'
+    - '^\s*fn\s+[^\W\d]\w*'
+    - '\bfn\s+[^\W\d]\w*\s*\('
+    - '^\s*externo\b'
+    - ':\s*(?:u8|u16|u32|u64|usize|i8|i16|i32|i64|f32|f64|bloque|cadena_c)\b'
+    - ':\s*(?:list|map|view)\s*<'
+    - '\)\s*->\s+(?:u8|u16|u32|u64|usize|i8|i16|i32|i64|f32|f64|str|bool|view|list|map|bloque|cadena_c)\b'
+    - '\bsino\b'
+    - '\bmut\s+[^\W\d]\w*'
+  - language: Perl
+    and:
+      - negative_pattern: '^\s*use\s+v6\b'
+      - named_pattern: perl
+  - language: Raku
+    pattern: '^\s*(?:use\s+v6\b|\bmodule\b|\bmy\s+class\b)'
+  - language: Turing
+    pattern: '^\s*%[ \t]+|^\s*var\s+\w+(\s*:\s*\w+)?\s*:=\s*\w+'
