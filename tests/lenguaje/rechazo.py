@@ -89,6 +89,13 @@ RECHAZO = [
      'fn main() { let x = 2 @ 3; }',
      "caracter inesperado '@'"),
 
+    # El mensaje ensena el token que sobraba con `repr_texto`, y una cadena con
+    # un `\xNN` descifrado se ensena como `\udcNN`, con los digitos
+    # hexadecimales en minuscula: de ahi sale `minuscula_hex` (lexico.t:768).
+    ("un `\\xNN` en la cadena que sobraba",
+     'fn main() { let s = "\\xAB" "\\xCD"; }',
+     "se encontro '\\udccd'"),
+
     # La marca de orden de bytes solo vale como primer caracter del archivo.
     # Al principio se salta, y el resto conserva sus lineas: el error de
     # abajo esta en la 3, no en la 4. En medio, o repetida, sigue siendo un
