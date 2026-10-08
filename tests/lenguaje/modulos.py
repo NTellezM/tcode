@@ -77,6 +77,21 @@ MODULOS = [
       "a.t": 'use "lib/m.t/" como m;\nfn main() -> usize { return m.doble(0); }'},
      "a.t", "a.t:1: `lib/m.t/` termina en `/`", None),
 
+    # Una ruta con `..`: el cargador la normaliza para que dos caminos al mismo
+    # archivo den la misma cadena y no se cargue dos veces. De `normalizar`
+    # (programa.t) sale una lista de trozos, y cuando llega un `..` que sube,
+    # el trozo que sobra lo quita `sin_la_ultima` (programa.t:284), que hasta
+    # ahora no ejecutaba ninguna prueba.
+    ("una ruta con `..` se normaliza y el modulo se carga una sola vez",
+     {"lib/m.t": 'fn doble(n: usize) -> usize { return n * 2; }',
+      "app.t": 'use "lib/../lib/m.t" como m;\n'
+               'use "lib/m.t" como n;\n'
+               'fn main() -> usize {\n'
+               '    imprimir($"{m.doble(21)} {n.doble(1)}\\n");\n'
+               '    return 0;\n'
+               '}'},
+     "app.t", None, "42 2\n"),
+
     # La funcion de otro modulo, llamada desde donde una variable se llama
     # igual: en C la variable la tapaba.
     ("una variable con el nombre de una funcion de otro modulo",
