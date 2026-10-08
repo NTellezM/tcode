@@ -39,6 +39,20 @@ def correr(suite: Resultado) -> None:
     if "!(a)" not in _con_unario or "-(1)" not in _con_unario:
         suite.falla("un unario va pegado a su parentesis", repr(_con_unario))
 
+    # El formateador no mira los tipos: decide si un `<` abre una lista de
+    # tipos y si un simbolo es unario comparando el VALOR del token anterior,
+    # y con una cadena lo descifra (`valor_py` -> `descifrado_simple`,
+    # formato.t:58). Un programa que no compilaria —`"abc" < 1`— formatea
+    # igual, y tiene que salir tal cual entro.
+    suite.total += 1
+    _cadena_antes_de_operador = tcodec_sobre(
+        'fn main() {\n    let x = "abc" < 1;\n    let y = "def" - 2;\n}\n',
+        "--formatear", directorio=_tmp_fmt, nombre="cadena_operador.t").stdout
+    if _cadena_antes_de_operador != (
+            'fn main() {\n    let x = "abc" < 1;\n    let y = "def" - 2;\n}\n'):
+        suite.falla("una cadena antes de un operador no se toca",
+                    repr(_cadena_antes_de_operador))
+
     # Un aviso sobre una clausura dice `clausura`, tambien pasada la decima:
     # los nombres se cambian enteros, y `Cierre_1` no es un trozo de `Cierre_10`.
     suite.total += 1
