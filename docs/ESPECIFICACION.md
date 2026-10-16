@@ -811,7 +811,7 @@ funcion     := "fn" NOMBRE params_tipo? "(" params? ")" ("->" tipo)? "!"? bloque
 params_tipo := "<" param_tipo ("," param_tipo)* ">"
 param_tipo  := NOMBRE (":" restriccion)?
 restriccion := "decimal" | "entero" | "igualable" | "numero" | "ordenable" | "texto"
-params      := param ("," param)*
+params      := param ("," param)* ","?
 param       := NOMBRE ":" ("mut" | "&" | "&" "mut")? tipo
 
 tipo        := "&" "mut"? tipo
@@ -859,7 +859,10 @@ primario    := ENTERO | DECIMAL | CADENA | INTERPOLADA | "true" | "false"
              | ALIAS "." NOMBRE "." NOMBRE ("(" args? ")")?
              | "if" expr "{" expr "}" "else" "{" expr "}"
              | clausura | match | "(" expr ")"
-args        := expr ("," expr)*
+args        := expr ("," expr)* ","?
+             -- la coma de detras del ultimo vale, como en `inicios`: una
+             -- lista o una llamada de una linea por elemento se reordena sin
+             -- tocar comas
 inicios     := (NOMBRE ":" expr ("," NOMBRE ":" expr)* ","?)?
 clausura    := "fn" ("[" (captura ("," captura)*)? "]")? "(" params? ")"
                ("->" tipo)? "!"? bloque

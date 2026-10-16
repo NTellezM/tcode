@@ -527,6 +527,9 @@ tcodec programa.t --mostrar-c  # el C por la salida
 tcodec programa.t --explicar   # que infirio el compilador
 tcodec programa.t --solo-comprobar
 tcodec programa.t --formatear [--escribir]
+tcodec programa.t --depurar    # con simbolos de C (gdb, coredumpctl)
+tcodec programa.t --asan       # con AddressSanitizer y UBSan: un fallo de memoria para y dice donde
+tcodec programa.t --perfil     # con gprof: al acabar deja gmon.out (gprof programa gmon.out)
 ```
 
 La salida binaria nunca puede ser el propio fuente, tampoco mediante un

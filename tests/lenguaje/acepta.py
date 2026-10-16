@@ -646,6 +646,29 @@ ACEPTA: list[Caso] = [
         }''',
      "otro: dos\nfalse true\n"),
 
+    # La coma de detras del ultimo, como en los structs: en una lista, en los
+    # argumentos de una llamada o de una variante y en los parametros.
+    ("la coma de detras del ultimo en listas, llamadas, variantes y parametros",
+     '''enum Forma { Punto(usize, usize), Nada }
+        fn suma(a: usize, b: usize,) -> usize { return a + b; }
+        fn main() {
+            let xs: list<usize> = [
+                1,
+                2,
+                3,
+            ];
+            let f = Forma.Punto(4, 5,);
+            let n = suma(
+                xs[0],
+                xs[2],
+            );
+            match f {
+                Forma.Punto(a, b) -> imprimir($"{largo(xs)} {n} {a + b}\\n"),
+                Forma.Nada -> imprimir("nada\\n")
+            }
+        }''',
+     "3 4 9\n"),
+
     ("los limites exactos de los enteros siguen siendo validos",
      '''fn main() {
             let a: u8 = 255;

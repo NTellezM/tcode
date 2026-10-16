@@ -51,7 +51,9 @@ DERIVA: dict[str, dict[str, set[str]]] = {
         # esta en ESPECIFICACION.md y no se implemento en Tcode: queda aqui
         # como perdida conocida, no como olvido.
         "perdidas": {"--optimizacion", "--salida", "--sin-lineas"},
-        "nuevas": {"--mostrar-c"},
+        # `--depurar`, `--asan` y `--perfil` (2026-10-16): -g, ASan+UBSan y
+        # gprof en la orden de cc, sin envoltorios de cc a mano.
+        "nuevas": {"--mostrar-c", "--depurar", "--asan", "--perfil"},
     },
 }
 

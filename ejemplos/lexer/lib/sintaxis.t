@@ -782,6 +782,7 @@ fn parametros(e: mut Estado, n: mut Nodo, l: usize) ! {
         pp.texto.empujar(t);
         n.hijos.anadir(pp);
         if !acepta(e, "simbolo", ",") { break; }
+        if es(e, "simbolo", ")") { break; } // la coma de detras del ultimo
     }
     return;
 }
@@ -795,6 +796,8 @@ fn cuerpo_llamada(e: mut Estado, nombre: view, l: usize) -> Nodo ! {
             let x = try expresion(e);
             n.hijos.anadir(x);
             if !acepta(e, "simbolo", ",") { break; }
+            // la coma de detras del ultimo: una llamada larga en varias lineas
+            if es(e, "simbolo", ")") { break; }
         }
     }
     try espera(e, "simbolo", ")");
@@ -917,6 +920,9 @@ fn primario(e: mut Estado) -> Nodo ! {
                 let x = try expresion(e);
                 n.hijos.anadir(x);
                 if !acepta(e, "simbolo", ",") { break; }
+                // la coma de detras del ultimo, como en los structs: una lista
+                // de una linea por elemento se puede reordenar sin tocar comas
+                if es(e, "simbolo", "]") { break; }
             }
         }
         try espera(e, "simbolo", "]");
@@ -942,6 +948,7 @@ fn primario(e: mut Estado) -> Nodo ! {
                             let x = try expresion(e);
                             n.hijos.anadir(x);
                             if !acepta(e, "simbolo", ",") { break; }
+                            if es(e, "simbolo", ")") { break; } // la coma de detras del ultimo
                         }
                     }
                     try espera(e, "simbolo", ")");
@@ -972,6 +979,7 @@ fn primario(e: mut Estado) -> Nodo ! {
                         let x = try expresion(e);
                         n.hijos.anadir(x);
                         if !acepta(e, "simbolo", ",") { break; }
+                        if es(e, "simbolo", ")") { break; } // la coma de detras del ultimo
                     }
                 }
                 try espera(e, "simbolo", ")");

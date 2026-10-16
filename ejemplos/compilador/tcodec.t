@@ -2710,7 +2710,7 @@ fn escribir_de_una_vez(ruta: view, contenido: view, ejecutable: bool) -> bool {
 }
 
 fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
-    cc: view, raiz: view, ext_cabeceras: &list<str>, ext_modulos: &list<str>) -> usize {
+    cc: view, extra_cc: view, raiz: view, ext_cabeceras: &list<str>, ext_modulos: &list<str>) -> usize {
     var base = nuevo(salida);
     if base.largo() == 0 { base = sin_extension(fuente); }
 
@@ -2809,7 +2809,7 @@ fn construir(todo: view, fuente: view, salida: view, modo: view, nivel: view,
     }
 
     var orden = para_la_shell(cc);
-    let piezas_fijas = $" -std=c17 -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=700 -O{nivel} -Wall -Wextra ";
+    let piezas_fijas = $" -std=c17 -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=700 -O{nivel}{extra_cc} -Wall -Wextra ";
     orden.empujar(piezas_fijas);
     let incluir = $"-I{raiz}/runtime";
     orden.empujar(para_la_shell(incluir));
@@ -2865,6 +2865,8 @@ struct Opciones {
     sin_avisos: bool,
     escribir: bool,
     avisos_como_errores: bool,
+    // `--depurar`, `--asan`, `--perfil`: lo que se le anade a la orden de cc.
+    extra_cc: str,
     terminar: bool,
     codigo: usize,
 }
@@ -2873,7 +2875,7 @@ fn leer_opciones() -> Opciones {
     var o = Opciones { fuente: vacio(), salida: vacio(), nivel: nuevo("2"),
         cc: variable_entorno("CC") sino nuevo("cc"), modo: nuevo("binario"),
         sin_avisos: false, escribir: false,
-        avisos_como_errores: false,
+        avisos_como_errores: false, extra_cc: vacio(),
         terminar: false, codigo: 0 };
     var ia = 1;
     while ia < n_argumentos() {
@@ -2914,6 +2916,16 @@ fn leer_opciones() -> Opciones {
             o.modo = nuevo("formatear");
         } else if a == "--escribir" {
             o.escribir = true;
+        } else if a == "--depurar" {
+            // los simbolos de C, para gdb o un volcado (`coredumpctl`)
+            o.extra_cc.empujar(" -g");
+        } else if a == "--asan" {
+            // AddressSanitizer y UBSan: un error de memoria para el programa
+            // en el sitio y dice donde (doble liberacion, fuera de limites)
+            o.extra_cc.empujar(" -fsanitize=address,undefined -fno-omit-frame-pointer -g");
+        } else if a == "--perfil" {
+            // gprof: el programa deja `gmon.out` al acabar; `gprof programa gmon.out`
+            o.extra_cc.empujar(" -pg -g");
         } else if a == "--sin-avisos" {
             o.sin_avisos = true;
         } else if a == "--avisos-como-errores" {
@@ -2937,7 +2949,7 @@ fn leer_opciones() -> Opciones {
         }
     }
     if o.fuente.largo() == 0 {
-        imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--sin-avisos] [--avisos-como-errores] [--formatear [--escribir]] [--explicar]\n");
+        imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--depurar] [--asan] [--perfil] [--sin-avisos] [--avisos-como-errores] [--formatear [--escribir]] [--explicar]\n");
         o.terminar = true;
         o.codigo = 2;
     } else if !archivo.es_archivo(o.fuente) {
@@ -4302,6 +4314,7 @@ fn main() -> usize ! {
     let fuente = copiar(opciones.fuente);
     let salida = copiar(opciones.salida);
     let nivel = copiar(opciones.nivel);
+    let extra_cc = copiar(opciones.extra_cc);
     let cc = copiar(opciones.cc);
     let modo = copiar(opciones.modo);
     let sin_avisos = opciones.sin_avisos;
@@ -4493,5 +4506,5 @@ fn main() -> usize ! {
         return 0;
     }
     return construir(todo, vista(fuente), vista(salida), vista(modo), vista(nivel),
-        vista(cc), vista(raiz), ext_cabeceras, ext_modulos);
+        vista(cc), vista(extra_cc), vista(raiz), ext_cabeceras, ext_modulos);
 }
