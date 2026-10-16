@@ -76,11 +76,13 @@ class Escenario:
         if self.valor == "str":
             return [f'let v = nuevo("{p}");']
         if self.valor == "lista":
-            return [f'var v: list<str> = [];', f'anadir(v, nuevo("{p}"));', f'anadir(v, nuevo("{p}{p}"));']
+            return ['var v: list<str> = [];', f'anadir(v, nuevo("{p}"));',
+                    f'anadir(v, nuevo("{p}{p}"));']
         if self.valor == "caja":
             return [f'let v = Caja {{ s: nuevo("{p}"), n: {self.n} }};']
         if self.valor == "bloque":
-            return [f'var v: bloque<str> = reservar(2);', f'v[0] = nuevo("{p}");', f'v[1] = nuevo("{p}");']
+            return ['var v: bloque<str> = reservar(2);', f'v[0] = nuevo("{p}");',
+                    f'v[1] = nuevo("{p}");']
         return [f'let v = Hay.Algo(nuevo("{p}"));']
 
     def medir(self, x):
@@ -89,7 +91,8 @@ class Escenario:
 
     def medida(self):
         p = len(self.palabra)
-        return {"str": p, "lista": 3 * p, "caja": p + self.n, "bloque": 2 * p, "enum": p + 1}[self.valor]
+        return {"str": p, "lista": 3 * p, "caja": p + self.n, "bloque": 2 * p,
+                "enum": p + 1}[self.valor]
 
     # --- el codigo
     def recibe(self):
@@ -113,7 +116,7 @@ class Escenario:
         falla = "true" if self.fallo != "nunca" else "false"
         c = [f"fn envia_{k}() -> usize ! {{"]
         if self.forma != "bucle":  # en el bucle se hace uno por vuelta
-            c += ["    " + l for l in self.construir()]
+            c += ["    " + linea for linea in self.construir()]
         if self.salida_temprana:
             toma = "true" if self.temprana_toma else "false"
             c.append(f"    if {toma} {{ return 7; }}")
@@ -136,7 +139,7 @@ class Escenario:
             c.append("    var total: usize = 0;")
             c.append("    var i = 0;")
             c.append(f"    while i < {self.vueltas} {{")
-            c += ["        " + l for l in self.construir()]
+            c += ["        " + linea for linea in self.construir()]
             c.append(f"        total = total + (recibe_{k}(v, {falla}) sino {self.alt});")
             c.append("        i = i + 1;")
             c.append("    }")

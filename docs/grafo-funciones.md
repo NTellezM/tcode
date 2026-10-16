@@ -217,11 +217,13 @@ graph TD
         ejemplos_compilador_lib_comprobar__interna_anadir["interna_anadir"]
         ejemplos_compilador_lib_comprobar__interna_comparar["interna_comparar"]
         ejemplos_compilador_lib_comprobar__interna_copiar["interna_copiar"]
+        ejemplos_compilador_lib_comprobar__interna_fallo["interna_fallo"]
         ejemplos_compilador_lib_comprobar__interna_intercambiar["interna_intercambiar"]
         ejemplos_compilador_lib_comprobar__interna_largo["interna_largo"]
         ejemplos_compilador_lib_comprobar__interna_mapa["interna_mapa"]
         ejemplos_compilador_lib_comprobar__interna_numeros["interna_numeros"]
         ejemplos_compilador_lib_comprobar__interna_ordenar["interna_ordenar"]
+        ejemplos_compilador_lib_comprobar__interna_rango["interna_rango"]
         ejemplos_compilador_lib_comprobar__interna_redimensionar["interna_redimensionar"]
         ejemplos_compilador_lib_comprobar__interna_reservar["interna_reservar"]
         ejemplos_compilador_lib_comprobar__interna_texto["interna_texto"]
@@ -319,6 +321,7 @@ graph TD
         ejemplos_compilador_lib_tipos__es_rango["es_rango · ejemplos/compilador/lib/tipos.t · en tcodec"]
         ejemplos_compilador_lib_tipos__es_referencia["es_referencia · ejemplos/compilador/lib/tipos.t · en tcodec"]
         ejemplos_compilador_lib_tipos__es_referencia_mutable["es_referencia_mutable · ejemplos/compilador/lib/tipos.t · en tcodec"]
+        ejemplos_compilador_lib_tipos__escalar["escalar · ejemplos/compilador/lib/tipos.t · en tcodec"]
         ejemplos_compilador_lib_tipos__escribir_de_mapa["escribir_de_mapa · ejemplos/compilador/lib/tipos.t · en tcodec"]
         ejemplos_compilador_lib_tipos__escribir_de_mapa_tipos["escribir_de_mapa_tipos · ejemplos/compilador/lib/tipos.t · en tcodec"]
         ejemplos_compilador_lib_tipos__escribir_tipo["escribir_tipo · ejemplos/compilador/lib/tipos.t · en tcodec"]
@@ -397,7 +400,10 @@ graph TD
     ejemplos_compilador_lib_comprobar__comprobar_expresion_sin_anotar --> ejemplos_compilador_lib_tipos__leer_tipo
     ejemplos_compilador_lib_comprobar__comprobar_expresion_sin_anotar --> ejemplos_compilador_lib_tipos__marcador
     ejemplos_compilador_lib_comprobar__comprobar_expresion_sin_anotar --> ejemplos_compilador_lib_tipos__ninguno
+    ejemplos_compilador_lib_comprobar__comprobar_externa --> ejemplos_compilador_lib_tipos__elemento
+    ejemplos_compilador_lib_comprobar__comprobar_externa --> ejemplos_compilador_lib_tipos__es_bloque
     ejemplos_compilador_lib_comprobar__comprobar_externa --> ejemplos_compilador_lib_tipos__es_referencia
+    ejemplos_compilador_lib_comprobar__comprobar_externa --> ejemplos_compilador_lib_tipos__escalar
     ejemplos_compilador_lib_comprobar__comprobar_literal --> ejemplos_compilador_lib_generar__cabe_literal_decimal
     ejemplos_compilador_lib_comprobar__comprobar_literal --> ejemplos_compilador_lib_generar__cabe_literal_entero
     ejemplos_compilador_lib_comprobar__comprobar_literal --> ejemplos_compilador_lib_generar__entero_exacto_en
@@ -480,6 +486,8 @@ graph TD
     ejemplos_compilador_lib_comprobar__interna_copiar --> ejemplos_compilador_lib_tipos__conocido
     ejemplos_compilador_lib_comprobar__interna_copiar --> ejemplos_compilador_lib_tipos__escribir_tipo
     ejemplos_compilador_lib_comprobar__interna_copiar --> ejemplos_compilador_lib_tipos__ninguno
+    ejemplos_compilador_lib_comprobar__interna_fallo --> ejemplos_compilador_lib_tipos__conocido
+    ejemplos_compilador_lib_comprobar__interna_fallo --> ejemplos_compilador_lib_tipos__escribir_tipo
     ejemplos_compilador_lib_comprobar__interna_intercambiar --> ejemplos_compilador_lib_tipos__conocido
     ejemplos_compilador_lib_comprobar__interna_intercambiar --> ejemplos_compilador_lib_tipos__es_referencia
     ejemplos_compilador_lib_comprobar__interna_intercambiar --> ejemplos_compilador_lib_tipos__escribir_tipo
@@ -504,6 +512,12 @@ graph TD
     ejemplos_compilador_lib_comprobar__interna_ordenar --> ejemplos_compilador_lib_tipos__es_lista
     ejemplos_compilador_lib_comprobar__interna_ordenar --> ejemplos_compilador_lib_tipos__es_referencia
     ejemplos_compilador_lib_comprobar__interna_ordenar --> ejemplos_compilador_lib_tipos__escribir_tipo
+    ejemplos_compilador_lib_comprobar__interna_rango --> ejemplos_compilador_lib_tipos__conocido
+    ejemplos_compilador_lib_comprobar__interna_rango --> ejemplos_compilador_lib_tipos__elemento
+    ejemplos_compilador_lib_comprobar__interna_rango --> ejemplos_compilador_lib_tipos__es_bloque
+    ejemplos_compilador_lib_comprobar__interna_rango --> ejemplos_compilador_lib_tipos__es_referencia
+    ejemplos_compilador_lib_comprobar__interna_rango --> ejemplos_compilador_lib_tipos__escalar
+    ejemplos_compilador_lib_comprobar__interna_rango --> ejemplos_compilador_lib_tipos__escribir_tipo
     ejemplos_compilador_lib_comprobar__interna_redimensionar --> ejemplos_compilador_lib_tipos__conocido
     ejemplos_compilador_lib_comprobar__interna_redimensionar --> ejemplos_compilador_lib_tipos__es_bloque
     ejemplos_compilador_lib_comprobar__interna_redimensionar --> ejemplos_compilador_lib_tipos__es_referencia
@@ -538,6 +552,7 @@ graph TD
     ejemplos_compilador_lib_comprobar__llamada --> ejemplos_compilador_lib_tipar__sin_modulo
     ejemplos_compilador_lib_comprobar__llamada --> ejemplos_compilador_lib_tipos__apuntado
     ejemplos_compilador_lib_comprobar__llamada --> ejemplos_compilador_lib_tipos__conocido
+    ejemplos_compilador_lib_comprobar__llamada --> ejemplos_compilador_lib_tipos__es_bloque
     ejemplos_compilador_lib_comprobar__llamada --> ejemplos_compilador_lib_tipos__es_funcion
     ejemplos_compilador_lib_comprobar__llamada --> ejemplos_compilador_lib_tipos__es_referencia
     ejemplos_compilador_lib_comprobar__llamada --> ejemplos_compilador_lib_tipos__escribir_tipo
@@ -642,6 +657,7 @@ graph TD
     ejemplos_compilador_lib_comprobar__sentencia_retorno --> ejemplos_compilador_lib_tipos__conocido
     ejemplos_compilador_lib_comprobar__sentencia_retorno --> ejemplos_compilador_lib_tipos__escribir_tipo
     ejemplos_compilador_lib_comprobar__sentencia_retorno --> ejemplos_compilador_lib_tipos__ninguno
+    ejemplos_compilador_lib_comprobar__sentencia_si --> ejemplos_compilador_lib_tipar__sin_modulo
     ejemplos_compilador_lib_comprobar__sentencia_si --> ejemplos_compilador_lib_tipos__conocido
     ejemplos_compilador_lib_comprobar__sentencia_si --> ejemplos_compilador_lib_tipos__escribir_tipo
     ejemplos_compilador_lib_comprobar__si_expr --> ejemplos_compilador_lib_tipos__apuntado_si
@@ -769,6 +785,7 @@ graph TD
         ejemplos_compilador_lib_generar__indice_c["indice_c"]
         ejemplos_compilador_lib_generar__interna_pura_comparar["interna_pura_comparar"]
         ejemplos_compilador_lib_generar__interna_pura_copiar["interna_pura_copiar"]
+        ejemplos_compilador_lib_generar__interna_pura_copiar_rango["interna_pura_copiar_rango"]
         ejemplos_compilador_lib_generar__interna_pura_imprimir["interna_pura_imprimir"]
         ejemplos_compilador_lib_generar__interna_pura_intercambiar["interna_pura_intercambiar"]
         ejemplos_compilador_lib_generar__interna_pura_largo["interna_pura_largo"]
@@ -776,6 +793,7 @@ graph TD
         ejemplos_compilador_lib_generar__interna_pura_numeros["interna_pura_numeros"]
         ejemplos_compilador_lib_generar__interna_pura_ordenar["interna_pura_ordenar"]
         ejemplos_compilador_lib_generar__interna_pura_redimensionar["interna_pura_redimensionar"]
+        ejemplos_compilador_lib_generar__interna_pura_rellenar["interna_pura_rellenar"]
         ejemplos_compilador_lib_generar__interna_pura_texto["interna_pura_texto"]
         ejemplos_compilador_lib_generar__interpolada_c["interpolada_c"]
         ejemplos_compilador_lib_generar__junta["junta"]
@@ -981,6 +999,10 @@ graph TD
     ejemplos_compilador_lib_generar__interna_pura_copiar --> ejemplos_compilador_lib_tipos__es_referencia
     ejemplos_compilador_lib_generar__interna_pura_copiar --> ejemplos_compilador_lib_tipos__escribir_tipo
     ejemplos_compilador_lib_generar__interna_pura_copiar --> ejemplos_compilador_lib_tipos__sin_alias_tipo
+    ejemplos_compilador_lib_generar__interna_pura_copiar_rango --> ejemplos_compilador_lib_tipar__tipo_de
+    ejemplos_compilador_lib_generar__interna_pura_copiar_rango --> ejemplos_compilador_lib_tipos__apuntado_si
+    ejemplos_compilador_lib_generar__interna_pura_copiar_rango --> ejemplos_compilador_lib_tipos__es_bloque
+    ejemplos_compilador_lib_generar__interna_pura_copiar_rango --> ejemplos_compilador_lib_tipos__escribir_tipo
     ejemplos_compilador_lib_generar__interna_pura_imprimir --> ejemplos_compilador_lib_tipar__tipo_de
     ejemplos_compilador_lib_generar__interna_pura_imprimir --> ejemplos_compilador_lib_tipos__escribir_tipo
     ejemplos_compilador_lib_generar__interna_pura_imprimir --> std_texto__empieza_con
@@ -1011,6 +1033,11 @@ graph TD
     ejemplos_compilador_lib_generar__interna_pura_redimensionar --> ejemplos_compilador_lib_tipos__apuntado_si
     ejemplos_compilador_lib_generar__interna_pura_redimensionar --> ejemplos_compilador_lib_tipos__es_bloque
     ejemplos_compilador_lib_generar__interna_pura_redimensionar --> ejemplos_compilador_lib_tipos__escribir_tipo
+    ejemplos_compilador_lib_generar__interna_pura_rellenar --> ejemplos_compilador_lib_tipar__tipo_de
+    ejemplos_compilador_lib_generar__interna_pura_rellenar --> ejemplos_compilador_lib_tipos__apuntado_si
+    ejemplos_compilador_lib_generar__interna_pura_rellenar --> ejemplos_compilador_lib_tipos__elemento
+    ejemplos_compilador_lib_generar__interna_pura_rellenar --> ejemplos_compilador_lib_tipos__es_bloque
+    ejemplos_compilador_lib_generar__interna_pura_rellenar --> ejemplos_compilador_lib_tipos__escribir_tipo
     ejemplos_compilador_lib_generar__interna_pura_texto --> ejemplos_compilador_lib_tipar__tipo_de
     ejemplos_compilador_lib_generar__interna_pura_texto --> ejemplos_compilador_lib_tipos__escribir_tipo
     ejemplos_compilador_lib_generar__interpolada_c --> ejemplos_lexer_lib_lexico__cierre_de_hueco
@@ -1069,6 +1096,7 @@ graph TD
     ejemplos_compilador_lib_generar__llamada_con_firma --> ejemplos_compilador_lib_tipos__es_referencia
     ejemplos_compilador_lib_generar__llamada_con_firma --> std_texto__empieza_con
     ejemplos_compilador_lib_generar__llamada_externa_c --> ejemplos_compilador_lib_tipar__sin_modulo
+    ejemplos_compilador_lib_generar__llamada_externa_c --> ejemplos_compilador_lib_tipos__es_bloque
     ejemplos_compilador_lib_generar__llamada_externa_c --> ejemplos_compilador_lib_tipos__escribir_tipo
     ejemplos_compilador_lib_generar__llamada_externa_c --> ejemplos_compilador_lib_tipos__tipos_de_mapa
     ejemplos_compilador_lib_generar__mangle --> ejemplos_compilador_lib_tipar__nombre_resuelto
@@ -1578,6 +1606,7 @@ graph TD
         ejemplos_compilador_tcodec__descubrir["descubrir"]
         ejemplos_compilador_tcodec__emitir_funcion["emitir_funcion"]
         ejemplos_compilador_tcodec__ensamblar_c["ensamblar_c"]
+        ejemplos_compilador_tcodec__envoltorio_externo["envoltorio_externo"]
         ejemplos_compilador_tcodec__envolver_arreglo_c["envolver_arreglo_c"]
         ejemplos_compilador_tcodec__es_compuesto_t["es_compuesto_t"]
         ejemplos_compilador_tcodec__escribir_de_una_vez["escribir_de_una_vez"]
@@ -1712,6 +1741,7 @@ graph TD
         std_texto__a_entero["a_entero · std/texto.t · en tcodec"]
         std_texto__contiene["contiene · std/texto.t · en tcodec"]
         std_texto__empieza_con["empieza_con · std/texto.t · en tcodec"]
+        std_texto__lineas["lineas · std/texto.t · en tcodec"]
         std_texto__partir["partir · std/texto.t · en tcodec"]
         std_texto__recortar["recortar · std/texto.t · en tcodec"]
         std_texto__reemplazar["reemplazar · std/texto.t · en tcodec"]
@@ -1777,7 +1807,10 @@ graph TD
     ejemplos_compilador_tcodec__emitir_funcion --> std_texto__empieza_con
     ejemplos_compilador_tcodec__ensamblar_c --> std_texto__contiene
     ejemplos_compilador_tcodec__ensamblar_c --> std_texto__empieza_con
+    ejemplos_compilador_tcodec__ensamblar_c --> std_texto__lineas
     ejemplos_compilador_tcodec__ensamblar_c --> std_texto__termina_con
+    ejemplos_compilador_tcodec__envoltorio_externo --> ejemplos_compilador_lib_generar__tipo_c
+    ejemplos_compilador_tcodec__envoltorio_externo --> ejemplos_compilador_lib_tipos__es_bloque
     ejemplos_compilador_tcodec__envolver_arreglo_c --> ejemplos_compilador_lib_tipos__es_arreglo
     ejemplos_compilador_tcodec__envolver_arreglo_c --> ejemplos_compilador_lib_tipos__partes_de_arreglo
     ejemplos_compilador_tcodec__es_compuesto_t --> ejemplos_compilador_lib_tipos__es_arreglo
@@ -1828,6 +1861,7 @@ graph TD
     ejemplos_compilador_tcodec__leer_programa --> ejemplos_lexer_lib_clase__nombre_de_clase
     ejemplos_compilador_tcodec__leer_programa --> ejemplos_lexer_lib_sintaxis__leidos_en
     ejemplos_compilador_tcodec__leer_programa --> ejemplos_lexer_lib_sintaxis__rama
+    ejemplos_compilador_tcodec__leer_programa --> std_texto__contiene
     ejemplos_compilador_tcodec__linea_arreglo --> ejemplos_compilador_lib_generar__tipo_c
     ejemplos_compilador_tcodec__linea_arreglo --> ejemplos_compilador_lib_tipos__partes_de_arreglo
     ejemplos_compilador_tcodec__lineas_liberacion --> ejemplos_compilador_lib_generar__cuerpo
@@ -1891,6 +1925,8 @@ graph TD
     ejemplos_compilador_tcodec__preparar_instancias --> ejemplos_compilador_lib_tipos__leer_tipos
     ejemplos_compilador_tcodec__programa_no_leido --> ejemplos_compilador_lib_tipar__contexto
     ejemplos_compilador_tcodec__prototipo_externo --> ejemplos_compilador_lib_generar__tipo_c
+    ejemplos_compilador_tcodec__prototipo_externo --> ejemplos_compilador_lib_tipos__elemento
+    ejemplos_compilador_tcodec__prototipo_externo --> ejemplos_compilador_lib_tipos__es_bloque
     ejemplos_compilador_tcodec__raiz_instalada --> std_archivo__es_archivo
     ejemplos_compilador_tcodec__registrar_resultado --> ejemplos_compilador_lib_tipar__nombre_resuelto
     ejemplos_compilador_tcodec__resolver --> ejemplos_compilador_lib_programa__normalizar
