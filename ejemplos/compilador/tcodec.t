@@ -3101,6 +3101,15 @@ fn tipos_funcion_usados(global: &I.Contexto, arboles: &list<P.Nodo>,
     return tipos_fn;
 }
 
+// `typedef R (*nombre)(...);` -> `nombre`.
+fn nombre_de_typedef_fn(l: view) -> str {
+    let i = buscar_desde(l, "(*", 0);
+    if i >= l.largo() { return vacio(); }
+    let j = buscar_desde(l, ")", i);
+    if j >= l.largo() { return vacio(); }
+    return nuevo(rebanar(l, i + 2, j));
+}
+
 // Ensambla las secciones ya generadas sin decidir nada sobre su contenido.
 fn ensamblar_c(raiz: view, ext_cabeceras: &list<str>, ext_protos: &list<str>,
     partes: &list<str>, envoltorios: &list<str>,
@@ -3142,7 +3151,39 @@ fn ensamblar_c(raiz: view, ext_cabeceras: &list<str>, ext_protos: &list<str>,
         anadir_lineas(cstr, todas);
         todas.anadir(vacio());
     }
-    for x en partes { todas.anadir(copiar(x)); }
+    // Un struct con un campo de tipo funcion necesita el typedef ANTES de su
+    // cuerpo: los que nombra algun struct van delante del primer cuerpo
+    // (detras de los `typedef struct X X;`, que ya bastan para sus
+    // parametros). Siguen tambien en su sitio de siempre: C17 admite repetir
+    // un typedef identico, y asi nada de lo que ya compilaba se mueve.
+    var en_structs: list<str> = [];
+    for x en tipos_fn {
+        let nombre_tf = nombre_de_typedef_fn(x);
+        if nombre_tf.largo() == 0 { continue; }
+        for parte en partes {
+            if contiene_nombre(parte, nombre_tf) { en_structs.anadir(copiar(x)); break; }
+        }
+    }
+    var puestos_tf = en_structs.largo() == 0;
+    for x en partes {
+        if puestos_tf || !contiene(x, "struct ") {
+            todas.anadir(copiar(x));
+            continue;
+        }
+        var trozo = vacio();
+        var primera_l = true;
+        for l en lineas(x) {
+            if !puestos_tf && empieza_con(l, "struct ") && !termina_con(l, ";") {
+                if trozo.largo() > 0 { todas.anadir(trozo); trozo = vacio(); primera_l = true; }
+                for y en en_structs { todas.anadir(copiar(y)); }
+                puestos_tf = true;
+            }
+            if !primera_l { trozo.empujar("\n"); }
+            primera_l = false;
+            trozo.empujar(l);
+        }
+        if trozo.largo() > 0 { todas.anadir(trozo); }
+    }
     for x en envoltorios { todas.anadir(copiar(x)); }
     for x en tipos_fn { todas.anadir(copiar(x)); }
     for a en arit { todas.anadir(copiar(a)); }

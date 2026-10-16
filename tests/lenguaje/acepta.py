@@ -610,6 +610,25 @@ ACEPTA: list[Caso] = [
         fn main() { imprimir($"{dos_veces(aplicar, 3)}\\n"); }''',
      "12\n"),
 
+    # El typedef del tipo funcion salia DESPUES del cuerpo del struct que lo
+    # usa como campo ("unknown type name ss_fn_ref_..." en el C).
+    ("un campo de struct de tipo funcion que nombra otros structs",
+     '''struct Ui { n: usize, botones: u8 }
+        struct Caja { v: usize }
+        struct Cosa { ui: Ui, al: fn(&Caja, Ui) -> Ui }
+        fn nada(_c: &Caja, u: Ui) -> Ui { return u; }
+        fn uno(c: &Caja, u: Ui) -> Ui { var w = u; w.n = w.n + c.v; w.botones = 7; return w; }
+        fn main() {
+            var c = Cosa { ui: Ui { n: 0, botones: 0 }, al: nada };
+            c.al = uno;
+            let caja = Caja { v: 3 };
+            let f = c.al;
+            c.ui = f(caja, c.ui);
+            c.ui = f(caja, c.ui);
+            imprimir($"{c.ui.botones} {c.ui.n}\\n");
+        }''',
+     "7 6\n"),
+
     ("los limites exactos de los enteros siguen siendo validos",
      '''fn main() {
             let a: u8 = 255;
