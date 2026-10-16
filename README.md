@@ -530,6 +530,7 @@ tcodec programa.t --formatear [--escribir]
 tcodec programa.t --depurar    # con simbolos de C (gdb, coredumpctl)
 tcodec programa.t --asan       # con AddressSanitizer y UBSan: un fallo de memoria para y dice donde
 tcodec programa.t --perfil     # con gprof: al acabar deja gmon.out (gprof programa gmon.out)
+tcodec programa.t --paralelo   # el C se optimiza con todos los nucleos (LTO): compila mas deprisa, el programa va algo mas lento
 ```
 
 La salida binaria nunca puede ser el propio fuente, tampoco mediante un

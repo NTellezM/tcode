@@ -2966,6 +2966,12 @@ fn leer_opciones() -> Opciones {
             // AddressSanitizer y UBSan: un error de memoria para el programa
             // en el sitio y dice donde (doble liberacion, fuera de limites)
             o.extra_cc.empujar(" -fsanitize=address,undefined -fno-omit-frame-pointer -g");
+        } else if a == "--paralelo" {
+            // el compilador de C optimiza en trozos, con todos los nucleos
+            // (LTO): compila unas 2,5 veces mas deprisa un programa grande,
+            // pero sin inlining entre trozos el programa sale algo mas lento.
+            // Para ir probando; para la version final, sin ella.
+            o.extra_cc.empujar(" -flto=auto");
         } else if a == "--perfil" {
             // gprof: el programa deja `gmon.out` al acabar; `gprof programa gmon.out`
             o.extra_cc.empujar(" -pg -g");
@@ -2992,7 +2998,7 @@ fn leer_opciones() -> Opciones {
         }
     }
     if o.fuente.largo() == 0 {
-        imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--depurar] [--asan] [--perfil] [--sin-avisos] [--avisos-como-errores] [--formatear [--escribir]] [--explicar]\n");
+        imprimir_error($"uso: {argumento(0)} <archivo.t> [-o salida] [-O0..3] [--cc cc] [--emitir-c] [--mostrar-c] [--solo-comprobar] [--depurar] [--asan] [--perfil] [--paralelo] [--sin-avisos] [--avisos-como-errores] [--formatear [--escribir]] [--explicar]\n");
         o.terminar = true;
         o.codigo = 2;
     } else if !archivo.es_archivo(o.fuente) {

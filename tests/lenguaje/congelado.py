@@ -53,7 +53,7 @@ DERIVA: dict[str, dict[str, set[str]]] = {
         "perdidas": {"--optimizacion", "--salida", "--sin-lineas"},
         # `--depurar`, `--asan` y `--perfil` (2026-10-16): -g, ASan+UBSan y
         # gprof en la orden de cc, sin envoltorios de cc a mano.
-        "nuevas": {"--mostrar-c", "--depurar", "--asan", "--perfil"},
+        "nuevas": {"--mostrar-c", "--depurar", "--asan", "--perfil", "--paralelo"},
     },
 }
 
