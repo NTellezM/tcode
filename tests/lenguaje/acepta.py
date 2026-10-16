@@ -629,6 +629,23 @@ ACEPTA: list[Caso] = [
         }''',
      "7 6\n"),
 
+    # Pasar un str por valor dentro de un `try` que falla: la llamada ya lo
+    # solto, y el camino de error lo veia vivo y lo soltaba otra vez (double
+    # free; el PC del dormitorio en pokered-tcode, 2026-10-16).
+    ("un str entregado a una llamada que falla no se suelta dos veces",
+     '''fn interior(f: str) ! {
+            if f == "uno" { fail "pide un servicio"; }
+            imprimir($"otro: {f}\\n");
+        }
+        fn medio(funcion: str) ! { try interior(funcion); }
+        fn probar(t: view) -> bool ! { try medio(nuevo(t)); return true; }
+        fn main() {
+            let a = probar("uno") sino false;
+            let b = probar("dos") sino false;
+            imprimir($"{a} {b}\\n");
+        }''',
+     "otro: dos\nfalse true\n"),
+
     ("los limites exactos de los enteros siguen siendo validos",
      '''fn main() {
             let a: u8 = 255;

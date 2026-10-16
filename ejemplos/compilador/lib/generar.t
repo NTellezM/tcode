@@ -5116,6 +5116,11 @@ fn try_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str {
     emitir(b, cond);
     emitir(b, "{");
     b.sangria = b.sangria + 1;
+    // Lo que la llamada entrego ya es suyo aunque falle (la llamada lo suelta
+    // al salir): se apaga antes de liberar lo demas, o el camino de error lo
+    // veria encendido y lo soltaria otra vez (double free). La bandera solo
+    // se apagaba detras de la sentencia, en el camino que sigue.
+    apagar_las_de(b, s, n.hijos[0], tipos);
     liberar_todo(b, s, tipos, "");
     var sale = nuevo("return (");
     sale.empujar(tipo_resultado(retorno));
