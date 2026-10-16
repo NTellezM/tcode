@@ -1157,6 +1157,10 @@ fn conversion(e: mut Estado) -> Nodo ! {
 
 fn expresion(e: mut Estado) -> Nodo ! {
     let n = try siguiente_nivel(e, 0);
+    // `f(x) sino { ... }` es una sentencia, no un valor: la lee `sentencia`.
+    if es(e, "palabra", "sino") && igual(tipo_en(e, 1), "simbolo") && igual(valor_en(e, 1), "{") {
+        return n;
+    }
     if es(e, "palabra", "sino") {
         let l = linea_actual(e);
         avanzar(e);
@@ -1339,6 +1343,21 @@ fn sentencia(e: mut Estado) -> Nodo ! {
 
     // asignacion o expresion suelta
     let izq = try expresion(e);
+    // `f(x) sino { ... }`: si la llamada falla, el bloque. Es un `if` cuya
+    // condicion es `@fallo(f(x))` (la llamada, y si fallo): asi lo que se mueve
+    // dentro del bloque se mueve solo por ese camino, como en cualquier `if`.
+    // `@` no empieza un nombre, asi que nadie puede escribir `@fallo` a mano.
+    if es(e, "palabra", "sino") {
+        avanzar(e);
+        var falla = rama(Clase.Llamada, l);
+        falla.texto.empujar("@fallo");
+        falla.hijos.anadir(izq);
+        var n = rama(Clase.Si, l);
+        n.hijos.anadir(falla);
+        let cuerpo = try bloque(e);
+        n.hijos.anadir(cuerpo);
+        return n;
+    }
     if acepta(e, "simbolo", "=") {
         var n = rama(Clase.Asignacion, l);
         let der = try expresion(e);

@@ -655,10 +655,23 @@ opción, y olvidarse es un error de compilación:
 |---|---|
 | `try f(..)` | el fallo sube al que llamó; sólo dentro de otra función `!` |
 | `f(..) sino valor` | si falla, se usa `valor` |
+| `f(..) sino { ... }` | si falla, se hace el bloque; para las que no dan nada (`-> ()`) |
 
 ```
 error: `porcentaje` puede fallar: la llamada tiene que ir detras de `try`,
 o con `sino <valor>` para dar un valor cuando falle
+```
+
+**`f(..) sino { ... }`** es la forma para las funciones que no dan nada: una
+función que no es `!` no puede usar `try`, y `sino valor` no tiene valor que
+dar. El bloque es lo que se hace cuando falla —contar, avisar, salir—, y
+puede estar vacío, `sino {}`: el fallo se ignora, pero queda escrito, y el
+compilador avisa. No es una forma callada de ignorar un fallo: es una decisión
+que se ve. Lo que la llamada recibió ya es suyo aunque falle, así que un
+`return` dentro del bloque no lo suelta otra vez.
+
+```tcode
+escribir_archivo(ruta, datos) sino { imprimir_error("no se pudo guardar\n"); }
 ```
 
 `main` también puede declararse `!`. Si termina en fallo, el programa
@@ -831,6 +844,8 @@ sentencia   := ("let" | "var") NOMBRE (":" tipo)? "=" expr ";"
              | "break" ";" | "continue" ";"
              | "return" expr? ";"
              | "fail" CADENA ";"
+             | llamada "sino" bloque
+             -- si la llamada (que no da nada) falla, el bloque
              | match
              | lugar "=" expr ";"
              | expr ";"

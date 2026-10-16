@@ -184,6 +184,7 @@ fn firma_interna(nombre: view) -> Interna {
     var fal = false;
     var existe = true;
     if nombre == "vacio" { r = nuevo("str"); }
+    else if nombre == "@fallo" { ps.anadir(nuevo("@llamada")); r = nuevo("bool"); }
     else if nombre == "nuevo" { ps.anadir(nuevo("view")); r = nuevo("str"); }
     else if nombre == "vista" { ps.anadir(nuevo("@presta")); r = nuevo("view"); }
     else if nombre == "empujar" {
@@ -4620,6 +4621,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     || nombre == "redondear" || nombre == "absoluto" { return interna_numeros(c, m, tipos, n, nombre); }
 
     if nombre == "reservar" { return interna_reservar(c, m, tipos, n, destino); }
+    if nombre == "@fallo" { return interna_fallo(c, m, tipos, n); }
 
     if nombre == "redimensionar" { return interna_redimensionar(c, m, tipos, n); }
     if nombre == "copiar_rango" || nombre == "rellenar_rango" { return interna_rango(c, m, tipos, n, nombre); }
@@ -4812,6 +4814,22 @@ fn interna_reservar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto,
         return T.ninguno();
     }
     return tipo_de_escrito(destino);
+}
+
+// `f(x) sino { ... }` llega como `if @fallo(f(x)) { ... }` (sintaxis.t): la
+// llamada se hace, y da `true` si fallo. Solo para llamadas que no dan nada;
+// las que dan un valor tienen `sino <valor>`.
+fn interna_fallo(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
+    if n.hijos.largo() != 1 || n.hijos[0].clase != Clase.Llamada {
+        error(c, m, n.linea, "`sino { ... }` va detras de una llamada que puede fallar");
+        evaluar_todos(c, m, tipos, n);
+        return tipo_de_escrito(nuevo("bool"));
+    }
+    let t = desenvolver(c, m, tipos, n, n.hijos[0], "sino");
+    if T.conocido(t) && T.escribir_tipo(t) != "()" {
+        error(c, m, n.linea, $"`sino {{ ... }}` es para llamadas que no dan nada, y esta da `{T.escribir_tipo(t)}`: usa `sino <valor>` para dar uno cuando falle");
+    }
+    return tipo_de_escrito(nuevo("bool"));
 }
 
 fn interna_redimensionar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo) -> T.Tipo {
@@ -5667,6 +5685,11 @@ fn sentencia_asignacion(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s
 }
 
 fn sentencia_si(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, s: &P.Nodo) {
+    // `f(x) sino {}`: un fallo que no se trata. Se puede, pero se ve.
+    if s.hijos[0].clase == Clase.Llamada && s.hijos[0].texto == "@fallo"
+    && s.hijos.largo() > 1 && s.hijos[1].hijos.largo() == 0 && s.hijos[0].hijos.largo() == 1 {
+        aviso(c, m, s.linea, $"si `{I.sin_modulo(s.hijos[0].hijos[0].texto)}` falla, `sino {{}}` no hace nada: si el fallo importa, dilo en el bloque (`imprimir_error`, un contador...)");
+    }
     let t = comprobar_expresion(c, m, tipos, s.hijos[0], "", false);
     if T.conocido(t) && t.nombre != "bool" {
         error(c, m, s.linea, $"la condicion de `if` debe ser `bool`, es `{T.escribir_tipo(t)}`");

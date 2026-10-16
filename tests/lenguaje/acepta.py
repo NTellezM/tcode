@@ -712,6 +712,36 @@ ACEPTA: list[Caso] = [
      "3000 12 14 16\n",
      {"apoyo": ("tests/lenguaje/apoyo/bloques_prueba.c",)}),
 
+    # `f(x) sino { ... }`: para las que no dan nada. Lo que la llamada recibio
+    # es suyo aunque falle: el `return` del bloque no lo suelta otra vez.
+    ("sino con un bloque para las llamadas que no dan nada",
+     '''fn guardar(ruta: view, s: str) ! {
+            if largo(ruta) == 0 { fail "sin ruta"; }
+            imprimir($"guardado {s}\\n");
+        }
+        fn tomar(s: str, falla: bool) ! {
+            if falla { fail "no"; }
+            imprimir($"tomado {s}\\n");
+        }
+        fn con_return(falla: bool) -> usize {
+            let v = nuevo("valor");
+            tomar(v, falla) sino {
+                imprimir("fallo y salgo\\n");
+                return 1;
+            }
+            return 0;
+        }
+        fn main() {
+            var fallos: usize = 0;
+            guardar("", nuevo("a")) sino { fallos = fallos + 1; }
+            guardar("x", nuevo("b")) sino { fallos = fallos + 10; }
+            escribir_archivo("/no/existe/p.txt", "hola") sino { fallos = fallos + 100; }
+            let extra = nuevo("se mueve en el bloque");
+            tomar(nuevo("c"), true) sino { tomar(extra, false) sino { fallos = fallos + 1000; } }
+            imprimir($"{fallos} {con_return(true)} {con_return(false)}\\n");
+        }''',
+     "guardado b\ntomado se mueve en el bloque\nfallo y salgo\ntomado valor\n101 1 0\n"),
+
     ("los limites exactos de los enteros siguen siendo validos",
      '''fn main() {
             let a: u8 = 255;

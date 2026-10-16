@@ -1620,6 +1620,7 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
 
     if nombre == "redimensionar" { return interna_pura_redimensionar(b, s, n, tipos); }
     if nombre == "copiar_rango" { return interna_pura_copiar_rango(b, s, n, tipos); }
+    if nombre == "@fallo" { return interna_pura_fallo(b, s, n, tipos); }
     if nombre == "rellenar_rango" { return interna_pura_rellenar(b, s, n, tipos); }
 
     if nombre == "intercambiar" { return interna_pura_intercambiar(b, s, n, tipos); }
@@ -1726,6 +1727,21 @@ fn interna_pura_rellenar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     let pv = nuevo_temporal(b);
     emitir(b, $"{tipo_c(vista(elem))} {pv} = {valor};");
     return $"ss_lang_rellenar_({pd}->e, {pd}->n, {desde}, {cuantos}, &{pv}, sizeof({pv}), \"{s.archivo}\", {n.linea})";
+}
+
+// `@fallo(f(x))`, la condicion de `f(x) sino { ... }`: la llamada a un
+// temporal y `(t.motivo != NULL)`. Lo que la llamada entrego ya es suyo, salga
+// bien o mal: se apaga aqui mismo, o un `return` dentro del bloque lo soltaria
+// otra vez (la doble liberacion de `try`, 2026-10-16).
+fn interna_pura_fallo(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    if n.hijos.largo() != 1 || n.hijos[0].clase != Clase.Llamada { return no_se(); }
+    let tmp = nuevo_temporal(b);
+    let c = llamada_c(b, s, n.hijos[0], tipos);
+    if es_desconocido(c) { return no_se(); }
+    emitir(b, $"{tipo_resultado(nuevo("()"))} {tmp} = {c};");
+    apagar_las_de(b, s, n.hijos[0], tipos);
+    return $"({tmp}.motivo != NULL)";
 }
 
 fn interna_pura_intercambiar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
@@ -3481,6 +3497,7 @@ fn es_interna(nombre: view) -> bool {
     if nombre == "ordenar" || nombre == "reservar" { return true; }
     if nombre == "redimensionar" || nombre == "intercambiar" { return true; }
     if nombre == "copiar_rango" || nombre == "rellenar_rango" { return true; }
+    if nombre == "@fallo" { return true; }
     return false;
 }
 
@@ -4512,7 +4529,11 @@ fn falla_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
 fn si_c(b: mut Cuerpo, s: mut Sitio, n: &P.Nodo,
     tipos: mut I.Contexto, retorno: view, falible: bool) -> bool {
     if n.hijos.largo() < 2 { return false; }
-    if mueve_algo(s, n.hijos[0], tipos) { return false; }
+    // Una condicion que entrega algo no se sabe escribir, salvo la de
+    // `f(x) sino { ... }` (`@fallo`): ahi la llamada entrega siempre, antes de
+    // elegir rama, e `interna_pura_fallo` lo apaga en el acto.
+    let es_fallo = n.hijos[0].clase == Clase.Llamada && n.hijos[0].texto == "@fallo";
+    if !es_fallo && mueve_algo(s, n.hijos[0], tipos) { return false; }
     let cond = expresion_c(b, s, n.hijos[0], "bool", tipos);
     if es_desconocido(cond) { return false; }
     var l = nuevo("if (");

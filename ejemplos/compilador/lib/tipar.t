@@ -414,6 +414,7 @@ fn tipo_de_campo(c: &Contexto, struct_: view, campo: view) -> str {
 
 // Las internas cuyo tipo no depende de sus argumentos.
 fn tipo_fijo(nombre: view) -> str {
+    if nombre == "@fallo" { return nuevo("bool"); } // `f(x) sino { ... }`
     if nombre == "vacio" || nombre == "nuevo" { return nuevo("str"); }
     if nombre == "texto" { return nuevo("str"); }
     if nombre == "vista" || nombre == "rebanar" { return nuevo("view"); }
