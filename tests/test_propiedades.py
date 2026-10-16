@@ -33,6 +33,9 @@ Las propiedades:
       rechaza diciendo archivo y linea. Nunca una excepcion, nunca un
       cuelgue. Es la mitad del compilador que el generador de programas
       validos no toca, y la que crece con cada construccion nueva.
+  P15 Un valor con duenio entregado a una funcion que puede fallar se
+      libera exactamente una vez, por try, sino, un struct, un bucle o de
+      vuelta, y el programa da lo que tiene que dar (generador_entregas.py).
   P10 Una vista no sobrevive a que su duenio se reasigne, crezca, se mueva
       o se libere, venga de donde venga: `vista`, `rebanar`, un `if` o un
       `match` que la dan, una funcion, un puntero a funcion, una clausura,
@@ -341,6 +344,60 @@ def probar_sentencias(tmp):
         total += 1
         if problema:
             falla(problema[0], nombre, problema[1], fuente)
+
+
+def probar_entregas(tmp):
+    """P15: un valor con duenio entregado a una funcion que puede fallar
+    (antes o despues de mirarlo, o nunca), por `try`, `sino`, dentro de un
+    struct, en un bucle o devuelto, con salidas tempranas: la salida es la que
+    el generador calcula y AddressSanitizer + LeakSanitizer no ven nada. Es la
+    zona de la doble liberacion de 2026-10-16 (generador_entregas.py)."""
+    global total
+    import generador_entregas
+    listos = []
+    for semilla in range(1, max(8, CUANTOS // 3) + 1):
+        fuente, esperado = generador_entregas.generar(semilla)
+        total += 1
+        try:
+            codigo, errores, _ = compilar(fuente, f"entrega{semilla}.t", tmp)
+        except Exception:
+            falla("P15 compila", semilla, traceback.format_exc(), fuente)
+            continue
+        if errores:
+            falla("P15 compila", semilla, "\n".join(errores), fuente)
+            continue
+        ruta_c = os.path.join(tmp, f"entrega{semilla}.c")
+        with open(ruta_c, "w", encoding="utf-8") as f:
+            f.write(codigo)
+        listos.append((semilla, fuente, esperado, ruta_c, os.path.join(tmp, f"entrega{semilla}")))
+
+    def uno(listo):
+        _, _, esperado, ruta_c, binario = listo
+        r = cc(
+            ["cc", "-std=c17", "-O1", "-g", "-Wall", "-Wextra", "-Werror",
+             "-fsanitize=address,undefined", "-fno-omit-frame-pointer",
+             f"-I{RUNTIME}", ruta_c, os.path.join(RUNTIME, "safestr.c"),
+             "-o", binario, "-lm"],
+            capture_output=True, text=True)
+        if r.returncode != 0:
+            return "P15 C limpio", r.stderr
+        try:
+            e = subprocess.run([binario], capture_output=True, text=True, timeout=60,
+                               env=dict(os.environ, ASAN_OPTIONS="detect_leaks=1"))
+        except subprocess.TimeoutExpired:
+            return "P15 memoria limpia", "el programa no termino"
+        if e.returncode != 0 or "Sanitizer" in e.stderr or "runtime error" in e.stderr:
+            return "P15 memoria limpia", f"codigo {e.returncode}\n{e.stderr}"
+        if e.stdout != esperado:
+            return "P15 salida", f"dio {e.stdout!r} y el generador esperaba {esperado!r}"
+        return None
+
+    with concurrent.futures.ThreadPoolExecutor(os.cpu_count() or 2) as hilos:
+        resultados = list(hilos.map(uno, listos))
+    for (semilla, fuente, _, _, _), problema in zip(listos, resultados):
+        total += 1
+        if problema:
+            falla(problema[0], semilla, problema[1], fuente)
 
 
 def probar_oraculo(tmp):
@@ -660,6 +717,9 @@ def main():
 
         print("=== SENTENCIAS: un valor que se mueve por algunos caminos ===")
         probar_sentencias(tmp)
+
+        print("=== ENTREGAS: un valor con duenio a una funcion que puede fallar ===")
+        probar_entregas(tmp)
 
         print("=== ORACULO: la aritmetica da lo que tiene que dar ===")
         probar_oraculo(tmp)
