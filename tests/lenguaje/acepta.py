@@ -631,7 +631,7 @@ ACEPTA: list[Caso] = [
 
     # Pasar un str por valor dentro de un `try` que falla: la llamada ya lo
     # solto, y el camino de error lo veia vivo y lo soltaba otra vez (double
-    # free; el PC del dormitorio en pokered-tcode, 2026-10-16).
+    # free, 2026-10-16).
     ("un str entregado a una llamada que falla no se suelta dos veces",
      '''fn interior(f: str) ! {
             if f == "uno" { fail "pide un servicio"; }
@@ -672,7 +672,7 @@ ACEPTA: list[Caso] = [
     # copiar_rango y rellenar_rango: un tramo de un bloque de escalares de una vez
     # (memmove / memset), con el mismo bloque de origen y de destino.
     ("copiar_rango y rellenar_rango sobre bloques de escalares",
-     '''struct Bus { wram: bloque<u8> }
+     '''struct Memoria { datos: bloque<u8> }
         fn sumar(b: &bloque<u8>) -> usize {
             var s: usize = 0;
             var i = 0;
@@ -680,14 +680,14 @@ ACEPTA: list[Caso] = [
             return s;
         }
         fn main() {
-            var bus = Bus { wram: reservar(32768) };
-            rellenar_rango(bus.wram, 0, 8192, 7);
+            var mem = Memoria { datos: reservar(32768) };
+            rellenar_rango(mem.datos, 0, 8192, 7);
             var w: bloque<u8> = reservar(8192);
-            copiar_rango(w, 0, bus.wram, 0, 8192);
+            copiar_rango(w, 0, mem.datos, 0, 8192);
             copiar_rango(w, 10, w, 0, 100);
             var g: bloque<u32> = reservar(4);
             rellenar_rango(g, 1, 3, 123456);
-            imprimir($"{sumar(w)} {bus.wram[8191]} {bus.wram[8192]} {g[0]} {g[3]}\\n");
+            imprimir($"{sumar(w)} {mem.datos[8191]} {mem.datos[8192]} {g[0]} {g[3]}\\n");
         }''',
      "57344 7 0 0 123456\n"),
 
