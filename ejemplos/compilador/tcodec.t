@@ -2113,23 +2113,66 @@ fn resolver_instancia(d: &P.Nodo, plantillas_st: &map<str, usize>,
 // ------------------------------------------------------------------
 
 // La firma en C de una funcion que escribio otro: un `str` entra como
-// `const char*`, y `cadena_c` sale como tal.
+// `const char*`, y `cadena_c` sale como tal. Un `bloque<T>` entra como dos:
+// `const T* x, size_t x_n` (sin `const` si es `mut bloque<T>`).
 fn prototipo_externo(nombre: view, tipos_p: &list<str>, nombres_p: &list<str>,
-    retorno: view) -> str {
+    muts: &list<bool>, retorno: view) -> str {
     var tc = G.tipo_c(retorno);
     if retorno == "cadena_c" { tc = nuevo("const char*"); }
     if tipos_p.largo() == 0 { return $"{tc} {nombre}(void)"; }
     var partes = vacio();
     var i = 0;
     while i < tipos_p.largo() {
-        var t = G.tipo_c(tipos_p[i]);
-        if tipos_p[i] == "str" { t = nuevo("const char*"); }
         if i > 0 { partes.empujar(", "); }
-        let pieza = $"{t} {nombres_p[i]}";
-        partes.empujar(pieza);
+        if T.es_bloque(tipos_p[i]) {
+            let el = G.tipo_c(T.elemento(tipos_p[i]));
+            let k = if muts[i] { "" } else { "const " };
+            let pieza = $"{k}{el}* {nombres_p[i]}, size_t {nombres_p[i]}_n";
+            partes.empujar(pieza);
+        } else {
+            var t = G.tipo_c(tipos_p[i]);
+            if tipos_p[i] == "str" { t = nuevo("const char*"); }
+            let pieza = $"{t} {nombres_p[i]}";
+            partes.empujar(pieza);
+        }
         i = i + 1;
     }
     return $"{tc} {nombre}({partes})";
+}
+
+// Si la funcion de C recibe algun bloque, el puente con Tcode: Tcode le pasa
+// el bloque por su direccion, como un argumento mas, y el puente lo abre en
+// puntero y largo. Vacio si no hay bloques.
+fn envoltorio_externo(nombre: view, tipos_p: &list<str>, nombres_p: &list<str>,
+    muts: &list<bool>, retorno: view) -> str {
+    var hay = false;
+    for t en tipos_p { if T.es_bloque(t) { hay = true; } }
+    if !hay { return vacio(); }
+    var tc = G.tipo_c(retorno);
+    if retorno == "cadena_c" { tc = nuevo("const char*"); }
+    var params = vacio();
+    var args = vacio();
+    var i = 0;
+    while i < tipos_p.largo() {
+        if i > 0 { params.empujar(", "); args.empujar(", "); }
+        let nm = vista(nombres_p[i]);
+        if T.es_bloque(tipos_p[i]) {
+            let k = if muts[i] { "" } else { "const " };
+            let pieza = $"{k}{G.tipo_c(tipos_p[i])}* {nm}";
+            params.empujar(pieza);
+            let pasa = $"{nm}->e, {nm}->n";
+            args.empujar(pasa);
+        } else {
+            var t = G.tipo_c(tipos_p[i]);
+            if tipos_p[i] == "str" { t = nuevo("const char*"); }
+            let pieza = $"{t} {nm}";
+            params.empujar(pieza);
+            args.empujar(nm);
+        }
+        i = i + 1;
+    }
+    let vuelve = if tc == "void" { "" } else { "return " };
+    return $"SS_LANG_QUIZA_SIN_USAR static {tc} ss_ext_{nombre}({params}) {{ {vuelve}{nombre}({args}); }}";
 }
 
 // Cada linea de un texto, sin el salto final.
@@ -3124,6 +3167,7 @@ fn nombre_de_typedef_fn(l: view) -> str {
 
 // Ensambla las secciones ya generadas sin decidir nada sobre su contenido.
 fn ensamblar_c(raiz: view, ext_cabeceras: &list<str>, ext_protos: &list<str>,
+    ext_envoltorios: &list<str>,
     partes: &list<str>, envoltorios: &list<str>,
     tipos_fn: &list<str>, arit: &list<str>,
     bloque_copias: &list<str>, protos: &list<str>,
@@ -3208,6 +3252,7 @@ fn ensamblar_c(raiz: view, ext_cabeceras: &list<str>, ext_protos: &list<str>,
         }
         k_ext = k_ext + 1;
     }
+    for x en ext_envoltorios { todas.anadir(copiar(x)); }
     todas.anadir(vacio());
     for l en cuerpos { todas.anadir(copiar(l)); }
 
@@ -3512,6 +3557,9 @@ struct ExternosLeidos {
     cabeceras: list<str>,
     modulos: list<str>,
     protos: list<str>,
+    // `ss_ext_<f>` de las funciones de C que reciben un bloque: pasan el
+    // puntero y el largo (`envoltorio_externo`).
+    envoltorios: list<str>,
 }
 
 struct ProgramaLeido {
@@ -3533,7 +3581,7 @@ fn programa_no_leido() -> ProgramaLeido {
         structs: StructsLeidos { nombres: [], campos: [], tipos: [], indice: [] },
         genericos: StructsGenericos { indice: [], params: [], campos: [], tipos: [] },
         enums: EnumsLeidos { nombres: [], indice: [], variantes: [], lleva: [] },
-        externos: ExternosLeidos { cabeceras: [], modulos: [], protos: [] },
+        externos: ExternosLeidos { cabeceras: [], modulos: [], protos: [], envoltorios: [] },
         plantillas: [] };
 }
 
@@ -3646,6 +3694,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
     var ext_cabeceras: list<str> = [];
     var ext_modulos: list<str> = [];
     var ext_protos: list<str> = [];
+    var ext_envoltorios: list<str> = [];
     var en_nombres: list<str> = [];
     var en_indice: map<str, usize> = [];
     var en_donde: map<str, str> = [];
@@ -3744,18 +3793,22 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
                         if f.clase != Clase.Fn { continue; }
                         var ps: list<str> = [];
                         var pn: list<str> = [];
+                        var pm: list<bool> = [];
                         var ret = vacio();
                         for h en f.hijos {
                             if h.clase == Clase.Param {
                                 let tp = F.tipo_pelado(h.texto);
                                 ps.anadir(tp);
                                 pn.anadir(F.nombre_de(h.texto));
+                                pm.anadir(contiene(h.texto, ": mut "));
                             }
                             if h.clase == Clase.RetornoTipo { ret = nuevo(h.texto); }
                         }
                         ext_cabeceras.anadir(nuevo(d.texto));
                         ext_modulos.anadir(copiar(m));
-                        ext_protos.anadir(prototipo_externo(f.texto, ps, pn, ret));
+                        ext_protos.anadir(prototipo_externo(f.texto, ps, pn, pm, ret));
+                        let env = envoltorio_externo(f.texto, ps, pn, pm, ret);
+                        if env.largo() > 0 { ext_envoltorios.anadir(env); }
                     }
                     continue;
                 }
@@ -3826,7 +3879,7 @@ fn leer_programa(fuente: view, raiz: view) -> ProgramaLeido ! {
     let enums = EnumsLeidos { nombres: en_nombres, indice: en_indice,
         variantes: en_variantes, lleva: en_lleva };
     let externos = ExternosLeidos { cabeceras: ext_cabeceras,
-        modulos: ext_modulos, protos: ext_protos };
+        modulos: ext_modulos, protos: ext_protos, envoltorios: ext_envoltorios };
     return ProgramaLeido { ok: true, modulos: modulos, global: global,
         arboles: arboles, contextos: contextos, structs: structs,
         genericos: genericos, enums: enums, externos: externos,
@@ -4339,6 +4392,7 @@ fn main() -> usize ! {
     let ext_cabeceras = copiar(leido.externos.cabeceras);
     let ext_modulos = copiar(leido.externos.modulos);
     let ext_protos = copiar(leido.externos.protos);
+    let ext_envoltorios = copiar(leido.externos.envoltorios);
     let en_nombres = copiar(leido.enums.nombres);
     let en_indice = copiar(leido.enums.indice);
     let en_variantes = copiar(leido.enums.variantes);
@@ -4499,7 +4553,7 @@ fn main() -> usize ! {
 
     let arit = aritmetica_usada(anchos, decimales, conversiones);
     let tipos_fn = tipos_funcion_usados(global, arboles, instancias, protos, limpios);
-    let todo = try ensamblar_c(raiz, ext_cabeceras, ext_protos, partes,
+    let todo = try ensamblar_c(raiz, ext_cabeceras, ext_protos, ext_envoltorios, partes,
         envoltorios, tipos_fn, arit, bloque_copias, protos, cuerpos);
     if modo == "mostrar" {
         imprimir(todo);

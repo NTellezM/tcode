@@ -1052,6 +1052,8 @@ sección que se nombra.
 | `copiar(x: &T) -> T` |  | copia profunda de cualquier valor | `copiar`: copia profunda, explícita, sin anotar nada |
 | `reservar(n: usize) -> bloque<T>` |  | `n` ranuras, todas a ceros | Memoria propia: `bloque<T>`, `reservar` e `intercambiar` |
 | `redimensionar(b: mut bloque<T>, n: usize)` |  | cambia el tamaño; lo nuevo, a ceros | Memoria propia: `bloque<T>`, `reservar` e `intercambiar` |
+| `copiar_rango(d: mut bloque<T>, desde: usize, o: &bloque<T>, de: usize, cuantos: usize)` |  | `cuantos` elementos de `o` (desde `de`) a `d` (desde `desde`), de una vez; `T` escalar; pueden ser el mismo bloque | Memoria propia: `bloque<T>`, `reservar` e `intercambiar` |
+| `rellenar_rango(b: mut bloque<T>, desde: usize, cuantos: usize, v: T)` |  | `cuantos` elementos a `v`, de una vez; `T` escalar | Memoria propia: `bloque<T>`, `reservar` e `intercambiar` |
 | `intercambiar(sitio, valor: T) -> T` |  | deja `valor` en `sitio` y devuelve lo que había | `intercambiar` |
 | `poner(m: mut map<K, V>, clave, valor)` |  | inserta o reemplaza | 10. Mapas y argumentos |
 | `obtener(m, clave) -> V` | sí | una copia, una `view` o un `&V`, según `V` | 10. Mapas y argumentos |
@@ -2213,6 +2215,14 @@ cálculo puede consultarlo, pero no consumirlo ni modificarlo.
 Si el bloque está dentro de otra colección, se localiza una sola vez y antes
 de calcular el tamaño nuevo.
 
+**`copiar_rango` y `rellenar_rango`** mueven un tramo de un bloque de
+números o `bool` de una vez: una sola comprobación de límites (fuera de rango
+detiene el programa, como un índice) y después `memmove` o `memset`. Valen
+sobre todo entre campos de structs (`copiar_rango(w, 0, m.bus.wram, 0, 8192)`),
+donde el compilador de C no puede probar que un bucle elemento a elemento no se
+solapa y no lo vectoriza. El origen puede ser el mismo bloque que el destino. Con
+bloques de `str` o de structs no valen —copiarían dueños—: para esos, `copiar`.
+
 ### Por qué no hace falta `unsafe`
 
 Reservar memoria en C o en Rust deja ranuras **sin inicializar**, y de ahí
@@ -2562,6 +2572,13 @@ en la firma de un `externo`, y al llamarla hay que pasarle una variable `var`:
 el generador le quita el `const` a propósito, porque C escribirá dentro.
 Fuera de un `externo` `buffer` no es un tipo —el error lo dice—, y como
 nombre de variable sigue valiendo.
+
+**Un `bloque<T>` de números o `bool` también cruza el borde.** En la firma de
+C llega como dos parámetros, `const T* x, size_t x_n`; con `mut bloque<T>`,
+como `T* x, size_t x_n`, y C puede escribir dentro. Hay que pasar un sitio
+(una variable o un campo), no un bloque recién hecho. Tcode lo llama a través
+de un puente `ss_ext_<función>` que abre el bloque en puntero y largo: un
+fotograma de 92 KB va en una sola llamada, no en una por byte.
 
 ### El escape completo: un `.c` de al lado
 

@@ -669,6 +669,49 @@ ACEPTA: list[Caso] = [
         }''',
      "3 4 9\n"),
 
+    # copiar_rango y rellenar_rango: un tramo de un bloque de escalares de una vez
+    # (memmove / memset), con el mismo bloque de origen y de destino.
+    ("copiar_rango y rellenar_rango sobre bloques de escalares",
+     '''struct Bus { wram: bloque<u8> }
+        fn sumar(b: &bloque<u8>) -> usize {
+            var s: usize = 0;
+            var i = 0;
+            while i < largo(b) { s = s + (b[i] como usize); i = i + 1; }
+            return s;
+        }
+        fn main() {
+            var bus = Bus { wram: reservar(32768) };
+            rellenar_rango(bus.wram, 0, 8192, 7);
+            var w: bloque<u8> = reservar(8192);
+            copiar_rango(w, 0, bus.wram, 0, 8192);
+            copiar_rango(w, 10, w, 0, 100);
+            var g: bloque<u32> = reservar(4);
+            rellenar_rango(g, 1, 3, 123456);
+            imprimir($"{sumar(w)} {bus.wram[8191]} {bus.wram[8192]} {g[0]} {g[3]}\\n");
+        }''',
+     "57344 7 0 0 123456\n"),
+
+    # Un bloque de numeros al borde con C: `bloque<T>` llega como `const T*` y
+    # su largo; `mut bloque<T>`, como `T*`, y C escribe.
+    ("un bloque a una funcion de C, para leer y para escribir",
+     '''externo "bloques_prueba.c" {
+            fn suma_bytes(b: bloque<u8>) -> u64;
+            fn doblar(v: mut bloque<u32>, mas: u32);
+        }
+        struct Caja { datos: bloque<u8> }
+        fn main() {
+            var c = Caja { datos: reservar(1000) };
+            rellenar_rango(c.datos, 0, 1000, 3);
+            var v: bloque<u32> = reservar(3);
+            v[0] = 1;
+            v[1] = 2;
+            v[2] = 3;
+            doblar(v, 10);
+            imprimir($"{suma_bytes(c.datos)} {v[0]} {v[1]} {v[2]}\\n");
+        }''',
+     "3000 12 14 16\n",
+     {"apoyo": ("tests/lenguaje/apoyo/bloques_prueba.c",)}),
+
     ("los limites exactos de los enteros siguen siendo validos",
      '''fn main() {
             let a: u8 = 255;

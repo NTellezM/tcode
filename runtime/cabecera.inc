@@ -440,6 +440,43 @@ static size_t ss_lang_indice_(size_t i, size_t n, const char* arch, int ln)
     return i;
 }
 
+/* `copiar_rango(destino, desde, origen, de, cuantos)` y `rellenar_rango(b, desde,
+   cuantos, valor)` sobre bloques de escalares: una sola comprobacion de
+   limites (fuera de rango detiene el programa, como un indice) y luego
+   memmove / memset, en vez de un bucle con una comprobacion por elemento. El
+   origen y el destino pueden ser el mismo bloque: memmove lo permite. */
+SS_LANG_QUIZA_SIN_USAR
+static void ss_lang_copiar_rango_(void* de, size_t dn, size_t di,
+                                  const void* oe, size_t on, size_t oi,
+                                  size_t k, size_t tam, const char* arch, int ln)
+{
+    if (SS_LANG_RARO(di > dn || k > dn - di || oi > on || k > on - oi))
+    {
+        fflush(stdout);
+        fprintf(stderr, "%s:%d: copiar_rango(destino desde %zu, origen desde "
+                        "%zu, %zu) fuera de rango (destino de %zu, origen de %zu)\n",
+                arch, ln, di, oi, k, dn, on);
+        abort();
+    }
+    if (k > 0) memmove((char*) de + di * tam, (const char*) oe + oi * tam, k * tam);
+}
+
+SS_LANG_QUIZA_SIN_USAR
+static void ss_lang_rellenar_(void* de, size_t dn, size_t di, size_t k,
+                              const void* valor, size_t tam, const char* arch, int ln)
+{
+    if (SS_LANG_RARO(di > dn || k > dn - di))
+    {
+        fflush(stdout);
+        fprintf(stderr, "%s:%d: rellenar_rango(desde %zu, %zu) fuera de rango (el "
+                        "bloque tiene %zu)\n", arch, ln, di, k, dn);
+        abort();
+    }
+    char* p = (char*) de + di * tam;
+    if (tam == 1) { memset(p, *(const unsigned char*) valor, k); return; }
+    for (size_t i = 0; i < k; i++) memcpy(p + i * tam, valor, tam);
+}
+
 /* `rebanar(v, desde, hasta)`: fuera de rango detiene el programa, como un
    indice. Una vista vacia seria un resultado equivocado que nadie ve. */
 SS_LANG_QUIZA_SIN_USAR

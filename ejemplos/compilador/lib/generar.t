@@ -1619,6 +1619,8 @@ fn interna_pura(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -> str
     if nombre == "n_argumentos" { return nuevo("ss_lang_n_argumentos_()"); }
 
     if nombre == "redimensionar" { return interna_pura_redimensionar(b, s, n, tipos); }
+    if nombre == "copiar_rango" { return interna_pura_copiar_rango(b, s, n, tipos); }
+    if nombre == "rellenar_rango" { return interna_pura_rellenar(b, s, n, tipos); }
 
     if nombre == "intercambiar" { return interna_pura_intercambiar(b, s, n, tipos); }
 
@@ -1674,6 +1676,56 @@ fn interna_pura_redimensionar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
     if es_desconocido(cuantos) { return no_se(); }
     let m = mangle(t);
     return $"ss_lang_bloque_cambiar_{m}({ptr}, {cuantos}, \"{s.archivo}\", {n.linea})";
+}
+
+// `copiar_rango(destino, desde, origen, de, cuantos)`: los dos bloques por su
+// direccion (el origen tambien es un sitio: no se copia el struct), y una sola
+// comprobacion de limites en ss_lang_copiar_rango_ antes del memmove.
+fn interna_pura_copiar_rango(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    if n.hijos.largo() != 5 { return no_se(); }
+    let t = T.apuntado_si(T.escribir_tipo(I.tipo_de(tipos, n.hijos[0])));
+    if !T.es_bloque(t) { return no_se(); }
+    let tc = tipo_c(t);
+    let dir = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(dir) { return no_se(); }
+    let pd = nuevo_temporal(b);
+    emitir(b, $"{tc}* {pd} = {dir};");
+    let desde = expresion_c(b, s, n.hijos[1], "usize", tipos);
+    if es_desconocido(desde) { return no_se(); }
+    let dir_o = direccion_del_sitio(b, s, n.hijos[2], tipos);
+    if es_desconocido(dir_o) { return no_se(); }
+    let po = nuevo_temporal(b);
+    emitir(b, $"const {tc}* {po} = {dir_o};");
+    let de = expresion_c(b, s, n.hijos[3], "usize", tipos);
+    if es_desconocido(de) { return no_se(); }
+    let cuantos = expresion_c(b, s, n.hijos[4], "usize", tipos);
+    if es_desconocido(cuantos) { return no_se(); }
+    return $"ss_lang_copiar_rango_({pd}->e, {pd}->n, {desde}, {po}->e, {po}->n, {de}, {cuantos}, sizeof(*{pd}->e), \"{s.archivo}\", {n.linea})";
+}
+
+// `rellenar_rango(destino, desde, cuantos, valor)`: el valor a un temporal y
+// ss_lang_rellenar_ (memset si el elemento es de un byte).
+fn interna_pura_rellenar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
+    tipos: &I.Contexto) -> str {
+    if n.hijos.largo() != 4 { return no_se(); }
+    let t = T.apuntado_si(T.escribir_tipo(I.tipo_de(tipos, n.hijos[0])));
+    if !T.es_bloque(t) { return no_se(); }
+    let tc = tipo_c(t);
+    let elem = T.elemento(t);
+    let dir = direccion_del_sitio(b, s, n.hijos[0], tipos);
+    if es_desconocido(dir) { return no_se(); }
+    let pd = nuevo_temporal(b);
+    emitir(b, $"{tc}* {pd} = {dir};");
+    let desde = expresion_c(b, s, n.hijos[1], "usize", tipos);
+    if es_desconocido(desde) { return no_se(); }
+    let cuantos = expresion_c(b, s, n.hijos[2], "usize", tipos);
+    if es_desconocido(cuantos) { return no_se(); }
+    let valor = expresion_c(b, s, n.hijos[3], vista(elem), tipos);
+    if es_desconocido(valor) { return no_se(); }
+    let pv = nuevo_temporal(b);
+    emitir(b, $"{tipo_c(vista(elem))} {pv} = {valor};");
+    return $"ss_lang_rellenar_({pd}->e, {pd}->n, {desde}, {cuantos}, &{pv}, sizeof({pv}), \"{s.archivo}\", {n.linea})";
 }
 
 fn interna_pura_intercambiar(b: mut Cuerpo, s: &Sitio, n: &P.Nodo,
@@ -2511,7 +2563,11 @@ fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -
     let nombre = vista(n.texto);
     let firmados = T.tipos_de_mapa(tipos.params, nombre) sino [];
     if firmados.largo() != n.hijos.largo() { return no_se(); }
-    var v = I.sin_modulo(nombre);
+    // Con algun bloque se llama al puente `ss_ext_<f>` (tcodec.t,
+    // `envoltorio_externo`), que lo abre en puntero y largo para C.
+    var con_bloque = false;
+    for fi en firmados { if T.es_bloque(T.escribir_tipo(fi)) { con_bloque = true; } }
+    var v = if con_bloque { $"ss_ext_{I.sin_modulo(nombre)}" } else { I.sin_modulo(nombre) };
     v.empujar("(");
     var previos: list<str> = [];
     let secuenciar = n.hijos.largo() > 1;
@@ -2528,6 +2584,15 @@ fn llamada_externa_c(b: mut Cuerpo, s: &Sitio, n: &P.Nodo, tipos: &I.Contexto) -
             }
             arg = $"ss_lang_cstr_(&{sitio}, \"{s.archivo}\", {n.linea})";
             tc = nuevo("const char*");
+        } else if T.es_bloque(T.escribir_tipo(firmados[i])) {
+            // el bloque por su direccion: el puente pasa `->e` y `->n`
+            let sitio = sitio_c(b, s, h, tipos);
+            if es_desconocido(sitio) {
+                let _m = cerrar_marco(b);
+                return no_se();
+            }
+            arg = $"&{sitio}";
+            tc = $"{tipo_c(T.escribir_tipo(firmados[i]))}*";
         } else if firmados[i].nombre == "buffer" {
             // `buffer` es un `str` del que C va a escribir: se le da el mismo
             // buffer, pero sin el `const`, que es lo que pide el parametro
@@ -3415,6 +3480,7 @@ fn es_interna(nombre: view) -> bool {
     if nombre == "texto" || nombre == "copiar" { return true; }
     if nombre == "ordenar" || nombre == "reservar" { return true; }
     if nombre == "redimensionar" || nombre == "intercambiar" { return true; }
+    if nombre == "copiar_rango" || nombre == "rellenar_rango" { return true; }
     return false;
 }
 

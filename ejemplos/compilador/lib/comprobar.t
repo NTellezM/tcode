@@ -219,6 +219,14 @@ fn firma_interna(nombre: view) -> Interna {
     else if nombre == "redimensionar" {
         ps.anadir(nuevo("@bloque_mut")); ps.anadir(nuevo("usize")); r = nuevo("()");
     }
+    else if nombre == "copiar_rango" {
+        ps.anadir(nuevo("@bloque_mut")); ps.anadir(nuevo("usize")); ps.anadir(nuevo("@bloque"));
+        ps.anadir(nuevo("usize")); ps.anadir(nuevo("usize")); r = nuevo("()");
+    }
+    else if nombre == "rellenar_rango" {
+        ps.anadir(nuevo("@bloque_mut")); ps.anadir(nuevo("usize")); ps.anadir(nuevo("usize"));
+        ps.anadir(nuevo("@elemento")); r = nuevo("()");
+    }
     else if nombre == "raiz" || nombre == "piso" || nombre == "techo"
     || nombre == "redondear" {
         ps.anadir(nuevo("@decimal"));
@@ -4436,6 +4444,25 @@ fn llamada(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
             }
             continue;
         }
+        // Un `bloque<T>` a C: se le da su direccion (C ve el puntero y el
+        // largo), asi que tiene que ser un sitio; un bloque recien hecho no lo
+        // soltaria nadie. Solo se lee.
+        if f.externa && T.es_bloque(vista(p.tipo)) {
+            let base = variable_base(arg);
+            let is = buscar_simbolo(c, base);
+            if base.largo() == 0 || !existe(c, is) {
+                let _t = comprobar_expresion(c, m, tipos, arg, "", false);
+                error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es un bloque que C lee: pasale una variable o un campo, no uno recien hecho");
+                continue;
+            }
+            let tipo_arg = tipo_de_lugar(c, m, tipos, arg);
+            let ta = sin_prestamo(T.escribir_tipo(tipo_arg));
+            if T.conocido(tipo_arg) && ta != p.tipo {
+                error(c, m, n.linea, $"`{p.nombre}` de `{nombre}` es `{p.tipo}` y recibio `{ta}`");
+            }
+            let _l = leer(c, m, arg.linea, is);
+            continue;
+        }
         // Un `buffer` es una salida: C va a escribir ahi. Pide una variable
         // —y `var`, porque se modifica— y la llamada cuenta como modificarla.
         if igual(p.tipo, "buffer") {
@@ -4595,6 +4622,7 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
     if nombre == "reservar" { return interna_reservar(c, m, tipos, n, destino); }
 
     if nombre == "redimensionar" { return interna_redimensionar(c, m, tipos, n); }
+    if nombre == "copiar_rango" || nombre == "rellenar_rango" { return interna_rango(c, m, tipos, n, nombre); }
 
     if nombre == "intercambiar" { return interna_intercambiar(c, m, tipos, n); }
 
@@ -4810,6 +4838,65 @@ fn interna_redimensionar(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, 
     if T.conocido(t) && !encaja("usize", T.escribir_tipo(t)) {
         error(c, m, n.linea, $"`redimensionar` espera el tamaño nuevo, un `usize`, y recibio `{T.escribir_tipo(t)}`");
     }
+    return tipo_de_escrito(nuevo("()"));
+}
+
+// `copiar_rango(destino, desde, origen, de, cuantos)` y `rellenar_rango(destino,
+// desde, cuantos, valor)`: un tramo de un bloque de escalares de una vez (el
+// C hace memmove / memset). El destino es un sitio que se modifica; el origen,
+// un bloque del mismo tipo que solo se lee, y puede ser el mismo.
+fn interna_rango(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo, nombre: view) -> T.Tipo {
+    let dados = n.hijos.largo();
+    let quiere: usize = if nombre == "copiar_rango" { 5 } else { 4 };
+    if dados != quiere {
+        if nombre == "copiar_rango" {
+            error(c, m, n.linea, $"`copiar_rango` espera 5 argumentos (destino, desde, origen, de, cuantos) y recibio {dados}");
+        } else {
+            error(c, m, n.linea, $"`rellenar_rango` espera 4 argumentos (bloque, desde, cuantos, valor) y recibio {dados}");
+        }
+        evaluar_todos(c, m, tipos, n);
+        return tipo_de_escrito(nuevo("()"));
+    }
+    let base = variable_base(n.hijos[0]);
+    let is = buscar_simbolo(c, base);
+    let sitio = tipo_de_lugar(c, m, tipos, n.hijos[0]);
+    let t_sitio = sin_prestamo(T.escribir_tipo(sitio));
+    if base.largo() == 0 || !existe(c, is) || !T.es_bloque(t_sitio) {
+        error(c, m, n.linea, $"`{nombre}` escribe en un bloque, y necesita un sitio que lo sea: una variable, un campo o un elemento");
+        var k = 1;
+        while k < dados { let _t = comprobar_expresion(c, m, tipos, n.hijos[k], "", false); k = k + 1; }
+        return tipo_de_escrito(nuevo("()"));
+    }
+    let elem = T.elemento(t_sitio);
+    if !T.escalar(vista(elem)) || elem == "view" || elem == "()" {
+        error(c, m, n.linea, $"`{nombre}` solo vale con bloques de numeros o booleanos (copia los bytes tal cual); con `{t_sitio}` usa `copiar` o un bucle");
+    }
+    // Primero lo que se lee (el origen puede ser el mismo bloque: memmove).
+    var k = 1;
+    while k < dados {
+        if nombre == "copiar_rango" && k == 2 {
+            let t_o = sin_prestamo(T.escribir_tipo(comprobar_expresion(c, m, tipos, n.hijos[2], "", false)));
+            if t_o != t_sitio && t_o.largo() > 0 {
+                error(c, m, n.linea, $"`copiar_rango` copia entre bloques del mismo tipo: el destino es `{t_sitio}` y el origen `{t_o}`");
+            }
+            if variable_base(n.hijos[2]).largo() == 0 {
+                error(c, m, n.linea, "el origen de `copiar_rango` tiene que ser un sitio (una variable, un campo o un elemento), no un bloque recien hecho que nadie soltaria");
+            }
+        } else if nombre == "rellenar_rango" && k == 3 {
+            let t_v = comprobar_expresion(c, m, tipos, n.hijos[3], vista(elem), false);
+            if T.conocido(t_v) && !encaja(vista(elem), T.escribir_tipo(t_v)) {
+                error(c, m, n.linea, $"`rellenar_rango` pone `{elem}` en el bloque y recibio `{T.escribir_tipo(t_v)}`");
+            }
+        } else {
+            let t_n = comprobar_expresion(c, m, tipos, n.hijos[k], "usize", false);
+            if T.conocido(t_n) && !encaja("usize", T.escribir_tipo(t_n)) {
+                error(c, m, n.linea, $"`{nombre}` espera posiciones y cuantos como `usize`, y recibio `{T.escribir_tipo(t_n)}`");
+            }
+        }
+        k = k + 1;
+    }
+    let por_ref = T.es_referencia(c.simbolos[is].tipo);
+    mutar(c, m, n.hijos[0], n.hijos[0].linea, is, por_ref);
     return tipo_de_escrito(nuevo("()"));
 }
 
@@ -6126,8 +6213,15 @@ fn comprobar_externa(c: mut Comprobacion, m: &Mundo, f: &Funcion) {
     let nombre = vista(f.nombre);
     for p en f.params {
         let t = vista(p.tipo);
-        if prestado(p) || T.es_referencia(t) {
-            error(c, m, f.linea, $"`{nombre}` es de C: sus parametros no se prestan ni se mutan, se pasan por valor");
+        if T.es_bloque(t) && !p.compartido && !T.es_referencia(t) {
+            // un bloque de numeros: C recibe el puntero y el largo (`const` si
+            // no lleva `mut`), y lo mira sin quedarselo
+            let el = T.elemento(t);
+            if !T.escalar(vista(el)) || el == "view" || el == "()" {
+                error(c, m, f.linea, $"`{nombre}.{p.nombre}` es `{t}`: al borde con C solo pasan bloques de numeros o `bool` (C ve un arreglo de bytes); para lo demas, envuelvelo en una funcion de C tuya");
+            }
+        } else if prestado(p) || T.es_referencia(t) {
+            error(c, m, f.linea, $"`{nombre}` es de C: sus parametros no se prestan ni se mutan, se pasan por valor (salvo un `mut bloque<T>`, que C escribe)");
         } else if t == "view" {
             error(c, m, f.linea, $"`{nombre}.{p.nombre}` es una `view`, y una vista puede apuntar a la mitad de una cadena: no acaba en `\\0` y C leeria de mas. Pasa un `str`, que si acaba, o haz `nuevo(v)` antes");
         } else if !es_numerico(t) && t != "bool" && t != "str" && t != "buffer" {

@@ -462,6 +462,12 @@ fn tipo_de_externo(e: mut Estado) -> str ! {
         avanzar(e);
         return nuevo("buffer");
     }
+    // `mut bloque<T>`: un bloque en el que C va a escribir (C recibe `T*` y su
+    // largo). Sin `mut`, `bloque<T>` le llega como `const T*` y su largo.
+    if acepta(e, "palabra", "mut") {
+        let t = try tipo(e);
+        return $"mut {t}";
+    }
     return try tipo(e);
 }
 
