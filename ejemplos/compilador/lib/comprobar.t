@@ -4685,6 +4685,9 @@ fn interna(c: mut Comprobacion, m: mut Mundo, tipos: &I.Contexto, n: &P.Nodo,
                 error(c, m, n.linea, $"el argumento {k} de `{nombre}` debe ser `{esperado}` y es `{T.escribir_tipo(t)}`");
             }
         }
+        // Un literal tiene que caber en el tipo, como en las llamadas
+        // normales: `empujar_byte(s, 2727)` no es un `u8`.
+        if es_numerico(esperado) { comprobar_literal(c, m, arg, esperado); }
         if esperado == "@cualquiera" && T.conocido(t) && !se_muestra(T.escribir_tipo(t)) {
             error(c, m, n.linea, $"`{nombre}` no sabe mostrar un `{T.escribir_tipo(t)}`: {como_mostrar(m, T.escribir_tipo(t))}");
         }

@@ -1,0 +1,1 @@
+fn pintar(codigo:view)->str{var s=vacio();empujar_byte(s,2727);return s;}

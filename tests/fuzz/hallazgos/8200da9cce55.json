@@ -1,0 +1,5 @@
+{
+  "origen": "std/color.t",
+  "firma": "tcodec: error: <sitio>: tcodec no sabe escribir esta expresion de `pintar`. Es un fallo del compilador, no de tu programa",
+  "mutacion": "cortado en el byte 1458; duplicada la pieza '2727'"
+}
